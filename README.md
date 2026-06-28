@@ -1,0 +1,4 @@
+
+```
+hf download phylobio/BiomniBench-DA --repo-type dataset --local-dir ./biomnibench-da
+```
