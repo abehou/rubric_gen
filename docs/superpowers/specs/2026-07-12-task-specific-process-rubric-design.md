@@ -237,7 +237,9 @@ Validation fails closed. A rubric is sealable only when:
 
 - the JSON matches the supported schema and task ID;
 - criterion IDs and level labels are unique and ordered;
-- every criterion has at least three strictly descending levels ending at zero;
+- every criterion has at least three strictly descending levels, contains
+  exactly one zero-valued level, and may continue into explicit negative
+  penalty tiers;
 - the A-level total is exactly 100;
 - every criterion references at least one valid task anchor;
 - all required summary-rubric anchors are covered;
@@ -298,8 +300,8 @@ After the task judge returns, the outer runner must:
 1. parse every rubric level with signed integer support;
 2. require the evaluation to contain exactly the rubric's criterion keys;
 3. require every selected level to exist in that criterion;
-4. recompute the scalar score from selected levels rather than trusting
-   `reward.json`; and
+4. recompute the signed raw score from selected levels, derive the authoritative
+   0--100 reward by clamping that raw sum, rather than trusting `reward.json`;
 5. make the recomputed score authoritative while preserving any disagreement
    with the task judge's scalar as an explicit integrity field.
 
@@ -373,7 +375,8 @@ subprocesses. Required tests include:
 8. existing sealed bundles cannot be overwritten;
 9. the judge loads and hash-verifies the correct external task bundle;
 10. missing or extra evaluation criteria are rejected;
-11. signed level values are parsed and included in recomputed scores;
+11. signed level values are parsed, retained in the raw score, and included in
+    the clamped authoritative reward;
 12. a mismatch between `reward.json` and the recomputed score is recorded while
     the recomputed score remains authoritative;
 13. CLI parsing requires explicit task IDs and separates retrospective from
