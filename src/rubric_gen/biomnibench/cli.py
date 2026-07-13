@@ -161,10 +161,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Override judge filename. Defaults to llm_judge.py, then judge.py.",
     )
-    judge.add_argument(
+    rubric_source = judge.add_mutually_exclusive_group()
+    rubric_source.add_argument(
         "--rubric",
-        default="rubric.txt",
+        default=None,
         help="Rubric filename under each task's tests directory. Defaults to rubric.txt.",
+    )
+    rubric_source.add_argument(
+        "--rubric-set",
+        default=None,
+        help="Sealed external rubric-set directory, resolved by target task ID.",
     )
     judge.add_argument("--limit", type=int, default=None, help="Judge at most this many tasks.")
     judge.add_argument("--dry-run", action="store_true", help="Plan judge inputs without calling LLMs.")
