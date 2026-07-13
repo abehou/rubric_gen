@@ -1,0 +1,28 @@
+[project]
+name = "rubric-gen"
+version = "0.1.0"
+description = "Small local runners for BiomniBench experiments."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "matplotlib>=3.8",
+  "tqdm>=4.66",
+]
+
+[project.scripts]
+biomnibench-agent = "rubric_gen.biomnibench.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rubric_gen"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
