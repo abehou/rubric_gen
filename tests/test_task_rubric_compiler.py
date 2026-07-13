@@ -9,7 +9,13 @@ from pathlib import Path
 
 import pytest
 
+import rubric_gen.biomnibench as biomnibench
+from rubric_gen.biomnibench import cli as cli_module
+from rubric_gen.biomnibench import process_rubrics as process_rubrics_module
 from rubric_gen.biomnibench import task_rubric_compiler as compiler_module
+from rubric_gen.biomnibench import task_rubrics as task_rubrics_module
+from rubric_gen.biomnibench.common import resolve_project_path
+from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.task_rubric_compiler import (
     GeminiTaskRubricRewriter,
     RubricBundleError,
@@ -659,3 +665,164 @@ def test_compiler_config_rejects_overlapping_input_and_output_roots(
             task_ids=("da-1-1",),
             output_dir=output_dir,
         )
+
+
+def test_cli_requires_explicit_tasks_and_output() -> None:
+    args = build_parser().parse_args([
+        "task-process-rubrics",
+        "--task",
+        "da-19-1",
+        "--output-dir",
+        "runs/biomnibench-rubrics/pilot",
+    ])
+
+    assert args.tasks == ["da-19-1"]
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "task-process-rubrics",
+            "--output-dir",
+            "out",
+        ])
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "task-process-rubrics",
+            "--task",
+            "da-19-1",
+        ])
+
+
+def test_cli_maps_task_compiler_options_to_config() -> None:
+    args = build_parser().parse_args([
+        "task-process-rubrics",
+        "--task",
+        "da-19-1",
+        "--task",
+        "da-26-4",
+        "--output-dir",
+        "runs/biomnibench-rubrics/pilot",
+        "--tasks-dir",
+        "data/biomnibench-da",
+        "--model",
+        "gemini-test",
+        "--api-key-env",
+        "GOOGLE_API_KEY",
+        "--max-retries",
+        "4",
+        "--max-concurrency",
+        "6",
+        "--resume",
+    ])
+
+    config = TaskRubricCompilerConfig.from_namespace(args)
+
+    assert config.tasks_dir == resolve_project_path("data/biomnibench-da")
+    assert config.task_ids == ("da-19-1", "da-26-4")
+    assert config.output_dir == resolve_project_path(
+        "runs/biomnibench-rubrics/pilot"
+    )
+    assert config.model == "gemini-test"
+    assert config.api_key_env == "GOOGLE_API_KEY"
+    assert config.max_retries == 4
+    assert config.max_concurrency == 6
+    assert config.resume is True
+
+
+def test_cli_config_clamps_retry_and_concurrency_bounds() -> None:
+    args = build_parser().parse_args([
+        "task-process-rubrics",
+        "--task",
+        "da-19-1",
+        "--output-dir",
+        "runs/biomnibench-rubrics/pilot",
+        "--max-retries",
+        "-3",
+        "--max-concurrency",
+        "0",
+    ])
+
+    config = TaskRubricCompilerConfig.from_namespace(args)
+
+    assert config.max_retries == 0
+    assert config.max_concurrency == 1
+
+
+def test_retrospective_process_rubric_help_is_non_canonical(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(["process-rubrics", "--help"])
+    help_text = capsys.readouterr().out
+
+    assert exc_info.value.code == 0
+    assert "trajectory-informed retrospective" in help_text
+    assert "not canonical" in help_text
+    assert "trajectory-informed retrospective" in process_rubrics_module.__doc__
+    assert "not canonical" in process_rubrics_module.__doc__
+
+
+def test_main_runs_task_process_rubric_compiler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCompiler:
+        def __init__(self, config: TaskRubricCompilerConfig) -> None:
+            captured["config"] = config
+
+        def run(self) -> int:
+            return 17
+
+    monkeypatch.setattr(
+        cli_module,
+        "TaskProcessRubricCompiler",
+        FakeCompiler,
+        raising=False,
+    )
+
+    exit_code = cli_module.main([
+        "task-process-rubrics",
+        "--task",
+        "da-19-1",
+        "--output-dir",
+        "runs/biomnibench-rubrics/pilot",
+    ])
+
+    assert exit_code == 17
+    config = captured["config"]
+    assert isinstance(config, TaskRubricCompilerConfig)
+    assert config.task_ids == ("da-19-1",)
+
+
+def test_package_exports_intentional_task_rubric_interfaces() -> None:
+    expected_by_module = {
+        task_rubrics_module: (
+            "SchemaSnapshotLimits",
+            "DataFileSnapshot",
+            "TaskAnchor",
+            "TaskSnapshot",
+            "RubricLevel",
+            "RubricCriterion",
+            "TaskProcessRubric",
+            "build_task_snapshot",
+            "canonical_json",
+            "sha256_text",
+            "parse_task_process_rubric",
+            "validate_task_process_rubric",
+            "render_task_process_rubric",
+        ),
+        compiler_module: (
+            "TaskRubricCompilerConfig",
+            "TaskRubricRequest",
+            "TaskRubricRewriter",
+            "GeminiTaskRubricRewriter",
+            "TaskProcessRubricCompiler",
+            "ResolvedRubricBundle",
+            "resolve_rubric_bundle",
+        ),
+        cli_module: ("run_task_process_rubrics",),
+    }
+
+    for module, names in expected_by_module.items():
+        for name in names:
+            assert getattr(biomnibench, name) is getattr(module, name)
+            assert name in biomnibench.__all__

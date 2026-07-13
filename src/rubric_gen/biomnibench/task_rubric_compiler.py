@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import fcntl
 import json
 import math
@@ -15,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
 
+from rubric_gen.biomnibench.common import resolve_project_path
 from rubric_gen.biomnibench.perturbations import GeminiPerturber
 from rubric_gen.biomnibench.task_rubrics import (
     TaskProcessRubric,
@@ -189,6 +191,19 @@ class TaskRubricCompilerConfig:
             or output_root.is_relative_to(tasks_root)
         ):
             raise ValueError("output_dir and tasks_dir must not overlap")
+
+    @classmethod
+    def from_namespace(cls, args: argparse.Namespace) -> "TaskRubricCompilerConfig":
+        return cls(
+            tasks_dir=resolve_project_path(args.tasks_dir),
+            task_ids=tuple(args.tasks),
+            output_dir=resolve_project_path(args.output_dir),
+            model=getattr(args, "model", "gemini-3.5-flash"),
+            api_key_env=getattr(args, "api_key_env", "GEMINI_API_KEY"),
+            max_retries=max(0, getattr(args, "max_retries", 2)),
+            max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
+            resume=getattr(args, "resume", False),
+        )
 
 
 @dataclass(frozen=True)
