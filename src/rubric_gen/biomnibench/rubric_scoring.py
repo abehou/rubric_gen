@@ -24,6 +24,9 @@ _CRITERION_PATTERN = re.compile(
     r"^[ \t]*Criterion[ \t]+(\d+)[ \t]*:",
     flags=re.MULTILINE,
 )
+_CRITERION_CANDIDATE_PATTERN = re.compile(
+    r"^[ \t]*Criterion(?:[ \t]+\d+\b|[ \t]*$)"
+)
 _LEVELS_LINE_PATTERN = re.compile(
     r"^[ \t]*Levels:[ \t]*(.*?)[ \t]*$",
     flags=re.MULTILINE,
@@ -42,14 +45,16 @@ def parse_rubric_levels_strict(rubric_text: str) -> dict[str, dict[str, int]]:
 
     inside_recognized_criterion = False
     for line_number, line in enumerate(rubric_text.splitlines(), start=1):
-        stripped = line.lstrip(" \t")
-        if stripped.startswith("Criterion"):
+        if _CRITERION_CANDIDATE_PATTERN.match(line) is not None:
             if _CRITERION_PATTERN.match(line) is None:
                 raise JudgeScoreValidationError(
                     f"rubric has a malformed Criterion line at line {line_number}"
                 )
             inside_recognized_criterion = True
-        if stripped.startswith("Levels") and not inside_recognized_criterion:
+        if (
+            _LEVELS_LINE_PATTERN.match(line) is not None
+            and not inside_recognized_criterion
+        ):
             raise JudgeScoreValidationError(
                 f"rubric has a Levels line outside a criterion at line {line_number}"
             )

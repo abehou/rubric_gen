@@ -46,9 +46,33 @@ def test_parser_preserves_explicit_positive_and_negative_values() -> None:
     assert levels == {"criterion_1": {"A": 10, "B": 0, "C": -10}}
 
 
+def test_parser_allows_criterion_prefixed_prose() -> None:
+    rubric = (
+        "Criterion-based scoring is explained below.\n"
+        "Criterion 1: Valid\n"
+        "Levels: A=10 B=0\n"
+    )
+
+    assert parse_rubric_levels_strict(rubric) == {
+        "criterion_1": {"A": 10, "B": 0}
+    }
+
+
+def test_parser_allows_levels_prefixed_prose() -> None:
+    rubric = (
+        "Levels-based guidance is explained below.\n"
+        "Criterion 1: Valid\n"
+        "Levels: A=10 B=0\n"
+    )
+
+    assert parse_rubric_levels_strict(rubric) == {
+        "criterion_1": {"A": 10, "B": 0}
+    }
+
+
 def test_parser_rejects_unparseable_criterion_candidate_line() -> None:
     rubric = (
-        "Criterion malformed header\n"
+        "Criterion 2 missing colon\n"
         "Criterion 1: Valid\n"
         "Levels: A=10 B=0\n"
     )
