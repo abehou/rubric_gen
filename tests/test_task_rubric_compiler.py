@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import json
 import multiprocessing
 from dataclasses import asdict, replace
@@ -8,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from rubric_gen.biomnibench import task_rubric_compiler as compiler_module
 from rubric_gen.biomnibench.task_rubric_compiler import (
     GeminiTaskRubricRewriter,
     RubricBundleError,
@@ -50,6 +52,14 @@ def publish_in_subprocess(
         result_queue.put((type(exc).__name__, str(exc)))  # type: ignore[attr-defined]
     else:
         result_queue.put(("published", ""))  # type: ignore[attr-defined]
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write_canonical_json(path: Path, value: object) -> None:
+    path.write_text(canonical_json(value) + "\n", encoding="utf-8")
 
 
 def make_task(root: Path, task_id: str = "da-1-1") -> Path:
@@ -177,6 +187,72 @@ def compile_fixture(tmp_path: Path, *, output_name: str = "rubric-set") -> Path:
     return output
 
 
+def compile_partial_fixture(tmp_path: Path) -> Path:
+    tasks_dir = tmp_path / "tasks"
+    first_task = make_task(tasks_dir, "da-1-1")
+    make_task(tasks_dir, "da-2-1")
+    rewriter = FakeRewriter([
+        valid_rubric(build_task_snapshot(first_task)),
+        "not JSON",
+    ])
+    output = tmp_path / "rubric-set"
+    compiler = TaskProcessRubricCompiler(
+        TaskRubricCompilerConfig(
+            tasks_dir=tasks_dir,
+            task_ids=("da-1-1", "da-2-1"),
+            output_dir=output,
+            max_retries=0,
+        ),
+        rewriter=rewriter,
+    )
+    assert compiler.run() == 1
+    return output
+
+
+def compile_retry_fixture(tmp_path: Path) -> Path:
+    tasks_dir = tmp_path / "tasks"
+    task_dir = make_task(tasks_dir)
+    compiler, _, output, _ = make_compiler(
+        tmp_path,
+        responses=["not JSON", valid_rubric(build_task_snapshot(task_dir))],
+    )
+    assert compiler.run() == 0
+    return output
+
+
+def reseal_task_after_attempt_mutation(output: Path, task_id: str) -> None:
+    task_dir = output / "tasks" / task_id
+    task_manifest_path = task_dir / "manifest.json"
+    task_manifest = json.loads(task_manifest_path.read_text())
+    task_manifest["artifacts"] = {
+        path.relative_to(task_dir).as_posix(): sha256_file(path)
+        for path in sorted(task_dir.rglob("*"))
+        if path.is_file() and path != task_manifest_path
+    }
+    attempt_dirs = sorted(
+        (task_dir / "attempts").glob("attempt-*"),
+        key=lambda path: int(path.name.removeprefix("attempt-")),
+    )
+    final_request = json.loads((attempt_dirs[-1] / "request.json").read_text())
+    request = TaskRubricRequest(
+        schema_version=final_request["schema_version"],
+        prompt_version=final_request["prompt_version"],
+        task_snapshot=final_request["task_snapshot"],
+        previous_errors=tuple(final_request["previous_errors"]),
+    )
+    task_manifest["hashes"]["prompt_sha256"] = sha256_text(
+        build_task_rubric_prompt(request)
+    )
+    write_canonical_json(task_manifest_path, task_manifest)
+
+    root_manifest_path = output / "manifest.json"
+    root_manifest = json.loads(root_manifest_path.read_text())
+    root_manifest["tasks"][task_id]["task_manifest_sha256"] = sha256_file(
+        task_manifest_path
+    )
+    write_canonical_json(root_manifest_path, root_manifest)
+
+
 def test_compiler_retries_with_only_previous_validation_errors(tmp_path: Path) -> None:
     tasks_dir = tmp_path / "tasks"
     task_dir = make_task(tasks_dir)
@@ -250,32 +326,42 @@ def test_exhausted_retries_leave_audit_artifacts_without_a_seal(
 def test_partial_batch_failure_records_successes_and_failures_without_seal(
     tmp_path: Path,
 ) -> None:
-    tasks_dir = tmp_path / "tasks"
-    first_task = make_task(tasks_dir, "da-1-1")
-    make_task(tasks_dir, "da-2-1")
-    rewriter = FakeRewriter([
-        valid_rubric(build_task_snapshot(first_task)),
-        "not JSON",
-    ])
-    output = tmp_path / "rubric-set"
-    compiler = TaskProcessRubricCompiler(
-        TaskRubricCompilerConfig(
-            tasks_dir=tasks_dir,
-            task_ids=("da-1-1", "da-2-1"),
-            output_dir=output,
-            max_retries=0,
-        ),
-        rewriter=rewriter,
-    )
-
-    assert compiler.run() == 1
+    output = compile_partial_fixture(tmp_path)
     assert not (output / "manifest.json").exists()
     incomplete = json.loads((output / "incomplete-manifest.json").read_text())
     assert incomplete["status"] == "incomplete"
     assert incomplete["successful_task_ids"] == ["da-1-1"]
     assert list(incomplete["failures"]) == ["da-2-1"]
-    assert (output / "tasks" / "da-1-1" / "rubric.json").is_file()
+    assert len(incomplete["rubric_set_id"]) == 64
+    successful = incomplete["tasks"]["da-1-1"]
+    assert set(successful) == {
+        "input_sha256",
+        "rubric_id",
+        "rubric_sha256",
+        "snapshot_sha256",
+        "task_manifest_path",
+        "task_manifest_sha256",
+    }
+    task_manifest_path = output / successful["task_manifest_path"]
+    assert task_manifest_path.is_file()
+    assert sha256_file(task_manifest_path) == successful["task_manifest_sha256"]
+    task_manifest = json.loads(task_manifest_path.read_text())
+    assert task_manifest["rubric_set_id"] == incomplete["rubric_set_id"]
+    assert task_manifest["rubric_id"] == successful["rubric_id"]
     assert (output / "tasks" / "da-2-1" / "attempts" / "attempt-1").is_dir()
+
+
+def test_incomplete_manifest_detects_successful_task_manifest_tampering(
+    tmp_path: Path,
+) -> None:
+    output = compile_partial_fixture(tmp_path)
+    incomplete = json.loads((output / "incomplete-manifest.json").read_text())
+    successful = incomplete["tasks"]["da-1-1"]
+    task_manifest_path = output / successful["task_manifest_path"]
+
+    task_manifest_path.write_text("tampered", encoding="utf-8")
+
+    assert sha256_file(task_manifest_path) != successful["task_manifest_sha256"]
 
 
 def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> None:
@@ -419,6 +505,40 @@ def test_bundle_tampering_is_detected(tmp_path: Path) -> None:
         resolve_rubric_bundle(output, "da-1-1")
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "extra-request-field",
+        "wrong-retry-version",
+        "broken-previous-errors",
+        "noncontiguous-attempt",
+    ),
+)
+def test_resolution_validates_the_complete_retry_chain(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    output = compile_retry_fixture(tmp_path)
+    attempts = output / "tasks" / "da-1-1" / "attempts"
+    final_request_path = attempts / "attempt-2" / "request.json"
+    final_request = json.loads(final_request_path.read_text())
+    if mutation == "extra-request-field":
+        final_request["unexpected"] = "not closed"
+        write_canonical_json(final_request_path, final_request)
+    elif mutation == "wrong-retry-version":
+        final_request["prompt_version"] = "wrong-version"
+        write_canonical_json(final_request_path, final_request)
+    elif mutation == "broken-previous-errors":
+        final_request["previous_errors"] = ["unrelated error"]
+        write_canonical_json(final_request_path, final_request)
+    else:
+        (attempts / "attempt-2").rename(attempts / "attempt-3")
+    reseal_task_after_attempt_mutation(output, "da-1-1")
+
+    with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
 def test_resolution_rejects_nonmember_and_unlisted_artifacts(tmp_path: Path) -> None:
     output = compile_fixture(tmp_path)
 
@@ -429,6 +549,27 @@ def test_resolution_rejects_nonmember_and_unlisted_artifacts(tmp_path: Path) -> 
         "not sealed",
         encoding="utf-8",
     )
+    with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
+def test_artifact_path_rejects_parent_symlink_escape(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task"
+    nested = task_dir / "nested"
+    outside = tmp_path / "outside"
+    nested.mkdir(parents=True)
+    outside.mkdir()
+    (outside / "secret.txt").write_text("outside", encoding="utf-8")
+    (nested / "link").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(RubricBundleError):
+        compiler_module._artifact_path(task_dir, "nested/link/secret.txt")
+
+
+def test_missing_task_manifest_raises_bundle_error(tmp_path: Path) -> None:
+    output = compile_fixture(tmp_path)
+    (output / "tasks" / "da-1-1" / "manifest.json").unlink()
+
     with pytest.raises(RubricBundleError):
         resolve_rubric_bundle(output, "da-1-1")
 

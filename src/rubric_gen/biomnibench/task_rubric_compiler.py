@@ -352,6 +352,20 @@ def _rubric_set_identity(
     }
 
 
+def _incomplete_rubric_set_identity(
+    compilation_sha256: str,
+    results: dict[str, _CompiledTask],
+    errors: dict[str, str],
+) -> dict[str, object]:
+    identity = _rubric_set_identity(compilation_sha256, results)
+    identity["failures"] = {
+        task_id: errors[task_id]
+        for task_id in sorted(errors)
+    }
+    identity["status"] = "incomplete"
+    return identity
+
+
 class TaskProcessRubricCompiler:
     """Compile immutable task snapshots into one sealed external rubric set."""
 
@@ -411,14 +425,28 @@ class TaskProcessRubricCompiler:
                     "status": "failed",
                 })
                 if results:
+                    rubric_set_id = sha256_text(canonical_json(
+                        _incomplete_rubric_set_identity(
+                            compilation_sha256,
+                            results,
+                            errors,
+                        )
+                    ))
+                    task_entries = self._write_task_manifests(
+                        rubric_set_id,
+                        results,
+                    )
                     _write_json(temporary / "incomplete-manifest.json", {
                         "failures": {
                             task_id: errors[task_id]
                             for task_id in sorted(errors)
                         },
+                        "generated_at": _utc_now(),
+                        "rubric_set_id": rubric_set_id,
                         "schema_version": TASK_RUBRIC_BUNDLE_SCHEMA_VERSION,
                         "status": "incomplete",
                         "successful_task_ids": sorted(results),
+                        "tasks": task_entries,
                     })
                 self._publish(temporary, output_dir)
                 return 1
@@ -426,19 +454,7 @@ class TaskProcessRubricCompiler:
             rubric_set_id = sha256_text(canonical_json(
                 _rubric_set_identity(compilation_sha256, results)
             ))
-            task_entries: dict[str, dict[str, object]] = {}
-            for task_id, result in sorted(results.items()):
-                task_manifest = self._task_manifest(rubric_set_id, result)
-                task_manifest_path = result.task_dir / "manifest.json"
-                _write_json(task_manifest_path, task_manifest)
-                task_entries[task_id] = {
-                    "input_sha256": result.input_sha256,
-                    "rubric_id": result.rubric_sha256,
-                    "rubric_sha256": result.rubric_sha256,
-                    "snapshot_sha256": result.snapshot.snapshot_sha256,
-                    "task_manifest_path": f"tasks/{task_id}/manifest.json",
-                    "task_manifest_sha256": _sha256_file(task_manifest_path),
-                }
+            task_entries = self._write_task_manifests(rubric_set_id, results)
             root_manifest = {
                 "compilation_sha256": compilation_sha256,
                 "compiler_config_sha256": config_sha256,
@@ -594,6 +610,28 @@ class TaskProcessRubricCompiler:
             "validation_errors": [],
         }
 
+    def _write_task_manifests(
+        self,
+        rubric_set_id: str,
+        results: dict[str, _CompiledTask],
+    ) -> dict[str, dict[str, object]]:
+        task_entries: dict[str, dict[str, object]] = {}
+        for task_id, result in sorted(results.items()):
+            task_manifest_path = result.task_dir / "manifest.json"
+            _write_json(
+                task_manifest_path,
+                self._task_manifest(rubric_set_id, result),
+            )
+            task_entries[task_id] = {
+                "input_sha256": result.input_sha256,
+                "rubric_id": result.rubric_sha256,
+                "rubric_sha256": result.rubric_sha256,
+                "snapshot_sha256": result.snapshot.snapshot_sha256,
+                "task_manifest_path": f"tasks/{task_id}/manifest.json",
+                "task_manifest_sha256": _sha256_file(task_manifest_path),
+            }
+        return task_entries
+
     def _can_resume(
         self,
         snapshots: tuple[TaskSnapshot, ...],
@@ -667,13 +705,25 @@ def _read_json_object(path: Path, context: str) -> dict[str, object]:
     return _object(value, context)
 
 
+def _read_json_string_list(path: Path, context: str) -> list[str]:
+    if path.is_symlink() or not path.is_file():
+        raise RubricBundleError(f"missing regular {context}: {path}")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RubricBundleError(f"invalid {context}: {exc}") from exc
+    if type(value) is not list or any(not isinstance(item, str) for item in value):
+        raise RubricBundleError(f"{context} must be an array of strings")
+    return value
+
+
 def _artifact_path(task_dir: Path, relative: str) -> Path:
     candidate = Path(relative)
     if candidate.is_absolute() or ".." in candidate.parts or candidate.as_posix() != relative:
         raise RubricBundleError(f"invalid artifact path: {relative!r}")
     path = task_dir.joinpath(*candidate.parts)
     try:
-        if path.resolve(strict=True).parent == task_dir.resolve(strict=True) or path.is_relative_to(task_dir):
+        if path.resolve(strict=True).is_relative_to(task_dir.resolve(strict=True)):
             return path
     except (OSError, RuntimeError):
         pass
@@ -695,65 +745,95 @@ def _validate_snapshot_attestation(
         raise RubricBundleError("snapshot input hash mismatch")
     snapshot_sha256 = _hash(snapshot_record["sha256"], "snapshot sha256")
 
-    request = _read_json_object(
-        task_dir / "attempts" / "attempt-1" / "request.json",
-        "first request",
-    )
-    _closed_keys(
-        request,
-        {"schema_version", "prompt_version", "task_snapshot", "previous_errors"},
-        "first request",
-    )
-    if request["schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION:
-        raise RubricBundleError("first request schema version mismatch")
-    if request["prompt_version"] != TASK_RUBRIC_PROMPT_VERSION:
-        raise RubricBundleError("first request prompt version mismatch")
-    if request["previous_errors"] != []:
-        raise RubricBundleError("first request unexpectedly has previous errors")
-    snapshot = _object(request["task_snapshot"], "request task snapshot")
-    if snapshot.get("task_id") != task_id:
-        raise RubricBundleError("request task ID mismatch")
-    if snapshot.get("snapshot_sha256") != snapshot_sha256:
-        raise RubricBundleError("request snapshot hash mismatch")
-    if snapshot.get("input_hashes") != input_hashes:
-        raise RubricBundleError("request immutable input hashes mismatch")
-    snapshot_payload = dict(snapshot)
-    snapshot_payload.pop("snapshot_sha256", None)
-    if sha256_text(canonical_json(snapshot_payload)) != snapshot_sha256:
-        raise RubricBundleError("snapshot content hash mismatch")
-
-    attempt_dirs = sorted(
-        (task_dir / "attempts").glob("attempt-*"),
-        key=lambda path: int(path.name.removeprefix("attempt-")),
-    )
-    if not attempt_dirs:
+    attempts_root = task_dir / "attempts"
+    if attempts_root.is_symlink() or not attempts_root.is_dir():
+        raise RubricBundleError("attempts root must be a regular directory")
+    raw_attempts = list(attempts_root.iterdir())
+    if not raw_attempts:
         raise RubricBundleError("task bundle has no generation attempts")
-    successful_attempt = attempt_dirs[-1]
-    try:
-        successful_errors = json.loads(
-            (successful_attempt / "errors.json").read_text(encoding="utf-8")
+    attempt_numbers: list[int] = []
+    for path in raw_attempts:
+        match = re.fullmatch(r"attempt-([1-9][0-9]*)", path.name)
+        if path.is_symlink() or not path.is_dir() or match is None:
+            raise RubricBundleError("attempt directories are not canonical")
+        attempt_numbers.append(int(match.group(1)))
+    attempt_numbers.sort()
+    if attempt_numbers != list(range(1, len(attempt_numbers) + 1)):
+        raise RubricBundleError("attempt directories must be contiguous")
+
+    snapshot: dict[str, object] | None = None
+    flattened_errors: list[str] = []
+    successful_request: dict[str, object] | None = None
+    successful_attempt: Path | None = None
+    expected_files = {"request.json", "response.txt", "errors.json"}
+    for attempt_number in attempt_numbers:
+        attempt_dir = attempts_root / f"attempt-{attempt_number}"
+        attempt_members = list(attempt_dir.iterdir())
+        if (
+            {path.name for path in attempt_members} != expected_files
+            or any(path.is_symlink() or not path.is_file() for path in attempt_members)
+        ):
+            raise RubricBundleError(
+                f"attempt-{attempt_number} does not contain exactly the required files"
+            )
+        context = f"attempt-{attempt_number} request"
+        request = _read_json_object(attempt_dir / "request.json", context)
+        _closed_keys(
+            request,
+            {"schema_version", "prompt_version", "task_snapshot", "previous_errors"},
+            context,
         )
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise RubricBundleError(f"invalid successful-attempt errors: {exc}") from exc
-    if successful_errors != []:
-        raise RubricBundleError("final generation attempt was not successful")
-    successful_request = _read_json_object(
-        successful_attempt / "request.json",
-        "successful request",
-    )
-    previous_errors = successful_request.get("previous_errors")
-    if (
-        type(previous_errors) is not list
-        or any(not isinstance(error, str) for error in previous_errors)
-    ):
-        raise RubricBundleError("successful request previous_errors must be strings")
-    if successful_request.get("task_snapshot") != snapshot:
-        raise RubricBundleError("successful request snapshot mismatch")
+        if (
+            type(request["schema_version"]) is not int
+            or request["schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION
+        ):
+            raise RubricBundleError(f"{context} schema version mismatch")
+        if request["prompt_version"] != TASK_RUBRIC_PROMPT_VERSION:
+            raise RubricBundleError(f"{context} prompt version mismatch")
+        request_snapshot = _object(request["task_snapshot"], f"{context} snapshot")
+        if snapshot is None:
+            snapshot = request_snapshot
+            if snapshot.get("task_id") != task_id:
+                raise RubricBundleError("request task ID mismatch")
+            if snapshot.get("snapshot_sha256") != snapshot_sha256:
+                raise RubricBundleError("request snapshot hash mismatch")
+            if snapshot.get("input_hashes") != input_hashes:
+                raise RubricBundleError("request immutable input hashes mismatch")
+            snapshot_payload = dict(snapshot)
+            snapshot_payload.pop("snapshot_sha256", None)
+            if sha256_text(canonical_json(snapshot_payload)) != snapshot_sha256:
+                raise RubricBundleError("snapshot content hash mismatch")
+        elif request_snapshot != snapshot:
+            raise RubricBundleError(f"{context} snapshot mismatch")
+        previous_errors = request["previous_errors"]
+        if (
+            type(previous_errors) is not list
+            or any(not isinstance(error, str) for error in previous_errors)
+        ):
+            raise RubricBundleError(f"{context} previous_errors must be strings")
+        if previous_errors != flattened_errors:
+            raise RubricBundleError(f"{context} previous-error chain mismatch")
+        errors = _read_json_string_list(
+            attempt_dir / "errors.json",
+            f"attempt-{attempt_number} errors",
+        )
+        is_final = attempt_number == attempt_numbers[-1]
+        if is_final:
+            if errors:
+                raise RubricBundleError("final generation attempt was not successful")
+            successful_request = request
+            successful_attempt = attempt_dir
+        elif not errors:
+            raise RubricBundleError("intermediate generation attempt has no errors")
+        flattened_errors.extend(errors)
+
+    if snapshot is None or successful_request is None or successful_attempt is None:
+        raise RubricBundleError("task bundle has no successful generation attempt")
     prompt_request = TaskRubricRequest(
-        schema_version=successful_request.get("schema_version"),  # type: ignore[arg-type]
-        prompt_version=successful_request.get("prompt_version"),  # type: ignore[arg-type]
+        schema_version=successful_request["schema_version"],  # type: ignore[arg-type]
+        prompt_version=successful_request["prompt_version"],  # type: ignore[arg-type]
         task_snapshot=snapshot,
-        previous_errors=tuple(previous_errors),
+        previous_errors=tuple(successful_request["previous_errors"]),  # type: ignore[arg-type]
     )
     hashes = _object(task_manifest["hashes"], "task hashes")
     prompt_sha256 = _hash(hashes["prompt_sha256"], "prompt sha256")
@@ -833,7 +913,13 @@ def resolve_rubric_bundle(
         task_entry["task_manifest_sha256"],
         "task manifest sha256",
     )
-    if _sha256_file(task_manifest_path) != expected_manifest_sha256:
+    try:
+        actual_manifest_sha256 = _sha256_file(task_manifest_path)
+    except OSError as exc:
+        raise RubricBundleError(
+            f"missing or unreadable task manifest: {task_manifest_path}"
+        ) from exc
+    if actual_manifest_sha256 != expected_manifest_sha256:
         raise RubricBundleError("task manifest hash mismatch")
     task_manifest = _read_json_object(task_manifest_path, "task manifest")
     _closed_keys(task_manifest, {
