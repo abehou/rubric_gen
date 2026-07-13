@@ -46,6 +46,28 @@ def test_parser_preserves_explicit_positive_and_negative_values() -> None:
     assert levels == {"criterion_1": {"A": 10, "B": 0, "C": -10}}
 
 
+def test_parser_rejects_unparseable_criterion_candidate_line() -> None:
+    rubric = (
+        "Criterion malformed header\n"
+        "Criterion 1: Valid\n"
+        "Levels: A=10 B=0\n"
+    )
+
+    with pytest.raises(JudgeScoreValidationError):
+        parse_rubric_levels_strict(rubric)
+
+
+def test_parser_rejects_levels_line_before_first_criterion() -> None:
+    rubric = (
+        "Levels: A=999 B=0\n"
+        "Criterion 1: Valid\n"
+        "Levels: A=10 B=0\n"
+    )
+
+    with pytest.raises(JudgeScoreValidationError):
+        parse_rubric_levels_strict(rubric)
+
+
 @pytest.mark.parametrize(
     "rubric",
     (

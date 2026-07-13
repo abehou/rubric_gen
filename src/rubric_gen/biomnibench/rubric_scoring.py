@@ -40,6 +40,20 @@ def parse_rubric_levels_strict(rubric_text: str) -> dict[str, dict[str, int]]:
     if type(rubric_text) is not str or not rubric_text.strip():
         raise JudgeScoreValidationError("rubric must be a non-empty string")
 
+    inside_recognized_criterion = False
+    for line_number, line in enumerate(rubric_text.splitlines(), start=1):
+        stripped = line.lstrip(" \t")
+        if stripped.startswith("Criterion"):
+            if _CRITERION_PATTERN.match(line) is None:
+                raise JudgeScoreValidationError(
+                    f"rubric has a malformed Criterion line at line {line_number}"
+                )
+            inside_recognized_criterion = True
+        if stripped.startswith("Levels") and not inside_recognized_criterion:
+            raise JudgeScoreValidationError(
+                f"rubric has a Levels line outside a criterion at line {line_number}"
+            )
+
     headers = list(_CRITERION_PATTERN.finditer(rubric_text))
     if not headers:
         raise JudgeScoreValidationError("rubric must contain at least one criterion")
