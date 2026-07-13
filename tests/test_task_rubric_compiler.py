@@ -242,14 +242,29 @@ def test_injected_rewriter_provenance_model_must_match_config(
         )
 
 
-def test_compiler_rechecks_rewriter_model_before_sealing(tmp_path: Path) -> None:
+def test_compiler_config_is_read_only_after_construction(tmp_path: Path) -> None:
     compiler, rewriter, output, _ = make_compiler(tmp_path)
-    compiler.config = replace(compiler.config, model="changed-after-construction")
+    original_config = compiler.config
+    replacement = replace(
+        original_config,
+        api_key_env="OTHER_GEMINI_API_KEY",
+        temperature=0.9,
+    )
+    assert replacement.model == original_config.model
 
-    assert compiler.run() == 1
-    assert rewriter.requests == []
-    assert not (output / "manifest.json").exists()
-    assert "rewriter provenance model" in " ".join(compiler.last_errors)
+    with pytest.raises(AttributeError):
+        compiler.config = replacement
+
+    assert compiler.config is original_config
+    assert compiler.run() == 0
+    assert len(rewriter.requests) == 1
+    root_manifest = json.loads((output / "manifest.json").read_text())
+    assert root_manifest["compiler_config"]["api_key_env"] == (
+        original_config.api_key_env
+    )
+    assert root_manifest["compiler_config"]["temperature"] == (
+        original_config.temperature
+    )
 
 
 def make_compiler(
@@ -260,6 +275,7 @@ def make_compiler(
     resume: bool = False,
     max_retries: int = 1,
     model: str = "gemini-3.5-flash",
+    temperature: float | int = 0.2,
 ) -> tuple[TaskProcessRubricCompiler, FakeRewriter, Path, Path]:
     tasks_dir = tmp_path / "tasks"
     task_dir = tasks_dir / "da-1-1"
@@ -275,6 +291,7 @@ def make_compiler(
         model=model,
         max_retries=max_retries,
         resume=resume,
+        temperature=temperature,
     )
     return TaskProcessRubricCompiler(
         config,
@@ -783,8 +800,7 @@ def test_task_compiler_provenance_rejects_boolean_numeric_fields(
     tmp_path: Path,
     field: str,
 ) -> None:
-    compiler, _, output, _ = make_compiler(tmp_path)
-    compiler.config = replace(compiler.config, temperature=1)
+    compiler, _, output, _ = make_compiler(tmp_path, temperature=1)
     assert compiler.run() == 0
     task_manifest_path = output / "tasks" / "da-1-1" / "manifest.json"
     task_manifest = json.loads(task_manifest_path.read_text())
@@ -828,14 +844,13 @@ def test_changed_input_or_config_does_not_resume(
         tmp_path,
         output_name=output.name,
         resume=True,
+        model=("gemini-changed" if change == "config" else "gemini-3.5-flash"),
     )
     if change == "input":
         (task_dir / "instruction.md").write_text(
             (task_dir / "instruction.md").read_text() + "\nUse a second comparison.\n",
             encoding="utf-8",
         )
-    else:
-        compiler.config = replace(compiler.config, model="gemini-changed")
 
     assert compiler.run() == 1
     assert rewriter.requests == []

@@ -507,7 +507,7 @@ class TaskProcessRubricCompiler:
         rewriter: TaskRubricRewriter | None = None,
         rewriter_provenance: TaskRubricRewriterProvenance | None = None,
     ) -> None:
-        self.config = config
+        self._config = config
         if rewriter is None:
             if rewriter_provenance is not None:
                 raise ValueError(
@@ -533,6 +533,10 @@ class TaskProcessRubricCompiler:
                 "rewriter provenance model must match compiler config model"
             )
         self.last_errors: tuple[str, ...] = ()
+
+    @property
+    def config(self) -> TaskRubricCompilerConfig:
+        return self._config
 
     def run(self) -> int:
         if self.rewriter_provenance.model != self.config.model:
