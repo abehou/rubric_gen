@@ -240,6 +240,91 @@ def test_wrong_task_id_is_rejected(snapshot: TaskSnapshot) -> None:
     assert "task_id does not match snapshot" in validation_text(payload, snapshot)
 
 
+@pytest.mark.parametrize(
+    "phrase",
+    (
+        "condition_id",
+        "candidate ID",
+        "run-id",
+        "search history",
+        "prior score",
+        "previous scores",
+        "accepted candidate",
+        "rejected candidates",
+        "parent candidate",
+        "hidden audit",
+        "criterion feedback",
+    ),
+)
+def test_runtime_search_context_phrases_are_rejected(
+    snapshot: TaskSnapshot,
+    phrase: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["verification"] = [  # type: ignore[index]
+        f"Condition credit on the {phrase}."
+    ]
+
+    assert "runtime/search context" in validation_text(payload, snapshot)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "purpose",
+        "title",
+        "description",
+        "required_evidence",
+        "acceptable_alternatives",
+        "anti_evidence",
+        "verification",
+        "level_description",
+    ),
+)
+def test_every_free_form_rubric_text_field_rejects_runtime_context(
+    snapshot: TaskSnapshot,
+    field_name: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    unsafe = "Condition credit on the hidden audit."
+    if field_name == "purpose":
+        payload["purpose"] = unsafe
+    elif field_name == "level_description":
+        payload["criteria"][0]["levels"][0]["description"] = unsafe  # type: ignore[index]
+    elif field_name in {"title", "description"}:
+        payload["criteria"][0][field_name] = unsafe  # type: ignore[index]
+    else:
+        payload["criteria"][0][field_name][0] = unsafe  # type: ignore[index]
+
+    assert "runtime/search context" in validation_text(payload, snapshot)
+
+
+def test_review_reproduction_rejects_search_conditioned_level(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"][0]["description"] = (  # type: ignore[index]
+        "Award full credit when the parent candidate improves its previous score "
+        "according to criterion feedback."
+    )
+
+    assert "runtime/search context" in validation_text(payload, snapshot)
+
+
+def test_generic_scientific_answer_score_and_run_language_remains_allowed(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["purpose"] = (
+        "Score the answer using artifacts from a sequencing run, compare treatment "
+        "conditions, and assess candidate genes."
+    )
+
+    rubric = parse_task_process_rubric(json.dumps(payload))
+
+    assert validate_task_process_rubric(rubric, snapshot) == ()
+
+
 def test_skipped_criterion_id_is_rejected(snapshot: TaskSnapshot) -> None:
     payload = valid_rubric_payload(snapshot)
     payload["criteria"][1]["criterion_id"] = "C3"  # type: ignore[index]
@@ -519,6 +604,20 @@ def test_rendered_rubric_round_trip_rejects_control_characters_independently(
         )
 
 
+def test_rendered_rubric_round_trip_rejects_runtime_context_independently(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["purpose"] = "Condition credit on the search history."
+    rubric = parse_task_process_rubric(json.dumps(payload))
+
+    with pytest.raises(ValueError, match="runtime/search context"):
+        task_rubrics_module.validate_rendered_task_process_rubric(
+            rubric,
+            render_task_process_rubric(rubric),
+        )
+
+
 def test_task_snapshot_is_deterministic_and_runtime_blind(tmp_path: Path) -> None:
     task = make_task(tmp_path)
     first = build_task_snapshot(task)
@@ -529,6 +628,103 @@ def test_task_snapshot_is_deterministic_and_runtime_blind(tmp_path: Path) -> Non
     serialized = canonical_json(first.to_dict())
     for forbidden in ("trajectory", "trace.md", "answer.txt", "runs/"):
         assert forbidden not in serialized
+
+
+def test_file_omitted_from_schema_preview_still_changes_snapshot_identity(
+    tmp_path: Path,
+) -> None:
+    task = make_task(tmp_path)
+    omitted = task / "environment" / "data" / "z_omitted.tsv"
+    omitted.write_text("id\tvalue\n1\tbefore\n", encoding="utf-8")
+    limits = SchemaSnapshotLimits(max_files=1)
+
+    before = build_task_snapshot(task, limits)
+    before_hashes = dict(before.input_hashes)
+    omitted.write_text("id\tvalue\n1\tafter\n", encoding="utf-8")
+    after = build_task_snapshot(task, limits)
+    after_hashes = dict(after.input_hashes)
+
+    assert [item.path for item in before.data_files] == ["gene_exp.diff"]
+    assert "environment/data/z_omitted.tsv" in before_hashes
+    assert before.omitted_data_files == 2
+    assert before_hashes["environment/data/z_omitted.tsv"] != after_hashes[
+        "environment/data/z_omitted.tsv"
+    ]
+    assert before.snapshot_sha256 != after.snapshot_sha256
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    (Path("instruction.md"), Path("tests/rubric.txt")),
+)
+def test_required_task_input_symlinks_are_rejected(
+    tmp_path: Path,
+    relative_path: Path,
+) -> None:
+    task = make_task(tmp_path)
+    required_path = task / relative_path
+    outside_path = tmp_path / f"outside-{required_path.name}"
+    outside_path.write_bytes(required_path.read_bytes())
+    required_path.unlink()
+    required_path.symlink_to(outside_path)
+
+    with pytest.raises(ValueError, match="regular, non-symlink file"):
+        build_task_snapshot(task)
+
+
+def test_symlinked_required_input_parent_cannot_leak_outside_task(
+    tmp_path: Path,
+) -> None:
+    task = make_task(tmp_path)
+    rubric_path = task / "tests" / "rubric.txt"
+    rubric_bytes = rubric_path.read_bytes()
+    rubric_path.unlink()
+    rubric_path.parent.rmdir()
+    outside_tests = tmp_path / "outside-tests"
+    outside_tests.mkdir()
+    (outside_tests / "rubric.txt").write_bytes(rubric_bytes)
+    (task / "tests").symlink_to(outside_tests, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="symlinked path component"):
+        build_task_snapshot(task)
+
+
+def test_optional_task_config_symlink_is_rejected(tmp_path: Path) -> None:
+    task = make_task(tmp_path)
+    config_path = task / "task.toml"
+    outside_config = tmp_path / "outside-task.toml"
+    outside_config.write_bytes(config_path.read_bytes())
+    config_path.unlink()
+    config_path.symlink_to(outside_config)
+
+    with pytest.raises(ValueError, match="regular, non-symlink file"):
+        build_task_snapshot(task)
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    (Path("instruction.md"), Path("tests/rubric.txt")),
+)
+def test_required_task_inputs_must_be_regular_files(
+    tmp_path: Path,
+    relative_path: Path,
+) -> None:
+    task = make_task(tmp_path)
+    required_path = task / relative_path
+    required_path.unlink()
+    required_path.mkdir()
+
+    with pytest.raises(ValueError, match="regular, non-symlink file"):
+        build_task_snapshot(task)
+
+
+def test_symlinked_task_directory_ancestor_is_rejected(tmp_path: Path) -> None:
+    task = make_task(tmp_path / "real")
+    alias_parent = tmp_path / "task-parent-alias"
+    alias_parent.symlink_to(task.parent, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="symlinked path component"):
+        build_task_snapshot(alias_parent / task.name)
 
 
 def find_table(snapshot: TaskSnapshot, name: str) -> DataFileSnapshot:

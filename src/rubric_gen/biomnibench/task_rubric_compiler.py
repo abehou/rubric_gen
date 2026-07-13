@@ -35,6 +35,7 @@ from rubric_gen.biomnibench.task_rubrics import (
 TASK_RUBRIC_BUNDLE_SCHEMA_VERSION = 1
 TASK_RUBRIC_COMPILER_CONFIG_SCHEMA_VERSION = 1
 TASK_RUBRIC_REWRITER_PROVENANCE_SCHEMA_VERSION = 1
+TASK_RUBRIC_RESPONSE_METADATA_SCHEMA_VERSION = 1
 TASK_RUBRIC_PROMPT_VERSION = "task-process-rubric-v1"
 TASK_RUBRIC_PROVIDER = "google-gemini"
 _SAFE_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
@@ -48,6 +49,7 @@ _COMPILER_CONFIG_KEYS = {
     "prompt_version",
     "rewriter_provenance_sha256",
     "schema_version",
+    "seed",
     "task_ids",
     "tasks_dir",
     "temperature",
@@ -60,9 +62,16 @@ _REWRITER_PROVENANCE_KEYS = {
     "implementation_sha256",
 }
 _GENERATION_CODE_KEYS = {
+    "rubric_scoring.py",
     "task_rubric_compiler.py",
     "task_rubrics.py",
     "perturbations.py",
+}
+_RESPONSE_METADATA_KEYS = {
+    "raw_response_sha256",
+    "response_id",
+    "schema_version",
+    "served_model_version",
 }
 
 _RUBRIC_JSON_SCHEMA: dict[str, object] = {
@@ -193,6 +202,7 @@ class TaskRubricCompilerConfig:
     max_concurrency: int = 1
     resume: bool = False
     temperature: float = 0.2
+    seed: int = 0
 
     def __post_init__(self) -> None:
         if not self.task_ids:
@@ -212,6 +222,8 @@ class TaskRubricCompilerConfig:
             or not math.isfinite(self.temperature)
         ):
             raise ValueError("temperature must be a finite number")
+        if type(self.seed) is not int:
+            raise ValueError("seed must be an integer")
         if not self.model.strip():
             raise ValueError("model must be non-empty")
         if not self.api_key_env.strip():
@@ -236,6 +248,7 @@ class TaskRubricCompilerConfig:
             max_retries=max(0, getattr(args, "max_retries", 2)),
             max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
             resume=getattr(args, "resume", False),
+            seed=getattr(args, "seed", 0),
         )
 
 
@@ -275,19 +288,71 @@ class TaskRubricRequest:
     previous_errors: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class TaskRubricRewriteResult:
+    """Exact rewrite text plus optional provider response identity."""
+
+    text: str
+    served_model_version: str | None
+    response_id: str | None
+
+    def __post_init__(self) -> None:
+        if type(self.text) is not str:
+            raise ValueError("text must be a string")
+        for field_name in ("served_model_version", "response_id"):
+            value = getattr(self, field_name)
+            if value is not None and (
+                type(value) is not str or not value.strip()
+            ):
+                raise ValueError(
+                    f"{field_name} must be null or a non-empty string"
+                )
+
+
 class TaskRubricRewriter(Protocol):
-    def rewrite(self, request: TaskRubricRequest) -> str:
+    def rewrite(
+        self,
+        request: TaskRubricRequest,
+    ) -> str | TaskRubricRewriteResult:
         ...
 
 
+def _normalize_rewrite_result(
+    value: str | TaskRubricRewriteResult,
+) -> TaskRubricRewriteResult:
+    if type(value) is str:
+        return TaskRubricRewriteResult(
+            text=value,
+            served_model_version=None,
+            response_id=None,
+        )
+    if type(value) is not TaskRubricRewriteResult:
+        raise TypeError(
+            "rewriter response must be a string or TaskRubricRewriteResult"
+        )
+    return value
+
+
 class _ConfiguredGeminiPerturber(GeminiPerturber):
-    def __init__(self, *, temperature: float, **kwargs: object) -> None:
+    def __init__(
+        self,
+        *,
+        temperature: float,
+        seed: int,
+        **kwargs: object,
+    ) -> None:
         super().__init__(**kwargs)  # type: ignore[arg-type]
+        if type(seed) is not int:
+            raise ValueError("seed must be an integer")
         self.temperature = temperature
+        self.seed = seed
 
     def request_body(self, prompt: str) -> dict[str, object]:
         body = super().request_body(prompt)
-        body["generationConfig"] = {"temperature": self.temperature}
+        body["generationConfig"] = {
+            "seed": self.seed,
+            "temperature": self.temperature,
+        }
         return body
 
 
@@ -300,15 +365,24 @@ class GeminiTaskRubricRewriter:
         model: str = "gemini-3.5-flash",
         api_key_env: str = "GEMINI_API_KEY",
         temperature: float = 0.2,
+        seed: int = 0,
     ) -> None:
         self.client = _ConfiguredGeminiPerturber(
             model=model,
             api_key_env=api_key_env,
             temperature=temperature,
+            seed=seed,
         )
 
-    def rewrite(self, request: TaskRubricRequest) -> str:
-        return self.client.generate_content(self.build_prompt(request))
+    def rewrite(self, request: TaskRubricRequest) -> TaskRubricRewriteResult:
+        response = self.client.generate_content_response(
+            self.build_prompt(request)
+        )
+        return TaskRubricRewriteResult(
+            text=response.text,
+            served_model_version=response.model_version,
+            response_id=response.response_id,
+        )
 
     def build_prompt(self, request: TaskRubricRequest) -> str:
         return build_task_rubric_prompt(request)
@@ -341,6 +415,7 @@ class _CompiledTask:
     raw_response: str
     rubric_sha256: str
     rendered_sha256: str
+    response_metadata_sha256: str
     artifact_hashes: dict[str, str]
     input_sha256: str
     prompt_sha256: str
@@ -396,9 +471,22 @@ def _config_payload(
         "prompt_version": TASK_RUBRIC_PROMPT_VERSION,
         "rewriter_provenance_sha256": rewriter_provenance_sha256,
         "schema_version": TASK_RUBRIC_COMPILER_CONFIG_SCHEMA_VERSION,
+        "seed": config.seed,
         "task_ids": list(config.task_ids),
         "tasks_dir": str(config.tasks_dir.resolve()),
         "temperature": config.temperature,
+    }
+
+
+def _response_metadata_payload(
+    result: TaskRubricRewriteResult,
+    raw_response_sha256: str,
+) -> dict[str, object]:
+    return {
+        "raw_response_sha256": raw_response_sha256,
+        "response_id": result.response_id,
+        "schema_version": TASK_RUBRIC_RESPONSE_METADATA_SCHEMA_VERSION,
+        "served_model_version": result.served_model_version,
     }
 
 
@@ -468,6 +556,7 @@ def _rubric_set_identity(
         "tasks": {
             task_id: {
                 "input_sha256": result.input_sha256,
+                "response_metadata_sha256": result.response_metadata_sha256,
                 "rubric_id": result.rubric_sha256,
                 "snapshot_sha256": result.snapshot.snapshot_sha256,
             }
@@ -513,12 +602,15 @@ class TaskProcessRubricCompiler:
                 raise ValueError(
                     "rewriter_provenance cannot override default Gemini provenance"
                 )
-            self.rewriter = GeminiTaskRubricRewriter(
+            self._rewriter = GeminiTaskRubricRewriter(
                 model=config.model,
                 api_key_env=config.api_key_env,
                 temperature=config.temperature,
+                seed=config.seed,
             )
-            self.rewriter_provenance = _default_rewriter_provenance(config.model)
+            self._rewriter_provenance = _default_rewriter_provenance(
+                config.model
+            )
         else:
             if rewriter_provenance is None:
                 raise ValueError("injected rewriter requires explicit rewriter provenance")
@@ -526,9 +618,9 @@ class TaskProcessRubricCompiler:
                 raise ValueError(
                     "rewriter_provenance must be TaskRubricRewriterProvenance"
                 )
-            self.rewriter = rewriter
-            self.rewriter_provenance = rewriter_provenance
-        if self.rewriter_provenance.model != config.model:
+            self._rewriter = rewriter
+            self._rewriter_provenance = rewriter_provenance
+        if self._rewriter_provenance.model != config.model:
             raise ValueError(
                 "rewriter provenance model must match compiler config model"
             )
@@ -537,6 +629,14 @@ class TaskProcessRubricCompiler:
     @property
     def config(self) -> TaskRubricCompilerConfig:
         return self._config
+
+    @property
+    def rewriter(self) -> TaskRubricRewriter:
+        return self._rewriter
+
+    @property
+    def rewriter_provenance(self) -> TaskRubricRewriterProvenance:
+        return self._rewriter_provenance
 
     def run(self) -> int:
         if self.rewriter_provenance.model != self.config.model:
@@ -734,13 +834,19 @@ class TaskProcessRubricCompiler:
             attempt_dir.mkdir()
             _write_json(attempt_dir / "request.json", asdict(request))
             response = ""
+            rewrite_result = TaskRubricRewriteResult(
+                text="",
+                served_model_version=None,
+                response_id=None,
+            )
             errors: tuple[str, ...]
             rubric: TaskProcessRubric | None = None
             rendered: str | None = None
             try:
-                response = self.rewriter.rewrite(request)
-                if not isinstance(response, str):
-                    raise TypeError("rewriter response must be a string")
+                rewrite_result = _normalize_rewrite_result(
+                    self.rewriter.rewrite(request)
+                )
+                response = rewrite_result.text
                 rubric = parse_task_process_rubric(response)
                 errors = validate_task_process_rubric(rubric, snapshot)
                 if not errors:
@@ -757,6 +863,14 @@ class TaskProcessRubricCompiler:
             if rubric is not None and rendered is not None and not errors:
                 structured = canonical_json(asdict(rubric)) + "\n"
                 (task_dir / "raw_response.txt").write_text(response, encoding="utf-8")
+                response_metadata = _response_metadata_payload(
+                    rewrite_result,
+                    sha256_text(response),
+                )
+                _write_json(
+                    task_dir / "response_metadata.json",
+                    response_metadata,
+                )
                 (task_dir / "rubric.json").write_text(structured, encoding="utf-8")
                 (task_dir / "process_rubric.txt").write_text(rendered, encoding="utf-8")
                 prompt_sha256 = sha256_text(build_task_rubric_prompt(request))
@@ -768,6 +882,9 @@ class TaskProcessRubricCompiler:
                     raw_response=response,
                     rubric_sha256=_sha256_file(task_dir / "rubric.json"),
                     rendered_sha256=_sha256_file(task_dir / "process_rubric.txt"),
+                    response_metadata_sha256=_sha256_file(
+                        task_dir / "response_metadata.json"
+                    ),
                     artifact_hashes=_artifact_hashes(task_dir),
                     input_sha256=_input_sha256(snapshot),
                     prompt_sha256=prompt_sha256,
@@ -787,6 +904,7 @@ class TaskProcessRubricCompiler:
         rewriter_provenance_sha256: str,
     ) -> dict[str, object]:
         model_sha256 = sha256_text(self.config.model)
+        seed_sha256 = sha256_text(canonical_json(self.config.seed))
         temperature_sha256 = sha256_text(canonical_json(self.config.temperature))
         raw_sha256 = result.artifact_hashes["raw_response.txt"]
         return {
@@ -801,6 +919,7 @@ class TaskProcessRubricCompiler:
                 "rewriter_provenance": asdict(self.rewriter_provenance),
                 "rewriter_provenance_sha256": rewriter_provenance_sha256,
                 "schema_version": TASK_RUBRIC_BUNDLE_SCHEMA_VERSION,
+                "seed": self.config.seed,
                 "temperature": self.config.temperature,
             },
             "generated_at": result.generated_at,
@@ -810,6 +929,8 @@ class TaskProcessRubricCompiler:
                 "prompt_sha256": result.prompt_sha256,
                 "raw_response_sha256": raw_sha256,
                 "rendered_rubric_sha256": result.rendered_sha256,
+                "response_metadata_sha256": result.response_metadata_sha256,
+                "seed_sha256": seed_sha256,
                 "snapshot_sha256": result.snapshot.snapshot_sha256,
                 "structured_rubric_sha256": result.rubric_sha256,
                 "temperature_sha256": temperature_sha256,
@@ -853,6 +974,7 @@ class TaskProcessRubricCompiler:
             )
             task_entries[task_id] = {
                 "input_sha256": result.input_sha256,
+                "response_metadata_sha256": result.response_metadata_sha256,
                 "rubric_id": result.rubric_sha256,
                 "rubric_sha256": result.rubric_sha256,
                 "snapshot_sha256": result.snapshot.snapshot_sha256,
@@ -958,6 +1080,8 @@ def _validated_compiler_config(value: object) -> dict[str, object]:
         raise RubricBundleError("compiler config max_retries is invalid")
     if type(config["max_concurrency"]) is not int or config["max_concurrency"] < 1:
         raise RubricBundleError("compiler config max_concurrency is invalid")
+    if type(config["seed"]) is not int:
+        raise RubricBundleError("compiler config seed is invalid")
     temperature = config["temperature"]
     if (
         isinstance(temperature, bool)
@@ -984,6 +1108,27 @@ def _validated_rewriter_provenance(value: object) -> dict[str, object]:
     return asdict(provenance)
 
 
+def _validated_response_metadata(value: object) -> dict[str, object]:
+    metadata = _object(value, "response metadata")
+    _closed_keys(metadata, _RESPONSE_METADATA_KEYS, "response metadata")
+    if (
+        type(metadata["schema_version"]) is not int
+        or metadata["schema_version"]
+        != TASK_RUBRIC_RESPONSE_METADATA_SCHEMA_VERSION
+    ):
+        raise RubricBundleError("unsupported response metadata schema version")
+    _hash(metadata["raw_response_sha256"], "response metadata raw-response hash")
+    for field_name in ("served_model_version", "response_id"):
+        field_value = metadata[field_name]
+        if field_value is not None and (
+            type(field_value) is not str or not field_value.strip()
+        ):
+            raise RubricBundleError(
+                f"response metadata {field_name} must be null or a non-empty string"
+            )
+    return metadata
+
+
 def _validated_generation_code_sha256s(value: object) -> dict[str, str]:
     raw_hashes = _object(value, "generation code hashes")
     _closed_keys(raw_hashes, _GENERATION_CODE_KEYS, "generation code hashes")
@@ -995,6 +1140,7 @@ def _validated_generation_code_sha256s(value: object) -> dict[str, str]:
 
 _ROOT_TASK_ENTRY_KEYS = {
     "input_sha256",
+    "response_metadata_sha256",
     "rubric_id",
     "rubric_sha256",
     "snapshot_sha256",
@@ -1019,6 +1165,10 @@ def _validated_root_task_entries(
         entry = _object(raw_entry, f"root task entry {member_id}")
         _closed_keys(entry, _ROOT_TASK_ENTRY_KEYS, f"root task entry {member_id}")
         input_sha256 = _hash(entry["input_sha256"], f"root input hash {member_id}")
+        response_metadata_sha256 = _hash(
+            entry["response_metadata_sha256"],
+            f"root response metadata hash {member_id}",
+        )
         rubric_id = _hash(entry["rubric_id"], f"root rubric ID {member_id}")
         rubric_sha256 = _hash(
             entry["rubric_sha256"],
@@ -1044,6 +1194,7 @@ def _validated_root_task_entries(
         }
         identity_tasks[member_id] = {
             "input_sha256": input_sha256,
+            "response_metadata_sha256": response_metadata_sha256,
             "rubric_id": rubric_id,
             "snapshot_sha256": snapshot_sha256,
         }
@@ -1384,7 +1535,12 @@ def resolve_rubric_bundle(
         raise RubricBundleError("task manifest rubric-set ID mismatch")
 
     artifacts = _object(task_manifest["artifacts"], "task artifacts")
-    required_artifacts = {"raw_response.txt", "rubric.json", "process_rubric.txt"}
+    required_artifacts = {
+        "raw_response.txt",
+        "response_metadata.json",
+        "rubric.json",
+        "process_rubric.txt",
+    }
     if not required_artifacts.issubset(artifacts):
         raise RubricBundleError("task manifest is missing required artifacts")
     actual_artifacts: set[str] = set()
@@ -1414,6 +1570,7 @@ def resolve_rubric_bundle(
         "rewriter_provenance",
         "rewriter_provenance_sha256",
         "schema_version",
+        "seed",
         "temperature",
     }, "compiler record")
     if (
@@ -1460,6 +1617,10 @@ def resolve_rubric_bundle(
         raise RubricBundleError("task compiler model disagrees with root config")
     if compiler["model"] != rewriter_provenance["model"]:
         raise RubricBundleError("task compiler model disagrees with rewriter")
+    if type(compiler["seed"]) is not int:
+        raise RubricBundleError("task compiler seed is invalid")
+    if compiler["seed"] != compiler_config["seed"]:
+        raise RubricBundleError("task compiler seed disagrees with root config")
     if canonical_json(compiler["temperature"]) != canonical_json(
         compiler_config["temperature"]
     ):
@@ -1474,6 +1635,8 @@ def resolve_rubric_bundle(
         "prompt_sha256",
         "raw_response_sha256",
         "rendered_rubric_sha256",
+        "response_metadata_sha256",
+        "seed_sha256",
         "snapshot_sha256",
         "structured_rubric_sha256",
         "temperature_sha256",
@@ -1484,8 +1647,12 @@ def resolve_rubric_bundle(
         raise RubricBundleError("model hash mismatch")
     if hashes["temperature_sha256"] != sha256_text(canonical_json(compiler["temperature"])):
         raise RubricBundleError("temperature hash mismatch")
+    if hashes["seed_sha256"] != sha256_text(canonical_json(compiler["seed"])):
+        raise RubricBundleError("seed hash mismatch")
     if hashes["raw_response_sha256"] != artifacts["raw_response.txt"]:
         raise RubricBundleError("raw-response hash mismatch")
+    if hashes["response_metadata_sha256"] != artifacts["response_metadata.json"]:
+        raise RubricBundleError("response-metadata hash mismatch")
     if hashes["structured_rubric_sha256"] != artifacts["rubric.json"]:
         raise RubricBundleError("structured-rubric hash mismatch")
     if hashes["rendered_rubric_sha256"] != artifacts["process_rubric.txt"]:
@@ -1494,6 +1661,26 @@ def resolve_rubric_bundle(
         raise RubricBundleError("root input hash mismatch")
     if hashes["snapshot_sha256"] != task_entry["snapshot_sha256"]:
         raise RubricBundleError("root snapshot hash mismatch")
+    if (
+        hashes["response_metadata_sha256"]
+        != task_entry["response_metadata_sha256"]
+    ):
+        raise RubricBundleError("root response-metadata hash mismatch")
+    response_metadata = _validated_response_metadata(
+        _read_json_object_bytes(
+            artifact_bytes["response_metadata.json"],
+            "response metadata",
+        )
+    )
+    if artifact_bytes["response_metadata.json"] != (
+        canonical_json(response_metadata) + "\n"
+    ).encode("utf-8"):
+        raise RubricBundleError("response metadata is not canonical JSON")
+    if (
+        response_metadata["raw_response_sha256"]
+        != artifacts["raw_response.txt"]
+    ):
+        raise RubricBundleError("response metadata raw-response hash mismatch")
     _validate_snapshot_attestation(
         task_id,
         task_manifest,

@@ -8,7 +8,9 @@ import hashlib
 import heapq
 import io
 import json
+import os
 import re
+import stat
 from dataclasses import dataclass, replace
 from itertools import islice
 from pathlib import Path
@@ -195,6 +197,29 @@ _EVIDENCE_FIELDS = (
     "verification",
 )
 _ASCII_CONTROL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
+_RUNTIME_CONTEXT_PATTERNS = (
+    (
+        "condition/candidate/run ID",
+        re.compile(r"\b(?:condition|candidate|run)[\s_-]+ids?\b", re.IGNORECASE),
+    ),
+    ("search history", re.compile(r"\bsearch[\s_-]+history\b", re.IGNORECASE)),
+    (
+        "prior/previous score",
+        re.compile(r"\b(?:prior|previous)[\s_-]+scores?\b", re.IGNORECASE),
+    ),
+    (
+        "accepted/rejected/parent candidate",
+        re.compile(
+            r"\b(?:accepted|rejected|parent)[\s_-]+candidates?\b",
+            re.IGNORECASE,
+        ),
+    ),
+    ("hidden audit", re.compile(r"\bhidden[\s_-]+audit\b", re.IGNORECASE)),
+    (
+        "criterion feedback",
+        re.compile(r"\bcriterion[\s_-]+feedback\b", re.IGNORECASE),
+    ),
+)
 
 
 def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -360,6 +385,46 @@ def _ascii_control_error(context: str, value: str) -> str | None:
     return None
 
 
+def _rubric_authored_prose(
+    rubric: TaskProcessRubric,
+) -> tuple[tuple[str, str], ...]:
+    """Return free-form prose; closed structural identifiers validate separately."""
+
+    authored = [("purpose", rubric.purpose)]
+    for criterion in rubric.criteria:
+        authored.extend((
+            (f"{criterion.criterion_id}: title", criterion.title),
+            (f"{criterion.criterion_id}: description", criterion.description),
+        ))
+        for field_name in _EVIDENCE_FIELDS:
+            authored.extend(
+                (f"{criterion.criterion_id}: {field_name}", value)
+                for value in getattr(criterion, field_name)
+            )
+        authored.extend(
+            (
+                f"{criterion.criterion_id} level {level.label}: description",
+                level.description,
+            )
+            for level in criterion.levels
+        )
+    return tuple(authored)
+
+
+def _runtime_context_errors(
+    rubric: TaskProcessRubric,
+) -> tuple[str, ...]:
+    errors: list[str] = []
+    for context, value in _rubric_authored_prose(rubric):
+        for phrase_name, pattern in _RUNTIME_CONTEXT_PATTERNS:
+            if pattern.search(value) is not None:
+                errors.append(
+                    f"{context} must not refer to runtime/search context "
+                    f"({phrase_name})"
+                )
+    return tuple(errors)
+
+
 def validate_task_process_rubric(
     rubric: TaskProcessRubric,
     snapshot: TaskSnapshot,
@@ -378,6 +443,7 @@ def validate_task_process_rubric(
         errors.append(purpose_control_error)
     if not rubric.criteria:
         errors.append("criteria must be non-empty")
+    errors.extend(_runtime_context_errors(rubric))
 
     known_anchors = {anchor.anchor_id for anchor in snapshot.anchors}
     covered_anchors: set[str] = set()
@@ -542,6 +608,9 @@ def validate_rendered_task_process_rubric(
         control_error = _ascii_control_error(context, value)
         if control_error is not None:
             raise ValueError(control_error)
+    runtime_errors = _runtime_context_errors(rubric)
+    if runtime_errors:
+        raise ValueError(runtime_errors[0])
 
     parsed = parse_rubric_levels_strict(rendered)
     if parsed != structured_rubric_level_map(rubric):
@@ -562,6 +631,85 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: stream.read(65_536), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _absolute_without_resolving(path: Path) -> Path:
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def _first_symlink_component(path: Path) -> Path | None:
+    absolute = _absolute_without_resolving(path)
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        try:
+            mode = current.lstat().st_mode
+        except (FileNotFoundError, NotADirectoryError):
+            return None
+        if stat.S_ISLNK(mode):
+            return current
+    return None
+
+
+def _validated_task_root(task_dir: Path) -> Path:
+    task_root = _absolute_without_resolving(task_dir)
+    symlink = _first_symlink_component(task_root)
+    if symlink is not None:
+        raise ValueError(
+            f"task directory has a symlinked path component: {symlink}"
+        )
+    try:
+        mode = task_root.lstat().st_mode
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        raise ValueError(f"task directory does not exist: {task_root}") from exc
+    if not stat.S_ISDIR(mode):
+        raise ValueError(f"task directory must be a directory: {task_root}")
+    return task_root
+
+
+def _validated_task_input(
+    task_root: Path,
+    relative_path: str,
+    *,
+    required: bool,
+) -> Path | None:
+    path = task_root / relative_path
+    symlink = _first_symlink_component(path)
+    if symlink is not None:
+        if symlink == path:
+            raise ValueError(
+                f"{relative_path} must be a regular, non-symlink file"
+            )
+        raise ValueError(
+            f"{relative_path} has a symlinked path component: {symlink}"
+        )
+    try:
+        mode = path.lstat().st_mode
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        if not required:
+            return None
+        raise ValueError(
+            f"{relative_path} must be a regular, non-symlink file"
+        ) from exc
+    if not stat.S_ISREG(mode):
+        raise ValueError(f"{relative_path} must be a regular, non-symlink file")
+    try:
+        path.resolve(strict=True).relative_to(task_root.resolve(strict=True))
+    except (FileNotFoundError, ValueError) as exc:
+        raise ValueError(
+            f"{relative_path} must be contained under the task directory"
+        ) from exc
+    return path
+
+
+def _validated_data_root(task_root: Path) -> Path:
+    data_root = task_root / "environment" / "data"
+    symlink = _first_symlink_component(data_root)
+    if symlink is not None:
+        raise ValueError(
+            f"environment/data has a symlinked path component: {symlink}"
+        )
+    return data_root
 
 
 def _infer_column_type(values: list[str]) -> str:
@@ -589,6 +737,9 @@ def _table_snapshot(
     path: Path,
     relative_path: str,
     limits: SchemaSnapshotLimits,
+    *,
+    size_bytes: int,
+    sha256: str,
 ) -> DataFileSnapshot:
     with path.open("rb") as stream:
         probe = stream.read(limits.max_probe_bytes + 1)
@@ -596,8 +747,8 @@ def _table_snapshot(
     probe = probe[: limits.max_probe_bytes]
     common = {
         "path": relative_path,
-        "size_bytes": path.stat().st_size,
-        "sha256": _sha256_file(path),
+        "size_bytes": size_bytes,
+        "sha256": sha256,
         "probe_bytes": len(probe),
         "probe_truncated": probe_truncated,
     }
@@ -653,15 +804,14 @@ def _table_snapshot(
     )
 
 
-def _walk_data_files(
+def _walk_data_file_inventory(
     data_root: Path,
     limits: SchemaSnapshotLimits,
-) -> tuple[tuple[Path, ...], int, bool]:
+) -> tuple[tuple[Path, ...], bool]:
     if not data_root.is_dir():
-        return (), 0, False
+        return (), False
     pending = [("", data_root)]
     files: list[Path] = []
-    omitted_files = 0
     entries_enumerated = 0
     traversal_truncated = False
     while pending:
@@ -682,11 +832,23 @@ def _walk_data_files(
                 relative = child.relative_to(data_root).as_posix()
                 heapq.heappush(pending, (relative, child))
         elif path.is_file():
-            if len(files) < limits.max_files:
-                files.append(path)
-            else:
-                omitted_files += 1
-    return tuple(files), omitted_files, traversal_truncated
+            files.append(path)
+    return tuple(files), traversal_truncated
+
+
+def _walk_data_files(
+    data_root: Path,
+    limits: SchemaSnapshotLimits,
+) -> tuple[tuple[Path, ...], int, bool]:
+    """Return the bounded schema-preview paths and their omission metadata."""
+
+    inventory, traversal_truncated = _walk_data_file_inventory(data_root, limits)
+    preview = inventory[: limits.max_files]
+    return (
+        preview,
+        len(inventory) - len(preview),
+        traversal_truncated,
+    )
 
 
 def _schema_json(data_files: list[DataFileSnapshot]) -> str:
@@ -840,39 +1002,85 @@ def build_task_snapshot(
 ) -> TaskSnapshot:
     """Build a deterministic snapshot without consulting runtime files."""
 
-    data_root = task_dir / "environment" / "data"
-    data_paths, walk_omitted_files, traversal_truncated = _walk_data_files(data_root, limits)
+    task_root = _validated_task_root(task_dir)
+    instruction_path = _validated_task_input(
+        task_root,
+        "instruction.md",
+        required=True,
+    )
+    rubric_path = _validated_task_input(
+        task_root,
+        "tests/rubric.txt",
+        required=True,
+    )
+    task_config_path = _validated_task_input(
+        task_root,
+        "task.toml",
+        required=False,
+    )
+    assert instruction_path is not None
+    assert rubric_path is not None
+    instruction = instruction_path.read_text(encoding="utf-8")
+    rubric = rubric_path.read_text(encoding="utf-8")
+
+    data_root = _validated_data_root(task_root)
+    data_paths, traversal_truncated = _walk_data_file_inventory(data_root, limits)
+    data_inventory: list[tuple[Path, str, int, str]] = []
+    for path in data_paths:
+        path_stat = path.lstat()
+        if not stat.S_ISREG(path_stat.st_mode):
+            raise ValueError(
+                f"environment/data source must be a regular, non-symlink file: {path}"
+            )
+        try:
+            path.resolve(strict=True).relative_to(data_root.resolve(strict=True))
+        except (FileNotFoundError, ValueError) as exc:
+            raise ValueError(
+                f"environment/data source must be contained under data root: {path}"
+            ) from exc
+        data_inventory.append((
+            path,
+            path.relative_to(data_root).as_posix(),
+            path_stat.st_size,
+            _sha256_file(path),
+        ))
+
+    preview_inventory = data_inventory[: limits.max_files]
+    walk_omitted_files = len(data_inventory) - len(preview_inventory)
     probed_data_files = tuple(
-        _table_snapshot(path, path.relative_to(data_root).as_posix(), limits)
-        for path in data_paths
+        _table_snapshot(
+            path,
+            relative_path,
+            limits,
+            size_bytes=size_bytes,
+            sha256=digest,
+        )
+        for path, relative_path, size_bytes, digest in preview_inventory
     )
     data_files, budget_omitted_files = _fit_schema_budget(
         probed_data_files,
         limits.max_output_chars,
     )
-    instruction_path = task_dir / "instruction.md"
-    rubric_path = task_dir / "tests" / "rubric.txt"
-    instruction = instruction_path.read_text(encoding="utf-8")
-    rubric = rubric_path.read_text(encoding="utf-8")
     question = " ".join(_extract_markdown_section(instruction, "Question").split())
     required_outputs = _extract_required_outputs(instruction)
     summary_anchors = _summary_anchors(rubric)
     anchors = _task_anchors(question, required_outputs, summary_anchors, data_files)
     immutable_paths = [instruction_path, rubric_path]
-    task_config_path = task_dir / "task.toml"
-    if task_config_path.is_file() and not task_config_path.is_symlink():
+    if task_config_path is not None:
         immutable_paths.append(task_config_path)
-    immutable_paths.extend(data_paths)
     input_hashes = tuple(sorted(
-        (
-            path.relative_to(task_dir).as_posix(),
-            _sha256_file(path),
-        )
-        for path in immutable_paths
+        [
+            (path.relative_to(task_root).as_posix(), _sha256_file(path))
+            for path in immutable_paths
+        ]
+        + [
+            (f"environment/data/{relative_path}", digest)
+            for _, relative_path, _, digest in data_inventory
+        ]
     ))
     snapshot = TaskSnapshot(
         schema_version=1,
-        task_id=task_dir.name,
+        task_id=task_root.name,
         question=question,
         required_outputs=required_outputs,
         data_files=data_files,

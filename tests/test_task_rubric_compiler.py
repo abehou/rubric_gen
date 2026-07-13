@@ -18,12 +18,14 @@ from rubric_gen.biomnibench import task_rubric_compiler as compiler_module
 from rubric_gen.biomnibench import task_rubrics as task_rubrics_module
 from rubric_gen.biomnibench.common import resolve_project_path
 from rubric_gen.biomnibench.cli import build_parser
+from rubric_gen.biomnibench.perturbations import GeminiGenerateContentResponse
 from rubric_gen.biomnibench.task_rubric_compiler import (
     GeminiTaskRubricRewriter,
     RubricBundleError,
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
     TaskRubricRequest,
+    TaskRubricRewriteResult,
     build_task_rubric_prompt,
     resolve_rubric_bundle,
 )
@@ -41,11 +43,17 @@ REAL_DA_19_1 = ROOT / "data" / "biomnibench-da" / "da-19-1"
 
 
 class FakeRewriter:
-    def __init__(self, responses: list[str | Exception]) -> None:
+    def __init__(
+        self,
+        responses: list[str | TaskRubricRewriteResult | Exception],
+    ) -> None:
         self.responses = list(responses)
         self.requests: list[TaskRubricRequest] = []
 
-    def rewrite(self, request: TaskRubricRequest) -> str:
+    def rewrite(
+        self,
+        request: TaskRubricRequest,
+    ) -> str | TaskRubricRewriteResult:
         self.requests.append(request)
         response = self.responses.pop(0)
         if isinstance(response, Exception):
@@ -209,6 +217,24 @@ def test_rewriter_provenance_is_a_closed_versioned_record() -> None:
         provenance.provider = "mutated"
 
 
+def test_task_rewrite_result_is_frozen_and_strictly_typed() -> None:
+    result = TaskRubricRewriteResult(
+        text="exact response text\n",
+        served_model_version=None,
+        response_id="response-123",
+    )
+
+    assert result.text == "exact response text\n"
+    with pytest.raises(FrozenInstanceError):
+        result.response_id = "mutated"
+    with pytest.raises(ValueError, match="served_model_version"):
+        TaskRubricRewriteResult(
+            text="response",
+            served_model_version=7,  # type: ignore[arg-type]
+            response_id=None,
+        )
+
+
 def test_injected_rewriter_requires_explicit_provenance(tmp_path: Path) -> None:
     tasks_dir = tmp_path / "tasks"
     task_dir = make_task(tasks_dir)
@@ -267,15 +293,38 @@ def test_compiler_config_is_read_only_after_construction(tmp_path: Path) -> None
     )
 
 
+def test_rewriter_and_provenance_are_read_only_after_construction(
+    tmp_path: Path,
+) -> None:
+    compiler, rewriter, output, _ = make_compiler(tmp_path)
+    original_rewriter = compiler.rewriter
+    original_provenance = compiler.rewriter_provenance
+
+    with pytest.raises(AttributeError):
+        compiler.rewriter = FakeRewriter([])
+    with pytest.raises(AttributeError):
+        compiler.rewriter_provenance = fake_rewriter_provenance(
+            provider="mutated-provider"
+        )
+
+    assert compiler.rewriter is original_rewriter
+    assert compiler.rewriter_provenance is original_provenance
+    assert compiler.run() == 0
+    assert rewriter.requests
+    root_manifest = json.loads((output / "manifest.json").read_text())
+    assert root_manifest["rewriter_provenance"]["provider"] == "test-provider"
+
+
 def make_compiler(
     tmp_path: Path,
     *,
-    responses: list[str | Exception] | None = None,
+    responses: list[str | TaskRubricRewriteResult | Exception] | None = None,
     output_name: str = "rubric-set",
     resume: bool = False,
     max_retries: int = 1,
     model: str = "gemini-3.5-flash",
     temperature: float | int = 0.2,
+    seed: int = 0,
 ) -> tuple[TaskProcessRubricCompiler, FakeRewriter, Path, Path]:
     tasks_dir = tmp_path / "tasks"
     task_dir = tasks_dir / "da-1-1"
@@ -292,6 +341,7 @@ def make_compiler(
         max_retries=max_retries,
         resume=resume,
         temperature=temperature,
+        seed=seed,
     )
     return TaskProcessRubricCompiler(
         config,
@@ -473,6 +523,7 @@ def test_partial_batch_failure_records_successes_and_failures_without_seal(
     assert incomplete.get("compiler_config")
     assert len(incomplete.get("compiler_config_sha256", "")) == 64
     assert set(incomplete.get("generation_code_sha256s", {})) == {
+        "rubric_scoring.py",
         "task_rubric_compiler.py",
         "task_rubrics.py",
         "perturbations.py",
@@ -485,6 +536,7 @@ def test_partial_batch_failure_records_successes_and_failures_without_seal(
     successful = incomplete["tasks"]["da-1-1"]
     assert set(successful) == {
         "input_sha256",
+        "response_metadata_sha256",
         "rubric_id",
         "rubric_sha256",
         "snapshot_sha256",
@@ -532,6 +584,7 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "prompt_version",
         "rewriter_provenance_sha256",
         "schema_version",
+        "seed",
         "task_ids",
         "tasks_dir",
         "temperature",
@@ -542,6 +595,7 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
     generation_code = root_manifest.get("generation_code_sha256s")
     assert isinstance(generation_code, dict)
     assert set(generation_code) == {
+        "rubric_scoring.py",
         "task_rubric_compiler.py",
         "task_rubrics.py",
         "perturbations.py",
@@ -568,8 +622,10 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "input_sha256",
         "model_sha256",
         "temperature_sha256",
+        "seed_sha256",
         "prompt_sha256",
         "raw_response_sha256",
+        "response_metadata_sha256",
         "structured_rubric_sha256",
         "rendered_rubric_sha256",
     ):
@@ -578,10 +634,104 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "rubric.json",
         "process_rubric.txt",
         "raw_response.txt",
+        "response_metadata.json",
         "attempts/attempt-1/request.json",
         "attempts/attempt-1/response.txt",
         "attempts/attempt-1/errors.json",
     }
+    assert task_manifest["compiler"]["seed"] == 0
+    assert root_manifest["tasks"]["da-1-1"][
+        "response_metadata_sha256"
+    ] == task_manifest["hashes"]["response_metadata_sha256"]
+
+
+def test_final_structured_response_metadata_is_sealed_and_raw_text_is_exact(
+    tmp_path: Path,
+) -> None:
+    task_dir = make_task(tmp_path / "tasks")
+    raw_response = "\n" + valid_rubric(build_task_snapshot(task_dir)) + "\n"
+    result = TaskRubricRewriteResult(
+        text=raw_response,
+        served_model_version="models/gemini-3.5-flash-20260701",
+        response_id="response-123",
+    )
+    compiler, _, output, _ = make_compiler(tmp_path, responses=[result])
+
+    assert compiler.run() == 0
+    task_bundle = output / "tasks" / "da-1-1"
+    metadata_path = task_bundle / "response_metadata.json"
+    metadata = json.loads(metadata_path.read_text())
+    task_manifest = json.loads((task_bundle / "manifest.json").read_text())
+    root_manifest = json.loads((output / "manifest.json").read_text())
+
+    assert (task_bundle / "raw_response.txt").read_text() == raw_response
+    assert metadata == {
+        "raw_response_sha256": sha256_text(raw_response),
+        "response_id": "response-123",
+        "schema_version": 1,
+        "served_model_version": "models/gemini-3.5-flash-20260701",
+    }
+    assert task_manifest["hashes"]["response_metadata_sha256"] == sha256_file(
+        metadata_path
+    )
+    assert root_manifest["tasks"]["da-1-1"][
+        "response_metadata_sha256"
+    ] == sha256_file(metadata_path)
+    assert resolve_rubric_bundle(output, "da-1-1").task_id == "da-1-1"
+
+
+def test_legacy_string_rewriter_seals_explicit_null_response_metadata(
+    tmp_path: Path,
+) -> None:
+    output = compile_fixture(tmp_path)
+    metadata = json.loads(
+        (output / "tasks" / "da-1-1" / "response_metadata.json").read_text()
+    )
+
+    assert metadata["served_model_version"] is None
+    assert metadata["response_id"] is None
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    (
+        {
+            "schema_version": 1,
+            "served_model_version": None,
+            "response_id": None,
+            "raw_response_sha256": "a" * 64,
+            "unexpected": "field",
+        },
+        {
+            "schema_version": 1,
+            "served_model_version": 7,
+            "response_id": None,
+            "raw_response_sha256": "a" * 64,
+        },
+        {
+            "schema_version": True,
+            "served_model_version": None,
+            "response_id": None,
+            "raw_response_sha256": "a" * 64,
+        },
+    ),
+)
+def test_response_metadata_is_a_closed_strictly_typed_record(
+    metadata: dict[str, object],
+) -> None:
+    with pytest.raises(RubricBundleError):
+        compiler_module._validated_response_metadata(metadata)
+
+
+def test_response_metadata_tampering_is_detected(tmp_path: Path) -> None:
+    output = compile_fixture(tmp_path)
+    metadata_path = output / "tasks" / "da-1-1" / "response_metadata.json"
+    metadata = json.loads(metadata_path.read_text())
+    metadata["response_id"] = "tampered"
+    write_canonical_json(metadata_path, metadata)
+
+    with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
 
 
 def test_injected_rewriter_provenance_is_truthfully_sealed(
@@ -725,6 +875,7 @@ def test_resolution_uses_snapshotted_attempt_topology(
         "compiler-config",
         "compiler-config-digest",
         "generation-code-map",
+        "generation-scoring-code",
         "generation-code-digest",
         "rewriter-provenance",
         "rewriter-provenance-digest",
@@ -746,6 +897,8 @@ def test_resolution_rejects_root_provenance_tampering(
         manifest["compiler_config_sha256"] = "0" * 64
     elif mutation == "generation-code-map":
         manifest["generation_code_sha256s"]["task_rubrics.py"] = "0" * 64
+    elif mutation == "generation-scoring-code":
+        manifest["generation_code_sha256s"]["rubric_scoring.py"] = "0" * 64
     elif mutation == "generation-code-digest":
         manifest["generation_code_sha256"] = "0" * 64
     elif mutation == "rewriter-provenance":
@@ -795,7 +948,7 @@ def test_persisted_compiler_config_rejects_boolean_versions(
         compiler_module._validated_compiler_config(compiler_config)
 
 
-@pytest.mark.parametrize("field", ("schema_version", "temperature"))
+@pytest.mark.parametrize("field", ("schema_version", "temperature", "seed"))
 def test_task_compiler_provenance_rejects_boolean_numeric_fields(
     tmp_path: Path,
     field: str,
@@ -807,6 +960,10 @@ def test_task_compiler_provenance_rejects_boolean_numeric_fields(
     task_manifest["compiler"][field] = True
     if field == "temperature":
         task_manifest["hashes"]["temperature_sha256"] = sha256_text(
+            canonical_json(True)
+        )
+    elif field == "seed":
+        task_manifest["hashes"]["seed_sha256"] = sha256_text(
             canonical_json(True)
         )
     write_canonical_json(task_manifest_path, task_manifest)
@@ -855,6 +1012,19 @@ def test_changed_input_or_config_does_not_resume(
     assert compiler.run() == 1
     assert rewriter.requests == []
     assert resolve_rubric_bundle(output, "da-1-1").task_id == "da-1-1"
+
+
+def test_changed_seed_does_not_resume(tmp_path: Path) -> None:
+    output = compile_fixture(tmp_path)
+    compiler, rewriter, _, _ = make_compiler(
+        tmp_path,
+        output_name=output.name,
+        resume=True,
+        seed=99,
+    )
+
+    assert compiler.run() == 1
+    assert rewriter.requests == []
 
 
 def test_existing_sealed_bundle_cannot_be_overwritten(tmp_path: Path) -> None:
@@ -1108,6 +1278,7 @@ def test_gemini_adapter_prompt_contains_closed_schema_and_quality_requirements(
         model="gemini-3.5-flash",
         api_key_env="TEST_KEY",
         temperature=0.7,
+        seed=123,
     )
 
     prompt = adapter.build_prompt(request)
@@ -1136,7 +1307,69 @@ def test_gemini_adapter_prompt_contains_closed_schema_and_quality_requirements(
     ):
         assert prohibition.lower() in prompt.lower()
     assert "criteria must be non-empty" in prompt
-    assert adapter.client.request_body("prompt")["generationConfig"]["temperature"] == 0.7
+    assert adapter.client.request_body("prompt")["generationConfig"] == {
+        "seed": 123,
+        "temperature": 0.7,
+    }
+
+
+def test_gemini_task_rewriter_returns_text_and_served_response_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    snapshot = build_task_snapshot(make_task(tmp_path / "tasks"))
+    request = TaskRubricRequest(
+        schema_version=1,
+        prompt_version="task-process-rubric-v1",
+        task_snapshot=snapshot.to_dict(),
+    )
+    adapter = GeminiTaskRubricRewriter(api_key_env="TEST_KEY")
+    provider_result = GeminiGenerateContentResponse(
+        text=" exact response text\n",
+        model_version="models/gemini-3.5-flash-20260701",
+        response_id="response-123",
+    )
+    monkeypatch.setattr(
+        adapter.client,
+        "generate_content_response",
+        lambda _prompt: provider_result,
+    )
+
+    result = adapter.rewrite(request)
+
+    assert result == TaskRubricRewriteResult(
+        text=" exact response text\n",
+        served_model_version="models/gemini-3.5-flash-20260701",
+        response_id="response-123",
+    )
+
+
+def test_gemini_structured_response_requires_provider_metadata() -> None:
+    adapter = GeminiTaskRubricRewriter(api_key_env="TEST_KEY")
+    payload = {
+        "candidates": [{"content": {"parts": [{"text": "response"}]}}],
+        "modelVersion": "models/gemini-3.5-flash-20260701",
+        "responseId": "response-123",
+    }
+
+    assert adapter.client.response_with_metadata(payload) == (
+        GeminiGenerateContentResponse(
+            text="response",
+            model_version="models/gemini-3.5-flash-20260701",
+            response_id="response-123",
+        )
+    )
+    for missing in ("modelVersion", "responseId"):
+        invalid = dict(payload)
+        invalid.pop(missing)
+        with pytest.raises(RuntimeError, match=missing):
+            adapter.client.response_with_metadata(invalid)
+
+
+@pytest.mark.parametrize("seed", (True, 1.5, "1"))
+def test_gemini_task_rewriter_requires_an_integer_seed(seed: object) -> None:
+    with pytest.raises(ValueError, match="seed"):
+        GeminiTaskRubricRewriter(seed=seed)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -1146,6 +1379,8 @@ def test_gemini_adapter_prompt_contains_closed_schema_and_quality_requirements(
         ("max_retries", -1),
         ("max_concurrency", 0),
         ("temperature", float("nan")),
+        ("seed", True),
+        ("seed", 1.5),
     ),
 )
 def test_invalid_compiler_config_is_rejected(
@@ -1193,6 +1428,7 @@ def test_cli_requires_explicit_tasks_and_output() -> None:
     ])
 
     assert args.tasks == ["da-19-1"]
+    assert args.seed == 0
     with pytest.raises(SystemExit):
         build_parser().parse_args([
             "task-process-rubrics",
@@ -1250,6 +1486,8 @@ def test_cli_maps_task_compiler_options_to_config() -> None:
         "4",
         "--max-concurrency",
         "6",
+        "--seed",
+        "1729",
         "--resume",
     ])
 
@@ -1264,6 +1502,7 @@ def test_cli_maps_task_compiler_options_to_config() -> None:
     assert config.api_key_env == "GOOGLE_API_KEY"
     assert config.max_retries == 4
     assert config.max_concurrency == 6
+    assert config.seed == 1729
     assert config.resume is True
 
 
@@ -1353,6 +1592,7 @@ def test_package_exports_intentional_task_rubric_interfaces() -> None:
         compiler_module: (
             "TaskRubricCompilerConfig",
             "TaskRubricRequest",
+            "TaskRubricRewriteResult",
             "TaskRubricRewriter",
             "TaskRubricRewriterProvenance",
             "GeminiTaskRubricRewriter",

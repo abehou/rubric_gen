@@ -1487,6 +1487,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
     def test_task_judge_supports_rubric_defined_level_letters(self):
         judge_path = ROOT / "data" / "biomnibench-da" / "da-10-1" / "tests" / "llm_judge.py"
+        if not judge_path.is_file():
+            self.skipTest("external BiomniBench judge fixture is not available")
         text = judge_path.read_text()
         self.assertIn("choose ONE of the level letters defined", text)
         self.assertIn("allowed_level_letters", text)
@@ -1500,7 +1502,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
         levels = module.parse_rubric_levels("Criterion 1:\nLevels: A=10 B=8 C=4 D=1 E=0\n")
         self.assertEqual(levels["criterion_1"], {"A": 10, "B": 8, "C": 4, "D": 1, "E": 0})
 
-    def test_judge_runner_discovers_batch_and_prepares_trace_inputs(self):
+    def test_judge_runner_discovers_batch_without_writing_dry_run_inputs(self):
         core = self.import_core()
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -1548,7 +1550,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             self.assertIsNone(summary["average_score"])
             self.assertFalse((batch / "judge-trace-summary.jsonl").exists())
             self.assertFalse((batch / "judge-trace-progress.jsonl").exists())
-            self.assertEqual(judge_input.read_text(), "clean trace")
+            self.assertFalse(judge_input.exists())
 
     def test_judge_runner_discovers_multiple_single_run_dirs(self):
         core = self.import_core()
@@ -1601,8 +1603,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertEqual([task["task"] for task in summary["tasks"]], ["da-1-1", "da-2-1"])
             self.assertEqual(summary["total_attempts"], 2)
-            self.assertEqual((run_dirs[0] / "judges" / "trace" / "da-1-1" / "judge_input_trace.md").read_text(), "da-1-1 trace")
-            self.assertEqual((run_dirs[1] / "judges" / "trace" / "da-2-1" / "judge_input_trace.md").read_text(), "da-2-1 trace")
+            self.assertFalse((run_dirs[0] / "judges" / "trace" / "da-1-1").exists())
+            self.assertFalse((run_dirs[1] / "judges" / "trace" / "da-2-1").exists())
 
     def test_judge_runner_can_select_rubric_file(self):
         core = self.import_core()
@@ -1619,6 +1621,10 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             output_dir = root / "judge-output"
             output_dir.mkdir()
+            run_dir = root / "run"
+            workspace_dir = root / "workspace"
+            run_dir.mkdir()
+            workspace_dir.mkdir()
 
             def fake_run(cmd, cwd, env, text, stdout, stderr, check):
                 self.assertEqual(Path(cwd, "tests", "rubric.txt").read_text(), process_rubric)
@@ -1638,6 +1644,15 @@ class BiomniBenchAgentTests(unittest.TestCase):
                     rubric_name="process_rubric.txt",
                 )
             )
+            target = core.JudgeTarget(
+                task="da-1-1",
+                task_dir=task_dir,
+                run_dir=run_dir,
+                workspace_dir=workspace_dir,
+                trajectory_path=run_dir / "trajectory.stream.jsonl",
+                output_root=root,
+            )
+            from rubric_gen.biomnibench.judges import JudgeAttempt
 
             import unittest.mock
 
@@ -1648,6 +1663,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
                     output_dir,
                     "trace",
                     "answer",
+                    attempt=JudgeAttempt(target, 1),
                 )
 
             self.assertEqual(result["status"], "completed")
@@ -1688,13 +1704,15 @@ class BiomniBenchAgentTests(unittest.TestCase):
                     dry_run=True,
                 )
             )
+            review_text = runner.review_text(runner.discover_targets()[0])
 
             exit_code = runner.run()
             judge_input = run_dir / "judges" / "trajectory" / "da-1-1" / "judge_input_trace.md"
 
             self.assertEqual(exit_code, 0)
-            self.assertIn("# Raw Agent Trajectory", judge_input.read_text())
-            self.assertIn('"type": "tool_use"', judge_input.read_text())
+            self.assertIn("# Raw Agent Trajectory", review_text)
+            self.assertIn('"type": "tool_use"', review_text)
+            self.assertFalse(judge_input.exists())
 
     def test_judge_score_summary_reports_average(self):
         core = self.import_core()
@@ -1822,8 +1840,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertEqual(summary["total_attempts"], 2)
-            self.assertTrue((batch / "judges" / "trace" / "da-1-1" / "repeat-01" / "judge_input_trace.md").is_file())
-            self.assertTrue((batch / "judges" / "trace" / "da-1-1" / "repeat-02" / "judge_input_trace.md").is_file())
+            self.assertFalse((batch / "judges" / "trace" / "da-1-1" / "repeat-01").exists())
+            self.assertFalse((batch / "judges" / "trace" / "da-1-1" / "repeat-02").exists())
 
     def test_judge_resume_rejects_unattested_scored_output(self):
         core = self.import_core()

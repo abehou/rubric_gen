@@ -354,6 +354,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Compile up to this many task rubrics concurrently.",
     )
     task_process_rubrics.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Deterministic Gemini decoding seed. Defaults to 0.",
+    )
+    task_process_rubrics.add_argument(
         "--resume",
         action="store_true",
         help="Reuse an exact matching sealed rubric bundle when available.",

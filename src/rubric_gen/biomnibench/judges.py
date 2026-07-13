@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -47,6 +48,9 @@ SCORE_INPUT_ATTESTATION_KEYS = {
     "effective_judge_model",
     "review_mode",
     "max_review_chars",
+    "task",
+    "run_identity",
+    "repeat_index",
 }
 SCORE_VALIDATION_KEYS = {
     "score",
@@ -64,6 +68,22 @@ SCORE_VALIDATION_KEYS = {
     "reward_sha256",
     "evaluation_sha256",
 } | SCORE_INPUT_ATTESTATION_KEYS
+_SAFE_TASK_COMPONENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+
+
+def _safe_basename(value: object, context: str) -> str:
+    if (
+        type(value) is not str
+        or not value
+        or value in {".", ".."}
+        or Path(value).is_absolute()
+        or Path(value).name != value
+        or "/" in value
+        or "\\" in value
+        or "\x00" in value
+    ):
+        raise ValueError(f"{context} must be a safe basename")
+    return value
 
 
 @dataclass(frozen=True)
@@ -101,6 +121,10 @@ class JudgeRunConfig:
     def __post_init__(self) -> None:
         if self.rubric_name is not None and self.rubric_set is not None:
             raise ValueError("rubric_name and rubric_set are mutually exclusive")
+        if self.judge_name is not None:
+            _safe_basename(self.judge_name, "judge_name")
+        if self.rubric_name is not None:
+            _safe_basename(self.rubric_name, "rubric_name")
 
     @classmethod
     def from_namespace(cls, args: Any) -> "JudgeRunConfig":
@@ -175,6 +199,84 @@ class BiomniBenchJudgeRunner:
     def summary_path(self) -> Path:
         return self.scores_path
 
+    def _validated_task_id(self, task: object) -> str:
+        if type(task) is not str or _SAFE_TASK_COMPONENT.fullmatch(task) is None:
+            raise SystemExit(f"Invalid judge task ID: {task!r}")
+        return task
+
+    def _canonical_task_dir(
+        self,
+        task: object,
+        status_task_dir: object | None = None,
+    ) -> Path:
+        task_id = self._validated_task_id(task)
+        configured = self.config.tasks_dir.expanduser() / task_id
+        if configured.is_symlink() or not configured.is_dir():
+            raise SystemExit(f"Missing regular configured task directory: {configured}")
+        try:
+            canonical = configured.resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(f"Invalid configured task directory: {configured}") from exc
+        if status_task_dir is not None:
+            if type(status_task_dir) is not str:
+                raise SystemExit("status task_dir must be a path string")
+            status_path = Path(status_task_dir).expanduser()
+            if status_path.is_symlink():
+                raise SystemExit(f"status task directory must not be a symlink: {status_path}")
+            try:
+                status_canonical = status_path.resolve(strict=True)
+            except (OSError, RuntimeError) as exc:
+                raise SystemExit(f"Invalid status task directory: {status_path}") from exc
+            if status_canonical != canonical:
+                raise SystemExit(
+                    f"status task directory disagrees with configured task directory: {status_path}"
+                )
+        return canonical
+
+    def _validated_workspace(
+        self,
+        workspace: Path,
+        *,
+        expected: Path | None = None,
+        allowed_root: Path | None = None,
+    ) -> Path:
+        if workspace.is_symlink():
+            raise SystemExit(f"workspace directory must not be a symlink: {workspace}")
+        try:
+            canonical = workspace.expanduser().resolve(strict=False)
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(f"Invalid workspace directory: {workspace}") from exc
+        if expected is not None and canonical != expected.expanduser().resolve(strict=False):
+            raise SystemExit(f"status workspace directory disagrees with run layout: {workspace}")
+        if allowed_root is not None:
+            root = allowed_root.expanduser().resolve(strict=False)
+            if not canonical.is_relative_to(root):
+                raise SystemExit(f"status workspace directory leaves run root: {workspace}")
+        return canonical
+
+    def validate_target_identity(self, target: JudgeTarget) -> None:
+        canonical_task_dir = self._canonical_task_dir(target.task)
+        if target.task_dir.is_symlink():
+            raise SystemExit(f"target task directory must not be a symlink: {target.task_dir}")
+        try:
+            target_task_dir = target.task_dir.resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(f"Invalid target task directory: {target.task_dir}") from exc
+        if target_task_dir != canonical_task_dir:
+            raise SystemExit(
+                f"target task directory disagrees with configured task directory: {target.task_dir}"
+            )
+        if target.run_dir.is_symlink() or not target.run_dir.is_dir():
+            raise SystemExit(f"run directory must be a regular directory: {target.run_dir}")
+        if target.run_dir.parent.name == "tasks":
+            expected_workspace = target.run_dir.parents[1] / "workspaces" / target.task
+            self._validated_workspace(target.workspace_dir, expected=expected_workspace)
+        else:
+            self._validated_workspace(
+                target.workspace_dir,
+                allowed_root=target.run_dir.parent,
+            )
+
     def discover_targets(self) -> list[JudgeTarget]:
         targets = []
         for run_dir in self.config.run_dirs:
@@ -188,18 +290,36 @@ class BiomniBenchJudgeRunner:
 
     def _discover_batch_targets(self, batch_dir: Path) -> list[JudgeTarget]:
         targets = []
-        for task_run_dir in sorted((batch_dir / "tasks").iterdir()):
+        tasks_root = batch_dir / "tasks"
+        workspaces_root = batch_dir / "workspaces"
+        if tasks_root.is_symlink() or workspaces_root.is_symlink():
+            raise SystemExit(f"Batch run layout must not contain symlink roots: {batch_dir}")
+        for task_run_dir in sorted(tasks_root.iterdir()):
+            if task_run_dir.is_symlink():
+                raise SystemExit(f"Task run directory must not be a symlink: {task_run_dir}")
             if not task_run_dir.is_dir():
                 continue
-            task = task_run_dir.name
+            task = self._validated_task_id(task_run_dir.name)
             status = self._read_json(task_run_dir / "status.json")
-            task_dir = Path(status.get("task_dir") or self.config.tasks_dir / task)
+            if status.get("task") is not None and status["task"] != task:
+                raise SystemExit(
+                    f"status task disagrees with task run directory: {task_run_dir}"
+                )
+            task_dir = self._canonical_task_dir(task, status.get("task_dir"))
+            expected_workspace = workspaces_root / task
+            raw_workspace = status.get("workspace_dir")
+            if raw_workspace is not None and type(raw_workspace) is not str:
+                raise SystemExit("status workspace_dir must be a path string")
+            workspace_dir = self._validated_workspace(
+                Path(raw_workspace) if raw_workspace is not None else expected_workspace,
+                expected=expected_workspace,
+            )
             targets.append(
                 JudgeTarget(
                     task=task,
                     task_dir=task_dir,
                     run_dir=task_run_dir,
-                    workspace_dir=Path(status.get("workspace_dir") or batch_dir / "workspaces" / task),
+                    workspace_dir=workspace_dir,
                     trajectory_path=task_run_dir / "trajectory.stream.jsonl",
                     output_root=batch_dir,
                 )
@@ -208,18 +328,35 @@ class BiomniBenchJudgeRunner:
 
     def _discover_single_target(self, run_dir: Path) -> JudgeTarget:
         status = self._read_json(run_dir / "status.json")
-        task = status.get("task") or self._infer_task_name(run_dir)
-        task_dir = Path(status.get("task_dir") or self.config.tasks_dir / task)
+        task = self._validated_task_id(status.get("task") or self._infer_task_name(run_dir))
+        if run_dir.parent.name == "tasks" and task != run_dir.name:
+            raise SystemExit(f"status task disagrees with task run directory: {run_dir}")
+        if run_dir.name.startswith("da-") and task != self._infer_task_name(run_dir):
+            raise SystemExit(f"status task disagrees with run directory identity: {run_dir}")
+        task_dir = self._canonical_task_dir(task, status.get("task_dir"))
         workspace = status.get("workspace_dir")
         if workspace is None and run_dir.parent.name == "tasks":
             workspace = run_dir.parents[1] / "workspaces" / task
         if workspace is None:
             workspace = run_dir / "workspace"
+        if type(workspace) is not str and not isinstance(workspace, Path):
+            raise SystemExit("status workspace_dir must be a path string")
+        workspace_path = Path(workspace)
+        if run_dir.parent.name == "tasks":
+            workspace_path = self._validated_workspace(
+                workspace_path,
+                expected=run_dir.parents[1] / "workspaces" / task,
+            )
+        else:
+            workspace_path = self._validated_workspace(
+                workspace_path,
+                allowed_root=run_dir.parent,
+            )
         return JudgeTarget(
             task=task,
             task_dir=task_dir,
             run_dir=run_dir,
-            workspace_dir=Path(workspace),
+            workspace_dir=workspace_path,
             trajectory_path=run_dir / "trajectory.stream.jsonl",
             output_root=run_dir,
         )
@@ -398,6 +535,7 @@ class BiomniBenchJudgeRunner:
         except (OSError, UnicodeError):
             return None
         score_input_attestation = self.score_input_attestation(
+            attempt=attempt,
             judge_source=judge_source,
             review_text=review_text,
             answer_text=answer_text,
@@ -436,12 +574,9 @@ class BiomniBenchJudgeRunner:
         rubric = self.resolve_rubric(target)
         judge_path = self.find_judge(target.task_dir)
         output_dir = self.output_dir(target, repeat_index)
-        output_dir.mkdir(parents=True, exist_ok=True)
 
         review_text = self.review_text(target)
         answer_text = self.read_text(target.workspace_dir / "answer.txt")
-        (output_dir / "judge_input_trace.md").write_text(review_text)
-        (output_dir / "judge_input_answer.txt").write_text(answer_text)
 
         base_record = {
             "task": target.task,
@@ -458,33 +593,93 @@ class BiomniBenchJudgeRunner:
         if self.config.dry_run:
             return {**base_record, "status": "planned", "exit_code": 0}
 
-        result = self.execute_judge(judge_path, rubric, output_dir, review_text, answer_text)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        self._safe_output_path(target.output_root, output_dir)
+        (output_dir / "judge_input_trace.md").write_text(review_text)
+        (output_dir / "judge_input_answer.txt").write_text(answer_text)
+        result = self.execute_judge(
+            judge_path,
+            rubric,
+            output_dir,
+            review_text,
+            answer_text,
+            attempt=JudgeAttempt(target, repeat_index),
+        )
         return {**base_record, **result}
 
     def output_dir(self, target: JudgeTarget, repeat_index: int = 1) -> Path:
+        self._validated_task_id(target.task)
         base = target.output_root / "judges" / self.config.review / target.task
         if self.repeat_count == 1:
-            return base
-        return base / f"repeat-{repeat_index:02d}"
+            return self._safe_output_path(target.output_root, base)
+        return self._safe_output_path(
+            target.output_root,
+            base / f"repeat-{repeat_index:02d}",
+        )
+
+    def _safe_output_path(self, output_root: Path, candidate: Path) -> Path:
+        root = output_root.expanduser().absolute()
+        path = candidate.expanduser().absolute()
+        try:
+            relative = path.relative_to(root)
+        except ValueError as exc:
+            raise SystemExit(f"Judge output leaves output root: {candidate}") from exc
+        current = root
+        if current.is_symlink():
+            raise SystemExit(f"Judge output root must not be a symlink: {current}")
+        for part in relative.parts:
+            current = current / part
+            if current.is_symlink():
+                raise SystemExit(f"Judge output path contains a symlink: {current}")
+        try:
+            if not path.resolve(strict=False).is_relative_to(root.resolve(strict=False)):
+                raise SystemExit(f"Judge output leaves output root: {candidate}")
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(f"Invalid judge output path: {candidate}") from exc
+        return path
+
+    def _tests_dir(self, task_dir: Path) -> Path:
+        if task_dir.is_symlink() or not task_dir.is_dir():
+            raise SystemExit(f"Task directory must be a regular directory: {task_dir}")
+        tests_dir = task_dir / "tests"
+        if tests_dir.is_symlink():
+            raise SystemExit(f"Task tests directory must not be a symlink: {tests_dir}")
+        if not tests_dir.is_dir():
+            raise SystemExit(f"Missing tests directory: {tests_dir}")
+        try:
+            if tests_dir.resolve(strict=True).parent != task_dir.resolve(strict=True):
+                raise SystemExit(f"Task tests directory leaves task directory: {tests_dir}")
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(f"Invalid task tests directory: {tests_dir}") from exc
+        return tests_dir
 
     def find_judge(self, task_dir: Path) -> Path:
-        tests_dir = task_dir / "tests"
+        tests_dir = self._tests_dir(task_dir)
         names = [self.config.judge_name] if self.config.judge_name else ["llm_judge.py", "judge.py"]
         for name in names:
             if name is None:
                 continue
+            _safe_basename(name, "judge_name")
             candidate = tests_dir / name
+            if candidate.is_symlink():
+                raise SystemExit(f"Judge file must not be a symlink: {candidate}")
             if candidate.is_file():
                 return candidate
         raise SystemExit(f"Missing judge file in {tests_dir}")
 
     def find_rubric(self, task_dir: Path) -> Path:
-        rubric_path = task_dir / "tests" / (self.config.rubric_name or "rubric.txt")
+        tests_dir = self._tests_dir(task_dir)
+        rubric_name = self.config.rubric_name or "rubric.txt"
+        _safe_basename(rubric_name, "rubric_name")
+        rubric_path = tests_dir / rubric_name
+        if rubric_path.is_symlink():
+            raise SystemExit(f"Rubric file must not be a symlink: {rubric_path}")
         if rubric_path.is_file():
             return rubric_path
         raise SystemExit(f"Missing rubric file: {rubric_path}")
 
     def resolve_rubric(self, target: JudgeTarget) -> ResolvedRubric:
+        self.validate_target_identity(target)
         if self.config.rubric_set is None:
             return self.resolved_local_rubric(self.find_rubric(target.task_dir))
 
@@ -508,6 +703,8 @@ class BiomniBenchJudgeRunner:
         )
 
     def resolved_local_rubric(self, path: Path) -> ResolvedRubric:
+        if path.is_symlink() or not path.is_file():
+            raise SystemExit(f"Rubric path must be a regular file: {path}")
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as exc:
@@ -560,13 +757,20 @@ class BiomniBenchJudgeRunner:
         output_dir: Path,
         review_text: str,
         answer_text: str,
+        *,
+        attempt: JudgeAttempt,
     ) -> dict[str, Any]:
+        self.validate_target_identity(attempt.target)
+        self._safe_output_path(attempt.target.output_root, output_dir)
         if isinstance(rubric, Path):
             rubric = self.resolved_local_rubric(rubric)
+        if judge_path.is_symlink() or not judge_path.is_file():
+            raise SystemExit(f"Judge path must be a regular file: {judge_path}")
         judge_source = judge_path.read_bytes()
         env = os.environ.copy()
         effective_judge_model = self.judge_model(env)
         score_input_attestation = self.score_input_attestation(
+            attempt=attempt,
             judge_source=judge_source,
             review_text=review_text,
             answer_text=answer_text,
@@ -709,12 +913,21 @@ class BiomniBenchJudgeRunner:
     def score_input_attestation(
         self,
         *,
+        attempt: JudgeAttempt,
         judge_source: bytes,
         review_text: str,
         answer_text: str,
         effective_judge_model: str,
     ) -> dict[str, Any]:
         """Attest the exact inputs and implementation used by score computation."""
+
+        self.validate_target_identity(attempt.target)
+        if type(attempt.repeat_index) is not int or attempt.repeat_index < 1:
+            raise JudgeScoreValidationError("repeat_index must be a positive integer")
+        try:
+            run_identity = str(attempt.target.run_dir.resolve(strict=True))
+        except (OSError, RuntimeError) as exc:
+            raise JudgeScoreValidationError("run identity is not canonical") from exc
 
         return {
             "schema_version": SCORE_VALIDATION_SCHEMA_VERSION,
@@ -727,6 +940,9 @@ class BiomniBenchJudgeRunner:
             "effective_judge_model": effective_judge_model,
             "review_mode": self.config.review,
             "max_review_chars": self.config.max_review_chars,
+            "task": attempt.target.task,
+            "run_identity": run_identity,
+            "repeat_index": attempt.repeat_index,
         }
 
     def judge_runner_sha256(self) -> str:

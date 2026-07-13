@@ -196,6 +196,7 @@ def make_runner(
     review: str = "trace",
     model: str | None = None,
     max_review_chars: int | None = None,
+    repeats: int = 1,
 ) -> BiomniBenchJudgeRunner:
     return BiomniBenchJudgeRunner(JudgeRunConfig(
         run_dir=tmp_path / "run",
@@ -207,6 +208,7 @@ def make_runner(
         review=review,
         model=model,
         max_review_chars=max_review_chars,
+        repeats=repeats,
     ))
 
 
@@ -240,28 +242,164 @@ def test_cli_rejects_rubric_and_rubric_set_together(tmp_path: Path) -> None:
         ])
 
 
-def test_external_lookup_uses_validated_target_task(tmp_path: Path) -> None:
+def test_target_task_must_match_canonical_task_directory(tmp_path: Path) -> None:
     rubric_set, _ = compile_rubric_set(tmp_path, "da-1-1", "da-2-1")
     target = make_target(tmp_path, "da-1-1")
     target = replace(target, task="da-2-1")
     runner = make_runner(tmp_path, rubric_set=rubric_set)
 
-    resolved = runner.resolve_rubric(target)
+    with pytest.raises(SystemExit, match="task directory"):
+        runner.resolve_rubric(target)
 
-    assert resolved.path.parent.name == "da-2-1"
-    assert "Analysis for da-2-1" in resolved.text
-    assert resolved.source == "rubric-set"
-    assert resolved.rubric_id is not None
-    assert resolved.rubric_set_id is not None
-    assert resolved.structured_rubric_sha256 == resolve_rubric_bundle(
-        rubric_set,
-        "da-2-1",
-    ).rubric_sha256
-    assert resolved.rendered_rubric_sha256 == hashlib.sha256(
-        resolved.text.encode("utf-8")
-    ).hexdigest()
-    assert resolved.manifest_path == resolved.path.parent / "manifest.json"
-    assert resolved.manifest_sha256 == sha256_file(resolved.manifest_path)
+
+@pytest.mark.parametrize("mismatch", ("task", "task_dir", "workspace_dir"))
+def test_batch_discovery_rejects_status_identity_mismatch(
+    tmp_path: Path,
+    mismatch: str,
+) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    batch_dir = tmp_path / "run"
+    run_dir = batch_dir / "tasks" / task_id
+    workspace_dir = batch_dir / "workspaces" / task_id
+    run_dir.mkdir(parents=True)
+    workspace_dir.mkdir(parents=True)
+    status = {
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace_dir),
+    }
+    replacements = {
+        "task": "da-2-1",
+        "task_dir": str(tmp_path / "runtime-tasks" / "da-2-1"),
+        "workspace_dir": str(tmp_path / "outside-workspace"),
+    }
+    status[mismatch] = replacements[mismatch]
+    (run_dir / "status.json").write_text(json.dumps(status), encoding="utf-8")
+    runner = make_runner(tmp_path)
+
+    with pytest.raises(SystemExit):
+        runner.discover_targets()
+
+
+def test_single_discovery_rejects_unsafe_status_task(tmp_path: Path) -> None:
+    run_dir = tmp_path / "standalone-run"
+    run_dir.mkdir()
+    (run_dir / "status.json").write_text(
+        json.dumps({"task": "../escape"}),
+        encoding="utf-8",
+    )
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=run_dir,
+        tasks_dir=tmp_path / "runtime-tasks",
+    ))
+
+    with pytest.raises(SystemExit, match="task ID"):
+        runner.discover_targets()
+
+
+def test_output_symlink_escape_is_rejected_before_dry_run_writes(
+    tmp_path: Path,
+) -> None:
+    target = make_target(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (target.output_root / "judges").symlink_to(outside, target_is_directory=True)
+    runner = make_runner(tmp_path, dry_run=True)
+
+    with pytest.raises(SystemExit, match="symlink"):
+        runner.review_target(target)
+
+    assert list(outside.iterdir()) == []
+
+
+def test_dry_run_does_not_create_per_target_outputs(tmp_path: Path) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, dry_run=True)
+    output_dir = runner.output_dir(target)
+
+    record = runner.review_target(target)
+
+    assert record["status"] == "planned"
+    assert not output_dir.exists()
+
+
+@pytest.mark.parametrize("field", ("judge_name", "rubric_name"))
+@pytest.mark.parametrize(
+    "unsafe_name",
+    ("../escape.py", "/tmp/escape.py", "nested/escape.py", r"nested\escape.py", ".", ".."),
+)
+def test_judge_artifact_overrides_require_safe_basenames(
+    tmp_path: Path,
+    field: str,
+    unsafe_name: str,
+) -> None:
+    kwargs = {field: unsafe_name}
+
+    with pytest.raises(ValueError, match="basename"):
+        JudgeRunConfig(
+            run_dir=tmp_path / "run",
+            tasks_dir=tmp_path / "runtime-tasks",
+            **kwargs,
+        )
+
+
+def test_default_judge_symlink_is_rejected(tmp_path: Path) -> None:
+    target = make_target(tmp_path)
+    judge_path = target.task_dir / "tests" / "llm_judge.py"
+    outside = tmp_path / "outside-judge.py"
+    outside.write_text("print('outside')\n", encoding="utf-8")
+    judge_path.unlink()
+    judge_path.symlink_to(outside)
+
+    with pytest.raises(SystemExit, match="symlink"):
+        make_runner(tmp_path).find_judge(target.task_dir)
+
+
+def test_default_rubric_symlink_is_rejected(tmp_path: Path) -> None:
+    target = make_target(tmp_path)
+    rubric_path = target.task_dir / "tests" / "rubric.txt"
+    outside = tmp_path / "outside-rubric.txt"
+    outside.write_text("Criterion 1:\nLevels: A=100 B=0\n", encoding="utf-8")
+    rubric_path.unlink()
+    rubric_path.symlink_to(outside)
+
+    with pytest.raises(SystemExit, match="symlink"):
+        make_runner(tmp_path).resolve_rubric(target)
+
+
+@pytest.mark.parametrize("field", ("judge_name", "rubric_name"))
+def test_overridden_judge_artifact_symlink_is_rejected(
+    tmp_path: Path,
+    field: str,
+) -> None:
+    target = make_target(tmp_path)
+    override_name = "custom.py" if field == "judge_name" else "custom.txt"
+    outside = tmp_path / f"outside-{override_name}"
+    outside.write_text("outside\n", encoding="utf-8")
+    (target.task_dir / "tests" / override_name).symlink_to(outside)
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=tmp_path / "run",
+        tasks_dir=tmp_path / "runtime-tasks",
+        **{field: override_name},
+    ))
+
+    with pytest.raises(SystemExit, match="symlink"):
+        if field == "judge_name":
+            runner.find_judge(target.task_dir)
+        else:
+            runner.resolve_rubric(target)
+
+
+def test_symlinked_tests_directory_is_rejected(tmp_path: Path) -> None:
+    target = make_target(tmp_path)
+    tests_dir = target.task_dir / "tests"
+    outside = tmp_path / "outside-tests"
+    tests_dir.rename(outside)
+    tests_dir.symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(SystemExit, match="symlink"):
+        make_runner(tmp_path).find_judge(target.task_dir)
 
 
 def test_external_judge_consumes_verified_bundle_snapshots(
@@ -404,6 +542,7 @@ def test_authoritative_score_and_hash_attestation(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )
     validation = json.loads((output_dir / "score_validation.json").read_text())
 
@@ -438,6 +577,9 @@ def test_authoritative_score_and_hash_attestation(
         "effective_judge_model": runner.judge_model(os.environ.copy()),
         "review_mode": "trace",
         "max_review_chars": None,
+        "task": target.task,
+        "run_identity": str(target.run_dir.resolve()),
+        "repeat_index": 1,
     }
 
 
@@ -468,6 +610,7 @@ def test_score_validation_hashes_the_exact_parsed_reward_and_evaluation_bytes(
 
     monkeypatch.setattr(runner, "load_json", load_then_mutate)
     attestation = runner.score_input_attestation(
+        attempt=JudgeAttempt(target, 1),
         judge_source=b"print('judge')\n",
         review_text="trace",
         answer_text="answer",
@@ -515,6 +658,7 @@ def test_judge_executes_verified_text_snapshot_when_source_changes(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )
 
     assert result["status"] == "completed"
@@ -543,6 +687,7 @@ def test_malformed_criteria_fail_despite_zero_judge_exit(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )
 
     assert result["status"] == "failed"
@@ -588,6 +733,7 @@ def test_resume_requires_matching_artifact_hashes(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )["status"] == "completed"
     resume_runner = make_runner(tmp_path, resume=True)
     attempt = JudgeAttempt(target=target, repeat_index=1)
@@ -602,6 +748,72 @@ def test_resume_requires_matching_artifact_hashes(
     path.write_text(path.read_text() + "\n", encoding="utf-8")
 
     assert resume_runner.completed_record(attempt) is None
+
+
+def test_resume_rejects_cache_transplanted_between_repeats(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, repeats=2)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert runner.review_target(target, repeat_index=1)["status"] == "completed"
+    shutil.copytree(runner.output_dir(target, 1), runner.output_dir(target, 2))
+
+    resume_runner = make_runner(tmp_path, repeats=2, resume=True)
+
+    assert resume_runner.completed_record(JudgeAttempt(target, 2)) is None
+
+
+def test_resume_rejects_cache_transplanted_between_tasks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = make_target(tmp_path, "da-1-1")
+    destination = make_target(tmp_path, "da-2-1")
+    runner = make_runner(tmp_path)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert runner.review_target(source)["status"] == "completed"
+    shutil.copytree(runner.output_dir(source), runner.output_dir(destination))
+
+    resume_runner = make_runner(tmp_path, resume=True)
+
+    assert resume_runner.completed_record(JudgeAttempt(destination, 1)) is None
+
+
+def test_resume_rejects_cache_transplanted_between_runs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first_root = tmp_path / "first"
+    second_root = tmp_path / "second"
+    source = make_target(first_root)
+    destination = make_target(second_root)
+    first_runner = make_runner(first_root)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert first_runner.review_target(source)["status"] == "completed"
+    second_runner = make_runner(second_root, resume=True)
+    shutil.copytree(
+        first_runner.output_dir(source),
+        second_runner.output_dir(destination),
+    )
+
+    assert second_runner.completed_record(JudgeAttempt(destination, 1)) is None
 
 
 @pytest.mark.parametrize(
@@ -640,6 +852,7 @@ def test_resume_binds_actual_scoring_inputs_and_implementation(
         output_dir,
         runner.review_text(target),
         runner.read_text(target.workspace_dir / "answer.txt"),
+        attempt=JudgeAttempt(target, 1),
     )["status"] == "completed"
 
     resume_runner = make_runner(tmp_path, resume=True, model="judge-model-a")
@@ -711,6 +924,7 @@ def test_resume_binds_exact_trajectory_review_input(
         output_dir,
         runner.review_text(target),
         runner.read_text(target.workspace_dir / "answer.txt"),
+        attempt=JudgeAttempt(target, 1),
     )["status"] == "completed"
     target.trajectory_path.write_text('{"type": "changed"}\n')
 
@@ -744,6 +958,7 @@ def test_resume_binds_review_mode_even_with_identical_review_text(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )["status"] == "completed"
 
     resume_runner = make_runner(
@@ -796,6 +1011,7 @@ def test_resume_rejects_identical_rubric_from_different_set(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )
     assert result["status"] == "completed"
     validation = json.loads((output_dir / "score_validation.json").read_text())
@@ -827,6 +1043,7 @@ def test_resume_rejects_non_strict_attestation(
         output_dir,
         "trace",
         "answer",
+        attempt=JudgeAttempt(target, 1),
     )
     validation_path = output_dir / "score_validation.json"
     validation = json.loads(validation_path.read_text())
