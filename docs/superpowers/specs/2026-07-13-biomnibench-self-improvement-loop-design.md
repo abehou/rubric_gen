@@ -274,11 +274,14 @@ retained.
 
 Initialization creates a disposable `working_evaluator/` seeded from the same
 visible rubric family and an evaluator command with a closed JSON input/output
-contract. The proposer may change its rubric copy, judge code, parser,
-aggregation, or returned proxy. The controller intentionally trusts the
+contract. The proposer may change its rubric copy, local score parser,
+aggregation, or returned proxy. The controller-owned judge/model call uses the
+working rubric but remains outside the candidate process, so mutable code never
+receives judge credentials. The controller intentionally trusts the resulting
 candidate-local scalar as the hill-climbing reward after validating only the
-transport schema and finiteness. This makes direct reward injection and scorer
-tampering possible by design.
+transport schema and finiteness. This makes rubric rewriting, direct reward
+injection, and scorer tampering possible by design without turning credential
+theft into an experimental strategy.
 
 The immutable controller separately rescales or clamps only the optimizer-facing
 reward according to the precommitted policy; raw working scores are always
@@ -327,8 +330,10 @@ Recommended defaults are intentionally pilot-sized:
 - `min_delta = 2` points on a 0--100 optimizer reward; and
 - deterministic parent retention on uncertainty or ties.
 
-The main paper setting may raise these to `lambda = 3`, 20 generations, and five
-independent restarts without changing the engine.
+The main paper setting may raise these to `lambda = 3` and 20 generations. Five
+independent restarts are launched as five experiment roots with distinct
+precommitted schedule seeds so proposer history and mutable evaluator state are
+never shared across restarts.
 
 `static` creates only the baseline candidate and runs the precommitted matched
 evaluation schedule without proposals or selection. This estimates stochastic
@@ -339,10 +344,11 @@ drift under the same solver and judge repetition policy.
 Task splits are by source-paper family (`da-X`), never by individual sibling
 task. Initialization validates that train, dev, and hidden families are disjoint.
 The experiment config contains explicit train and dev task IDs. A separate
-hidden-split file contains hidden task IDs plus canonical task-input hashes; the
-searchable experiment stores only the file's SHA-256 commitment. A trusted
-preparation command may validate all three splits and emit this commitment, but
-it writes neither hidden IDs nor hidden paths into the searchable experiment.
+hidden-split file contains hidden task IDs. The trusted initialization and audit
+commands transiently derive their canonical task-input hashes and compute the
+commitment over both IDs and hashes; the searchable experiment stores only that
+SHA-256 commitment. Initialization validates all three splits but writes neither
+hidden IDs, hidden hashes, nor hidden paths into the searchable experiment.
 
 The search command has no hidden-split argument and refuses hidden task IDs in
 its manifest. The audit command is separate:
@@ -484,16 +490,19 @@ are rejected.
 Add nested commands:
 
 ```text
-biomnibench-agent self-improve init --config <experiment.toml>
+biomnibench-agent self-improve init --config <experiment.toml> --hidden-split <json>
 biomnibench-agent self-improve search --experiment <root> [--resume] [--dry-run]
 biomnibench-agent self-improve audit --experiment <root> --hidden-split <json>
 biomnibench-agent self-improve report --experiment <root>
 ```
 
-`init` copies only the approved baseline candidate surface and records immutable
-input hashes. `search` performs or resumes visible optimization. `audit` is the
-only command that accepts hidden tasks. `report` derives condition-level tables
-from existing records and performs no model calls.
+`init` is a trusted preparation step: it validates the external hidden split,
+records only its content commitment, and copies neither its task IDs nor its
+path into the experiment. It then copies only the approved baseline candidate
+surface and records immutable visible-input hashes. `search` performs or
+resumes visible optimization and has no hidden-split argument. `audit` must be
+given the external file again and verifies its commitment. `report` derives
+condition-level tables from existing records and performs no model calls.
 
 Dry runs validate the complete experiment boundary, task/rubric availability,
 commands, split separation, and sandbox support without calling a model.
