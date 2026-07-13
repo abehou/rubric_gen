@@ -2,23 +2,14 @@
 
 from __future__ import annotations
 
+import importlib
+
 from rubric_gen.biomnibench.adapters import (
     AgentAdapter,
     AgentAdapterRegistry,
     ClaudeAdapter,
     CodexAdapter,
     GeminiAdapter,
-)
-from rubric_gen.biomnibench.cli import (
-    add_agent_args,
-    build_parser,
-    main,
-    run_all,
-    run_judge,
-    run_one,
-    run_perturb,
-    run_process_rubrics,
-    run_task_process_rubrics,
 )
 from rubric_gen.biomnibench.common import (
     NO_WEB_POLICY,
@@ -78,11 +69,40 @@ from rubric_gen.biomnibench.task_rubrics import (
     TaskSnapshot,
     build_task_snapshot,
     canonical_json,
+    load_json_strict,
     parse_task_process_rubric,
     render_task_process_rubric,
     sha256_text,
+    structured_rubric_level_map,
+    validate_rendered_task_process_rubric,
     validate_task_process_rubric,
 )
+
+
+_CLI_EXPORTS = frozenset({
+    "add_agent_args",
+    "build_parser",
+    "main",
+    "run_all",
+    "run_judge",
+    "run_one",
+    "run_perturb",
+    "run_process_rubrics",
+    "run_task_process_rubrics",
+})
+
+
+def __getattr__(name: str) -> object:
+    if name not in _CLI_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    cli = importlib.import_module(".cli", __name__)
+    value = getattr(cli, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | _CLI_EXPORTS)
 
 
 __all__ = [
@@ -145,6 +165,7 @@ __all__ = [
     "canonical_json",
     "event_text",
     "main",
+    "load_json_strict",
     "parse_task_process_rubric",
     "render_task_process_rubric",
     "resolve_project_path",
@@ -156,5 +177,7 @@ __all__ = [
     "run_process_rubrics",
     "run_task_process_rubrics",
     "sha256_text",
+    "structured_rubric_level_map",
+    "validate_rendered_task_process_rubric",
     "validate_task_process_rubric",
 ]

@@ -363,6 +363,15 @@ def test_partial_batch_failure_records_successes_and_failures_without_seal(
     assert not (output / "manifest.json").exists()
     incomplete = json.loads((output / "incomplete-manifest.json").read_text())
     assert incomplete["status"] == "incomplete"
+    assert incomplete.get("compiler_config")
+    assert len(incomplete.get("compiler_config_sha256", "")) == 64
+    assert set(incomplete.get("generation_code_sha256s", {})) == {
+        "task_rubric_compiler.py",
+        "task_rubrics.py",
+        "perturbations.py",
+    }
+    assert len(incomplete.get("generation_code_sha256", "")) == 64
+    assert len(incomplete.get("compilation_sha256", "")) == 64
     assert incomplete["successful_task_ids"] == ["da-1-1"]
     assert list(incomplete["failures"]) == ["da-2-1"]
     assert len(incomplete["rubric_set_id"]) == 64
@@ -405,6 +414,34 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
     task_manifest = json.loads(bundle.task_manifest_path.read_text())
 
     assert root_manifest["status"] == "sealed"
+    compiler_config = root_manifest.get("compiler_config")
+    assert isinstance(compiler_config, dict)
+    assert set(compiler_config) == {
+        "api_key_env",
+        "bundle_schema_version",
+        "max_concurrency",
+        "max_retries",
+        "model",
+        "prompt_version",
+        "schema_version",
+        "task_ids",
+        "tasks_dir",
+        "temperature",
+    }
+    assert root_manifest["compiler_config_sha256"] == sha256_text(
+        canonical_json(compiler_config)
+    )
+    generation_code = root_manifest.get("generation_code_sha256s")
+    assert isinstance(generation_code, dict)
+    assert set(generation_code) == {
+        "task_rubric_compiler.py",
+        "task_rubrics.py",
+        "perturbations.py",
+    }
+    assert all(len(digest) == 64 for digest in generation_code.values())
+    assert root_manifest["generation_code_sha256"] == sha256_text(
+        canonical_json(generation_code)
+    )
     assert bundle.rubric_set_id == root_manifest["rubric_set_id"]
     assert bundle.rubric_id == bundle.rubric_sha256
     assert bundle.rubric_json_path.name == "rubric.json"
@@ -414,6 +451,10 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
     assert task_manifest["task_id"] == "da-1-1"
     assert task_manifest["rubric_id"] == bundle.rubric_id
     assert task_manifest["snapshot"]["input_hashes"]
+    assert task_manifest["compiler"].get("code_sha256s") == generation_code
+    assert task_manifest["compiler"].get("code_sha256") == root_manifest[
+        "generation_code_sha256"
+    ]
     for required_hash in (
         "snapshot_sha256",
         "input_sha256",
@@ -433,6 +474,82 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "attempts/attempt-1/response.txt",
         "attempts/attempt-1/errors.json",
     }
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "compiler-config",
+        "compiler-config-digest",
+        "generation-code-map",
+        "generation-code-digest",
+        "compilation-digest",
+    ),
+)
+def test_resolution_rejects_root_provenance_tampering(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    output = compile_fixture(tmp_path)
+    manifest_path = output / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    assert "compiler_config" in manifest
+    assert "generation_code_sha256s" in manifest
+    if mutation == "compiler-config":
+        manifest["compiler_config"]["model"] = "tampered-model"
+    elif mutation == "compiler-config-digest":
+        manifest["compiler_config_sha256"] = "0" * 64
+    elif mutation == "generation-code-map":
+        manifest["generation_code_sha256s"]["task_rubrics.py"] = "0" * 64
+    elif mutation == "generation-code-digest":
+        manifest["generation_code_sha256"] = "0" * 64
+    else:
+        manifest["compilation_sha256"] = "0" * 64
+    write_canonical_json(manifest_path, manifest)
+
+    with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
+@pytest.mark.parametrize("field", ("schema_version", "bundle_schema_version"))
+def test_persisted_compiler_config_rejects_boolean_versions(
+    tmp_path: Path,
+    field: str,
+) -> None:
+    output = compile_fixture(tmp_path)
+    manifest = json.loads((output / "manifest.json").read_text())
+    compiler_config = manifest["compiler_config"]
+    compiler_config[field] = True
+
+    with pytest.raises(RubricBundleError):
+        compiler_module._validated_compiler_config(compiler_config)
+
+
+@pytest.mark.parametrize("field", ("schema_version", "temperature"))
+def test_task_compiler_provenance_rejects_boolean_numeric_fields(
+    tmp_path: Path,
+    field: str,
+) -> None:
+    compiler, _, output, _ = make_compiler(tmp_path)
+    compiler.config = replace(compiler.config, temperature=1)
+    assert compiler.run() == 0
+    task_manifest_path = output / "tasks" / "da-1-1" / "manifest.json"
+    task_manifest = json.loads(task_manifest_path.read_text())
+    task_manifest["compiler"][field] = True
+    if field == "temperature":
+        task_manifest["hashes"]["temperature_sha256"] = sha256_text(
+            canonical_json(True)
+        )
+    write_canonical_json(task_manifest_path, task_manifest)
+    root_manifest_path = output / "manifest.json"
+    root_manifest = json.loads(root_manifest_path.read_text())
+    root_manifest["tasks"]["da-1-1"]["task_manifest_sha256"] = sha256_file(
+        task_manifest_path
+    )
+    write_canonical_json(root_manifest_path, root_manifest)
+
+    with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
 
 
 def test_exact_resume_does_not_call_rewriter(tmp_path: Path) -> None:
@@ -538,6 +655,108 @@ def test_bundle_tampering_is_detected(tmp_path: Path) -> None:
         resolve_rubric_bundle(output, "da-1-1")
 
 
+def test_resolution_rejects_duplicate_root_manifest_keys(tmp_path: Path) -> None:
+    output = compile_fixture(tmp_path)
+    manifest_path = output / "manifest.json"
+    text = manifest_path.read_text()
+    manifest_path.write_text(
+        text.replace('"status":"sealed"', '"status":"sealed","status":"sealed"'),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RubricBundleError, match="duplicate JSON key"):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
+def test_resolution_rejects_duplicate_retry_request_keys(tmp_path: Path) -> None:
+    output = compile_retry_fixture(tmp_path)
+    request_path = (
+        output
+        / "tasks"
+        / "da-1-1"
+        / "attempts"
+        / "attempt-2"
+        / "request.json"
+    )
+    request_path.write_text(
+        request_path.read_text().replace(
+            "{",
+            '{"schema_version":1,',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    reseal_task_after_attempt_mutation(output, "da-1-1")
+
+    with pytest.raises(RubricBundleError, match="duplicate JSON key"):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
+def test_retry_error_arrays_reject_nonstandard_json_constants(
+    tmp_path: Path,
+) -> None:
+    errors_path = tmp_path / "errors.json"
+    errors_path.write_text("[NaN]", encoding="utf-8")
+
+    with pytest.raises(RubricBundleError, match="non-standard JSON constant"):
+        compiler_module._read_json_string_list(errors_path, "retry errors")
+
+
+def test_compiler_rejects_rendered_level_map_mismatch_before_sealing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiler, _, output, _ = make_compiler(tmp_path, max_retries=0)
+    original_render = compiler_module.render_task_process_rubric
+    monkeypatch.setattr(
+        compiler_module,
+        "render_task_process_rubric",
+        lambda rubric: original_render(rubric).replace(
+            "Levels: A=100 B=50 C=0",
+            "Levels: A=99 B=50 C=0",
+            1,
+        ),
+    )
+
+    assert compiler.run() == 1
+    assert not (output / "manifest.json").exists()
+    assert "criterion/level map" in " ".join(compiler.last_errors)
+
+
+def test_resolution_rejects_resealed_rendered_level_map_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = compile_fixture(tmp_path)
+    task_dir = output / "tasks" / "da-1-1"
+    rendered_path = task_dir / "process_rubric.txt"
+    mismatched = rendered_path.read_text().replace(
+        "Levels: A=100 B=50 C=0",
+        "Levels: A=99 B=50 C=0",
+        1,
+    )
+    rendered_path.write_text(mismatched, encoding="utf-8")
+    task_manifest_path = task_dir / "manifest.json"
+    task_manifest = json.loads(task_manifest_path.read_text())
+    task_manifest["artifacts"]["process_rubric.txt"] = sha256_file(rendered_path)
+    task_manifest["hashes"]["rendered_rubric_sha256"] = sha256_file(rendered_path)
+    write_canonical_json(task_manifest_path, task_manifest)
+    root_manifest_path = output / "manifest.json"
+    root_manifest = json.loads(root_manifest_path.read_text())
+    root_manifest["tasks"]["da-1-1"]["task_manifest_sha256"] = sha256_file(
+        task_manifest_path
+    )
+    write_canonical_json(root_manifest_path, root_manifest)
+    monkeypatch.setattr(
+        compiler_module,
+        "render_task_process_rubric",
+        lambda _rubric: mismatched,
+    )
+
+    with pytest.raises(RubricBundleError, match="criterion/level map"):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
 @pytest.mark.parametrize(
     "mutation",
     (
@@ -627,6 +846,8 @@ def test_gemini_adapter_prompt_contains_closed_schema_and_quality_requirements(
     assert prompt == build_task_rubric_prompt(request)
     assert '"additionalProperties":false' in prompt
     assert '"required_evidence"' in prompt
+    assert '"maxItems":26' in prompt
+    assert '"pattern":"^[A-Z]$"' in prompt
     for requirement in (
         "partial-credit",
         "observable evidence",
@@ -739,6 +960,7 @@ def test_cli_module_execution_prints_public_help(
 
     assert completed.returncode == 0
     assert expected_help in completed.stdout
+    assert "RuntimeWarning" not in completed.stderr
 
 
 def test_cli_maps_task_compiler_options_to_config() -> None:

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from rubric_gen.biomnibench import task_rubrics as task_rubrics_module
 from rubric_gen.biomnibench.task_rubrics import (
     DataFileSnapshot,
     RubricCriterion,
@@ -205,6 +206,33 @@ def test_bool_points_are_rejected_without_integer_coercion(
         parse_task_process_rubric(json.dumps(payload))
 
 
+@pytest.mark.parametrize(
+    "malformed",
+    (
+        '{"schema_version":1,"schema_version":1}',
+        '{"schema_version":NaN}',
+        '{"schema_version":Infinity}',
+    ),
+)
+def test_malformed_rubric_json_is_rejected_strictly(malformed: str) -> None:
+    with pytest.raises(ValueError):
+        parse_task_process_rubric(malformed)
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    ('{"value":1,"value":2}', '{"value":NaN}', '{"value":-Infinity}'),
+)
+def test_shared_strict_json_loader_rejects_noncanonical_json(
+    malformed: str,
+) -> None:
+    loader = getattr(task_rubrics_module, "load_json_strict", None)
+
+    assert loader is not None
+    with pytest.raises(ValueError):
+        loader(malformed)
+
+
 def test_wrong_task_id_is_rejected(snapshot: TaskSnapshot) -> None:
     payload = valid_rubric_payload(snapshot)
     payload["task_id"] = "da-wrong"
@@ -328,6 +356,65 @@ def test_criterion_must_have_at_least_three_levels(snapshot: TaskSnapshot) -> No
     assert "at least three levels" in validation_text(payload, snapshot)
 
 
+def test_criterion_must_not_have_more_than_26_levels(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["max_points"] = 26  # type: ignore[index]
+    payload["criteria"][0]["levels"] = [  # type: ignore[index]
+        {
+            "label": chr(ord("A") + index),
+            "points": 26 - index,
+            "description": f"Level {index}",
+        }
+        for index in range(27)
+    ]
+
+    assert "at most 26 levels" in validation_text(payload, snapshot)
+
+
+def test_level_labels_are_restricted_to_ascii_a_through_z(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"][2]["label"] = "["  # type: ignore[index]
+
+    assert "level labels must use A through Z" in validation_text(payload, snapshot)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "purpose",
+        "title",
+        "description",
+        "task_anchors",
+        "required_evidence",
+        "acceptable_alternatives",
+        "anti_evidence",
+        "verification",
+        "level_description",
+    ),
+)
+@pytest.mark.parametrize("control", ("\n", "\x00", "\x1f", "\x7f"))
+def test_rendered_string_fields_reject_ascii_control_characters(
+    snapshot: TaskSnapshot,
+    field_name: str,
+    control: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    if field_name == "purpose":
+        payload["purpose"] = f"unsafe{control}value"
+    elif field_name == "level_description":
+        payload["criteria"][0]["levels"][0]["description"] = f"unsafe{control}value"  # type: ignore[index]
+    elif field_name in {"title", "description"}:
+        payload["criteria"][0][field_name] = f"unsafe{control}value"  # type: ignore[index]
+    else:
+        payload["criteria"][0][field_name][0] = f"unsafe{control}value"  # type: ignore[index]
+
+    assert "ASCII control characters" in validation_text(payload, snapshot)
+
+
 def test_total_max_points_must_equal_100(snapshot: TaskSnapshot) -> None:
     payload = valid_rubric_payload(snapshot)
     payload["criteria"][0]["max_points"] = 90  # type: ignore[index]
@@ -383,6 +470,53 @@ Criterion 2: Unsupported-claim penalty
       [B]: One material claim is weakly supported.
       [C]: A material claim is contradicted.
 """
+
+
+def test_structured_rubric_level_map_is_pure_and_scoring_compatible(
+    snapshot: TaskSnapshot,
+) -> None:
+    helper = getattr(task_rubrics_module, "structured_rubric_level_map", None)
+
+    assert helper is not None
+    rubric = parsed_valid_rubric(snapshot)
+    assert helper(rubric) == {
+        "criterion_1": {"A": 100, "B": 50, "C": 0},
+        "criterion_2": {"A": 0, "B": -5, "C": -10},
+    }
+
+
+def test_rendered_rubric_level_map_must_round_trip_exactly(
+    snapshot: TaskSnapshot,
+) -> None:
+    validator = getattr(
+        task_rubrics_module,
+        "validate_rendered_task_process_rubric",
+        None,
+    )
+
+    assert validator is not None
+    rubric = parsed_valid_rubric(snapshot)
+    rendered = render_task_process_rubric(rubric).replace(
+        "Levels: A=100 B=50 C=0",
+        "Levels: A=99 B=50 C=0",
+        1,
+    )
+    with pytest.raises(ValueError, match="criterion/level map"):
+        validator(rubric, rendered)
+
+
+def test_rendered_rubric_round_trip_rejects_control_characters_independently(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["purpose"] = "unsafe\nvalue"
+    rubric = parse_task_process_rubric(json.dumps(payload))
+
+    with pytest.raises(ValueError, match="ASCII control characters"):
+        task_rubrics_module.validate_rendered_task_process_rubric(
+            rubric,
+            render_task_process_rubric(rubric),
+        )
 
 
 def test_task_snapshot_is_deterministic_and_runtime_blind(tmp_path: Path) -> None:

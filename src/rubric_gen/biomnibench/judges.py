@@ -18,6 +18,7 @@ from typing import Any
 from rubric_gen.biomnibench.common import PROGRESS_BAR_FORMAT, resolve_project_path
 from rubric_gen.biomnibench.rubric_scoring import (
     JudgeScoreValidationError,
+    RUBRIC_SCORER_VERSION,
     parse_rubric_levels_strict,
     validate_judge_score,
 )
@@ -25,6 +26,7 @@ from rubric_gen.biomnibench.task_rubric_compiler import (
     RubricBundleError,
     resolve_rubric_bundle,
 )
+from rubric_gen.biomnibench.task_rubrics import canonical_json, load_json_strict
 
 try:
     from tqdm.auto import tqdm
@@ -33,6 +35,19 @@ except ImportError:  # pragma: no cover - tqdm is an optional runtime nicety.
 
 
 DEFAULT_JUDGE_MODEL = "gemini-3.1-pro"
+SCORE_VALIDATION_SCHEMA_VERSION = 1
+SCORE_INPUT_ATTESTATION_KEYS = {
+    "schema_version",
+    "scorer_version",
+    "review_input_sha256",
+    "answer_input_sha256",
+    "judge_source_sha256",
+    "judge_runner_sha256",
+    "scorer_module_sha256",
+    "effective_judge_model",
+    "review_mode",
+    "max_review_chars",
+}
 SCORE_VALIDATION_KEYS = {
     "score",
     "raw_score",
@@ -48,7 +63,7 @@ SCORE_VALIDATION_KEYS = {
     "manifest_sha256",
     "reward_sha256",
     "evaluation_sha256",
-}
+} | SCORE_INPUT_ATTESTATION_KEYS
 
 
 @dataclass(frozen=True)
@@ -375,11 +390,25 @@ class BiomniBenchJudgeRunner:
         evaluation_path = output_dir / "evaluation.json"
         score_validation_path = output_dir / "score_validation.json"
         rubric = self.resolve_rubric(target)
+        judge_path = self.find_judge(target.task_dir)
+        try:
+            review_text = self.review_text(target)
+            answer_text = self.read_text(target.workspace_dir / "answer.txt")
+            judge_source = judge_path.read_bytes()
+        except (OSError, UnicodeError):
+            return None
+        score_input_attestation = self.score_input_attestation(
+            judge_source=judge_source,
+            review_text=review_text,
+            answer_text=answer_text,
+            effective_judge_model=self.judge_model(os.environ.copy()),
+        )
         validation = self.valid_score_validation(
             rubric,
             reward_path,
             evaluation_path,
             score_validation_path,
+            score_input_attestation,
         )
         if validation is None:
             return None
@@ -535,6 +564,15 @@ class BiomniBenchJudgeRunner:
     ) -> dict[str, Any]:
         if isinstance(rubric, Path):
             rubric = self.resolved_local_rubric(rubric)
+        judge_source = judge_path.read_bytes()
+        env = os.environ.copy()
+        effective_judge_model = self.judge_model(env)
+        score_input_attestation = self.score_input_attestation(
+            judge_source=judge_source,
+            review_text=review_text,
+            answer_text=answer_text,
+            effective_judge_model=effective_judge_model,
+        )
         reward_path = output_dir / "reward.json"
         evaluation_path = output_dir / "evaluation.json"
         score_validation_path = output_dir / "score_validation.json"
@@ -552,10 +590,13 @@ class BiomniBenchJudgeRunner:
             (logs_dir / "answer.txt").write_text(answer_text)
 
             rewritten_judge = tmp_dir / judge_path.name
-            rewritten_judge.write_text(self.rewrite_judge_paths(judge_path.read_text(), tests_dir, logs_dir))
+            rewritten_judge.write_text(self.rewrite_judge_paths(
+                judge_source.decode("utf-8"),
+                tests_dir,
+                logs_dir,
+            ))
 
-            env = os.environ.copy()
-            env["MODEL_NAME"] = self.judge_model(env)
+            env["MODEL_NAME"] = effective_judge_model
             proc = subprocess.run(
                 ["uv", "run", str(rewritten_judge)],
                 cwd=tmp_dir,
@@ -589,8 +630,9 @@ class BiomniBenchJudgeRunner:
                 rubric,
                 reward_path,
                 evaluation_path,
+                score_input_attestation,
             )
-        except (OSError, UnicodeError, json.JSONDecodeError, JudgeScoreValidationError) as exc:
+        except (OSError, UnicodeError, ValueError, JudgeScoreValidationError) as exc:
             return {
                 **result,
                 "exit_code": 2,
@@ -609,15 +651,22 @@ class BiomniBenchJudgeRunner:
         rubric: ResolvedRubric,
         reward_path: Path,
         evaluation_path: Path,
+        score_input_attestation: dict[str, Any],
     ) -> dict[str, Any]:
-        reward = self.load_json(reward_path)
-        evaluation = self.load_json(evaluation_path)
+        if (
+            type(score_input_attestation) is not dict
+            or set(score_input_attestation) != SCORE_INPUT_ATTESTATION_KEYS
+        ):
+            raise JudgeScoreValidationError("score input attestation is not exact")
+        reward, reward_sha256 = self.load_json_snapshot(reward_path)
+        evaluation, evaluation_sha256 = self.load_json_snapshot(evaluation_path)
         validated = validate_judge_score(
             rubric_levels=parse_rubric_levels_strict(rubric.text),
             evaluation=evaluation,
             reward=reward,
         )
         return {
+            **score_input_attestation,
             "score": validated.score,
             "raw_score": validated.raw_score,
             "reported_score": validated.reported_score,
@@ -630,8 +679,8 @@ class BiomniBenchJudgeRunner:
             "structured_rubric_sha256": rubric.structured_rubric_sha256,
             "rendered_rubric_sha256": rubric.rendered_rubric_sha256,
             "manifest_sha256": rubric.manifest_sha256,
-            "reward_sha256": self.sha256_file(reward_path),
-            "evaluation_sha256": self.sha256_file(evaluation_path),
+            "reward_sha256": reward_sha256,
+            "evaluation_sha256": evaluation_sha256,
         }
 
     def valid_score_validation(
@@ -640,20 +689,52 @@ class BiomniBenchJudgeRunner:
         reward_path: Path,
         evaluation_path: Path,
         score_validation_path: Path,
+        score_input_attestation: dict[str, Any],
     ) -> dict[str, Any] | None:
         try:
             validation = self.load_json(score_validation_path)
             if type(validation) is not dict or set(validation) != SCORE_VALIDATION_KEYS:
                 return None
-            if validation != self.build_score_validation(
+            expected_validation = self.build_score_validation(
                 rubric,
                 reward_path,
                 evaluation_path,
-            ):
+                score_input_attestation,
+            )
+            if canonical_json(validation) != canonical_json(expected_validation):
                 return None
-        except (OSError, UnicodeError, json.JSONDecodeError, JudgeScoreValidationError):
+        except (OSError, UnicodeError, ValueError, JudgeScoreValidationError):
             return None
         return validation
+
+    def score_input_attestation(
+        self,
+        *,
+        judge_source: bytes,
+        review_text: str,
+        answer_text: str,
+        effective_judge_model: str,
+    ) -> dict[str, Any]:
+        """Attest the exact inputs and implementation used by score computation."""
+
+        return {
+            "schema_version": SCORE_VALIDATION_SCHEMA_VERSION,
+            "scorer_version": RUBRIC_SCORER_VERSION,
+            "review_input_sha256": self.sha256_text(review_text),
+            "answer_input_sha256": self.sha256_text(answer_text),
+            "judge_source_sha256": hashlib.sha256(judge_source).hexdigest(),
+            "judge_runner_sha256": self.judge_runner_sha256(),
+            "scorer_module_sha256": self.scorer_module_sha256(),
+            "effective_judge_model": effective_judge_model,
+            "review_mode": self.config.review,
+            "max_review_chars": self.config.max_review_chars,
+        }
+
+    def judge_runner_sha256(self) -> str:
+        return self.sha256_file(Path(__file__))
+
+    def scorer_module_sha256(self) -> str:
+        return self.sha256_file(Path(__file__).with_name("rubric_scoring.py"))
 
     def judge_model(self, env: dict[str, str] | None = None) -> str:
         if self.config.model:
@@ -673,7 +754,12 @@ class BiomniBenchJudgeRunner:
         )
 
     def load_json(self, path: Path) -> object:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return load_json_strict(path.read_text(encoding="utf-8"))
+
+    def load_json_snapshot(self, path: Path) -> tuple[object, str]:
+        raw = path.read_bytes()
+        value = load_json_strict(raw.decode("utf-8"))
+        return value, hashlib.sha256(raw).hexdigest()
 
     def sha256_file(self, path: Path) -> str:
         return hashlib.sha256(path.read_bytes()).hexdigest()

@@ -13,6 +13,8 @@ from dataclasses import dataclass, replace
 from itertools import islice
 from pathlib import Path
 
+from rubric_gen.biomnibench.rubric_scoring import parse_rubric_levels_strict
+
 
 def canonical_json(value: object) -> str:
     """Serialize JSON with one stable, whitespace-free representation."""
@@ -192,6 +194,7 @@ _EVIDENCE_FIELDS = (
     "anti_evidence",
     "verification",
 )
+_ASCII_CONTROL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -205,6 +208,18 @@ def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, ob
 
 def _reject_json_constant(value: str) -> object:
     raise ValueError(f"non-standard JSON constant: {value}")
+
+
+def load_json_strict(text: str) -> object:
+    """Decode JSON while rejecting duplicate keys and non-standard constants."""
+
+    if type(text) is not str:
+        raise ValueError("JSON input must be a string")
+    return json.loads(
+        text,
+        object_pairs_hook=_reject_duplicate_json_keys,
+        parse_constant=_reject_json_constant,
+    )
 
 
 def _closed_object(
@@ -247,11 +262,7 @@ def parse_task_process_rubric(response: str) -> TaskProcessRubric:
     """Parse strict schema-version-1 JSON without type coercion."""
 
     _strict_value(response, str, "rubric response")
-    raw = json.loads(
-        response,
-        object_pairs_hook=_reject_duplicate_json_keys,
-        parse_constant=_reject_json_constant,
-    )
+    raw = load_json_strict(response)
     payload = _closed_object(raw, _RUBRIC_KEYS, "rubric")
     schema_version = _strict_value(
         payload["schema_version"],
@@ -343,6 +354,12 @@ def _validate_nonempty_unique_items(
     return tuple(errors)
 
 
+def _ascii_control_error(context: str, value: str) -> str | None:
+    if _ASCII_CONTROL_PATTERN.search(value) is not None:
+        return f"{context} must not contain ASCII control characters"
+    return None
+
+
 def validate_task_process_rubric(
     rubric: TaskProcessRubric,
     snapshot: TaskSnapshot,
@@ -356,6 +373,9 @@ def validate_task_process_rubric(
         errors.append("task_id does not match snapshot")
     if not rubric.purpose.strip():
         errors.append("purpose must be non-empty")
+    purpose_control_error = _ascii_control_error("purpose", rubric.purpose)
+    if purpose_control_error is not None:
+        errors.append(purpose_control_error)
     if not rubric.criteria:
         errors.append("criteria must be non-empty")
 
@@ -367,20 +387,45 @@ def validate_task_process_rubric(
             errors.append("criterion IDs must be contiguous C1..Cn")
         if not criterion.title.strip():
             errors.append(f"{criterion_name}: title must be non-empty")
+        title_control_error = _ascii_control_error(
+            f"{criterion_name}: title",
+            criterion.title,
+        )
+        if title_control_error is not None:
+            errors.append(title_control_error)
         if not criterion.description.strip():
             errors.append(f"{criterion_name}: description must be non-empty")
+        description_control_error = _ascii_control_error(
+            f"{criterion_name}: description",
+            criterion.description,
+        )
+        if description_control_error is not None:
+            errors.append(description_control_error)
 
         if not criterion.task_anchors:
             errors.append(f"{criterion_name}: task_anchors must be non-empty")
         if len(set(criterion.task_anchors)) != len(criterion.task_anchors):
             errors.append(f"{criterion_name}: duplicate task anchor")
         for anchor_id in criterion.task_anchors:
+            anchor_control_error = _ascii_control_error(
+                f"{criterion_name}: task_anchors",
+                anchor_id,
+            )
+            if anchor_control_error is not None:
+                errors.append(anchor_control_error)
             if anchor_id not in known_anchors:
                 errors.append(f"{criterion_name}: unknown task anchor {anchor_id}")
             else:
                 covered_anchors.add(anchor_id)
 
         for field_name in _EVIDENCE_FIELDS:
+            for value in getattr(criterion, field_name):
+                field_control_error = _ascii_control_error(
+                    f"{criterion_name}: {field_name}",
+                    value,
+                )
+                if field_control_error is not None:
+                    errors.append(field_control_error)
             errors.extend(_validate_nonempty_unique_items(
                 criterion_name,
                 field_name,
@@ -389,6 +434,10 @@ def validate_task_process_rubric(
 
         if len(criterion.levels) < 3:
             errors.append(f"{criterion_name}: must have at least three levels")
+        if len(criterion.levels) > 26:
+            errors.append(f"{criterion_name}: must have at most 26 levels")
+        if any(re.fullmatch(r"[A-Z]", level.label) is None for level in criterion.levels):
+            errors.append(f"{criterion_name}: level labels must use A through Z")
         expected_labels = tuple(
             chr(ord("A") + level_index)
             for level_index in range(len(criterion.levels))
@@ -408,6 +457,12 @@ def validate_task_process_rubric(
                 errors.append(
                     f"{criterion_name} level {level.label}: description must be non-empty"
                 )
+            level_control_error = _ascii_control_error(
+                f"{criterion_name} level {level.label}: description",
+                level.description,
+            )
+            if level_control_error is not None:
+                errors.append(level_control_error)
 
     for anchor_id in snapshot.required_summary_anchor_ids:
         if anchor_id not in covered_anchors:
@@ -443,6 +498,56 @@ def render_task_process_rubric(rubric: TaskProcessRubric) -> str:
             for level in criterion.levels
         )
     return "\n".join(lines) + "\n"
+
+
+def structured_rubric_level_map(
+    rubric: TaskProcessRubric,
+) -> dict[str, dict[str, int]]:
+    """Return the scoring map implied by one structured rubric."""
+
+    return {
+        f"criterion_{index}": {
+            level.label: level.points
+            for level in criterion.levels
+        }
+        for index, criterion in enumerate(rubric.criteria, start=1)
+    }
+
+
+def validate_rendered_task_process_rubric(
+    rubric: TaskProcessRubric,
+    rendered: str,
+) -> None:
+    """Require rendered scoring structure to round-trip to the structured rubric."""
+
+    rendered_strings = [("purpose", rubric.purpose)]
+    for criterion in rubric.criteria:
+        rendered_strings.extend((
+            (f"{criterion.criterion_id}: title", criterion.title),
+            (f"{criterion.criterion_id}: description", criterion.description),
+        ))
+        for field_name in ("task_anchors", *_EVIDENCE_FIELDS):
+            rendered_strings.extend(
+                (f"{criterion.criterion_id}: {field_name}", value)
+                for value in getattr(criterion, field_name)
+            )
+        rendered_strings.extend(
+            (
+                f"{criterion.criterion_id} level {level.label}: description",
+                level.description,
+            )
+            for level in criterion.levels
+        )
+    for context, value in rendered_strings:
+        control_error = _ascii_control_error(context, value)
+        if control_error is not None:
+            raise ValueError(control_error)
+
+    parsed = parse_rubric_levels_strict(rendered)
+    if parsed != structured_rubric_level_map(rubric):
+        raise ValueError(
+            "rendered rubric criterion/level map does not match structured rubric"
+        )
 
 
 def _snapshot_payload(snapshot: TaskSnapshot) -> dict[str, object]:

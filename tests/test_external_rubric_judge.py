@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from rubric_gen.biomnibench import judges as judges_module
+from rubric_gen.biomnibench import rubric_scoring as rubric_scoring_module
 from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.judges import (
     BiomniBenchJudgeRunner,
@@ -172,6 +176,9 @@ def make_runner(
     rubric_name: str | None = None,
     dry_run: bool = False,
     resume: bool = False,
+    review: str = "trace",
+    model: str | None = None,
+    max_review_chars: int | None = None,
 ) -> BiomniBenchJudgeRunner:
     return BiomniBenchJudgeRunner(JudgeRunConfig(
         run_dir=tmp_path / "run",
@@ -180,6 +187,9 @@ def make_runner(
         rubric_name=rubric_name,
         dry_run=dry_run,
         resume=resume,
+        review=review,
+        model=model,
+        max_review_chars=max_review_chars,
     ))
 
 
@@ -361,6 +371,8 @@ def test_authoritative_score_and_hash_attestation(
     assert result["judge_exit_code"] == 0
     assert result["score"] == 100
     assert validation == {
+        "schema_version": 1,
+        "scorer_version": "rubric-scoring-v1",
         "score": 100,
         "raw_score": 100,
         "reported_score": 0,
@@ -375,7 +387,62 @@ def test_authoritative_score_and_hash_attestation(
         "manifest_sha256": None,
         "reward_sha256": sha256_file(output_dir / "reward.json"),
         "evaluation_sha256": sha256_file(output_dir / "evaluation.json"),
+        "review_input_sha256": hashlib.sha256(b"trace").hexdigest(),
+        "answer_input_sha256": hashlib.sha256(b"answer").hexdigest(),
+        "judge_source_sha256": sha256_file(
+            target.task_dir / "tests" / "llm_judge.py"
+        ),
+        "judge_runner_sha256": sha256_file(Path(judges_module.__file__)),
+        "scorer_module_sha256": sha256_file(Path(rubric_scoring_module.__file__)),
+        "effective_judge_model": runner.judge_model(os.environ.copy()),
+        "review_mode": "trace",
+        "max_review_chars": None,
     }
+
+
+def test_score_validation_hashes_the_exact_parsed_reward_and_evaluation_bytes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, model="judge-model-a")
+    resolved = runner.resolve_rubric(target)
+    output_dir = runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+    reward_path = output_dir / "reward.json"
+    evaluation_path = output_dir / "evaluation.json"
+    reward_path.write_text('{"score":100}', encoding="utf-8")
+    evaluation_path.write_text(
+        '{"criteria":{"criterion_1":{"level":"A"}}}',
+        encoding="utf-8",
+    )
+    reward_sha256 = sha256_file(reward_path)
+    evaluation_sha256 = sha256_file(evaluation_path)
+    original_load_json = runner.load_json
+
+    def load_then_mutate(path: Path) -> object:
+        value = original_load_json(path)
+        path.write_text("{}", encoding="utf-8")
+        return value
+
+    monkeypatch.setattr(runner, "load_json", load_then_mutate)
+    attestation = runner.score_input_attestation(
+        judge_source=b"print('judge')\n",
+        review_text="trace",
+        answer_text="answer",
+        effective_judge_model="judge-model-a",
+    )
+
+    validation = runner.build_score_validation(
+        resolved,
+        reward_path,
+        evaluation_path,
+        attestation,
+    )
+
+    assert validation["score"] == 100
+    assert validation["reward_sha256"] == reward_sha256
+    assert validation["evaluation_sha256"] == evaluation_sha256
 
 
 def test_judge_executes_verified_text_snapshot_when_source_changes(
@@ -494,6 +561,161 @@ def test_resume_requires_matching_artifact_hashes(
     path.write_text(path.read_text() + "\n", encoding="utf-8")
 
     assert resume_runner.completed_record(attempt) is None
+
+
+@pytest.mark.parametrize(
+    "changed",
+    (
+        "trace",
+        "answer",
+        "judge-source",
+        "model",
+        "max-review-chars",
+        "scorer-version",
+        "score-schema-type",
+        "judge-runner-module",
+        "scorer-module",
+    ),
+)
+def test_resume_binds_actual_scoring_inputs_and_implementation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    changed: str,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, model="judge-model-a")
+    resolved = runner.resolve_rubric(target)
+    output_dir = runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert runner.execute_judge(
+        target.task_dir / "tests" / "llm_judge.py",
+        resolved,
+        output_dir,
+        runner.review_text(target),
+        runner.read_text(target.workspace_dir / "answer.txt"),
+    )["status"] == "completed"
+
+    resume_runner = make_runner(tmp_path, resume=True, model="judge-model-a")
+    if changed == "trace":
+        (target.workspace_dir / "trace.md").write_text("changed trace")
+    elif changed == "answer":
+        (target.workspace_dir / "answer.txt").write_text("changed answer")
+    elif changed == "judge-source":
+        (target.task_dir / "tests" / "llm_judge.py").write_text(
+            "print('changed judge')\n"
+        )
+    elif changed == "model":
+        resume_runner = make_runner(tmp_path, resume=True, model="judge-model-b")
+    elif changed == "max-review-chars":
+        resume_runner = make_runner(
+            tmp_path,
+            resume=True,
+            model="judge-model-a",
+            max_review_chars=100,
+        )
+    elif changed == "scorer-version":
+        monkeypatch.setattr(
+            judges_module,
+            "RUBRIC_SCORER_VERSION",
+            "changed-version",
+            raising=False,
+        )
+    elif changed == "score-schema-type":
+        validation_path = output_dir / "score_validation.json"
+        validation = json.loads(validation_path.read_text())
+        validation["schema_version"] = True
+        validation_path.write_text(json.dumps(validation))
+    elif changed == "judge-runner-module":
+        monkeypatch.setattr(
+            BiomniBenchJudgeRunner,
+            "judge_runner_sha256",
+            lambda _self: "0" * 64,
+            raising=False,
+        )
+    else:
+        monkeypatch.setattr(
+            BiomniBenchJudgeRunner,
+            "scorer_module_sha256",
+            lambda _self: "0" * 64,
+            raising=False,
+        )
+
+    assert resume_runner.completed_record(JudgeAttempt(target, 1)) is None
+
+
+def test_resume_binds_exact_trajectory_review_input(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, review="trajectory", model="judge-model-a")
+    resolved = runner.resolve_rubric(target)
+    output_dir = runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert runner.execute_judge(
+        target.task_dir / "tests" / "llm_judge.py",
+        resolved,
+        output_dir,
+        runner.review_text(target),
+        runner.read_text(target.workspace_dir / "answer.txt"),
+    )["status"] == "completed"
+    target.trajectory_path.write_text('{"type": "changed"}\n')
+
+    resume_runner = make_runner(
+        tmp_path,
+        resume=True,
+        review="trajectory",
+        model="judge-model-a",
+    )
+    assert resume_runner.completed_record(JudgeAttempt(target, 1)) is None
+
+
+def test_resume_binds_review_mode_even_with_identical_review_text(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, model="judge-model-a")
+    resolved = runner.resolve_rubric(target)
+    output_dir = runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert runner.execute_judge(
+        target.task_dir / "tests" / "llm_judge.py",
+        resolved,
+        output_dir,
+        "trace",
+        "answer",
+    )["status"] == "completed"
+
+    resume_runner = make_runner(
+        tmp_path,
+        resume=True,
+        review="trajectory",
+        model="judge-model-a",
+    )
+    trajectory_output = resume_runner.output_dir(target)
+    shutil.copytree(output_dir, trajectory_output)
+    monkeypatch.setattr(resume_runner, "review_text", lambda _target: "trace")
+
+    assert resume_runner.completed_record(JudgeAttempt(target, 1)) is None
 
 
 def test_resume_rejects_identical_rubric_from_different_set(

@@ -6,6 +6,9 @@ import re
 from dataclasses import dataclass
 
 
+RUBRIC_SCORER_VERSION = "rubric-scoring-v1"
+
+
 class JudgeScoreValidationError(ValueError):
     """Raised when rubric or judge score data is not structurally valid."""
 
