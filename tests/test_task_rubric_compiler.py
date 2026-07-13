@@ -6,7 +6,7 @@ import json
 import multiprocessing
 import subprocess
 import sys
-from dataclasses import asdict, replace
+from dataclasses import FrozenInstanceError, asdict, replace
 from pathlib import Path
 
 import pytest
@@ -51,6 +51,22 @@ class FakeRewriter:
         if isinstance(response, Exception):
             raise response
         return response
+
+
+def fake_rewriter_provenance(
+    *,
+    model: str = "gemini-3.5-flash",
+    provider: str = "test-provider",
+    implementation_id: str = "tests.test_task_rubric_compiler.FakeRewriter",
+    implementation_sha256: str = "a" * 64,
+) -> object:
+    return compiler_module.TaskRubricRewriterProvenance(
+        schema_version=1,
+        provider=provider,
+        model=model,
+        implementation_id=implementation_id,
+        implementation_sha256=implementation_sha256,
+    )
 
 
 def publish_in_subprocess(
@@ -167,6 +183,75 @@ def valid_rubric(snapshot: TaskSnapshot) -> str:
     })
 
 
+def test_rewriter_provenance_is_a_closed_versioned_record() -> None:
+    provenance_type = getattr(
+        compiler_module,
+        "TaskRubricRewriterProvenance",
+        None,
+    )
+
+    assert provenance_type is not None
+    provenance = provenance_type(
+        schema_version=1,
+        provider="test-provider",
+        model="gemini-3.5-flash",
+        implementation_id="tests.FakeRewriter",
+        implementation_sha256="a" * 64,
+    )
+    assert asdict(provenance) == {
+        "schema_version": 1,
+        "provider": "test-provider",
+        "model": "gemini-3.5-flash",
+        "implementation_id": "tests.FakeRewriter",
+        "implementation_sha256": "a" * 64,
+    }
+    with pytest.raises(FrozenInstanceError):
+        provenance.provider = "mutated"
+
+
+def test_injected_rewriter_requires_explicit_provenance(tmp_path: Path) -> None:
+    tasks_dir = tmp_path / "tasks"
+    task_dir = make_task(tasks_dir)
+    config = TaskRubricCompilerConfig(
+        tasks_dir=tasks_dir,
+        task_ids=(task_dir.name,),
+        output_dir=tmp_path / "rubric-set",
+    )
+
+    with pytest.raises(ValueError, match="explicit rewriter provenance"):
+        TaskProcessRubricCompiler(config, rewriter=FakeRewriter([]))
+
+
+def test_injected_rewriter_provenance_model_must_match_config(
+    tmp_path: Path,
+) -> None:
+    tasks_dir = tmp_path / "tasks"
+    task_dir = make_task(tasks_dir)
+    config = TaskRubricCompilerConfig(
+        tasks_dir=tasks_dir,
+        task_ids=(task_dir.name,),
+        output_dir=tmp_path / "rubric-set",
+        model="configured-model",
+    )
+
+    with pytest.raises(ValueError, match="model must match compiler config"):
+        TaskProcessRubricCompiler(
+            config,
+            rewriter=FakeRewriter([]),
+            rewriter_provenance=fake_rewriter_provenance(model="other-model"),
+        )
+
+
+def test_compiler_rechecks_rewriter_model_before_sealing(tmp_path: Path) -> None:
+    compiler, rewriter, output, _ = make_compiler(tmp_path)
+    compiler.config = replace(compiler.config, model="changed-after-construction")
+
+    assert compiler.run() == 1
+    assert rewriter.requests == []
+    assert not (output / "manifest.json").exists()
+    assert "rewriter provenance model" in " ".join(compiler.last_errors)
+
+
 def make_compiler(
     tmp_path: Path,
     *,
@@ -191,7 +276,11 @@ def make_compiler(
         max_retries=max_retries,
         resume=resume,
     )
-    return TaskProcessRubricCompiler(config, rewriter=rewriter), rewriter, output, task_dir
+    return TaskProcessRubricCompiler(
+        config,
+        rewriter=rewriter,
+        rewriter_provenance=fake_rewriter_provenance(model=model),
+    ), rewriter, output, task_dir
 
 
 def compile_fixture(tmp_path: Path, *, output_name: str = "rubric-set") -> Path:
@@ -217,6 +306,7 @@ def compile_partial_fixture(tmp_path: Path) -> Path:
             max_retries=0,
         ),
         rewriter=rewriter,
+        rewriter_provenance=fake_rewriter_provenance(),
     )
     assert compiler.run() == 1
     return output
@@ -423,6 +513,7 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "max_retries",
         "model",
         "prompt_version",
+        "rewriter_provenance_sha256",
         "schema_version",
         "task_ids",
         "tasks_dir",
@@ -476,6 +567,141 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
     }
 
 
+def test_injected_rewriter_provenance_is_truthfully_sealed(
+    tmp_path: Path,
+) -> None:
+    output = compile_fixture(tmp_path)
+    root = json.loads((output / "manifest.json").read_text())
+    task = json.loads(
+        (output / "tasks" / "da-1-1" / "manifest.json").read_text()
+    )
+    expected = asdict(fake_rewriter_provenance())
+    expected_sha256 = sha256_text(canonical_json(expected))
+
+    assert root.get("rewriter_provenance") == expected
+    assert root.get("rewriter_provenance_sha256") == expected_sha256
+    assert root["compiler_config"].get("rewriter_provenance_sha256") == (
+        expected_sha256
+    )
+    assert task["compiler"].get("rewriter_provenance") == expected
+    assert task["compiler"].get("rewriter_provenance_sha256") == expected_sha256
+    assert task["compiler"]["provider"] == "test-provider"
+
+
+def test_resolved_bundle_carries_verified_content_snapshots(
+    tmp_path: Path,
+) -> None:
+    output = compile_fixture(tmp_path)
+    bundle = resolve_rubric_bundle(output, "da-1-1")
+
+    assert bundle.rubric_json_text == bundle.rubric_json_path.read_text()
+    assert bundle.rendered_text == bundle.rendered_path.read_text()
+    assert bundle.task_manifest_sha256 == sha256_file(bundle.task_manifest_path)
+
+
+def test_resolution_parses_the_same_rubric_bytes_it_hashes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = compile_fixture(tmp_path)
+    task_dir = output / "tasks" / "da-1-1"
+    rubric_path = task_dir / "rubric.json"
+    rendered_path = task_dir / "process_rubric.txt"
+    original_rubric = rubric_path.read_text()
+    original_rendered = rendered_path.read_text()
+    payload = json.loads(original_rubric)
+    payload["purpose"] = "Mutated after hashing."
+    mutated_rubric = canonical_json(payload) + "\n"
+    mutated_rendered = task_rubrics_module.render_task_process_rubric(
+        task_rubrics_module.parse_task_process_rubric(mutated_rubric)
+    )
+    original_read_regular_bytes = compiler_module._read_regular_bytes
+
+    def snapshot_then_mutate(path: Path, context: str) -> bytes:
+        snapshot = original_read_regular_bytes(path, context)
+        if path == rubric_path:
+            path.write_text(mutated_rubric, encoding="utf-8")
+        elif path == rendered_path:
+            path.write_text(mutated_rendered, encoding="utf-8")
+        return snapshot
+
+    monkeypatch.setattr(
+        compiler_module,
+        "_read_regular_bytes",
+        snapshot_then_mutate,
+    )
+
+    bundle = resolve_rubric_bundle(output, "da-1-1")
+
+    assert rubric_path.read_text() == mutated_rubric
+    assert rendered_path.read_text() == mutated_rendered
+    assert bundle.rubric_json_text == original_rubric
+    assert bundle.rendered_text == original_rendered
+
+
+def test_resolution_parses_the_same_task_manifest_bytes_it_hashes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = compile_fixture(tmp_path)
+    manifest_path = output / "tasks" / "da-1-1" / "manifest.json"
+    original_manifest = manifest_path.read_bytes()
+    original_read_regular_bytes = compiler_module._read_regular_bytes
+
+    def snapshot_then_mutate(path: Path, context: str) -> bytes:
+        snapshot = original_read_regular_bytes(path, context)
+        if path == manifest_path:
+            path.write_text("tampered after snapshot", encoding="utf-8")
+        return snapshot
+
+    monkeypatch.setattr(
+        compiler_module,
+        "_read_regular_bytes",
+        snapshot_then_mutate,
+    )
+
+    bundle = resolve_rubric_bundle(output, "da-1-1")
+
+    assert manifest_path.read_text() == "tampered after snapshot"
+    assert bundle.task_manifest_sha256 == hashlib.sha256(
+        original_manifest
+    ).hexdigest()
+
+
+def test_resolution_uses_snapshotted_attempt_topology(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = compile_retry_fixture(tmp_path)
+    task_dir = output / "tasks" / "da-1-1"
+    task_manifest = json.loads((task_dir / "manifest.json").read_text())
+    artifact_count = len(task_manifest["artifacts"])
+    attempt_2 = task_dir / "attempts" / "attempt-2"
+    moved_attempt_2 = tmp_path / "attempt-2-after-snapshot"
+    original_read_regular_bytes = compiler_module._read_regular_bytes
+    snapshots_read = 0
+
+    def snapshot_then_move_attempt(path: Path, context: str) -> bytes:
+        nonlocal snapshots_read
+        snapshot = original_read_regular_bytes(path, context)
+        if context.startswith("bundle artifact "):
+            snapshots_read += 1
+            if snapshots_read == artifact_count:
+                attempt_2.rename(moved_attempt_2)
+        return snapshot
+
+    monkeypatch.setattr(
+        compiler_module,
+        "_read_regular_bytes",
+        snapshot_then_move_attempt,
+    )
+
+    bundle = resolve_rubric_bundle(output, "da-1-1")
+
+    assert moved_attempt_2.is_dir()
+    assert bundle.task_id == "da-1-1"
+
+
 @pytest.mark.parametrize(
     "mutation",
     (
@@ -483,6 +709,8 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "compiler-config-digest",
         "generation-code-map",
         "generation-code-digest",
+        "rewriter-provenance",
+        "rewriter-provenance-digest",
         "compilation-digest",
     ),
 )
@@ -503,11 +731,36 @@ def test_resolution_rejects_root_provenance_tampering(
         manifest["generation_code_sha256s"]["task_rubrics.py"] = "0" * 64
     elif mutation == "generation-code-digest":
         manifest["generation_code_sha256"] = "0" * 64
+    elif mutation == "rewriter-provenance":
+        manifest["rewriter_provenance"]["implementation_id"] = "tampered"
+    elif mutation == "rewriter-provenance-digest":
+        manifest["rewriter_provenance_sha256"] = "0" * 64
     else:
         manifest["compilation_sha256"] = "0" * 64
     write_canonical_json(manifest_path, manifest)
 
     with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
+def test_resolution_rejects_task_rewriter_provenance_tampering(
+    tmp_path: Path,
+) -> None:
+    output = compile_fixture(tmp_path)
+    task_manifest_path = output / "tasks" / "da-1-1" / "manifest.json"
+    task_manifest = json.loads(task_manifest_path.read_text())
+    task_manifest["compiler"]["rewriter_provenance"]["provider"] = (
+        "tampered-provider"
+    )
+    write_canonical_json(task_manifest_path, task_manifest)
+    root_manifest_path = output / "manifest.json"
+    root_manifest = json.loads(root_manifest_path.read_text())
+    root_manifest["tasks"]["da-1-1"]["task_manifest_sha256"] = sha256_file(
+        task_manifest_path
+    )
+    write_canonical_json(root_manifest_path, root_manifest)
+
+    with pytest.raises(RubricBundleError, match="task rewriter provenance mismatch"):
         resolve_rubric_bundle(output, "da-1-1")
 
 
@@ -1086,6 +1339,7 @@ def test_package_exports_intentional_task_rubric_interfaces() -> None:
             "TaskRubricCompilerConfig",
             "TaskRubricRequest",
             "TaskRubricRewriter",
+            "TaskRubricRewriterProvenance",
             "GeminiTaskRubricRewriter",
             "TaskProcessRubricCompiler",
             "ResolvedRubricBundle",

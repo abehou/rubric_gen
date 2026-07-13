@@ -57,6 +57,7 @@ from rubric_gen.biomnibench.task_rubric_compiler import (
     TaskRubricCompilerConfig,
     TaskRubricRequest,
     TaskRubricRewriter,
+    TaskRubricRewriterProvenance,
     resolve_rubric_bundle,
 )
 from rubric_gen.biomnibench.task_rubrics import (
@@ -156,6 +157,7 @@ __all__ = [
     "TaskRubricCompilerConfig",
     "TaskRubricRequest",
     "TaskRubricRewriter",
+    "TaskRubricRewriterProvenance",
     "TaskSnapshot",
     "TaskWorkspace",
     "BiomniBenchPerturbationRunner",

@@ -23,6 +23,7 @@ from rubric_gen.biomnibench.task_rubric_compiler import (
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
     TaskRubricRequest,
+    TaskRubricRewriterProvenance,
     resolve_rubric_bundle,
 )
 from rubric_gen.biomnibench.task_rubrics import canonical_json
@@ -102,6 +103,21 @@ class SignedPenaltyRewriter(StaticRewriter):
         return canonical_json(payload)
 
 
+def rewriter_provenance_for(
+    rewriter_type: type[object],
+) -> TaskRubricRewriterProvenance:
+    implementation_id = f"{rewriter_type.__module__}.{rewriter_type.__qualname__}"
+    return TaskRubricRewriterProvenance(
+        schema_version=1,
+        provider="test-static",
+        model="gemini-3.5-flash",
+        implementation_id=implementation_id,
+        implementation_sha256=hashlib.sha256(
+            implementation_id.encode("utf-8")
+        ).hexdigest(),
+    )
+
+
 def make_task(root: Path, task_id: str) -> Path:
     task_dir = root / task_id
     tests_dir = task_dir / "tests"
@@ -144,6 +160,7 @@ def compile_rubric_set(tmp_path: Path, *task_ids: str) -> tuple[Path, Path]:
             max_retries=0,
         ),
         rewriter=StaticRewriter(),
+        rewriter_provenance=rewriter_provenance_for(StaticRewriter),
     )
     assert compiler.run() == 0
     return output, tasks_dir
@@ -245,6 +262,30 @@ def test_external_lookup_uses_validated_target_task(tmp_path: Path) -> None:
     ).hexdigest()
     assert resolved.manifest_path == resolved.path.parent / "manifest.json"
     assert resolved.manifest_sha256 == sha256_file(resolved.manifest_path)
+
+
+def test_external_judge_consumes_verified_bundle_snapshots(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rubric_set, _ = compile_rubric_set(tmp_path, "da-1-1")
+    target = make_target(tmp_path)
+    bundle = resolve_rubric_bundle(rubric_set, target.task)
+    verified_text = bundle.rendered_text
+    verified_manifest_sha256 = bundle.task_manifest_sha256
+    bundle.rendered_path.write_text("tampered after resolve", encoding="utf-8")
+    bundle.task_manifest_path.write_text("tampered after resolve", encoding="utf-8")
+    monkeypatch.setattr(
+        judges_module,
+        "resolve_rubric_bundle",
+        lambda _rubric_set, _task: bundle,
+    )
+    runner = make_runner(tmp_path, rubric_set=rubric_set)
+
+    resolved = runner.resolve_rubric(target)
+
+    assert resolved.text == verified_text
+    assert resolved.manifest_sha256 == verified_manifest_sha256
 
 
 def test_external_rubric_never_falls_back(tmp_path: Path) -> None:
@@ -819,6 +860,7 @@ def test_offline_frozen_rubric_workflow_end_to_end(
             max_retries=0,
         ),
         rewriter=SignedPenaltyRewriter(),
+        rewriter_provenance=rewriter_provenance_for(SignedPenaltyRewriter),
     )
 
     assert compiler.run() == 0

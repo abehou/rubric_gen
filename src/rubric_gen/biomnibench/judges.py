@@ -491,21 +491,20 @@ class BiomniBenchJudgeRunner:
         try:
             bundle = resolve_rubric_bundle(self.config.rubric_set, target.task)
             path = bundle.rendered_path
-            text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError, RubricBundleError) as exc:
             raise SystemExit(
                 f"Invalid external rubric set for {target.task}: {exc}"
             ) from exc
         return ResolvedRubric(
-            text=text,
+            text=bundle.rendered_text,
             path=path,
             structured_rubric_sha256=bundle.rubric_sha256,
-            rendered_rubric_sha256=self.sha256_text(text),
+            rendered_rubric_sha256=self.sha256_text(bundle.rendered_text),
             rubric_id=bundle.rubric_id,
             rubric_set_id=bundle.rubric_set_id,
             source="rubric-set",
             manifest_path=bundle.task_manifest_path,
-            manifest_sha256=self.sha256_file(bundle.task_manifest_path),
+            manifest_sha256=bundle.task_manifest_sha256,
         )
 
     def resolved_local_rubric(self, path: Path) -> ResolvedRubric:
