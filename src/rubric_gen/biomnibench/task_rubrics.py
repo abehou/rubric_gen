@@ -125,11 +125,13 @@ class TaskSnapshot:
     input_hashes: tuple[tuple[str, str], ...]
     snapshot_sha256: str
     omitted_data_files: int = 0
+    data_traversal_truncated: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return {
             "anchors": [anchor.to_dict() for anchor in self.anchors],
             "data_files": [data_file.to_dict() for data_file in self.data_files],
+            "data_traversal_truncated": self.data_traversal_truncated,
             "input_hashes": [list(item) for item in self.input_hashes],
             "omitted_data_files": self.omitted_data_files,
             "question": self.question,
@@ -247,29 +249,37 @@ def _table_snapshot(
 def _walk_data_files(
     data_root: Path,
     limits: SchemaSnapshotLimits,
-) -> tuple[tuple[Path, ...], int]:
+) -> tuple[tuple[Path, ...], int, bool]:
     if not data_root.is_dir():
-        return (), 0
+        return (), 0, False
     pending = [("", data_root)]
     files: list[Path] = []
     omitted_files = 0
     entries_enumerated = 0
+    traversal_truncated = False
     while pending:
         _, path = heapq.heappop(pending)
         if path.is_symlink():
             continue
         if path.is_dir():
             remaining = limits.max_entries_visited - entries_enumerated
-            for child in islice(path.iterdir(), remaining):
+            children = list(islice(path.iterdir(), remaining))
+            entries_enumerated += len(children)
+            if len(children) == remaining:
+                traversal_truncated = True
+                continue
+            for child in sorted(
+                children,
+                key=lambda item: item.relative_to(data_root).as_posix(),
+            ):
                 relative = child.relative_to(data_root).as_posix()
                 heapq.heappush(pending, (relative, child))
-                entries_enumerated += 1
         elif path.is_file():
             if len(files) < limits.max_files:
                 files.append(path)
             else:
                 omitted_files += 1
-    return tuple(files), omitted_files
+    return tuple(files), omitted_files, traversal_truncated
 
 
 def _schema_json(data_files: list[DataFileSnapshot]) -> str:
@@ -424,7 +434,7 @@ def build_task_snapshot(
     """Build a deterministic snapshot without consulting runtime files."""
 
     data_root = task_dir / "environment" / "data"
-    data_paths, walk_omitted_files = _walk_data_files(data_root, limits)
+    data_paths, walk_omitted_files, traversal_truncated = _walk_data_files(data_root, limits)
     probed_data_files = tuple(
         _table_snapshot(path, path.relative_to(data_root).as_posix(), limits)
         for path in data_paths
@@ -464,5 +474,6 @@ def build_task_snapshot(
         input_hashes=input_hashes,
         snapshot_sha256="",
         omitted_data_files=walk_omitted_files + budget_omitted_files,
+        data_traversal_truncated=traversal_truncated,
     )
     return replace(snapshot, snapshot_sha256=sha256_text(canonical_json(_snapshot_payload(snapshot))))

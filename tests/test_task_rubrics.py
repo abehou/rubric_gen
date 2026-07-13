@@ -160,10 +160,49 @@ def test_entry_limit_bounds_directory_enumeration(
 
     monkeypatch.setattr(Path, "iterdir", counted_iterdir)
 
-    files, _ = _walk_data_files(data, SchemaSnapshotLimits(max_entries_visited=3))
+    files, _, truncated = _walk_data_files(
+        data,
+        SchemaSnapshotLimits(max_entries_visited=3),
+    )
 
     assert enumerated == 3
-    assert len(files) == 2
+    assert files == ()
+    assert truncated is True
+
+
+def test_wide_directory_overflow_is_order_independent_and_fail_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = make_task(tmp_path)
+    many = task / "environment" / "data" / "many"
+    many.mkdir()
+    for index in range(10):
+        (many / f"{index:02}.tsv").write_text("id\n1\n", encoding="utf-8")
+
+    original_iterdir = Path.iterdir
+    reverse_many = False
+
+    def permuted_iterdir(path: Path):
+        children = list(original_iterdir(path))
+        if path == many:
+            children.sort(key=lambda child: child.name, reverse=reverse_many)
+        return iter(children)
+
+    monkeypatch.setattr(Path, "iterdir", permuted_iterdir)
+    limits = SchemaSnapshotLimits(max_entries_visited=6)
+
+    first = build_task_snapshot(task, limits)
+    reverse_many = True
+    second = build_task_snapshot(task, limits)
+
+    assert canonical_json(first.to_dict()) == canonical_json(second.to_dict())
+    assert first.snapshot_sha256 == second.snapshot_sha256
+    assert [data_file.path for data_file in first.data_files] == [
+        "gene_exp.diff",
+        "invalid.bin",
+    ]
+    assert first.data_traversal_truncated is True
 
 
 def test_probe_is_byte_bounded_without_misclassifying_split_utf8(tmp_path: Path) -> None:
