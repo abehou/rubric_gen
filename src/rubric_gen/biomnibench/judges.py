@@ -6,15 +6,18 @@ import hashlib
 import json
 import os
 import re
-import shutil
+import secrets
+import stat
 import subprocess
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import pstdev
-from typing import Any
+from threading import Lock
+from typing import Any, Iterator
 
 from rubric_gen.biomnibench.common import PROGRESS_BAR_FORMAT, resolve_project_path
 from rubric_gen.biomnibench.rubric_scoring import (
@@ -185,9 +188,28 @@ class JudgeAttempt:
         return f"{self.target.task}#{self.repeat_index}"
 
 
+@dataclass(frozen=True)
+class _OpenOutputDirectory:
+    root_path: Path
+    root_fd: int
+    root_identity: tuple[int, int]
+    path: Path
+    fd: int
+
+
+@dataclass(frozen=True)
+class _TargetDirectoryIdentities:
+    run: tuple[int, int]
+    workspace: tuple[int, int]
+    output_root: tuple[int, int]
+    canonical_run: str
+
+
 class BiomniBenchJudgeRunner:
     def __init__(self, config: JudgeRunConfig) -> None:
         self.config = config
+        self._identity_lock = Lock()
+        self._target_identities: dict[JudgeTarget, _TargetDirectoryIdentities] = {}
 
     @property
     def scores_path(self) -> Path:
@@ -237,8 +259,7 @@ class BiomniBenchJudgeRunner:
         self,
         workspace: Path,
         *,
-        expected: Path | None = None,
-        allowed_root: Path | None = None,
+        expected: Path | tuple[Path, ...],
     ) -> Path:
         if workspace.is_symlink():
             raise SystemExit(f"workspace directory must not be a symlink: {workspace}")
@@ -246,13 +267,23 @@ class BiomniBenchJudgeRunner:
             canonical = workspace.expanduser().resolve(strict=False)
         except (OSError, RuntimeError) as exc:
             raise SystemExit(f"Invalid workspace directory: {workspace}") from exc
-        if expected is not None and canonical != expected.expanduser().resolve(strict=False):
+        expected_paths = expected if isinstance(expected, tuple) else (expected,)
+        expected_canonical = {
+            path.expanduser().resolve(strict=False)
+            for path in expected_paths
+        }
+        if canonical not in expected_canonical:
             raise SystemExit(f"status workspace directory disagrees with run layout: {workspace}")
-        if allowed_root is not None:
-            root = allowed_root.expanduser().resolve(strict=False)
-            if not canonical.is_relative_to(root):
-                raise SystemExit(f"status workspace directory leaves run root: {workspace}")
         return canonical
+
+    def _standalone_workspace_options(self, run_dir: Path) -> tuple[Path, ...]:
+        expected = run_dir.parent / "_workspaces" / run_dir.name
+        legacy = run_dir / "workspace"
+        if expected.exists() or expected.is_symlink():
+            return (expected,)
+        if legacy.exists() or legacy.is_symlink():
+            return (legacy,)
+        return (expected,)
 
     def validate_target_identity(self, target: JudgeTarget) -> None:
         canonical_task_dir = self._canonical_task_dir(target.task)
@@ -274,18 +305,119 @@ class BiomniBenchJudgeRunner:
         else:
             self._validated_workspace(
                 target.workspace_dir,
-                allowed_root=target.run_dir.parent,
+                expected=self._standalone_workspace_options(target.run_dir),
             )
+        expected_trajectory = (target.run_dir / "trajectory.stream.jsonl").absolute()
+        if target.trajectory_path.expanduser().absolute() != expected_trajectory:
+            raise SystemExit(
+                f"trajectory path disagrees with run layout: {target.trajectory_path}"
+            )
+        current_identities = self._snapshot_target_directory_identities(target)
+        self._bind_target_directory_identities(target, current_identities)
+
+    def _snapshot_target_directory_identities(
+        self,
+        target: JudgeTarget,
+    ) -> _TargetDirectoryIdentities:
+        entries = (
+            ("Target run directory", target.run_dir.expanduser().absolute()),
+            ("Target workspace directory", target.workspace_dir.expanduser().absolute()),
+            ("Target output root", target.output_root.expanduser().absolute()),
+        )
+        opened: list[tuple[str, Path, int]] = []
+        try:
+            for context, path in entries:
+                opened.append((context, path, self._open_directory_fd(path, context)))
+            for context, path, fd in opened:
+                self._validate_directory_fd(fd, path, context)
+            try:
+                canonical_run = target.run_dir.expanduser().resolve(strict=True)
+                canonical_run_stat = os.stat(canonical_run, follow_symlinks=False)
+            except (OSError, RuntimeError) as exc:
+                raise SystemExit(
+                    f"Target run directory identity changed: {target.run_dir}"
+                ) from exc
+            run_identity = self._directory_fd_identity(opened[0][2])
+            if (
+                not stat.S_ISDIR(canonical_run_stat.st_mode)
+                or (canonical_run_stat.st_dev, canonical_run_stat.st_ino)
+                != run_identity
+            ):
+                raise SystemExit(
+                    f"Target run directory identity changed: {target.run_dir}"
+                )
+            return _TargetDirectoryIdentities(
+                run=run_identity,
+                workspace=self._directory_fd_identity(opened[1][2]),
+                output_root=self._directory_fd_identity(opened[2][2]),
+                canonical_run=str(canonical_run),
+            )
+        finally:
+            for _, _, fd in reversed(opened):
+                os.close(fd)
+
+    def _bind_target_directory_identities(
+        self,
+        target: JudgeTarget,
+        current: _TargetDirectoryIdentities,
+    ) -> None:
+        with self._identity_lock:
+            expected = self._target_identities.get(target)
+            if expected is None:
+                self._target_identities[target] = current
+                return
+        for label, path, expected_value, current_value in (
+            ("run", target.run_dir, expected.run, current.run),
+            ("workspace", target.workspace_dir, expected.workspace, current.workspace),
+            ("output root", target.output_root, expected.output_root, current.output_root),
+        ):
+            if current_value != expected_value:
+                raise SystemExit(f"Target {label} directory identity changed: {path}")
+        if current.canonical_run != expected.canonical_run:
+            raise SystemExit(f"Target run directory identity changed: {target.run_dir}")
+
+    def _target_directory_identities(
+        self,
+        target: JudgeTarget,
+    ) -> _TargetDirectoryIdentities:
+        with self._identity_lock:
+            identities = self._target_identities.get(target)
+        if identities is None:
+            self.validate_target_identity(target)
+            with self._identity_lock:
+                identities = self._target_identities[target]
+        return identities
 
     def discover_targets(self) -> list[JudgeTarget]:
         targets = []
+        canonical_run_dirs: dict[Path, Path] = {}
         for run_dir in self.config.run_dirs:
+            try:
+                canonical_run_dir = run_dir.expanduser().resolve(strict=True)
+            except (OSError, RuntimeError) as exc:
+                raise SystemExit(f"Invalid judge run directory: {run_dir}") from exc
+            if canonical_run_dir in canonical_run_dirs:
+                raise SystemExit(
+                    "Duplicate canonical run directory: "
+                    f"{run_dir} aliases {canonical_run_dirs[canonical_run_dir]}"
+                )
+            canonical_run_dirs[canonical_run_dir] = run_dir
             if (run_dir / "tasks").is_dir() and (run_dir / "workspaces").is_dir():
                 targets.extend(self._discover_batch_targets(run_dir))
             else:
                 targets.append(self._discover_single_target(run_dir))
+        canonical_target_runs: dict[tuple[int, int], Path] = {}
+        for target in targets:
+            self.validate_target_identity(target)
+            run_identity = self._target_directory_identities(target).run
+            if run_identity in canonical_target_runs:
+                raise SystemExit(
+                    "Duplicate canonical target run directory: "
+                    f"{target.run_dir} aliases {canonical_target_runs[run_identity]}"
+                )
+            canonical_target_runs[run_identity] = target.run_dir
         if self.config.limit is not None:
-            return targets[: self.config.limit]
+            targets = targets[: self.config.limit]
         return targets
 
     def _discover_batch_targets(self, batch_dir: Path) -> list[JudgeTarget]:
@@ -338,7 +470,7 @@ class BiomniBenchJudgeRunner:
         if workspace is None and run_dir.parent.name == "tasks":
             workspace = run_dir.parents[1] / "workspaces" / task
         if workspace is None:
-            workspace = run_dir / "workspace"
+            workspace = self._standalone_workspace_options(run_dir)[0]
         if type(workspace) is not str and not isinstance(workspace, Path):
             raise SystemExit("status workspace_dir must be a path string")
         workspace_path = Path(workspace)
@@ -350,7 +482,7 @@ class BiomniBenchJudgeRunner:
         else:
             workspace_path = self._validated_workspace(
                 workspace_path,
-                allowed_root=run_dir.parent,
+                expected=self._standalone_workspace_options(run_dir),
             )
         return JudgeTarget(
             task=task,
@@ -529,8 +661,7 @@ class BiomniBenchJudgeRunner:
         rubric = self.resolve_rubric(target)
         judge_path = self.find_judge(target.task_dir)
         try:
-            review_text = self.review_text(target)
-            answer_text = self.read_text(target.workspace_dir / "answer.txt")
+            review_text, answer_text = self.review_inputs(target)
             judge_source = judge_path.read_bytes()
         except (OSError, UnicodeError):
             return None
@@ -541,13 +672,23 @@ class BiomniBenchJudgeRunner:
             answer_text=answer_text,
             effective_judge_model=self.judge_model(os.environ.copy()),
         )
-        validation = self.valid_score_validation(
-            rubric,
-            reward_path,
-            evaluation_path,
-            score_validation_path,
-            score_input_attestation,
-        )
+        if not output_dir.exists():
+            return None
+        identities = self._target_directory_identities(target)
+        try:
+            with self._open_output_directory(
+                target.output_root,
+                output_dir,
+                expected_root_identity=identities.output_root,
+                create=False,
+            ) as output:
+                validation = self.valid_score_validation(
+                    rubric,
+                    score_input_attestation,
+                    output=output,
+                )
+        except FileNotFoundError:
+            return None
         if validation is None:
             return None
         return {
@@ -575,8 +716,7 @@ class BiomniBenchJudgeRunner:
         judge_path = self.find_judge(target.task_dir)
         output_dir = self.output_dir(target, repeat_index)
 
-        review_text = self.review_text(target)
-        answer_text = self.read_text(target.workspace_dir / "answer.txt")
+        review_text, answer_text = self.review_inputs(target)
 
         base_record = {
             "task": target.task,
@@ -593,18 +733,22 @@ class BiomniBenchJudgeRunner:
         if self.config.dry_run:
             return {**base_record, "status": "planned", "exit_code": 0}
 
-        output_dir.mkdir(parents=True, exist_ok=True)
-        self._safe_output_path(target.output_root, output_dir)
-        (output_dir / "judge_input_trace.md").write_text(review_text)
-        (output_dir / "judge_input_answer.txt").write_text(answer_text)
-        result = self.execute_judge(
-            judge_path,
-            rubric,
+        identities = self._target_directory_identities(target)
+        with self._open_output_directory(
+            target.output_root,
             output_dir,
-            review_text,
-            answer_text,
-            attempt=JudgeAttempt(target, repeat_index),
-        )
+            expected_root_identity=identities.output_root,
+        ) as output:
+            self._write_output_text(output, "judge_input_trace.md", review_text)
+            self._write_output_text(output, "judge_input_answer.txt", answer_text)
+            result = self._execute_judge_with_output(
+                judge_path,
+                rubric,
+                output,
+                review_text,
+                answer_text,
+                attempt=JudgeAttempt(target, repeat_index),
+            )
         return {**base_record, **result}
 
     def output_dir(self, target: JudgeTarget, repeat_index: int = 1) -> Path:
@@ -637,6 +781,352 @@ class BiomniBenchJudgeRunner:
         except (OSError, RuntimeError) as exc:
             raise SystemExit(f"Invalid judge output path: {candidate}") from exc
         return path
+
+    def _directory_open_flags(self) -> int:
+        return (
+            os.O_RDONLY
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_DIRECTORY", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
+
+    def _directory_fd_identity(self, fd: int) -> tuple[int, int]:
+        value = os.fstat(fd)
+        return value.st_dev, value.st_ino
+
+    def _validate_directory_fd(
+        self,
+        fd: int,
+        path: Path,
+        context: str,
+        expected_identity: tuple[int, int] | None = None,
+    ) -> None:
+        try:
+            fd_stat = os.fstat(fd)
+            path_stat = os.stat(path, follow_symlinks=False)
+        except OSError as exc:
+            raise SystemExit(f"{context} path identity changed: {path}") from exc
+        if (
+            not stat.S_ISDIR(fd_stat.st_mode)
+            or not stat.S_ISDIR(path_stat.st_mode)
+            or (fd_stat.st_dev, fd_stat.st_ino) != (path_stat.st_dev, path_stat.st_ino)
+            or (
+                expected_identity is not None
+                and (fd_stat.st_dev, fd_stat.st_ino) != expected_identity
+            )
+        ):
+            raise SystemExit(f"{context} path identity changed: {path}")
+
+    def _open_directory_fd(self, path: Path, context: str) -> int:
+        try:
+            fd = os.open(path, self._directory_open_flags())
+        except OSError as exc:
+            raise SystemExit(f"{context} must be a stable regular directory: {path}") from exc
+        try:
+            self._validate_directory_fd(fd, path, context)
+        except BaseException:
+            os.close(fd)
+            raise
+        return fd
+
+    @contextmanager
+    def _open_output_directory(
+        self,
+        output_root: Path,
+        output_dir: Path,
+        *,
+        expected_root_identity: tuple[int, int],
+        create: bool = True,
+    ) -> Iterator[_OpenOutputDirectory]:
+        path = self._safe_output_path(output_root, output_dir)
+        root = output_root.expanduser().absolute()
+        relative = path.relative_to(root)
+        root_fd = self._open_directory_fd(root, "Judge output root")
+        current_fd: int | None = None
+        current_path = root
+        try:
+            self._validate_directory_fd(
+                root_fd,
+                root,
+                "Judge output root",
+                expected_root_identity,
+            )
+            current_fd = os.dup(root_fd)
+            for part in relative.parts:
+                if create:
+                    try:
+                        os.mkdir(part, mode=0o755, dir_fd=current_fd)
+                    except FileExistsError:
+                        pass
+                    except OSError as exc:
+                        raise SystemExit(
+                            "Could not create judge output directory component: "
+                            f"{current_path / part}"
+                        ) from exc
+                try:
+                    next_fd = os.open(
+                        part,
+                        self._directory_open_flags(),
+                        dir_fd=current_fd,
+                    )
+                except FileNotFoundError:
+                    if not create:
+                        raise
+                    raise SystemExit(
+                        f"Judge output directory component is unsafe: {current_path / part}"
+                    )
+                except OSError as exc:
+                    raise SystemExit(
+                        f"Judge output directory component is unsafe: {current_path / part}"
+                    ) from exc
+                os.close(current_fd)
+                current_fd = next_fd
+                current_path = current_path / part
+                self._validate_directory_fd(
+                    current_fd,
+                    current_path,
+                    "Judge output directory",
+                )
+
+            output = _OpenOutputDirectory(
+                root_path=root,
+                root_fd=root_fd,
+                root_identity=expected_root_identity,
+                path=path,
+                fd=current_fd,
+            )
+            self._safe_output_path(root, path)
+            self._validate_output_directory(output)
+            try:
+                yield output
+            finally:
+                self._validate_output_directory(output)
+        finally:
+            if current_fd is not None:
+                os.close(current_fd)
+            os.close(root_fd)
+
+    def _validate_output_directory(self, output: _OpenOutputDirectory) -> None:
+        self._validate_directory_fd(
+            output.root_fd,
+            output.root_path,
+            "Judge output root",
+            output.root_identity,
+        )
+        self._validate_directory_fd(
+            output.fd,
+            output.path,
+            "Judge output directory",
+        )
+
+    def _read_output_bytes(
+        self,
+        output: _OpenOutputDirectory,
+        name: str,
+    ) -> bytes:
+        _safe_basename(name, "judge output filename")
+        self._validate_output_directory(output)
+        file_fd: int | None = None
+        try:
+            file_fd = os.open(
+                name,
+                os.O_RDONLY
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0),
+                dir_fd=output.fd,
+            )
+            before = os.fstat(file_fd)
+            named_before = os.stat(
+                name,
+                dir_fd=output.fd,
+                follow_symlinks=False,
+            )
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or not stat.S_ISREG(named_before.st_mode)
+                or (before.st_dev, before.st_ino)
+                != (named_before.st_dev, named_before.st_ino)
+            ):
+                raise JudgeScoreValidationError(
+                    f"cached judge output is not a stable regular file: {name}"
+                )
+
+            chunks: list[bytes] = []
+            while True:
+                chunk = os.read(file_fd, 1024 * 1024)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            after = os.fstat(file_fd)
+            named_after = os.stat(
+                name,
+                dir_fd=output.fd,
+                follow_symlinks=False,
+            )
+            if (
+                self._stable_artifact_signature(before)
+                != self._stable_artifact_signature(after)
+                or not stat.S_ISREG(named_after.st_mode)
+                or (after.st_dev, after.st_ino)
+                != (named_after.st_dev, named_after.st_ino)
+            ):
+                raise JudgeScoreValidationError(
+                    f"cached judge output changed while being read: {name}"
+                )
+            return b"".join(chunks)
+        finally:
+            if file_fd is not None:
+                os.close(file_fd)
+            self._validate_output_directory(output)
+
+    def _write_output_text(
+        self,
+        output: _OpenOutputDirectory,
+        name: str,
+        text: str,
+    ) -> None:
+        self._write_output_bytes(output, name, text.encode("utf-8"))
+
+    def _write_output_bytes(
+        self,
+        output: _OpenOutputDirectory,
+        name: str,
+        payload: bytes,
+    ) -> None:
+        _safe_basename(name, "judge output filename")
+        self._validate_output_directory(output)
+        token = secrets.token_hex(12)
+        temporary_name = f".{name}.{token}.tmp"
+        backup_name = f".{name}.{token}.bak"
+        temporary_exists = False
+        backup_exists = False
+        target_committed = False
+        succeeded = False
+        fd: int | None = None
+        try:
+            fd = os.open(
+                temporary_name,
+                os.O_WRONLY
+                | os.O_CREAT
+                | os.O_EXCL
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+                dir_fd=output.fd,
+            )
+            temporary_exists = True
+            remaining = memoryview(payload)
+            while remaining:
+                written = os.write(fd, remaining)
+                if written <= 0:
+                    raise OSError("short write to judge output")
+                remaining = remaining[written:]
+            os.close(fd)
+            fd = None
+            self._validate_output_directory(output)
+            try:
+                os.replace(
+                    name,
+                    backup_name,
+                    src_dir_fd=output.fd,
+                    dst_dir_fd=output.fd,
+                )
+                backup_exists = True
+            except FileNotFoundError:
+                pass
+            self._validate_output_directory(output)
+            os.replace(
+                temporary_name,
+                name,
+                src_dir_fd=output.fd,
+                dst_dir_fd=output.fd,
+            )
+            temporary_exists = False
+            target_committed = True
+            self._validate_output_directory(output)
+            if backup_exists:
+                os.unlink(backup_name, dir_fd=output.fd)
+                backup_exists = False
+                self._validate_output_directory(output)
+            succeeded = True
+        except OSError as exc:
+            raise SystemExit(f"Could not write judge output file: {output.path / name}") from exc
+        finally:
+            if fd is not None:
+                os.close(fd)
+            if not succeeded and target_committed:
+                try:
+                    os.unlink(name, dir_fd=output.fd)
+                except FileNotFoundError:
+                    pass
+                except OSError:
+                    pass
+            if not succeeded and backup_exists:
+                try:
+                    os.replace(
+                        backup_name,
+                        name,
+                        src_dir_fd=output.fd,
+                        dst_dir_fd=output.fd,
+                    )
+                    backup_exists = False
+                except OSError:
+                    pass
+            if temporary_exists:
+                try:
+                    os.unlink(temporary_name, dir_fd=output.fd)
+                except FileNotFoundError:
+                    pass
+            if backup_exists:
+                try:
+                    os.unlink(backup_name, dir_fd=output.fd)
+                except FileNotFoundError:
+                    pass
+
+    def _unlink_output_file(
+        self,
+        output: _OpenOutputDirectory,
+        name: str,
+    ) -> None:
+        _safe_basename(name, "judge output filename")
+        self._validate_output_directory(output)
+        tombstone_name = f".{name}.{secrets.token_hex(12)}.stale"
+        tombstone_exists = False
+        succeeded = False
+        try:
+            os.replace(
+                name,
+                tombstone_name,
+                src_dir_fd=output.fd,
+                dst_dir_fd=output.fd,
+            )
+            tombstone_exists = True
+        except FileNotFoundError:
+            self._validate_output_directory(output)
+            return
+        except OSError as exc:
+            raise SystemExit(f"Could not remove stale judge output: {output.path / name}") from exc
+        try:
+            self._validate_output_directory(output)
+            os.unlink(tombstone_name, dir_fd=output.fd)
+            tombstone_exists = False
+            self._validate_output_directory(output)
+            succeeded = True
+        except OSError as exc:
+            raise SystemExit(
+                f"Could not remove stale judge output: {output.path / name}"
+            ) from exc
+        finally:
+            if not succeeded and tombstone_exists:
+                try:
+                    os.replace(
+                        tombstone_name,
+                        name,
+                        src_dir_fd=output.fd,
+                        dst_dir_fd=output.fd,
+                    )
+                except OSError:
+                    pass
 
     def _tests_dir(self, task_dir: Path) -> Path:
         if task_dir.is_symlink() or not task_dir.is_dir():
@@ -735,20 +1225,203 @@ class BiomniBenchJudgeRunner:
             "manifest_sha256": rubric.manifest_sha256,
         }
 
+    def _stable_artifact_signature(self, value: os.stat_result) -> tuple[int, ...]:
+        return (
+            value.st_dev,
+            value.st_ino,
+            value.st_mode,
+            value.st_size,
+            value.st_mtime_ns,
+            value.st_ctime_ns,
+        )
+
+    def _read_review_artifact(
+        self,
+        root: Path,
+        name: str,
+        *,
+        root_fd: int | None = None,
+    ) -> str:
+        _safe_basename(name, "reviewed artifact filename")
+        root_path = root.expanduser().absolute()
+        artifact_path = root_path / name
+        owns_root_fd = root_fd is None
+        if root_fd is None:
+            root_fd = self._open_directory_fd(root_path, "Reviewed artifact parent")
+        else:
+            self._validate_directory_fd(
+                root_fd,
+                root_path,
+                "Reviewed artifact parent",
+            )
+        file_fd: int | None = None
+        try:
+            try:
+                file_fd = os.open(
+                    name,
+                    os.O_RDONLY
+                    | getattr(os, "O_CLOEXEC", 0)
+                    | getattr(os, "O_NOFOLLOW", 0),
+                    dir_fd=root_fd,
+                )
+                before = os.fstat(file_fd)
+                named_before = os.stat(
+                    name,
+                    dir_fd=root_fd,
+                    follow_symlinks=False,
+                )
+            except OSError as exc:
+                raise SystemExit(
+                    f"Reviewed artifact must be a stable regular file: {artifact_path}"
+                ) from exc
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or not stat.S_ISREG(named_before.st_mode)
+                or (before.st_dev, before.st_ino)
+                != (named_before.st_dev, named_before.st_ino)
+            ):
+                raise SystemExit(
+                    f"Reviewed artifact must be a stable regular file: {artifact_path}"
+                )
+
+            chunks = []
+            try:
+                while True:
+                    chunk = os.read(file_fd, 1024 * 1024)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                after = os.fstat(file_fd)
+                named_after = os.stat(
+                    name,
+                    dir_fd=root_fd,
+                    follow_symlinks=False,
+                )
+            except OSError as exc:
+                raise SystemExit(
+                    f"Reviewed artifact changed while being read: {artifact_path}"
+                ) from exc
+            if (
+                self._stable_artifact_signature(before)
+                != self._stable_artifact_signature(after)
+                or not stat.S_ISREG(named_after.st_mode)
+                or (after.st_dev, after.st_ino)
+                != (named_after.st_dev, named_after.st_ino)
+            ):
+                raise SystemExit(
+                    f"Reviewed artifact changed while being read: {artifact_path}"
+                )
+            self._validate_directory_fd(
+                root_fd,
+                root_path,
+                "Reviewed artifact parent",
+            )
+        finally:
+            if file_fd is not None:
+                os.close(file_fd)
+            if owns_root_fd:
+                os.close(root_fd)
+        return self.truncate(b"".join(chunks).decode("utf-8", errors="replace"))
+
+    def _trajectory_review_text(self, raw: str) -> str:
+        text = (
+            "# Raw Agent Trajectory\n\n"
+            "The following JSONL stream is the raw agent trajectory for this task.\n\n"
+            "```jsonl\n"
+            f"{raw}"
+            "\n```\n"
+        )
+        return self.truncate(text)
+
+    def review_inputs(self, target: JudgeTarget) -> tuple[str, str]:
+        identities = self._target_directory_identities(target)
+        workspace_path = target.workspace_dir.expanduser().absolute()
+        workspace_fd = self._open_directory_fd(
+            workspace_path,
+            "Reviewed artifact workspace",
+        )
+        run_fd: int | None = None
+        try:
+            self._validate_directory_fd(
+                workspace_fd,
+                workspace_path,
+                "Reviewed artifact workspace",
+                identities.workspace,
+            )
+            if self.config.review == "trajectory":
+                expected = (target.run_dir / "trajectory.stream.jsonl").absolute()
+                if target.trajectory_path.expanduser().absolute() != expected:
+                    raise SystemExit(
+                        f"trajectory path disagrees with run layout: {target.trajectory_path}"
+                    )
+                run_path = target.run_dir.expanduser().absolute()
+                run_fd = self._open_directory_fd(
+                    run_path,
+                    "Reviewed artifact run",
+                )
+                self._validate_directory_fd(
+                    run_fd,
+                    run_path,
+                    "Reviewed artifact run",
+                    identities.run,
+                )
+                raw = self._read_review_artifact(
+                    run_path,
+                    "trajectory.stream.jsonl",
+                    root_fd=run_fd,
+                )
+                review_text = self._trajectory_review_text(raw)
+            elif self.config.review == "trace":
+                review_text = self._read_review_artifact(
+                    workspace_path,
+                    "trace.md",
+                    root_fd=workspace_fd,
+                )
+            else:
+                raise SystemExit(f"Unknown review mode: {self.config.review}")
+
+            answer_text = self._read_review_artifact(
+                workspace_path,
+                "answer.txt",
+                root_fd=workspace_fd,
+            )
+            self._validate_directory_fd(
+                workspace_fd,
+                workspace_path,
+                "Reviewed artifact workspace",
+                identities.workspace,
+            )
+            if run_fd is not None:
+                self._validate_directory_fd(
+                    run_fd,
+                    target.run_dir.expanduser().absolute(),
+                    "Reviewed artifact run",
+                    identities.run,
+                )
+            return review_text, answer_text
+        finally:
+            if run_fd is not None:
+                os.close(run_fd)
+            os.close(workspace_fd)
+
     def review_text(self, target: JudgeTarget) -> str:
         if self.config.review == "trace":
-            return self.read_text(target.workspace_dir / "trace.md")
+            return self._read_review_artifact(target.workspace_dir, "trace.md")
         if self.config.review == "trajectory":
-            raw = self.read_text(target.trajectory_path)
-            text = (
-                "# Raw Agent Trajectory\n\n"
-                "The following JSONL stream is the raw agent trajectory for this task.\n\n"
-                "```jsonl\n"
-                f"{raw}"
-                "\n```\n"
+            expected = (target.run_dir / "trajectory.stream.jsonl").absolute()
+            if target.trajectory_path.expanduser().absolute() != expected:
+                raise SystemExit(
+                    f"trajectory path disagrees with run layout: {target.trajectory_path}"
+                )
+            raw = self._read_review_artifact(
+                target.run_dir,
+                "trajectory.stream.jsonl",
             )
-            return self.truncate(text)
+            return self._trajectory_review_text(raw)
         raise SystemExit(f"Unknown review mode: {self.config.review}")
+
+    def answer_text(self, target: JudgeTarget) -> str:
+        return self._read_review_artifact(target.workspace_dir, "answer.txt")
 
     def execute_judge(
         self,
@@ -761,7 +1434,33 @@ class BiomniBenchJudgeRunner:
         attempt: JudgeAttempt,
     ) -> dict[str, Any]:
         self.validate_target_identity(attempt.target)
-        self._safe_output_path(attempt.target.output_root, output_dir)
+        identities = self._target_directory_identities(attempt.target)
+        with self._open_output_directory(
+            attempt.target.output_root,
+            output_dir,
+            expected_root_identity=identities.output_root,
+        ) as output:
+            return self._execute_judge_with_output(
+                judge_path,
+                rubric,
+                output,
+                review_text,
+                answer_text,
+                attempt=attempt,
+            )
+
+    def _execute_judge_with_output(
+        self,
+        judge_path: Path,
+        rubric: ResolvedRubric | Path,
+        output: _OpenOutputDirectory,
+        review_text: str,
+        answer_text: str,
+        *,
+        attempt: JudgeAttempt,
+    ) -> dict[str, Any]:
+        self.validate_target_identity(attempt.target)
+        self._validate_output_directory(output)
         if isinstance(rubric, Path):
             rubric = self.resolved_local_rubric(rubric)
         if judge_path.is_symlink() or not judge_path.is_file():
@@ -776,12 +1475,19 @@ class BiomniBenchJudgeRunner:
             answer_text=answer_text,
             effective_judge_model=effective_judge_model,
         )
+        output_dir = output.path
         reward_path = output_dir / "reward.json"
         evaluation_path = output_dir / "evaluation.json"
         score_validation_path = output_dir / "score_validation.json"
         stdout_path = output_dir / "stdout.txt"
-        for stale in (reward_path, evaluation_path, score_validation_path, stdout_path):
-            stale.unlink(missing_ok=True)
+        for stale_name in (
+            "reward.json",
+            "evaluation.json",
+            "score_validation.json",
+            "stdout.txt",
+        ):
+            self._unlink_output_file(output, stale_name)
+        artifact_snapshots: dict[str, bytes] = {}
         with tempfile.TemporaryDirectory(prefix="biomnibench-judge-") as tmp:
             tmp_dir = Path(tmp)
             tests_dir = tmp_dir / "tests"
@@ -809,11 +1515,16 @@ class BiomniBenchJudgeRunner:
                 stderr=subprocess.STDOUT,
                 check=False,
             )
-            stdout_path.write_text(proc.stdout)
+            self._write_output_text(output, "stdout.txt", proc.stdout)
             for filename in ("reward.json", "evaluation.json"):
                 source = logs_dir / filename
                 if source.is_file():
-                    shutil.copy2(source, output_dir / filename)
+                    artifact_snapshots[filename] = source.read_bytes()
+                    self._write_output_bytes(
+                        output,
+                        filename,
+                        artifact_snapshots[filename],
+                    )
 
         result = {
             "status": "failed",
@@ -829,10 +1540,14 @@ class BiomniBenchJudgeRunner:
             return result
 
         try:
-            validation = self.build_score_validation(
+            if "reward.json" not in artifact_snapshots:
+                raise JudgeScoreValidationError("judge did not produce reward.json")
+            if "evaluation.json" not in artifact_snapshots:
+                raise JudgeScoreValidationError("judge did not produce evaluation.json")
+            validation = self._build_score_validation_from_bytes(
                 rubric,
-                reward_path,
-                evaluation_path,
+                artifact_snapshots["reward.json"],
+                artifact_snapshots["evaluation.json"],
                 score_input_attestation,
             )
         except (OSError, UnicodeError, ValueError, JudgeScoreValidationError) as exc:
@@ -841,7 +1556,11 @@ class BiomniBenchJudgeRunner:
                 "exit_code": 2,
                 "validation_error": str(exc),
             }
-        score_validation_path.write_text(json.dumps(validation, indent=2) + "\n")
+        self._write_output_text(
+            output,
+            "score_validation.json",
+            json.dumps(validation, indent=2) + "\n",
+        )
         return {
             **result,
             "status": "completed",
@@ -856,13 +1575,29 @@ class BiomniBenchJudgeRunner:
         evaluation_path: Path,
         score_input_attestation: dict[str, Any],
     ) -> dict[str, Any]:
+        return self._build_score_validation_from_bytes(
+            rubric,
+            reward_path.read_bytes(),
+            evaluation_path.read_bytes(),
+            score_input_attestation,
+        )
+
+    def _build_score_validation_from_bytes(
+        self,
+        rubric: ResolvedRubric,
+        reward_raw: bytes,
+        evaluation_raw: bytes,
+        score_input_attestation: dict[str, Any],
+    ) -> dict[str, Any]:
         if (
             type(score_input_attestation) is not dict
             or set(score_input_attestation) != SCORE_INPUT_ATTESTATION_KEYS
         ):
             raise JudgeScoreValidationError("score input attestation is not exact")
-        reward, reward_sha256 = self.load_json_snapshot(reward_path)
-        evaluation, evaluation_sha256 = self.load_json_snapshot(evaluation_path)
+        reward = load_json_strict(reward_raw.decode("utf-8"))
+        evaluation = load_json_strict(evaluation_raw.decode("utf-8"))
+        reward_sha256 = hashlib.sha256(reward_raw).hexdigest()
+        evaluation_sha256 = hashlib.sha256(evaluation_raw).hexdigest()
         validated = validate_judge_score(
             rubric_levels=parse_rubric_levels_strict(rubric.text),
             evaluation=evaluation,
@@ -889,19 +1624,20 @@ class BiomniBenchJudgeRunner:
     def valid_score_validation(
         self,
         rubric: ResolvedRubric,
-        reward_path: Path,
-        evaluation_path: Path,
-        score_validation_path: Path,
         score_input_attestation: dict[str, Any],
+        *,
+        output: _OpenOutputDirectory,
     ) -> dict[str, Any] | None:
         try:
-            validation = self.load_json(score_validation_path)
+            validation = load_json_strict(
+                self._read_output_bytes(output, "score_validation.json").decode("utf-8")
+            )
             if type(validation) is not dict or set(validation) != SCORE_VALIDATION_KEYS:
                 return None
-            expected_validation = self.build_score_validation(
+            expected_validation = self._build_score_validation_from_bytes(
                 rubric,
-                reward_path,
-                evaluation_path,
+                self._read_output_bytes(output, "reward.json"),
+                self._read_output_bytes(output, "evaluation.json"),
                 score_input_attestation,
             )
             if canonical_json(validation) != canonical_json(expected_validation):
@@ -922,12 +1658,9 @@ class BiomniBenchJudgeRunner:
         """Attest the exact inputs and implementation used by score computation."""
 
         self.validate_target_identity(attempt.target)
+        identities = self._target_directory_identities(attempt.target)
         if type(attempt.repeat_index) is not int or attempt.repeat_index < 1:
             raise JudgeScoreValidationError("repeat_index must be a positive integer")
-        try:
-            run_identity = str(attempt.target.run_dir.resolve(strict=True))
-        except (OSError, RuntimeError) as exc:
-            raise JudgeScoreValidationError("run identity is not canonical") from exc
 
         return {
             "schema_version": SCORE_VALIDATION_SCHEMA_VERSION,
@@ -941,7 +1674,7 @@ class BiomniBenchJudgeRunner:
             "review_mode": self.config.review,
             "max_review_chars": self.config.max_review_chars,
             "task": attempt.target.task,
-            "run_identity": run_identity,
+            "run_identity": identities.canonical_run,
             "repeat_index": attempt.repeat_index,
         }
 
@@ -970,11 +1703,6 @@ class BiomniBenchJudgeRunner:
 
     def load_json(self, path: Path) -> object:
         return load_json_strict(path.read_text(encoding="utf-8"))
-
-    def load_json_snapshot(self, path: Path) -> tuple[object, str]:
-        raw = path.read_bytes()
-        value = load_json_strict(raw.decode("utf-8"))
-        return value, hashlib.sha256(raw).hexdigest()
 
     def sha256_file(self, path: Path) -> str:
         return hashlib.sha256(path.read_bytes()).hexdigest()

@@ -252,6 +252,25 @@ def test_target_task_must_match_canonical_task_directory(tmp_path: Path) -> None
         runner.resolve_rubric(target)
 
 
+def test_direct_execute_validates_target_before_creating_output(tmp_path: Path) -> None:
+    target = make_target(tmp_path)
+    invalid_target = replace(target, task="da-2-1")
+    runner = make_runner(tmp_path)
+    output_dir = runner.output_dir(invalid_target)
+
+    with pytest.raises(SystemExit):
+        runner.execute_judge(
+            target.task_dir / "tests" / "llm_judge.py",
+            target.task_dir / "tests" / "rubric.txt",
+            output_dir,
+            "trace",
+            "answer",
+            attempt=JudgeAttempt(invalid_target, 1),
+        )
+
+    assert not output_dir.exists()
+
+
 @pytest.mark.parametrize("mismatch", ("task", "task_dir", "workspace_dir"))
 def test_batch_discovery_rejects_status_identity_mismatch(
     tmp_path: Path,
@@ -298,6 +317,463 @@ def test_single_discovery_rejects_unsafe_status_task(tmp_path: Path) -> None:
         runner.discover_targets()
 
 
+def test_single_discovery_rejects_another_runs_workspace(tmp_path: Path) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    runs_dir = tmp_path / "runs"
+    run_a = runs_dir / f"{task_id}-gemini-A"
+    run_b = runs_dir / f"{task_id}-gemini-B"
+    workspace_a = runs_dir / "_workspaces" / run_a.name
+    workspace_b = runs_dir / "_workspaces" / run_b.name
+    for run_dir, workspace in ((run_a, workspace_a), (run_b, workspace_b)):
+        run_dir.mkdir(parents=True)
+        workspace.mkdir(parents=True)
+        (run_dir / "trajectory.stream.jsonl").write_text(
+            '{"type": "message"}\n',
+            encoding="utf-8",
+        )
+        (workspace / "trace.md").write_text(run_dir.name, encoding="utf-8")
+        (workspace / "answer.txt").write_text(run_dir.name, encoding="utf-8")
+    (run_a / "status.json").write_text(json.dumps({
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace_b),
+    }), encoding="utf-8")
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=run_a,
+        tasks_dir=tmp_path / "runtime-tasks",
+        dry_run=True,
+    ))
+
+    with pytest.raises(SystemExit, match="workspace"):
+        runner.discover_targets()
+
+
+@pytest.mark.parametrize("max_concurrency", (1, 2))
+def test_duplicate_canonical_run_inputs_are_rejected_before_attempts(
+    tmp_path: Path,
+    max_concurrency: int,
+) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    runs_dir = tmp_path / "runs"
+    run_dir = runs_dir / f"{task_id}-gemini-A"
+    workspace = runs_dir / "_workspaces" / run_dir.name
+    run_dir.mkdir(parents=True)
+    workspace.mkdir(parents=True)
+    (run_dir / "trajectory.stream.jsonl").write_text(
+        '{"type": "message"}\n',
+        encoding="utf-8",
+    )
+    (workspace / "trace.md").write_text("trace", encoding="utf-8")
+    (workspace / "answer.txt").write_text("answer", encoding="utf-8")
+    (run_dir / "status.json").write_text(json.dumps({
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace),
+    }), encoding="utf-8")
+    alias_parent = runs_dir / "alias"
+    alias_parent.mkdir()
+    run_alias = alias_parent / ".." / run_dir.name
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=run_dir,
+        extra_run_dirs=(run_alias,),
+        tasks_dir=tmp_path / "runtime-tasks",
+        dry_run=True,
+        max_concurrency=max_concurrency,
+    ))
+
+    with pytest.raises(SystemExit, match="Duplicate canonical run directory"):
+        runner.run()
+
+    assert not runner.scores_path.exists()
+
+
+def test_expanded_targets_reject_duplicate_canonical_run_directory(
+    tmp_path: Path,
+) -> None:
+    target = make_target(tmp_path)
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=target.output_root,
+        extra_run_dirs=(target.run_dir,),
+        tasks_dir=tmp_path / "runtime-tasks",
+        dry_run=True,
+    ))
+
+    with pytest.raises(SystemExit, match="Duplicate canonical target run directory"):
+        runner.discover_targets()
+
+
+@pytest.mark.parametrize("filename", ("trace.md", "answer.txt"))
+def test_batch_review_rejects_symlinked_workspace_artifact(
+    tmp_path: Path,
+    filename: str,
+) -> None:
+    target = make_target(tmp_path)
+    outside = tmp_path / f"outside-{filename}"
+    outside.write_text("outside secret", encoding="utf-8")
+    artifact = target.workspace_dir / filename
+    artifact.unlink()
+    artifact.symlink_to(outside)
+
+    with pytest.raises(SystemExit, match="artifact"):
+        make_runner(tmp_path, dry_run=True).review_target(target)
+
+
+def test_standalone_review_rejects_symlinked_trajectory_artifact(
+    tmp_path: Path,
+) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    runs_dir = tmp_path / "runs"
+    run_dir = runs_dir / f"{task_id}-gemini-A"
+    workspace = runs_dir / "_workspaces" / run_dir.name
+    run_dir.mkdir(parents=True)
+    workspace.mkdir(parents=True)
+    (workspace / "trace.md").write_text("trace", encoding="utf-8")
+    (workspace / "answer.txt").write_text("answer", encoding="utf-8")
+    outside = tmp_path / "outside-trajectory.stream.jsonl"
+    outside.write_text('{"type": "secret"}\n', encoding="utf-8")
+    (run_dir / "trajectory.stream.jsonl").symlink_to(outside)
+    (run_dir / "status.json").write_text(json.dumps({
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace),
+    }), encoding="utf-8")
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=run_dir,
+        tasks_dir=tmp_path / "runtime-tasks",
+        review="trajectory",
+        dry_run=True,
+    ))
+
+    with pytest.raises(SystemExit, match="artifact"):
+        runner.review_target(runner.discover_targets()[0])
+
+
+def test_standalone_review_rejects_workspace_parent_replaced_after_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    runs_dir = tmp_path / "runs"
+    run_dir = runs_dir / f"{task_id}-gemini-A"
+    workspace = runs_dir / "_workspaces" / run_dir.name
+    outside_workspace = tmp_path / "outside-workspace"
+    run_dir.mkdir(parents=True)
+    workspace.mkdir(parents=True)
+    outside_workspace.mkdir()
+    (run_dir / "trajectory.stream.jsonl").write_text(
+        '{"type": "message"}\n',
+        encoding="utf-8",
+    )
+    for root, prefix in ((workspace, "inside"), (outside_workspace, "outside")):
+        (root / "trace.md").write_text(f"{prefix} trace", encoding="utf-8")
+        (root / "answer.txt").write_text(f"{prefix} answer", encoding="utf-8")
+    (run_dir / "status.json").write_text(json.dumps({
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace),
+    }), encoding="utf-8")
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=run_dir,
+        tasks_dir=tmp_path / "runtime-tasks",
+        dry_run=True,
+    ))
+    target = runner.discover_targets()[0]
+    original_validate = runner.validate_target_identity
+    original_workspace = workspace.with_name(f"{workspace.name}-original")
+    replaced = False
+
+    def validate_then_replace(candidate: JudgeTarget) -> None:
+        nonlocal replaced
+        original_validate(candidate)
+        if not replaced:
+            workspace.rename(original_workspace)
+            workspace.symlink_to(outside_workspace, target_is_directory=True)
+            replaced = True
+
+    monkeypatch.setattr(runner, "validate_target_identity", validate_then_replace)
+
+    with pytest.raises(SystemExit, match="artifact"):
+        runner.review_target(target)
+
+
+@pytest.mark.parametrize(
+    ("review", "replacement_trigger"),
+    (("trace", "trace.md"), ("trajectory", "trajectory.stream.jsonl")),
+)
+def test_review_rejects_workspace_replaced_between_artifact_snapshots(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    review: str,
+    replacement_trigger: str,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, review=review, dry_run=True)
+    original_workspace = target.workspace_dir.with_name(
+        f"{target.workspace_dir.name}-original"
+    )
+    replacement_workspace = target.workspace_dir.with_name(
+        f"{target.workspace_dir.name}-replacement"
+    )
+    replacement_workspace.mkdir()
+    (replacement_workspace / "trace.md").write_text(
+        "replacement trace",
+        encoding="utf-8",
+    )
+    (replacement_workspace / "answer.txt").write_text(
+        "replacement answer",
+        encoding="utf-8",
+    )
+    original_read_artifact = runner._read_review_artifact
+    replaced = False
+
+    def read_then_replace(
+        root: Path,
+        name: str,
+        *args: object,
+        **kwargs: object,
+    ) -> str:
+        nonlocal replaced
+        text = original_read_artifact(root, name, *args, **kwargs)
+        if name == replacement_trigger and not replaced:
+            target.workspace_dir.rename(original_workspace)
+            replacement_workspace.rename(target.workspace_dir)
+            replaced = True
+        return text
+
+    monkeypatch.setattr(runner, "_read_review_artifact", read_then_replace)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        runner.review_target(target)
+
+
+def test_trajectory_rejects_regular_run_replacement_after_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, review="trajectory", dry_run=True)
+    original_run = target.run_dir.with_name(f"{target.run_dir.name}-original")
+    replacement_run = tmp_path / "replacement-run"
+    replacement_run.mkdir()
+    (replacement_run / "trajectory.stream.jsonl").write_text(
+        '{"type": "replacement"}\n',
+        encoding="utf-8",
+    )
+    original_find_judge = runner.find_judge
+    replaced = False
+
+    def find_then_replace(task_dir: Path) -> Path:
+        nonlocal replaced
+        judge = original_find_judge(task_dir)
+        if not replaced:
+            target.run_dir.rename(original_run)
+            replacement_run.rename(target.run_dir)
+            replaced = True
+        return judge
+
+    monkeypatch.setattr(runner, "find_judge", find_then_replace)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        runner.review_target(target)
+
+
+def test_trace_rejects_regular_workspace_replacement_after_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, dry_run=True)
+    original_workspace = target.workspace_dir.with_name(
+        f"{target.workspace_dir.name}-original"
+    )
+    replacement_workspace = tmp_path / "replacement-workspace"
+    replacement_workspace.mkdir()
+    (replacement_workspace / "trace.md").write_text(
+        "replacement trace",
+        encoding="utf-8",
+    )
+    (replacement_workspace / "answer.txt").write_text(
+        "replacement answer",
+        encoding="utf-8",
+    )
+    original_find_judge = runner.find_judge
+    replaced = False
+
+    def find_then_replace(task_dir: Path) -> Path:
+        nonlocal replaced
+        judge = original_find_judge(task_dir)
+        if not replaced:
+            target.workspace_dir.rename(original_workspace)
+            replacement_workspace.rename(target.workspace_dir)
+            replaced = True
+        return judge
+
+    monkeypatch.setattr(runner, "find_judge", find_then_replace)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        runner.review_target(target)
+
+
+def test_trajectory_rejects_retargeted_run_ancestor_alias(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    run_name = f"{task_id}-gemini-A"
+    physical_a = tmp_path / "physical-a"
+    physical_b = tmp_path / "physical-b"
+    run_a = physical_a / run_name
+    run_b = physical_b / run_name
+    workspace_a = physical_a / "_workspaces" / run_name
+    run_a.mkdir(parents=True)
+    run_b.mkdir(parents=True)
+    workspace_a.mkdir(parents=True)
+    (run_a / "trajectory.stream.jsonl").write_text(
+        '{"type": "original"}\n',
+        encoding="utf-8",
+    )
+    (run_b / "trajectory.stream.jsonl").write_text(
+        '{"type": "replacement"}\n',
+        encoding="utf-8",
+    )
+    (workspace_a / "trace.md").write_text("safe trace", encoding="utf-8")
+    (workspace_a / "answer.txt").write_text("safe answer", encoding="utf-8")
+    (run_a / "status.json").write_text(json.dumps({
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace_a),
+    }), encoding="utf-8")
+    alias = tmp_path / "run-alias"
+    alias.symlink_to(physical_a, target_is_directory=True)
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=alias / run_name,
+        tasks_dir=tmp_path / "runtime-tasks",
+        review="trajectory",
+        dry_run=True,
+    ))
+    target = runner.discover_targets()[0]
+    original_find_judge = runner.find_judge
+    retargeted = False
+
+    def find_then_retarget(task_path: Path) -> Path:
+        nonlocal retargeted
+        judge = original_find_judge(task_path)
+        if not retargeted:
+            alias.unlink()
+            alias.symlink_to(physical_b, target_is_directory=True)
+            retargeted = True
+        return judge
+
+    monkeypatch.setattr(runner, "find_judge", find_then_retarget)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        runner.review_target(target)
+
+
+def test_score_attestation_uses_bound_run_identity_after_alias_retarget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    run_name = f"{task_id}-gemini-A"
+    physical_a = tmp_path / "physical-a"
+    physical_b = tmp_path / "physical-b"
+    run_a = physical_a / run_name
+    run_b = physical_b / run_name
+    workspace_a = physical_a / "_workspaces" / run_name
+    run_a.mkdir(parents=True)
+    run_b.mkdir(parents=True)
+    workspace_a.mkdir(parents=True)
+    (run_a / "trajectory.stream.jsonl").write_text(
+        '{"type": "original"}\n',
+        encoding="utf-8",
+    )
+    (workspace_a / "trace.md").write_text("safe trace", encoding="utf-8")
+    (workspace_a / "answer.txt").write_text("safe answer", encoding="utf-8")
+    (run_a / "status.json").write_text(json.dumps({
+        "task": task_id,
+        "task_dir": str(task_dir),
+        "workspace_dir": str(workspace_a),
+    }), encoding="utf-8")
+    alias = tmp_path / "run-alias"
+    alias.symlink_to(physical_a, target_is_directory=True)
+    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+        run_dir=alias / run_name,
+        tasks_dir=tmp_path / "runtime-tasks",
+    ))
+    target = runner.discover_targets()[0]
+    original_validate = runner.validate_target_identity
+    retargeted = False
+
+    def validate_then_retarget(candidate: JudgeTarget) -> None:
+        nonlocal retargeted
+        original_validate(candidate)
+        if not retargeted:
+            alias.unlink()
+            alias.symlink_to(physical_b, target_is_directory=True)
+            retargeted = True
+
+    monkeypatch.setattr(runner, "validate_target_identity", validate_then_retarget)
+
+    attestation = runner.score_input_attestation(
+        attempt=JudgeAttempt(target, 1),
+        judge_source=b"print('judge')\n",
+        review_text="safe trace",
+        answer_text="safe answer",
+        effective_judge_model="judge-model-a",
+    )
+
+    assert attestation["run_identity"] == str(run_a.resolve())
+
+
+def test_direct_execute_rejects_regular_output_root_replacement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+    output_dir = runner.output_dir(target)
+    original_root = tmp_path / "original-output-root"
+    replacement_root = tmp_path / "replacement-output-root"
+    (replacement_root / "tasks" / target.task).mkdir(parents=True)
+    (replacement_root / "workspaces" / target.task).mkdir(parents=True)
+    original_safe_output_path = runner._safe_output_path
+    replaced = False
+
+    def replace_root_after_path_check(output_root: Path, candidate: Path) -> Path:
+        nonlocal replaced
+        result = original_safe_output_path(output_root, candidate)
+        if candidate == output_dir and not replaced:
+            target.output_root.rename(original_root)
+            replacement_root.rename(target.output_root)
+            replaced = True
+        return result
+
+    def fake_run(cmd: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(cmd, 1, stdout="failed\n")
+
+    monkeypatch.setattr(runner, "_safe_output_path", replace_root_after_path_check)
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        runner.execute_judge(
+            target.task_dir / "tests" / "llm_judge.py",
+            target.task_dir / "tests" / "rubric.txt",
+            output_dir,
+            "trace",
+            "answer",
+            attempt=JudgeAttempt(target, 1),
+        )
+
+    assert not (target.output_root / "judges").exists()
+
+
 def test_output_symlink_escape_is_rejected_before_dry_run_writes(
     tmp_path: Path,
 ) -> None:
@@ -322,6 +798,157 @@ def test_dry_run_does_not_create_per_target_outputs(tmp_path: Path) -> None:
 
     assert record["status"] == "planned"
     assert not output_dir.exists()
+
+
+def test_output_replacement_after_validation_cannot_redirect_input_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+    output_dir = runner.output_dir(target)
+    displaced = output_dir.with_name("displaced-output")
+    outside = tmp_path / "outside-output"
+    outside.mkdir()
+    original_safe_output_path = runner._safe_output_path
+    replaced = False
+
+    def replace_after_validation(output_root: Path, candidate: Path) -> Path:
+        nonlocal replaced
+        result = original_safe_output_path(output_root, candidate)
+        if candidate == output_dir and candidate.is_dir() and not replaced:
+            candidate.rename(displaced)
+            candidate.symlink_to(outside, target_is_directory=True)
+            replaced = True
+        return result
+
+    monkeypatch.setattr(runner, "_safe_output_path", replace_after_validation)
+
+    with pytest.raises(SystemExit):
+        runner.review_target(target)
+
+    assert not (outside / "judge_input_trace.md").exists()
+    assert not (outside / "judge_input_answer.txt").exists()
+
+
+def test_output_replacement_during_judge_cannot_redirect_result_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+    output_dir = runner.output_dir(target)
+    displaced = output_dir.with_name("displaced-output")
+    outside = tmp_path / "outside-output"
+    outside.mkdir()
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        output_dir.rename(displaced)
+        output_dir.symlink_to(outside, target_is_directory=True)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+
+    with pytest.raises(SystemExit):
+        runner.review_target(target)
+
+    assert list(outside.iterdir()) == []
+
+
+def test_output_write_is_rolled_back_if_root_moves_during_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+    runner.validate_target_identity(target)
+    identities = runner._target_directory_identities(target)
+    output_dir = runner.output_dir(target)
+    displaced_root = tmp_path / "displaced-output-root"
+    original_replace = os.replace
+    moved = False
+
+    def replace_after_move(
+        source: object,
+        destination: object,
+        *args: object,
+        **kwargs: object,
+    ) -> None:
+        nonlocal moved
+        if destination == "probe.txt" and not moved:
+            target.output_root.rename(displaced_root)
+            moved = True
+        original_replace(source, destination, *args, **kwargs)
+
+    monkeypatch.setattr(judges_module.os, "replace", replace_after_move)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        with runner._open_output_directory(
+            target.output_root,
+            output_dir,
+            expected_root_identity=identities.output_root,
+        ) as output:
+            runner._write_output_text(output, "probe.txt", "must not persist")
+
+    displaced_output = displaced_root / output_dir.relative_to(target.output_root)
+    assert not (displaced_output / "probe.txt").exists()
+
+
+def test_output_unlink_is_rolled_back_if_root_moves_during_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+    runner.validate_target_identity(target)
+    identities = runner._target_directory_identities(target)
+    output_dir = runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+    (output_dir / "stale.txt").write_text("preserve me", encoding="utf-8")
+    displaced_root = tmp_path / "displaced-output-root"
+    original_replace = os.replace
+    original_unlink = os.unlink
+    moved = False
+
+    def move_before_mutation() -> None:
+        nonlocal moved
+        if not moved:
+            target.output_root.rename(displaced_root)
+            moved = True
+
+    def replace_after_move(
+        source: object,
+        destination: object,
+        *args: object,
+        **kwargs: object,
+    ) -> None:
+        if source == "stale.txt":
+            move_before_mutation()
+        original_replace(source, destination, *args, **kwargs)
+
+    def unlink_after_move(
+        path: object,
+        *args: object,
+        **kwargs: object,
+    ) -> None:
+        if path == "stale.txt":
+            move_before_mutation()
+        original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(judges_module.os, "replace", replace_after_move)
+    monkeypatch.setattr(judges_module.os, "unlink", unlink_after_move)
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        with runner._open_output_directory(
+            target.output_root,
+            output_dir,
+            expected_root_identity=identities.output_root,
+        ) as output:
+            runner._unlink_output_file(output, "stale.txt")
+
+    displaced_output = displaced_root / output_dir.relative_to(target.output_root)
+    assert (displaced_output / "stale.txt").read_text(encoding="utf-8") == "preserve me"
 
 
 @pytest.mark.parametrize("field", ("judge_name", "rubric_name"))
@@ -748,6 +1375,54 @@ def test_resume_requires_matching_artifact_hashes(
     path.write_text(path.read_text() + "\n", encoding="utf-8")
 
     assert resume_runner.completed_record(attempt) is None
+
+
+def test_resume_rejects_output_root_replaced_during_cache_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+
+    def fake_run(
+        cmd: object,
+        *,
+        cwd: Path,
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    assert runner.review_target(target)["status"] == "completed"
+
+    replacement_root = tmp_path / "replacement-output-root"
+    displaced_root = tmp_path / "displaced-output-root"
+    shutil.copytree(target.output_root, replacement_root)
+    resume_runner = make_runner(tmp_path, resume=True)
+    resume_runner.validate_target_identity(target)
+    original_validation = resume_runner.valid_score_validation
+    replaced = False
+
+    def validate_after_replacement(
+        *args: object,
+        **kwargs: object,
+    ) -> dict[str, object] | None:
+        nonlocal replaced
+        if not replaced:
+            target.output_root.rename(displaced_root)
+            replacement_root.rename(target.output_root)
+            replaced = True
+        return original_validation(*args, **kwargs)
+
+    monkeypatch.setattr(
+        resume_runner,
+        "valid_score_validation",
+        validate_after_replacement,
+    )
+
+    with pytest.raises(SystemExit, match="identity changed"):
+        resume_runner.completed_record(JudgeAttempt(target, 1))
 
 
 def test_resume_rejects_cache_transplanted_between_repeats(

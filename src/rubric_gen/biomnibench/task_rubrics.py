@@ -59,6 +59,13 @@ class SchemaSnapshotLimits:
 
 
 @dataclass(frozen=True)
+class _ImmutableFileSnapshot:
+    size_bytes: int
+    sha256: str
+    captured_bytes: bytes
+
+
+@dataclass(frozen=True)
 class DataFileSnapshot:
     path: str
     size_bytes: int
@@ -197,10 +204,27 @@ _EVIDENCE_FIELDS = (
     "verification",
 )
 _ASCII_CONTROL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
+_SEARCH_IDENTIFIER = r"(?:run|candidate|condition)[\s_-]+ids?"
 _RUNTIME_CONTEXT_PATTERNS = (
     (
-        "condition/candidate/run ID",
-        re.compile(r"\b(?:condition|candidate|run)[\s_-]+ids?\b", re.IGNORECASE),
+        "search/optimization identifier",
+        re.compile(
+            rf"\b(?:current[\s_-]+search|hill[\s_-]*climb(?:ing)?|"
+            rf"self[\s_-]*improv(?:ement|ing)|reward[\s_-]+optim(?:ization|isation)|"
+            rf"optimizer|runtime)(?:[\s_-]+\w+){{0,3}}[\s_-]+"
+            rf"{_SEARCH_IDENTIFIER}\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "score-conditioned identifier",
+        re.compile(
+            rf"\b{_SEARCH_IDENTIFIER}\b[^.!?\n]{{0,48}}\b"
+            rf"(?:used[\s_-]+for|used[\s_-]+to[\s_-]+"
+            rf"(?:award|assign|determine)|determines?|controls?)"
+            rf"[\s_-]+(?:credit|scores?|scoring|acceptance)\b",
+            re.IGNORECASE,
+        ),
     ),
     ("search history", re.compile(r"\bsearch[\s_-]+history\b", re.IGNORECASE)),
     (
@@ -625,12 +649,92 @@ def _snapshot_payload(snapshot: TaskSnapshot) -> dict[str, object]:
     return payload
 
 
-def _sha256_file(path: Path) -> str:
+def _stable_file_signature(
+    file_stat: os.stat_result,
+) -> tuple[int, int, int, int, int | None]:
+    return (
+        file_stat.st_dev,
+        file_stat.st_ino,
+        file_stat.st_size,
+        file_stat.st_mtime_ns,
+        getattr(file_stat, "st_ctime_ns", None),
+    )
+
+
+def _snapshot_immutable_file(
+    path: Path,
+    *,
+    capture_bytes: int | None,
+    context: str,
+) -> _ImmutableFileSnapshot:
+    """Hash and capture one stable regular file through a single descriptor."""
+
+    if capture_bytes is not None and capture_bytes < 0:
+        raise ValueError("capture_bytes must be non-negative or None")
+    if _first_symlink_component(path) is not None:
+        raise ValueError(f"{context} must be a regular, non-symlink file")
+    try:
+        before_path = path.lstat()
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        raise ValueError(f"{context} must be a regular, non-symlink file") from exc
+    if not stat.S_ISREG(before_path.st_mode):
+        raise ValueError(f"{context} must be a regular, non-symlink file")
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise ValueError(f"{context} must be a regular, non-symlink file") from exc
+
     digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(65_536), b""):
+    captured = bytearray()
+    bytes_seen = 0
+    try:
+        before_fd = os.fstat(fd)
+        if (
+            not stat.S_ISREG(before_fd.st_mode)
+            or _stable_file_signature(before_fd)
+            != _stable_file_signature(before_path)
+        ):
+            raise ValueError(f"{context} changed while being snapshotted")
+
+        while True:
+            chunk = os.read(fd, 65_536)
+            if not chunk:
+                break
+            bytes_seen += len(chunk)
             digest.update(chunk)
-    return digest.hexdigest()
+            if capture_bytes is None:
+                captured.extend(chunk)
+            elif len(captured) < capture_bytes:
+                remaining = capture_bytes - len(captured)
+                captured.extend(chunk[:remaining])
+
+        after_fd = os.fstat(fd)
+        try:
+            after_path = path.lstat()
+        except (FileNotFoundError, NotADirectoryError) as exc:
+            raise ValueError(
+                f"{context} changed while being snapshotted"
+            ) from exc
+        if (
+            _first_symlink_component(path) is not None
+            or not stat.S_ISREG(after_path.st_mode)
+            or _stable_file_signature(before_fd)
+            != _stable_file_signature(after_fd)
+            or _stable_file_signature(after_fd)
+            != _stable_file_signature(after_path)
+            or bytes_seen != after_fd.st_size
+        ):
+            raise ValueError(f"{context} changed while being snapshotted")
+    finally:
+        os.close(fd)
+
+    return _ImmutableFileSnapshot(
+        size_bytes=after_fd.st_size,
+        sha256=digest.hexdigest(),
+        captured_bytes=bytes(captured),
+    )
 
 
 def _absolute_without_resolving(path: Path) -> Path:
@@ -734,21 +838,18 @@ def _infer_column_type(values: list[str]) -> str:
 
 
 def _table_snapshot(
-    path: Path,
     relative_path: str,
     limits: SchemaSnapshotLimits,
     *,
-    size_bytes: int,
-    sha256: str,
+    file_snapshot: _ImmutableFileSnapshot,
 ) -> DataFileSnapshot:
-    with path.open("rb") as stream:
-        probe = stream.read(limits.max_probe_bytes + 1)
+    probe = file_snapshot.captured_bytes
     probe_truncated = len(probe) > limits.max_probe_bytes
     probe = probe[: limits.max_probe_bytes]
     common = {
         "path": relative_path,
-        "size_bytes": size_bytes,
-        "sha256": sha256,
+        "size_bytes": file_snapshot.size_bytes,
+        "sha256": file_snapshot.sha256,
         "probe_bytes": len(probe),
         "probe_truncated": probe_truncated,
     }
@@ -817,14 +918,32 @@ def _walk_data_file_inventory(
     while pending:
         _, path = heapq.heappop(pending)
         if path.is_symlink():
-            continue
+            relative = (
+                "."
+                if path == data_root
+                else path.relative_to(data_root).as_posix()
+            )
+            raise ValueError(
+                f"environment/data contains a symlink entry: {relative}"
+            )
         if path.is_dir():
             remaining = limits.max_entries_visited - entries_enumerated
-            children = list(islice(path.iterdir(), remaining))
-            entries_enumerated += len(children)
-            if len(children) == remaining:
+            if remaining == 0:
+                if next(path.iterdir(), None) is not None:
+                    traversal_truncated = True
+                continue
+            children = list(islice(path.iterdir(), remaining + 1))
+            if len(children) > remaining:
+                entries_enumerated = limits.max_entries_visited
                 traversal_truncated = True
                 continue
+            for child in children:
+                if child.is_symlink():
+                    relative = child.relative_to(data_root).as_posix()
+                    raise ValueError(
+                        f"environment/data contains a symlink entry: {relative}"
+                    )
+            entries_enumerated += len(children)
             for child in sorted(
                 children,
                 key=lambda item: item.relative_to(data_root).as_posix(),
@@ -1020,42 +1139,67 @@ def build_task_snapshot(
     )
     assert instruction_path is not None
     assert rubric_path is not None
-    instruction = instruction_path.read_text(encoding="utf-8")
-    rubric = rubric_path.read_text(encoding="utf-8")
+    instruction_file = _snapshot_immutable_file(
+        instruction_path,
+        capture_bytes=None,
+        context="instruction.md",
+    )
+    rubric_file = _snapshot_immutable_file(
+        rubric_path,
+        capture_bytes=None,
+        context="tests/rubric.txt",
+    )
+    task_config_file = (
+        _snapshot_immutable_file(
+            task_config_path,
+            capture_bytes=None,
+            context="task.toml",
+        )
+        if task_config_path is not None
+        else None
+    )
+    instruction = instruction_file.captured_bytes.decode("utf-8")
+    rubric = rubric_file.captured_bytes.decode("utf-8")
 
     data_root = _validated_data_root(task_root)
     data_paths, traversal_truncated = _walk_data_file_inventory(data_root, limits)
-    data_inventory: list[tuple[Path, str, int, str]] = []
-    for path in data_paths:
-        path_stat = path.lstat()
-        if not stat.S_ISREG(path_stat.st_mode):
-            raise ValueError(
-                f"environment/data source must be a regular, non-symlink file: {path}"
-            )
+    if traversal_truncated:
+        raise ValueError(
+            "environment/data traversal exceeded max_entries_visited "
+            f"limit {limits.max_entries_visited}; refusing a partial snapshot"
+        )
+    data_inventory: list[tuple[str, _ImmutableFileSnapshot]] = []
+    for index, path in enumerate(data_paths):
+        relative_path = path.relative_to(data_root).as_posix()
         try:
             path.resolve(strict=True).relative_to(data_root.resolve(strict=True))
         except (FileNotFoundError, ValueError) as exc:
             raise ValueError(
                 f"environment/data source must be contained under data root: {path}"
             ) from exc
+        capture_bytes = (
+            limits.max_probe_bytes + 1
+            if index < limits.max_files
+            else 0
+        )
         data_inventory.append((
-            path,
-            path.relative_to(data_root).as_posix(),
-            path_stat.st_size,
-            _sha256_file(path),
+            relative_path,
+            _snapshot_immutable_file(
+                path,
+                capture_bytes=capture_bytes,
+                context=f"environment/data/{relative_path}",
+            ),
         ))
 
     preview_inventory = data_inventory[: limits.max_files]
     walk_omitted_files = len(data_inventory) - len(preview_inventory)
     probed_data_files = tuple(
         _table_snapshot(
-            path,
             relative_path,
             limits,
-            size_bytes=size_bytes,
-            sha256=digest,
+            file_snapshot=file_snapshot,
         )
-        for path, relative_path, size_bytes, digest in preview_inventory
+        for relative_path, file_snapshot in preview_inventory
     )
     data_files, budget_omitted_files = _fit_schema_budget(
         probed_data_files,
@@ -1065,17 +1209,19 @@ def build_task_snapshot(
     required_outputs = _extract_required_outputs(instruction)
     summary_anchors = _summary_anchors(rubric)
     anchors = _task_anchors(question, required_outputs, summary_anchors, data_files)
-    immutable_paths = [instruction_path, rubric_path]
-    if task_config_path is not None:
-        immutable_paths.append(task_config_path)
     input_hashes = tuple(sorted(
         [
-            (path.relative_to(task_root).as_posix(), _sha256_file(path))
-            for path in immutable_paths
+            ("instruction.md", instruction_file.sha256),
+            ("tests/rubric.txt", rubric_file.sha256),
         ]
+        + (
+            [("task.toml", task_config_file.sha256)]
+            if task_config_file is not None
+            else []
+        )
         + [
-            (f"environment/data/{relative_path}", digest)
-            for _, relative_path, _, digest in data_inventory
+            (f"environment/data/{relative_path}", file_snapshot.sha256)
+            for relative_path, file_snapshot in data_inventory
         ]
     ))
     snapshot = TaskSnapshot(

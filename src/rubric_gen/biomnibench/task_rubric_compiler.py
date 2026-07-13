@@ -859,14 +859,18 @@ class TaskProcessRubricCompiler:
                 errors = (f"invalid JSON rubric: {type(exc).__name__}: {exc}",)
 
             (attempt_dir / "response.txt").write_text(response, encoding="utf-8")
+            response_metadata = _response_metadata_payload(
+                rewrite_result,
+                sha256_text(response),
+            )
+            _write_json(
+                attempt_dir / "response_metadata.json",
+                response_metadata,
+            )
             _write_json(attempt_dir / "errors.json", list(errors))
             if rubric is not None and rendered is not None and not errors:
                 structured = canonical_json(asdict(rubric)) + "\n"
                 (task_dir / "raw_response.txt").write_text(response, encoding="utf-8")
-                response_metadata = _response_metadata_payload(
-                    rewrite_result,
-                    sha256_text(response),
-                )
                 _write_json(
                     task_dir / "response_metadata.json",
                     response_metadata,
@@ -1271,13 +1275,19 @@ def _validate_snapshot_attestation(
         raise RubricBundleError("snapshot input hash mismatch")
     snapshot_sha256 = _hash(snapshot_record["sha256"], "snapshot sha256")
 
-    expected_files = {"request.json", "response.txt", "errors.json"}
+    expected_files = {
+        "request.json",
+        "response.txt",
+        "response_metadata.json",
+        "errors.json",
+    }
     attempt_files: dict[int, set[str]] = {}
     for relative in artifact_bytes:
         if not relative.startswith("attempts/"):
             continue
         match = re.fullmatch(
-            r"attempts/attempt-([1-9][0-9]*)/(request\.json|response\.txt|errors\.json)",
+            r"attempts/attempt-([1-9][0-9]*)/"
+            r"(request\.json|response\.txt|response_metadata\.json|errors\.json)",
             relative,
         )
         if match is None:
@@ -1340,6 +1350,29 @@ def _validate_snapshot_attestation(
             raise RubricBundleError(f"{context} previous_errors must be strings")
         if previous_errors != flattened_errors:
             raise RubricBundleError(f"{context} previous-error chain mismatch")
+        response_bytes = artifact_bytes[f"{attempt_prefix}/response.txt"]
+        response_metadata_bytes = artifact_bytes[
+            f"{attempt_prefix}/response_metadata.json"
+        ]
+        response_metadata = _validated_response_metadata(
+            _read_json_object_bytes(
+                response_metadata_bytes,
+                f"attempt-{attempt_number} response metadata",
+            )
+        )
+        if response_metadata_bytes != (
+            canonical_json(response_metadata) + "\n"
+        ).encode("utf-8"):
+            raise RubricBundleError(
+                f"attempt-{attempt_number} response metadata is not canonical JSON"
+            )
+        if (
+            response_metadata["raw_response_sha256"]
+            != _sha256_bytes(response_bytes)
+        ):
+            raise RubricBundleError(
+                f"attempt-{attempt_number} response metadata hash mismatch"
+            )
         errors = _read_json_string_list_bytes(
             artifact_bytes[f"{attempt_prefix}/errors.json"],
             f"attempt-{attempt_number} errors",
@@ -1375,6 +1408,13 @@ def _validate_snapshot_attestation(
     ]
     if _sha256_bytes(successful_response) != hashes["raw_response_sha256"]:
         raise RubricBundleError("successful response does not match raw response")
+    successful_response_metadata = artifact_bytes[
+        f"attempts/attempt-{successful_attempt_number}/response_metadata.json"
+    ]
+    if successful_response_metadata != artifact_bytes["response_metadata.json"]:
+        raise RubricBundleError(
+            "successful attempt response metadata does not match final metadata"
+        )
 
 
 def resolve_rubric_bundle(

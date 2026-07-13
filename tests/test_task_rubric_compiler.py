@@ -390,6 +390,26 @@ def compile_retry_fixture(tmp_path: Path) -> Path:
     return output
 
 
+def compile_structured_retry_fixture(tmp_path: Path) -> Path:
+    tasks_dir = tmp_path / "tasks"
+    task_dir = make_task(tasks_dir)
+    responses = [
+        TaskRubricRewriteResult(
+            text="not JSON",
+            served_model_version="models/gemini-attempt-a",
+            response_id="response-a",
+        ),
+        TaskRubricRewriteResult(
+            text=valid_rubric(build_task_snapshot(task_dir)),
+            served_model_version="models/gemini-attempt-b",
+            response_id="response-b",
+        ),
+    ]
+    compiler, _, output, _ = make_compiler(tmp_path, responses=responses)
+    assert compiler.run() == 0
+    return output
+
+
 def reseal_task_after_attempt_mutation(output: Path, task_id: str) -> None:
     task_dir = output / "tasks" / task_id
     task_manifest_path = task_dir / "manifest.json"
@@ -447,6 +467,18 @@ def test_compiler_retries_with_only_previous_validation_errors(tmp_path: Path) -
     attempts = output / "tasks" / "da-1-1" / "attempts"
     assert (attempts / "attempt-1" / "request.json").is_file()
     assert (attempts / "attempt-1" / "response.txt").read_text() == "not JSON"
+    first_metadata = json.loads(
+        (attempts / "attempt-1" / "response_metadata.json").read_text()
+    )
+    second_metadata = json.loads(
+        (attempts / "attempt-2" / "response_metadata.json").read_text()
+    )
+    assert first_metadata["served_model_version"] is None
+    assert first_metadata["response_id"] is None
+    assert first_metadata["raw_response_sha256"] == sha256_text("not JSON")
+    assert second_metadata["served_model_version"] is None
+    assert second_metadata["response_id"] is None
+    assert second_metadata["raw_response_sha256"] == sha256_text(response)
     assert json.loads((attempts / "attempt-1" / "errors.json").read_text())
     assert json.loads((attempts / "attempt-2" / "errors.json").read_text()) == []
     task_manifest = json.loads(
@@ -638,6 +670,7 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "attempts/attempt-1/request.json",
         "attempts/attempt-1/response.txt",
         "attempts/attempt-1/errors.json",
+        "attempts/attempt-1/response_metadata.json",
     }
     assert task_manifest["compiler"]["seed"] == 0
     assert root_manifest["tasks"]["da-1-1"][
@@ -678,6 +711,81 @@ def test_final_structured_response_metadata_is_sealed_and_raw_text_is_exact(
         "response_metadata_sha256"
     ] == sha256_file(metadata_path)
     assert resolve_rubric_bundle(output, "da-1-1").task_id == "da-1-1"
+
+
+def test_every_retry_attempt_preserves_its_provider_response_identity(
+    tmp_path: Path,
+) -> None:
+    output = compile_structured_retry_fixture(tmp_path)
+    task_dir = output / "tasks" / "da-1-1"
+    attempts = task_dir / "attempts"
+    first = json.loads(
+        (attempts / "attempt-1" / "response_metadata.json").read_text()
+    )
+    second = json.loads(
+        (attempts / "attempt-2" / "response_metadata.json").read_text()
+    )
+    final = json.loads((task_dir / "response_metadata.json").read_text())
+    task_manifest = json.loads((task_dir / "manifest.json").read_text())
+
+    assert first == {
+        "raw_response_sha256": sha256_text("not JSON"),
+        "response_id": "response-a",
+        "schema_version": 1,
+        "served_model_version": "models/gemini-attempt-a",
+    }
+    assert second["response_id"] == "response-b"
+    assert second["served_model_version"] == "models/gemini-attempt-b"
+    assert final == second
+    for attempt_number in (1, 2):
+        relative = (
+            f"attempts/attempt-{attempt_number}/response_metadata.json"
+        )
+        assert task_manifest["artifacts"][relative] == sha256_file(
+            task_dir / relative
+        )
+    assert resolve_rubric_bundle(output, "da-1-1").task_id == "da-1-1"
+
+
+def test_tampering_invalid_attempt_response_metadata_breaks_resolution(
+    tmp_path: Path,
+) -> None:
+    output = compile_structured_retry_fixture(tmp_path)
+    metadata_path = (
+        output
+        / "tasks"
+        / "da-1-1"
+        / "attempts"
+        / "attempt-1"
+        / "response_metadata.json"
+    )
+    metadata = json.loads(metadata_path.read_text())
+    metadata["response_id"] = "tampered-response-a"
+    write_canonical_json(metadata_path, metadata)
+
+    with pytest.raises(RubricBundleError):
+        resolve_rubric_bundle(output, "da-1-1")
+
+
+def test_resolution_strictly_validates_resealed_attempt_response_metadata(
+    tmp_path: Path,
+) -> None:
+    output = compile_structured_retry_fixture(tmp_path)
+    metadata_path = (
+        output
+        / "tasks"
+        / "da-1-1"
+        / "attempts"
+        / "attempt-1"
+        / "response_metadata.json"
+    )
+    metadata = json.loads(metadata_path.read_text())
+    metadata["unexpected"] = "not closed"
+    write_canonical_json(metadata_path, metadata)
+    reseal_task_after_attempt_mutation(output, "da-1-1")
+
+    with pytest.raises(RubricBundleError, match="response metadata"):
+        resolve_rubric_bundle(output, "da-1-1")
 
 
 def test_legacy_string_rewriter_seals_explicit_null_response_metadata(
@@ -1201,6 +1309,7 @@ def test_resolution_rejects_resealed_rendered_level_map_mismatch(
         "extra-request-field",
         "wrong-retry-version",
         "broken-previous-errors",
+        "missing-attempt-metadata",
         "noncontiguous-attempt",
     ),
 )
@@ -1221,6 +1330,8 @@ def test_resolution_validates_the_complete_retry_chain(
     elif mutation == "broken-previous-errors":
         final_request["previous_errors"] = ["unrelated error"]
         write_canonical_json(final_request_path, final_request)
+    elif mutation == "missing-attempt-metadata":
+        (attempts / "attempt-1" / "response_metadata.json").unlink()
     else:
         (attempts / "attempt-2").rename(attempts / "attempt-3")
     reseal_task_after_attempt_mutation(output, "da-1-1")

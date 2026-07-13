@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -71,14 +74,38 @@ Write `report.tsv`.
         b"ENSG000003\tdelta\t-nan\tNOTEST\tno\r\n"
     )
     (data / "invalid.bin").write_bytes(b"\xff\xfe\x00\x80")
-    (data / "linked.diff").symlink_to(data / "gene_exp.diff")
-
     (task / "trace.md").write_text("runtime trace", encoding="utf-8")
     (task / "answer.txt").write_text("runtime answer", encoding="utf-8")
     run_dir = task / "runs" / "attempt-1"
     run_dir.mkdir(parents=True)
     (run_dir / "trajectory.jsonl").write_text("runtime event", encoding="utf-8")
     return task
+
+
+def mutate_after_target_fd_read(
+    monkeypatch: pytest.MonkeyPatch,
+    target: Path,
+    mutation: Callable[[], None],
+) -> list[bool]:
+    original_read = os.read
+    target_stat = target.stat()
+    mutated = [False]
+
+    def racing_read(fd: int, size: int) -> bytes:
+        chunk = original_read(fd, size)
+        opened_stat = os.fstat(fd)
+        if (
+            chunk
+            and not mutated[0]
+            and (opened_stat.st_dev, opened_stat.st_ino)
+            == (target_stat.st_dev, target_stat.st_ino)
+        ):
+            mutation()
+            mutated[0] = True
+        return chunk
+
+    monkeypatch.setattr(os, "read", racing_read)
+    return mutated
 
 
 @pytest.fixture
@@ -243,9 +270,6 @@ def test_wrong_task_id_is_rejected(snapshot: TaskSnapshot) -> None:
 @pytest.mark.parametrize(
     "phrase",
     (
-        "condition_id",
-        "candidate ID",
-        "run-id",
         "search history",
         "prior score",
         "previous scores",
@@ -264,6 +288,24 @@ def test_runtime_search_context_phrases_are_rejected(
     payload["criteria"][0]["verification"] = [  # type: ignore[index]
         f"Condition credit on the {phrase}."
     ]
+
+    assert "runtime/search context" in validation_text(payload, snapshot)
+
+
+@pytest.mark.parametrize(
+    "unsafe_identifier",
+    (
+        "current search run ID",
+        "hill-climbing candidate ID",
+        "experiment condition_id used for credit",
+    ),
+)
+def test_contextual_search_identifiers_are_rejected(
+    snapshot: TaskSnapshot,
+    unsafe_identifier: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["purpose"] = f"Consult the {unsafe_identifier}."
 
     assert "runtime/search context" in validation_text(payload, snapshot)
 
@@ -318,6 +360,20 @@ def test_generic_scientific_answer_score_and_run_language_remains_allowed(
     payload["purpose"] = (
         "Score the answer using artifacts from a sequencing run, compare treatment "
         "conditions, and assess candidate genes."
+    )
+
+    rubric = parse_task_process_rubric(json.dumps(payload))
+
+    assert validate_task_process_rubric(rubric, snapshot) == ()
+
+
+def test_scientific_run_condition_and_candidate_ids_remain_allowed(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["purpose"] = (
+        "Verify the mass spectrometry run ID, compare the experimental sample "
+        "condition IDs, and report each molecular candidate ID from the evidence."
     )
 
     rubric = parse_task_process_rubric(json.dumps(payload))
@@ -618,6 +674,29 @@ def test_rendered_rubric_round_trip_rejects_runtime_context_independently(
         )
 
 
+@pytest.mark.parametrize(
+    "unsafe_identifier",
+    (
+        "current search run ID",
+        "hill-climbing candidate ID",
+        "experiment condition_id used for credit",
+    ),
+)
+def test_rendered_rubric_rejects_contextual_search_identifiers_independently(
+    snapshot: TaskSnapshot,
+    unsafe_identifier: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["purpose"] = f"Consult the {unsafe_identifier}."
+    rubric = parse_task_process_rubric(json.dumps(payload))
+
+    with pytest.raises(ValueError, match="runtime/search context"):
+        task_rubrics_module.validate_rendered_task_process_rubric(
+            rubric,
+            render_task_process_rubric(rubric),
+        )
+
+
 def test_task_snapshot_is_deterministic_and_runtime_blind(tmp_path: Path) -> None:
     task = make_task(tmp_path)
     first = build_task_snapshot(task)
@@ -628,6 +707,109 @@ def test_task_snapshot_is_deterministic_and_runtime_blind(tmp_path: Path) -> Non
     serialized = canonical_json(first.to_dict())
     for forbidden in ("trajectory", "trace.md", "answer.txt", "runs/"):
         assert forbidden not in serialized
+
+
+def test_required_content_and_hash_cannot_split_during_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = make_task(tmp_path)
+    instruction = task / "instruction.md"
+    mutated = mutate_after_target_fd_read(
+        monkeypatch,
+        instruction,
+        lambda: instruction.write_text(
+            "# Task\n\n## Question\n\nMUTATED QUESTION\n",
+            encoding="utf-8",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="changed while being snapshotted"):
+        build_task_snapshot(task)
+
+    assert mutated == [True]
+
+
+def test_data_hash_and_preview_cannot_split_during_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = make_task(tmp_path)
+    data_file = task / "environment" / "data" / "gene_exp.diff"
+    mutated = mutate_after_target_fd_read(
+        monkeypatch,
+        data_file,
+        lambda: data_file.write_text(
+            "mutated_column\tvalue\nMUTATED\t1\n",
+            encoding="utf-8",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="changed while being snapshotted"):
+        build_task_snapshot(task)
+
+    assert mutated == [True]
+
+
+def test_data_symlink_substitution_during_snapshot_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = make_task(tmp_path)
+    data_file = task / "environment" / "data" / "gene_exp.diff"
+    outside = tmp_path / "outside.tsv"
+    outside.write_text("outside_column\tsecret\nLEAK\t1\n", encoding="utf-8")
+
+    def substitute_symlink() -> None:
+        data_file.unlink()
+        data_file.symlink_to(outside)
+
+    mutated = mutate_after_target_fd_read(
+        monkeypatch,
+        data_file,
+        substitute_symlink,
+    )
+
+    with pytest.raises(ValueError, match="changed while being snapshotted"):
+        build_task_snapshot(task)
+
+    assert mutated == [True]
+
+
+def test_task_config_replacement_after_validation_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = make_task(tmp_path)
+    config = task / "task.toml"
+    outside = tmp_path / "outside-task.toml"
+    outside.write_text('schema_version = "outside"\n', encoding="utf-8")
+    original_validate = task_rubrics_module._validated_task_input
+    substituted = [False]
+
+    def substitute_after_validation(
+        task_root: Path,
+        relative_path: str,
+        *,
+        required: bool,
+    ) -> Path | None:
+        path = original_validate(task_root, relative_path, required=required)
+        if relative_path == "task.toml" and path is not None:
+            path.unlink()
+            path.symlink_to(outside)
+            substituted[0] = True
+        return path
+
+    monkeypatch.setattr(
+        task_rubrics_module,
+        "_validated_task_input",
+        substitute_after_validation,
+    )
+
+    with pytest.raises(ValueError, match="regular, non-symlink file"):
+        build_task_snapshot(task)
+
+    assert substituted == [True]
 
 
 def test_file_omitted_from_schema_preview_still_changes_snapshot_identity(
@@ -765,19 +947,39 @@ def test_schema_preserves_task_specific_values(tmp_path: Path) -> None:
     assert "yes" in canonical_json(table.to_dict())
 
 
-def test_snapshot_sorts_nested_paths_and_never_follows_symlinks(tmp_path: Path) -> None:
+def test_snapshot_sorts_nested_paths(tmp_path: Path) -> None:
     task = make_task(tmp_path)
     data = task / "environment" / "data"
     (data / "z").mkdir()
     (data / "z" / "last.csv").write_text("id,value\nz,1\n", encoding="utf-8")
     (data / "a").mkdir()
     (data / "a" / "first.csv").write_text("id,value\na,1\n", encoding="utf-8")
-    (data / "alias").symlink_to(data / "z", target_is_directory=True)
 
     paths = [data_file.path for data_file in build_task_snapshot(task).data_files]
 
     assert paths == ["a/first.csv", "gene_exp.diff", "invalid.bin", "z/last.csv"]
-    assert all("alias" not in path and "linked" not in path for path in paths)
+
+
+@pytest.mark.parametrize("target_is_directory", (False, True))
+def test_data_entry_symlinks_are_rejected(
+    tmp_path: Path,
+    target_is_directory: bool,
+) -> None:
+    task = make_task(tmp_path)
+    data = task / "environment" / "data"
+    if target_is_directory:
+        target = data / "real-directory"
+        target.mkdir()
+        (target / "table.tsv").write_text("id\n1\n", encoding="utf-8")
+    else:
+        target = data / "gene_exp.diff"
+    (data / "linked-entry").symlink_to(
+        target,
+        target_is_directory=target_is_directory,
+    )
+
+    with pytest.raises(ValueError, match="environment/data.*symlink"):
+        build_task_snapshot(task)
 
 
 def test_entry_limit_bounds_directory_enumeration(
@@ -806,12 +1008,47 @@ def test_entry_limit_bounds_directory_enumeration(
         SchemaSnapshotLimits(max_entries_visited=3),
     )
 
-    assert enumerated == 3
+    assert enumerated == 4
     assert files == ()
     assert truncated is True
 
 
-def test_wide_directory_overflow_is_order_independent_and_fail_closed(
+def test_exact_entry_limit_inventories_and_hashes_every_file(tmp_path: Path) -> None:
+    task = make_task(tmp_path)
+    limits = SchemaSnapshotLimits(max_entries_visited=2)
+
+    snapshot = build_task_snapshot(task, limits)
+
+    assert [data_file.path for data_file in snapshot.data_files] == [
+        "gene_exp.diff",
+        "invalid.bin",
+    ]
+    assert snapshot.data_traversal_truncated is False
+    assert {
+        path
+        for path, _ in snapshot.input_hashes
+        if path.startswith("environment/data/")
+    } == {
+        "environment/data/gene_exp.diff",
+        "environment/data/invalid.bin",
+    }
+
+
+def test_exact_entry_limit_does_not_truncate_an_empty_directory(
+    tmp_path: Path,
+) -> None:
+    task = make_task(tmp_path)
+    (task / "environment" / "data" / "empty").mkdir()
+
+    snapshot = build_task_snapshot(
+        task,
+        SchemaSnapshotLimits(max_entries_visited=3),
+    )
+
+    assert snapshot.data_traversal_truncated is False
+
+
+def test_wide_directory_overflow_fails_closed_regardless_of_order(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -833,17 +1070,44 @@ def test_wide_directory_overflow_is_order_independent_and_fail_closed(
     monkeypatch.setattr(Path, "iterdir", permuted_iterdir)
     limits = SchemaSnapshotLimits(max_entries_visited=6)
 
-    first = build_task_snapshot(task, limits)
+    with pytest.raises(ValueError, match="data traversal exceeded.*6"):
+        build_task_snapshot(task, limits)
     reverse_many = True
-    second = build_task_snapshot(task, limits)
+    with pytest.raises(ValueError, match="data traversal exceeded.*6"):
+        build_task_snapshot(task, limits)
 
-    assert canonical_json(first.to_dict()) == canonical_json(second.to_dict())
-    assert first.snapshot_sha256 == second.snapshot_sha256
-    assert [data_file.path for data_file in first.data_files] == [
-        "gene_exp.diff",
-        "invalid.bin",
-    ]
-    assert first.data_traversal_truncated is True
+
+def test_default_entry_limit_rejects_a_partial_snapshot(tmp_path: Path) -> None:
+    task = make_task(tmp_path)
+    data = task / "environment" / "data"
+    for index in range(300):
+        (data / f"overflow-{index:03}.tsv").write_text(
+            "id\n1\n",
+            encoding="utf-8",
+        )
+
+    default_limit = SchemaSnapshotLimits().max_entries_visited
+    with pytest.raises(
+        ValueError,
+        match=rf"data traversal exceeded.*{default_limit}",
+    ):
+        build_task_snapshot(task)
+
+
+def test_stable_file_signature_includes_ctime_when_available() -> None:
+    common = {
+        "st_dev": 1,
+        "st_ino": 2,
+        "st_size": 3,
+        "st_mtime_ns": 4,
+    }
+
+    before = SimpleNamespace(**common, st_ctime_ns=5)
+    after = SimpleNamespace(**common, st_ctime_ns=6)
+
+    assert task_rubrics_module._stable_file_signature(
+        before,
+    ) != task_rubrics_module._stable_file_signature(after)
 
 
 def test_probe_is_byte_bounded_without_misclassifying_split_utf8(tmp_path: Path) -> None:

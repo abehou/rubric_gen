@@ -1622,7 +1622,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             output_dir = root / "judge-output"
             output_dir.mkdir()
             run_dir = root / "run"
-            workspace_dir = root / "workspace"
+            workspace_dir = run_dir / "workspace"
             run_dir.mkdir()
             workspace_dir.mkdir()
 
