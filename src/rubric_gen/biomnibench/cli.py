@@ -476,3 +476,7 @@ def main(argv: list[str] | None = None) -> int:
         return run_task_process_rubrics(args)
     parser.print_help()
     return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

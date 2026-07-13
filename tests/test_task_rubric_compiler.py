@@ -4,6 +4,8 @@ import fcntl
 import hashlib
 import json
 import multiprocessing
+import subprocess
+import sys
 from dataclasses import asdict, replace
 from pathlib import Path
 
@@ -26,11 +28,16 @@ from rubric_gen.biomnibench.task_rubric_compiler import (
     resolve_rubric_bundle,
 )
 from rubric_gen.biomnibench.task_rubrics import (
+    SchemaSnapshotLimits,
     TaskSnapshot,
     build_task_snapshot,
     canonical_json,
     sha256_text,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
+REAL_DA_19_1 = ROOT / "data" / "biomnibench-da" / "da-19-1"
 
 
 class FakeRewriter:
@@ -307,6 +314,26 @@ def test_compiler_request_is_runtime_blind(tmp_path: Path) -> None:
         "search_history",
     ):
         assert forbidden not in request
+
+
+@pytest.mark.skipif(
+    not REAL_DA_19_1.is_dir(),
+    reason="real da-19-1 data is not checked in",
+)
+def test_real_da_19_1_snapshot_keeps_only_data_schema_in_budget() -> None:
+    snapshot = build_task_snapshot(REAL_DA_19_1)
+    schema_metadata = [data_file.to_dict() for data_file in snapshot.data_files]
+    schema_json = canonical_json(schema_metadata)
+
+    assert snapshot.task_id == "da-19-1"
+    assert len(snapshot.data_files) == 3
+    assert all("runs/" not in path for path, _ in snapshot.input_hashes)
+    assert schema_metadata == snapshot.to_dict()["data_files"]
+    assert len(schema_json) <= SchemaSnapshotLimits().max_output_chars
+    assert snapshot.question
+    assert snapshot.required_summary_anchor_ids
+    assert snapshot.input_hashes
+    assert snapshot.snapshot_sha256
 
 
 def test_exhausted_retries_leave_audit_artifacts_without_a_seal(
@@ -689,6 +716,29 @@ def test_cli_requires_explicit_tasks_and_output() -> None:
             "--task",
             "da-19-1",
         ])
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_help"),
+    (
+        ("task-process-rubrics", "canonical rubric compilation"),
+        ("judge", "--rubric-set"),
+    ),
+)
+def test_cli_module_execution_prints_public_help(
+    command: str,
+    expected_help: str,
+) -> None:
+    completed = subprocess.run(
+        [sys.executable, "-m", "rubric_gen.biomnibench.cli", command, "--help"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert expected_help in completed.stdout
 
 
 def test_cli_maps_task_compiler_options_to_config() -> None:

@@ -64,6 +64,40 @@ class StaticRewriter:
         })
 
 
+class SignedPenaltyRewriter(StaticRewriter):
+    def rewrite(self, request: TaskRubricRequest) -> str:
+        payload = json.loads(super().rewrite(request))
+        payload["criteria"].append({
+            "criterion_id": "C2",
+            "title": "Unsupported-claim penalty",
+            "description": "Penalize claims that contradict the evidence.",
+            "max_points": 0,
+            "task_anchors": ["evidence:final-claims"],
+            "required_evidence": ["Final claims are traceable to results."],
+            "acceptable_alternatives": ["No unsupported claims are made."],
+            "anti_evidence": ["The final answer invents a result."],
+            "verification": ["Cross-check final claims against artifacts."],
+            "levels": [
+                {
+                    "label": "A",
+                    "points": 0,
+                    "description": "Every claim is supported.",
+                },
+                {
+                    "label": "B",
+                    "points": -5,
+                    "description": "One material claim is weakly supported.",
+                },
+                {
+                    "label": "C",
+                    "points": -10,
+                    "description": "A material claim is contradicted.",
+                },
+            ],
+        })
+        return canonical_json(payload)
+
+
 def make_task(root: Path, task_id: str) -> Path:
     task_dir = root / task_id
     tests_dir = task_dir / "tests"
@@ -538,3 +572,74 @@ def test_resume_rejects_non_strict_attestation(
 
     resume_runner = make_runner(tmp_path, resume=True)
     assert resume_runner.completed_record(JudgeAttempt(target, 1)) is None
+
+
+def test_offline_frozen_rubric_workflow_end_to_end(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tasks_dir = tmp_path / "compiler-tasks"
+    compiler_task = make_task(tasks_dir, "da-1-1")
+    (compiler_task / "trace.md").write_text("private runtime trace", encoding="utf-8")
+    (compiler_task / "answer.txt").write_text("private runtime answer", encoding="utf-8")
+    runtime_dir = compiler_task / "runs" / "condition_id-private"
+    runtime_dir.mkdir(parents=True)
+    (runtime_dir / "trajectory.jsonl").write_text(
+        '{"search_history": "private runtime history"}\n',
+        encoding="utf-8",
+    )
+    rubric_set = tmp_path / "rubric-set"
+    compiler = TaskProcessRubricCompiler(
+        TaskRubricCompilerConfig(
+            tasks_dir=tasks_dir,
+            task_ids=(compiler_task.name,),
+            output_dir=rubric_set,
+            max_retries=0,
+        ),
+        rewriter=SignedPenaltyRewriter(),
+    )
+
+    assert compiler.run() == 0
+    bundle = resolve_rubric_bundle(rubric_set, compiler_task.name)
+    request_path = bundle.task_manifest_path.parent / "attempts" / "attempt-1" / "request.json"
+    compiler_request = request_path.read_text(encoding="utf-8")
+
+    target = make_target(tmp_path, compiler_task.name)
+    runner = make_runner(tmp_path, rubric_set=rubric_set)
+
+    def fake_run(
+        cmd: object,
+        *,
+        cwd: Path,
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(
+            Path(cwd),
+            reported_score=99,
+            criteria={
+                "criterion_1": {"level": "C", "evidence": "missing analysis"},
+                "criterion_2": {"level": "C", "evidence": "contradicted claim"},
+            },
+        )
+        return subprocess.CompletedProcess(cmd, 0, stdout="offline judge\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+
+    record = runner.review_target(target)
+    final_record = json.loads(Path(record["score_validation"]).read_text())
+
+    assert record["status"] == "completed"
+    assert record["rubric_set_id"] == bundle.rubric_set_id
+    assert record["structured_rubric_sha256"] == bundle.rubric_sha256
+    assert final_record["rubric_set_id"] == bundle.rubric_set_id
+    assert final_record["structured_rubric_sha256"] == bundle.rubric_sha256
+    assert final_record["raw_score"] == -10
+    assert final_record["score"] == record["score"] == 0
+    for forbidden in (
+        "trajectory",
+        "trace.md",
+        "answer.txt",
+        "condition_id",
+        "search_history",
+    ):
+        assert forbidden not in compiler_request
