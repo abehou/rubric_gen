@@ -7,11 +7,17 @@ import pytest
 
 from rubric_gen.biomnibench.task_rubrics import (
     DataFileSnapshot,
+    RubricCriterion,
+    RubricLevel,
     SchemaSnapshotLimits,
+    TaskProcessRubric,
     TaskSnapshot,
     _walk_data_files,
     build_task_snapshot,
     canonical_json,
+    parse_task_process_rubric,
+    render_task_process_rubric,
+    validate_task_process_rubric,
 )
 
 
@@ -72,6 +78,311 @@ Write `report.tsv`.
     run_dir.mkdir(parents=True)
     (run_dir / "trajectory.jsonl").write_text("runtime event", encoding="utf-8")
     return task
+
+
+@pytest.fixture
+def snapshot(tmp_path: Path) -> TaskSnapshot:
+    return build_task_snapshot(make_task(tmp_path))
+
+
+def valid_rubric_payload(snapshot: TaskSnapshot) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "task_id": snapshot.task_id,
+        "purpose": "Evaluate an evidence-grounded analysis process.",
+        "criteria": [
+            {
+                "criterion_id": "C1",
+                "title": "Task-specific analysis",
+                "description": "Assess whether the required analysis was executed.",
+                "max_points": 100,
+                "task_anchors": ["summary:C1", "data:gene_exp.diff"],
+                "required_evidence": ["Commands show the comparison was run."],
+                "acceptable_alternatives": ["An equivalent scripted comparison."],
+                "anti_evidence": ["A claim without a supporting artifact."],
+                "verification": ["Inspect commands and the produced report."],
+                "levels": [
+                    {
+                        "label": "A",
+                        "points": 100,
+                        "description": "Complete, verified analysis.",
+                    },
+                    {
+                        "label": "B",
+                        "points": 50,
+                        "description": "Partial but supported analysis.",
+                    },
+                    {
+                        "label": "C",
+                        "points": 0,
+                        "description": "No supported analysis.",
+                    },
+                ],
+            },
+            {
+                "criterion_id": "C2",
+                "title": "Unsupported-claim penalty",
+                "description": "Penalize claims that contradict the evidence.",
+                "max_points": 0,
+                "task_anchors": ["evidence:final-claims"],
+                "required_evidence": ["Final claims are traceable to results."],
+                "acceptable_alternatives": ["No unsupported claims are made."],
+                "anti_evidence": ["The final answer invents a result."],
+                "verification": ["Cross-check final claims against artifacts."],
+                "levels": [
+                    {
+                        "label": "A",
+                        "points": 0,
+                        "description": "Every claim is supported.",
+                    },
+                    {
+                        "label": "B",
+                        "points": -5,
+                        "description": "One material claim is weakly supported.",
+                    },
+                    {
+                        "label": "C",
+                        "points": -10,
+                        "description": "A material claim is contradicted.",
+                    },
+                ],
+            },
+        ],
+    }
+
+
+def parsed_valid_rubric(snapshot: TaskSnapshot) -> TaskProcessRubric:
+    return parse_task_process_rubric(json.dumps(valid_rubric_payload(snapshot)))
+
+
+def validation_text(payload: dict[str, object], snapshot: TaskSnapshot) -> str:
+    rubric = parse_task_process_rubric(json.dumps(payload))
+    return " ".join(validate_task_process_rubric(rubric, snapshot))
+
+
+def test_penalty_criterion_is_valid(snapshot: TaskSnapshot) -> None:
+    rubric = parsed_valid_rubric(snapshot)
+
+    assert validate_task_process_rubric(rubric, snapshot) == ()
+    assert isinstance(rubric, TaskProcessRubric)
+    assert isinstance(rubric.criteria[0], RubricCriterion)
+    assert isinstance(rubric.criteria[0].levels[0], RubricLevel)
+    assert rubric.criteria[-1].levels[-1].points == -10
+
+
+@pytest.mark.parametrize("target", ("root", "criterion", "level"))
+def test_unknown_json_keys_are_rejected(
+    snapshot: TaskSnapshot,
+    target: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    if target == "root":
+        payload["unexpected"] = "value"
+    elif target == "criterion":
+        payload["criteria"][0]["unexpected"] = "value"  # type: ignore[index]
+    else:
+        payload["criteria"][0]["levels"][0]["unexpected"] = "value"  # type: ignore[index]
+
+    with pytest.raises(ValueError, match="unexpected key"):
+        parse_task_process_rubric(json.dumps(payload))
+
+
+def test_missing_json_key_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    del payload["purpose"]
+
+    with pytest.raises(ValueError, match="missing key"):
+        parse_task_process_rubric(json.dumps(payload))
+
+
+def test_bool_points_are_rejected_without_integer_coercion(
+    snapshot: TaskSnapshot,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"][0]["points"] = True  # type: ignore[index]
+
+    with pytest.raises(ValueError, match="points must be an integer"):
+        parse_task_process_rubric(json.dumps(payload))
+
+
+def test_wrong_task_id_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["task_id"] = "da-wrong"
+
+    assert "task_id does not match snapshot" in validation_text(payload, snapshot)
+
+
+def test_skipped_criterion_id_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][1]["criterion_id"] = "C3"  # type: ignore[index]
+
+    assert "criterion IDs must be contiguous" in validation_text(payload, snapshot)
+
+
+def test_skipped_level_label_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"][1]["label"] = "D"  # type: ignore[index]
+
+    assert "level labels must be contiguous" in validation_text(payload, snapshot)
+
+
+def test_duplicate_anchor_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["task_anchors"] = ["summary:C1", "summary:C1"]  # type: ignore[index]
+
+    assert "duplicate task anchor" in validation_text(payload, snapshot)
+
+
+def test_unknown_anchor_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["task_anchors"] = ["unknown:anchor"]  # type: ignore[index]
+
+    assert "unknown task anchor" in validation_text(payload, snapshot)
+
+
+def test_uncovered_summary_anchor_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["task_anchors"] = ["data:gene_exp.diff"]  # type: ignore[index]
+
+    assert "required summary anchor is not covered" in validation_text(payload, snapshot)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "required_evidence",
+        "acceptable_alternatives",
+        "anti_evidence",
+        "verification",
+    ),
+)
+def test_empty_evidence_list_is_rejected(
+    snapshot: TaskSnapshot,
+    field_name: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0][field_name] = []  # type: ignore[index]
+
+    assert f"{field_name} must be non-empty" in validation_text(payload, snapshot)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "required_evidence",
+        "acceptable_alternatives",
+        "anti_evidence",
+        "verification",
+    ),
+)
+def test_blank_evidence_item_is_rejected(
+    snapshot: TaskSnapshot,
+    field_name: str,
+) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0][field_name] = [" "]  # type: ignore[index]
+
+    assert f"{field_name} contains an empty item" in validation_text(payload, snapshot)
+
+
+def test_duplicate_evidence_item_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    evidence = "Commands show the comparison was run."
+    payload["criteria"][0]["required_evidence"] = [evidence, evidence]  # type: ignore[index]
+
+    assert "required_evidence contains duplicate items" in validation_text(payload, snapshot)
+
+
+def test_criterion_without_anchor_is_rejected(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["task_anchors"] = []  # type: ignore[index]
+
+    assert "task_anchors must be non-empty" in validation_text(payload, snapshot)
+
+
+def test_a_level_must_equal_max_points(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["max_points"] = 99  # type: ignore[index]
+
+    assert "A-level points must equal max_points" in validation_text(payload, snapshot)
+
+
+def test_each_criterion_must_have_exactly_one_zero(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"][2]["points"] = -1  # type: ignore[index]
+
+    assert "exactly one zero-point level" in validation_text(payload, snapshot)
+
+
+def test_level_points_must_be_strictly_descending(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"][1]["points"] = 100  # type: ignore[index]
+
+    assert "level points must be strictly descending" in validation_text(payload, snapshot)
+
+
+def test_criterion_must_have_at_least_three_levels(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["levels"] = payload["criteria"][0]["levels"][:2]  # type: ignore[index]
+
+    assert "at least three levels" in validation_text(payload, snapshot)
+
+
+def test_total_max_points_must_equal_100(snapshot: TaskSnapshot) -> None:
+    payload = valid_rubric_payload(snapshot)
+    payload["criteria"][0]["max_points"] = 90  # type: ignore[index]
+    payload["criteria"][0]["levels"][0]["points"] = 90  # type: ignore[index]
+
+    assert "total max_points must equal 100" in validation_text(payload, snapshot)
+
+
+def test_render_task_process_rubric_is_deterministic(snapshot: TaskSnapshot) -> None:
+    rubric = parsed_valid_rubric(snapshot)
+
+    first = render_task_process_rubric(rubric)
+    second = render_task_process_rubric(rubric)
+
+    assert first == second
+    assert first.encode("utf-8") == second.encode("utf-8")
+    assert first == """Purpose: Evaluate an evidence-grounded analysis process.
+
+Criterion 1: Task-specific analysis
+
+    Description: Assess whether the required analysis was executed.
+    Task anchors:
+      - summary:C1
+      - data:gene_exp.diff
+    Required evidence:
+      - Commands show the comparison was run.
+    Acceptable alternatives:
+      - An equivalent scripted comparison.
+    Anti-evidence:
+      - A claim without a supporting artifact.
+    Verification:
+      - Inspect commands and the produced report.
+    Levels: A=100 B=50 C=0
+      [A]: Complete, verified analysis.
+      [B]: Partial but supported analysis.
+      [C]: No supported analysis.
+
+Criterion 2: Unsupported-claim penalty
+
+    Description: Penalize claims that contradict the evidence.
+    Task anchors:
+      - evidence:final-claims
+    Required evidence:
+      - Final claims are traceable to results.
+    Acceptable alternatives:
+      - No unsupported claims are made.
+    Anti-evidence:
+      - The final answer invents a result.
+    Verification:
+      - Cross-check final claims against artifacts.
+    Levels: A=0 B=-5 C=-10
+      [A]: Every claim is supported.
+      [B]: One material claim is weakly supported.
+      [C]: A material claim is contradicted.
+"""
 
 
 def test_task_snapshot_is_deterministic_and_runtime_blind(tmp_path: Path) -> None:
