@@ -192,11 +192,15 @@ def test_external_lookup_uses_validated_target_task(tmp_path: Path) -> None:
     assert resolved.source == "rubric-set"
     assert resolved.rubric_id is not None
     assert resolved.rubric_set_id is not None
-    assert resolved.rubric_sha256 == resolve_rubric_bundle(
+    assert resolved.structured_rubric_sha256 == resolve_rubric_bundle(
         rubric_set,
         "da-2-1",
     ).rubric_sha256
+    assert resolved.rendered_rubric_sha256 == hashlib.sha256(
+        resolved.text.encode("utf-8")
+    ).hexdigest()
     assert resolved.manifest_path == resolved.path.parent / "manifest.json"
+    assert resolved.manifest_sha256 == sha256_file(resolved.manifest_path)
 
 
 def test_external_rubric_never_falls_back(tmp_path: Path) -> None:
@@ -263,6 +267,13 @@ def test_task_local_and_explicit_rubric_modes_remain_supported(tmp_path: Path) -
     assert default.path == target.task_dir / "tests" / "rubric.txt"
     assert default.source == "task-local"
     assert default.rubric_id is None
+    assert default.rubric_set_id is None
+    assert default.structured_rubric_sha256 is None
+    assert default.rendered_rubric_sha256 == hashlib.sha256(
+        default.text.encode("utf-8")
+    ).hexdigest()
+    assert default.manifest_path is None
+    assert default.manifest_sha256 is None
     assert explicit.path == target.task_dir / "tests" / "process_rubric.txt"
     assert "Explicit local rubric" in explicit.text
 
@@ -322,10 +333,50 @@ def test_authoritative_score_and_hash_attestation(
         "score_matches_reported": False,
         "selected_levels": {"criterion_1": "A"},
         "criterion_scores": {"criterion_1": 100},
-        "rubric_sha256": resolved.rubric_sha256,
+        "rubric_source": "task-local",
+        "rubric_set_id": None,
+        "rubric_id": None,
+        "structured_rubric_sha256": None,
+        "rendered_rubric_sha256": resolved.rendered_rubric_sha256,
+        "manifest_sha256": None,
         "reward_sha256": sha256_file(output_dir / "reward.json"),
         "evaluation_sha256": sha256_file(output_dir / "evaluation.json"),
     }
+
+
+def test_judge_executes_verified_text_snapshot_when_source_changes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rubric_set, _ = compile_rubric_set(tmp_path, "da-1-1")
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, rubric_set=rubric_set)
+    resolved = runner.resolve_rubric(target)
+    verified_text = resolved.text
+    resolved.path.write_text(
+        "Criterion 1: Changed after resolution\nLevels: A=1 B=0\n",
+        encoding="utf-8",
+    )
+    output_dir = runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert (Path(cwd) / "tests" / "rubric.txt").read_text() == verified_text
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+
+    result = runner.execute_judge(
+        target.task_dir / "tests" / "llm_judge.py",
+        resolved,
+        output_dir,
+        "trace",
+        "answer",
+    )
+
+    assert result["status"] == "completed"
+    assert result["score"] == 100
 
 
 def test_malformed_criteria_fail_despite_zero_judge_exit(
@@ -409,6 +460,53 @@ def test_resume_requires_matching_artifact_hashes(
     path.write_text(path.read_text() + "\n", encoding="utf-8")
 
     assert resume_runner.completed_record(attempt) is None
+
+
+def test_resume_rejects_identical_rubric_from_different_set(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first_set, _ = compile_rubric_set(tmp_path / "first", "da-1-1")
+    second_set, _ = compile_rubric_set(
+        tmp_path / "second",
+        "da-1-1",
+        "da-2-1",
+    )
+    target = make_target(tmp_path)
+    first_runner = make_runner(tmp_path, rubric_set=first_set)
+    first_rubric = first_runner.resolve_rubric(target)
+    second_rubric = make_runner(
+        tmp_path,
+        rubric_set=second_set,
+    ).resolve_rubric(target)
+    assert first_rubric.structured_rubric_sha256 == (
+        second_rubric.structured_rubric_sha256
+    )
+    assert first_rubric.rubric_set_id != second_rubric.rubric_set_id
+    assert first_rubric.manifest_sha256 != second_rubric.manifest_sha256
+
+    output_dir = first_runner.output_dir(target)
+    output_dir.mkdir(parents=True)
+
+    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    result = first_runner.execute_judge(
+        target.task_dir / "tests" / "llm_judge.py",
+        first_rubric,
+        output_dir,
+        "trace",
+        "answer",
+    )
+    assert result["status"] == "completed"
+    validation = json.loads((output_dir / "score_validation.json").read_text())
+    assert validation["rubric_set_id"] == first_rubric.rubric_set_id
+    assert validation["manifest_sha256"] == first_rubric.manifest_sha256
+
+    second_runner = make_runner(tmp_path, rubric_set=second_set, resume=True)
+    assert second_runner.completed_record(JudgeAttempt(target, 1)) is None
 
 
 def test_resume_rejects_non_strict_attestation(

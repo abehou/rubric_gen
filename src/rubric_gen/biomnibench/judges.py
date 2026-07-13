@@ -40,7 +40,12 @@ SCORE_VALIDATION_KEYS = {
     "score_matches_reported",
     "selected_levels",
     "criterion_scores",
-    "rubric_sha256",
+    "rubric_source",
+    "rubric_set_id",
+    "rubric_id",
+    "structured_rubric_sha256",
+    "rendered_rubric_sha256",
+    "manifest_sha256",
     "reward_sha256",
     "evaluation_sha256",
 }
@@ -50,11 +55,13 @@ SCORE_VALIDATION_KEYS = {
 class ResolvedRubric:
     text: str
     path: Path
-    rubric_sha256: str
+    structured_rubric_sha256: str | None
+    rendered_rubric_sha256: str
     rubric_id: str | None
     rubric_set_id: str | None
     source: str
     manifest_path: Path | None
+    manifest_sha256: str | None
 
 
 @dataclass(frozen=True)
@@ -463,11 +470,13 @@ class BiomniBenchJudgeRunner:
         return ResolvedRubric(
             text=text,
             path=path,
-            rubric_sha256=bundle.rubric_sha256,
+            structured_rubric_sha256=bundle.rubric_sha256,
+            rendered_rubric_sha256=self.sha256_text(text),
             rubric_id=bundle.rubric_id,
             rubric_set_id=bundle.rubric_set_id,
             source="rubric-set",
             manifest_path=bundle.task_manifest_path,
+            manifest_sha256=self.sha256_file(bundle.task_manifest_path),
         )
 
     def resolved_local_rubric(self, path: Path) -> ResolvedRubric:
@@ -478,23 +487,27 @@ class BiomniBenchJudgeRunner:
         return ResolvedRubric(
             text=text,
             path=path,
-            rubric_sha256=self.sha256_file(path),
+            structured_rubric_sha256=None,
+            rendered_rubric_sha256=self.sha256_text(text),
             rubric_id=None,
             rubric_set_id=None,
             source="task-local",
             manifest_path=None,
+            manifest_sha256=None,
         )
 
     def rubric_record(self, rubric: ResolvedRubric) -> dict[str, Any]:
         return {
             "rubric": str(rubric.path),
-            "rubric_sha256": rubric.rubric_sha256,
+            "structured_rubric_sha256": rubric.structured_rubric_sha256,
+            "rendered_rubric_sha256": rubric.rendered_rubric_sha256,
             "rubric_id": rubric.rubric_id,
             "rubric_set_id": rubric.rubric_set_id,
             "rubric_source": rubric.source,
             "rubric_manifest": (
                 str(rubric.manifest_path) if rubric.manifest_path is not None else None
             ),
+            "manifest_sha256": rubric.manifest_sha256,
         }
 
     def review_text(self, target: JudgeTarget) -> str:
@@ -534,7 +547,7 @@ class BiomniBenchJudgeRunner:
             logs_dir = tmp_dir / "logs" / "verifier"
             tests_dir.mkdir(parents=True)
             logs_dir.mkdir(parents=True)
-            shutil.copy2(rubric.path, tests_dir / "rubric.txt")
+            (tests_dir / "rubric.txt").write_bytes(rubric.text.encode("utf-8"))
             (logs_dir / "trace.md").write_text(review_text)
             (logs_dir / "answer.txt").write_text(answer_text)
 
@@ -611,7 +624,12 @@ class BiomniBenchJudgeRunner:
             "score_matches_reported": validated.score_matches_reported,
             "selected_levels": validated.selected_levels,
             "criterion_scores": validated.criterion_scores,
-            "rubric_sha256": rubric.rubric_sha256,
+            "rubric_source": rubric.source,
+            "rubric_set_id": rubric.rubric_set_id,
+            "rubric_id": rubric.rubric_id,
+            "structured_rubric_sha256": rubric.structured_rubric_sha256,
+            "rendered_rubric_sha256": rubric.rendered_rubric_sha256,
+            "manifest_sha256": rubric.manifest_sha256,
             "reward_sha256": self.sha256_file(reward_path),
             "evaluation_sha256": self.sha256_file(evaluation_path),
         }
@@ -659,6 +677,9 @@ class BiomniBenchJudgeRunner:
 
     def sha256_file(self, path: Path) -> str:
         return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def sha256_text(self, text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def read_text(self, path: Path) -> str:
         if not path.is_file():
