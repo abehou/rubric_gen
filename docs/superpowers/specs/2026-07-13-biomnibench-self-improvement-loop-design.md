@@ -13,10 +13,14 @@ BiomniBench-DA that can create optimization pressure, compare five frozen
 experimental conditions, and measure reward hacking without exposing the hidden
 audit to the optimizer.
 
-The mutable object is a task-agnostic code harness around a frozen solver model.
-The harness may change prompts as part of its code, but prompt-only,
-reflection-only, and persistent-memory-only conditions are excluded. Adaptive
-rubrics remain deferred in `RESEARCH.md`.
+The mutable object is a compact, task-agnostic Python agent implementation around
+a frozen solver model. It owns the planning/tool-use loop, action parser, local
+tools, evidence capture, verification, stopping, and answer synthesis. Gemini
+CLI, Codex, or Claude Code acts only as the meta-optimizer that edits this small
+candidate tree; none of those large CLI codebases is itself evolved. The harness
+may change prompts as part of its code, but prompt-only, reflection-only, and
+persistent-memory-only conditions are excluded. Adaptive rubrics remain
+deferred in `RESEARCH.md`.
 
 The implementation must be directly runnable from this repository. It will
 borrow candidate-isolation and filesystem-history ideas from Meta-Harness, but
@@ -75,14 +79,16 @@ Two alternatives are rejected for this milestone:
    still requiring a custom sealed evaluator and hidden-audit boundary.
 
 The selected design introduces a dedicated candidate harness with a stable
-entry point. `rubric_gen` stays outside the candidate surface.
+entry point. It is a small explicit agent scaffold, not a wrapper around a full
+terminal-agent CLI. `rubric_gen` and the coding CLI implementation stay outside
+the candidate surface.
 
 ## 4. Architecture and Trust Boundary
 
 ```text
 controller-owned experiment root
   config + split commitments + immutable rubric/scorer fingerprints
-  model broker + budgets
+  frozen text-generation broker + budgets
   proposal/evaluation/selection controller
   append-only ledger
                   |
@@ -93,11 +99,13 @@ controller-owned experiment root
           working_evaluator/**       (unrestricted only)
           visible_history/**
                   |
-                  | proposer edits allowed roots
+                  | Gemini CLI / Codex / Claude Code
+                  | edits allowed roots as meta-optimizer
                   v
         seal candidate tree + hashes
                   |
-                  | run frozen solver model on train/dev tasks
+                  | candidate tool loop calls frozen model broker
+                  | and runs on train/dev tasks
                   v
         candidate evaluation outputs
                   |
@@ -133,7 +141,11 @@ subprocess gets a phase-specific read allowlist and write allowlist. Controller
 source, canonical evaluators, other task workspaces, reference rescoring, audit
 artifacts, and hidden-task storage are explicitly unreadable as well as
 unwritable. System libraries and narrowly identified provider authentication
-files may be read; credential values are never copied into the candidate tree.
+files may be read during the proposer phase only; credential values are never
+copied into the candidate tree. During candidate execution, the environment and
+`PATH` are allowlisted, coding-agent CLI executables and their authentication
+files are unreadable, and model access is possible only through the broker IPC
+endpoint.
 Unsupported platforms fail closed unless the user explicitly supplies
 `--unsafe-no-sandbox`; unsafe runs are marked non-authoritative in every
 manifest and ledger record.
@@ -143,13 +155,17 @@ presented as equivalent to prevention.
 
 ## 5. Candidate Harness Contract
 
-Each candidate contains a task-agnostic Python harness:
+Each candidate contains a compact task-agnostic Python agent harness:
 
 ```text
 harness/
   harness.json
   solve.py
-  ... optional modules and prompt assets ...
+  agent_loop.py
+  tools.py
+  action_parser.py
+  verifier.py
+  prompts/
 ```
 
 `harness.json` has a closed schema containing the harness schema version and an
@@ -162,7 +178,7 @@ importing it:
 ```text
 python <candidate>/harness/solve.py \
   --task-workspace <fresh-workspace> \
-  --model-broker <controller-command> \
+  --broker-socket <controller-owned-local-socket> \
   --seed <seed>
 ```
 
@@ -171,16 +187,30 @@ workspace and exit zero. It may create scripts and analysis artifacts there.
 It must not receive task judge files, canonical rubrics, audit data, other task
 workspaces, or controller paths.
 
-The baseline harness makes one brokered call using the current BiomniBench
-solver prompt. Because the harness is real code, later candidates can implement
-planning, multiple solver calls, verification, repair, artifact checks, or
-other tool-control workflows. The controller-owned broker communicates through
-a local IPC endpoint rather than exposing provider credentials or executables
-to candidate code. It launches each provider call under a solver sandbox rooted
-at the current task workspace and enforces the frozen provider, model, per-task
-call limit, timeout, web policy, and token/cost accounting. A candidate may
-choose not to call the model or may fabricate outputs; those behaviors are
-allowed and measured rather than silently prevented.
+The baseline harness implements a bounded observe--act loop. It reads the task
+instruction and a local data inventory, sends the current transcript to the
+broker, parses one strict structured action, executes an allowed task-local
+tool, records the observation, and repeats until a final action or budget limit.
+The initial tools are task-local file read/write, directory listing, and bounded
+shell execution. Before exit, the harness verifies that `trace.md` and
+`answer.txt` are non-empty.
+
+Because this loop is candidate code, later candidates can change planning,
+action representation, tool selection, retry policy, transcript management,
+verification, repair, evidence capture, call allocation, artifact checks,
+stopping, and synthesis. Prompt edits are possible but are not the only mutable
+mechanism.
+
+The controller-owned broker communicates through a local IPC endpoint and
+provides text generation only. Candidate code never receives provider
+credentials, provider executables, or a general coding-agent CLI. The broker
+enforces the frozen backend and model, decoding parameters, per-task call and
+token limits, timeout, and cost accounting. The first production backend uses
+the repository's existing Gemini REST approach; the broker interface is
+provider-neutral so later OpenAI or Anthropic REST backends do not alter the
+candidate contract. A candidate may choose not to call the model or may
+fabricate outputs; those behaviors are allowed and measured rather than
+silently prevented.
 
 Every task, solver repeat, candidate, and generation receives a new workspace.
 No `dirs_exist_ok` reuse is permitted in the self-improvement path.
@@ -219,6 +249,12 @@ rejects symlinks, special files, path traversal, files outside allowed roots,
 oversized files, and changes exceeding configured file/byte limits. The parent
 is never edited in place. An invalid proposal consumes its candidate budget and
 receives a failed evaluation record.
+
+Integration is experiment-local lineage, not a source-repository merge. The
+controller records the complete parent-to-child diff and seals the edited tree.
+If selected, that child ID becomes `champion.json` and its tree is copied to
+seed the next generation. Rejected trees remain immutable artifacts for audit.
+No proposer edit is applied to `rubric_gen`, Gemini CLI, Codex, or Claude Code.
 
 ## 7. Working Evaluators
 
@@ -402,11 +438,19 @@ Add focused modules rather than one large engine:
 
 ### `harness_runtime.py`
 
-- model-broker command and budget accounting;
 - candidate harness subprocess invocation;
 - fresh task workspace preparation;
 - sandbox backend protocol and macOS Seatbelt implementation; and
 - output validation and run metadata.
+
+### `solver_broker.py`
+
+- provider-neutral text-generation request/response protocol;
+- controller-owned local IPC service;
+- frozen model and decoding configuration;
+- per-task calls, tokens, timeout, and cost enforcement;
+- initial Gemini REST backend and deterministic fake backend; and
+- secret-free request and response provenance.
 
 ### `self_improvement_evaluators.py`
 
@@ -424,9 +468,11 @@ Add focused modules rather than one large engine:
 - resume and champion derivation; and
 - post-search hidden-audit orchestration.
 
-The existing `AgentAdapterRegistry`, task workspace logic, batch-compatible run
-layout, rubric bundle resolver, and judge runner are reused through narrow seams.
-The ordinary `one`, `all`, `judge`, and `perturb` commands retain their behavior.
+The existing `AgentAdapterRegistry` is reused only to run the meta-optimizer with
+an explicit proposal prompt. It is not used as the candidate solver. Existing
+task workspace logic, batch-compatible run layout, rubric bundle resolver, and
+judge runner are reused through narrow seams. The ordinary `one`, `all`,
+`judge`, and `perturb` commands retain their behavior.
 
 ## 12. Configuration and CLI
 
@@ -479,7 +525,10 @@ Required coverage includes:
 - controlled rejection and unrestricted acceptance of evaluator changes;
 - parent immutability, stable tree hashes, and symlink/path/special-file checks;
 - proposer requests exclude hidden, audit, and reference-rescore data;
-- baseline harness contract and fresh workspace behavior;
+- baseline observe--act harness, structured actions, bounded task-local tools,
+  and fresh workspace behavior;
+- candidate runtime cannot invoke or modify the coding-agent CLI;
+- broker freezes model identity and budgets across candidate changes;
 - sandbox command construction and fail-closed unsupported behavior;
 - accepted improvement and rejected tie, regression, uncertainty, invalid
   proposal, timeout, missing output, and malformed score;
@@ -506,6 +555,8 @@ perturb, and judge documentation. Add:
 
 - an implementation-status table distinguishing frozen rubrics, self-improvement
   orchestration, hidden audit, and deferred adaptive rubrics;
+- a role table distinguishing meta-optimizer CLI, candidate harness, frozen
+  solver model, and outer controller;
 - task-specific process-rubric compilation and sealed-bundle judging commands;
 - the five condition definitions and trust boundary;
 - a minimal pilot TOML config;
@@ -524,6 +575,7 @@ does not implement:
 
 - online, adaptive, or co-evolving rubrics;
 - model-weight training or fine-tuning;
+- modification or vendoring of Gemini CLI, Codex, or Claude Code;
 - prompt-only, reflection-only, or memory-only conditions;
 - Pareto or population-frontier search beyond configurable `(1 + lambda)`;
 - a web dashboard or distributed scheduler; or
