@@ -3,16 +3,20 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from rubric_gen.biomnibench.task_rubrics import (
     DataFileSnapshot,
     SchemaSnapshotLimits,
     TaskSnapshot,
+    _walk_data_files,
     build_task_snapshot,
     canonical_json,
 )
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REAL_DA_19_1 = ROOT / "data" / "biomnibench-da" / "da-19-1"
 
 
 def make_task(tmp_path: Path) -> Path:
@@ -86,6 +90,29 @@ def find_table(snapshot: TaskSnapshot, name: str) -> DataFileSnapshot:
     return next(data_file for data_file in snapshot.data_files if data_file.path == name)
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "max_files",
+        "max_entries_visited",
+        "max_probe_bytes",
+        "max_rows",
+        "max_columns",
+        "max_examples_per_column",
+        "max_string_chars",
+        "max_output_chars",
+    ),
+)
+def test_negative_schema_limits_raise_value_error(field_name: str) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        SchemaSnapshotLimits(**{field_name: -2})
+
+
+def test_schema_output_budget_must_fit_valid_json() -> None:
+    with pytest.raises(ValueError, match="max_output_chars"):
+        SchemaSnapshotLimits(max_output_chars=1)
+
+
 def test_schema_preserves_task_specific_values(tmp_path: Path) -> None:
     table = find_table(build_task_snapshot(make_task(tmp_path)), "gene_exp.diff")
 
@@ -110,6 +137,33 @@ def test_snapshot_sorts_nested_paths_and_never_follows_symlinks(tmp_path: Path) 
 
     assert paths == ["a/first.csv", "gene_exp.diff", "invalid.bin", "z/last.csv"]
     assert all("alias" not in path and "linked" not in path for path in paths)
+
+
+def test_entry_limit_bounds_directory_enumeration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data = tmp_path / "data"
+    many = data / "many"
+    many.mkdir(parents=True)
+    for index in range(20):
+        (many / f"{index:02}.tsv").write_text("id\n1\n", encoding="utf-8")
+
+    original_iterdir = Path.iterdir
+    enumerated = 0
+
+    def counted_iterdir(path: Path):
+        nonlocal enumerated
+        for child in original_iterdir(path):
+            enumerated += 1
+            yield child
+
+    monkeypatch.setattr(Path, "iterdir", counted_iterdir)
+
+    files, _ = _walk_data_files(data, SchemaSnapshotLimits(max_entries_visited=3))
+
+    assert enumerated == 3
+    assert len(files) == 2
 
 
 def test_probe_is_byte_bounded_without_misclassifying_split_utf8(tmp_path: Path) -> None:
@@ -210,10 +264,9 @@ def test_schema_budget_drops_examples_then_columns_then_files(tmp_path: Path) ->
     assert snapshot.omitted_data_files == 1
 
 
+@pytest.mark.skipif(not REAL_DA_19_1.is_dir(), reason="real da-19-1 data is not checked in")
 def test_real_da_19_1_snapshot_has_three_bounded_tables() -> None:
-    task = ROOT / "data" / "biomnibench-da" / "da-19-1"
-
-    snapshot = build_task_snapshot(task)
+    snapshot = build_task_snapshot(REAL_DA_19_1)
     column_counts = {data_file.path: len(data_file.columns) for data_file in snapshot.data_files}
     schema_json = canonical_json([data_file.to_dict() for data_file in snapshot.data_files])
 

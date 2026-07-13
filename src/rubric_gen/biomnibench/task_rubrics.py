@@ -10,6 +10,7 @@ import io
 import json
 import re
 from dataclasses import dataclass, replace
+from itertools import islice
 from pathlib import Path
 
 
@@ -35,6 +36,22 @@ class SchemaSnapshotLimits:
     max_examples_per_column: int = 3
     max_string_chars: int = 120
     max_output_chars: int = 12_000
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "max_files",
+            "max_entries_visited",
+            "max_probe_bytes",
+            "max_rows",
+            "max_columns",
+            "max_examples_per_column",
+            "max_string_chars",
+            "max_output_chars",
+        ):
+            if getattr(self, field_name) < 0:
+                raise ValueError(f"{field_name} must be non-negative")
+        if self.max_output_chars < len("[]"):
+            raise ValueError("max_output_chars must be at least 2")
 
 
 @dataclass(frozen=True)
@@ -233,23 +250,20 @@ def _walk_data_files(
 ) -> tuple[tuple[Path, ...], int]:
     if not data_root.is_dir():
         return (), 0
-    pending = [
-        (path.relative_to(data_root).as_posix(), path)
-        for path in data_root.iterdir()
-    ]
-    heapq.heapify(pending)
+    pending = [("", data_root)]
     files: list[Path] = []
     omitted_files = 0
-    entries_visited = 0
-    while pending and entries_visited < limits.max_entries_visited:
+    entries_enumerated = 0
+    while pending:
         _, path = heapq.heappop(pending)
-        entries_visited += 1
         if path.is_symlink():
             continue
         if path.is_dir():
-            for child in path.iterdir():
+            remaining = limits.max_entries_visited - entries_enumerated
+            for child in islice(path.iterdir(), remaining):
                 relative = child.relative_to(data_root).as_posix()
                 heapq.heappush(pending, (relative, child))
+                entries_enumerated += 1
         elif path.is_file():
             if len(files) < limits.max_files:
                 files.append(path)
