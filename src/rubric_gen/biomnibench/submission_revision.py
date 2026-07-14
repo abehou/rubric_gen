@@ -80,6 +80,8 @@ def _revision_experiment_dir(
     agent: AgentRunConfig,
 ) -> Path:
     experiment_dir = resolve_project_path(args.experiment_dir)
+    if args.resume and os.path.lexists(experiment_dir):
+        return experiment_dir
     policy_suffix = f"-{feedback_policy.value.replace('_', '-')}"
     for candidate in FeedbackPolicy:
         candidate_suffix = f"-{candidate.value.replace('_', '-')}"

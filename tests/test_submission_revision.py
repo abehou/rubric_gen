@@ -457,6 +457,27 @@ def test_feedback_policy_selects_matching_experiment_directory(
     assert config.experiment_dir == tmp_path / expected_name
 
 
+def test_resume_uses_an_existing_legacy_experiment_directory(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    legacy_dir = tmp_path / "da-19-6-process-full"
+    legacy_dir.mkdir()
+    args = build_parser().parse_args(
+        [
+            "revise",
+            str(task),
+            "--experiment-dir",
+            str(legacy_dir),
+            "--model",
+            "test-model",
+            "--resume",
+        ]
+    )
+
+    config = SubmissionRevisionConfig.from_namespace(args)
+
+    assert config.experiment_dir == legacy_dir
+
+
 def test_restart_refuses_an_unowned_directory(tmp_path: Path) -> None:
     task = _write_task(tmp_path)
     unrelated = tmp_path / "unrelated"
