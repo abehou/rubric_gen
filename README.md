@@ -342,6 +342,11 @@ executable configuration, session ID, immutable snapshots, feedback, and live
 workspace. It does not restart an uncertain or failed solver turn, create a
 replacement session, or resume into a different experiment directory.
 
+To discard a matching existing experiment and redo the task from `s000`, repeat
+the original command with `--restart` instead of `--resume`. Restart removes the
+old experiment artifacts and any retained live workspace, so use it only when
+the prior run is no longer needed.
+
 Omit `--rubric` and `--rubric-set` to optimize the task's default outcome
 rubric (`tests/rubric.txt`). The solver never sees the rubric before `s000`.
 Under `full`, later turns receive the frozen rubric, validated criterion scores,

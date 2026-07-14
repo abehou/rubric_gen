@@ -10,11 +10,16 @@ from typing import Callable
 import pytest
 
 import rubric_gen.biomnibench.submission_revision as submission_revision_module
+import rubric_gen.biomnibench.submission_revision_artifacts as revision_artifacts_module
 from rubric_gen.biomnibench.common import AgentRunConfig
+from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.session_drivers import SessionTurnResult
 from rubric_gen.biomnibench.submission_feedback import (
     FeedbackPolicy,
     project_feedback,
+)
+from rubric_gen.biomnibench.submission_revision_artifacts import (
+    remove_revision_experiment,
 )
 from rubric_gen.biomnibench.submission_revision import (
     JudgeArtifacts,
@@ -293,6 +298,113 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     ]
     assert [kwargs["initial"] for _, _, kwargs in progress_calls] == [0, 1, 2]
     assert all(kwargs["total"] == 3 for _, _, kwargs in progress_calls)
+
+
+def test_restart_replaces_an_interrupted_experiment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = _write_task(tmp_path)
+    experiment_dir = tmp_path / "experiment"
+    args = build_parser().parse_args(
+        [
+            "revise",
+            str(task),
+            "--experiment-dir",
+            str(experiment_dir),
+            "--revision-rounds",
+            "0",
+            "--model",
+            "test-model",
+            "--restart",
+        ]
+    )
+    restart_config = SubmissionRevisionConfig.from_namespace(args)
+    initial_config = replace(restart_config, restart=False)
+    rubric_text = (task / "tests" / "rubric.txt").read_text()
+    rubric_sha256 = hashlib.sha256(rubric_text.encode("utf-8")).hexdigest()
+
+    class InterruptAfterJudge(SubmissionRevisionController):
+        def _append_event(self, payload: dict[str, object]) -> None:
+            super()._append_event(payload)
+            if payload.get("event") == "submission_judged":
+                raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        InterruptAfterJudge(
+            initial_config,
+            RevisionDependencies(
+                session=FakeSessionDriver(),
+                judge=FakeJudge((60,), rubric_sha256, tmp_path / "old-judge"),
+            ),
+        ).run()
+
+    manifest = json.loads((experiment_dir / "manifest.json").read_text())
+    old_live_root = Path(manifest["live_workspace_dir"]).parent
+    assert old_live_root.is_dir()
+    manifest.pop("kind")
+    (experiment_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    original_remove = revision_artifacts_module._force_remove_directory
+    failed_once = False
+
+    def fail_first_experiment_removal(root: Path) -> None:
+        nonlocal failed_once
+        if root == experiment_dir and not failed_once:
+            failed_once = True
+            raise OSError("injected experiment cleanup failure")
+        original_remove(root)
+
+    monkeypatch.setattr(
+        revision_artifacts_module,
+        "_force_remove_directory",
+        fail_first_experiment_removal,
+    )
+    with pytest.raises(OSError, match="injected experiment cleanup failure"):
+        SubmissionRevisionController(
+            restart_config,
+            RevisionDependencies(
+                session=FakeSessionDriver(),
+                judge=FakeJudge((95,), rubric_sha256, tmp_path / "unused-judge"),
+            ),
+        ).run()
+    assert experiment_dir.is_dir()
+    assert not old_live_root.exists()
+
+    result = SubmissionRevisionController(
+        restart_config,
+        RevisionDependencies(
+            session=FakeSessionDriver(),
+            judge=FakeJudge((95,), rubric_sha256, tmp_path / "new-judge"),
+        ),
+    ).run()
+
+    assert result.submission_ids == ("s000",)
+    assert result.scores == (95,)
+    assert not old_live_root.exists()
+
+
+def test_restart_refuses_an_unowned_directory(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    unrelated = tmp_path / "unrelated"
+    unrelated.mkdir()
+    valuable = unrelated / "valuable.txt"
+    valuable.write_text("keep me")
+    (unrelated / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "task_id": task.name,
+                "task_dir": str(task.resolve()),
+                "live_workspace_dir": str(tmp_path / "missing" / "workspace"),
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="valid revision manifest"):
+        remove_revision_experiment(unrelated, task)
+
+    assert valuable.read_text() == "keep me"
 
 
 def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:

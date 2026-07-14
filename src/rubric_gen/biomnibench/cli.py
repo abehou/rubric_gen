@@ -141,10 +141,16 @@ def _add_revise_parser(
         required=True,
         help="Directory where turns, submissions, feedback, and scores are written.",
     )
-    revise.add_argument(
+    experiment_mode = revise.add_mutually_exclusive_group()
+    experiment_mode.add_argument(
         "--resume",
         action="store_true",
         help="Resume an existing experiment only from its recorded safe boundary.",
+    )
+    experiment_mode.add_argument(
+        "--restart",
+        action="store_true",
+        help="Delete a matching existing revision experiment and restart from s000.",
     )
     revise.add_argument(
         "--revision-rounds",

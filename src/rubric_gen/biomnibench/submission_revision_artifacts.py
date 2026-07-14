@@ -25,7 +25,39 @@ EXCLUDED_SOLUTION_NAMES = frozenset(
 )
 
 LIVE_ROOT_PREFIX = "biomnibench-revision-live-"
+REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
 _LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
+_LEGACY_REVISION_MANIFEST_KEYS = frozenset(
+    {
+        "allow_web",
+        "approval_mode",
+        "data_sha256",
+        "effective_solver_model",
+        "executable",
+        "feedback_policy",
+        "instruction_sha256",
+        "judge_model",
+        "live_workspace_dir",
+        "live_workspace_removed",
+        "max_review_chars",
+        "model",
+        "provider",
+        "review",
+        "revision_rounds",
+        "rubric_name",
+        "rubric_set",
+        "rubric_sha256",
+        "sandbox_requested",
+        "schema_version",
+        "scoring_identity",
+        "session_id",
+        "skip_trust",
+        "submission_count",
+        "task_dir",
+        "task_id",
+    }
+)
+_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {"kind"}
 
 
 def copy_solution_workspace(source: Path, destination: Path) -> None:
@@ -151,6 +183,58 @@ def remove_created_live_tree(root: Path) -> None:
     ):
         raise RuntimeError(f"invalid new live revision root: {root}")
     _force_remove_directory(root)
+
+
+def remove_revision_experiment(experiment_dir: Path, task_dir: Path) -> None:
+    """Remove an owned revision experiment and any retained live workspace."""
+
+    if experiment_dir.is_symlink() or not experiment_dir.is_dir():
+        raise RuntimeError(f"invalid revision experiment directory: {experiment_dir}")
+    manifest_path = experiment_dir / "manifest.json"
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise RuntimeError(
+            f"restart requires a valid revision manifest: {manifest_path}"
+        )
+    manifest = read_json_object(manifest_path, "revision manifest")
+    manifest_keys = set(manifest)
+    is_current_manifest = (
+        manifest_keys == _REVISION_MANIFEST_KEYS
+        and manifest.get("kind") == REVISION_EXPERIMENT_KIND
+    )
+    if not is_current_manifest and manifest_keys != _LEGACY_REVISION_MANIFEST_KEYS:
+        raise RuntimeError(
+            f"restart requires a valid revision manifest: {manifest_path}"
+        )
+    expected_task_dir = task_dir.resolve()
+    revision_rounds = manifest.get("revision_rounds")
+    submission_count = manifest.get("submission_count")
+    if (
+        manifest.get("schema_version") != 1
+        or manifest.get("task_id") != expected_task_dir.name
+        or manifest.get("task_dir") != str(expected_task_dir)
+        or type(revision_rounds) is not int
+        or revision_rounds < 0
+        or type(submission_count) is not int
+        or submission_count != revision_rounds + 1
+        or type(manifest.get("scoring_identity")) is not dict
+    ):
+        raise RuntimeError("restart experiment does not belong to the requested task")
+    workspace_value = manifest.get("live_workspace_dir")
+    if type(workspace_value) is not str:
+        raise RuntimeError("restart experiment has no valid live workspace path")
+    workspace = Path(workspace_value)
+    if not workspace.is_absolute() or workspace.name != "workspace":
+        raise RuntimeError("restart experiment has an invalid live workspace path")
+    live_root = workspace.parent
+    live_workspace_removed = manifest.get("live_workspace_removed")
+    if type(live_workspace_removed) is not bool:
+        raise RuntimeError("restart experiment has an invalid live workspace state")
+    live_root_exists = os.path.lexists(live_root)
+    if live_workspace_removed and live_root_exists:
+        raise RuntimeError("completed restart experiment unexpectedly has a live root")
+    if live_root_exists:
+        remove_live_tree(live_root, experiment_dir)
+    _force_remove_directory(experiment_dir)
 
 
 def remove_owned_evaluation_tree(root: Path, evaluations_dir: Path) -> None:

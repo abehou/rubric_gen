@@ -31,11 +31,13 @@ from rubric_gen.biomnibench.submission_feedback import (
 )
 from rubric_gen.biomnibench.submission_revision_artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
+    REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
     copy_solution_workspace as _copy_solution_workspace,
     make_read_only as _make_read_only,
     make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
     remove_created_live_tree as _remove_created_live_tree,
+    remove_revision_experiment as _remove_revision_experiment,
     remove_live_tree as _remove_tree,
     sha256_file as _sha256_file,
     solution_tree_sha256 as _solution_tree_sha256,
@@ -69,6 +71,7 @@ class SubmissionRevisionConfig:
     rubric_set: Path | None = None
     max_review_chars: int | None = None
     resume: bool = False
+    restart: bool = False
 
     def __post_init__(self) -> None:
         if type(self.revision_rounds) is not int or self.revision_rounds < 0:
@@ -77,6 +80,8 @@ class SubmissionRevisionConfig:
             raise ValueError("review must be trace or trajectory")
         if self.rubric_name is not None and self.rubric_set is not None:
             raise ValueError("rubric_name and rubric_set are mutually exclusive")
+        if self.resume and self.restart:
+            raise ValueError("resume and restart are mutually exclusive")
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
         FeedbackPolicy(self.feedback_policy)
@@ -107,6 +112,7 @@ class SubmissionRevisionConfig:
             rubric_set=resolve_project_path(rubric_set) if rubric_set else None,
             max_review_chars=args.max_review_chars,
             resume=args.resume,
+            restart=getattr(args, "restart", False),
         )
 
 
@@ -282,6 +288,8 @@ class SubmissionRevisionController:
     def run(self) -> SubmissionRevisionResult:
         initialized = False
         completed = False
+        if self.config.restart and os.path.lexists(self.experiment_dir):
+            _remove_revision_experiment(self.experiment_dir, self.task_dir)
         if self.config.resume:
             state, live_root, workspace = self._load_resume()
             initialized = True
@@ -381,6 +389,7 @@ class SubmissionRevisionController:
             self.experiment_dir / "manifest.json",
             {
                 "schema_version": 1,
+                "kind": _REVISION_EXPERIMENT_KIND,
                 **self._experiment_identity(),
                 "submission_count": self.config.revision_rounds + 1,
                 "live_workspace_dir": str(workspace),
