@@ -1,5 +1,9 @@
 # BiomniBench Submission Revision Loop Design
 
+**Date:** 2026-07-13
+
+**Status:** Implemented
+
 ## Goal
 
 Build a task-level experiment in which one BiomniBench solver agent keeps the

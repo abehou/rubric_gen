@@ -32,74 +32,82 @@ from rubric_gen.biomnibench.task_rubrics import canonical_json
 class StaticRewriter:
     def rewrite(self, request: TaskRubricRequest) -> str:
         task_id = request.task_snapshot["task_id"]
-        return canonical_json({
-            "schema_version": 1,
-            "task_id": task_id,
-            "purpose": "Evaluate the observable analysis process.",
-            "criteria": [
-                {
-                    "criterion_id": "C1",
-                    "title": f"Analysis for {task_id}",
-                    "description": "Assess whether the required analysis was executed.",
-                    "max_points": 100,
-                    "task_anchors": ["summary:C1", "data:input.tsv"],
-                    "required_evidence": ["Commands and outputs show the analysis."],
-                    "acceptable_alternatives": ["An equivalent scripted analysis."],
-                    "anti_evidence": ["A claim unsupported by a produced artifact."],
-                    "verification": ["Inspect the commands and report.tsv."],
-                    "levels": [
-                        {
-                            "label": "A",
-                            "points": 100,
-                            "description": "Complete and independently verifiable.",
-                        },
-                        {
-                            "label": "B",
-                            "points": 50,
-                            "description": "Partial, but supported by evidence.",
-                        },
-                        {
-                            "label": "C",
-                            "points": 0,
-                            "description": "No supported analysis.",
-                        },
-                    ],
-                }
-            ],
-        })
+        return canonical_json(
+            {
+                "schema_version": 1,
+                "task_id": task_id,
+                "purpose": "Evaluate the observable analysis process.",
+                "criteria": [
+                    {
+                        "criterion_id": "C1",
+                        "title": f"Analysis for {task_id}",
+                        "description": "Assess whether the required analysis was executed.",
+                        "max_points": 100,
+                        "task_anchors": ["summary:C1", "data:input.tsv"],
+                        "required_evidence": [
+                            "Commands and outputs show the analysis."
+                        ],
+                        "acceptable_alternatives": ["An equivalent scripted analysis."],
+                        "anti_evidence": [
+                            "A claim unsupported by a produced artifact."
+                        ],
+                        "verification": ["Inspect the commands and report.tsv."],
+                        "levels": [
+                            {
+                                "label": "A",
+                                "points": 100,
+                                "description": "Complete and independently verifiable.",
+                            },
+                            {
+                                "label": "B",
+                                "points": 50,
+                                "description": "Partial, but supported by evidence.",
+                            },
+                            {
+                                "label": "C",
+                                "points": 0,
+                                "description": "No supported analysis.",
+                            },
+                        ],
+                    }
+                ],
+            }
+        )
 
 
 class SignedPenaltyRewriter(StaticRewriter):
     def rewrite(self, request: TaskRubricRequest) -> str:
         payload = json.loads(super().rewrite(request))
-        payload["criteria"].append({
-            "criterion_id": "C2",
-            "title": "Unsupported-claim penalty",
-            "description": "Penalize claims that contradict the evidence.",
-            "max_points": 0,
-            "task_anchors": ["evidence:final-claims"],
-            "required_evidence": ["Final claims are traceable to results."],
-            "acceptable_alternatives": ["No unsupported claims are made."],
-            "anti_evidence": ["The final answer invents a result."],
-            "verification": ["Cross-check final claims against artifacts."],
-            "levels": [
-                {
-                    "label": "A",
-                    "points": 0,
-                    "description": "Every claim is supported.",
-                },
-                {
-                    "label": "B",
-                    "points": -5,
-                    "description": "One material claim is weakly supported.",
-                },
-                {
-                    "label": "C",
-                    "points": -10,
-                    "description": "A material claim is contradicted.",
-                },
-            ],
-        })
+        payload["criteria"].append(
+            {
+                "criterion_id": "C2",
+                "title": "Unsupported-claim penalty",
+                "description": "Penalize claims that contradict the evidence.",
+                "max_points": 0,
+                "task_anchors": ["evidence:final-claims"],
+                "required_evidence": ["Final claims are traceable to results."],
+                "acceptable_alternatives": ["No unsupported claims are made."],
+                "anti_evidence": ["The final answer invents a result."],
+                "verification": ["Cross-check final claims against artifacts."],
+                "levels": [
+                    {
+                        "label": "A",
+                        "points": 0,
+                        "description": "Every claim is supported.",
+                    },
+                    {
+                        "label": "B",
+                        "points": -5,
+                        "description": "One material claim is weakly supported.",
+                    },
+                    {
+                        "label": "C",
+                        "points": -10,
+                        "description": "A material claim is contradicted.",
+                    },
+                ],
+            }
+        )
         return canonical_json(payload)
 
 
@@ -198,18 +206,20 @@ def make_runner(
     max_review_chars: int | None = None,
     repeats: int = 1,
 ) -> BiomniBenchJudgeRunner:
-    return BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=tmp_path / "run",
-        tasks_dir=tmp_path / "runtime-tasks",
-        rubric_set=rubric_set,
-        rubric_name=rubric_name,
-        dry_run=dry_run,
-        resume=resume,
-        review=review,
-        model=model,
-        max_review_chars=max_review_chars,
-        repeats=repeats,
-    ))
+    return BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=tmp_path / "run",
+            tasks_dir=tmp_path / "runtime-tasks",
+            rubric_set=rubric_set,
+            rubric_name=rubric_name,
+            dry_run=dry_run,
+            resume=resume,
+            review=review,
+            model=model,
+            max_review_chars=max_review_chars,
+            repeats=repeats,
+        )
+    )
 
 
 def sha256_file(path: Path) -> str:
@@ -218,28 +228,32 @@ def sha256_file(path: Path) -> str:
 
 def test_cli_rejects_rubric_and_rubric_set_together(tmp_path: Path) -> None:
     parser = build_parser()
-    args = parser.parse_args([
-        "judge",
-        "--run-dir",
-        str(tmp_path / "run"),
-        "--rubric-set",
-        str(tmp_path / "rubric-set"),
-    ])
+    args = parser.parse_args(
+        [
+            "judge",
+            "--run-dir",
+            str(tmp_path / "run"),
+            "--rubric-set",
+            str(tmp_path / "rubric-set"),
+        ]
+    )
     config = JudgeRunConfig.from_namespace(args)
 
     assert config.rubric_set == (tmp_path / "rubric-set").resolve()
     assert config.rubric_name is None
 
     with pytest.raises(SystemExit):
-        parser.parse_args([
-            "judge",
-            "--run-dir",
-            str(tmp_path / "run"),
-            "--rubric",
-            "process_rubric.txt",
-            "--rubric-set",
-            str(tmp_path / "rubric-set"),
-        ])
+        parser.parse_args(
+            [
+                "judge",
+                "--run-dir",
+                str(tmp_path / "run"),
+                "--rubric",
+                "process_rubric.txt",
+                "--rubric-set",
+                str(tmp_path / "rubric-set"),
+            ]
+        )
 
 
 def test_target_task_must_match_canonical_task_directory(tmp_path: Path) -> None:
@@ -308,10 +322,12 @@ def test_single_discovery_rejects_unsafe_status_task(tmp_path: Path) -> None:
         json.dumps({"task": "../escape"}),
         encoding="utf-8",
     )
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=run_dir,
-        tasks_dir=tmp_path / "runtime-tasks",
-    ))
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=run_dir,
+            tasks_dir=tmp_path / "runtime-tasks",
+        )
+    )
 
     with pytest.raises(SystemExit, match="task ID"):
         runner.discover_targets()
@@ -334,16 +350,23 @@ def test_single_discovery_rejects_another_runs_workspace(tmp_path: Path) -> None
         )
         (workspace / "trace.md").write_text(run_dir.name, encoding="utf-8")
         (workspace / "answer.txt").write_text(run_dir.name, encoding="utf-8")
-    (run_a / "status.json").write_text(json.dumps({
-        "task": task_id,
-        "task_dir": str(task_dir),
-        "workspace_dir": str(workspace_b),
-    }), encoding="utf-8")
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=run_a,
-        tasks_dir=tmp_path / "runtime-tasks",
-        dry_run=True,
-    ))
+    (run_a / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace_b),
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=run_a,
+            tasks_dir=tmp_path / "runtime-tasks",
+            dry_run=True,
+        )
+    )
 
     with pytest.raises(SystemExit, match="workspace"):
         runner.discover_targets()
@@ -367,21 +390,28 @@ def test_duplicate_canonical_run_inputs_are_rejected_before_attempts(
     )
     (workspace / "trace.md").write_text("trace", encoding="utf-8")
     (workspace / "answer.txt").write_text("answer", encoding="utf-8")
-    (run_dir / "status.json").write_text(json.dumps({
-        "task": task_id,
-        "task_dir": str(task_dir),
-        "workspace_dir": str(workspace),
-    }), encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace),
+            }
+        ),
+        encoding="utf-8",
+    )
     alias_parent = runs_dir / "alias"
     alias_parent.mkdir()
     run_alias = alias_parent / ".." / run_dir.name
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=run_dir,
-        extra_run_dirs=(run_alias,),
-        tasks_dir=tmp_path / "runtime-tasks",
-        dry_run=True,
-        max_concurrency=max_concurrency,
-    ))
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=run_dir,
+            extra_run_dirs=(run_alias,),
+            tasks_dir=tmp_path / "runtime-tasks",
+            dry_run=True,
+            max_concurrency=max_concurrency,
+        )
+    )
 
     with pytest.raises(SystemExit, match="Duplicate canonical run directory"):
         runner.run()
@@ -393,12 +423,14 @@ def test_expanded_targets_reject_duplicate_canonical_run_directory(
     tmp_path: Path,
 ) -> None:
     target = make_target(tmp_path)
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=target.output_root,
-        extra_run_dirs=(target.run_dir,),
-        tasks_dir=tmp_path / "runtime-tasks",
-        dry_run=True,
-    ))
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=target.output_root,
+            extra_run_dirs=(target.run_dir,),
+            tasks_dir=tmp_path / "runtime-tasks",
+            dry_run=True,
+        )
+    )
 
     with pytest.raises(SystemExit, match="Duplicate canonical target run directory"):
         runner.discover_targets()
@@ -435,17 +467,24 @@ def test_standalone_review_rejects_symlinked_trajectory_artifact(
     outside = tmp_path / "outside-trajectory.stream.jsonl"
     outside.write_text('{"type": "secret"}\n', encoding="utf-8")
     (run_dir / "trajectory.stream.jsonl").symlink_to(outside)
-    (run_dir / "status.json").write_text(json.dumps({
-        "task": task_id,
-        "task_dir": str(task_dir),
-        "workspace_dir": str(workspace),
-    }), encoding="utf-8")
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=run_dir,
-        tasks_dir=tmp_path / "runtime-tasks",
-        review="trajectory",
-        dry_run=True,
-    ))
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace),
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=run_dir,
+            tasks_dir=tmp_path / "runtime-tasks",
+            review="trajectory",
+            dry_run=True,
+        )
+    )
 
     with pytest.raises(SystemExit, match="artifact"):
         runner.review_target(runner.discover_targets()[0])
@@ -471,16 +510,23 @@ def test_standalone_review_rejects_workspace_parent_replaced_after_validation(
     for root, prefix in ((workspace, "inside"), (outside_workspace, "outside")):
         (root / "trace.md").write_text(f"{prefix} trace", encoding="utf-8")
         (root / "answer.txt").write_text(f"{prefix} answer", encoding="utf-8")
-    (run_dir / "status.json").write_text(json.dumps({
-        "task": task_id,
-        "task_dir": str(task_dir),
-        "workspace_dir": str(workspace),
-    }), encoding="utf-8")
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=run_dir,
-        tasks_dir=tmp_path / "runtime-tasks",
-        dry_run=True,
-    ))
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace),
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=run_dir,
+            tasks_dir=tmp_path / "runtime-tasks",
+            dry_run=True,
+        )
+    )
     target = runner.discover_targets()[0]
     original_validate = runner.validate_target_identity
     original_workspace = workspace.with_name(f"{workspace.name}-original")
@@ -643,19 +689,26 @@ def test_trajectory_rejects_retargeted_run_ancestor_alias(
     )
     (workspace_a / "trace.md").write_text("safe trace", encoding="utf-8")
     (workspace_a / "answer.txt").write_text("safe answer", encoding="utf-8")
-    (run_a / "status.json").write_text(json.dumps({
-        "task": task_id,
-        "task_dir": str(task_dir),
-        "workspace_dir": str(workspace_a),
-    }), encoding="utf-8")
+    (run_a / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace_a),
+            }
+        ),
+        encoding="utf-8",
+    )
     alias = tmp_path / "run-alias"
     alias.symlink_to(physical_a, target_is_directory=True)
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=alias / run_name,
-        tasks_dir=tmp_path / "runtime-tasks",
-        review="trajectory",
-        dry_run=True,
-    ))
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=alias / run_name,
+            tasks_dir=tmp_path / "runtime-tasks",
+            review="trajectory",
+            dry_run=True,
+        )
+    )
     target = runner.discover_targets()[0]
     original_find_judge = runner.find_judge
     retargeted = False
@@ -696,17 +749,24 @@ def test_score_attestation_uses_bound_run_identity_after_alias_retarget(
     )
     (workspace_a / "trace.md").write_text("safe trace", encoding="utf-8")
     (workspace_a / "answer.txt").write_text("safe answer", encoding="utf-8")
-    (run_a / "status.json").write_text(json.dumps({
-        "task": task_id,
-        "task_dir": str(task_dir),
-        "workspace_dir": str(workspace_a),
-    }), encoding="utf-8")
+    (run_a / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace_a),
+            }
+        ),
+        encoding="utf-8",
+    )
     alias = tmp_path / "run-alias"
     alias.symlink_to(physical_a, target_is_directory=True)
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=alias / run_name,
-        tasks_dir=tmp_path / "runtime-tasks",
-    ))
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=alias / run_name,
+            tasks_dir=tmp_path / "runtime-tasks",
+        )
+    )
     target = runner.discover_targets()[0]
     original_validate = runner.validate_target_identity
     retargeted = False
@@ -842,7 +902,9 @@ def test_output_replacement_during_judge_cannot_redirect_result_writes(
     outside = tmp_path / "outside-output"
     outside.mkdir()
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         output_dir.rename(displaced)
         output_dir.symlink_to(outside, target_is_directory=True)
@@ -954,7 +1016,14 @@ def test_output_unlink_is_rolled_back_if_root_moves_during_commit(
 @pytest.mark.parametrize("field", ("judge_name", "rubric_name"))
 @pytest.mark.parametrize(
     "unsafe_name",
-    ("../escape.py", "/tmp/escape.py", "nested/escape.py", r"nested\escape.py", ".", ".."),
+    (
+        "../escape.py",
+        "/tmp/escape.py",
+        "nested/escape.py",
+        r"nested\escape.py",
+        ".",
+        "..",
+    ),
 )
 def test_judge_artifact_overrides_require_safe_basenames(
     tmp_path: Path,
@@ -1005,11 +1074,13 @@ def test_overridden_judge_artifact_symlink_is_rejected(
     outside = tmp_path / f"outside-{override_name}"
     outside.write_text("outside\n", encoding="utf-8")
     (target.task_dir / "tests" / override_name).symlink_to(outside)
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
-        run_dir=tmp_path / "run",
-        tasks_dir=tmp_path / "runtime-tasks",
-        **{field: override_name},
-    ))
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(
+            run_dir=tmp_path / "run",
+            tasks_dir=tmp_path / "runtime-tasks",
+            **{field: override_name},
+        )
+    )
 
     with pytest.raises(SystemExit, match="symlink"):
         if field == "judge_name":
@@ -1070,13 +1141,17 @@ def test_external_rubric_rejects_root_task_manifest_mismatch(tmp_path: Path) -> 
     task_manifest_path = rubric_set / "tasks" / target.task / "manifest.json"
     task_manifest = json.loads(task_manifest_path.read_text())
     task_manifest["task_id"] = "da-9-9"
-    task_manifest_path.write_text(canonical_json(task_manifest) + "\n", encoding="utf-8")
+    task_manifest_path.write_text(
+        canonical_json(task_manifest) + "\n", encoding="utf-8"
+    )
     root_manifest_path = rubric_set / "manifest.json"
     root_manifest = json.loads(root_manifest_path.read_text())
     root_manifest["tasks"][target.task]["task_manifest_sha256"] = sha256_file(
         task_manifest_path
     )
-    root_manifest_path.write_text(canonical_json(root_manifest) + "\n", encoding="utf-8")
+    root_manifest_path.write_text(
+        canonical_json(root_manifest) + "\n", encoding="utf-8"
+    )
     runner = make_runner(tmp_path, rubric_set=rubric_set)
 
     with pytest.raises(SystemExit):
@@ -1119,9 +1194,10 @@ def test_task_local_and_explicit_rubric_modes_remain_supported(tmp_path: Path) -
     assert default.rubric_id is None
     assert default.rubric_set_id is None
     assert default.structured_rubric_sha256 is None
-    assert default.rendered_rubric_sha256 == hashlib.sha256(
-        default.text.encode("utf-8")
-    ).hexdigest()
+    assert (
+        default.rendered_rubric_sha256
+        == hashlib.sha256(default.text.encode("utf-8")).hexdigest()
+    )
     assert default.manifest_path is None
     assert default.manifest_sha256 is None
     assert explicit.path == target.task_dir / "tests" / "process_rubric.txt"
@@ -1140,11 +1216,16 @@ def write_judge_artifacts(
         json.dumps({"score": reported_score}),
         encoding="utf-8",
     )
-    (logs / "evaluation.json").write_text(json.dumps({
-        "criteria": criteria
-        if criteria is not None
-        else {"criterion_1": {"level": "A", "evidence": "observable"}}
-    }), encoding="utf-8")
+    (logs / "evaluation.json").write_text(
+        json.dumps(
+            {
+                "criteria": criteria
+                if criteria is not None
+                else {"criterion_1": {"level": "A", "evidence": "observable"}}
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_authoritative_score_and_hash_attestation(
@@ -1157,7 +1238,9 @@ def test_authoritative_score_and_hash_attestation(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=0)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1196,9 +1279,7 @@ def test_authoritative_score_and_hash_attestation(
         "evaluation_sha256": sha256_file(output_dir / "evaluation.json"),
         "review_input_sha256": hashlib.sha256(b"trace").hexdigest(),
         "answer_input_sha256": hashlib.sha256(b"answer").hexdigest(),
-        "judge_source_sha256": sha256_file(
-            target.task_dir / "tests" / "llm_judge.py"
-        ),
+        "judge_source_sha256": sha256_file(target.task_dir / "tests" / "llm_judge.py"),
         "judge_runner_sha256": sha256_file(Path(judges_module.__file__)),
         "scorer_module_sha256": sha256_file(Path(rubric_scoring_module.__file__)),
         "effective_judge_model": runner.judge_model(os.environ.copy()),
@@ -1272,7 +1353,9 @@ def test_judge_executes_verified_text_snapshot_when_source_changes(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         assert (Path(cwd) / "tests" / "rubric.txt").read_text() == verified_text
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
@@ -1302,7 +1385,9 @@ def test_malformed_criteria_fail_despite_zero_judge_exit(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), criteria={"criterion_9": {"level": "A"}})
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1327,10 +1412,12 @@ def test_malformed_criteria_fail_despite_zero_judge_exit(
 def test_score_summary_excludes_failed_scalar_scores(tmp_path: Path) -> None:
     runner = make_runner(tmp_path)
 
-    summary = runner.score_summary([
-        {"task": "da-1-1", "status": "completed", "score": 50},
-        {"task": "da-1-2", "status": "failed", "score": 100},
-    ])
+    summary = runner.score_summary(
+        [
+            {"task": "da-1-1", "status": "completed", "score": 50},
+            {"task": "da-1-2", "status": "failed", "score": 100},
+        ]
+    )
 
     assert summary["scored_attempts"] == 1
     assert summary["average_score"] == 50.0
@@ -1349,19 +1436,24 @@ def test_resume_requires_matching_artifact_hashes(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
     monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
-    assert runner.execute_judge(
-        target.task_dir / "tests" / "llm_judge.py",
-        resolved,
-        output_dir,
-        "trace",
-        "answer",
-        attempt=JudgeAttempt(target, 1),
-    )["status"] == "completed"
+    assert (
+        runner.execute_judge(
+            target.task_dir / "tests" / "llm_judge.py",
+            resolved,
+            output_dir,
+            "trace",
+            "answer",
+            attempt=JudgeAttempt(target, 1),
+        )["status"]
+        == "completed"
+    )
     resume_runner = make_runner(tmp_path, resume=True)
     attempt = JudgeAttempt(target=target, repeat_index=1)
     assert resume_runner.completed_record(attempt) is not None
@@ -1432,7 +1524,9 @@ def test_resume_rejects_cache_transplanted_between_repeats(
     target = make_target(tmp_path)
     runner = make_runner(tmp_path, repeats=2)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1453,7 +1547,9 @@ def test_resume_rejects_cache_transplanted_between_tasks(
     destination = make_target(tmp_path, "da-2-1")
     runner = make_runner(tmp_path)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1476,7 +1572,9 @@ def test_resume_rejects_cache_transplanted_between_runs(
     destination = make_target(second_root)
     first_runner = make_runner(first_root)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1516,19 +1614,24 @@ def test_resume_binds_actual_scoring_inputs_and_implementation(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
     monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
-    assert runner.execute_judge(
-        target.task_dir / "tests" / "llm_judge.py",
-        resolved,
-        output_dir,
-        runner.review_text(target),
-        runner.read_text(target.workspace_dir / "answer.txt"),
-        attempt=JudgeAttempt(target, 1),
-    )["status"] == "completed"
+    assert (
+        runner.execute_judge(
+            target.task_dir / "tests" / "llm_judge.py",
+            resolved,
+            output_dir,
+            runner.review_text(target),
+            runner.read_text(target.workspace_dir / "answer.txt"),
+            attempt=JudgeAttempt(target, 1),
+        )["status"]
+        == "completed"
+    )
 
     resume_runner = make_runner(tmp_path, resume=True, model="judge-model-a")
     if changed == "trace":
@@ -1588,19 +1691,24 @@ def test_resume_binds_exact_trajectory_review_input(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
     monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
-    assert runner.execute_judge(
-        target.task_dir / "tests" / "llm_judge.py",
-        resolved,
-        output_dir,
-        runner.review_text(target),
-        runner.read_text(target.workspace_dir / "answer.txt"),
-        attempt=JudgeAttempt(target, 1),
-    )["status"] == "completed"
+    assert (
+        runner.execute_judge(
+            target.task_dir / "tests" / "llm_judge.py",
+            resolved,
+            output_dir,
+            runner.review_text(target),
+            runner.read_text(target.workspace_dir / "answer.txt"),
+            attempt=JudgeAttempt(target, 1),
+        )["status"]
+        == "completed"
+    )
     target.trajectory_path.write_text('{"type": "changed"}\n')
 
     resume_runner = make_runner(
@@ -1622,19 +1730,24 @@ def test_resume_binds_review_mode_even_with_identical_review_text(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
     monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
-    assert runner.execute_judge(
-        target.task_dir / "tests" / "llm_judge.py",
-        resolved,
-        output_dir,
-        "trace",
-        "answer",
-        attempt=JudgeAttempt(target, 1),
-    )["status"] == "completed"
+    assert (
+        runner.execute_judge(
+            target.task_dir / "tests" / "llm_judge.py",
+            resolved,
+            output_dir,
+            "trace",
+            "answer",
+            attempt=JudgeAttempt(target, 1),
+        )["status"]
+        == "completed"
+    )
 
     resume_runner = make_runner(
         tmp_path,
@@ -1675,7 +1788,9 @@ def test_resume_rejects_identical_rubric_from_different_set(
     output_dir = first_runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1707,7 +1822,9 @@ def test_resume_rejects_non_strict_attestation(
     output_dir = runner.output_dir(target)
     output_dir.mkdir(parents=True)
 
-    def fake_run(cmd: object, *, cwd: Path, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        cmd: object, *, cwd: Path, **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
@@ -1736,7 +1853,9 @@ def test_offline_frozen_rubric_workflow_end_to_end(
     tasks_dir = tmp_path / "compiler-tasks"
     compiler_task = make_task(tasks_dir, "da-1-1")
     (compiler_task / "trace.md").write_text("private runtime trace", encoding="utf-8")
-    (compiler_task / "answer.txt").write_text("private runtime answer", encoding="utf-8")
+    (compiler_task / "answer.txt").write_text(
+        "private runtime answer", encoding="utf-8"
+    )
     runtime_dir = compiler_task / "runs" / "condition_id-private"
     runtime_dir.mkdir(parents=True)
     (runtime_dir / "trajectory.jsonl").write_text(
@@ -1757,7 +1876,9 @@ def test_offline_frozen_rubric_workflow_end_to_end(
 
     assert compiler.run() == 0
     bundle = resolve_rubric_bundle(rubric_set, compiler_task.name)
-    request_path = bundle.task_manifest_path.parent / "attempts" / "attempt-1" / "request.json"
+    request_path = (
+        bundle.task_manifest_path.parent / "attempts" / "attempt-1" / "request.json"
+    )
     compiler_request = request_path.read_text(encoding="utf-8")
 
     target = make_target(tmp_path, compiler_task.name)

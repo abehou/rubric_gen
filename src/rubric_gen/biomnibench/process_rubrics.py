@@ -11,22 +11,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from textwrap import fill, indent
-from typing import Any, Iterable, Protocol
+from typing import Iterable, Protocol
 
-from rubric_gen.biomnibench.common import PROGRESS_BAR_FORMAT, resolve_project_path
-from rubric_gen.biomnibench.perturbations import (
+from rubric_gen.biomnibench.common import TerminalProgress, resolve_project_path
+from rubric_gen.biomnibench.gemini_client import (
     DEFAULT_GEMINI_API_KEY_ENV,
-    DEFAULT_PERTURBER_MODEL,
-    GeminiPerturber,
+    DEFAULT_GEMINI_MODEL,
+    GeminiClient,
+)
+from rubric_gen.biomnibench.perturbations import (
     extract_json_object,
     truncate,
 )
-
-try:
-    from tqdm.auto import tqdm
-except ImportError:  # pragma: no cover - tqdm is an optional runtime nicety.
-    tqdm = None
-
 
 DEFAULT_TASKS_DIR = Path("data/biomnibench-da")
 DEFAULT_RUN_DIR = Path("runs/biomnibench-agents/all-gemini-20260705-185054")
@@ -91,7 +87,7 @@ class TaskBundle:
 class ProcessRubricConfig:
     tasks_dir: Path = DEFAULT_TASKS_DIR
     run_dir: Path = DEFAULT_RUN_DIR
-    model: str = DEFAULT_PERTURBER_MODEL
+    model: str = DEFAULT_GEMINI_MODEL
     api_key_env: str = DEFAULT_GEMINI_API_KEY_ENV
     max_input_chars: int = 140_000
     max_retries: int = 2
@@ -105,7 +101,7 @@ class ProcessRubricConfig:
         return cls(
             tasks_dir=resolve_project_path(args.tasks_dir),
             run_dir=resolve_project_path(args.run_dir),
-            model=getattr(args, "model", DEFAULT_PERTURBER_MODEL),
+            model=getattr(args, "model", DEFAULT_GEMINI_MODEL),
             api_key_env=getattr(args, "api_key_env", DEFAULT_GEMINI_API_KEY_ENV),
             max_input_chars=max(10_000, getattr(args, "max_input_chars", 140_000)),
             max_retries=max(0, getattr(args, "max_retries", 2)),
@@ -128,8 +124,7 @@ class ProcessRubricRequest:
 
 
 class ProcessRubricRewriter(Protocol):
-    def rewrite(self, request: ProcessRubricRequest) -> str:
-        ...
+    def rewrite(self, request: ProcessRubricRequest) -> str: ...
 
 
 class ProcessRubricRewriteError(ValueError):
@@ -142,10 +137,10 @@ class GeminiProcessRubricRewriter:
     def __init__(
         self,
         *,
-        model: str = DEFAULT_PERTURBER_MODEL,
+        model: str = DEFAULT_GEMINI_MODEL,
         api_key_env: str = DEFAULT_GEMINI_API_KEY_ENV,
     ) -> None:
-        self.client = GeminiPerturber(model=model, api_key_env=api_key_env)
+        self.client = GeminiClient(model=model, api_key_env=api_key_env)
 
     def rewrite(self, request: ProcessRubricRequest) -> str:
         response = self.client.generate_content(self.build_prompt(request))
@@ -155,7 +150,10 @@ class GeminiProcessRubricRewriter:
             raise ProcessRubricRewriteError(str(exc), raw_response=response) from exc
         rubric = payload.get("process_rubric_txt")
         if not isinstance(rubric, str) or not rubric.strip():
-            raise ProcessRubricRewriteError("LLM response missing non-empty process_rubric_txt", raw_response=response)
+            raise ProcessRubricRewriteError(
+                "LLM response missing non-empty process_rubric_txt",
+                raw_response=response,
+            )
         return rubric.rstrip() + "\n"
 
     def build_prompt(self, request: ProcessRubricRequest) -> str:
@@ -239,10 +237,17 @@ def task_sort_key(path: Path) -> tuple[int, int]:
 
 def discover_bundles(tasks_dir: Path, run_dir: Path) -> list[TaskBundle]:
     bundles: list[TaskBundle] = []
-    for task_dir in sorted((p for p in tasks_dir.iterdir() if p.is_dir() and p.name.startswith("da-")), key=task_sort_key):
+    for task_dir in sorted(
+        (p for p in tasks_dir.iterdir() if p.is_dir() and p.name.startswith("da-")),
+        key=task_sort_key,
+    ):
         task_id = task_dir.name
         eval_dir = run_dir / "judges" / "trace" / task_id
-        eval_paths = tuple(sorted(eval_dir.glob("**/evaluation.json"))) if eval_dir.is_dir() else ()
+        eval_paths = (
+            tuple(sorted(eval_dir.glob("**/evaluation.json")))
+            if eval_dir.is_dir()
+            else ()
+        )
         bundles.append(
             TaskBundle(
                 task_id=task_id,
@@ -280,7 +285,11 @@ def extract_section(text: str, heading: str, next_headings: tuple[str, ...]) -> 
     body_start = start.end()
     end_positions = []
     for next_heading in next_headings:
-        found = re.search(rf"^##\s+{re.escape(next_heading)}\s*$", text[body_start:], flags=re.MULTILINE)
+        found = re.search(
+            rf"^##\s+{re.escape(next_heading)}\s*$",
+            text[body_start:],
+            flags=re.MULTILINE,
+        )
         if found:
             end_positions.append(body_start + found.start())
     body_end = min(end_positions) if end_positions else len(text)
@@ -293,19 +302,29 @@ def extract_question(instruction: str) -> str:
         "Question",
         ("Data Files", "Required Outputs", "Environment", "Data Sources"),
     )
-    return " ".join(question.split()) if question else "the task-specific biomedical data-analysis question"
+    return (
+        " ".join(question.split())
+        if question
+        else "the task-specific biomedical data-analysis question"
+    )
 
 
 def extract_data_hints(instruction: str, limit: int = 12) -> list[str]:
-    data_files = extract_section(instruction, "Data Files", ("Required Outputs", "Environment", "Data Sources"))
-    sources = extract_section(instruction, "Data Sources", ("Required Outputs", "Environment"))
+    data_files = extract_section(
+        instruction, "Data Files", ("Required Outputs", "Environment", "Data Sources")
+    )
+    sources = extract_section(
+        instruction, "Data Sources", ("Required Outputs", "Environment")
+    )
     # Prefer the task-specific Data Files section. Many instructions include a
     # generic trace-format example whose internal "## Data Sources" heading and
     # toy `samples.csv` would otherwise look like real task data.
     combined = data_files or sources
     combined = re.sub(r"````.*?````", "", combined, flags=re.DOTALL)
     combined = re.sub(r"```.*?```", "", combined, flags=re.DOTALL)
-    combined = re.split(r"\*\*Example excerpt\*\*|Example excerpt", combined, maxsplit=1)[0]
+    combined = re.split(
+        r"\*\*Example excerpt\*\*|Example excerpt", combined, maxsplit=1
+    )[0]
     candidates: list[str] = []
     for match in re.finditer(r"`([^`]+)`", combined):
         value = match.group(1).strip()
@@ -329,15 +348,23 @@ def parse_existing_criteria(rubric: str) -> list[ExistingCriterion]:
         number = int(parts[index].strip())
         title = " ".join(parts[index + 1].split())
         body = parts[index + 2] if index + 2 < len(parts) else ""
-        desc_match = re.search(r"Description:\s*(.+?)(?:\n\s*Levels:|\Z)", body, flags=re.DOTALL)
+        desc_match = re.search(
+            r"Description:\s*(.+?)(?:\n\s*Levels:|\Z)", body, flags=re.DOTALL
+        )
         levels_match = re.search(r"Levels:\s*([^\n]+)", body)
         description = " ".join(desc_match.group(1).split()) if desc_match else title
         levels = " ".join(levels_match.group(1).split()) if levels_match else ""
-        criteria.append(ExistingCriterion(number=number, title=title, description=description, levels=levels))
+        criteria.append(
+            ExistingCriterion(
+                number=number, title=title, description=description, levels=levels
+            )
+        )
     return criteria
 
 
-def summarize_outcome_baseline(criteria: list[ExistingCriterion], limit: int = 8) -> str:
+def summarize_outcome_baseline(
+    criteria: list[ExistingCriterion], limit: int = 8
+) -> str:
     if not criteria:
         return "No structured existing criteria were parsed; use the original rubric text as the outcome baseline."
     lines = []
@@ -345,7 +372,9 @@ def summarize_outcome_baseline(criteria: list[ExistingCriterion], limit: int = 8
         desc = short_text(criterion.description, 190)
         lines.append(f"- C{criterion.number} {criterion.title}: {desc}")
     if len(criteria) > limit:
-        lines.append(f"- Plus {len(criteria) - limit} additional existing outcome criterion/criteria from `rubric.txt`.")
+        lines.append(
+            f"- Plus {len(criteria) - limit} additional existing outcome criterion/criteria from `rubric.txt`."
+        )
     return "\n".join(lines)
 
 
@@ -382,7 +411,10 @@ def parse_trajectory_summary(path: Path) -> dict[str, object]:
                     else:
                         if file_path not in files_read:
                             files_read.append(file_path)
-        if event.get("type") == "tool_result" and event.get("status") not in {None, "success"}:
+        if event.get("type") == "tool_result" and event.get("status") not in {
+            None,
+            "success",
+        }:
             output = event.get("output")
             if isinstance(output, str) and output.strip():
                 errors.append(clean_inline(output.strip()))
@@ -426,7 +458,9 @@ def parse_evaluation_gaps(paths: tuple[Path, ...]) -> list[str]:
                 continue
             level = str(value.get("level") or "").strip().upper()
             if level and level != "A":
-                reason = short_text(str(value.get("reason") or "no reason recorded"), 180)
+                reason = short_text(
+                    str(value.get("reason") or "no reason recorded"), 180
+                )
                 gaps.append(f"{key}: level {level} ({reason})")
         if gaps:
             break
@@ -450,13 +484,9 @@ def bullet_list(values: list[str], empty: str) -> str:
     return "\n".join(f"- `{value}`" for value in values)
 
 
-def plain_bullets(values: list[str], empty: str) -> str:
-    if not values:
-        return f"- {empty}"
-    return "\n".join(f"- {value}" for value in values)
-
-
-def trajectory_evidence(summary: dict[str, object], trace_info: dict[str, int | bool], gaps: list[str]) -> str:
+def trajectory_evidence(
+    summary: dict[str, object], trace_info: dict[str, int | bool], gaps: list[str]
+) -> str:
     tool_counts = summary["tool_counts"]
     assert isinstance(tool_counts, dict)
     top_tools = sorted(tool_counts.items(), key=lambda item: (-item[1], item[0]))[:8]
@@ -479,7 +509,9 @@ def trajectory_evidence(summary: dict[str, object], trace_info: dict[str, int | 
 
 
 def wrap_level(text: str, prefix: str = "      ") -> str:
-    return fill(clean_inline(text), width=112, initial_indent=prefix, subsequent_indent=prefix)
+    return fill(
+        clean_inline(text), width=112, initial_indent=prefix, subsequent_indent=prefix
+    )
 
 
 def adaptive_level_values(max_points: int) -> dict[str, int]:
@@ -510,7 +542,9 @@ def format_levels(levels: dict[str, int]) -> str:
     return " ".join(f"{letter}={value}" for letter, value in levels.items())
 
 
-def render_level_block(max_points: int, complete: str, partial: str, failure: str) -> str:
+def render_level_block(
+    max_points: int, complete: str, partial: str, failure: str
+) -> str:
     levels = adaptive_level_values(max_points)
     letters = list(levels)
     lines = [f"    Levels: {format_levels(levels)}", wrap_level("[A]: " + complete)]
@@ -543,7 +577,12 @@ def build_rubric(bundle: TaskBundle) -> str:
     trace_info = parse_trace_artifacts(bundle.trace_path, bundle.answer_path)
     gaps = parse_evaluation_gaps(bundle.evaluation_paths)
     baseline = summarize_outcome_baseline(criteria)
-    core_requirements = short_text("; ".join(f"C{criterion.number} {criterion.title}" for criterion in criteria[:6]), 520)
+    core_requirements = short_text(
+        "; ".join(
+            f"C{criterion.number} {criterion.title}" for criterion in criteria[:6]
+        ),
+        520,
+    )
 
     text = f"""PROCESS RUBRIC: {bundle.task_id.upper()}
 
@@ -648,12 +687,17 @@ def validate_rubric_text(task_id: str, text: str, original: str) -> list[str]:
         errors.append(f"{task_id}: generated rubric matches original rubric")
     if "trajectory" not in text.lower() or "process" not in text.lower():
         errors.append(f"{task_id}: generated rubric lacks process/trajectory language")
-    if "Evidence-gated scoring rules" not in text and "evidence-gated" not in text.lower():
+    if (
+        "Evidence-gated scoring rules" not in text
+        and "evidence-gated" not in text.lower()
+    ):
         errors.append(f"{task_id}: generated rubric lacks evidence-gated scoring rules")
     parsed = parse_rubric_levels(text)
     bodies = parse_rubric_bodies(text)
     if len(parsed) < 6:
-        errors.append(f"{task_id}: expected at least 6 parseable criteria, found {len(parsed)}")
+        errors.append(
+            f"{task_id}: expected at least 6 parseable criteria, found {len(parsed)}"
+        )
         return errors
     total = sum(levels.get("A", 0) for levels in parsed.values())
     if total != 100:
@@ -665,23 +709,36 @@ def validate_rubric_text(task_id: str, text: str, original: str) -> list[str]:
         if len(letters) < 3:
             errors.append(f"{task_id}: {criterion} has fewer than 3 levels: {levels}")
         elif letters != expected_letters:
-            errors.append(f"{task_id}: {criterion} levels are not contiguous from A: {levels}")
+            errors.append(
+                f"{task_id}: {criterion} levels are not contiguous from A: {levels}"
+            )
         elif values[-1] != 0:
             errors.append(f"{task_id}: {criterion} lowest level is not zero: {levels}")
         elif any(left <= right for left, right in zip(values, values[1:])):
-            errors.append(f"{task_id}: {criterion} levels are not strictly descending: {levels}")
+            errors.append(
+                f"{task_id}: {criterion} levels are not strictly descending: {levels}"
+            )
         body = bodies.get(criterion, "")
         for letter in letters:
-            if not re.search(rf"^\s*\[{re.escape(letter)}\]\s*:", body, flags=re.MULTILINE):
-                errors.append(f"{task_id}: {criterion} missing [{letter}] level description")
+            if not re.search(
+                rf"^\s*\[{re.escape(letter)}\]\s*:", body, flags=re.MULTILINE
+            ):
+                errors.append(
+                    f"{task_id}: {criterion} missing [{letter}] level description"
+                )
     return errors
 
 
 def validate_generated(tasks_dir: Path, *, expected_tasks: int = 45) -> list[str]:
     errors: list[str] = []
-    paths = sorted(tasks_dir.glob(f"da-*/tests/{OUTPUT_NAME}"), key=lambda path: task_sort_key(path.parents[1]))
+    paths = sorted(
+        tasks_dir.glob(f"da-*/tests/{OUTPUT_NAME}"),
+        key=lambda path: task_sort_key(path.parents[1]),
+    )
     if len(paths) != expected_tasks:
-        errors.append(f"expected {expected_tasks} {OUTPUT_NAME} files, found {len(paths)}")
+        errors.append(
+            f"expected {expected_tasks} {OUTPUT_NAME} files, found {len(paths)}"
+        )
     for path in paths:
         task_id = path.parents[1].name
         text = path.read_text(errors="replace")
@@ -706,7 +763,9 @@ class ProcessRubricGenerator:
     def run(self) -> int:
         bundles = discover_bundles(self.config.tasks_dir, self.config.run_dir)
         if len(bundles) != self.config.expected_tasks:
-            print(f"ERROR: expected {self.config.expected_tasks} task directories, found {len(bundles)}")
+            print(
+                f"ERROR: expected {self.config.expected_tasks} task directories, found {len(bundles)}"
+            )
             return 1
 
         missing = validate_inputs(bundles)
@@ -722,7 +781,9 @@ class ProcessRubricGenerator:
         rewrite_bundles = self.rewrite_bundles(bundles)
 
         print(f"Inventory passed for {len(bundles)} tasks.")
-        print(f"Using {len(bundles) - len(rewrite_bundles)} in-context example rubric(s): {', '.join(self.example_task_ids_in_catalog(bundles))}")
+        print(
+            f"Using {len(bundles) - len(rewrite_bundles)} in-context example rubric(s): {', '.join(self.example_task_ids_in_catalog(bundles))}"
+        )
         print(f"Rewriting {len(rewrite_bundles)} task rubric(s).")
         print(f"Mode: LLM rewrite with model {self.config.model}")
         print(f"Max concurrency: {self.config.max_concurrency}")
@@ -738,7 +799,9 @@ class ProcessRubricGenerator:
                 print(f"    audit: {record['path']}")
             return 1
 
-        errors = validate_generated(self.config.tasks_dir, expected_tasks=self.config.expected_tasks)
+        errors = validate_generated(
+            self.config.tasks_dir, expected_tasks=self.config.expected_tasks
+        )
         if errors:
             print("ERROR: post-write validation failed:")
             print(indent("\n".join(errors), "  "))
@@ -748,7 +811,9 @@ class ProcessRubricGenerator:
 
     def example_task_ids_in_catalog(self, bundles: list[TaskBundle]) -> tuple[str, ...]:
         available = {bundle.task_id for bundle in bundles}
-        return tuple(task_id for task_id in self.config.example_task_ids if task_id in available)
+        return tuple(
+            task_id for task_id in self.config.example_task_ids if task_id in available
+        )
 
     def rewrite_bundles(self, bundles: list[TaskBundle]) -> list[TaskBundle]:
         examples = set(self.example_task_ids_in_catalog(bundles))
@@ -768,7 +833,13 @@ class ProcessRubricGenerator:
             if not rubric_path.is_file():
                 errors.append(f"{task_id}: missing original rubric.txt")
                 continue
-            errors.extend(validate_rubric_text(task_id, process_path.read_text(errors="replace"), rubric_path.read_text(errors="replace")))
+            errors.extend(
+                validate_rubric_text(
+                    task_id,
+                    process_path.read_text(errors="replace"),
+                    rubric_path.read_text(errors="replace"),
+                )
+            )
         return errors
 
     def write_all(self, bundles: list[TaskBundle]) -> list[dict[str, str]]:
@@ -783,7 +854,9 @@ class ProcessRubricGenerator:
                 return records
 
             records: list[dict[str, str] | None] = [None] * len(bundles)
-            with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as executor:
+            with ThreadPoolExecutor(
+                max_workers=self.config.max_concurrency
+            ) as executor:
                 futures = {}
                 for index, bundle in enumerate(bundles):
                     progress.record(bundle.task_id, "submitted")
@@ -809,9 +882,17 @@ class ProcessRubricGenerator:
         output_path = bundle.task_dir / "tests" / OUTPUT_NAME
         print(f"start {bundle.task_id}", file=sys.stderr, flush=True)
         if self.config.resume and output_path.is_file():
-            errors = validate_rubric_text(bundle.task_id, output_path.read_text(errors="replace"), read_text(bundle.rubric_path))
+            errors = validate_rubric_text(
+                bundle.task_id,
+                output_path.read_text(errors="replace"),
+                read_text(bundle.rubric_path),
+            )
             if not errors and self.success_marker_path(bundle).is_file():
-                return {"task": bundle.task_id, "status": "resumed", "path": str(output_path)}
+                return {
+                    "task": bundle.task_id,
+                    "status": "resumed",
+                    "path": str(output_path),
+                }
 
         try:
             rubric = self.rewrite_with_retries(bundle)
@@ -842,7 +923,9 @@ class ProcessRubricGenerator:
             "output_path": str(output_path),
             "model": self.config.model,
         }
-        self.success_marker_path(bundle).write_text(json.dumps(payload, indent=2) + "\n")
+        self.success_marker_path(bundle).write_text(
+            json.dumps(payload, indent=2) + "\n"
+        )
 
     def write_failure_artifact(self, bundle: TaskBundle, error: str) -> None:
         audit_dir = self.task_audit_dir(bundle)
@@ -861,9 +944,13 @@ class ProcessRubricGenerator:
         audit_dir = self.task_audit_dir(bundle)
         audit_dir.mkdir(parents=True, exist_ok=True)
         prefix = f"attempt-{attempt:02d}"
-        (audit_dir / f"{prefix}-request.json").write_text(json.dumps(asdict(request), indent=2) + "\n")
+        (audit_dir / f"{prefix}-request.json").write_text(
+            json.dumps(asdict(request), indent=2) + "\n"
+        )
         if response_text is not None:
-            (audit_dir / f"{prefix}-response.txt").write_text(response_text.rstrip() + "\n")
+            (audit_dir / f"{prefix}-response.txt").write_text(
+                response_text.rstrip() + "\n"
+            )
         if error is not None:
             (audit_dir / f"{prefix}-error.txt").write_text(error.rstrip() + "\n")
 
@@ -874,12 +961,21 @@ class ProcessRubricGenerator:
             self.write_attempt_artifacts(bundle, attempt, request)
             try:
                 rubric = self.rewriter.rewrite(request)
-                self.write_attempt_artifacts(bundle, attempt, request, response_text=rubric)
-                validation_errors = validate_rubric_text(bundle.task_id, rubric, read_text(bundle.rubric_path))
+                self.write_attempt_artifacts(
+                    bundle, attempt, request, response_text=rubric
+                )
+                validation_errors = validate_rubric_text(
+                    bundle.task_id, rubric, read_text(bundle.rubric_path)
+                )
                 if validation_errors:
                     raise ValueError("; ".join(validation_errors))
                 return rubric
-            except (ValueError, RuntimeError, json.JSONDecodeError, ProcessRubricRewriteError) as exc:
+            except (
+                ValueError,
+                RuntimeError,
+                json.JSONDecodeError,
+                ProcessRubricRewriteError,
+            ) as exc:
                 raw_response = getattr(exc, "raw_response", None)
                 self.write_attempt_artifacts(
                     bundle,
@@ -895,9 +991,13 @@ class ProcessRubricGenerator:
                         file=sys.stderr,
                         flush=True,
                     )
-        raise RuntimeError(f"Rubric rewrite failed after {self.config.max_retries + 1} attempt(s): {'; '.join(errors)}")
+        raise RuntimeError(
+            f"Rubric rewrite failed after {self.config.max_retries + 1} attempt(s): {'; '.join(errors)}"
+        )
 
-    def build_request(self, bundle: TaskBundle, errors: tuple[str, ...] = ()) -> ProcessRubricRequest:
+    def build_request(
+        self, bundle: TaskBundle, errors: tuple[str, ...] = ()
+    ) -> ProcessRubricRequest:
         instruction = read_text(bundle.instruction_path)
         rubric = read_text(bundle.rubric_path)
         trajectory_summary = parse_trajectory_summary(bundle.trajectory_path)
@@ -906,17 +1006,25 @@ class ProcessRubricGenerator:
         evidence = trajectory_evidence(trajectory_summary, trace_info, gaps)
         budget = self.config.max_input_chars
         example_budget = max(8_000, budget // 2)
-        examples = self.example_process_rubrics(bundle.task_id, max_chars=example_budget)
+        examples = self.example_process_rubrics(
+            bundle.task_id, max_chars=example_budget
+        )
         remaining_budget = max(10_000, budget - len(examples))
         return ProcessRubricRequest(
             task_id=bundle.task_id,
             example_process_rubrics_txt=examples,
             instruction_md=truncate(instruction, remaining_budget * 15 // 100),
             original_rubric_txt=truncate(rubric, remaining_budget * 15 // 100),
-            deterministic_draft_txt=truncate(build_rubric(bundle), remaining_budget * 20 // 100),
+            deterministic_draft_txt=truncate(
+                build_rubric(bundle), remaining_budget * 20 // 100
+            ),
             trajectory_evidence_txt=truncate(evidence, remaining_budget * 10 // 100),
-            trace_md=truncate(read_text(bundle.trace_path), remaining_budget * 25 // 100),
-            answer_txt=truncate(read_text(bundle.answer_path), remaining_budget * 15 // 100),
+            trace_md=truncate(
+                read_text(bundle.trace_path), remaining_budget * 25 // 100
+            ),
+            answer_txt=truncate(
+                read_text(bundle.answer_path), remaining_budget * 15 // 100
+            ),
             previous_errors=errors,
         )
 
@@ -944,31 +1052,9 @@ class ProcessRubricGenerator:
         return "\n\n".join(blocks)
 
 
-class ProcessRubricProgress:
+class ProcessRubricProgress(TerminalProgress):
     def __init__(self, *, total: int) -> None:
-        self.total = total
-        self._bar: Any = None
-
-    def __enter__(self) -> "ProcessRubricProgress":
-        if tqdm is not None:
-            self._bar = tqdm(
-                total=self.total,
-                desc="rewrite rubrics",
-                unit="task",
-                dynamic_ncols=True,
-                bar_format=PROGRESS_BAR_FORMAT,
-                file=sys.stderr,
-            )
-        return self
-
-    def __exit__(self, exc_type, exc, traceback) -> None:
-        if self._bar is not None:
-            self._bar.close()
+        super().__init__(total=total, description="rewrite rubrics", unit="task")
 
     def record(self, task: str, status: str) -> None:
-        if self._bar is not None:
-            self._bar.set_postfix_str(f"{task}: {status}")
-
-    def update(self) -> None:
-        if self._bar is not None:
-            self._bar.update(1)
+        self.set_status(f"{task}: {status}")

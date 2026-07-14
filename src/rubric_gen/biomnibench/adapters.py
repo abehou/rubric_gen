@@ -157,4 +157,6 @@ class AgentAdapterRegistry:
             return self._adapters[provider]
         except KeyError as exc:
             allowed = ", ".join(self.names)
-            raise SystemExit(f"Unknown provider `{provider}`. Choose one of: {allowed}") from exc
+            raise SystemExit(
+                f"Unknown provider `{provider}`. Choose one of: {allowed}"
+            ) from exc

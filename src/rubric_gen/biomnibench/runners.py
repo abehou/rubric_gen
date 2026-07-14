@@ -7,7 +7,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,17 +18,12 @@ from rubric_gen.biomnibench.common import (
     BatchRunPaths,
     BatchRunConfig,
     CompletedRunIndex,
-    PROGRESS_BAR_FORMAT,
     RunCost,
     RunPaths,
     TaskCatalog,
     TaskWorkspace,
+    TerminalProgress,
 )
-
-try:
-    from tqdm.auto import tqdm
-except ImportError:  # pragma: no cover - exercised only without optional dependency.
-    tqdm = None
 
 
 @dataclass(frozen=True)
@@ -95,7 +89,9 @@ class AgentRunner:
     def ensure_executable(self) -> None:
         executable = self.adapter.executable(self.config)
         if shutil.which(executable) is None:
-            raise SystemExit(f"Could not find `{executable}` on PATH. {self.adapter.install_hint()}")
+            raise SystemExit(
+                f"Could not find `{executable}` on PATH. {self.adapter.install_hint()}"
+            )
 
     def build_command(self, paths: RunPaths) -> list[str]:
         return self.adapter.build_command(paths, self.config)
@@ -163,7 +159,11 @@ class AgentRunner:
                 if event_type == "error":
                     message = event.get("message") or event.get("error") or "unknown"
                     errors.append(f"trajectory_error: {message}")
-                if event_type == "result" and status not in (None, "success", "completed"):
+                if event_type == "result" and status not in (
+                    None,
+                    "success",
+                    "completed",
+                ):
                     errors.append(f"trajectory_result_status: {status}")
         return errors
 
@@ -245,7 +245,9 @@ class AgentRunner:
                 **validation.fields(),
             }
             attempts.append(attempt_record)
-            if exit_code == 0 or not self.should_retry(attempt, max_attempts, validation):
+            if exit_code == 0 or not self.should_retry(
+                attempt, max_attempts, validation
+            ):
                 break
             self.archive_attempt(paths, attempt, attempt_record)
 
@@ -290,7 +292,9 @@ class AgentRunner:
         for filename in ("trace.md", "answer.txt"):
             output_path = paths.workspace_dir / filename
             if output_path.is_file():
-                shutil.copy2(output_path, attempts_dir / f"attempt-{attempt}.{filename}")
+                shutil.copy2(
+                    output_path, attempts_dir / f"attempt-{attempt}.{filename}"
+                )
         (attempts_dir / f"attempt-{attempt}.status.json").write_text(
             json.dumps(attempt_record, indent=2) + "\n"
         )
@@ -348,7 +352,9 @@ class BiomniBenchBatchRunner:
         validation = validation or RunValidation.from_status(paths.status_path)
         validation = validation or self.agent_runner.validate_outputs(paths)
         process_exit_code = status.get("process_exit_code", exit_code)
-        effective_exit_code = status.get("exit_code", validation.effective_exit_code(process_exit_code))
+        effective_exit_code = status.get(
+            "exit_code", validation.effective_exit_code(process_exit_code)
+        )
         return {
             "provider": self.config.provider,
             "task": task_dir.name,
@@ -403,10 +409,13 @@ class BiomniBenchBatchRunner:
         attempted = 0
         overall_exit = 0
         runnable: list[tuple[int, Path]] = []
-        with self.summary_path.open("a") as summary, BatchProgress(
-            self.batch_paths,
-            total=len(tasks),
-        ) as progress:
+        with (
+            self.summary_path.open("a") as summary,
+            BatchProgress(
+                self.batch_paths,
+                total=len(tasks),
+            ) as progress,
+        ):
             for index, task_dir in enumerate(tasks, start=1):
                 completed = None
                 if not self.config.force:
@@ -419,7 +428,12 @@ class BiomniBenchBatchRunner:
                     continue
 
                 if self.config.limit is not None and attempted >= self.config.limit:
-                    progress.record(index, task_dir.name, "limit_reached", {"limit": self.config.limit})
+                    progress.record(
+                        index,
+                        task_dir.name,
+                        "limit_reached",
+                        {"limit": self.config.limit},
+                    )
                     break
 
                 attempted += 1
@@ -438,7 +452,9 @@ class BiomniBenchBatchRunner:
                         if not self.config.continue_on_error:
                             break
             else:
-                with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as executor:
+                with ThreadPoolExecutor(
+                    max_workers=self.config.max_concurrency
+                ) as executor:
                     futures = {
                         executor.submit(self.run_task, task_dir): (index, task_dir)
                         for index, task_dir in runnable
@@ -447,7 +463,9 @@ class BiomniBenchBatchRunner:
                         index, task_dir = futures[future]
                         exit_code, _task_dir, _paths, record = future.result()
                         self.write_summary(summary, record)
-                        progress.record(index, task_dir.name, str(record["status"]), record)
+                        progress.record(
+                            index, task_dir.name, str(record["status"]), record
+                        )
                         progress.update()
                         if exit_code != 0:
                             overall_exit = exit_code
@@ -464,30 +482,24 @@ class BiomniBenchBatchRunner:
         return exit_code, task_dir, paths, record
 
 
-class BatchProgress:
+class BatchProgress(TerminalProgress):
     def __init__(self, paths: BatchRunPaths, *, total: int) -> None:
+        super().__init__(
+            total=total,
+            description=f"{paths.provider} tasks",
+            unit="task",
+        )
         self.paths = paths
-        self.total = total
         self._log: TextIO | None = None
-        self._bar: Any = None
 
     def __enter__(self) -> "BatchProgress":
         self.paths.progress_path.parent.mkdir(parents=True, exist_ok=True)
         self._log = self.paths.progress_path.open("a")
-        if tqdm is not None:
-            self._bar = tqdm(
-                total=self.total,
-                desc=f"{self.paths.provider} tasks",
-                unit="task",
-                dynamic_ncols=True,
-                bar_format=PROGRESS_BAR_FORMAT,
-                file=sys.stderr,
-            )
+        super().__enter__()
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:
-        if self._bar is not None:
-            self._bar.close()
+        super().__exit__(exc_type, exc, traceback)
         if self._log is not None:
             self._log.close()
 
@@ -509,9 +521,4 @@ class BatchProgress:
         if self._log is not None:
             self._log.write(json.dumps(record) + "\n")
             self._log.flush()
-        if self._bar is not None:
-            self._bar.set_postfix_str(f"{task}: {event}")
-
-    def update(self) -> None:
-        if self._bar is not None:
-            self._bar.update(1)
+        self.set_status(f"{task}: {event}")

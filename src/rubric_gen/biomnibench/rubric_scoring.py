@@ -27,16 +27,12 @@ _CRITERION_PATTERN = re.compile(
     r"^[ \t]*Criterion[ \t]+(\d+)[ \t]*:",
     flags=re.MULTILINE,
 )
-_CRITERION_CANDIDATE_PATTERN = re.compile(
-    r"^[ \t]*Criterion(?:[ \t]+\d+\b|[ \t]*$)"
-)
+_CRITERION_CANDIDATE_PATTERN = re.compile(r"^[ \t]*Criterion(?:[ \t]+\d+\b|[ \t]*$)")
 _LEVELS_LINE_PATTERN = re.compile(
     r"^[ \t]*Levels:[ \t]*(.*?)[ \t]*$",
     flags=re.MULTILINE,
 )
-_LEVELS_VALUE_PATTERN = re.compile(
-    r"[A-Z]=[+-]?\d+(?:[ \t]+[A-Z]=[+-]?\d+)*"
-)
+_LEVELS_VALUE_PATTERN = re.compile(r"[A-Z]=[+-]?\d+(?:[ \t]+[A-Z]=[+-]?\d+)*")
 _LEVEL_PATTERN = re.compile(r"([A-Z])=([+-]?\d+)")
 
 
@@ -74,8 +70,10 @@ def parse_rubric_levels_strict(rubric_text: str) -> dict[str, dict[str, int]]:
                 f"rubric contains duplicate criterion: {criterion_key}"
             )
 
-        body_end = headers[index + 1].start() if index + 1 < len(headers) else len(rubric_text)
-        body = rubric_text[header.end():body_end]
+        body_end = (
+            headers[index + 1].start() if index + 1 < len(headers) else len(rubric_text)
+        )
+        body = rubric_text[header.end() : body_end]
         levels_lines = list(_LEVELS_LINE_PATTERN.finditer(body))
         if len(levels_lines) != 1:
             raise JudgeScoreValidationError(
@@ -168,7 +166,11 @@ def _validate_rubric_levels(value: object) -> dict[str, dict[str, int]]:
 
     validated: dict[str, dict[str, int]] = {}
     for criterion_key, raw_levels in value.items():
-        if type(criterion_key) is not str or type(raw_levels) is not dict or not raw_levels:
+        if (
+            type(criterion_key) is not str
+            or type(raw_levels) is not dict
+            or not raw_levels
+        ):
             raise JudgeScoreValidationError("rubric_levels has an invalid criterion")
         levels: dict[str, int] = {}
         for label, points in raw_levels.items():

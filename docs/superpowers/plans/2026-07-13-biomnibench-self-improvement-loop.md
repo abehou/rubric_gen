@@ -1,5 +1,12 @@
 # BiomniBench Self-Improvement Loop Implementation Plan
 
+**Date:** 2026-07-13
+
+**Status:** Superseded and deferred
+
+**Disposition:** Work is preserved on `codex/harness-self-improvement-backup`;
+the current implementation direction is the submission-revision loop.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a runnable five-condition `(1 + lambda)` harness hill climber for BiomniBench-DA with an editable Python tool-use agent, frozen solver broker, controlled versus unrestricted evaluator surfaces, append-only provenance, canonical rescoring, and a post-search hidden audit.

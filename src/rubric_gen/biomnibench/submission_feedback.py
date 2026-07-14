@@ -98,39 +98,11 @@ def project_feedback(
     """Return the policy-specific view of one validated judge evaluation."""
 
     validation = _load_object(score_validation_path, "score validation")
-    if (
-        type(expected_rubric_sha256) is not str
-        or len(expected_rubric_sha256) != 64
-        or any(
-            character not in "0123456789abcdef" for character in expected_rubric_sha256
-        )
-    ):
-        raise ValueError("expected_rubric_sha256 must be a lowercase SHA-256 digest")
-    if validation.get("rendered_rubric_sha256") != expected_rubric_sha256:
-        raise ValueError("score validation does not attest the frozen rubric")
-    if type(rubric_text) is not str or not rubric_text.strip():
-        raise ValueError("rubric_text must be a non-empty string")
-    if (
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest()
-        != expected_rubric_sha256
-    ):
-        raise ValueError("rubric_text does not match the frozen rubric identity")
-    score = _integer(validation, "score")
-    raw_score = _integer(validation, "raw_score")
-    if not 0 <= score <= 100:
-        raise ValueError("score validation score must be between 0 and 100")
-
-    selected_levels = _string_map(validation, "selected_levels")
-    criterion_scores = _integer_map(validation, "criterion_scores")
-    if set(selected_levels) != set(criterion_scores):
-        raise ValueError(
-            "score validation selected_levels and criterion_scores must have "
-            "the same criteria"
-        )
-    if raw_score != sum(criterion_scores.values()):
-        raise ValueError("score validation raw_score does not match criterion scores")
-    if score != max(0, min(100, raw_score)):
-        raise ValueError("score validation score does not match raw_score")
+    score, raw_score, selected_levels, criterion_scores = _validate_score_record(
+        validation,
+        rubric_text,
+        expected_rubric_sha256,
+    )
 
     try:
         resolved_policy = FeedbackPolicy(policy)
@@ -151,7 +123,72 @@ def project_feedback(
 
     if type(max_reason_chars) is not int or max_reason_chars < 0:
         raise ValueError("max_reason_chars must be a non-negative integer")
+    payload = _project_full_payload(
+        validation=validation,
+        evaluation_path=evaluation_path,
+        rubric_text=rubric_text,
+        score=score,
+        raw_score=raw_score,
+        selected_levels=selected_levels,
+        criterion_scores=criterion_scores,
+        max_reason_chars=max_reason_chars,
+    )
+    prompt = render_feedback_prompt(payload)
+    return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
 
+
+def _validate_score_record(
+    validation: dict[str, object],
+    rubric_text: str,
+    expected_rubric_sha256: str,
+) -> tuple[int, int, dict[str, str], dict[str, int]]:
+    if (
+        type(expected_rubric_sha256) is not str
+        or len(expected_rubric_sha256) != 64
+        or any(
+            character not in "0123456789abcdef" for character in expected_rubric_sha256
+        )
+    ):
+        raise ValueError("expected_rubric_sha256 must be a lowercase SHA-256 digest")
+    if validation.get("rendered_rubric_sha256") != expected_rubric_sha256:
+        raise ValueError("score validation does not attest the frozen rubric")
+    if type(rubric_text) is not str or not rubric_text.strip():
+        raise ValueError("rubric_text must be a non-empty string")
+    if (
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest()
+        != expected_rubric_sha256
+    ):
+        raise ValueError("rubric_text does not match the frozen rubric identity")
+
+    score = _integer(validation, "score")
+    raw_score = _integer(validation, "raw_score")
+    if not 0 <= score <= 100:
+        raise ValueError("score validation score must be between 0 and 100")
+    selected_levels = _string_map(validation, "selected_levels")
+    criterion_scores = _integer_map(validation, "criterion_scores")
+    if set(selected_levels) != set(criterion_scores):
+        raise ValueError(
+            "score validation selected_levels and criterion_scores must have "
+            "the same criteria"
+        )
+    if raw_score != sum(criterion_scores.values()):
+        raise ValueError("score validation raw_score does not match criterion scores")
+    if score != max(0, min(100, raw_score)):
+        raise ValueError("score validation score does not match raw_score")
+    return score, raw_score, selected_levels, criterion_scores
+
+
+def _project_full_payload(
+    *,
+    validation: dict[str, object],
+    evaluation_path: Path,
+    rubric_text: str,
+    score: int,
+    raw_score: int,
+    selected_levels: dict[str, str],
+    criterion_scores: dict[str, int],
+    max_reason_chars: int,
+) -> dict[str, object]:
     evaluation_raw = evaluation_path.read_bytes()
     expected_evaluation_sha256 = validation.get("evaluation_sha256")
     if type(expected_evaluation_sha256) is not str:
@@ -182,21 +219,18 @@ def project_feedback(
             "judge_reason": _bounded_text(reason, max_reason_chars),
         }
 
-    overall_reasoning = _bounded_text(
-        evaluation.get("reasoning", ""),
-        max_reason_chars,
-    )
-    payload = {
+    return {
         "schema_version": 1,
-        "policy": resolved_policy.value,
+        "policy": FeedbackPolicy.FULL.value,
         "rubric_text": rubric_text,
         "score": score,
         "raw_score": raw_score,
         "criteria": criteria,
-        "overall_reasoning": overall_reasoning,
+        "overall_reasoning": _bounded_text(
+            evaluation.get("reasoning", ""),
+            max_reason_chars,
+        ),
     }
-    prompt = render_feedback_prompt(payload)
-    return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
 
 
 def _load_object(path: Path, context: str) -> dict[str, object]:

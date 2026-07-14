@@ -406,9 +406,6 @@ class CliSolverSessionDriver:
                 reported_model = model
         return reported_session_id, reported_model
 
-    def _reported_session_id(self, stream_path: Path) -> str:
-        return self._reported_session_metadata(stream_path)[0]
-
     def _session_metadata_from_line(self, line: str) -> tuple[str, str | None]:
         try:
             event = json.loads(line)

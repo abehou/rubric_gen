@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
-import hashlib
+import argparse
 import json
 import os
 import secrets
-import shutil
 import stat
 import tempfile
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
-from typing import Protocol
 
-from rubric_gen.biomnibench.common import AgentRunConfig, PROMPT, TaskWorkspace
-from rubric_gen.biomnibench.judges import (
-    BiomniBenchJudgeRunner,
-    JudgeAttempt,
-    JudgeRunConfig,
-    JudgeTarget,
+from rubric_gen.biomnibench.common import (
+    PROMPT,
+    AgentRunConfig,
+    TaskWorkspace,
+    resolve_project_path,
 )
-from rubric_gen.biomnibench.rubric_scoring import RUBRIC_SCORER_VERSION
 from rubric_gen.biomnibench.session_drivers import (
     CliSolverSessionDriver,
     SolverSessionDriver,
@@ -29,54 +26,31 @@ from rubric_gen.biomnibench.submission_feedback import (
     FeedbackPolicy,
     project_feedback,
 )
-from rubric_gen.biomnibench.task_rubric_compiler import resolve_rubric_bundle
-
-
-_EXCLUDED_SOLUTION_NAMES = frozenset(
-    {
-        ".git",
-        ".mypy_cache",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".venv",
-        "__pycache__",
-        "data",
-        "instruction.md",
-    }
+from rubric_gen.biomnibench.submission_revision_artifacts import (
+    LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
+    copy_solution_workspace as _copy_solution_workspace,
+    make_read_only as _make_read_only,
+    make_tree_read_only as _make_tree_read_only,
+    read_json_object as _read_json_object,
+    remove_created_live_tree as _remove_created_live_tree,
+    remove_live_tree as _remove_tree,
+    sha256_file as _sha256_file,
+    solution_tree_sha256 as _solution_tree_sha256,
+    tree_sha256 as _tree_sha256,
+    validate_live_root as _validate_live_root,
+    verify_submission_snapshot as _verify_submission_snapshot,
+    write_json as _write_json,
+    write_json_atomic as _write_json_atomic,
+    write_live_root_sentinel as _write_live_root_sentinel,
 )
-
-_LIVE_ROOT_PREFIX = "biomnibench-revision-live-"
-_LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
-
-_SCORING_IDENTITY_KEYS = (
-    "scorer_version",
-    "judge_source_sha256",
-    "judge_runner_sha256",
-    "scorer_module_sha256",
-    "effective_judge_model",
-    "review_mode",
-    "max_review_chars",
-    "rubric_source",
-    "rubric_set_id",
-    "rubric_id",
-    "structured_rubric_sha256",
-    "rendered_rubric_sha256",
-    "manifest_sha256",
+from rubric_gen.biomnibench.submission_revision_judge import (
+    SCORING_IDENTITY_KEYS as _SCORING_IDENTITY_KEYS,
+    BiomniSubmissionJudge,
+    JudgeArtifacts as JudgeArtifacts,
+    SubmissionJudge,
+    SubmissionJudgeConfig,
+    resolve_optimizer_rubric as _resolve_optimizer_rubric,
 )
-
-
-@dataclass(frozen=True)
-class JudgeArtifacts:
-    score_validation_path: Path
-    evaluation_path: Path
-
-
-class SubmissionJudge(Protocol):
-    def scoring_identity(self) -> dict[str, object]: ...
-
-    def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts: ...
-
-    def validate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts: ...
 
 
 @dataclass(frozen=True)
@@ -104,6 +78,34 @@ class SubmissionRevisionConfig:
             raise ValueError("submission revision requires an explicit solver model")
         FeedbackPolicy(self.feedback_policy)
 
+    def judge_config(self) -> SubmissionJudgeConfig:
+        return SubmissionJudgeConfig(
+            task_dir=self.task_dir,
+            experiment_dir=self.experiment_dir,
+            review=self.review,
+            judge_model=self.judge_model,
+            rubric_name=self.rubric_name,
+            rubric_set=self.rubric_set,
+            max_review_chars=self.max_review_chars,
+        )
+
+    @classmethod
+    def from_namespace(cls, args: argparse.Namespace) -> "SubmissionRevisionConfig":
+        rubric_set = getattr(args, "rubric_set", None)
+        return cls(
+            task_dir=resolve_project_path(args.task),
+            experiment_dir=resolve_project_path(args.experiment_dir),
+            revision_rounds=args.revision_rounds,
+            agent=AgentRunConfig.from_namespace(args),
+            feedback_policy=FeedbackPolicy(args.feedback_policy),
+            review=args.review,
+            judge_model=args.judge_model,
+            rubric_name=args.rubric,
+            rubric_set=resolve_project_path(rubric_set) if rubric_set else None,
+            max_review_chars=args.max_review_chars,
+            resume=args.resume,
+        )
+
 
 @dataclass(frozen=True)
 class RevisionDependencies:
@@ -119,20 +121,18 @@ class SubmissionRevisionResult:
     scores: tuple[int, ...]
 
 
-@dataclass(frozen=True)
-class _FrozenRubric:
-    text: str
-    sha256: str
-    source: str
-    rubric_set_id: str | None
-    rubric_id: str | None
-    structured_rubric_sha256: str | None
-    manifest_sha256: str | None
+class _RevisionPhase(StrEnum):
+    READY_FOR_TURN = "ready_for_turn"
+    TURN_IN_PROGRESS = "turn_in_progress"
+    READY_FOR_JUDGE = "ready_for_judge"
+    JUDGE_IN_PROGRESS = "judge_in_progress"
+    FAILED_TURN = "failed_turn"
+    COMPLETED = "completed"
 
 
 @dataclass
 class _RevisionState:
-    phase: str
+    phase: _RevisionPhase
     next_turn_index: int
     session_id: str | None
     effective_solver_model: str | None
@@ -154,6 +154,52 @@ class _RevisionState:
             "next_prompt": self.next_prompt,
         }
 
+    @classmethod
+    def from_json(cls, payload: dict[str, object]) -> "_RevisionState":
+        phase = payload.get("phase")
+        next_turn_index = payload.get("next_turn_index")
+        session_id = payload.get("session_id")
+        effective_model = payload.get("effective_solver_model")
+        submission_ids = payload.get("submission_ids")
+        scores = payload.get("scores")
+        judge_attempts = payload.get("judge_attempts")
+        next_prompt = payload.get("next_prompt")
+        if (
+            payload.get("schema_version") != 1
+            or type(phase) is not str
+            or type(next_turn_index) is not int
+            or session_id is not None
+            and type(session_id) is not str
+            or effective_model is not None
+            and type(effective_model) is not str
+            or type(submission_ids) is not list
+            or any(type(value) is not str for value in submission_ids)
+            or type(scores) is not list
+            or any(type(value) is not int for value in scores)
+            or any(not 0 <= value <= 100 for value in scores)
+            or type(judge_attempts) is not dict
+            or any(
+                type(key) is not str or type(value) is not str
+                for key, value in judge_attempts.items()
+            )
+            or type(next_prompt) is not str
+        ):
+            raise RuntimeError("revision state has invalid fields")
+        try:
+            revision_phase = _RevisionPhase(phase)
+        except ValueError as exc:
+            raise RuntimeError(f"revision state has an invalid phase: {phase}") from exc
+        return cls(
+            phase=revision_phase,
+            next_turn_index=next_turn_index,
+            session_id=session_id,
+            effective_solver_model=effective_model,
+            submission_ids=list(submission_ids),
+            scores=list(scores),
+            judge_attempts=dict(judge_attempts),
+            next_prompt=next_prompt,
+        )
+
 
 class _SolverTurnFailure(RuntimeError):
     def __init__(self, message: str, exit_code: int) -> None:
@@ -161,175 +207,15 @@ class _SolverTurnFailure(RuntimeError):
         self.exit_code = exit_code
 
 
-class BiomniSubmissionJudge:
-    """Run the existing task judge against one immutable submission snapshot."""
-
-    def __init__(self, config: SubmissionRevisionConfig, rubric: _FrozenRubric) -> None:
-        self.config = config
-        self.rubric = rubric
-        self.experiment_dir = Path(config.experiment_dir).resolve()
-        self.task_dir = Path(config.task_dir).resolve()
-        self.rubric_set = (
-            Path(config.rubric_set).resolve() if config.rubric_set is not None else None
-        )
-
-    def scoring_identity(self) -> dict[str, object]:
-        runner = BiomniBenchJudgeRunner(
-            JudgeRunConfig(
-                run_dir=self.experiment_dir,
-                tasks_dir=self.task_dir.parent,
-                review=self.config.review,
-                model=self.config.judge_model,
-                rubric_name=self.config.rubric_name,
-                rubric_set=self.rubric_set,
-                max_review_chars=self.config.max_review_chars,
-            )
-        )
-        judge_path = runner.find_judge(self.task_dir)
-        return {
-            "scorer_version": RUBRIC_SCORER_VERSION,
-            "judge_source_sha256": _sha256_file(judge_path),
-            "judge_runner_sha256": runner.judge_runner_sha256(),
-            "scorer_module_sha256": runner.scorer_module_sha256(),
-            "effective_judge_model": runner.judge_model(os.environ.copy()),
-            "review_mode": self.config.review,
-            "max_review_chars": self.config.max_review_chars,
-            "rubric_source": self.rubric.source,
-            "rubric_set_id": self.rubric.rubric_set_id,
-            "rubric_id": self.rubric.rubric_id,
-            "structured_rubric_sha256": self.rubric.structured_rubric_sha256,
-            "rendered_rubric_sha256": self.rubric.sha256,
-            "manifest_sha256": self.rubric.manifest_sha256,
-        }
-
-    def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
-        evaluation_root = self._evaluation_root(submission_dir, attempt_id)
-        if os.path.lexists(evaluation_root):
-            try:
-                artifacts = self.validate(submission_dir, attempt_id)
-                _make_tree_read_only(evaluation_root)
-                return artifacts
-            except (OSError, RuntimeError, SystemExit, ValueError):
-                _remove_owned_evaluation_tree(
-                    evaluation_root,
-                    self.experiment_dir / "evaluations",
-                )
-        run_dir = _prepare_evaluation_run(submission_dir, evaluation_root)
-        runner, target = self._runner_and_target(run_dir)
-        record = runner.review_target(target)
-        if record.get("status") != "completed" or type(record.get("score")) is not int:
-            raise RuntimeError("optimizer judge did not produce a validated score")
-        artifacts = self._validated_cached_artifacts(
-            runner,
-            target,
-            evaluation_root,
-            submission_dir,
-        )
-        _make_tree_read_only(evaluation_root)
-        return artifacts
-
-    def validate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
-        evaluation_root = self._evaluation_root(submission_dir, attempt_id)
-        run_dir = evaluation_root / "run"
-        if (
-            evaluation_root.is_symlink()
-            or run_dir.is_symlink()
-            or not evaluation_root.is_dir()
-            or not run_dir.is_dir()
-        ):
-            raise RuntimeError(f"invalid optimizer evaluation: {evaluation_root}")
-        runner, target = self._runner_and_target(run_dir)
-        return self._validated_cached_artifacts(
-            runner,
-            target,
-            evaluation_root,
-            submission_dir,
-        )
-
-    def _evaluation_root(self, submission_dir: Path, attempt_id: str) -> Path:
-        if (
-            type(attempt_id) is not str
-            or len(attempt_id) != 32
-            or any(character not in "0123456789abcdef" for character in attempt_id)
-        ):
-            raise ValueError("judge attempt ID must be 128-bit lowercase hex")
-        return (
-            self.experiment_dir
-            / "evaluations"
-            / submission_dir.name
-            / self.rubric.sha256
-            / attempt_id
-        )
-
-    def _runner_and_target(
-        self,
-        run_dir: Path,
-    ) -> tuple[BiomniBenchJudgeRunner, JudgeTarget]:
-        runner = BiomniBenchJudgeRunner(
-            JudgeRunConfig(
-                run_dir=run_dir,
-                tasks_dir=self.task_dir.parent,
-                review=self.config.review,
-                model=self.config.judge_model,
-                rubric_name=self.config.rubric_name,
-                rubric_set=self.rubric_set,
-                max_review_chars=self.config.max_review_chars,
-                resume=True,
-            )
-        )
-        targets = runner.discover_targets()
-        if len(targets) != 1:
-            raise RuntimeError("submission judge did not resolve exactly one task")
-        target = targets[0]
-        resolved = runner.resolve_rubric(target)
-        if _sha256_text(resolved.text) != self.rubric.sha256:
-            raise RuntimeError("optimizer rubric changed during the revision loop")
-        return runner, target
-
-    def _validated_cached_artifacts(
-        self,
-        runner: BiomniBenchJudgeRunner,
-        target: JudgeTarget,
-        evaluation_root: Path,
-        submission_dir: Path,
-    ) -> JudgeArtifacts:
-        run_dir = evaluation_root / "run"
-        if _tree_sha256(run_dir / "workspace") != _tree_sha256(
-            submission_dir / "workspace"
-        ):
-            raise RuntimeError("optimizer evaluation workspace changed")
-        if _sha256_file(run_dir / "trajectory.stream.jsonl") != _sha256_file(
-            submission_dir / "trajectory.stream.jsonl"
-        ):
-            raise RuntimeError("optimizer evaluation trajectory changed")
-        output_dir = runner.output_dir(target)
-        completed = runner.completed_record(JudgeAttempt(target, 1))
-        if completed is None:
-            raise RuntimeError(
-                f"invalid cached optimizer evaluation: {evaluation_root}"
-            )
-        validation = _read_json_object(
-            output_dir / "score_validation.json",
-            "optimizer score validation",
-        )
-        if validation.get("rendered_rubric_sha256") != self.rubric.sha256:
-            raise RuntimeError("optimizer score does not attest the frozen rubric")
-        if validation.get("task") != self.task_dir.name:
-            raise RuntimeError("optimizer score attests a different task")
-        if validation.get("review_mode") != self.config.review:
-            raise RuntimeError("optimizer score attests a different review mode")
-        if validation.get("review_input_sha256") != _sha256_file(
-            output_dir / "judge_input_trace.md"
-        ):
-            raise RuntimeError("optimizer score does not attest the reviewed trace")
-        if validation.get("answer_input_sha256") != _sha256_file(
-            output_dir / "judge_input_answer.txt"
-        ):
-            raise RuntimeError("optimizer score does not attest the reviewed answer")
-        return JudgeArtifacts(
-            score_validation_path=output_dir / "score_validation.json",
-            evaluation_path=output_dir / "evaluation.json",
-        )
+def _extract_scoring_identity(
+    payload: dict[str, object],
+    *,
+    context: str,
+) -> dict[str, object]:
+    missing = [key for key in _SCORING_IDENTITY_KEYS if key not in payload]
+    if missing:
+        raise RuntimeError(f"{context} lacks scoring identity: {', '.join(missing)}")
+    return {key: payload[key] for key in _SCORING_IDENTITY_KEYS}
 
 
 class SubmissionRevisionController:
@@ -343,20 +229,52 @@ class SubmissionRevisionController:
         self.config = config
         self.experiment_dir = Path(config.experiment_dir).resolve()
         self.task_dir = Path(config.task_dir).resolve()
-        self.rubric = _resolve_optimizer_rubric(config, self.task_dir)
+        judge_config = config.judge_config()
+        self.rubric = _resolve_optimizer_rubric(judge_config)
         self.instruction_sha256 = _sha256_file(self.task_dir / "instruction.md")
         self.data_sha256 = _tree_sha256(self.task_dir / "environment" / "data")
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent),
-            judge=BiomniSubmissionJudge(config, self.rubric),
+            judge=BiomniSubmissionJudge(judge_config, self.rubric),
         )
-        self.scoring_identity = self.dependencies.judge.scoring_identity()
-        if set(self.scoring_identity) != set(_SCORING_IDENTITY_KEYS):
+        reported_scoring_identity = self.dependencies.judge.scoring_identity()
+        if set(reported_scoring_identity) != set(_SCORING_IDENTITY_KEYS):
             raise RuntimeError(
                 "submission judge returned an incomplete scoring identity"
             )
+        self.scoring_identity = _extract_scoring_identity(
+            reported_scoring_identity,
+            context="submission judge",
+        )
         if self.scoring_identity["rendered_rubric_sha256"] != self.rubric.sha256:
             raise RuntimeError("submission judge resolved a different optimizer rubric")
+
+    def _experiment_identity(self) -> dict[str, object]:
+        return {
+            "task_id": self.task_dir.name,
+            "task_dir": str(self.task_dir),
+            "revision_rounds": self.config.revision_rounds,
+            "provider": self.config.agent.provider,
+            "model": self.config.agent.model,
+            "executable": self.config.agent.executable,
+            "sandbox_requested": self.config.agent.sandbox,
+            "allow_web": self.config.agent.allow_web,
+            "approval_mode": self.config.agent.approval_mode,
+            "skip_trust": self.config.agent.skip_trust,
+            "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
+            "review": self.config.review,
+            "judge_model": self.config.judge_model,
+            "max_review_chars": self.config.max_review_chars,
+            "rubric_name": self.config.rubric_name,
+            "rubric_set": (
+                str(Path(self.config.rubric_set).resolve())
+                if self.config.rubric_set is not None
+                else None
+            ),
+            "rubric_sha256": self.rubric.sha256,
+            "instruction_sha256": self.instruction_sha256,
+            "data_sha256": self.data_sha256,
+        }
 
     def run(self) -> SubmissionRevisionResult:
         initialized = False
@@ -373,11 +291,11 @@ class SubmissionRevisionController:
             try:
                 _write_live_root_sentinel(live_root, self.experiment_dir)
             except BaseException:
-                _force_remove_directory(live_root)
+                _remove_created_live_tree(live_root)
                 raise
             workspace = live_root / "workspace"
             state = _RevisionState(
-                phase="ready_for_turn",
+                phase=_RevisionPhase.READY_FOR_TURN,
                 next_turn_index=0,
                 session_id=None,
                 effective_solver_model=None,
@@ -392,19 +310,28 @@ class SubmissionRevisionController:
                 self._initialize(workspace, live_root, state)
                 initialized = True
             total = self.config.revision_rounds + 1
-            if state.phase in {"turn_in_progress", "failed_turn"}:
+            if state.phase in {
+                _RevisionPhase.TURN_IN_PROGRESS,
+                _RevisionPhase.FAILED_TURN,
+            }:
                 raise RuntimeError(
                     "experiment cannot resume an uncertain or failed solver turn"
                 )
             while len(state.scores) < total:
-                if state.phase == "ready_for_turn":
+                if state.phase is _RevisionPhase.READY_FOR_TURN:
                     self._run_solver_turn(state, workspace)
-                if state.phase in {"ready_for_judge", "judge_in_progress"}:
+                if state.phase in {
+                    _RevisionPhase.READY_FOR_JUDGE,
+                    _RevisionPhase.JUDGE_IN_PROGRESS,
+                }:
                     self._run_judge_boundary(state)
-                if state.phase not in {"ready_for_turn", "completed"}:
+                if state.phase not in {
+                    _RevisionPhase.READY_FOR_TURN,
+                    _RevisionPhase.COMPLETED,
+                }:
                     raise RuntimeError(f"invalid revision state: {state.phase}")
             self._validate_scored_boundaries(state)
-            state.phase = "completed"
+            state.phase = _RevisionPhase.COMPLETED
             self._write_state(state)
             self._append_event(
                 {
@@ -441,30 +368,8 @@ class SubmissionRevisionController:
             self.experiment_dir / "manifest.json",
             {
                 "schema_version": 1,
-                "task_id": self.task_dir.name,
-                "task_dir": str(self.task_dir),
-                "revision_rounds": self.config.revision_rounds,
+                **self._experiment_identity(),
                 "submission_count": self.config.revision_rounds + 1,
-                "provider": self.config.agent.provider,
-                "model": self.config.agent.model,
-                "executable": self.config.agent.executable,
-                "sandbox_requested": self.config.agent.sandbox,
-                "allow_web": self.config.agent.allow_web,
-                "approval_mode": self.config.agent.approval_mode,
-                "skip_trust": self.config.agent.skip_trust,
-                "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
-                "review": self.config.review,
-                "judge_model": self.config.judge_model,
-                "max_review_chars": self.config.max_review_chars,
-                "rubric_name": self.config.rubric_name,
-                "rubric_set": (
-                    str(Path(self.config.rubric_set).resolve())
-                    if self.config.rubric_set is not None
-                    else None
-                ),
-                "rubric_sha256": self.rubric.sha256,
-                "instruction_sha256": self.instruction_sha256,
-                "data_sha256": self.data_sha256,
                 "live_workspace_dir": str(workspace),
                 "live_workspace_removed": False,
                 "session_id": None,
@@ -486,32 +391,7 @@ class SubmissionRevisionController:
         )
         if manifest.get("schema_version") != 1:
             raise RuntimeError("revision manifest has an unsupported schema")
-        expected = {
-            "task_id": self.task_dir.name,
-            "task_dir": str(self.task_dir),
-            "revision_rounds": self.config.revision_rounds,
-            "provider": self.config.agent.provider,
-            "model": self.config.agent.model,
-            "executable": self.config.agent.executable,
-            "sandbox_requested": self.config.agent.sandbox,
-            "allow_web": self.config.agent.allow_web,
-            "approval_mode": self.config.agent.approval_mode,
-            "skip_trust": self.config.agent.skip_trust,
-            "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
-            "review": self.config.review,
-            "judge_model": self.config.judge_model,
-            "max_review_chars": self.config.max_review_chars,
-            "rubric_name": self.config.rubric_name,
-            "rubric_set": (
-                str(Path(self.config.rubric_set).resolve())
-                if self.config.rubric_set is not None
-                else None
-            ),
-            "rubric_sha256": self.rubric.sha256,
-            "instruction_sha256": self.instruction_sha256,
-            "data_sha256": self.data_sha256,
-        }
-        for key, value in expected.items():
+        for key, value in self._experiment_identity().items():
             if manifest.get(key) != value:
                 raise RuntimeError(f"resume configuration changed: {key}")
         if manifest.get("scoring_identity") != self.scoring_identity:
@@ -532,7 +412,7 @@ class SubmissionRevisionController:
             total = self.config.revision_rounds + 1
             if (
                 not os.path.lexists(live_root)
-                and state.phase == "completed"
+                and state.phase is _RevisionPhase.COMPLETED
                 and state.next_turn_index == total
                 and len(state.submission_ids) == len(state.scores) == total
             ):
@@ -549,22 +429,20 @@ class SubmissionRevisionController:
         workspace: Path | None,
         manifest: dict[str, object],
     ) -> None:
-        if state.phase in {"turn_in_progress", "failed_turn"}:
+        if state.phase in {
+            _RevisionPhase.TURN_IN_PROGRESS,
+            _RevisionPhase.FAILED_TURN,
+        }:
             raise RuntimeError(
                 "experiment stopped during an uncertain or failed solver turn"
             )
-        allowed_phases = {
-            "ready_for_turn",
-            "ready_for_judge",
-            "judge_in_progress",
-            "completed",
-        }
-        if state.phase not in allowed_phases:
-            raise RuntimeError(f"revision state has an invalid phase: {state.phase}")
         total = self.config.revision_rounds + 1
         if not 0 <= state.next_turn_index <= total:
             raise RuntimeError("revision state has an invalid turn index")
-        if state.phase in {"ready_for_judge", "judge_in_progress"}:
+        if state.phase in {
+            _RevisionPhase.READY_FOR_JUDGE,
+            _RevisionPhase.JUDGE_IN_PROGRESS,
+        }:
             valid_counts = (
                 len(state.submission_ids) == state.next_turn_index
                 and len(state.scores) == state.next_turn_index - 1
@@ -580,13 +458,13 @@ class SubmissionRevisionController:
         ]
         if state.submission_ids != expected_submission_ids:
             raise RuntimeError("revision state has invalid submission identities")
-        if state.phase == "completed" and state.next_turn_index != total:
+        if state.phase is _RevisionPhase.COMPLETED and state.next_turn_index != total:
             raise RuntimeError("completed revision state has missing submissions")
-        if workspace is None and state.phase != "completed":
+        if workspace is None and state.phase is not _RevisionPhase.COMPLETED:
             raise RuntimeError(
                 "live workspace is required for an incomplete experiment"
             )
-        if state.phase == "ready_for_judge":
+        if state.phase is _RevisionPhase.READY_FOR_JUDGE:
             expected_judge_attempts = set(state.submission_ids[: len(state.scores)])
         else:
             expected_judge_attempts = set(state.submission_ids)
@@ -633,7 +511,7 @@ class SubmissionRevisionController:
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
         turn_index = state.next_turn_index
-        state.phase = "turn_in_progress"
+        state.phase = _RevisionPhase.TURN_IN_PROGRESS
         self._write_state(state)
         turn_dir = self.experiment_dir / "turns" / f"turn-{turn_index:03d}"
         turn_dir.mkdir(parents=True)
@@ -641,7 +519,7 @@ class SubmissionRevisionController:
         try:
             self._execute_solver_turn(state, workspace, turn_dir, turn_index)
         except BaseException as exc:
-            if state.phase != "failed_turn":
+            if state.phase is not _RevisionPhase.FAILED_TURN:
                 exit_code = exc.exit_code if isinstance(exc, _SolverTurnFailure) else 1
                 reason = str(exc) or type(exc).__name__
                 try:
@@ -728,7 +606,7 @@ class SubmissionRevisionController:
         )
         state.submission_ids.append(submission_id)
         state.next_turn_index += 1
-        state.phase = "ready_for_judge"
+        state.phase = _RevisionPhase.READY_FOR_JUDGE
         self._write_state(state)
 
     def _run_judge_boundary(self, state: _RevisionState) -> None:
@@ -739,7 +617,7 @@ class SubmissionRevisionController:
         if attempt_id is None:
             attempt_id = secrets.token_hex(16)
             state.judge_attempts[submission_id] = attempt_id
-        state.phase = "judge_in_progress"
+        state.phase = _RevisionPhase.JUDGE_IN_PROGRESS
         self._write_state(state)
         submission_dir = self.experiment_dir / "submissions" / submission_id
         _verify_submission_snapshot(submission_dir)
@@ -767,7 +645,7 @@ class SubmissionRevisionController:
             _make_read_only(feedback_path)
         state.scores.append(feedback.score)
         state.next_prompt = feedback.prompt
-        state.phase = "ready_for_turn"
+        state.phase = _RevisionPhase.READY_FOR_TURN
         self._write_state(state)
         self._append_event(
             {
@@ -836,45 +714,7 @@ class SubmissionRevisionController:
         payload = _read_json_object(
             self.experiment_dir / "state.json", "revision state"
         )
-        phase = payload.get("phase")
-        next_turn_index = payload.get("next_turn_index")
-        session_id = payload.get("session_id")
-        effective_model = payload.get("effective_solver_model")
-        submission_ids = payload.get("submission_ids")
-        scores = payload.get("scores")
-        judge_attempts = payload.get("judge_attempts")
-        next_prompt = payload.get("next_prompt")
-        if (
-            payload.get("schema_version") != 1
-            or type(phase) is not str
-            or type(next_turn_index) is not int
-            or session_id is not None
-            and type(session_id) is not str
-            or effective_model is not None
-            and type(effective_model) is not str
-            or type(submission_ids) is not list
-            or any(type(value) is not str for value in submission_ids)
-            or type(scores) is not list
-            or any(type(value) is not int for value in scores)
-            or any(not 0 <= value <= 100 for value in scores)
-            or type(judge_attempts) is not dict
-            or any(
-                type(key) is not str or type(value) is not str
-                for key, value in judge_attempts.items()
-            )
-            or type(next_prompt) is not str
-        ):
-            raise RuntimeError("revision state has invalid fields")
-        return _RevisionState(
-            phase=phase,
-            next_turn_index=next_turn_index,
-            session_id=session_id,
-            effective_solver_model=effective_model,
-            submission_ids=list(submission_ids),
-            scores=list(scores),
-            judge_attempts=dict(judge_attempts),
-            next_prompt=next_prompt,
-        )
+        return _RevisionState.from_json(payload)
 
     def _update_manifest(self, updates: dict[str, object]) -> None:
         manifest_path = self.experiment_dir / "manifest.json"
@@ -909,13 +749,10 @@ class SubmissionRevisionController:
 
     def _pin_or_verify_scoring_identity(self, validation_path: Path) -> None:
         validation = _read_json_object(validation_path, "optimizer score validation")
-        missing = [key for key in _SCORING_IDENTITY_KEYS if key not in validation]
-        if missing:
-            raise RuntimeError(
-                "optimizer score validation lacks scoring identity: "
-                + ", ".join(missing)
-            )
-        identity = {key: validation[key] for key in _SCORING_IDENTITY_KEYS}
+        identity = _extract_scoring_identity(
+            validation,
+            context="optimizer score validation",
+        )
         manifest = _read_json_object(
             self.experiment_dir / "manifest.json",
             "revision manifest",
@@ -960,7 +797,7 @@ class SubmissionRevisionController:
             }
         )
         _write_json(status_path, status)
-        state.phase = "failed_turn"
+        state.phase = _RevisionPhase.FAILED_TURN
         self._write_state(state)
         self._append_event(
             {
@@ -1077,273 +914,3 @@ def run_submission_revision(
     config: SubmissionRevisionConfig,
 ) -> SubmissionRevisionResult:
     return SubmissionRevisionController(config).run()
-
-
-def _resolve_optimizer_rubric(
-    config: SubmissionRevisionConfig,
-    task_dir: Path,
-) -> _FrozenRubric:
-    if config.rubric_set is not None:
-        bundle = resolve_rubric_bundle(
-            Path(config.rubric_set),
-            task_dir.name,
-        )
-        text = bundle.rendered_text
-        source = "rubric-set"
-        rubric_set_id = bundle.rubric_set_id
-        rubric_id = bundle.rubric_id
-        structured_rubric_sha256 = bundle.rubric_sha256
-        manifest_sha256 = bundle.task_manifest_sha256
-    else:
-        name = config.rubric_name or "rubric.txt"
-        if Path(name).name != name:
-            raise ValueError("rubric_name must be a filename under task tests")
-        path = task_dir / "tests" / name
-        if path.is_symlink() or not path.is_file():
-            raise FileNotFoundError(f"optimizer rubric does not exist: {path}")
-        text = path.read_text(encoding="utf-8")
-        source = "task-local"
-        rubric_set_id = None
-        rubric_id = None
-        structured_rubric_sha256 = None
-        manifest_sha256 = None
-    if not text.strip():
-        raise ValueError("optimizer rubric is empty")
-    return _FrozenRubric(
-        text=text,
-        sha256=_sha256_text(text),
-        source=source,
-        rubric_set_id=rubric_set_id,
-        rubric_id=rubric_id,
-        structured_rubric_sha256=structured_rubric_sha256,
-        manifest_sha256=manifest_sha256,
-    )
-
-
-def _copy_solution_workspace(source: Path, destination: Path) -> None:
-    destination.mkdir()
-    for child in sorted(source.iterdir(), key=lambda path: path.name):
-        if child.name in _EXCLUDED_SOLUTION_NAMES:
-            continue
-        _copy_solution_entry(child, destination / child.name)
-
-
-def _prepare_evaluation_run(submission_dir: Path, evaluation_root: Path) -> Path:
-    if os.path.lexists(evaluation_root):
-        raise FileExistsError(f"evaluation already exists: {evaluation_root}")
-    run_dir = evaluation_root / "run"
-    workspace = run_dir / "workspace"
-    run_dir.mkdir(parents=True)
-    _copy_solution_workspace(submission_dir / "workspace", workspace)
-    _make_tree_read_only(workspace)
-    shutil.copyfile(
-        submission_dir / "trajectory.stream.jsonl",
-        run_dir / "trajectory.stream.jsonl",
-        follow_symlinks=False,
-    )
-    source_status = _read_json_object(
-        submission_dir / "status.json",
-        "submission status",
-    )
-    source_status["workspace_dir"] = str(workspace)
-    evaluation_trajectory = run_dir / "trajectory.stream.jsonl"
-    evaluation_status = run_dir / "status.json"
-    _write_json(evaluation_status, source_status)
-    _make_read_only(evaluation_trajectory)
-    _make_read_only(evaluation_status)
-    return run_dir
-
-
-def _verify_submission_snapshot(submission_dir: Path) -> None:
-    snapshot = _read_json_object(
-        submission_dir / "snapshot.json", "submission snapshot"
-    )
-    if snapshot.get("submission_id") != submission_dir.name:
-        raise RuntimeError("submission snapshot has a mismatched identity")
-    if snapshot.get("workspace_sha256") != _tree_sha256(submission_dir / "workspace"):
-        raise RuntimeError("submission workspace changed after snapshotting")
-    if snapshot.get("trajectory_sha256") != _sha256_file(
-        submission_dir / "trajectory.stream.jsonl"
-    ):
-        raise RuntimeError("submission trajectory changed after snapshotting")
-
-
-def _copy_solution_entry(source: Path, destination: Path) -> None:
-    source_stat = os.lstat(source)
-    if stat.S_ISLNK(source_stat.st_mode):
-        raise RuntimeError(f"solution snapshot contains a symlink: {source}")
-    if stat.S_ISDIR(source_stat.st_mode):
-        destination.mkdir()
-        for child in sorted(source.iterdir(), key=lambda path: path.name):
-            _copy_solution_entry(child, destination / child.name)
-        return
-    if not stat.S_ISREG(source_stat.st_mode):
-        raise RuntimeError(f"solution snapshot contains a special file: {source}")
-    shutil.copyfile(source, destination, follow_symlinks=False)
-
-
-def _tree_sha256(root: Path) -> str:
-    return _hash_tree(root, excluded_names=frozenset())
-
-
-def _solution_tree_sha256(root: Path) -> str:
-    return _hash_tree(root, excluded_names=_EXCLUDED_SOLUTION_NAMES)
-
-
-def _hash_tree(root: Path, *, excluded_names: frozenset[str]) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(root.rglob("*")):
-        relative = path.relative_to(root).as_posix()
-        if Path(relative).parts[0] in excluded_names:
-            continue
-        path_stat = os.lstat(path)
-        if stat.S_ISDIR(path_stat.st_mode):
-            digest.update(b"D\0")
-            digest.update(relative.encode("utf-8"))
-            digest.update(b"\0")
-            continue
-        if not stat.S_ISREG(path_stat.st_mode):
-            raise RuntimeError(f"snapshot contains a non-regular file: {relative}")
-        raw = path.read_bytes()
-        digest.update(b"F\0")
-        digest.update(relative.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(len(raw).to_bytes(8, "big"))
-        digest.update(raw)
-    return digest.hexdigest()
-
-
-def _make_tree_read_only(root: Path) -> None:
-    for path in [*root.rglob("*"), root]:
-        _make_read_only(path)
-
-
-def _make_read_only(path: Path) -> None:
-    path.chmod(stat.S_IMODE(os.lstat(path).st_mode) & ~0o222)
-
-
-def _write_json(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-
-
-def _write_json_atomic(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        text=True,
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(
-                json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
-            )
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.lexists(temporary):
-            temporary.unlink()
-
-
-def _write_live_root_sentinel(root: Path, experiment_dir: Path) -> None:
-    _write_json(
-        root / _LIVE_ROOT_SENTINEL,
-        {
-            "schema_version": 1,
-            "kind": "rubric-gen-submission-revision-live-root",
-            "experiment_dir": str(experiment_dir.resolve()),
-        },
-    )
-    _make_read_only(root / _LIVE_ROOT_SENTINEL)
-
-
-def _validate_live_root(root: Path, experiment_dir: Path) -> None:
-    temp_root = Path(tempfile.gettempdir()).resolve()
-    if (
-        root.is_symlink()
-        or not root.is_dir()
-        or not root.name.startswith(_LIVE_ROOT_PREFIX)
-        or root.parent.resolve() != temp_root
-    ):
-        raise RuntimeError(f"invalid live revision root: {root}")
-    sentinel = root / _LIVE_ROOT_SENTINEL
-    if sentinel.is_symlink() or not sentinel.is_file():
-        raise RuntimeError(f"live revision root sentinel is missing: {root}")
-    payload = _read_json_object(sentinel, "live revision root sentinel")
-    if payload != {
-        "schema_version": 1,
-        "kind": "rubric-gen-submission-revision-live-root",
-        "experiment_dir": str(experiment_dir.resolve()),
-    }:
-        raise RuntimeError(f"live revision root sentinel does not match: {root}")
-
-
-def _remove_tree(root: Path, experiment_dir: Path) -> None:
-    if not os.path.lexists(root):
-        return
-    _validate_live_root(root, experiment_dir)
-    _force_remove_directory(root)
-
-
-def _remove_owned_evaluation_tree(root: Path, evaluations_dir: Path) -> None:
-    if not os.path.lexists(root):
-        return
-    if root.is_symlink() or not root.is_dir():
-        raise RuntimeError(f"invalid optimizer evaluation root: {root}")
-    base = evaluations_dir.absolute()
-    candidate = root.absolute()
-    try:
-        relative = candidate.relative_to(base)
-    except ValueError as exc:
-        raise RuntimeError(
-            f"optimizer evaluation escaped its artifact root: {root}"
-        ) from exc
-    if len(relative.parts) != 3 or any(
-        path.is_symlink()
-        for path in (
-            base,
-            base / relative.parts[0],
-            base / relative.parts[0] / relative.parts[1],
-        )
-    ):
-        raise RuntimeError(f"optimizer evaluation escaped its artifact root: {root}")
-    _force_remove_directory(root)
-
-
-def _force_remove_directory(root: Path) -> None:
-    directories = [
-        path for path in root.rglob("*") if not path.is_symlink() and path.is_dir()
-    ]
-    for path in [
-        *sorted(directories, key=lambda item: len(item.parts), reverse=True),
-        root,
-    ]:
-        path.chmod(stat.S_IMODE(os.lstat(path).st_mode) | stat.S_IRWXU)
-    shutil.rmtree(root)
-    if os.path.lexists(root):
-        raise RuntimeError(f"failed to remove owned directory tree: {root}")
-
-
-def _read_json_object(path: Path, context: str) -> dict[str, object]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"{context} is not valid JSON: {path}") from exc
-    if type(value) is not dict:
-        raise RuntimeError(f"{context} must be a JSON object: {path}")
-    return value
-
-
-def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _sha256_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()

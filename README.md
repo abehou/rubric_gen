@@ -1,12 +1,22 @@
-
 # Rubric Gen
 
-Utilities for running BiomniBench-DA terminal-agent experiments, perturbing saved
-agent trajectories, and judging traces with either outcome or process rubrics.
+Tools for running BiomniBench-DA terminal agents, compiling process rubrics,
+perturbing and judging saved runs, comparing judge views, and running
+persistent-session submission-revision experiments.
 
 ## Setup
 
-Install dependencies:
+Prerequisites:
+
+- Python 3.11 or newer and [`uv`](https://docs.astral.sh/uv/).
+- The Hugging Face `hf` CLI for downloading the benchmark tasks.
+- An installed and authenticated `gemini`, `claude`, or `codex` CLI for agent
+  and revision runs using that provider.
+- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini judging, perturbation, and
+  rubric generation. Anthropic judge models instead require
+  `ANTHROPIC_API_KEY`.
+
+From the repository root, install the project dependencies:
 
 ```bash
 uv sync
@@ -57,6 +67,26 @@ uv run biomnibench-agent all \
   --provider gemini \
   --continue-on-error
 ```
+
+## Compile Canonical Task Process Rubrics
+
+Run `task-process-rubrics` before using `--rubric-set` with `judge` or `revise`.
+It uses only immutable task inputs and writes a sealed external bundle; repeat
+`--task` to compile more than one task.
+
+```bash
+uv run biomnibench-agent task-process-rubrics \
+  --tasks-dir data/biomnibench-da \
+  --task da-19-6 \
+  --task da-26-4 \
+  --output-dir runs/task-process-rubrics/pilot \
+  --model gemini-3.5-flash \
+  --max-concurrency 2
+```
+
+Use `--resume` only to reuse bundles whose task inputs and compiler
+configuration match exactly. A command may select either `--rubric-set` or a
+task-local `--rubric`, not both.
 
 ## Perturb Runs
 
@@ -140,8 +170,18 @@ uv run biomnibench-agent judge \
   --model gemini-3.1-pro
 ```
 
+Judge with the sealed task-specific bundle compiled above:
 
-Judge the same run with the process rubric:
+```bash
+uv run biomnibench-agent judge \
+  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
+  --tasks-dir data/biomnibench-da \
+  --review trajectory \
+  --rubric-set runs/task-process-rubrics/pilot \
+  --model gemini-3.1-pro
+```
+
+Judge the same run with a task-local retrospective process rubric:
 
 ```bash
 uv run biomnibench-agent judge \
@@ -151,7 +191,8 @@ uv run biomnibench-agent judge \
   --model gemini-3.1-pro
 ```
 
-Multiple run dir:
+Judge multiple run directories in one invocation:
+
 ```bash
 uv run biomnibench-agent judge \
   --run-dir runs/biomnibench-agents/all-gemini-20260705-185054/tasks/da-26-4 runs/biomnibench-agents/all-gemini-20260705-185054/tasks/da-19-6 runs/biomnibench-agents/all-gemini-20260705-185054/tasks/da-10-1 \
@@ -184,7 +225,7 @@ uv run biomnibench-agent judge \
   --max-concurrency 5
 ```
 
-Judge all tasks under the run directory
+Judge all tasks under a batch run directory:
 
 ```bash
 uv run biomnibench-agent judge \
@@ -192,6 +233,38 @@ uv run biomnibench-agent judge \
   --review trajectory \
   --rubric process_rubric.txt \
   --model gemini-3.1-pro
+```
+
+## Compare Judge Score Files
+
+Run `judge` once with `--review trace` and once with `--review trajectory`
+without overriding `--output`. After both default score files exist in the
+batch run directory, generate a paired CSV, scatter plot, and sorted-delta plot:
+
+```bash
+uv run biomnibench-agent compare-judges \
+  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
+  --label-top-n 8
+```
+
+To compare any two compatible score summaries, pass `--left-scores` and
+`--right-scores`, with optional `--left-label` and `--right-label`.
+
+## Generate Retrospective Process Rubrics (Non-Canonical)
+
+`process-rubrics` is trajectory-informed retrospective analysis. It reads a
+completed batch's trajectories, traces, answers, and prior judge artifacts and
+writes `tests/process_rubric.txt` inside each task. These rubrics are useful for
+exploration but are not sealed canonical rewards; use `task-process-rubrics`
+for `--rubric-set` workflows.
+
+```bash
+uv run biomnibench-agent process-rubrics \
+  --tasks-dir data/biomnibench-da \
+  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
+  --model gemini-3.5-flash \
+  --max-concurrency 4 \
+  --resume
 ```
 
 ## Revise a Submission in One Agent Session
