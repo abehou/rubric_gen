@@ -318,6 +318,11 @@ For the score-only ablation, change only:
 --feedback-policy score_only
 ```
 
+When `--experiment-dir` ends in a recognized feedback suffix, the CLI keeps it
+aligned with the selected policy. For example, the full-feedback path above
+resolves to `da-19-6-process-score-only` under `score_only`, preventing the two
+conditions from sharing one experiment directory.
+
 If an incomplete run stopped at a recorded clean judge boundary, repeat the
 same command against the same task and experiment directory with `--resume`:
 

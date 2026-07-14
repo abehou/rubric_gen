@@ -100,12 +100,22 @@ class SubmissionRevisionConfig:
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "SubmissionRevisionConfig":
         rubric_set = getattr(args, "rubric_set", None)
+        feedback_policy = FeedbackPolicy(args.feedback_policy)
+        experiment_dir = resolve_project_path(args.experiment_dir)
+        policy_suffix = f"-{feedback_policy.value.replace('_', '-')}"
+        for candidate in FeedbackPolicy:
+            candidate_suffix = f"-{candidate.value.replace('_', '-')}"
+            if experiment_dir.name.endswith(candidate_suffix):
+                experiment_dir = experiment_dir.with_name(
+                    experiment_dir.name[: -len(candidate_suffix)] + policy_suffix
+                )
+                break
         return cls(
             task_dir=resolve_project_path(args.task),
-            experiment_dir=resolve_project_path(args.experiment_dir),
+            experiment_dir=experiment_dir,
             revision_rounds=args.revision_rounds,
             agent=AgentRunConfig.from_namespace(args),
-            feedback_policy=FeedbackPolicy(args.feedback_policy),
+            feedback_policy=feedback_policy,
             review=args.review,
             judge_model=args.judge_model,
             rubric_name=args.rubric,

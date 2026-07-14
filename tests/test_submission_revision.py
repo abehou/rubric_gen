@@ -415,6 +415,34 @@ def test_revise_cli_suppresses_success_output(
     assert capsys.readouterr().out == ""
 
 
+@pytest.mark.parametrize(
+    ("feedback_policy", "expected_name"),
+    [("full", "da-19-6-process-full"), ("score_only", "da-19-6-process-score-only")],
+)
+def test_feedback_policy_selects_matching_experiment_directory(
+    tmp_path: Path,
+    feedback_policy: str,
+    expected_name: str,
+) -> None:
+    task = _write_task(tmp_path)
+    args = build_parser().parse_args(
+        [
+            "revise",
+            str(task),
+            "--experiment-dir",
+            str(tmp_path / "da-19-6-process-full"),
+            "--model",
+            "test-model",
+            "--feedback-policy",
+            feedback_policy,
+        ]
+    )
+
+    config = SubmissionRevisionConfig.from_namespace(args)
+
+    assert config.experiment_dir == tmp_path / expected_name
+
+
 def test_restart_refuses_an_unowned_directory(tmp_path: Path) -> None:
     task = _write_task(tmp_path)
     unrelated = tmp_path / "unrelated"
