@@ -1,5 +1,11 @@
 # Task-Specific Process Rubric Implementation Plan
 
+**Date:** 2026-07-12
+
+**Status:** Implemented on 2026-07-13
+
+The unchecked items below are retained as a historical execution checklist.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Compile a task-specific, trajectory-blind BiomniBench process rubric into a sealed provenance bundle and let the judge consume it with strict, authoritative score recomputation.

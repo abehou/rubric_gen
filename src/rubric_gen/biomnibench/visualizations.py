@@ -25,18 +25,26 @@ class JudgeComparisonConfig:
 
     @classmethod
     def from_namespace(cls, args: Any) -> "JudgeComparisonConfig":
+        trace_scores = getattr(args, "trace_scores", None)
+        trajectory_scores = getattr(args, "trajectory_scores", None)
         left_scores = getattr(args, "left_scores", None)
         right_scores = getattr(args, "right_scores", None)
         left_label = getattr(args, "left_label", None)
         right_label = getattr(args, "right_label", None)
         return cls(
             run_dir=Path(args.run_dir).expanduser().resolve(),
-            trace_scores=Path(args.trace_scores).expanduser().resolve() if args.trace_scores else None,
-            trajectory_scores=Path(args.trajectory_scores).expanduser().resolve()
-            if args.trajectory_scores
+            trace_scores=Path(trace_scores).expanduser().resolve()
+            if trace_scores
             else None,
-            left_scores=Path(left_scores).expanduser().resolve() if left_scores else None,
-            right_scores=Path(right_scores).expanduser().resolve() if right_scores else None,
+            trajectory_scores=Path(trajectory_scores).expanduser().resolve()
+            if trajectory_scores
+            else None,
+            left_scores=Path(left_scores).expanduser().resolve()
+            if left_scores
+            else None,
+            right_scores=Path(right_scores).expanduser().resolve()
+            if right_scores
+            else None,
             left_label=left_label or "Summary/trace judge",
             right_label=right_label or "Trajectory judge",
             out_dir=Path(args.out_dir).expanduser().resolve() if args.out_dir else None,
@@ -65,7 +73,11 @@ class JudgeComparisonPlotter:
 
     @property
     def left_scores_path(self) -> Path:
-        return self.config.left_scores or self.config.trace_scores or self.config.run_dir / "judge-trace-scores.json"
+        return (
+            self.config.left_scores
+            or self.config.trace_scores
+            or self.config.run_dir / "judge-trace-scores.json"
+        )
 
     @property
     def right_scores_path(self) -> Path:
@@ -114,8 +126,12 @@ class JudgeComparisonPlotter:
                     right_mean=float(right_task["mean_score"]),
                     left_stddev=float(left_task.get("score_stddev") or 0.0),
                     right_stddev=float(right_task.get("score_stddev") or 0.0),
-                    left_scores=tuple(int(score) for score in left_task.get("scores", [])),
-                    right_scores=tuple(int(score) for score in right_task.get("scores", [])),
+                    left_scores=tuple(
+                        int(score) for score in left_task.get("scores", [])
+                    ),
+                    right_scores=tuple(
+                        int(score) for score in right_task.get("scores", [])
+                    ),
                 )
             )
         return comparisons
@@ -145,12 +161,18 @@ class JudgeComparisonPlotter:
                         "delta": round(item.delta, 4),
                         "left_stddev": item.left_stddev,
                         "right_stddev": item.right_stddev,
-                        "left_scores": ",".join(str(score) for score in item.left_scores),
-                        "right_scores": ",".join(str(score) for score in item.right_scores),
+                        "left_scores": ",".join(
+                            str(score) for score in item.left_scores
+                        ),
+                        "right_scores": ",".join(
+                            str(score) for score in item.right_scores
+                        ),
                     }
                 )
 
-    def plot_score_scatter(self, comparisons: list[TaskJudgeComparison], path: Path) -> None:
+    def plot_score_scatter(
+        self, comparisons: list[TaskJudgeComparison], path: Path
+    ) -> None:
         plt = self._pyplot()
         fig, ax = plt.subplots(figsize=(7, 7))
         x = [item.left_mean for item in comparisons]
@@ -169,7 +191,9 @@ class JudgeComparisonPlotter:
             alpha=0.55,
             zorder=1,
         )
-        ax.scatter(x, y, c=colors, s=48, alpha=0.9, edgecolor="white", linewidth=0.7, zorder=2)
+        ax.scatter(
+            x, y, c=colors, s=48, alpha=0.9, edgecolor="white", linewidth=0.7, zorder=2
+        )
         ax.plot([0, 100], [0, 100], color="#4a5568", linestyle="--", linewidth=1.0)
         ax.set_xlim(-2, 102)
         ax.set_ylim(-2, 102)
@@ -193,7 +217,9 @@ class JudgeComparisonPlotter:
         fig.savefig(path, dpi=180)
         plt.close(fig)
 
-    def plot_delta_bars(self, comparisons: list[TaskJudgeComparison], path: Path) -> None:
+    def plot_delta_bars(
+        self, comparisons: list[TaskJudgeComparison], path: Path
+    ) -> None:
         plt = self._pyplot()
         ordered = sorted(comparisons, key=lambda item: item.delta)
         tasks = [item.task for item in ordered]
@@ -220,8 +246,12 @@ class JudgeComparisonPlotter:
         fig.savefig(path, dpi=180)
         plt.close(fig)
 
-    def _top_delta_items(self, comparisons: list[TaskJudgeComparison]) -> list[TaskJudgeComparison]:
-        return sorted(comparisons, key=lambda item: abs(item.delta), reverse=True)[: self.config.label_top_n]
+    def _top_delta_items(
+        self, comparisons: list[TaskJudgeComparison]
+    ) -> list[TaskJudgeComparison]:
+        return sorted(comparisons, key=lambda item: abs(item.delta), reverse=True)[
+            : self.config.label_top_n
+        ]
 
     def _task_scores(self, path: Path) -> dict[str, dict[str, Any]]:
         if not path.is_file():
@@ -230,10 +260,16 @@ class JudgeComparisonPlotter:
         tasks = data.get("tasks", [])
         if not isinstance(tasks, list):
             raise SystemExit(f"Judge score file has no task list: {path}")
-        return {str(task["task"]): task for task in tasks if isinstance(task, dict) and "task" in task}
+        return {
+            str(task["task"]): task
+            for task in tasks
+            if isinstance(task, dict) and "task" in task
+        }
 
     def _pyplot(self) -> Any:
-        os.environ.setdefault("MPLCONFIGDIR", tempfile.mkdtemp(prefix="biomnibench-mpl-"))
+        os.environ.setdefault(
+            "MPLCONFIGDIR", tempfile.mkdtemp(prefix="biomnibench-mpl-")
+        )
         import matplotlib
 
         matplotlib.use("Agg")

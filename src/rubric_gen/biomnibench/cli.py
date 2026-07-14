@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 
 from rubric_gen.biomnibench.adapters import AgentAdapterRegistry
-from rubric_gen.biomnibench.common import AgentRunConfig, BatchRunConfig, RunCost, resolve_project_path
+from rubric_gen.biomnibench.common import (
+    AgentRunConfig,
+    BatchRunConfig,
+    RunCost,
+    resolve_project_path,
+)
 from rubric_gen.biomnibench.judges import BiomniBenchJudgeRunner, JudgeRunConfig
 from rubric_gen.biomnibench.perturbations import (
     DEFAULT_PERTURBER_MODEL,
@@ -15,16 +20,31 @@ from rubric_gen.biomnibench.perturbations import (
     BiomniBenchPerturbationRunner,
     PerturbationRunConfig,
 )
-from rubric_gen.biomnibench.process_rubrics import ProcessRubricConfig, ProcessRubricGenerator
+from rubric_gen.biomnibench.process_rubrics import (
+    ProcessRubricConfig,
+    ProcessRubricGenerator,
+)
 from rubric_gen.biomnibench.runners import AgentRunner, BiomniBenchBatchRunner
+from rubric_gen.biomnibench.submission_feedback import FeedbackPolicy
+from rubric_gen.biomnibench.submission_revision import (
+    SubmissionRevisionConfig,
+    run_submission_revision,
+)
 from rubric_gen.biomnibench.task_rubric_compiler import (
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
 )
-from rubric_gen.biomnibench.visualizations import JudgeComparisonConfig, JudgeComparisonPlotter
+from rubric_gen.biomnibench.visualizations import (
+    JudgeComparisonConfig,
+    JudgeComparisonPlotter,
+)
 
 
-def add_agent_args(parser: argparse.ArgumentParser) -> None:
+def add_agent_args(
+    parser: argparse.ArgumentParser,
+    *,
+    persistent_session: bool = False,
+) -> None:
     provider_names = AgentAdapterRegistry().names
     parser.add_argument(
         "--provider",
@@ -37,9 +57,24 @@ def add_agent_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Override the provider executable name or path.",
     )
-    parser.add_argument("--model", default=None, help="Optional provider-native model name.")
-    parser.add_argument("--raw", action="store_true", help="Print raw trajectory lines.")
-    parser.add_argument("--skip-trust", action="store_true", help="Forward provider trust bypass when supported.")
+    parser.add_argument(
+        "--model",
+        required=persistent_session,
+        default=None,
+        help=(
+            "Provider-native model name (required for persistent sessions)."
+            if persistent_session
+            else "Optional provider-native model name."
+        ),
+    )
+    parser.add_argument(
+        "--raw", action="store_true", help="Print raw trajectory lines."
+    )
+    parser.add_argument(
+        "--skip-trust",
+        action="store_true",
+        help="Forward provider trust bypass when supported.",
+    )
     parser.add_argument(
         "--allow-web",
         action="store_true",
@@ -55,24 +90,24 @@ def add_agent_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Ask the provider to use its sandbox option when supported.",
     )
-    parser.add_argument(
-        "--extra-agent-arg",
-        action="append",
-        default=[],
-        help="Append one raw argument to the provider command. Repeat for multiple args.",
-    )
-    parser.add_argument(
-        "--retries",
-        type=int,
-        default=1,
-        help="Retry transient provider stream failures this many times.",
-    )
+    if not persistent_session:
+        parser.add_argument(
+            "--extra-agent-arg",
+            action="append",
+            default=[],
+            help="Append one raw argument to the provider command. Repeat for multiple args.",
+        )
+        parser.add_argument(
+            "--retries",
+            type=int,
+            default=1,
+            help="Retry transient provider stream failures this many times.",
+        )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    subparsers = parser.add_subparsers(dest="command")
-
+def _add_one_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
     one = subparsers.add_parser("one", help="Run one BiomniBench-DA task.")
     one.add_argument(
         "task",
@@ -87,7 +122,79 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_agent_args(one)
 
-    all_tasks = subparsers.add_parser("all", help="Run every pending BiomniBench-DA task.")
+
+def _add_revise_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
+    revise = subparsers.add_parser(
+        "revise",
+        help="Run one persistent-session submission revision experiment.",
+    )
+    revise.add_argument(
+        "task",
+        nargs="?",
+        default="data/biomnibench-da/da-10-1",
+        help="BiomniBench task directory, e.g. data/biomnibench-da/da-24-3.",
+    )
+    revise.add_argument(
+        "--experiment-dir",
+        required=True,
+        help="Directory where turns, submissions, feedback, and scores are written.",
+    )
+    revise.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an existing experiment only from its recorded safe boundary.",
+    )
+    revise.add_argument(
+        "--revision-rounds",
+        type=int,
+        default=3,
+        help="Number of same-session revisions after the initial submission. Defaults to 3.",
+    )
+    revise.add_argument(
+        "--feedback-policy",
+        choices=tuple(policy.value for policy in FeedbackPolicy),
+        default=FeedbackPolicy.FULL.value,
+        help="Feedback returned to the solver. Defaults to full.",
+    )
+    revise.add_argument(
+        "--review",
+        choices=("trace", "trajectory"),
+        default="trajectory",
+        help="Judge trace.md or the cumulative raw trajectory. Defaults to trajectory.",
+    )
+    revise.add_argument(
+        "--judge-model",
+        default=None,
+        help="Set the model used by the task judge subprocess.",
+    )
+    rubric_source = revise.add_mutually_exclusive_group()
+    rubric_source.add_argument(
+        "--rubric",
+        default=None,
+        help="Rubric filename under the task's tests directory. Defaults to rubric.txt.",
+    )
+    rubric_source.add_argument(
+        "--rubric-set",
+        default=None,
+        help="Sealed external rubric-set directory, resolved by target task ID.",
+    )
+    revise.add_argument(
+        "--max-review-chars",
+        type=int,
+        default=None,
+        help="Optionally truncate the trace or trajectory before judging.",
+    )
+    add_agent_args(revise, persistent_session=True)
+
+
+def _add_all_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
+    all_tasks = subparsers.add_parser(
+        "all", help="Run every pending BiomniBench-DA task."
+    )
     all_tasks.add_argument(
         "--tasks-dir",
         default="data/biomnibench-da",
@@ -127,7 +234,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_agent_args(all_tasks)
 
-    judge = subparsers.add_parser("judge", help="Run task-local LLM judges over saved runs.")
+
+def _add_judge_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
+    judge = subparsers.add_parser(
+        "judge", help="Run task-local LLM judges over saved runs."
+    )
     judge.add_argument(
         "--run-dir",
         action="append",
@@ -172,8 +285,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Sealed external rubric-set directory, resolved by target task ID.",
     )
-    judge.add_argument("--limit", type=int, default=None, help="Judge at most this many tasks.")
-    judge.add_argument("--dry-run", action="store_true", help="Plan judge inputs without calling LLMs.")
+    judge.add_argument(
+        "--limit", type=int, default=None, help="Judge at most this many tasks."
+    )
+    judge.add_argument(
+        "--dry-run", action="store_true", help="Plan judge inputs without calling LLMs."
+    )
     judge.add_argument(
         "--max-review-chars",
         type=int,
@@ -203,6 +320,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run each task judge this many independent times to estimate judge variance.",
     )
 
+
+def _add_compare_judges_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
     compare_judges = subparsers.add_parser(
         "compare-judges",
         help="Plot paired judge score comparisons.",
@@ -254,7 +375,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Label this many largest-disagreement tasks on the scatter plot.",
     )
 
-    perturb = subparsers.add_parser("perturb", help="Create LLM-perturbed variants of saved BiomniBench runs.")
+
+def _add_perturb_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
+    perturb = subparsers.add_parser(
+        "perturb", help="Create LLM-perturbed variants of saved BiomniBench runs."
+    )
     perturb.add_argument(
         "--base-run",
         required=True,
@@ -308,8 +435,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Keep the existing output directory and skip task-level perturbations whose files are already complete.",
     )
-    perturb.add_argument("--dry-run", action="store_true", help="Print perturbation plan without writing files.")
+    perturb.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print perturbation plan without writing files.",
+    )
 
+
+def _add_task_process_rubrics_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
     task_process_rubrics = subparsers.add_parser(
         "task-process-rubrics",
         help="Compile canonical task-only process rubrics.",
@@ -365,6 +500,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reuse an exact matching sealed rubric bundle when available.",
     )
 
+
+def _add_process_rubrics_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
     process_rubrics = subparsers.add_parser(
         "process-rubrics",
         help="Generate trajectory-informed retrospective rubrics (not canonical).",
@@ -414,6 +553,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip tasks with an existing valid process_rubric.txt.",
     )
 
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command")
+    _add_one_parser(subparsers)
+    _add_revise_parser(subparsers)
+    _add_all_parser(subparsers)
+    _add_judge_parser(subparsers)
+    _add_compare_judges_parser(subparsers)
+    _add_perturb_parser(subparsers)
+    _add_task_process_rubrics_parser(subparsers)
+    _add_process_rubrics_parser(subparsers)
     return parser
 
 
@@ -442,6 +593,18 @@ def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
 
+def run_revise(args: argparse.Namespace) -> int:
+    result = run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
+
+    print("\nFinished submission revision experiment.")
+    print(f"Experiment: {result.experiment_dir}")
+    print(f"Session: {result.session_id}")
+    print("Submission scores:")
+    for submission_id, score in zip(result.submission_ids, result.scores, strict=True):
+        print(f"  {submission_id}: {score}")
+    return 0
+
+
 def run_judge(args: argparse.Namespace) -> int:
     return BiomniBenchJudgeRunner(JudgeRunConfig.from_namespace(args)).run()
 
@@ -451,7 +614,9 @@ def run_compare_judges(args: argparse.Namespace) -> int:
 
 
 def run_perturb(args: argparse.Namespace) -> int:
-    return BiomniBenchPerturbationRunner(PerturbationRunConfig.from_namespace(args)).run()
+    return BiomniBenchPerturbationRunner(
+        PerturbationRunConfig.from_namespace(args)
+    ).run()
 
 
 def run_process_rubrics(args: argparse.Namespace) -> int:
@@ -468,6 +633,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "one":
         return run_one(args)
+    if args.command == "revise":
+        return run_revise(args)
     if args.command == "all":
         return run_all(args)
     if args.command == "judge":

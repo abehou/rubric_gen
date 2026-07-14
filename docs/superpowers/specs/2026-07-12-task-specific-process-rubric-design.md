@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-12
 
-**Status:** Proposed for implementation
+**Status:** Implemented on 2026-07-13
 
 **Repository:** `rubric_gen`
 
@@ -410,10 +410,10 @@ The slice is complete when:
 - all targeted tests pass; and
 - no self-improvement or rubric-adaptation loop has been introduced yet.
 
-## 11. Next Slice
+## 11. Implemented Next Slice
 
-After this compiler is verified, implement the self-improvement orchestration:
-candidate harness workspaces, the five condition policies, repeated proxy
-scoring, append-only candidate ledgers, and held-out hidden-audit evaluation.
-The frozen canonical bundle becomes an input to that system rather than a
-component it can modify.
+The implemented follow-up is the task-level
+[submission-revision loop](2026-07-13-biomnibench-submission-revision-loop-design.md).
+It uses the frozen canonical bundle as an optional optimizer rubric while one
+persistent solver session revises successive immutable submissions. The
+broader harness-editing self-improvement design is deferred.

@@ -9,6 +9,8 @@ from types import SimpleNamespace
 import pytest
 
 from rubric_gen.biomnibench import task_rubrics as task_rubrics_module
+from rubric_gen.biomnibench import task_snapshots as task_snapshots_module
+from rubric_gen.biomnibench.task_snapshots import _walk_data_files
 from rubric_gen.biomnibench.task_rubrics import (
     DataFileSnapshot,
     RubricCriterion,
@@ -16,7 +18,6 @@ from rubric_gen.biomnibench.task_rubrics import (
     SchemaSnapshotLimits,
     TaskProcessRubric,
     TaskSnapshot,
-    _walk_data_files,
     build_task_snapshot,
     canonical_json,
     parse_task_process_rubric,
@@ -413,7 +414,9 @@ def test_uncovered_summary_anchor_is_rejected(snapshot: TaskSnapshot) -> None:
     payload = valid_rubric_payload(snapshot)
     payload["criteria"][0]["task_anchors"] = ["data:gene_exp.diff"]  # type: ignore[index]
 
-    assert "required summary anchor is not covered" in validation_text(payload, snapshot)
+    assert "required summary anchor is not covered" in validation_text(
+        payload, snapshot
+    )
 
 
 @pytest.mark.parametrize(
@@ -459,7 +462,9 @@ def test_duplicate_evidence_item_is_rejected(snapshot: TaskSnapshot) -> None:
     evidence = "Commands show the comparison was run."
     payload["criteria"][0]["required_evidence"] = [evidence, evidence]  # type: ignore[index]
 
-    assert "required_evidence contains duplicate items" in validation_text(payload, snapshot)
+    assert "required_evidence contains duplicate items" in validation_text(
+        payload, snapshot
+    )
 
 
 def test_criterion_without_anchor_is_rejected(snapshot: TaskSnapshot) -> None:
@@ -487,7 +492,9 @@ def test_level_points_must_be_strictly_descending(snapshot: TaskSnapshot) -> Non
     payload = valid_rubric_payload(snapshot)
     payload["criteria"][0]["levels"][1]["points"] = 100  # type: ignore[index]
 
-    assert "level points must be strictly descending" in validation_text(payload, snapshot)
+    assert "level points must be strictly descending" in validation_text(
+        payload, snapshot
+    )
 
 
 def test_criterion_must_have_at_least_three_levels(snapshot: TaskSnapshot) -> None:
@@ -572,7 +579,9 @@ def test_render_task_process_rubric_is_deterministic(snapshot: TaskSnapshot) -> 
 
     assert first == second
     assert first.encode("utf-8") == second.encode("utf-8")
-    assert first == """Purpose: Evaluate an evidence-grounded analysis process.
+    assert (
+        first
+        == """Purpose: Evaluate an evidence-grounded analysis process.
 
 Criterion 1: Task-specific analysis
 
@@ -611,6 +620,7 @@ Criterion 2: Unsupported-claim penalty
       [B]: One material claim is weakly supported.
       [C]: A material claim is contradicted.
 """
+    )
 
 
 def test_structured_rubric_level_map_is_pure_and_scoring_compatible(
@@ -781,10 +791,9 @@ def test_task_config_replacement_after_validation_fails_closed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     task = make_task(tmp_path)
-    config = task / "task.toml"
     outside = tmp_path / "outside-task.toml"
     outside.write_text('schema_version = "outside"\n', encoding="utf-8")
-    original_validate = task_rubrics_module._validated_task_input
+    original_validate = task_snapshots_module._validated_task_input
     substituted = [False]
 
     def substitute_after_validation(
@@ -801,7 +810,7 @@ def test_task_config_replacement_after_validation_fails_closed(
         return path
 
     monkeypatch.setattr(
-        task_rubrics_module,
+        task_snapshots_module,
         "_validated_task_input",
         substitute_after_validation,
     )
@@ -829,9 +838,10 @@ def test_file_omitted_from_schema_preview_still_changes_snapshot_identity(
     assert [item.path for item in before.data_files] == ["gene_exp.diff"]
     assert "environment/data/z_omitted.tsv" in before_hashes
     assert before.omitted_data_files == 2
-    assert before_hashes["environment/data/z_omitted.tsv"] != after_hashes[
-        "environment/data/z_omitted.tsv"
-    ]
+    assert (
+        before_hashes["environment/data/z_omitted.tsv"]
+        != after_hashes["environment/data/z_omitted.tsv"]
+    )
     assert before.snapshot_sha256 != after.snapshot_sha256
 
 
@@ -910,7 +920,9 @@ def test_symlinked_task_directory_ancestor_is_rejected(tmp_path: Path) -> None:
 
 
 def find_table(snapshot: TaskSnapshot, name: str) -> DataFileSnapshot:
-    return next(data_file for data_file in snapshot.data_files if data_file.path == name)
+    return next(
+        data_file for data_file in snapshot.data_files if data_file.path == name
+    )
 
 
 @pytest.mark.parametrize(
@@ -1105,12 +1117,14 @@ def test_stable_file_signature_includes_ctime_when_available() -> None:
     before = SimpleNamespace(**common, st_ctime_ns=5)
     after = SimpleNamespace(**common, st_ctime_ns=6)
 
-    assert task_rubrics_module._stable_file_signature(
+    assert task_snapshots_module._stable_file_signature(
         before,
-    ) != task_rubrics_module._stable_file_signature(after)
+    ) != task_snapshots_module._stable_file_signature(after)
 
 
-def test_probe_is_byte_bounded_without_misclassifying_split_utf8(tmp_path: Path) -> None:
+def test_probe_is_byte_bounded_without_misclassifying_split_utf8(
+    tmp_path: Path,
+) -> None:
     task = make_task(tmp_path)
     data = task / "environment" / "data"
     (data / "utf8.tsv").write_bytes("name\tvalue\nα\t1\n".encode("utf-8"))
@@ -1135,7 +1149,9 @@ def test_invalid_utf8_file_exposes_inventory_metadata_only(tmp_path: Path) -> No
     }
 
 
-def test_table_probe_applies_row_column_example_and_string_limits(tmp_path: Path) -> None:
+def test_table_probe_applies_row_column_example_and_string_limits(
+    tmp_path: Path,
+) -> None:
     task = make_task(tmp_path)
     data = task / "environment" / "data"
     (data / "wide.csv").write_text(
@@ -1196,7 +1212,9 @@ def test_schema_budget_drops_examples_then_columns_then_files(tmp_path: Path) ->
     limits = SchemaSnapshotLimits(max_output_chars=400)
 
     snapshot = build_task_snapshot(make_task(tmp_path), limits)
-    schema_json = canonical_json([data_file.to_dict() for data_file in snapshot.data_files])
+    schema_json = canonical_json(
+        [data_file.to_dict() for data_file in snapshot.data_files]
+    )
 
     assert len(schema_json) <= limits.max_output_chars
     assert json.loads(schema_json)
@@ -1208,11 +1226,17 @@ def test_schema_budget_drops_examples_then_columns_then_files(tmp_path: Path) ->
     assert snapshot.omitted_data_files == 1
 
 
-@pytest.mark.skipif(not REAL_DA_19_1.is_dir(), reason="real da-19-1 data is not checked in")
+@pytest.mark.skipif(
+    not REAL_DA_19_1.is_dir(), reason="real da-19-1 data is not checked in"
+)
 def test_real_da_19_1_snapshot_has_three_bounded_tables() -> None:
     snapshot = build_task_snapshot(REAL_DA_19_1)
-    column_counts = {data_file.path: len(data_file.columns) for data_file in snapshot.data_files}
-    schema_json = canonical_json([data_file.to_dict() for data_file in snapshot.data_files])
+    column_counts = {
+        data_file.path: len(data_file.columns) for data_file in snapshot.data_files
+    }
+    schema_json = canonical_json(
+        [data_file.to_dict() for data_file in snapshot.data_files]
+    )
 
     assert snapshot.task_id == "da-19-1"
     assert column_counts == {

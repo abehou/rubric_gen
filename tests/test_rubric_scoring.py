@@ -53,9 +53,7 @@ def test_parser_allows_criterion_prefixed_prose() -> None:
         "Levels: A=10 B=0\n"
     )
 
-    assert parse_rubric_levels_strict(rubric) == {
-        "criterion_1": {"A": 10, "B": 0}
-    }
+    assert parse_rubric_levels_strict(rubric) == {"criterion_1": {"A": 10, "B": 0}}
 
 
 def test_parser_allows_levels_prefixed_prose() -> None:
@@ -65,28 +63,18 @@ def test_parser_allows_levels_prefixed_prose() -> None:
         "Levels: A=10 B=0\n"
     )
 
-    assert parse_rubric_levels_strict(rubric) == {
-        "criterion_1": {"A": 10, "B": 0}
-    }
+    assert parse_rubric_levels_strict(rubric) == {"criterion_1": {"A": 10, "B": 0}}
 
 
 def test_parser_rejects_unparseable_criterion_candidate_line() -> None:
-    rubric = (
-        "Criterion 2 missing colon\n"
-        "Criterion 1: Valid\n"
-        "Levels: A=10 B=0\n"
-    )
+    rubric = "Criterion 2 missing colon\nCriterion 1: Valid\nLevels: A=10 B=0\n"
 
     with pytest.raises(JudgeScoreValidationError):
         parse_rubric_levels_strict(rubric)
 
 
 def test_parser_rejects_levels_line_before_first_criterion() -> None:
-    rubric = (
-        "Levels: A=999 B=0\n"
-        "Criterion 1: Valid\n"
-        "Levels: A=10 B=0\n"
-    )
+    rubric = "Levels: A=999 B=0\nCriterion 1: Valid\nLevels: A=10 B=0\n"
 
     with pytest.raises(JudgeScoreValidationError):
         parse_rubric_levels_strict(rubric)

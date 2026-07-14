@@ -2,7 +2,10 @@
 
 **Date:** 2026-07-13
 
-**Status:** Approved for implementation
+**Status:** Superseded and deferred
+
+**Disposition:** Work is preserved on `codex/harness-self-improvement-backup`;
+the current implementation direction is the submission-revision loop.
 
 **Repository:** `rubric_gen`
 

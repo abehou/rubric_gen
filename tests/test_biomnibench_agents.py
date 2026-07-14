@@ -30,6 +30,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
     def import_core(self):
         import sys
+
         sys.path.insert(0, str(SRC))
         try:
             from rubric_gen import biomnibench
@@ -77,9 +78,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
         core = self.import_core()
         policy = tomllib.loads(core.NO_WEB_POLICY)
         denied_tools = {
-            rule["toolName"]
-            for rule in policy["rule"]
-            if rule["decision"] == "deny"
+            rule["toolName"] for rule in policy["rule"] if rule["decision"] == "deny"
         }
         self.assertEqual(denied_tools, {"google_web_search", "web_fetch"})
 
@@ -150,16 +149,18 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
     def test_default_command_uses_no_web_policy(self):
         core = self.import_core()
-        config = core.AgentRunConfig.from_namespace(argparse.Namespace(
-            provider="gemini",
-            model=None,
-            skip_trust=True,
-            allow_web=False,
-            approval_mode=None,
-            sandbox=False,
-            executable=None,
-            extra_agent_arg=[],
-        ))
+        config = core.AgentRunConfig.from_namespace(
+            argparse.Namespace(
+                provider="gemini",
+                model=None,
+                skip_trust=True,
+                allow_web=False,
+                approval_mode=None,
+                sandbox=False,
+                executable=None,
+                extra_agent_arg=[],
+            )
+        )
         paths = core.RunPaths.for_task(
             task_dir=Path("/tmp/da-1-1"),
             runs_dir=Path("/tmp/runs"),
@@ -381,7 +382,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertEqual(paths.summary_path, paths.batch_dir / "all-runs-summary.jsonl")
         self.assertEqual(paths.progress_path, paths.batch_dir / "progress.jsonl")
         self.assertEqual(task_paths.run_dir, paths.batch_dir / "tasks" / "da-1-1")
-        self.assertEqual(task_paths.workspace_dir, paths.batch_dir / "workspaces" / "da-1-1")
+        self.assertEqual(
+            task_paths.workspace_dir, paths.batch_dir / "workspaces" / "da-1-1"
+        )
 
     def test_batch_config_can_resume_existing_all_run_folder(self):
         core = self.import_core()
@@ -444,12 +447,17 @@ class BiomniBenchAgentTests(unittest.TestCase):
             )
 
             exit_code = runner.run()
-            records = [json.loads(line) for line in runner.summary_path.read_text().splitlines()]
+            records = [
+                json.loads(line)
+                for line in runner.summary_path.read_text().splitlines()
+            ]
             status = json.loads(runner.batch_paths.status_path.read_text())
 
             self.assertEqual(exit_code, 0)
             self.assertEqual(sorted(fake.calls), ["da-1-1", "da-2-1"])
-            self.assertEqual(sorted(record["task"] for record in records), ["da-1-1", "da-2-1"])
+            self.assertEqual(
+                sorted(record["task"] for record in records), ["da-1-1", "da-2-1"]
+            )
             self.assertEqual(status["max_concurrency"], 2)
 
     def test_batch_agent_config_is_quiet_for_progress_bar_only(self):
@@ -487,12 +495,16 @@ class BiomniBenchAgentTests(unittest.TestCase):
     def test_quiet_runner_logs_stream_without_printing_agent_lines(self):
         core = self.import_core()
 
-        runner = core.AgentRunner(config=core.AgentRunConfig(provider="gemini", quiet=True))
+        runner = core.AgentRunner(
+            config=core.AgentRunConfig(provider="gemini", quiet=True)
+        )
         printed = []
         runner.adapter.print_line = lambda line, raw=False: printed.append((line, raw))
         log = io.StringIO()
 
-        runner._tee_stream(io.StringIO('{"type": "message", "content": "hidden"}\n'), log)
+        runner._tee_stream(
+            io.StringIO('{"type": "message", "content": "hidden"}\n'), log
+        )
 
         self.assertEqual(log.getvalue(), '{"type": "message", "content": "hidden"}\n')
         self.assertEqual(printed, [])
@@ -532,7 +544,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             (paths.workspace_dir / "trace.md").write_text("trace")
             (paths.workspace_dir / "answer.txt").write_text("answer")
             leak = root / "runs" / "_workspaces" / "da-1-1-gemini-old" / "trace.md"
-            (paths.workspace_dir / "read_other_trace.py").write_text(f'open("{leak}")\n')
+            (paths.workspace_dir / "read_other_trace.py").write_text(
+                f'open("{leak}")\n'
+            )
 
             validation = core.AgentRunner().validate_outputs(paths)
 
@@ -571,7 +585,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         class RetryRunner(core.AgentRunner):
             def __init__(self):
-                super().__init__(config=core.AgentRunConfig(provider="gemini", retries=1))
+                super().__init__(
+                    config=core.AgentRunConfig(provider="gemini", retries=1)
+                )
                 self.stream_calls = 0
 
             def ensure_executable(self):
@@ -588,7 +604,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
                     (paths.workspace_dir / "trace.md").write_text("trace")
                     return 0
 
-                paths.stream_path.write_text('{"type": "result", "status": "success"}\n')
+                paths.stream_path.write_text(
+                    '{"type": "result", "status": "success"}\n'
+                )
                 (paths.workspace_dir / "trace.md").write_text("trace")
                 (paths.workspace_dir / "answer.txt").write_text("answer")
                 return 0
@@ -614,7 +632,11 @@ class BiomniBenchAgentTests(unittest.TestCase):
             self.assertEqual(status["attempt_count"], 2)
             self.assertEqual(status["process_exit_code"], 0)
             self.assertEqual(status["exit_code"], 0)
-            self.assertTrue((paths.run_dir / "attempts" / "attempt-1.trajectory.stream.jsonl").is_file())
+            self.assertTrue(
+                (
+                    paths.run_dir / "attempts" / "attempt-1.trajectory.stream.jsonl"
+                ).is_file()
+            )
 
     def test_cli_exposes_resume_run_for_all_tasks(self):
         core = self.import_core()
@@ -856,7 +878,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             (task_run / "trajectory.stream.jsonl").write_text(
                 '{"type": "tool_use", "tool_name": "shell", "parameters": {"command": "python analyze.py"}}\n'
             )
-            (workspace / "trace.md").write_text("# Objective\nCompare groups\n# Results\nSome result")
+            (workspace / "trace.md").write_text(
+                "# Objective\nCompare groups\n# Results\nSome result"
+            )
             (workspace / "answer.txt").write_text("treated differs from control")
 
             rewriter = FakeRewriter()
@@ -874,8 +898,12 @@ class BiomniBenchAgentTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertIn("PROCESS RUBRIC: DA-1-1", output.read_text())
             self.assertEqual(len(rewriter.requests), 1)
-            self.assertIn("Compare treated and control", rewriter.requests[0].instruction_md)
-            self.assertIn("Correct comparison", rewriter.requests[0].original_rubric_txt)
+            self.assertIn(
+                "Compare treated and control", rewriter.requests[0].instruction_md
+            )
+            self.assertIn(
+                "Correct comparison", rewriter.requests[0].original_rubric_txt
+            )
 
     def test_process_rubric_runner_uses_existing_rubrics_as_examples(self):
         core = self.import_core()
@@ -883,7 +911,10 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         sys.path.insert(0, str(SRC))
         try:
-            from rubric_gen.biomnibench.process_rubrics import build_rubric, discover_bundles
+            from rubric_gen.biomnibench.process_rubrics import (
+                build_rubric,
+                discover_bundles,
+            )
         finally:
             sys.path.pop(0)
 
@@ -918,11 +949,15 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 (task_run / "trajectory.stream.jsonl").write_text(
                     '{"type": "tool_use", "tool_name": "shell", "parameters": {"command": "python analyze.py"}}\n'
                 )
-                (workspace / "trace.md").write_text("# Objective\nAnalyze\n# Results\nSome result")
+                (workspace / "trace.md").write_text(
+                    "# Objective\nAnalyze\n# Results\nSome result"
+                )
                 (workspace / "answer.txt").write_text("answer")
 
             bundles = discover_bundles(tasks_dir, run_dir)
-            (tasks_dir / "da-1-1" / "tests" / "process_rubric.txt").write_text(build_rubric(bundles[0]))
+            (tasks_dir / "da-1-1" / "tests" / "process_rubric.txt").write_text(
+                build_rubric(bundles[0])
+            )
 
             rewriter = CapturingRewriter()
             runner = core.ProcessRubricGenerator(
@@ -938,9 +973,15 @@ class BiomniBenchAgentTests(unittest.TestCase):
             self.assertEqual(runner.run(), 0)
             self.assertEqual(len(rewriter.requests), 1)
             self.assertEqual(rewriter.requests[0].task_id, "da-2-1")
-            self.assertIn("### Example da-1-1", rewriter.requests[0].example_process_rubrics_txt)
-            self.assertTrue((tasks_dir / "da-1-1" / "tests" / "process_rubric.txt").is_file())
-            self.assertTrue((tasks_dir / "da-2-1" / "tests" / "process_rubric.txt").is_file())
+            self.assertIn(
+                "### Example da-1-1", rewriter.requests[0].example_process_rubrics_txt
+            )
+            self.assertTrue(
+                (tasks_dir / "da-1-1" / "tests" / "process_rubric.txt").is_file()
+            )
+            self.assertTrue(
+                (tasks_dir / "da-2-1" / "tests" / "process_rubric.txt").is_file()
+            )
 
     def test_process_rubric_resume_requires_success_marker(self):
         core = self.import_core()
@@ -948,7 +989,10 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         sys.path.insert(0, str(SRC))
         try:
-            from rubric_gen.biomnibench.process_rubrics import build_rubric, discover_bundles
+            from rubric_gen.biomnibench.process_rubrics import (
+                build_rubric,
+                discover_bundles,
+            )
         finally:
             sys.path.pop(0)
 
@@ -982,7 +1026,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             (task_run / "trajectory.stream.jsonl").write_text(
                 '{"type": "tool_use", "tool_name": "shell", "parameters": {"command": "python analyze.py"}}\n'
             )
-            (workspace / "trace.md").write_text("# Objective\nAnalyze\n# Results\nSome result")
+            (workspace / "trace.md").write_text(
+                "# Objective\nAnalyze\n# Results\nSome result"
+            )
             (workspace / "answer.txt").write_text("answer")
 
             bundle = discover_bundles(tasks_dir, run_dir)[0]
@@ -1001,7 +1047,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             self.assertEqual(runner.run(), 0)
             self.assertEqual(len(rewriter.requests), 1)
-            self.assertTrue((run_dir / "process-rubrics" / "da-1-1" / "success.json").is_file())
+            self.assertTrue(
+                (run_dir / "process-rubrics" / "da-1-1" / "success.json").is_file()
+            )
 
             self.assertEqual(runner.run(), 0)
             self.assertEqual(len(rewriter.requests), 1)
@@ -1038,7 +1086,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 (task_run / "trajectory.stream.jsonl").write_text(
                     '{"type": "tool_use", "tool_name": "shell", "parameters": {"command": "python analyze.py"}}\n'
                 )
-                (workspace / "trace.md").write_text("# Objective\nAnalyze\n# Results\nSome result")
+                (workspace / "trace.md").write_text(
+                    "# Objective\nAnalyze\n# Results\nSome result"
+                )
                 (workspace / "answer.txt").write_text("answer")
 
             runner = core.ProcessRubricGenerator(
@@ -1053,10 +1103,22 @@ class BiomniBenchAgentTests(unittest.TestCase):
             )
 
             self.assertEqual(runner.run(), 1)
-            self.assertFalse((tasks_dir / "da-1-1" / "tests" / "process_rubric.txt").exists())
-            self.assertTrue((tasks_dir / "da-2-1" / "tests" / "process_rubric.txt").is_file())
-            self.assertTrue((run_dir / "process-rubrics" / "da-1-1" / "attempt-01-error.txt").is_file())
-            self.assertTrue((run_dir / "process-rubrics" / "da-1-1" / "attempt-02-error.txt").is_file())
+            self.assertFalse(
+                (tasks_dir / "da-1-1" / "tests" / "process_rubric.txt").exists()
+            )
+            self.assertTrue(
+                (tasks_dir / "da-2-1" / "tests" / "process_rubric.txt").is_file()
+            )
+            self.assertTrue(
+                (
+                    run_dir / "process-rubrics" / "da-1-1" / "attempt-01-error.txt"
+                ).is_file()
+            )
+            self.assertTrue(
+                (
+                    run_dir / "process-rubrics" / "da-1-1" / "attempt-02-error.txt"
+                ).is_file()
+            )
 
     def test_process_rubric_validation_rejects_outline_without_level_descriptions(self):
         import sys
@@ -1074,11 +1136,16 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 "Description: This criterion has a description but no bracketed level descriptions.\n"
                 "Levels: A=10 B=5 C=0\n"
             )
-        outline = "PROCESS RUBRIC: DA-1-1\n\nTotal Points: 100/100\n\nEvidence-gated scoring rules:\n" + "\n".join(criteria)
+        outline = (
+            "PROCESS RUBRIC: DA-1-1\n\nTotal Points: 100/100\n\nEvidence-gated scoring rules:\n"
+            + "\n".join(criteria)
+        )
 
         errors = validate_rubric_text("da-1-1", outline, "original")
 
-        self.assertTrue(any("missing [A] level description" in error for error in errors))
+        self.assertTrue(
+            any("missing [A] level description" in error for error in errors)
+        )
 
     def test_llm_perturb_runner_writes_judge_compatible_levels(self):
         core = self.import_core()
@@ -1100,15 +1167,21 @@ class BiomniBenchAgentTests(unittest.TestCase):
             task_dir = root / "data" / "da-1-1"
             (task_dir / "tests").mkdir(parents=True)
             (task_dir / "instruction.md").write_text("Solve this local task.\n")
-            (task_dir / "tests" / "rubric.txt").write_text("OUTCOME RUBRIC SHOULD NOT BE READ\n")
-            (task_dir / "tests" / "process_rubric.txt").write_text("PROCESS RUBRIC SHOULD NOT BE READ\n")
+            (task_dir / "tests" / "rubric.txt").write_text(
+                "OUTCOME RUBRIC SHOULD NOT BE READ\n"
+            )
+            (task_dir / "tests" / "process_rubric.txt").write_text(
+                "PROCESS RUBRIC SHOULD NOT BE READ\n"
+            )
 
             base = root / "runs" / "all-gemini-20260101-000000"
             run_dir = base / "tasks" / "da-1-1"
             workspace = base / "workspaces" / "da-1-1"
             run_dir.mkdir(parents=True)
             workspace.mkdir(parents=True)
-            (run_dir / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "original"}\n')
+            (run_dir / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "original"}\n'
+            )
             (workspace / "trace.md").write_text("original trace")
             (workspace / "answer.txt").write_text("original answer")
             (run_dir / "status.json").write_text(
@@ -1136,16 +1209,36 @@ class BiomniBenchAgentTests(unittest.TestCase):
             manifest = json.loads((out_dir / "perturbation_manifest.json").read_text())
 
             self.assertEqual(exit_code, 0)
-            self.assertEqual((out_dir / "C" / "workspaces" / "da-1-1" / "trace.md").read_text(), "original trace")
-            self.assertEqual((out_dir / "L0" / "workspaces" / "da-1-1" / "trace.md").read_text(), "perturbed L0 trace")
-            self.assertTrue((out_dir / "L0" / "tasks" / "da-1-1" / "status.json").is_file())
-            self.assertTrue((out_dir / "L0" / "tasks" / "da-1-1" / "trajectory.stream.jsonl").is_file())
-            complete = json.loads((out_dir / "L0" / "tasks" / "da-1-1" / "perturbation_complete.json").read_text())
+            self.assertEqual(
+                (out_dir / "C" / "workspaces" / "da-1-1" / "trace.md").read_text(),
+                "original trace",
+            )
+            self.assertEqual(
+                (out_dir / "L0" / "workspaces" / "da-1-1" / "trace.md").read_text(),
+                "perturbed L0 trace",
+            )
+            self.assertTrue(
+                (out_dir / "L0" / "tasks" / "da-1-1" / "status.json").is_file()
+            )
+            self.assertTrue(
+                (
+                    out_dir / "L0" / "tasks" / "da-1-1" / "trajectory.stream.jsonl"
+                ).is_file()
+            )
+            complete = json.loads(
+                (
+                    out_dir / "L0" / "tasks" / "da-1-1" / "perturbation_complete.json"
+                ).read_text()
+            )
             self.assertEqual(complete["status"], "complete")
             self.assertEqual(complete["level"], "L0")
             self.assertEqual(manifest["model"], "gemini-3.5-flash")
-            self.assertEqual([record["level"] for record in manifest["records"]], ["C", "L0"])
-            self.assertEqual(manifest["records"][1]["perturbation_notes"], ["mock perturbation"])
+            self.assertEqual(
+                [record["level"] for record in manifest["records"]], ["C", "L0"]
+            )
+            self.assertEqual(
+                manifest["records"][1]["perturbation_notes"], ["mock perturbation"]
+            )
 
     def test_perturb_runner_normalizes_invalid_generated_trajectory_jsonl(self):
         core = self.import_core()
@@ -1176,11 +1269,19 @@ class BiomniBenchAgentTests(unittest.TestCase):
             workspace = base / "workspaces" / "da-1-1"
             run_dir.mkdir(parents=True)
             workspace.mkdir(parents=True)
-            (run_dir / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "original"}\n')
+            (run_dir / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "original"}\n'
+            )
             (workspace / "trace.md").write_text("original trace")
             (workspace / "answer.txt").write_text("original answer")
             (run_dir / "status.json").write_text(
-                json.dumps({"task": "da-1-1", "task_dir": str(task_dir), "workspace_dir": str(workspace)})
+                json.dumps(
+                    {
+                        "task": "da-1-1",
+                        "task_dir": str(task_dir),
+                        "workspace_dir": str(workspace),
+                    }
+                )
             )
 
             out_dir = root / "perturbed"
@@ -1195,13 +1296,17 @@ class BiomniBenchAgentTests(unittest.TestCase):
             )
 
             self.assertEqual(runner.run(), 0)
-            trajectory = (out_dir / "L1" / "tasks" / "da-1-1" / "trajectory.stream.jsonl").read_text()
+            trajectory = (
+                out_dir / "L1" / "tasks" / "da-1-1" / "trajectory.stream.jsonl"
+            ).read_text()
             events = [json.loads(line) for line in trajectory.splitlines()]
             self.assertEqual(events[0]["type"], "message")
             self.assertEqual(events[1]["type"], "perturbed_invalid_json_line")
             self.assertEqual(events[2]["type"], "perturbed_invalid_json_line")
             manifest = json.loads((out_dir / "perturbation_manifest.json").read_text())
-            self.assertIn("normalized 2 invalid", manifest["records"][0]["perturbation_notes"][-1])
+            self.assertIn(
+                "normalized 2 invalid", manifest["records"][0]["perturbation_notes"][-1]
+            )
 
     def test_perturb_runner_overwrites_existing_output_by_default(self):
         core = self.import_core()
@@ -1217,11 +1322,19 @@ class BiomniBenchAgentTests(unittest.TestCase):
             workspace = base / "workspaces" / "da-1-1"
             run_dir.mkdir(parents=True)
             workspace.mkdir(parents=True)
-            (run_dir / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "original"}\n')
+            (run_dir / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "original"}\n'
+            )
             (workspace / "trace.md").write_text("fresh trace")
             (workspace / "answer.txt").write_text("fresh answer")
             (run_dir / "status.json").write_text(
-                json.dumps({"task": "da-1-1", "task_dir": str(task_dir), "workspace_dir": str(workspace)})
+                json.dumps(
+                    {
+                        "task": "da-1-1",
+                        "task_dir": str(task_dir),
+                        "workspace_dir": str(workspace),
+                    }
+                )
             )
 
             out_dir = root / "perturbed"
@@ -1238,14 +1351,19 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             self.assertEqual(runner.run(), 0)
             self.assertFalse((out_dir / "stale.txt").exists())
-            self.assertEqual((out_dir / "C" / "workspaces" / "da-1-1" / "trace.md").read_text(), "fresh trace")
+            self.assertEqual(
+                (out_dir / "C" / "workspaces" / "da-1-1" / "trace.md").read_text(),
+                "fresh trace",
+            )
 
     def test_perturb_runner_resume_preserves_existing_level_outputs(self):
         core = self.import_core()
 
         class RaisingPerturber:
             def perturb(self, request):
-                raise AssertionError("resume should not call perturber for complete outputs")
+                raise AssertionError(
+                    "resume should not call perturber for complete outputs"
+                )
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1258,11 +1376,19 @@ class BiomniBenchAgentTests(unittest.TestCase):
             workspace = base / "workspaces" / "da-1-1"
             run_dir.mkdir(parents=True)
             workspace.mkdir(parents=True)
-            (run_dir / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "original"}\n')
+            (run_dir / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "original"}\n'
+            )
             (workspace / "trace.md").write_text("fresh trace")
             (workspace / "answer.txt").write_text("fresh answer")
             (run_dir / "status.json").write_text(
-                json.dumps({"task": "da-1-1", "task_dir": str(task_dir), "workspace_dir": str(workspace)})
+                json.dumps(
+                    {
+                        "task": "da-1-1",
+                        "task_dir": str(task_dir),
+                        "workspace_dir": str(workspace),
+                    }
+                )
             )
 
             out_dir = root / "perturbed"
@@ -1270,10 +1396,13 @@ class BiomniBenchAgentTests(unittest.TestCase):
             existing_workspace = out_dir / "L0" / "workspaces" / "da-1-1"
             existing_run.mkdir(parents=True)
             existing_workspace.mkdir(parents=True)
-            (existing_run / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "old"}\n')
+            (existing_run / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "old"}\n'
+            )
             (existing_run / "status.json").write_text("{}\n")
             (existing_run / "perturbation_complete.json").write_text(
-                json.dumps({"status": "complete", "task": "da-1-1", "level": "L0"}) + "\n"
+                json.dumps({"status": "complete", "task": "da-1-1", "level": "L0"})
+                + "\n"
             )
             (existing_workspace / "trace.md").write_text("old trace")
             (existing_workspace / "answer.txt").write_text("old answer")
@@ -1318,11 +1447,19 @@ class BiomniBenchAgentTests(unittest.TestCase):
             workspace = base / "workspaces" / "da-1-1"
             run_dir.mkdir(parents=True)
             workspace.mkdir(parents=True)
-            (run_dir / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "original"}\n')
+            (run_dir / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "original"}\n'
+            )
             (workspace / "trace.md").write_text("fresh trace")
             (workspace / "answer.txt").write_text("fresh answer")
             (run_dir / "status.json").write_text(
-                json.dumps({"task": "da-1-1", "task_dir": str(task_dir), "workspace_dir": str(workspace)})
+                json.dumps(
+                    {
+                        "task": "da-1-1",
+                        "task_dir": str(task_dir),
+                        "workspace_dir": str(workspace),
+                    }
+                )
             )
 
             out_dir = root / "perturbed"
@@ -1330,7 +1467,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             existing_workspace = out_dir / "L0" / "workspaces" / "da-1-1"
             existing_run.mkdir(parents=True)
             existing_workspace.mkdir(parents=True)
-            (existing_run / "trajectory.stream.jsonl").write_text('{"type": "message", "content": "old"}\n')
+            (existing_run / "trajectory.stream.jsonl").write_text(
+                '{"type": "message", "content": "old"}\n'
+            )
             (existing_run / "status.json").write_text("{}\n")
             (existing_workspace / "trace.md").write_text("old trace")
             (existing_workspace / "answer.txt").write_text("old answer")
@@ -1400,7 +1539,11 @@ class BiomniBenchAgentTests(unittest.TestCase):
                     2: "perturbed answer",
                     3: '{"type": "message", "content": "perturbed"}\n',
                 }
-                payload = {"candidates": [{"content": {"parts": [{"text": texts[response_index]}]}}]}
+                payload = {
+                    "candidates": [
+                        {"content": {"parts": [{"text": texts[response_index]}]}}
+                    ]
+                }
                 return json.dumps(payload).encode()
 
         def fake_urlopen(request_obj, timeout):
@@ -1409,16 +1552,26 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         import unittest.mock
 
-        with unittest.mock.patch.dict("os.environ", {"GEMINI_API_KEY": "secret"}, clear=True):
-            with unittest.mock.patch("rubric_gen.biomnibench.perturbations.urllib.request.urlopen", fake_urlopen):
+        with unittest.mock.patch.dict(
+            "os.environ", {"GEMINI_API_KEY": "secret"}, clear=True
+        ):
+            with unittest.mock.patch(
+                "rubric_gen.biomnibench.gemini_client.urllib.request.urlopen",
+                fake_urlopen,
+            ):
                 result = core.GeminiPerturber(model="gemini-3.5-flash").perturb(request)
 
         self.assertEqual(len(calls), 3)
         self.assertEqual(result.trace_md, "perturbed trace")
         self.assertEqual(result.answer_txt, "perturbed answer")
-        self.assertEqual(result.trajectory_stream_jsonl, '{"type": "message", "content": "perturbed"}\n')
+        self.assertEqual(
+            result.trajectory_stream_jsonl,
+            '{"type": "message", "content": "perturbed"}\n',
+        )
         for request_obj, timeout in calls:
-            self.assertIn("models/gemini-3.5-flash:generateContent", request_obj.full_url)
+            self.assertIn(
+                "models/gemini-3.5-flash:generateContent", request_obj.full_url
+            )
             self.assertIn("key=secret", request_obj.full_url)
             self.assertEqual(timeout, 600)
             body = json.loads(request_obj.data.decode())
@@ -1461,7 +1614,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         config = core.JudgeRunConfig.from_namespace(args)
         self.assertEqual(config.run_dir, Path("runs/all/tasks/da-1-1").resolve())
-        self.assertEqual(config.extra_run_dirs, (Path("runs/all/tasks/da-2-1").resolve(),))
+        self.assertEqual(
+            config.extra_run_dirs, (Path("runs/all/tasks/da-2-1").resolve(),)
+        )
         self.assertEqual(config.run_dirs, (config.run_dir, *config.extra_run_dirs))
 
     def test_cli_accepts_repeated_judge_run_dir_flags(self):
@@ -1480,13 +1635,18 @@ class BiomniBenchAgentTests(unittest.TestCase):
         )
 
         config = core.JudgeRunConfig.from_namespace(args)
-        self.assertEqual(config.run_dirs, (
-            Path("runs/all/tasks/da-1-1").resolve(),
-            Path("runs/all/tasks/da-2-1").resolve(),
-        ))
+        self.assertEqual(
+            config.run_dirs,
+            (
+                Path("runs/all/tasks/da-1-1").resolve(),
+                Path("runs/all/tasks/da-2-1").resolve(),
+            ),
+        )
 
     def test_task_judge_supports_rubric_defined_level_letters(self):
-        judge_path = ROOT / "data" / "biomnibench-da" / "da-10-1" / "tests" / "llm_judge.py"
+        judge_path = (
+            ROOT / "data" / "biomnibench-da" / "da-10-1" / "tests" / "llm_judge.py"
+        )
         if not judge_path.is_file():
             self.skipTest("external BiomniBench judge fixture is not available")
         text = judge_path.read_text()
@@ -1495,12 +1655,18 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         import importlib.util
 
-        spec = importlib.util.spec_from_file_location("biomnibench_llm_judge", judge_path)
+        spec = importlib.util.spec_from_file_location(
+            "biomnibench_llm_judge", judge_path
+        )
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
-        levels = module.parse_rubric_levels("Criterion 1:\nLevels: A=10 B=8 C=4 D=1 E=0\n")
-        self.assertEqual(levels["criterion_1"], {"A": 10, "B": 8, "C": 4, "D": 1, "E": 0})
+        levels = module.parse_rubric_levels(
+            "Criterion 1:\nLevels: A=10 B=8 C=4 D=1 E=0\n"
+        )
+        self.assertEqual(
+            levels["criterion_1"], {"A": 10, "B": 8, "C": 4, "D": 1, "E": 0}
+        )
 
     def test_judge_runner_discovers_batch_without_writing_dry_run_inputs(self):
         core = self.import_core()
@@ -1511,7 +1677,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             (task_dir / "tests").mkdir(parents=True)
             (task_dir / "instruction.md").write_text("task")
             (task_dir / "environment" / "data").mkdir(parents=True)
-            (task_dir / "tests" / "rubric.txt").write_text("Criterion 1:\nLevels: A=100 B=50 C=0\n")
+            (task_dir / "tests" / "rubric.txt").write_text(
+                "Criterion 1:\nLevels: A=100 B=50 C=0\n"
+            )
             (task_dir / "tests" / "llm_judge.py").write_text("print('judge')\n")
 
             batch = root / "runs" / "all-gemini-20260101-000000"
@@ -1565,7 +1733,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 (task_dir / "tests").mkdir(parents=True)
                 (task_dir / "instruction.md").write_text("task")
                 (task_dir / "environment" / "data").mkdir(parents=True)
-                (task_dir / "tests" / "rubric.txt").write_text("Criterion 1:\nLevels: A=100 B=50 C=0\n")
+                (task_dir / "tests" / "rubric.txt").write_text(
+                    "Criterion 1:\nLevels: A=100 B=50 C=0\n"
+                )
                 (task_dir / "tests" / "llm_judge.py").write_text("print('judge')\n")
                 task_dirs.append(task_dir)
 
@@ -1575,7 +1745,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 workspace.mkdir(parents=True)
                 (workspace / "trace.md").write_text(f"{name} trace")
                 (workspace / "answer.txt").write_text(f"{name} answer")
-                (run_dir / "trajectory.stream.jsonl").write_text('{"type": "message"}\n')
+                (run_dir / "trajectory.stream.jsonl").write_text(
+                    '{"type": "message"}\n'
+                )
                 (run_dir / "status.json").write_text(
                     json.dumps(
                         {
@@ -1601,7 +1773,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             summary = json.loads(runner.scores_path.read_text())
 
             self.assertEqual(exit_code, 0)
-            self.assertEqual([task["task"] for task in summary["tasks"]], ["da-1-1", "da-2-1"])
+            self.assertEqual(
+                [task["task"] for task in summary["tasks"]], ["da-1-1", "da-2-1"]
+            )
             self.assertEqual(summary["total_attempts"], 2)
             self.assertFalse((run_dirs[0] / "judges" / "trace" / "da-1-1").exists())
             self.assertFalse((run_dirs[1] / "judges" / "trace" / "da-2-1").exists())
@@ -1627,13 +1801,15 @@ class BiomniBenchAgentTests(unittest.TestCase):
             workspace_dir.mkdir()
 
             def fake_run(cmd, cwd, env, text, stdout, stderr, check):
-                self.assertEqual(Path(cwd, "tests", "rubric.txt").read_text(), process_rubric)
+                self.assertEqual(
+                    Path(cwd, "tests", "rubric.txt").read_text(), process_rubric
+                )
                 logs = Path(cwd, "logs", "verifier")
                 logs.mkdir(parents=True, exist_ok=True)
                 (logs / "reward.json").write_text(json.dumps({"score": 100}))
-                (logs / "evaluation.json").write_text(json.dumps({
-                    "criteria": {"criterion_1": {"level": "A"}}
-                }))
+                (logs / "evaluation.json").write_text(
+                    json.dumps({"criteria": {"criterion_1": {"level": "A"}}})
+                )
                 return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
             runner = core.BiomniBenchJudgeRunner(
@@ -1656,7 +1832,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             import unittest.mock
 
-            with unittest.mock.patch("rubric_gen.biomnibench.judges.subprocess.run", fake_run):
+            with unittest.mock.patch(
+                "rubric_gen.biomnibench.judges.subprocess.run", fake_run
+            ):
                 result = runner.execute_judge(
                     tests_dir / "llm_judge.py",
                     tests_dir / "process_rubric.txt",
@@ -1676,7 +1854,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             root = Path(tmp)
             task_dir = root / "data" / "da-1-1"
             (task_dir / "tests").mkdir(parents=True)
-            (task_dir / "tests" / "rubric.txt").write_text("Criterion 1:\nLevels: A=100 B=50 C=0\n")
+            (task_dir / "tests" / "rubric.txt").write_text(
+                "Criterion 1:\nLevels: A=100 B=50 C=0\n"
+            )
             (task_dir / "tests" / "llm_judge.py").write_text("print('judge')\n")
 
             run_dir = root / "runs" / "da-1-1-gemini-20260101-000000"
@@ -1685,7 +1865,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             workspace.mkdir(parents=True)
             (workspace / "trace.md").write_text("clean trace")
             (workspace / "answer.txt").write_text("answer")
-            (run_dir / "trajectory.stream.jsonl").write_text('{"type": "tool_use", "command": "python x.py"}\n')
+            (run_dir / "trajectory.stream.jsonl").write_text(
+                '{"type": "tool_use", "command": "python x.py"}\n'
+            )
             (run_dir / "status.json").write_text(
                 json.dumps(
                     {
@@ -1707,7 +1889,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             review_text = runner.review_text(runner.discover_targets()[0])
 
             exit_code = runner.run()
-            judge_input = run_dir / "judges" / "trajectory" / "da-1-1" / "judge_input_trace.md"
+            judge_input = (
+                run_dir / "judges" / "trajectory" / "da-1-1" / "judge_input_trace.md"
+            )
 
             self.assertEqual(exit_code, 0)
             self.assertIn("# Raw Agent Trajectory", review_text)
@@ -1754,11 +1938,36 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             summary = runner.score_summary(
                 [
-                    {"task": "da-1-1", "status": "completed", "score": 100, "repeat_index": 1},
-                    {"task": "da-1-1", "status": "completed", "score": 80, "repeat_index": 2},
-                    {"task": "da-1-1", "status": "completed", "score": 60, "repeat_index": 3},
-                    {"task": "da-1-2", "status": "completed", "score": 50, "repeat_index": 1},
-                    {"task": "da-1-2", "status": "failed", "score": None, "repeat_index": 2},
+                    {
+                        "task": "da-1-1",
+                        "status": "completed",
+                        "score": 100,
+                        "repeat_index": 1,
+                    },
+                    {
+                        "task": "da-1-1",
+                        "status": "completed",
+                        "score": 80,
+                        "repeat_index": 2,
+                    },
+                    {
+                        "task": "da-1-1",
+                        "status": "completed",
+                        "score": 60,
+                        "repeat_index": 3,
+                    },
+                    {
+                        "task": "da-1-2",
+                        "status": "completed",
+                        "score": 50,
+                        "repeat_index": 1,
+                    },
+                    {
+                        "task": "da-1-2",
+                        "status": "failed",
+                        "score": None,
+                        "repeat_index": 2,
+                    },
                 ]
             )
 
@@ -1793,8 +2002,14 @@ class BiomniBenchAgentTests(unittest.TestCase):
             )
 
             self.assertTrue(runner.judge_model({}).startswith("gemini"))
-            self.assertEqual(runner.judge_model({"MODEL_NAME": "gemini-env-model"}), "gemini-env-model")
-            self.assertEqual(explicit.judge_model({"MODEL_NAME": "gemini-env-model"}), "gemini-test-model")
+            self.assertEqual(
+                runner.judge_model({"MODEL_NAME": "gemini-env-model"}),
+                "gemini-env-model",
+            )
+            self.assertEqual(
+                explicit.judge_model({"MODEL_NAME": "gemini-env-model"}),
+                "gemini-test-model",
+            )
 
     def test_judge_repeats_use_separate_output_dirs(self):
         core = self.import_core()
@@ -1803,7 +2018,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             root = Path(tmp)
             task_dir = root / "data" / "da-1-1"
             (task_dir / "tests").mkdir(parents=True)
-            (task_dir / "tests" / "rubric.txt").write_text("Criterion 1:\nLevels: A=100 B=50 C=0\n")
+            (task_dir / "tests" / "rubric.txt").write_text(
+                "Criterion 1:\nLevels: A=100 B=50 C=0\n"
+            )
             (task_dir / "tests" / "llm_judge.py").write_text("print('judge')\n")
 
             batch = root / "runs" / "all-gemini-20260101-000000"
@@ -1840,8 +2057,12 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertEqual(summary["total_attempts"], 2)
-            self.assertFalse((batch / "judges" / "trace" / "da-1-1" / "repeat-01").exists())
-            self.assertFalse((batch / "judges" / "trace" / "da-1-1" / "repeat-02").exists())
+            self.assertFalse(
+                (batch / "judges" / "trace" / "da-1-1" / "repeat-01").exists()
+            )
+            self.assertFalse(
+                (batch / "judges" / "trace" / "da-1-1" / "repeat-02").exists()
+            )
 
     def test_judge_resume_rejects_unattested_scored_output(self):
         core = self.import_core()
@@ -1850,7 +2071,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             root = Path(tmp)
             task_dir = root / "data" / "da-1-1"
             (task_dir / "tests").mkdir(parents=True)
-            (task_dir / "tests" / "rubric.txt").write_text("Criterion 1:\nLevels: A=100 B=50 C=0\n")
+            (task_dir / "tests" / "rubric.txt").write_text(
+                "Criterion 1:\nLevels: A=100 B=50 C=0\n"
+            )
             (task_dir / "tests" / "llm_judge.py").write_text("print('judge')\n")
 
             batch = root / "runs" / "all-gemini-20260101-000000"
@@ -1902,7 +2125,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 stamp="20260101-000000",
             )
             paths.run_dir.mkdir(parents=True)
-            paths.stream_path.write_text('{"type": "result", "total_cost_usd": 0.0789}\n')
+            paths.stream_path.write_text(
+                '{"type": "result", "total_cost_usd": 0.0789}\n'
+            )
             runner = core.BiomniBenchBatchRunner(
                 config=core.BatchRunConfig(
                     tasks_dir=root / "data",
@@ -2025,7 +2250,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             record = runner.result_record(root / "da-1-1", 0, paths)
             self.assertIsNone(record["cost_usd"])
             self.assertEqual(record["estimated_cost_usd"], 3.5)
-            self.assertEqual(record["cost_source"], "estimated_google_gemini_api_standard")
+            self.assertEqual(
+                record["cost_source"], "estimated_google_gemini_api_standard"
+            )
 
 
 if __name__ == "__main__":

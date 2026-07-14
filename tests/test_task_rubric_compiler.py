@@ -14,6 +14,7 @@ import pytest
 import rubric_gen.biomnibench as biomnibench
 from rubric_gen.biomnibench import cli as cli_module
 from rubric_gen.biomnibench import process_rubrics as process_rubrics_module
+from rubric_gen.biomnibench import rubric_bundles as rubric_bundles_module
 from rubric_gen.biomnibench import task_rubric_compiler as compiler_module
 from rubric_gen.biomnibench import task_rubrics as task_rubrics_module
 from rubric_gen.biomnibench.common import resolve_project_path
@@ -154,41 +155,43 @@ Write `report.tsv`.
 
 
 def valid_rubric(snapshot: TaskSnapshot) -> str:
-    return canonical_json({
-        "schema_version": 1,
-        "task_id": snapshot.task_id,
-        "purpose": "Evaluate the observable, evidence-grounded analysis process.",
-        "criteria": [
-            {
-                "criterion_id": "C1",
-                "title": "Task-specific analysis",
-                "description": "Assess whether the required comparison was executed.",
-                "max_points": 100,
-                "task_anchors": ["summary:C1", "data:gene_exp.diff"],
-                "required_evidence": ["Commands and outputs show the comparison."],
-                "acceptable_alternatives": ["An equivalent scripted comparison."],
-                "anti_evidence": ["A claim unsupported by a produced artifact."],
-                "verification": ["Inspect the commands and report.tsv."],
-                "levels": [
-                    {
-                        "label": "A",
-                        "points": 100,
-                        "description": "Complete and independently verifiable.",
-                    },
-                    {
-                        "label": "B",
-                        "points": 50,
-                        "description": "Partial, but supported by observable evidence.",
-                    },
-                    {
-                        "label": "C",
-                        "points": 0,
-                        "description": "No supported comparison.",
-                    },
-                ],
-            }
-        ],
-    })
+    return canonical_json(
+        {
+            "schema_version": 1,
+            "task_id": snapshot.task_id,
+            "purpose": "Evaluate the observable, evidence-grounded analysis process.",
+            "criteria": [
+                {
+                    "criterion_id": "C1",
+                    "title": "Task-specific analysis",
+                    "description": "Assess whether the required comparison was executed.",
+                    "max_points": 100,
+                    "task_anchors": ["summary:C1", "data:gene_exp.diff"],
+                    "required_evidence": ["Commands and outputs show the comparison."],
+                    "acceptable_alternatives": ["An equivalent scripted comparison."],
+                    "anti_evidence": ["A claim unsupported by a produced artifact."],
+                    "verification": ["Inspect the commands and report.tsv."],
+                    "levels": [
+                        {
+                            "label": "A",
+                            "points": 100,
+                            "description": "Complete and independently verifiable.",
+                        },
+                        {
+                            "label": "B",
+                            "points": 50,
+                            "description": "Partial, but supported by observable evidence.",
+                        },
+                        {
+                            "label": "C",
+                            "points": 0,
+                            "description": "No supported comparison.",
+                        },
+                    ],
+                }
+            ],
+        }
+    )
 
 
 def test_rewriter_provenance_is_a_closed_versioned_record() -> None:
@@ -343,11 +346,16 @@ def make_compiler(
         temperature=temperature,
         seed=seed,
     )
-    return TaskProcessRubricCompiler(
-        config,
-        rewriter=rewriter,
-        rewriter_provenance=fake_rewriter_provenance(model=model),
-    ), rewriter, output, task_dir
+    return (
+        TaskProcessRubricCompiler(
+            config,
+            rewriter=rewriter,
+            rewriter_provenance=fake_rewriter_provenance(model=model),
+        ),
+        rewriter,
+        output,
+        task_dir,
+    )
 
 
 def compile_fixture(tmp_path: Path, *, output_name: str = "rubric-set") -> Path:
@@ -360,10 +368,12 @@ def compile_partial_fixture(tmp_path: Path) -> Path:
     tasks_dir = tmp_path / "tasks"
     first_task = make_task(tasks_dir, "da-1-1")
     make_task(tasks_dir, "da-2-1")
-    rewriter = FakeRewriter([
-        valid_rubric(build_task_snapshot(first_task)),
-        "not JSON",
-    ])
+    rewriter = FakeRewriter(
+        [
+            valid_rubric(build_task_snapshot(first_task)),
+            "not JSON",
+        ]
+    )
     output = tmp_path / "rubric-set"
     compiler = TaskProcessRubricCompiler(
         TaskRubricCompilerConfig(
@@ -540,7 +550,9 @@ def test_exhausted_retries_leave_audit_artifacts_without_a_seal(
     assert not (output / "manifest.json").exists()
     assert not (output / "tasks" / "da-1-1" / "manifest.json").exists()
     assert (output / "failure.json").is_file()
-    assert (output / "tasks" / "da-1-1" / "attempts" / "attempt-2" / "errors.json").is_file()
+    assert (
+        output / "tasks" / "da-1-1" / "attempts" / "attempt-2" / "errors.json"
+    ).is_file()
     with pytest.raises(RubricBundleError):
         resolve_rubric_bundle(output, "da-1-1")
 
@@ -555,10 +567,13 @@ def test_partial_batch_failure_records_successes_and_failures_without_seal(
     assert incomplete.get("compiler_config")
     assert len(incomplete.get("compiler_config_sha256", "")) == 64
     assert set(incomplete.get("generation_code_sha256s", {})) == {
+        "gemini_client.py",
+        "rubric_bundles.py",
         "rubric_scoring.py",
         "task_rubric_compiler.py",
+        "task_rubric_prompts.py",
         "task_rubrics.py",
-        "perturbations.py",
+        "task_snapshots.py",
     }
     assert len(incomplete.get("generation_code_sha256", "")) == 64
     assert len(incomplete.get("compilation_sha256", "")) == 64
@@ -627,10 +642,13 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
     generation_code = root_manifest.get("generation_code_sha256s")
     assert isinstance(generation_code, dict)
     assert set(generation_code) == {
+        "gemini_client.py",
+        "rubric_bundles.py",
         "rubric_scoring.py",
         "task_rubric_compiler.py",
+        "task_rubric_prompts.py",
         "task_rubrics.py",
-        "perturbations.py",
+        "task_snapshots.py",
     }
     assert all(len(digest) == 64 for digest in generation_code.values())
     assert root_manifest["generation_code_sha256"] == sha256_text(
@@ -646,9 +664,10 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
     assert task_manifest["rubric_id"] == bundle.rubric_id
     assert task_manifest["snapshot"]["input_hashes"]
     assert task_manifest["compiler"].get("code_sha256s") == generation_code
-    assert task_manifest["compiler"].get("code_sha256") == root_manifest[
-        "generation_code_sha256"
-    ]
+    assert (
+        task_manifest["compiler"].get("code_sha256")
+        == root_manifest["generation_code_sha256"]
+    )
     for required_hash in (
         "snapshot_sha256",
         "input_sha256",
@@ -673,9 +692,10 @@ def test_successful_bundle_records_provenance_and_resolves(tmp_path: Path) -> No
         "attempts/attempt-1/response_metadata.json",
     }
     assert task_manifest["compiler"]["seed"] == 0
-    assert root_manifest["tasks"]["da-1-1"][
-        "response_metadata_sha256"
-    ] == task_manifest["hashes"]["response_metadata_sha256"]
+    assert (
+        root_manifest["tasks"]["da-1-1"]["response_metadata_sha256"]
+        == task_manifest["hashes"]["response_metadata_sha256"]
+    )
 
 
 def test_final_structured_response_metadata_is_sealed_and_raw_text_is_exact(
@@ -707,9 +727,9 @@ def test_final_structured_response_metadata_is_sealed_and_raw_text_is_exact(
     assert task_manifest["hashes"]["response_metadata_sha256"] == sha256_file(
         metadata_path
     )
-    assert root_manifest["tasks"]["da-1-1"][
-        "response_metadata_sha256"
-    ] == sha256_file(metadata_path)
+    assert root_manifest["tasks"]["da-1-1"]["response_metadata_sha256"] == sha256_file(
+        metadata_path
+    )
     assert resolve_rubric_bundle(output, "da-1-1").task_id == "da-1-1"
 
 
@@ -719,12 +739,8 @@ def test_every_retry_attempt_preserves_its_provider_response_identity(
     output = compile_structured_retry_fixture(tmp_path)
     task_dir = output / "tasks" / "da-1-1"
     attempts = task_dir / "attempts"
-    first = json.loads(
-        (attempts / "attempt-1" / "response_metadata.json").read_text()
-    )
-    second = json.loads(
-        (attempts / "attempt-2" / "response_metadata.json").read_text()
-    )
+    first = json.loads((attempts / "attempt-1" / "response_metadata.json").read_text())
+    second = json.loads((attempts / "attempt-2" / "response_metadata.json").read_text())
     final = json.loads((task_dir / "response_metadata.json").read_text())
     task_manifest = json.loads((task_dir / "manifest.json").read_text())
 
@@ -738,12 +754,8 @@ def test_every_retry_attempt_preserves_its_provider_response_identity(
     assert second["served_model_version"] == "models/gemini-attempt-b"
     assert final == second
     for attempt_number in (1, 2):
-        relative = (
-            f"attempts/attempt-{attempt_number}/response_metadata.json"
-        )
-        assert task_manifest["artifacts"][relative] == sha256_file(
-            task_dir / relative
-        )
+        relative = f"attempts/attempt-{attempt_number}/response_metadata.json"
+        assert task_manifest["artifacts"][relative] == sha256_file(task_dir / relative)
     assert resolve_rubric_bundle(output, "da-1-1").task_id == "da-1-1"
 
 
@@ -828,7 +840,7 @@ def test_response_metadata_is_a_closed_strictly_typed_record(
     metadata: dict[str, object],
 ) -> None:
     with pytest.raises(RubricBundleError):
-        compiler_module._validated_response_metadata(metadata)
+        rubric_bundles_module._validated_response_metadata(metadata)
 
 
 def test_response_metadata_tampering_is_detected(tmp_path: Path) -> None:
@@ -847,9 +859,7 @@ def test_injected_rewriter_provenance_is_truthfully_sealed(
 ) -> None:
     output = compile_fixture(tmp_path)
     root = json.loads((output / "manifest.json").read_text())
-    task = json.loads(
-        (output / "tasks" / "da-1-1" / "manifest.json").read_text()
-    )
+    task = json.loads((output / "tasks" / "da-1-1" / "manifest.json").read_text())
     expected = asdict(fake_rewriter_provenance())
     expected_sha256 = sha256_text(canonical_json(expected))
 
@@ -890,7 +900,7 @@ def test_resolution_parses_the_same_rubric_bytes_it_hashes(
     mutated_rendered = task_rubrics_module.render_task_process_rubric(
         task_rubrics_module.parse_task_process_rubric(mutated_rubric)
     )
-    original_read_regular_bytes = compiler_module._read_regular_bytes
+    original_read_regular_bytes = rubric_bundles_module._read_regular_bytes
 
     def snapshot_then_mutate(path: Path, context: str) -> bytes:
         snapshot = original_read_regular_bytes(path, context)
@@ -901,7 +911,7 @@ def test_resolution_parses_the_same_rubric_bytes_it_hashes(
         return snapshot
 
     monkeypatch.setattr(
-        compiler_module,
+        rubric_bundles_module,
         "_read_regular_bytes",
         snapshot_then_mutate,
     )
@@ -921,7 +931,7 @@ def test_resolution_parses_the_same_task_manifest_bytes_it_hashes(
     output = compile_fixture(tmp_path)
     manifest_path = output / "tasks" / "da-1-1" / "manifest.json"
     original_manifest = manifest_path.read_bytes()
-    original_read_regular_bytes = compiler_module._read_regular_bytes
+    original_read_regular_bytes = rubric_bundles_module._read_regular_bytes
 
     def snapshot_then_mutate(path: Path, context: str) -> bytes:
         snapshot = original_read_regular_bytes(path, context)
@@ -930,7 +940,7 @@ def test_resolution_parses_the_same_task_manifest_bytes_it_hashes(
         return snapshot
 
     monkeypatch.setattr(
-        compiler_module,
+        rubric_bundles_module,
         "_read_regular_bytes",
         snapshot_then_mutate,
     )
@@ -938,9 +948,7 @@ def test_resolution_parses_the_same_task_manifest_bytes_it_hashes(
     bundle = resolve_rubric_bundle(output, "da-1-1")
 
     assert manifest_path.read_text() == "tampered after snapshot"
-    assert bundle.task_manifest_sha256 == hashlib.sha256(
-        original_manifest
-    ).hexdigest()
+    assert bundle.task_manifest_sha256 == hashlib.sha256(original_manifest).hexdigest()
 
 
 def test_resolution_uses_snapshotted_attempt_topology(
@@ -953,7 +961,7 @@ def test_resolution_uses_snapshotted_attempt_topology(
     artifact_count = len(task_manifest["artifacts"])
     attempt_2 = task_dir / "attempts" / "attempt-2"
     moved_attempt_2 = tmp_path / "attempt-2-after-snapshot"
-    original_read_regular_bytes = compiler_module._read_regular_bytes
+    original_read_regular_bytes = rubric_bundles_module._read_regular_bytes
     snapshots_read = 0
 
     def snapshot_then_move_attempt(path: Path, context: str) -> bytes:
@@ -966,7 +974,7 @@ def test_resolution_uses_snapshotted_attempt_topology(
         return snapshot
 
     monkeypatch.setattr(
-        compiler_module,
+        rubric_bundles_module,
         "_read_regular_bytes",
         snapshot_then_move_attempt,
     )
@@ -1027,9 +1035,7 @@ def test_resolution_rejects_task_rewriter_provenance_tampering(
     output = compile_fixture(tmp_path)
     task_manifest_path = output / "tasks" / "da-1-1" / "manifest.json"
     task_manifest = json.loads(task_manifest_path.read_text())
-    task_manifest["compiler"]["rewriter_provenance"]["provider"] = (
-        "tampered-provider"
-    )
+    task_manifest["compiler"]["rewriter_provenance"]["provider"] = "tampered-provider"
     write_canonical_json(task_manifest_path, task_manifest)
     root_manifest_path = output / "manifest.json"
     root_manifest = json.loads(root_manifest_path.read_text())
@@ -1053,7 +1059,7 @@ def test_persisted_compiler_config_rejects_boolean_versions(
     compiler_config[field] = True
 
     with pytest.raises(RubricBundleError):
-        compiler_module._validated_compiler_config(compiler_config)
+        rubric_bundles_module._validated_compiler_config(compiler_config)
 
 
 @pytest.mark.parametrize("field", ("schema_version", "temperature", "seed"))
@@ -1071,9 +1077,7 @@ def test_task_compiler_provenance_rejects_boolean_numeric_fields(
             canonical_json(True)
         )
     elif field == "seed":
-        task_manifest["hashes"]["seed_sha256"] = sha256_text(
-            canonical_json(True)
-        )
+        task_manifest["hashes"]["seed_sha256"] = sha256_text(canonical_json(True))
     write_canonical_json(task_manifest_path, task_manifest)
     root_manifest_path = output / "manifest.json"
     root_manifest = json.loads(root_manifest_path.read_text())
@@ -1217,12 +1221,7 @@ def test_resolution_rejects_duplicate_root_manifest_keys(tmp_path: Path) -> None
 def test_resolution_rejects_duplicate_retry_request_keys(tmp_path: Path) -> None:
     output = compile_retry_fixture(tmp_path)
     request_path = (
-        output
-        / "tasks"
-        / "da-1-1"
-        / "attempts"
-        / "attempt-2"
-        / "request.json"
+        output / "tasks" / "da-1-1" / "attempts" / "attempt-2" / "request.json"
     )
     request_path.write_text(
         request_path.read_text().replace(
@@ -1245,7 +1244,7 @@ def test_retry_error_arrays_reject_nonstandard_json_constants(
     errors_path.write_text("[NaN]", encoding="utf-8")
 
     with pytest.raises(RubricBundleError, match="non-standard JSON constant"):
-        compiler_module._read_json_string_list(errors_path, "retry errors")
+        rubric_bundles_module._read_json_string_list(errors_path, "retry errors")
 
 
 def test_compiler_rejects_rendered_level_map_mismatch_before_sealing(
@@ -1294,7 +1293,7 @@ def test_resolution_rejects_resealed_rendered_level_map_mismatch(
     )
     write_canonical_json(root_manifest_path, root_manifest)
     monkeypatch.setattr(
-        compiler_module,
+        rubric_bundles_module,
         "render_task_process_rubric",
         lambda _rubric: mismatched,
     )
@@ -1364,7 +1363,7 @@ def test_artifact_path_rejects_parent_symlink_escape(tmp_path: Path) -> None:
     (nested / "link").symlink_to(outside, target_is_directory=True)
 
     with pytest.raises(RubricBundleError):
-        compiler_module._artifact_path(task_dir, "nested/link/secret.txt")
+        rubric_bundles_module._artifact_path(task_dir, "nested/link/secret.txt")
 
 
 def test_missing_task_manifest_raises_bundle_error(tmp_path: Path) -> None:
@@ -1530,28 +1529,34 @@ def test_compiler_config_rejects_overlapping_input_and_output_roots(
 
 
 def test_cli_requires_explicit_tasks_and_output() -> None:
-    args = build_parser().parse_args([
-        "task-process-rubrics",
-        "--task",
-        "da-19-1",
-        "--output-dir",
-        "runs/biomnibench-rubrics/pilot",
-    ])
+    args = build_parser().parse_args(
+        [
+            "task-process-rubrics",
+            "--task",
+            "da-19-1",
+            "--output-dir",
+            "runs/biomnibench-rubrics/pilot",
+        ]
+    )
 
     assert args.tasks == ["da-19-1"]
     assert args.seed == 0
     with pytest.raises(SystemExit):
-        build_parser().parse_args([
-            "task-process-rubrics",
-            "--output-dir",
-            "out",
-        ])
+        build_parser().parse_args(
+            [
+                "task-process-rubrics",
+                "--output-dir",
+                "out",
+            ]
+        )
     with pytest.raises(SystemExit):
-        build_parser().parse_args([
-            "task-process-rubrics",
-            "--task",
-            "da-19-1",
-        ])
+        build_parser().parse_args(
+            [
+                "task-process-rubrics",
+                "--task",
+                "da-19-1",
+            ]
+        )
 
 
 @pytest.mark.parametrize(
@@ -1579,36 +1584,36 @@ def test_cli_module_execution_prints_public_help(
 
 
 def test_cli_maps_task_compiler_options_to_config() -> None:
-    args = build_parser().parse_args([
-        "task-process-rubrics",
-        "--task",
-        "da-19-1",
-        "--task",
-        "da-26-4",
-        "--output-dir",
-        "runs/biomnibench-rubrics/pilot",
-        "--tasks-dir",
-        "data/biomnibench-da",
-        "--model",
-        "gemini-test",
-        "--api-key-env",
-        "GOOGLE_API_KEY",
-        "--max-retries",
-        "4",
-        "--max-concurrency",
-        "6",
-        "--seed",
-        "1729",
-        "--resume",
-    ])
+    args = build_parser().parse_args(
+        [
+            "task-process-rubrics",
+            "--task",
+            "da-19-1",
+            "--task",
+            "da-26-4",
+            "--output-dir",
+            "runs/biomnibench-rubrics/pilot",
+            "--tasks-dir",
+            "data/biomnibench-da",
+            "--model",
+            "gemini-test",
+            "--api-key-env",
+            "GOOGLE_API_KEY",
+            "--max-retries",
+            "4",
+            "--max-concurrency",
+            "6",
+            "--seed",
+            "1729",
+            "--resume",
+        ]
+    )
 
     config = TaskRubricCompilerConfig.from_namespace(args)
 
     assert config.tasks_dir == resolve_project_path("data/biomnibench-da")
     assert config.task_ids == ("da-19-1", "da-26-4")
-    assert config.output_dir == resolve_project_path(
-        "runs/biomnibench-rubrics/pilot"
-    )
+    assert config.output_dir == resolve_project_path("runs/biomnibench-rubrics/pilot")
     assert config.model == "gemini-test"
     assert config.api_key_env == "GOOGLE_API_KEY"
     assert config.max_retries == 4
@@ -1618,17 +1623,19 @@ def test_cli_maps_task_compiler_options_to_config() -> None:
 
 
 def test_cli_config_clamps_retry_and_concurrency_bounds() -> None:
-    args = build_parser().parse_args([
-        "task-process-rubrics",
-        "--task",
-        "da-19-1",
-        "--output-dir",
-        "runs/biomnibench-rubrics/pilot",
-        "--max-retries",
-        "-3",
-        "--max-concurrency",
-        "0",
-    ])
+    args = build_parser().parse_args(
+        [
+            "task-process-rubrics",
+            "--task",
+            "da-19-1",
+            "--output-dir",
+            "runs/biomnibench-rubrics/pilot",
+            "--max-retries",
+            "-3",
+            "--max-concurrency",
+            "0",
+        ]
+    )
 
     config = TaskRubricCompilerConfig.from_namespace(args)
 
@@ -1669,13 +1676,15 @@ def test_main_runs_task_process_rubric_compiler(
         raising=False,
     )
 
-    exit_code = cli_module.main([
-        "task-process-rubrics",
-        "--task",
-        "da-19-1",
-        "--output-dir",
-        "runs/biomnibench-rubrics/pilot",
-    ])
+    exit_code = cli_module.main(
+        [
+            "task-process-rubrics",
+            "--task",
+            "da-19-1",
+            "--output-dir",
+            "runs/biomnibench-rubrics/pilot",
+        ]
+    )
 
     assert exit_code == 17
     config = captured["config"]

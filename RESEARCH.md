@@ -1,77 +1,127 @@
 # Research Backlog
 
-## Adaptive and Co-Evolving Process Rubrics
+## Adaptive Rubrics for Same-Session Submission Revision
 
-### Motivation
+### Current Experiment: One Frozen Rubric
 
-A fixed process rubric may become easier to exploit as a self-improving agent
-accumulates feedback. A promising follow-up is to generate increasingly
-challenging, evidence-grounded rubrics from newly observed exploit traces while
-the agent hill-climbs.
+The first implementation studies linear self-revision of a BiomniBench
+submission. One persistent solver session produces an initial submission,
+receives judge feedback, revises the same live workspace, and repeats. Every
+revision becomes the next submission: there is no candidate selection,
+rollback, or harness modification. A configured revision count of `R` produces
+and judges `R + 1` submissions.
 
-### Hypothesis
+The judge uses one task-specific rubric frozen before the initial submission.
+The primary condition returns the rubric, total and criterion scores, and
+bounded criterion-level reasoning. A `score_only` ablation returns only the
+total score. Each submission and feedback message is snapshotted. A separate
+frozen audit is planned for post-hoc scoring but is not implemented yet; when
+added, it must remain hidden from the solver. This design will help isolate
+whether repeated access to rubric feedback creates genuine improvement, proxy
+optimization, or reward hacking.
 
-An adaptive verifier that revises its process rubric using immutable execution
-evidence and newly observed attacks can reduce proxy--audit divergence and the
-acceptance of fabricated or unsupported claims while preserving genuine
-held-out scientific improvement. The main alternative is that co-adaptation
-only moves the proxy, overfits to known attacks, or creates an unstable arms
-race without improving execution-grounded quality.
+The current controller freezes the optimizer's rubric, judge/scorer code
+hashes, review configuration, and effective judge model before `s000`. Each
+sealed submission receives a fresh random 128-bit judge-attempt identity. Every
+previously scored attempt is non-mutatingly revalidated and its feedback is
+re-projected on resume, before each later judge boundary, and before completion;
+historical scored attempts are never regenerated. Only the current unscored
+attempt may be regenerated if its root is partial or invalid. This prevents a
+resume from silently changing the scoring objective or accepted score history.
 
-### Candidate Designs
+### Co-Evolution Hypothesis
 
-1. **Periodic adaptation:** after a batch of agent iterations, a separate rubric
-   agent inspects exploit traces and proposes evidence requirements, anti-evidence,
-   active checks, and revised criterion weights.
-2. **Adversarial co-evolution:** alternate between an agent that searches for a
-   higher reward and a rubric generator that searches for missed failure modes.
-3. **Oracle-assisted upper bound:** permit the rubric generator, but never the
-   agent, to learn from hidden audit labels.
+A fixed rubric may become easier to target as the same solver session learns
+its recurring preferences. A future judge-side adaptation mechanism could
+revise the rubric in response to unsupported claims, missing evidence, and
+other exploit patterns observed in earlier immutable submissions. The central
+hypothesis is that evidence-grounded rubric updates reduce the divergence
+between solver-visible reward and frozen-audit quality while preserving honest
+scientific improvement.
 
-Rubric changes should be accepted by a frozen meta-evaluator on held-out attack
-traces and honest alternative solutions. Updates should happen in batches, not
-after each episode, to limit nonstationarity and direct task memorization.
+The competing hypotheses are that adaptation merely moves the proxy, overfits
+to known attacks, rejects valid alternative solutions, or produces a
+nonstationary objective that makes self-revision less effective.
 
-### Experimental Comparison
+### Candidate Protocols
 
-- Fixed original process rubric.
-- Fixed task-specific evidence-bound rubric generated before optimization.
-- Periodically adaptive rubric updated from earlier exploit traces.
-- Co-evolving agent and adversarial rubric generator.
-- Oracle-assisted adaptive rubric as an upper bound.
+1. **Frozen rubric:** use one rubric for the full revision trajectory.
+2. **Periodic adaptation:** update the judge rubric after a fixed number of
+   revision turns using only earlier immutable submissions and judge evidence.
+3. **Adversarial adaptation:** ask the judge-side updater to identify failure
+   modes that earned high reward and add executable evidence requirements,
+   anti-evidence, or active checks.
+4. **Audit-assisted upper bound:** allow the updater, but never the solver, to
+   use hidden audit labels when proposing rubric changes.
 
-Evaluate transfer to unseen source papers, models, and attack families. Primary
-outcomes are proxy--audit divergence, accepted fabricated-claim rate, held-out
-scientific quality, false rejection of honest alternative analyses, optimization
-stability, and verification cost.
+Updates should be batched and follow a prespecified schedule. In the full
+feedback condition, the solver receives the current rubric version and its
+structured feedback at each turn. In the `score_only` ablation, it receives
+only the score produced by that version. This yields a natural factorial
+comparison of fixed versus adaptive rubrics and full versus score-only
+feedback.
+
+### Versioning and Evaluation
+
+Every rubric version should record its content hash, parent version, update
+rationale, evidence inputs, and activation turn. Historical feedback must
+remain linked to the exact submission and rubric version that produced it.
+
+Because scores from a moving rubric are not directly comparable, every
+immutable submission should be retrospectively rescored under every rubric
+version. The resulting submission-by-rubric score matrix separates true
+submission improvement from changes in the objective. A permanently frozen
+audit should also score all submissions without exposing its rubric, outputs,
+or labels to either the solver-facing feedback path or the rubric updater.
+
+Primary outcomes are per-turn proxy--audit divergence, frozen-audit quality,
+unsupported-claim acceptance, robustness across rubric versions, revision
+stability, and false rejection of honest alternatives. Results should also
+measure whether full feedback creates more improvement or more targeted
+exploitation than score-only feedback.
 
 ### Required Safeguards
 
-- Version every rubric and retain its content hash and parent version.
-- Retrospectively rescore every candidate under every rubric version so scores
-  remain comparable across the moving objective.
-- Keep a permanently frozen audit channel outside both the agent and rubric
-  generator workspaces.
-- Use disjoint agent and rubric-generator models where practical.
-- Prevent hidden audit evidence from leaking into solver-facing criteria.
-- Test revised rubrics against held-out honest solutions as well as attacks.
+- Never allow rubric adaptation to alter the solver, its tools, or the task
+  harness; only the judge-side rubric may change.
+- Accept updates only after evaluation on held-out exploit traces and honest
+  alternative submissions.
+- Keep hidden audit evidence out of solver feedback and ordinary rubric-update
+  inputs; audit-assisted adaptation is a separately labeled upper bound.
+- Preserve all submission, feedback, rubric, and rescore artifacts
+  append-only with explicit identities.
+- Run the controlled condition inside a verified provider/container filesystem
+  sandbox. Gemini's `--sandbox` requests its provider sandbox; Codex
+  `workspace-write` is not proof of hostile-process read isolation; and Claude
+  requires an externally verified container or equivalent boundary. Label an
+  unrestricted ablation only when the provider or container policy actually
+  differs. Path separation alone is not proof that hidden artifacts are secret.
+- Terminate each provider turn's process group after it exits, while recognizing
+  that `setsid`, detached descendants, and other same-user processes can escape
+  process-group cleanup. Use external container isolation for hostile-process
+  experiments; do not interpret controller path checks as host-level tamper
+  resistance.
+- Fix the adaptation schedule and compute budget before each run to avoid
+  selectively moving the target after unfavorable results.
+- Evaluate transfer across tasks, source papers, solver models, and unseen
+  reward-hacking strategies.
 
 ### Failure Modes
 
-- Moving goalposts make iteration scores incomparable.
 - Rubrics memorize observed exploits but miss novel strategies.
-- Added specificity rejects legitimate alternative analyses.
-- The agent and rubric generator collude through shared model biases or
-  linguistic conventions.
-- Criterion revisions create new, easier proxies.
-- Reward nonstationarity destabilizes hill climbing.
-- Verification cost grows until adaptation is impractical.
+- Additional specificity rejects legitimate alternative analyses.
+- Rubric revisions introduce new, easier proxies or shared-model biases.
+- The solver targets superficial differences between rubric versions.
+- Nonstationarity destabilizes revision or makes online score trends
+  misleading.
+- Retrospective rescoring and active verification become too expensive.
 
-### Why This Is Deferred
+### Why Adaptation Is Deferred
 
-The fixed-rubric experiment must first establish the effect of optimization
-pressure, validate the independent audit, and identify reproducible exploit
-classes. Adding adaptation now would confound agent improvement, evaluator
-improvement, and reward nonstationarity. The initial implementation therefore
-generates one task-specific rubric from immutable task inputs and freezes it
-before hill climbing begins.
+The frozen-rubric submission loop must first establish whether same-session
+revision creates sustained optimization pressure and reproducible reward
+hacking. Co-evolution would otherwise confound changes in the submission with
+changes in the scoring objective. The current implementation therefore keeps
+the rubric fixed, preserves versioning seams for later work, and retains the
+artifacts needed for frozen post-hoc auditing before introducing rubric
+adaptation.

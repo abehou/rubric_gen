@@ -6,9 +6,15 @@ import argparse
 import datetime as dt
 import json
 import shutil
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+try:
+    from tqdm.auto import tqdm
+except ImportError:  # pragma: no cover - exercised only without optional dependency.
+    tqdm = None
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -17,6 +23,41 @@ PROGRESS_BAR_FORMAT = (
     "{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} "
     "[{elapsed} elapsed, {remaining} remaining, {rate_fmt}]{postfix}"
 )
+
+
+class TerminalProgress:
+    """Small context-managed wrapper around the optional terminal progress bar."""
+
+    def __init__(self, *, total: int, description: str, unit: str) -> None:
+        self.total = total
+        self.description = description
+        self.unit = unit
+        self._bar: Any = None
+
+    def __enter__(self) -> "TerminalProgress":
+        if tqdm is not None:
+            self._bar = tqdm(
+                total=self.total,
+                desc=self.description,
+                unit=self.unit,
+                dynamic_ncols=True,
+                bar_format=PROGRESS_BAR_FORMAT,
+                file=sys.stderr,
+            )
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        if self._bar is not None:
+            self._bar.close()
+
+    def set_status(self, status: str) -> None:
+        if self._bar is not None:
+            self._bar.set_postfix_str(status)
+
+    def update(self) -> None:
+        if self._bar is not None:
+            self._bar.update(1)
+
 
 PROMPT = """You are solving one BiomniBench-DA task in the current directory.
 
@@ -144,11 +185,15 @@ class BatchRunPaths:
     ) -> "BatchRunPaths":
         stamp = stamp or dt.datetime.now().strftime("%Y%m%d-%H%M%S")
         batch_dir = runs_dir / f"all-{provider}-{stamp}"
-        return cls.from_batch_dir(provider=provider, batch_dir=batch_dir, is_resume=False)
+        return cls.from_batch_dir(
+            provider=provider, batch_dir=batch_dir, is_resume=False
+        )
 
     @classmethod
     def resume(cls, batch_dir: Path, provider: str) -> "BatchRunPaths":
-        return cls.from_batch_dir(provider=provider, batch_dir=batch_dir, is_resume=True)
+        return cls.from_batch_dir(
+            provider=provider, batch_dir=batch_dir, is_resume=True
+        )
 
     @classmethod
     def from_batch_dir(
@@ -202,12 +247,11 @@ class RunCost:
                     event = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                event_cost = cls.from_event(event).cost_usd
-                if event_cost is not None:
-                    cost_usd = event_cost
-                event_estimate = cls.from_event(event).estimated_cost_usd
-                if event_estimate is not None:
-                    estimated_cost_usd = event_estimate
+                event_cost = cls.from_event(event)
+                if event_cost.cost_usd is not None:
+                    cost_usd = event_cost.cost_usd
+                if event_cost.estimated_cost_usd is not None:
+                    estimated_cost_usd = event_cost.estimated_cost_usd
         source = "reported" if cost_usd is not None else None
         if source is None and estimated_cost_usd is not None:
             source = GEMINI_COST_SOURCE
@@ -232,7 +276,10 @@ class RunCost:
     @classmethod
     def for_run_dir(cls, run_dir: Path) -> "RunCost":
         status_cost = cls.from_status(run_dir / "status.json")
-        if status_cost.cost_usd is not None or status_cost.estimated_cost_usd is not None:
+        if (
+            status_cost.cost_usd is not None
+            or status_cost.estimated_cost_usd is not None
+        ):
             return status_cost
         return cls.from_stream(run_dir / "trajectory.stream.jsonl")
 
@@ -396,7 +443,9 @@ class CompletedRunIndex:
         self.provider = provider
 
     def find(self, task_name: str) -> Path | None:
-        for run_dir in sorted(self.runs_dir.glob(f"{task_name}-{self.provider}-*"), reverse=True):
+        for run_dir in sorted(
+            self.runs_dir.glob(f"{task_name}-{self.provider}-*"), reverse=True
+        ):
             if self.is_completed(run_dir, self.provider):
                 return run_dir
         return None
@@ -518,7 +567,9 @@ def _estimate_gemini_event_cost(event: Any) -> float | None:
         cached_tokens = _parse_token_count(model_stats.get("cached")) or 0
         input_tokens = _parse_token_count(model_stats.get("input"))
         if input_tokens is None:
-            total_input_tokens = _parse_token_count(model_stats.get("input_tokens")) or 0
+            total_input_tokens = (
+                _parse_token_count(model_stats.get("input_tokens")) or 0
+            )
             input_tokens = max(total_input_tokens - cached_tokens, 0)
         output_tokens = _parse_token_count(model_stats.get("output_tokens")) or 0
         total += (
