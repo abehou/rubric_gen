@@ -9,6 +9,7 @@ from typing import Callable
 
 import pytest
 
+import rubric_gen.biomnibench.submission_revision as submission_revision_module
 from rubric_gen.biomnibench.common import AgentRunConfig
 from rubric_gen.biomnibench.session_drivers import SessionTurnResult
 from rubric_gen.biomnibench.submission_feedback import (
@@ -179,7 +180,20 @@ class FakeJudge:
 
 def test_linear_revision_keeps_one_session_and_continues_after_regression(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    progress_calls: list[tuple[int, int, dict[str, object]]] = []
+
+    def fake_trange(start: int, stop: int, **kwargs: object) -> range:
+        progress_calls.append((start, stop, kwargs))
+        return range(start, stop)
+
+    monkeypatch.setattr(
+        submission_revision_module,
+        "trange",
+        fake_trange,
+        raising=False,
+    )
     task = _write_task(tmp_path)
     session = FakeSessionDriver()
     rubric_text = (task / "tests" / "rubric.txt").read_text()
@@ -220,6 +234,27 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     assert manifest["effective_solver_model"] == "test-model"
     assert manifest["scoring_identity"]["effective_judge_model"] == ("test-judge-model")
 
+    class StopAfterSecondJudge(SubmissionRevisionController):
+        def _append_event(self, payload: dict[str, object]) -> None:
+            super()._append_event(payload)
+            if (
+                payload.get("event") == "submission_judged"
+                and payload.get("submission_id") == "s001"
+            ):
+                raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        StopAfterSecondJudge(
+            replace(config, resume=True),
+            dependencies,
+        ).run()
+
+    interrupted_manifest = json.loads(
+        (config.experiment_dir / "manifest.json").read_text()
+    )
+    assert interrupted_manifest["live_workspace_removed"] is False
+    assert retained_live_root.is_dir()
+
     result = SubmissionRevisionController(
         replace(config, resume=True),
         dependencies,
@@ -251,6 +286,13 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     ).read_text()
     assert [json.loads(line)["turn"] for line in cumulative.splitlines()] == [0, 1, 2]
     assert not retained_live_root.exists()
+    assert [(start, stop) for start, stop, _ in progress_calls] == [
+        (0, 3),
+        (1, 3),
+        (2, 3),
+    ]
+    assert [kwargs["initial"] for _, _, kwargs in progress_calls] == [0, 1, 2]
+    assert all(kwargs["total"] == 3 for _, _, kwargs in progress_calls)
 
 
 def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:

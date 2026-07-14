@@ -12,7 +12,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from tqdm.auto import trange
+
 from rubric_gen.biomnibench.common import (
+    PROGRESS_BAR_FORMAT,
     PROMPT,
     AgentRunConfig,
     TaskWorkspace,
@@ -317,7 +320,17 @@ class SubmissionRevisionController:
                 raise RuntimeError(
                     "experiment cannot resume an uncertain or failed solver turn"
                 )
-            while len(state.scores) < total:
+            progress_initial = len(state.scores)
+            for _ in trange(
+                progress_initial,
+                total,
+                initial=progress_initial,
+                total=total,
+                desc=f"revise {self.task_dir.name}",
+                unit="submission",
+                dynamic_ncols=True,
+                bar_format=PROGRESS_BAR_FORMAT,
+            ):
                 if state.phase is _RevisionPhase.READY_FOR_TURN:
                     self._run_solver_turn(state, workspace)
                 if state.phase in {
