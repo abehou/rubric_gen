@@ -193,6 +193,7 @@ def _add_revise_parser(
         help="Optionally truncate the trace or trajectory before judging.",
     )
     add_agent_args(revise, persistent_session=True)
+    revise.set_defaults(quiet=True)
 
 
 def _add_all_parser(
@@ -600,14 +601,7 @@ def run_all(args: argparse.Namespace) -> int:
 
 
 def run_revise(args: argparse.Namespace) -> int:
-    result = run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
-
-    print("\nFinished submission revision experiment.")
-    print(f"Experiment: {result.experiment_dir}")
-    print(f"Session: {result.session_id}")
-    print("Submission scores:")
-    for submission_id, score in zip(result.submission_ids, result.scores, strict=True):
-        print(f"  {submission_id}: {score}")
+    run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
     return 0
 
 

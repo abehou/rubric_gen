@@ -9,6 +9,7 @@ from typing import Callable
 
 import pytest
 
+import rubric_gen.biomnibench.cli as cli_module
 import rubric_gen.biomnibench.submission_revision as submission_revision_module
 import rubric_gen.biomnibench.submission_revision_artifacts as revision_artifacts_module
 from rubric_gen.biomnibench.common import AgentRunConfig
@@ -382,6 +383,36 @@ def test_restart_replaces_an_interrupted_experiment(
     assert result.submission_ids == ("s000",)
     assert result.scores == (95,)
     assert not old_live_root.exists()
+
+
+def test_revise_cli_suppresses_success_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    task = _write_task(tmp_path)
+    args = build_parser().parse_args(
+        [
+            "revise",
+            str(task),
+            "--experiment-dir",
+            str(tmp_path / "experiment"),
+            "--model",
+            "test-model",
+        ]
+    )
+    config = SubmissionRevisionConfig.from_namespace(args)
+    observed_configs: list[SubmissionRevisionConfig] = []
+    monkeypatch.setattr(
+        cli_module,
+        "run_submission_revision",
+        lambda received: observed_configs.append(received),
+    )
+
+    assert cli_module.run_revise(args) == 0
+    assert observed_configs == [config]
+    assert config.agent.quiet is True
+    assert capsys.readouterr().out == ""
 
 
 def test_restart_refuses_an_unowned_directory(tmp_path: Path) -> None:
