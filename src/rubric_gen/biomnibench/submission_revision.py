@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import secrets
 import stat
 import tempfile
@@ -58,6 +60,65 @@ from rubric_gen.biomnibench.submission_revision_judge import (
 )
 
 
+_DIRECTORY_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _directory_component(value: object) -> str:
+    text = str(value) if value is not None else "default"
+    compact = _DIRECTORY_COMPONENT_RE.sub("-", text).strip(".-") or "default"
+    if len(compact) <= 48:
+        return compact
+    digest = hashlib.sha256(compact.encode("utf-8")).hexdigest()[:8]
+    return f"{compact[:39]}-{digest}"
+
+
+def _revision_experiment_dir(
+    args: argparse.Namespace,
+    task_dir: Path,
+    feedback_policy: FeedbackPolicy,
+    rubric_set: Path | None,
+    agent: AgentRunConfig,
+) -> Path:
+    experiment_dir = resolve_project_path(args.experiment_dir)
+    policy_suffix = f"-{feedback_policy.value.replace('_', '-')}"
+    for candidate in FeedbackPolicy:
+        candidate_suffix = f"-{candidate.value.replace('_', '-')}"
+        if experiment_dir.name.endswith(candidate_suffix):
+            experiment_dir = experiment_dir.with_name(
+                experiment_dir.name[: -len(candidate_suffix)] + policy_suffix
+            )
+            break
+    rubric = (
+        f"set-{_directory_component(rubric_set)}"
+        if rubric_set is not None
+        else _directory_component(args.rubric)
+    )
+    components = (
+        f"t-{_directory_component(task_dir.name)}",
+        f"fb-{_directory_component(feedback_policy.value.replace('_', '-'))}",
+        f"n-{args.revision_rounds}",
+        f"p-{_directory_component(agent.provider)}",
+        f"m-{_directory_component(agent.model)}",
+        f"j-{_directory_component(args.judge_model)}",
+        f"rb-{rubric}",
+        f"v-{_directory_component(args.review)}",
+        f"sb-{int(agent.sandbox)}",
+        f"st-{int(agent.skip_trust)}",
+        f"web-{int(agent.allow_web)}",
+        f"ap-{_directory_component(agent.approval_mode)}",
+        f"mc-{args.max_review_chars if args.max_review_chars is not None else 'all'}",
+        f"x-{_directory_component(agent.executable)}",
+        f"raw-{int(agent.raw)}",
+    )
+    name = "--".join((experiment_dir.name, *components))
+    if len(name) > 240:
+        raise ValueError(
+            "derived experiment directory name is too long; choose a shorter "
+            "--experiment-dir base name"
+        )
+    return experiment_dir.with_name(name)
+
+
 @dataclass(frozen=True)
 class SubmissionRevisionConfig:
     task_dir: Path
@@ -100,26 +161,26 @@ class SubmissionRevisionConfig:
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "SubmissionRevisionConfig":
         rubric_set = getattr(args, "rubric_set", None)
+        resolved_rubric_set = resolve_project_path(rubric_set) if rubric_set else None
         feedback_policy = FeedbackPolicy(args.feedback_policy)
-        experiment_dir = resolve_project_path(args.experiment_dir)
-        policy_suffix = f"-{feedback_policy.value.replace('_', '-')}"
-        for candidate in FeedbackPolicy:
-            candidate_suffix = f"-{candidate.value.replace('_', '-')}"
-            if experiment_dir.name.endswith(candidate_suffix):
-                experiment_dir = experiment_dir.with_name(
-                    experiment_dir.name[: -len(candidate_suffix)] + policy_suffix
-                )
-                break
+        task_dir = resolve_project_path(args.task)
+        agent = AgentRunConfig.from_namespace(args)
         return cls(
-            task_dir=resolve_project_path(args.task),
-            experiment_dir=experiment_dir,
+            task_dir=task_dir,
+            experiment_dir=_revision_experiment_dir(
+                args,
+                task_dir,
+                feedback_policy,
+                resolved_rubric_set,
+                agent,
+            ),
             revision_rounds=args.revision_rounds,
-            agent=AgentRunConfig.from_namespace(args),
+            agent=agent,
             feedback_policy=feedback_policy,
             review=args.review,
             judge_model=args.judge_model,
             rubric_name=args.rubric,
-            rubric_set=resolve_project_path(rubric_set) if rubric_set else None,
+            rubric_set=resolved_rubric_set,
             max_review_chars=args.max_review_chars,
             resume=args.resume,
             restart=getattr(args, "restart", False),

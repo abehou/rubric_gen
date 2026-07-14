@@ -321,6 +321,7 @@ def test_restart_replaces_an_interrupted_experiment(
         ]
     )
     restart_config = SubmissionRevisionConfig.from_namespace(args)
+    experiment_dir = restart_config.experiment_dir
     initial_config = replace(restart_config, restart=False)
     rubric_text = (task / "tests" / "rubric.txt").read_text()
     rubric_sha256 = hashlib.sha256(rubric_text.encode("utf-8")).hexdigest()
@@ -417,7 +418,20 @@ def test_revise_cli_suppresses_success_output(
 
 @pytest.mark.parametrize(
     ("feedback_policy", "expected_name"),
-    [("full", "da-19-6-process-full"), ("score_only", "da-19-6-process-score-only")],
+    [
+        (
+            "full",
+            "da-19-6-process-full--t-da-1-1--fb-full--n-3--p-gemini"
+            "--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-0"
+            "--web-0--ap-default--mc-all--x-default--raw-0",
+        ),
+        (
+            "score_only",
+            "da-19-6-process-score-only--t-da-1-1--fb-score-only--n-3"
+            "--p-gemini--m-test-model--j-default--rb-default--v-trajectory"
+            "--sb-0--st-0--web-0--ap-default--mc-all--x-default--raw-0",
+        ),
+    ],
 )
 def test_feedback_policy_selects_matching_experiment_directory(
     tmp_path: Path,

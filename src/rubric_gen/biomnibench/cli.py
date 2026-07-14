@@ -139,7 +139,7 @@ def _add_revise_parser(
     revise.add_argument(
         "--experiment-dir",
         required=True,
-        help="Directory where turns, submissions, feedback, and scores are written.",
+        help="Base directory name; the revision configuration is appended to it.",
     )
     experiment_mode = revise.add_mutually_exclusive_group()
     experiment_mode.add_argument(
