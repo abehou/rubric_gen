@@ -8,16 +8,26 @@ The first implementation studies linear self-revision of a BiomniBench
 submission. One persistent solver session produces an initial submission,
 receives judge feedback, revises the same live workspace, and repeats. Every
 revision becomes the next submission: there is no candidate selection,
-rollback, or harness modification.
+rollback, or harness modification. A configured revision count of `R` produces
+and judges `R + 1` submissions.
 
 The judge uses one task-specific rubric frozen before the initial submission.
 The primary condition returns the rubric, total and criterion scores, and
 bounded criterion-level reasoning. A `score_only` ablation returns only the
-total score. Each submission and feedback message is snapshotted, while a
-separate frozen audit remains hidden from the solver and is applied after the
-trajectory. A separate frozen audit is planned for post-hoc scoring and remains
-hidden from the solver. This isolates whether repeated access to rubric
-feedback creates genuine improvement, proxy optimization, or reward hacking.
+total score. Each submission and feedback message is snapshotted. A separate
+frozen audit is planned for post-hoc scoring but is not implemented yet; when
+added, it must remain hidden from the solver. This design will help isolate
+whether repeated access to rubric feedback creates genuine improvement, proxy
+optimization, or reward hacking.
+
+The current controller freezes the optimizer's rubric, judge/scorer code
+hashes, review configuration, and effective judge model before `s000`. Each
+sealed submission receives a fresh random 128-bit judge-attempt identity. Every
+previously scored attempt is non-mutatingly revalidated and its feedback is
+re-projected on resume, before each later judge boundary, and before completion;
+historical scored attempts are never regenerated. Only the current unscored
+attempt may be regenerated if its root is partial or invalid. This prevents a
+resume from silently changing the scoring objective or accepted score history.
 
 ### Co-Evolution Hypothesis
 
@@ -81,8 +91,16 @@ exploitation than score-only feedback.
 - Preserve all submission, feedback, rubric, and rescore artifacts
   append-only with explicit identities.
 - Run the controlled condition inside a verified provider/container filesystem
-  sandbox. Treat path separation without enforced read isolation as the
-  unrestricted condition, not as proof that hidden judge artifacts are secret.
+  sandbox. Gemini's `--sandbox` requests its provider sandbox; Codex
+  `workspace-write` is not proof of hostile-process read isolation; and Claude
+  requires an externally verified container or equivalent boundary. Label an
+  unrestricted ablation only when the provider or container policy actually
+  differs. Path separation alone is not proof that hidden artifacts are secret.
+- Terminate each provider turn's process group after it exits, while recognizing
+  that `setsid`, detached descendants, and other same-user processes can escape
+  process-group cleanup. Use external container isolation for hostile-process
+  experiments; do not interpret controller path checks as host-level tamper
+  resistance.
 - Fix the adaptation schedule and compute budget before each run to avoid
   selectively moving the target after unfavorable results.
 - Evaluate transfer across tasks, source papers, solver models, and unseen

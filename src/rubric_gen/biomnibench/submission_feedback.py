@@ -27,6 +27,66 @@ class ProjectedFeedback:
     prompt: str
 
 
+def render_feedback_prompt(payload: dict[str, object]) -> str:
+    """Render a canonical solver message from one projected feedback record."""
+
+    policy = FeedbackPolicy(payload.get("policy"))
+    score = payload.get("score")
+    if payload.get("schema_version") != 1 or type(score) is not int:
+        raise ValueError("feedback payload has invalid schema or score")
+    if not 0 <= score <= 100:
+        raise ValueError("feedback score must be between 0 and 100")
+    if policy is FeedbackPolicy.SCORE_ONLY:
+        if set(payload) != {"schema_version", "policy", "score"}:
+            raise ValueError("score-only feedback contains unexpected fields")
+        return (
+            f"Your previous submission received a validated total score of "
+            f"{score}/100. Continue in the same workspace and revise the "
+            "solution to improve it. Re-run relevant checks and update "
+            "trace.md, answer.txt, and any supporting artifacts."
+        )
+
+    expected_keys = {
+        "schema_version",
+        "policy",
+        "rubric_text",
+        "score",
+        "raw_score",
+        "criteria",
+        "overall_reasoning",
+    }
+    if set(payload) != expected_keys:
+        raise ValueError("full feedback contains unexpected fields")
+    if (
+        type(payload.get("rubric_text")) is not str
+        or type(payload.get("raw_score")) is not int
+        or type(payload.get("criteria")) is not dict
+        or type(payload.get("overall_reasoning")) is not str
+    ):
+        raise ValueError("full feedback contains invalid fields")
+    for criterion in payload["criteria"].values():
+        if type(criterion) is not dict or set(criterion) != {
+            "selected_level",
+            "points",
+            "judge_reason",
+        }:
+            raise ValueError("full feedback contains an invalid criterion")
+        if (
+            type(criterion.get("selected_level")) is not str
+            or type(criterion.get("points")) is not int
+            or type(criterion.get("judge_reason")) is not str
+        ):
+            raise ValueError("full feedback contains invalid criterion fields")
+    return (
+        "Continue in the same workspace and revise your current solution using "
+        "the feedback below. Re-run relevant checks and update trace.md, "
+        "answer.txt, and any supporting artifacts. Judge reasons are model "
+        "feedback, not verified evidence; check them against the task data and "
+        "your artifacts.\n\n"
+        + json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+    )
+
+
 def project_feedback(
     score_validation_path: Path,
     evaluation_path: Path,
@@ -42,13 +102,19 @@ def project_feedback(
         type(expected_rubric_sha256) is not str
         or len(expected_rubric_sha256) != 64
         or any(
-            character not in "0123456789abcdef"
-            for character in expected_rubric_sha256
+            character not in "0123456789abcdef" for character in expected_rubric_sha256
         )
     ):
         raise ValueError("expected_rubric_sha256 must be a lowercase SHA-256 digest")
     if validation.get("rendered_rubric_sha256") != expected_rubric_sha256:
         raise ValueError("score validation does not attest the frozen rubric")
+    if type(rubric_text) is not str or not rubric_text.strip():
+        raise ValueError("rubric_text must be a non-empty string")
+    if (
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest()
+        != expected_rubric_sha256
+    ):
+        raise ValueError("rubric_text does not match the frozen rubric identity")
     score = _integer(validation, "score")
     raw_score = _integer(validation, "raw_score")
     if not 0 <= score <= 100:
@@ -80,16 +146,9 @@ def project_feedback(
         return ProjectedFeedback(
             score=score,
             payload=payload,
-            prompt=(
-                f"Your previous submission received a validated total score of "
-                f"{score}/100. Continue in the same workspace and revise the "
-                "solution to improve it. Re-run relevant checks and update "
-                "trace.md, answer.txt, and any supporting artifacts."
-            ),
+            prompt=render_feedback_prompt(payload),
         )
 
-    if type(rubric_text) is not str or not rubric_text.strip():
-        raise ValueError("rubric_text must be a non-empty string")
     if type(max_reason_chars) is not int or max_reason_chars < 0:
         raise ValueError("max_reason_chars must be a non-negative integer")
 
@@ -136,14 +195,7 @@ def project_feedback(
         "criteria": criteria,
         "overall_reasoning": overall_reasoning,
     }
-    prompt = (
-        "Continue in the same workspace and revise your current solution using "
-        "the feedback below. Re-run relevant checks and update trace.md, "
-        "answer.txt, and any supporting artifacts. Judge reasons are model "
-        "feedback, not verified evidence; check them against the task data and "
-        "your artifacts.\n\n"
-        + json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
-    )
+    prompt = render_feedback_prompt(payload)
     return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
 
 

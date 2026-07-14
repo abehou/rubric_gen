@@ -46,7 +46,16 @@ def add_agent_args(
         default=None,
         help="Override the provider executable name or path.",
     )
-    parser.add_argument("--model", default=None, help="Optional provider-native model name.")
+    parser.add_argument(
+        "--model",
+        required=persistent_session,
+        default=None,
+        help=(
+            "Provider-native model name (required for persistent sessions)."
+            if persistent_session
+            else "Optional provider-native model name."
+        ),
+    )
     parser.add_argument("--raw", action="store_true", help="Print raw trajectory lines.")
     parser.add_argument("--skip-trust", action="store_true", help="Forward provider trust bypass when supported.")
     parser.add_argument(
@@ -110,7 +119,12 @@ def build_parser() -> argparse.ArgumentParser:
     revise.add_argument(
         "--experiment-dir",
         required=True,
-        help="New directory where turns, submissions, feedback, and scores are written.",
+        help="Directory where turns, submissions, feedback, and scores are written.",
+    )
+    revise.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an existing experiment only from its recorded safe boundary.",
     )
     revise.add_argument(
         "--revision-rounds",
@@ -525,6 +539,7 @@ def run_revise(args: argparse.Namespace) -> int:
             rubric_name=args.rubric,
             rubric_set=rubric_set,
             max_review_chars=args.max_review_chars,
+            resume=args.resume,
         )
     )
 

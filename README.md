@@ -200,9 +200,14 @@ uv run biomnibench-agent judge \
 initial rubric-blind submission, receives judge feedback, revises the same live
 workspace, and repeats. There is no candidate selection or rollback: a lower
 score still becomes the next revision. If `--revision-rounds` is 3, the command
-produces and judges four submissions (`s000` through `s003`).
+produces and judges four submissions (`s000` through `s003`). An explicit
+solver `--model` is required so the requested model can be pinned across the
+persistent session. A provider-reported model identity is also recorded and
+checked when the provider exposes one; otherwise the requested model is used as
+the effective identity. The configured provider executable is recorded and must
+match on resume.
 
-Run full process-rubric feedback with Gemini CLI:
+Run the primary full process-rubric feedback condition with Gemini CLI:
 
 ```bash
 uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
@@ -240,23 +245,87 @@ For the score-only ablation, change only:
 --feedback-policy score_only
 ```
 
+If an incomplete run stopped at a recorded clean judge boundary, repeat the
+same command against the same task and experiment directory with `--resume`:
+
+```bash
+uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
+  --experiment-dir runs/biomnibench-revisions/da-19-6-process-full \
+  --revision-rounds 3 \
+  --provider gemini \
+  --model gemini-3.5-flash \
+  --judge-model gemini-3.1-pro \
+  --rubric process_rubric.txt \
+  --feedback-policy full \
+  --review trajectory \
+  --sandbox \
+  --skip-trust \
+  --resume
+```
+
+Resume validates the original configuration, frozen rubric and task hashes,
+requested solver model, any available provider-reported model identity,
+executable configuration, session ID, immutable snapshots, feedback, and live
+workspace. It does not restart an uncertain or failed solver turn, create a
+replacement session, or resume into a different experiment directory.
+
 Omit `--rubric` and `--rubric-set` to optimize the task's default outcome
 rubric (`tests/rubric.txt`). The solver never sees the rubric before `s000`.
 Under `full`, later turns receive the frozen rubric, validated criterion scores,
 selected levels, and bounded judge reasons. Under `score_only`, they receive only
-the total score.
+the total score. The current loop keeps that rubric fixed for the full
+trajectory; rubric co-evolution is future work described in `RESEARCH.md`.
+
+Before the solver starts `s000`, the controller freezes the complete scoring
+identity: rubric identity, judge source and runner hashes, scorer-module hash,
+review configuration, and effective judge model. Every score must attest that
+same identity.
 
 Gemini and Claude sessions use an experiment UUID; Codex resumes the thread ID
 reported by its initial JSON stream. Every turn uses the same provider session
-and live workspace. The experiment directory preserves per-turn prompts and
-trajectories, immutable submission snapshots, cumulative trajectories, judge
-artifacts, projected feedback, and the complete score sequence.
+and live workspace. The controller creates that live workspace in an external
+temporary root and records its absolute path in `manifest.json`; it is not
+nested under the experiment artifacts. A resumable incomplete run retains the
+workspace. Successful completion verifies that the temporary root was removed
+and records `live_workspace_removed: true`.
 
-Optimizer artifacts are stored under
-`evaluations/sNNN/<rubric-sha256>/run/judges/...`, separate from the immutable
-submission snapshot. Only `feedback/sNNN.json` is projected back into the solver
-conversation; raw judge output is never placed in the live solver workspace.
+The live root has a sentinel bound to the exact experiment. Resume and cleanup
+accept only a nonsymlink root with the expected prefix directly under the
+platform temporary directory and a matching sentinel. These checks confine what
+the controller will reopen or delete; they are not protection against arbitrary
+same-user host tampering.
 
-Keep `--sandbox` for the controlled condition. Omitting it is the explicitly
-unrestricted ablation: path separation still prevents accidental mixing, but it
-is not a cross-provider hostile-process security boundary.
+The experiment directory preserves `state.json`, the frozen rubric text,
+per-turn prompts and trajectories, immutable submission snapshots, cumulative
+trajectories, judge artifacts, projected feedback, and the complete score
+sequence. The live workspace path is provenance, not a portable artifact: do
+not move or delete it before resuming an incomplete run.
+
+After each solver submission is sealed, the controller assigns a random 128-bit
+judge-attempt ID and stores optimizer artifacts under
+`evaluations/sNNN/<rubric-sha256>/<attempt-id>/run/judges/...`, separate from the
+immutable submission snapshot. The judge runner non-mutatingly revalidates every
+previously scored attempt and re-projects its feedback from the judge artifacts
+on resume, before each later judge boundary, and before completion. Historical
+scored attempts are immutable and are never regenerated; failed revalidation
+stops the experiment. Only the current unscored attempt may have a partial or
+invalid root removed within the confined evaluation namespace and regenerated.
+Only `feedback/sNNN.json` is projected back into the solver conversation; raw
+judge output is never placed in the live solver workspace.
+
+Filesystem isolation is provider-specific. For Gemini, `--sandbox` requests the
+Gemini CLI sandbox and omitting it changes that provider policy. The Codex
+session driver always requests `workspace-write`; this limits writes but is not
+a claim of hostile-process read isolation, and toggling this CLI flag does not
+currently create a Codex unrestricted condition. Claude Code does not receive a
+sandbox flag from this harness, so a controlled Claude run needs an externally
+verified container or equivalent filesystem boundary. Treat omission as an
+unrestricted ablation only when it actually changes the provider or container
+policy. Path separation helps prevent accidental mixing but does not by itself
+keep a hostile solver from reading judge, rubric, or audit artifacts. On POSIX,
+the driver starts each provider turn in its own process group and terminates
+remaining members after the turn, including ordinary descendants. A descendant
+that calls `setsid`, otherwise detaches, or coordinates with another same-user
+process can escape that cleanup and tamper with host-visible paths. Experiments
+requiring hostile-process isolation therefore still need a verified external
+container; this harness does not claim host-unrestricted tamper resistance.

@@ -3,7 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import stat
+from dataclasses import replace
 from pathlib import Path
+from typing import Callable
+
+import pytest
 
 from rubric_gen.biomnibench.common import AgentRunConfig
 from rubric_gen.biomnibench.session_drivers import SessionTurnResult
@@ -35,10 +39,21 @@ class FakeSessionDriver:
     def __init__(self) -> None:
         self.prompts: list[str] = []
         self.session_ids: list[str] = []
+        self.start_count = 0
 
-    def start(self, workspace: Path, prompt: str, turn_dir: Path) -> SessionTurnResult:
+    def start(
+        self,
+        workspace: Path,
+        prompt: str,
+        turn_dir: Path,
+        *,
+        on_session_id: Callable[[str], None] | None = None,
+    ) -> SessionTurnResult:
+        self.start_count += 1
         self.prompts.append(prompt)
         self.session_ids.append("solver-session")
+        if on_session_id is not None:
+            on_session_id("solver-session")
         return self._turn(workspace, turn_dir, 0)
 
     def resume(
@@ -61,6 +76,7 @@ class FakeSessionDriver:
         (workspace / "analysis.py").write_text(f"ROUND = {index}\n")
         return SessionTurnResult(
             session_id="solver-session",
+            model="test-model",
             exit_code=0,
             trajectory_path=trajectory,
         )
@@ -78,10 +94,27 @@ class FakeJudge:
         self.output_root = output_root
         self.submissions: list[str] = []
 
-    def evaluate(self, submission_dir: Path) -> JudgeArtifacts:
+    def scoring_identity(self) -> dict[str, object]:
+        return {
+            "scorer_version": "test-scorer-v1",
+            "judge_source_sha256": "1" * 64,
+            "judge_runner_sha256": "2" * 64,
+            "scorer_module_sha256": "3" * 64,
+            "effective_judge_model": "test-judge-model",
+            "review_mode": "trajectory",
+            "max_review_chars": None,
+            "rubric_source": "task-local",
+            "rubric_set_id": None,
+            "rubric_id": None,
+            "structured_rubric_sha256": None,
+            "rendered_rubric_sha256": self.rubric_sha256,
+            "manifest_sha256": None,
+        }
+
+    def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         index = len(self.submissions)
         self.submissions.append(submission_dir.name)
-        output = self.output_root / submission_dir.name
+        output = self.output_root / submission_dir.name / attempt_id
         output.mkdir(parents=True)
         level = "A" if self.scores[index] >= 80 else "B"
         evaluation = {
@@ -100,11 +133,33 @@ class FakeJudge:
         validation_path.write_text(
             json.dumps(
                 {
+                    "schema_version": 1,
+                    "scorer_version": "test-scorer-v1",
+                    "review_input_sha256": hashlib.sha256(
+                        f"trace-{index}\n".encode()
+                    ).hexdigest(),
+                    "answer_input_sha256": hashlib.sha256(
+                        f"answer-{index}\n".encode()
+                    ).hexdigest(),
+                    "judge_source_sha256": "1" * 64,
+                    "judge_runner_sha256": "2" * 64,
+                    "scorer_module_sha256": "3" * 64,
+                    "effective_judge_model": "test-judge-model",
+                    "review_mode": "trajectory",
+                    "max_review_chars": None,
+                    "task": "da-1-1",
+                    "run_identity": f"run-{index}",
+                    "repeat_index": 1,
                     "score": self.scores[index],
                     "raw_score": self.scores[index],
                     "selected_levels": {"criterion_1": level},
                     "criterion_scores": {"criterion_1": self.scores[index]},
                     "rendered_rubric_sha256": self.rubric_sha256,
+                    "rubric_source": "task-local",
+                    "rubric_set_id": None,
+                    "rubric_id": None,
+                    "structured_rubric_sha256": None,
+                    "manifest_sha256": None,
                     "evaluation_sha256": evaluation_sha256,
                 }
             )
@@ -112,6 +167,13 @@ class FakeJudge:
         return JudgeArtifacts(
             score_validation_path=validation_path,
             evaluation_path=evaluation_path,
+        )
+
+    def validate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
+        output = self.output_root / submission_dir.name / attempt_id
+        return JudgeArtifacts(
+            score_validation_path=output / "score_validation.json",
+            evaluation_path=output / "evaluation.json",
         )
 
 
@@ -135,15 +197,39 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
         rubric_name="rubric.txt",
     )
 
+    class StopAfterFirstJudge(SubmissionRevisionController):
+        stopped = False
+
+        def _append_event(self, payload: dict[str, object]) -> None:
+            super()._append_event(payload)
+            if (
+                not self.stopped
+                and payload.get("event") == "submission_judged"
+                and payload.get("submission_id") == "s000"
+            ):
+                self.stopped = True
+                raise KeyboardInterrupt
+
+    dependencies = RevisionDependencies(session=session, judge=judge)
+    with pytest.raises(KeyboardInterrupt):
+        StopAfterFirstJudge(config, dependencies).run()
+
+    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
+    retained_live_root = Path(manifest["live_workspace_dir"]).parent
+    assert retained_live_root.is_dir()
+    assert manifest["effective_solver_model"] == "test-model"
+    assert manifest["scoring_identity"]["effective_judge_model"] == ("test-judge-model")
+
     result = SubmissionRevisionController(
-        config,
-        RevisionDependencies(session=session, judge=judge),
+        replace(config, resume=True),
+        dependencies,
     ).run()
 
     assert result.session_id == "solver-session"
     assert result.submission_ids == ("s000", "s001", "s002")
     assert result.scores == (80, 55, 70)
     assert session.session_ids == ["solver-session"] * 3
+    assert session.start_count == 1
     assert "Criterion 1" not in session.prompts[0]
     assert "feedback-0" in session.prompts[1]
     assert "feedback-1" in session.prompts[2]
@@ -155,21 +241,30 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
         config.experiment_dir / "submissions" / "s002" / "workspace" / "answer.txt"
     ).read_text() == "answer-2\n"
     snapshot_mode = (
-        config.experiment_dir / "submissions" / "s000" / "workspace" / "answer.txt"
-    ).stat().st_mode
+        (config.experiment_dir / "submissions" / "s000" / "workspace" / "answer.txt")
+        .stat()
+        .st_mode
+    )
     assert not snapshot_mode & stat.S_IWUSR
     cumulative = (
         config.experiment_dir / "submissions" / "s002" / "trajectory.stream.jsonl"
     ).read_text()
     assert [json.loads(line)["turn"] for line in cumulative.splitlines()] == [0, 1, 2]
+    assert not retained_live_root.exists()
 
 
 def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     evaluation = {
         "criteria": {
-            "criterion_1": {"level": "B", "reason": "Run a stronger check."}
+            "criterion_1": {
+                "level": "B",
+                "reason": "Run a stronger check.",
+                "raw_path": "/hidden/judge/workspace",
+                "unvalidated_score": 99,
+            }
         },
         "reasoning": "The conclusion is plausible but under-supported.",
+        "stdout": "secret provider output",
     }
     evaluation_path = tmp_path / "evaluation.json"
     evaluation_path.write_text(json.dumps(evaluation))
@@ -187,6 +282,8 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
                 "evaluation_sha256": hashlib.sha256(
                     evaluation_path.read_bytes()
                 ).hexdigest(),
+                "stdout_path": "/hidden/judge/stdout.txt",
+                "unvalidated_field": "must not leak",
             }
         )
     )
@@ -207,10 +304,25 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     )
 
     assert full.score == 64
-    assert full.payload["criteria"]["criterion_1"]["judge_reason"] == (
-        "Run a stronger check."
-    )
+    assert full.payload == {
+        "schema_version": 1,
+        "policy": "full",
+        "rubric_text": "Criterion 1: Evidence quality",
+        "score": 64,
+        "raw_score": 64,
+        "criteria": {
+            "criterion_1": {
+                "selected_level": "B",
+                "points": 64,
+                "judge_reason": "Run a stronger check.",
+            }
+        },
+        "overall_reasoning": "The conclusion is plausible but under-supported.",
+    }
     assert "Evidence quality" in full.prompt
+    assert "/hidden/judge" not in json.dumps(full.payload)
+    assert "secret provider output" not in full.prompt
+    assert "unvalidated" not in full.prompt
     assert score_only.payload == {
         "schema_version": 1,
         "policy": "score_only",
