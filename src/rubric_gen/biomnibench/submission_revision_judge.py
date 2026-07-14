@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -13,6 +14,7 @@ from rubric_gen.biomnibench.judges import (
     JudgeRunConfig,
     JudgeTarget,
 )
+from rubric_gen.biomnibench.common import MAX_TRANSIENT_RETRIES
 from rubric_gen.biomnibench.rubric_scoring import RUBRIC_SCORER_VERSION
 from rubric_gen.biomnibench.submission_revision_artifacts import (
     make_tree_read_only,
@@ -22,6 +24,7 @@ from rubric_gen.biomnibench.submission_revision_artifacts import (
     sha256_file,
     sha256_text,
     tree_sha256,
+    write_json,
 )
 from rubric_gen.biomnibench.rubric_bundles import resolve_rubric_bundle
 
@@ -66,6 +69,16 @@ class SubmissionJudgeConfig:
     rubric_name: str | None
     rubric_set: Path | None
     max_review_chars: int | None
+    max_retries: int = MAX_TRANSIENT_RETRIES
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.max_retries) is not int
+            or not 0 <= self.max_retries <= MAX_TRANSIENT_RETRIES
+        ):
+            raise ValueError(
+                f"max_retries must be between 0 and {MAX_TRANSIENT_RETRIES}"
+            )
 
 
 @dataclass(frozen=True)
@@ -124,9 +137,31 @@ class BiomniSubmissionJudge:
                 )
         run_dir = prepare_evaluation_run(submission_dir, evaluation_root)
         runner, target = self._runner_and_target(run_dir)
-        record = runner.review_target(target)
-        if record.get("status") != "completed" or type(record.get("score")) is not int:
-            raise RuntimeError("optimizer judge did not produce a validated score")
+        record: dict[str, object] = {}
+        max_attempts = self.config.max_retries + 1
+        for attempt_index in range(1, max_attempts + 1):
+            record = runner.review_target(target)
+            if record.get("status") == "completed" and type(record.get("score")) is int:
+                break
+            self._archive_failed_attempt(
+                runner,
+                target,
+                evaluation_root,
+                attempt_index,
+                record,
+            )
+        else:
+            details = [
+                f"status={record.get('status')}",
+                f"exit_code={record.get('exit_code')}",
+            ]
+            if record.get("validation_error"):
+                details.append(f"validation_error={record['validation_error']}")
+            details.append(f"stdout={record.get('stdout')}")
+            raise RuntimeError(
+                f"optimizer judge failed after {max_attempts} attempts: "
+                + ", ".join(details)
+            )
         artifacts = self._validated_cached_artifacts(
             runner,
             target,
@@ -135,6 +170,23 @@ class BiomniSubmissionJudge:
         )
         make_tree_read_only(evaluation_root)
         return artifacts
+
+    def _archive_failed_attempt(
+        self,
+        runner: BiomniBenchJudgeRunner,
+        target: JudgeTarget,
+        evaluation_root: Path,
+        attempt_index: int,
+        record: dict[str, object],
+    ) -> None:
+        archive = evaluation_root / "judge-attempts" / f"attempt-{attempt_index:03d}"
+        archive.mkdir(parents=True)
+        output_dir = runner.output_dir(target)
+        if output_dir.is_dir():
+            for source in output_dir.iterdir():
+                if source.is_file() and not source.is_symlink():
+                    shutil.copy2(source, archive / source.name)
+        write_json(archive / "record.json", record)
 
     def validate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         evaluation_root = self._evaluation_root(submission_dir, attempt_id)

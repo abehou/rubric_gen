@@ -166,6 +166,7 @@ class SubmissionRevisionConfig:
             rubric_name=self.rubric_name,
             rubric_set=self.rubric_set,
             max_review_chars=self.max_review_chars,
+            max_retries=self.agent.retries,
         )
 
     @classmethod

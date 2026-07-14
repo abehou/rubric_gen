@@ -414,7 +414,28 @@ def test_revise_cli_suppresses_success_output(
     assert cli_module.run_revise(args) == 0
     assert observed_configs == [config]
     assert config.agent.quiet is True
+    assert config.agent.retries == 5
     assert capsys.readouterr().out == ""
+
+
+def test_revise_cli_caps_persistent_session_retries_at_five(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(
+            [
+                "revise",
+                str(task),
+                "--experiment-dir",
+                str(tmp_path / "experiment"),
+                "--model",
+                "test-model",
+                "--retries",
+                "6",
+            ]
+        )
 
 
 def test_revise_all_full_v_score_runs_conditions_concurrently(

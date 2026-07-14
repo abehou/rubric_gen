@@ -10,12 +10,24 @@ import stat
 import subprocess
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Protocol, TextIO
 
 from rubric_gen.biomnibench.adapters import AgentAdapterRegistry
-from rubric_gen.biomnibench.common import NO_WEB_POLICY, AgentRunConfig, RunPaths
+from rubric_gen.biomnibench.common import (
+    MAX_TRANSIENT_RETRIES,
+    NO_WEB_POLICY,
+    AgentRunConfig,
+    RunPaths,
+)
+
+
+RECOVERY_PROMPT = (
+    "The previous response was interrupted by a provider stream error. Continue "
+    "the current task from where you left off. Finish the requested analysis and "
+    "verify trace.md and answer.txt before stopping."
+)
 
 
 @dataclass(frozen=True)
@@ -57,9 +69,10 @@ class CliSolverSessionDriver:
         self.config = config or AgentRunConfig()
         if self.config.extra_args:
             raise ValueError("extra_args are not allowed for a persistent session")
-        if self.config.retries != 1:
+        if not 0 <= self.config.retries <= MAX_TRANSIENT_RETRIES:
             raise ValueError(
-                "A persistent session requires retries=1 because replay is unsafe"
+                "Persistent-session retries must be between 0 and "
+                f"{MAX_TRANSIENT_RETRIES}"
             )
         if type(self.config.model) is not str or not self.config.model.strip():
             raise ValueError("A persistent session requires an explicit model")
@@ -85,33 +98,16 @@ class CliSolverSessionDriver:
         if requested_session_id is not None and on_session_id is not None:
             on_session_id(requested_session_id)
 
-        command = self._build_command(
+        result = self._run_turn_attempts(
             paths,
             prompt,
             session_id=requested_session_id or "",
             resume=False,
-        )
-        exit_code = self._stream(
-            command,
-            paths,
+            expected_session_id=requested_session_id,
             on_session_id=(on_session_id if requested_session_id is None else None),
         )
-        session_id, model = self._attest_session(
-            paths,
-            exit_code,
-            expected=requested_session_id,
-            resumed=False,
-        )
-
-        self._bind_session(session_id, workspace, model)
-        self._write_status(
-            paths,
-            exit_code,
-            session_id=session_id,
-            model=model,
-            resumed=False,
-        )
-        return SessionTurnResult(session_id, model, exit_code, paths.stream_path)
+        self._bind_session(result.session_id, workspace, result.model)
+        return result
 
     def resume(
         self,
@@ -126,28 +122,133 @@ class CliSolverSessionDriver:
         self._ensure_executable()
         self._bind_workspace(session_id, workspace)
         paths = self._prepare_turn(workspace, prompt, turn_dir)
-        command = self._build_command(paths, prompt, session_id=session_id, resume=True)
-        exit_code = self._stream(command, paths)
-        reported_session_id, model = self._attest_session(
+        result = self._run_turn_attempts(
             paths,
-            exit_code,
-            expected=session_id,
-            resumed=True,
+            prompt,
+            session_id=session_id,
+            resume=True,
+            expected_session_id=session_id,
         )
+        self._bind_session(result.session_id, workspace, result.model)
+        return result
+
+    def _run_turn_attempts(
+        self,
+        paths: RunPaths,
+        prompt: str,
+        *,
+        session_id: str,
+        resume: bool,
+        expected_session_id: str | None,
+        on_session_id: Callable[[str], None] | None = None,
+    ) -> SessionTurnResult:
+        attempts_dir = paths.run_dir / "attempts"
+        attempts_dir.mkdir()
+        attempt_paths: list[Path] = []
+        attempt_records: list[dict[str, object]] = []
+        current_session_id = session_id
+        current_model: str | None = None
+        effective_exit_code = 1
+
+        for attempt_index in range(1, self.config.retries + 2):
+            attempt_prompt = prompt if attempt_index == 1 else RECOVERY_PROMPT
+            attempt_stream = (
+                attempts_dir / f"attempt-{attempt_index:03d}.trajectory.stream.jsonl"
+            )
+            attempt_prompt_path = (
+                attempts_dir / f"attempt-{attempt_index:03d}.prompt.txt"
+            )
+            attempt_prompt_path.write_text(attempt_prompt)
+            current_paths = replace(paths, stream_path=attempt_stream)
+            is_resume = resume or attempt_index > 1
+            command = self._build_command(
+                current_paths,
+                attempt_prompt,
+                session_id=current_session_id,
+                resume=is_resume,
+            )
+            process_exit_code = self._stream(
+                command,
+                current_paths,
+                on_session_id=on_session_id if attempt_index == 1 else None,
+            )
+            reported_session_id, model = self._attest_session(
+                current_paths,
+                process_exit_code,
+                expected=expected_session_id,
+                resumed=is_resume,
+            )
+            if current_model is not None and model != current_model:
+                raise RuntimeError(
+                    f"{self.adapter.name} changed model from {current_model!r} "
+                    f"to {model!r} during retry"
+                )
+            current_session_id = reported_session_id
+            expected_session_id = reported_session_id
+            current_model = model
+            stream_errors = self._trajectory_errors(attempt_stream)
+            effective_exit_code = (
+                process_exit_code
+                if process_exit_code != 0
+                else 1
+                if stream_errors
+                else 0
+            )
+            attempt_paths.append(attempt_stream)
+            attempt_records.append(
+                {
+                    "attempt": attempt_index,
+                    "process_exit_code": process_exit_code,
+                    "exit_code": effective_exit_code,
+                    "stream_errors": stream_errors,
+                    "prompt": str(attempt_prompt_path),
+                    "trajectory": str(attempt_stream),
+                }
+            )
+            if effective_exit_code == 0:
+                break
+
+        with paths.stream_path.open("wb") as combined:
+            for attempt_path in attempt_paths:
+                combined.write(attempt_path.read_bytes())
+        assert current_model is not None
         self._write_status(
             paths,
-            exit_code,
-            session_id=reported_session_id,
-            model=model,
-            resumed=True,
+            effective_exit_code,
+            session_id=current_session_id,
+            model=current_model,
+            resumed=resume,
+            attempts=attempt_records,
         )
-        self._bind_session(reported_session_id, workspace, model)
         return SessionTurnResult(
-            reported_session_id,
-            model,
-            exit_code,
+            current_session_id,
+            current_model,
+            effective_exit_code,
             paths.stream_path,
         )
+
+    @staticmethod
+    def _trajectory_errors(stream_path: Path) -> list[str]:
+        errors: list[str] = []
+        for line in stream_path.read_text(errors="replace").splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            event_type = event.get("type")
+            status = event.get("status")
+            if event_type == "error":
+                message = event.get("message") or event.get("error") or "unknown"
+                errors.append(f"trajectory_error: {message}")
+            if event_type == "result" and status not in (
+                None,
+                "success",
+                "completed",
+            ):
+                errors.append(f"trajectory_result_status: {status}")
+        return errors
 
     def _ensure_executable(self) -> None:
         executable = self.adapter.executable(self.config)
@@ -455,22 +556,27 @@ class CliSolverSessionDriver:
         session_id: str | None,
         model: str | None,
         resumed: bool,
+        attempts: list[dict[str, object]] | None = None,
     ) -> None:
-        paths.status_path.write_text(
-            json.dumps(
+        status: dict[str, object] = {
+            "provider": self.adapter.name,
+            "session_id": session_id,
+            "model": model,
+            "resumed": resumed,
+            "exit_code": exit_code,
+            "workspace": str(paths.workspace_dir.resolve()),
+            "trajectory": str(paths.stream_path),
+        }
+        if attempts is not None:
+            status.update(
                 {
-                    "provider": self.adapter.name,
-                    "session_id": session_id,
-                    "model": model,
-                    "resumed": resumed,
-                    "exit_code": exit_code,
-                    "workspace": str(paths.workspace_dir.resolve()),
-                    "trajectory": str(paths.stream_path),
-                },
-                indent=2,
-                sort_keys=True,
+                    "attempt_count": len(attempts),
+                    "max_retries": self.config.retries,
+                    "attempts": attempts,
+                }
             )
-            + "\n"
+        paths.status_path.write_text(
+            json.dumps(status, indent=2, sort_keys=True) + "\n"
         )
 
     @staticmethod

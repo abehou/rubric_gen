@@ -101,6 +101,7 @@ denyMessage = "Web fetch is disabled for this BiomniBench run. Use local task da
 
 GEMINI_API_PRICING_SOURCE = "https://ai.google.dev/gemini-api/docs/pricing"
 GEMINI_COST_SOURCE = "estimated_google_gemini_api_standard"
+MAX_TRANSIENT_RETRIES = 5
 
 GEMINI_STANDARD_PRICES_PER_MILLION = {
     "gemini-3.5-flash": {

@@ -10,6 +10,7 @@ from rubric_gen.biomnibench.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.common import (
     AgentRunConfig,
     BatchRunConfig,
+    MAX_TRANSIENT_RETRIES,
     RunCost,
     TaskCatalog,
     TerminalProgress,
@@ -94,7 +95,18 @@ def add_agent_args(
         action="store_true",
         help="Ask the provider to use its sandbox option when supported.",
     )
-    if not persistent_session:
+    if persistent_session:
+        parser.add_argument(
+            "--retries",
+            type=int,
+            choices=range(MAX_TRANSIENT_RETRIES + 1),
+            default=MAX_TRANSIENT_RETRIES,
+            help=(
+                "Resume the same session after transient provider failures this "
+                f"many times. Maximum {MAX_TRANSIENT_RETRIES}."
+            ),
+        )
+    else:
         parser.add_argument(
             "--extra-agent-arg",
             action="append",
