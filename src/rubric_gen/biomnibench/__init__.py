@@ -50,6 +50,21 @@ from rubric_gen.biomnibench.process_rubrics import (
     ProcessRubricRequest,
 )
 from rubric_gen.biomnibench.runners import AgentRunner, BiomniBenchBatchRunner, RunValidation
+from rubric_gen.biomnibench.session_drivers import (
+    CliSolverSessionDriver,
+    SessionTurnResult,
+    SolverSessionDriver,
+)
+from rubric_gen.biomnibench.submission_feedback import (
+    FeedbackPolicy,
+    ProjectedFeedback,
+    project_feedback,
+)
+from rubric_gen.biomnibench.submission_revision import (
+    SubmissionRevisionConfig,
+    SubmissionRevisionResult,
+    run_submission_revision,
+)
 from rubric_gen.biomnibench.task_rubric_compiler import (
     GeminiTaskRubricRewriter,
     ResolvedRubricBundle,
@@ -90,6 +105,7 @@ _CLI_EXPORTS = frozenset({
     "run_one",
     "run_perturb",
     "run_process_rubrics",
+    "run_revise",
     "run_task_process_rubrics",
 })
 
@@ -117,6 +133,7 @@ __all__ = [
     "BiomniBenchBatchRunner",
     "BiomniBenchJudgeRunner",
     "ClaudeAdapter",
+    "CliSolverSessionDriver",
     "CodexAdapter",
     "CompletedRunIndex",
     "DataFileSnapshot",
@@ -128,6 +145,7 @@ __all__ = [
     "GeminiPerturber",
     "GeminiProcessRubricRewriter",
     "GeminiTaskRubricRewriter",
+    "FeedbackPolicy",
     "JudgeRunConfig",
     "JudgeTarget",
     "GEMINI_API_PRICING_SOURCE",
@@ -143,6 +161,7 @@ __all__ = [
     "ProcessRubricConfig",
     "ProcessRubricGenerator",
     "ProcessRubricRequest",
+    "ProjectedFeedback",
     "ROOT",
     "ResolvedRubricBundle",
     "RubricCriterion",
@@ -150,6 +169,10 @@ __all__ = [
     "RunCost",
     "RunPaths",
     "RunValidation",
+    "SessionTurnResult",
+    "SolverSessionDriver",
+    "SubmissionRevisionConfig",
+    "SubmissionRevisionResult",
     "SchemaSnapshotLimits",
     "TaskAnchor",
     "TaskCatalog",
@@ -171,6 +194,7 @@ __all__ = [
     "main",
     "load_json_strict",
     "parse_task_process_rubric",
+    "project_feedback",
     "render_task_process_rubric",
     "resolve_project_path",
     "resolve_rubric_bundle",
@@ -179,6 +203,8 @@ __all__ = [
     "run_one",
     "run_perturb",
     "run_process_rubrics",
+    "run_revise",
+    "run_submission_revision",
     "run_task_process_rubrics",
     "sha256_text",
     "structured_rubric_level_map",

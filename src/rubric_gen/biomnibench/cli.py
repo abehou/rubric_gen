@@ -17,6 +17,11 @@ from rubric_gen.biomnibench.perturbations import (
 )
 from rubric_gen.biomnibench.process_rubrics import ProcessRubricConfig, ProcessRubricGenerator
 from rubric_gen.biomnibench.runners import AgentRunner, BiomniBenchBatchRunner
+from rubric_gen.biomnibench.submission_feedback import FeedbackPolicy
+from rubric_gen.biomnibench.submission_revision import (
+    SubmissionRevisionConfig,
+    run_submission_revision,
+)
 from rubric_gen.biomnibench.task_rubric_compiler import (
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
@@ -24,7 +29,11 @@ from rubric_gen.biomnibench.task_rubric_compiler import (
 from rubric_gen.biomnibench.visualizations import JudgeComparisonConfig, JudgeComparisonPlotter
 
 
-def add_agent_args(parser: argparse.ArgumentParser) -> None:
+def add_agent_args(
+    parser: argparse.ArgumentParser,
+    *,
+    persistent_session: bool = False,
+) -> None:
     provider_names = AgentAdapterRegistry().names
     parser.add_argument(
         "--provider",
@@ -55,18 +64,19 @@ def add_agent_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Ask the provider to use its sandbox option when supported.",
     )
-    parser.add_argument(
-        "--extra-agent-arg",
-        action="append",
-        default=[],
-        help="Append one raw argument to the provider command. Repeat for multiple args.",
-    )
-    parser.add_argument(
-        "--retries",
-        type=int,
-        default=1,
-        help="Retry transient provider stream failures this many times.",
-    )
+    if not persistent_session:
+        parser.add_argument(
+            "--extra-agent-arg",
+            action="append",
+            default=[],
+            help="Append one raw argument to the provider command. Repeat for multiple args.",
+        )
+        parser.add_argument(
+            "--retries",
+            type=int,
+            default=1,
+            help="Retry transient provider stream failures this many times.",
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -86,6 +96,63 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory where per-run sandboxes and logs are written.",
     )
     add_agent_args(one)
+
+    revise = subparsers.add_parser(
+        "revise",
+        help="Run one persistent-session submission revision experiment.",
+    )
+    revise.add_argument(
+        "task",
+        nargs="?",
+        default="data/biomnibench-da/da-10-1",
+        help="BiomniBench task directory, e.g. data/biomnibench-da/da-24-3.",
+    )
+    revise.add_argument(
+        "--experiment-dir",
+        required=True,
+        help="New directory where turns, submissions, feedback, and scores are written.",
+    )
+    revise.add_argument(
+        "--revision-rounds",
+        type=int,
+        default=3,
+        help="Number of same-session revisions after the initial submission. Defaults to 3.",
+    )
+    revise.add_argument(
+        "--feedback-policy",
+        choices=tuple(policy.value for policy in FeedbackPolicy),
+        default=FeedbackPolicy.FULL.value,
+        help="Feedback returned to the solver. Defaults to full.",
+    )
+    revise.add_argument(
+        "--review",
+        choices=("trace", "trajectory"),
+        default="trajectory",
+        help="Judge trace.md or the cumulative raw trajectory. Defaults to trajectory.",
+    )
+    revise.add_argument(
+        "--judge-model",
+        default=None,
+        help="Set the model used by the task judge subprocess.",
+    )
+    rubric_source = revise.add_mutually_exclusive_group()
+    rubric_source.add_argument(
+        "--rubric",
+        default=None,
+        help="Rubric filename under the task's tests directory. Defaults to rubric.txt.",
+    )
+    rubric_source.add_argument(
+        "--rubric-set",
+        default=None,
+        help="Sealed external rubric-set directory, resolved by target task ID.",
+    )
+    revise.add_argument(
+        "--max-review-chars",
+        type=int,
+        default=None,
+        help="Optionally truncate the trace or trajectory before judging.",
+    )
+    add_agent_args(revise, persistent_session=True)
 
     all_tasks = subparsers.add_parser("all", help="Run every pending BiomniBench-DA task.")
     all_tasks.add_argument(
@@ -442,6 +509,34 @@ def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
 
+def run_revise(args: argparse.Namespace) -> int:
+    rubric_set = (
+        resolve_project_path(args.rubric_set) if args.rubric_set is not None else None
+    )
+    result = run_submission_revision(
+        SubmissionRevisionConfig(
+            task_dir=resolve_project_path(args.task),
+            experiment_dir=resolve_project_path(args.experiment_dir),
+            revision_rounds=args.revision_rounds,
+            agent=AgentRunConfig.from_namespace(args),
+            feedback_policy=FeedbackPolicy(args.feedback_policy),
+            review=args.review,
+            judge_model=args.judge_model,
+            rubric_name=args.rubric,
+            rubric_set=rubric_set,
+            max_review_chars=args.max_review_chars,
+        )
+    )
+
+    print("\nFinished submission revision experiment.")
+    print(f"Experiment: {result.experiment_dir}")
+    print(f"Session: {result.session_id}")
+    print("Submission scores:")
+    for submission_id, score in zip(result.submission_ids, result.scores, strict=True):
+        print(f"  {submission_id}: {score}")
+    return 0
+
+
 def run_judge(args: argparse.Namespace) -> int:
     return BiomniBenchJudgeRunner(JudgeRunConfig.from_namespace(args)).run()
 
@@ -468,6 +563,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "one":
         return run_one(args)
+    if args.command == "revise":
+        return run_revise(args)
     if args.command == "all":
         return run_all(args)
     if args.command == "judge":
