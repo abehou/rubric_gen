@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import replace
 
 from rubric_gen.biomnibench.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.common import (
     AgentRunConfig,
     BatchRunConfig,
     RunCost,
+    TaskCatalog,
+    TerminalProgress,
     resolve_project_path,
 )
 from rubric_gen.biomnibench.judges import BiomniBenchJudgeRunner, JudgeRunConfig
@@ -140,6 +144,29 @@ def _add_revise_parser(
         "--experiment-dir",
         required=True,
         help="Base directory name; the revision configuration is appended to it.",
+    )
+    revise.add_argument(
+        "--all",
+        action="store_true",
+        help="Run every valid BiomniBench-DA task under --tasks-dir.",
+    )
+    revise.add_argument(
+        "--tasks-dir",
+        default="data/biomnibench-da",
+        help="Directory containing tasks used by --all.",
+    )
+    revise.add_argument(
+        "--full_v_score",
+        "--full-v-score",
+        dest="full_v_score",
+        action="store_true",
+        help="Run both full-feedback and score-only conditions for each selected task.",
+    )
+    revise.add_argument(
+        "--max-concurrency",
+        type=int,
+        default=1,
+        help="Maximum number of independent revision experiments to run at once.",
     )
     experiment_mode = revise.add_mutually_exclusive_group()
     experiment_mode.add_argument(
@@ -601,7 +628,70 @@ def run_all(args: argparse.Namespace) -> int:
 
 
 def run_revise(args: argparse.Namespace) -> int:
-    run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
+    if not args.all and not args.full_v_score:
+        run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
+        return 0
+    if args.max_concurrency < 1:
+        raise ValueError("max_concurrency must be at least 1")
+    task_dirs = (
+        TaskCatalog(resolve_project_path(args.tasks_dir)).tasks()
+        if args.all
+        else [resolve_project_path(args.task)]
+    )
+    policies = (
+        (FeedbackPolicy.FULL, FeedbackPolicy.SCORE_ONLY)
+        if args.full_v_score
+        else (FeedbackPolicy(args.feedback_policy),)
+    )
+    configs = [
+        replace(
+            SubmissionRevisionConfig.from_namespace(
+                argparse.Namespace(
+                    **{
+                        **vars(args),
+                        "task": str(task_dir),
+                        "feedback_policy": policy.value,
+                    }
+                )
+            ),
+            show_progress=False,
+        )
+        for task_dir in task_dirs
+        for policy in policies
+    ]
+    failures: list[tuple[SubmissionRevisionConfig, Exception]] = []
+    with TerminalProgress(
+        total=len(configs),
+        description="revise batch",
+        unit="experiment",
+    ) as progress:
+        if args.max_concurrency == 1:
+            for config in configs:
+                try:
+                    run_submission_revision(config)
+                except Exception as exc:
+                    failures.append((config, exc))
+                finally:
+                    progress.update()
+        else:
+            with ThreadPoolExecutor(max_workers=args.max_concurrency) as executor:
+                futures = {
+                    executor.submit(run_submission_revision, config): config
+                    for config in configs
+                }
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        failures.append((futures[future], exc))
+                    finally:
+                        progress.update()
+    if failures:
+        config, exc = failures[0]
+        raise RuntimeError(
+            f"{len(failures)} revision experiments failed; first: "
+            f"{config.task_dir.name} ({config.feedback_policy.value})"
+        ) from exc
     return 0
 
 

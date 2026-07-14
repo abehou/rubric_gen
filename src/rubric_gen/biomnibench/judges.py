@@ -31,7 +31,7 @@ from rubric_gen.biomnibench.rubric_bundles import (
 )
 from rubric_gen.biomnibench.task_rubrics import canonical_json, load_json_strict
 
-DEFAULT_JUDGE_MODEL = "gemini-3.1-pro"
+DEFAULT_JUDGE_MODEL = "gemini-3.1-pro-preview"
 SCORE_VALIDATION_SCHEMA_VERSION = 1
 SCORE_INPUT_ATTESTATION_KEYS = {
     "schema_version",

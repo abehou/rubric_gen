@@ -167,7 +167,7 @@ uv run biomnibench-agent judge \
   --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L3 \
   --review trace \
   --rubric rubric.txt \
-  --model gemini-3.1-pro
+  --model gemini-3.1-pro-preview
 ```
 
 Judge with the sealed task-specific bundle compiled above:
@@ -178,7 +178,7 @@ uv run biomnibench-agent judge \
   --tasks-dir data/biomnibench-da \
   --review trajectory \
   --rubric-set runs/task-process-rubrics/pilot \
-  --model gemini-3.1-pro
+  --model gemini-3.1-pro-preview
 ```
 
 Judge the same run with a task-local retrospective process rubric:
@@ -188,7 +188,7 @@ uv run biomnibench-agent judge \
   --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L3 \
   --review trace \
   --rubric process_rubric.txt \
-  --model gemini-3.1-pro
+  --model gemini-3.1-pro-preview
 ```
 
 Judge multiple run directories in one invocation:
@@ -211,7 +211,7 @@ uv run biomnibench-agent judge \
   --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L3 \
   --review trajectory \
   --rubric process_rubric.txt \
-  --model gemini-3.1-pro
+  --model gemini-3.1-pro-preview
 ```
 
 Run repeated judges to estimate judge variance:
@@ -232,7 +232,7 @@ uv run biomnibench-agent judge \
   --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
   --review trajectory \
   --rubric process_rubric.txt \
-  --model gemini-3.1-pro
+  --model gemini-3.1-pro-preview
 ```
 
 ## Compare Judge Score Files
@@ -288,7 +288,7 @@ uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
   --revision-rounds 3 \
   --provider gemini \
   --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro \
+  --judge-model gemini-3.1-pro-preview \
   --rubric process_rubric.txt \
   --feedback-policy full \
   --review trajectory \
@@ -304,7 +304,7 @@ uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
   --revision-rounds 3 \
   --provider gemini \
   --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro \
+  --judge-model gemini-3.1-pro-preview \
   --rubric-set runs/task-process-rubrics/pilot \
   --feedback-policy full \
   --review trajectory \
@@ -325,6 +325,32 @@ executable, and raw-output setting. `--resume` and `--restart` are intentionally
 excluded so they reopen the same experiment. Thus the full-feedback path above
 and its score-only variant are always different directories.
 
+To run every task under both feedback conditions concurrently, use `--all` and
+`--full_v_score`. With 45 tasks, this expands to 90 independent experiments;
+`--max-concurrency 90` permits all 90 to be scheduled at once (subject to
+provider/API capacity):
+
+```bash
+uv run biomnibench-agent revise \
+  --all \
+  --full_v_score \
+  --tasks-dir data/biomnibench-da \
+  --experiment-dir runs/biomnibench-revisions/da-process \
+  --revision-rounds 10 \
+  --provider gemini \
+  --model gemini-3.5-flash \
+  --judge-model gemini-3.1-pro-preview \
+  --rubric rubric.txt \
+  --review trajectory \
+  --sandbox \
+  --skip-trust \
+  --max-concurrency 90
+```
+
+Batch mode shows one progress bar for completed experiments; each worker keeps
+one true solver session and its own output directory. `--feedback-policy` is
+used only when `--full_v_score` is absent.
+
 If an incomplete run stopped at a recorded clean judge boundary, repeat the
 same command against the same task and experiment directory with `--resume`:
 
@@ -334,7 +360,7 @@ uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
   --revision-rounds 3 \
   --provider gemini \
   --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro \
+  --judge-model gemini-3.1-pro-preview \
   --rubric process_rubric.txt \
   --feedback-policy full \
   --review trajectory \

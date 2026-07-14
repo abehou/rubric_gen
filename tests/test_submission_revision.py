@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import stat
+import threading
 from dataclasses import replace
 from pathlib import Path
 from typing import Callable
@@ -30,8 +31,8 @@ from rubric_gen.biomnibench.submission_revision import (
 )
 
 
-def _write_task(root: Path) -> Path:
-    task = root / "tasks" / "da-1-1"
+def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
+    task = root / "tasks" / task_id
     (task / "environment" / "data").mkdir(parents=True)
     (task / "tests").mkdir()
     (task / "instruction.md").write_text("Analyze the supplied table.\n")
@@ -414,6 +415,52 @@ def test_revise_cli_suppresses_success_output(
     assert observed_configs == [config]
     assert config.agent.quiet is True
     assert capsys.readouterr().out == ""
+
+
+def test_revise_all_full_v_score_runs_conditions_concurrently(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    _write_task(tmp_path, "da-1-2")
+    (tmp_path / "revisions").mkdir()
+    args = build_parser().parse_args(
+        [
+            "revise",
+            "--all",
+            "--full_v_score",
+            "--tasks-dir",
+            str(tmp_path / "tasks"),
+            "--experiment-dir",
+            str(tmp_path / "revisions"),
+            "--revision-rounds",
+            "0",
+            "--model",
+            "test-model",
+            "--max-concurrency",
+            "2",
+        ]
+    )
+    barrier = threading.Barrier(2)
+    observed: list[SubmissionRevisionConfig] = []
+
+    def fake_run(config: SubmissionRevisionConfig) -> None:
+        barrier.wait(timeout=1)
+        observed.append(config)
+
+    monkeypatch.setattr(cli_module, "run_submission_revision", fake_run)
+
+    assert cli_module.run_revise(args) == 0
+    assert {
+        (config.task_dir.name, config.feedback_policy.value) for config in observed
+    } == {
+        ("da-1-1", "full"),
+        ("da-1-1", "score_only"),
+        ("da-1-2", "full"),
+        ("da-1-2", "score_only"),
+    }
+    assert all(not config.show_progress for config in observed)
+    assert len({config.experiment_dir for config in observed}) == 4
 
 
 @pytest.mark.parametrize(

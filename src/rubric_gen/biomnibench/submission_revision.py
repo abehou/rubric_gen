@@ -80,7 +80,12 @@ def _revision_experiment_dir(
     agent: AgentRunConfig,
 ) -> Path:
     experiment_dir = resolve_project_path(args.experiment_dir)
-    if args.resume and os.path.lexists(experiment_dir):
+    if (
+        args.resume
+        and not getattr(args, "all", False)
+        and not getattr(args, "full_v_score", False)
+        and os.path.lexists(experiment_dir)
+    ):
         return experiment_dir
     policy_suffix = f"-{feedback_policy.value.replace('_', '-')}"
     for candidate in FeedbackPolicy:
@@ -135,6 +140,7 @@ class SubmissionRevisionConfig:
     max_review_chars: int | None = None
     resume: bool = False
     restart: bool = False
+    show_progress: bool = True
 
     def __post_init__(self) -> None:
         if type(self.revision_rounds) is not int or self.revision_rounds < 0:
@@ -145,6 +151,8 @@ class SubmissionRevisionConfig:
             raise ValueError("rubric_name and rubric_set are mutually exclusive")
         if self.resume and self.restart:
             raise ValueError("resume and restart are mutually exclusive")
+        if type(self.show_progress) is not bool:
+            raise ValueError("show_progress must be a boolean")
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
         FeedbackPolicy(self.feedback_policy)
@@ -402,16 +410,21 @@ class SubmissionRevisionController:
                     "experiment cannot resume an uncertain or failed solver turn"
                 )
             progress_initial = len(state.scores)
-            for _ in trange(
-                progress_initial,
-                total,
-                initial=progress_initial,
-                total=total,
-                desc=f"revise {self.task_dir.name}",
-                unit="submission",
-                dynamic_ncols=True,
-                bar_format=PROGRESS_BAR_FORMAT,
-            ):
+            turns = (
+                trange(
+                    progress_initial,
+                    total,
+                    initial=progress_initial,
+                    total=total,
+                    desc=f"revise {self.task_dir.name}",
+                    unit="submission",
+                    dynamic_ncols=True,
+                    bar_format=PROGRESS_BAR_FORMAT,
+                )
+                if self.config.show_progress
+                else range(progress_initial, total)
+            )
+            for _ in turns:
                 if state.phase is _RevisionPhase.READY_FOR_TURN:
                     self._run_solver_turn(state, workspace)
                 if state.phase in {
