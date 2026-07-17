@@ -6,80 +6,102 @@ import importlib
 
 
 _MODULE_EXPORTS = {
-    ".adapters": (
+    ".agent.adapters": (
         "AgentAdapter",
         "AgentAdapterRegistry",
         "ClaudeAdapter",
         "CodexAdapter",
         "GeminiAdapter",
     ),
-    ".common": (
+    ".agent.prompts": (
         "NO_WEB_POLICY",
-        "PROGRESS_BAR_FORMAT",
         "PROMPT",
-        "ROOT",
+    ),
+    ".agent.models": (
         "AgentRunConfig",
         "BatchRunConfig",
         "BatchRunPaths",
-        "CompletedRunIndex",
+        "RunPaths",
+    ),
+    ".agent.costs": (
         "GEMINI_API_PRICING_SOURCE",
         "GEMINI_COST_SOURCE",
         "GEMINI_STANDARD_PRICES_PER_MILLION",
         "RunCost",
-        "RunPaths",
+    ),
+    ".agent.workspaces": (
+        "CompletedRunIndex",
         "TaskCatalog",
         "TaskWorkspace",
+    ),
+    ".agent.events": (
         "event_text",
+    ),
+    ".utils.paths": (
         "resolve_project_path",
     ),
-    ".judges": (
+    ".utils.progress": ("PROGRESS_BAR_FORMAT",),
+    ".judging.runner": (
         "BiomniBenchJudgeRunner",
+    ),
+    ".judging.models": (
+        "DEFAULT_JUDGE_MODEL",
+        "JudgeAttempt",
         "JudgeRunConfig",
         "JudgeTarget",
+        "ResolvedRubric",
+        "SCORE_INPUT_ATTESTATION_KEYS",
+        "SCORE_VALIDATION_KEYS",
+        "SCORE_VALIDATION_SCHEMA_VERSION",
+        "safe_basename",
     ),
-    ".perturbations": (
-        "DEFAULT_GEMINI_API_KEY_ENV",
+    ".integrations.gemini": ("DEFAULT_GEMINI_API_KEY_ENV",),
+    ".perturbation.models": (
         "DEFAULT_PERTURBER_MODEL",
         "DEFAULT_PERTURBATION_LEVELS",
         "DEFAULT_PERTURBATION_MAX_CONCURRENCY",
         "PERTURBATION_LEVELS",
-        "BiomniBenchPerturbationRunner",
-        "GeminiPerturber",
         "PerturbationRequest",
         "PerturbationResult",
         "PerturbationRunConfig",
     ),
-    ".process_rubrics": (
+    ".perturbation.gemini": ("GeminiPerturber",),
+    ".perturbation.runner": ("BiomniBenchPerturbationRunner",),
+    ".rubrics.retrospective": (
         "GeminiProcessRubricRewriter",
         "ProcessRubricConfig",
         "ProcessRubricGenerator",
         "ProcessRubricRequest",
     ),
-    ".rubric_bundles": (
+    ".rubrics.bundles": (
         "ResolvedRubricBundle",
         "resolve_rubric_bundle",
     ),
-    ".runners": (
+    ".agent.runners": (
         "AgentRunner",
         "BiomniBenchBatchRunner",
         "RunValidation",
     ),
-    ".session_drivers": (
+    ".agent.sessions": (
         "CliSolverSessionDriver",
         "SessionTurnResult",
         "SolverSessionDriver",
     ),
-    ".submission_feedback": (
+    ".revision.feedback": (
         "FeedbackPolicy",
         "ProjectedFeedback",
         "project_feedback",
     ),
-    ".submission_revision": (
+    ".revision": (
+        "RevisionDependencies",
         "SubmissionRevisionConfig",
+        "SubmissionRevisionController",
         "SubmissionRevisionResult",
         "run_submission_revision",
     ),
-    ".task_rubric_compiler": (
+    ".revision.models": ("RevisionPhase", "RevisionState", "revision_experiment_dir"),
+    ".utils.hashing": ("sha256_bytes", "sha256_file"),
+    ".rubrics.compiler": (
         "GeminiTaskRubricRewriter",
         "TaskProcessRubricCompiler",
         "TaskRubricCompilerConfig",
@@ -87,8 +109,8 @@ _MODULE_EXPORTS = {
         "TaskRubricRewriter",
         "TaskRubricRewriterProvenance",
     ),
-    ".task_rubric_prompts": ("TaskRubricRequest",),
-    ".task_rubrics": (
+    ".rubrics.prompts": ("TaskRubricRequest",),
+    ".rubrics.schema": (
         "DataFileSnapshot",
         "RubricCriterion",
         "RubricLevel",
@@ -106,15 +128,12 @@ _MODULE_EXPORTS = {
         "validate_rendered_task_process_rubric",
         "validate_task_process_rubric",
     ),
-    ".visualizations": (
+    ".visualization.comparisons": (
         "JudgeComparisonConfig",
         "JudgeComparisonPlotter",
         "TaskJudgeComparison",
     ),
-    ".cli": (
-        "add_agent_args",
-        "build_parser",
-        "main",
+    ".commands": (
         "run_all",
         "run_compare_judges",
         "run_judge",
@@ -123,6 +142,11 @@ _MODULE_EXPORTS = {
         "run_process_rubrics",
         "run_revise",
         "run_task_process_rubrics",
+    ),
+    ".cli": (
+        "add_agent_args",
+        "build_parser",
+        "main",
     ),
 }
 

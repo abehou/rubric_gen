@@ -2,6 +2,7 @@ import argparse
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -10,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = ROOT / "pyproject.toml"
-SCRIPT = ROOT / "scripts" / "run_biomnibench_agents.py"
 SRC = ROOT / "src"
 
 
@@ -23,10 +23,16 @@ class BiomniBenchAgentTests(unittest.TestCase):
             "rubric_gen.biomnibench.cli:main",
         )
 
-    def test_script_entrypoint_exists(self):
-        text = SCRIPT.read_text()
-        self.assertIn("uv run --script", text)
-        self.assertIn("rubric_gen.biomnibench.cli", text)
+    def test_module_entrypoint_exposes_cli_help(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "rubric_gen.biomnibench", "--help"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("task-process-rubrics", result.stdout)
 
     def import_core(self):
         import sys
@@ -62,14 +68,12 @@ class BiomniBenchAgentTests(unittest.TestCase):
             ("claude", "codex", "gemini"),
         )
 
-    def test_facade_reexports_split_modules(self):
+    def test_package_exports_agent_api(self):
         core = self.import_core()
-        from rubric_gen.biomnibench import adapters
         from rubric_gen.biomnibench import cli
-        from rubric_gen.biomnibench import common
-        from rubric_gen.biomnibench import runners
+        from rubric_gen.biomnibench.agent import adapters, models, runners
 
-        self.assertIs(core.AgentRunConfig, common.AgentRunConfig)
+        self.assertIs(core.AgentRunConfig, models.AgentRunConfig)
         self.assertIs(core.GeminiAdapter, adapters.GeminiAdapter)
         self.assertIs(core.AgentRunner, runners.AgentRunner)
         self.assertIs(core.main, cli.main)
@@ -911,7 +915,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         sys.path.insert(0, str(SRC))
         try:
-            from rubric_gen.biomnibench.process_rubrics import (
+            from rubric_gen.biomnibench.rubrics.retrospective import (
                 build_rubric,
                 discover_bundles,
             )
@@ -989,7 +993,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         sys.path.insert(0, str(SRC))
         try:
-            from rubric_gen.biomnibench.process_rubrics import (
+            from rubric_gen.biomnibench.rubrics.retrospective import (
                 build_rubric,
                 discover_bundles,
             )
@@ -1125,7 +1129,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         sys.path.insert(0, str(SRC))
         try:
-            from rubric_gen.biomnibench.process_rubrics import validate_rubric_text
+            from rubric_gen.biomnibench.rubrics.retrospective import validate_rubric_text
         finally:
             sys.path.pop(0)
 
@@ -1556,7 +1560,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             "os.environ", {"GEMINI_API_KEY": "secret"}, clear=True
         ):
             with unittest.mock.patch(
-                "rubric_gen.biomnibench.gemini_client.urllib.request.urlopen",
+                "rubric_gen.biomnibench.integrations.gemini.urllib.request.urlopen",
                 fake_urlopen,
             ):
                 result = core.GeminiPerturber(model="gemini-3.5-flash").perturb(request)
@@ -1828,12 +1832,12 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 trajectory_path=run_dir / "trajectory.stream.jsonl",
                 output_root=root,
             )
-            from rubric_gen.biomnibench.judges import JudgeAttempt
+            from rubric_gen.biomnibench.judging.models import JudgeAttempt
 
             import unittest.mock
 
             with unittest.mock.patch(
-                "rubric_gen.biomnibench.judges.subprocess.run", fake_run
+                "rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run
             ):
                 result = runner.execute_judge(
                     tests_dir / "llm_judge.py",
@@ -2109,7 +2113,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             )
 
             target = runner.discover_targets()[0]
-            from rubric_gen.biomnibench.judges import JudgeAttempt
+            from rubric_gen.biomnibench.judging.models import JudgeAttempt
 
             self.assertIsNone(runner.completed_record(JudgeAttempt(target, 1)))
 

@@ -10,23 +10,24 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.biomnibench import judges as judges_module
-from rubric_gen.biomnibench import rubric_scoring as rubric_scoring_module
 from rubric_gen.biomnibench.cli import build_parser
-from rubric_gen.biomnibench.judges import (
-    BiomniBenchJudgeRunner,
+from rubric_gen.biomnibench.judging.models import (
     JudgeAttempt,
     JudgeRunConfig,
     JudgeTarget,
 )
-from rubric_gen.biomnibench.task_rubric_compiler import (
+from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
+from rubric_gen.biomnibench.judging import runner as judge_runner_module
+from rubric_gen.biomnibench.judging import scoring as rubric_scoring_module
+from rubric_gen.biomnibench.judging import executor as judge_executor_module
+from rubric_gen.biomnibench.rubrics.compiler import (
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
     TaskRubricRequest,
     TaskRubricRewriterProvenance,
     resolve_rubric_bundle,
 )
-from rubric_gen.biomnibench.task_rubrics import canonical_json
+from rubric_gen.biomnibench.rubrics.schema import canonical_json
 
 
 class StaticRewriter:
@@ -819,7 +820,7 @@ def test_direct_execute_rejects_regular_output_root_replacement(
         return subprocess.CompletedProcess(cmd, 1, stdout="failed\n")
 
     monkeypatch.setattr(runner, "_safe_output_path", replace_root_after_path_check)
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
 
     with pytest.raises(SystemExit, match="identity changed"):
         runner.execute_judge(
@@ -910,7 +911,7 @@ def test_output_replacement_during_judge_cannot_redirect_result_writes(
         output_dir.symlink_to(outside, target_is_directory=True)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
 
     with pytest.raises(SystemExit):
         runner.review_target(target)
@@ -943,7 +944,7 @@ def test_output_write_is_rolled_back_if_root_moves_during_commit(
             moved = True
         original_replace(source, destination, *args, **kwargs)
 
-    monkeypatch.setattr(judges_module.os, "replace", replace_after_move)
+    monkeypatch.setattr(judge_runner_module.os, "replace", replace_after_move)
 
     with pytest.raises(SystemExit, match="identity changed"):
         with runner._open_output_directory(
@@ -998,8 +999,8 @@ def test_output_unlink_is_rolled_back_if_root_moves_during_commit(
             move_before_mutation()
         original_unlink(path, *args, **kwargs)
 
-    monkeypatch.setattr(judges_module.os, "replace", replace_after_move)
-    monkeypatch.setattr(judges_module.os, "unlink", unlink_after_move)
+    monkeypatch.setattr(judge_runner_module.os, "replace", replace_after_move)
+    monkeypatch.setattr(judge_runner_module.os, "unlink", unlink_after_move)
 
     with pytest.raises(SystemExit, match="identity changed"):
         with runner._open_output_directory(
@@ -1112,7 +1113,7 @@ def test_external_judge_consumes_verified_bundle_snapshots(
     bundle.rendered_path.write_text("tampered after resolve", encoding="utf-8")
     bundle.task_manifest_path.write_text("tampered after resolve", encoding="utf-8")
     monkeypatch.setattr(
-        judges_module,
+        judge_runner_module,
         "resolve_rubric_bundle",
         lambda _rubric_set, _task: bundle,
     )
@@ -1244,7 +1245,7 @@ def test_authoritative_score_and_hash_attestation(
         write_judge_artifacts(Path(cwd), reported_score=0)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
 
     result = runner.execute_judge(
         target.task_dir / "tests" / "llm_judge.py",
@@ -1280,7 +1281,7 @@ def test_authoritative_score_and_hash_attestation(
         "review_input_sha256": hashlib.sha256(b"trace").hexdigest(),
         "answer_input_sha256": hashlib.sha256(b"answer").hexdigest(),
         "judge_source_sha256": sha256_file(target.task_dir / "tests" / "llm_judge.py"),
-        "judge_runner_sha256": sha256_file(Path(judges_module.__file__)),
+        "judge_runner_sha256": runner.judge_runner_sha256(),
         "scorer_module_sha256": sha256_file(Path(rubric_scoring_module.__file__)),
         "effective_judge_model": runner.judge_model(os.environ.copy()),
         "review_mode": "trace",
@@ -1360,7 +1361,7 @@ def test_judge_executes_verified_text_snapshot_when_source_changes(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
 
     result = runner.execute_judge(
         target.task_dir / "tests" / "llm_judge.py",
@@ -1391,7 +1392,7 @@ def test_malformed_criteria_fail_despite_zero_judge_exit(
         write_judge_artifacts(Path(cwd), criteria={"criterion_9": {"level": "A"}})
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
 
     result = runner.execute_judge(
         target.task_dir / "tests" / "llm_judge.py",
@@ -1442,7 +1443,7 @@ def test_resume_requires_matching_artifact_hashes(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert (
         runner.execute_judge(
             target.task_dir / "tests" / "llm_judge.py",
@@ -1485,7 +1486,7 @@ def test_resume_rejects_output_root_replaced_during_cache_validation(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert runner.review_target(target)["status"] == "completed"
 
     replacement_root = tmp_path / "replacement-output-root"
@@ -1530,7 +1531,7 @@ def test_resume_rejects_cache_transplanted_between_repeats(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert runner.review_target(target, repeat_index=1)["status"] == "completed"
     shutil.copytree(runner.output_dir(target, 1), runner.output_dir(target, 2))
 
@@ -1553,7 +1554,7 @@ def test_resume_rejects_cache_transplanted_between_tasks(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert runner.review_target(source)["status"] == "completed"
     shutil.copytree(runner.output_dir(source), runner.output_dir(destination))
 
@@ -1578,7 +1579,7 @@ def test_resume_rejects_cache_transplanted_between_runs(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert first_runner.review_target(source)["status"] == "completed"
     second_runner = make_runner(second_root, resume=True)
     shutil.copytree(
@@ -1620,7 +1621,7 @@ def test_resume_binds_actual_scoring_inputs_and_implementation(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert (
         runner.execute_judge(
             target.task_dir / "tests" / "llm_judge.py",
@@ -1653,7 +1654,7 @@ def test_resume_binds_actual_scoring_inputs_and_implementation(
         )
     elif changed == "scorer-version":
         monkeypatch.setattr(
-            judges_module,
+            judge_executor_module,
             "RUBRIC_SCORER_VERSION",
             "changed-version",
             raising=False,
@@ -1697,7 +1698,7 @@ def test_resume_binds_exact_trajectory_review_input(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert (
         runner.execute_judge(
             target.task_dir / "tests" / "llm_judge.py",
@@ -1736,7 +1737,7 @@ def test_resume_binds_review_mode_even_with_identical_review_text(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert (
         runner.execute_judge(
             target.task_dir / "tests" / "llm_judge.py",
@@ -1794,7 +1795,7 @@ def test_resume_rejects_identical_rubric_from_different_set(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     result = first_runner.execute_judge(
         target.task_dir / "tests" / "llm_judge.py",
         first_rubric,
@@ -1828,7 +1829,7 @@ def test_resume_rejects_non_strict_attestation(
         write_judge_artifacts(Path(cwd), reported_score=100)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     runner.execute_judge(
         target.task_dir / "tests" / "llm_judge.py",
         resolved,
@@ -1900,7 +1901,7 @@ def test_offline_frozen_rubric_workflow_end_to_end(
         )
         return subprocess.CompletedProcess(cmd, 0, stdout="offline judge\n")
 
-    monkeypatch.setattr("rubric_gen.biomnibench.judges.subprocess.run", fake_run)
+    monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
 
     record = runner.review_target(target)
     final_record = json.loads(Path(record["score_validation"]).read_text())

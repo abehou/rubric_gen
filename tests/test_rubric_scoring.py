@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from rubric_gen.biomnibench.rubric_scoring import (
+from rubric_gen.biomnibench.judging.scoring import (
     JudgeScoreValidationError,
     parse_rubric_levels_strict,
     validate_judge_score,

@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from typing import Callable
 
-from rubric_gen.biomnibench.common import AgentRunConfig, RunPaths
-from rubric_gen.biomnibench.session_drivers import (
+from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
+from rubric_gen.biomnibench.agent.sessions import (
     RECOVERY_PROMPT,
     CliSolverSessionDriver,
 )
@@ -47,7 +47,7 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
                 "model": "gemini-test",
             }
         ]
-        if outcome == "error":
+        if outcome in {"error", "process_error"}:
             events.extend(
                 [
                     {
@@ -74,7 +74,7 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
         paths.stream_path.write_text(
             "".join(json.dumps(event) + "\n" for event in events)
         )
-        return 0
+        return 9 if outcome == "process_error" else 0
 
 
 def test_persistent_session_retries_in_same_session_and_preserves_all_streams(
@@ -119,7 +119,9 @@ def test_persistent_session_retries_in_same_session_and_preserves_all_streams(
     assert status["attempts"][2]["stream_errors"] == []
 
 
-def test_persistent_session_stops_after_five_retries(tmp_path: Path) -> None:
+def test_persistent_session_accepts_workspace_after_five_stream_retries(
+    tmp_path: Path,
+) -> None:
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     turn_dir = tmp_path / "turn"
@@ -127,15 +129,34 @@ def test_persistent_session_stops_after_five_retries(tmp_path: Path) -> None:
 
     result = driver.start(workspace, "original prompt", turn_dir)
 
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert len(driver.commands) == 6
     status = json.loads((turn_dir / "status.json").read_text())
     assert status["attempt_count"] == 6
     assert status["max_retries"] == 5
-    assert status["exit_code"] == 1
+    assert status["exit_code"] == 0
+    assert status["transport_exit_code"] == 1
+    assert status["accepted_after_retry_exhaustion"] is True
     assert (turn_dir / "trajectory.stream.jsonl").read_text().count(
         '"message": "Invalid stream"'
     ) == 6
+
+
+def test_persistent_session_does_not_accept_process_crashes_after_retries(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    turn_dir = tmp_path / "turn"
+    driver = ScriptedSessionDriver(["process_error"] * 6)
+
+    result = driver.start(workspace, "original prompt", turn_dir)
+
+    assert result.exit_code == 9
+    status = json.loads((turn_dir / "status.json").read_text())
+    assert status["exit_code"] == 9
+    assert status["transport_exit_code"] == 9
+    assert status["accepted_after_retry_exhaustion"] is False
 
 
 def test_persistent_session_does_not_reject_suspicious_successful_actions(

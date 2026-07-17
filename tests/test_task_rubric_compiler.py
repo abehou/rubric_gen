@@ -12,15 +12,16 @@ from pathlib import Path
 import pytest
 
 import rubric_gen.biomnibench as biomnibench
+from rubric_gen.biomnibench import commands as commands_module
 from rubric_gen.biomnibench import cli as cli_module
-from rubric_gen.biomnibench import process_rubrics as process_rubrics_module
-from rubric_gen.biomnibench import rubric_bundles as rubric_bundles_module
-from rubric_gen.biomnibench import task_rubric_compiler as compiler_module
-from rubric_gen.biomnibench import task_rubrics as task_rubrics_module
-from rubric_gen.biomnibench.common import resolve_project_path
+from rubric_gen.biomnibench.rubrics import bundles as rubric_bundles_module
+from rubric_gen.biomnibench.rubrics import compiler as compiler_module
+from rubric_gen.biomnibench.rubrics import retrospective as process_rubrics_module
+from rubric_gen.biomnibench.rubrics import schema as task_rubrics_module
+from rubric_gen.biomnibench.utils.paths import resolve_project_path
 from rubric_gen.biomnibench.cli import build_parser
-from rubric_gen.biomnibench.perturbations import GeminiGenerateContentResponse
-from rubric_gen.biomnibench.task_rubric_compiler import (
+from rubric_gen.biomnibench.integrations.gemini import GeminiGenerateContentResponse
+from rubric_gen.biomnibench.rubrics.compiler import (
     GeminiTaskRubricRewriter,
     RubricBundleError,
     TaskProcessRubricCompiler,
@@ -30,7 +31,7 @@ from rubric_gen.biomnibench.task_rubric_compiler import (
     build_task_rubric_prompt,
     resolve_rubric_bundle,
 )
-from rubric_gen.biomnibench.task_rubrics import (
+from rubric_gen.biomnibench.rubrics.schema import (
     SchemaSnapshotLimits,
     TaskSnapshot,
     build_task_snapshot,
@@ -1670,10 +1671,9 @@ def test_main_runs_task_process_rubric_compiler(
             return 17
 
     monkeypatch.setattr(
-        cli_module,
+        commands_module,
         "TaskProcessRubricCompiler",
         FakeCompiler,
-        raising=False,
     )
 
     exit_code = cli_module.main(

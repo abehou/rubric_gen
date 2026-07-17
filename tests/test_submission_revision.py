@@ -11,19 +11,21 @@ from typing import Callable
 import pytest
 
 import rubric_gen.biomnibench.cli as cli_module
-import rubric_gen.biomnibench.submission_revision as submission_revision_module
-import rubric_gen.biomnibench.submission_revision_artifacts as revision_artifacts_module
-from rubric_gen.biomnibench.common import AgentRunConfig
+import rubric_gen.biomnibench.commands as commands_module
+import rubric_gen.biomnibench.revision as submission_revision_module
+import rubric_gen.biomnibench.revision.artifacts as revision_artifacts_module
+import rubric_gen.biomnibench.revision.controller as revision_controller_module
+from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.cli import build_parser
-from rubric_gen.biomnibench.session_drivers import SessionTurnResult
-from rubric_gen.biomnibench.submission_feedback import (
+from rubric_gen.biomnibench.agent.sessions import SessionTurnResult
+from rubric_gen.biomnibench.revision.feedback import (
     FeedbackPolicy,
     project_feedback,
 )
-from rubric_gen.biomnibench.submission_revision_artifacts import (
+from rubric_gen.biomnibench.revision.artifacts import (
     remove_revision_experiment,
 )
-from rubric_gen.biomnibench.submission_revision import (
+from rubric_gen.biomnibench.revision import (
     JudgeArtifacts,
     RevisionDependencies,
     SubmissionRevisionConfig,
@@ -88,6 +90,44 @@ class FakeSessionDriver:
             exit_code=0,
             trajectory_path=trajectory,
         )
+
+
+class StreamExhaustionSessionDriver(FakeSessionDriver):
+    def resume(
+        self,
+        workspace: Path,
+        prompt: str,
+        turn_dir: Path,
+        session_id: str,
+    ) -> SessionTurnResult:
+        self.prompts.append(prompt)
+        self.session_ids.append(session_id)
+        result = self._turn(workspace, turn_dir, 1)
+        attempts = [
+            {
+                "attempt": index,
+                "process_exit_code": 0,
+                "exit_code": 1,
+                "stream_errors": ["trajectory_error: Invalid stream"],
+            }
+            for index in range(1, 7)
+        ]
+        (turn_dir / "status.json").write_text(
+            json.dumps(
+                {
+                    "provider": "gemini",
+                    "session_id": session_id,
+                    "model": "test-model",
+                    "exit_code": 1,
+                    "attempt_count": 6,
+                    "max_retries": 5,
+                    "attempts": attempts,
+                    "transport_exit_code": 1,
+                    "accepted_after_retry_exhaustion": False,
+                }
+            )
+        )
+        return replace(result, exit_code=1)
 
 
 class FakeJudge:
@@ -196,10 +236,9 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
         return range(start, stop)
 
     monkeypatch.setattr(
-        submission_revision_module,
+        revision_controller_module,
         "trange",
         fake_trange,
-        raising=False,
     )
     task = _write_task(tmp_path)
     session = FakeSessionDriver()
@@ -235,6 +274,10 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     with pytest.raises(KeyboardInterrupt):
         StopAfterFirstJudge(config, dependencies).run()
 
+    score_plot_path = config.experiment_dir / "score_improvement.png"
+    first_score_plot = score_plot_path.read_bytes()
+    assert first_score_plot.startswith(b"\x89PNG\r\n\x1a\n")
+
     manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
     retained_live_root = Path(manifest["live_workspace_dir"]).parent
     assert retained_live_root.is_dir()
@@ -256,6 +299,10 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
             dependencies,
         ).run()
 
+    second_score_plot = score_plot_path.read_bytes()
+    assert second_score_plot.startswith(b"\x89PNG\r\n\x1a\n")
+    assert second_score_plot != first_score_plot
+
     interrupted_manifest = json.loads(
         (config.experiment_dir / "manifest.json").read_text()
     )
@@ -270,6 +317,9 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     assert result.session_id == "solver-session"
     assert result.submission_ids == ("s000", "s001", "s002")
     assert result.scores == (80, 55, 70)
+    final_score_plot = score_plot_path.read_bytes()
+    assert final_score_plot.startswith(b"\x89PNG\r\n\x1a\n")
+    assert final_score_plot != second_score_plot
     assert session.session_ids == ["solver-session"] * 3
     assert session.start_count == 1
     assert "Criterion 1" not in session.prompts[0]
@@ -300,6 +350,57 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     ]
     assert [kwargs["initial"] for _, _, kwargs in progress_calls] == [0, 1, 2]
     assert all(kwargs["total"] == 3 for _, _, kwargs in progress_calls)
+
+
+def test_resume_recovers_failed_turn_after_stream_retry_exhaustion(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    session = StreamExhaustionSessionDriver()
+    rubric_text = (task / "tests" / "rubric.txt").read_text()
+    judge = FakeJudge(
+        (60, 85),
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
+        tmp_path / "fake-judge",
+    )
+    config = SubmissionRevisionConfig(
+        task_dir=task,
+        experiment_dir=tmp_path / "experiment",
+        revision_rounds=1,
+        agent=AgentRunConfig(
+            provider="gemini",
+            model="test-model",
+            retries=5,
+        ),
+        feedback_policy=FeedbackPolicy.FULL,
+        rubric_name="rubric.txt",
+    )
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(RuntimeError, match="provider exited with code 1"):
+        SubmissionRevisionController(config, dependencies).run()
+
+    failed_status_path = config.experiment_dir / "turns" / "turn-001" / "status.json"
+    assert json.loads(failed_status_path.read_text())["status"] == "failed"
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True),
+        dependencies,
+    ).run()
+
+    assert result.submission_ids == ("s000", "s001")
+    assert result.scores == (60, 85)
+    assert len(session.prompts) == 2
+    recovered_status = json.loads(failed_status_path.read_text())
+    assert recovered_status["status"] == "accepted_after_retry_exhaustion"
+    assert recovered_status["exit_code"] == 0
+    assert recovered_status["transport_exit_code"] == 1
+    assert recovered_status["accepted_after_retry_exhaustion"] is True
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(event["event"] == "turn_recovered" for event in events)
 
 
 def test_restart_replaces_an_interrupted_experiment(
@@ -406,7 +507,7 @@ def test_revise_cli_suppresses_success_output(
     config = SubmissionRevisionConfig.from_namespace(args)
     observed_configs: list[SubmissionRevisionConfig] = []
     monkeypatch.setattr(
-        cli_module,
+        commands_module,
         "run_submission_revision",
         lambda received: observed_configs.append(received),
     )
@@ -469,7 +570,7 @@ def test_revise_all_full_v_score_runs_conditions_concurrently(
         barrier.wait(timeout=1)
         observed.append(config)
 
-    monkeypatch.setattr(cli_module, "run_submission_revision", fake_run)
+    monkeypatch.setattr(commands_module, "run_submission_revision", fake_run)
 
     assert cli_module.run_revise(args) == 0
     assert {

@@ -22,6 +22,33 @@ From the repository root, install the project dependencies:
 uv sync
 ```
 
+## Code Layout
+
+The installed `biomnibench-agent` command is the stable interface. Internals are
+grouped by experiment responsibility:
+
+- `agent/`: provider adapters, persistent sessions, task workspaces, run costs,
+  and single/batch execution.
+- `judging/`: target discovery, race-resistant artifact storage, judge execution,
+  strict scoring, and score attestation.
+- `revision/`: the linear same-session revision controller, durable state store,
+  immutable snapshots, feedback projection, and optimizer judge adapter.
+- `rubrics/`: immutable task snapshots, structured schemas, prompts, sealed
+  bundles, task-specific compilation, and retrospective rubric generation.
+- `perturbation/`: perturbation models, Gemini implementation, and concurrent
+  orchestration.
+- `visualization/`: revision histories and paired judge comparisons.
+- `integrations/`: external service clients; `utils/`: only domain-independent
+  paths, progress, hashing, and text helpers.
+
+For local development, the CLI can also be run as a module:
+
+```bash
+uv run python -m rubric_gen.biomnibench --help
+```
+
+Saved run formats and command-line behavior remain unchanged by this layout.
+
 Download the BiomniBench-DA task data:
 
 ```bash

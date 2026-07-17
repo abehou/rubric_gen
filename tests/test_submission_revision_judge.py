@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-import rubric_gen.biomnibench.submission_revision_judge as judge_module
-from rubric_gen.biomnibench.submission_revision_judge import (
+import rubric_gen.biomnibench.revision.judge as judge_module
+from rubric_gen.biomnibench.revision.judge import (
     BiomniSubmissionJudge,
     FrozenRubric,
     JudgeArtifacts,
