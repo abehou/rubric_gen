@@ -1,60 +1,34 @@
 # Rubric Gen
 
-Tools for running BiomniBench-DA terminal agents, compiling process rubrics,
-perturbing and judging saved runs, comparing judge views, and running
-persistent-session submission-revision experiments.
+Tools for running BiomniBench-DA agents and studying rubric-guided submission
+revision, including full-feedback versus score-only ablations.
 
 ## Setup
 
-Prerequisites:
+Requirements:
 
-- Python 3.11 or newer and [`uv`](https://docs.astral.sh/uv/).
-- The Hugging Face `hf` CLI for downloading the benchmark tasks.
-- An installed and authenticated `gemini`, `claude`, or `codex` CLI for agent
-  and revision runs using that provider.
-- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini judging, perturbation, and
-  rubric generation. Anthropic judge models instead require
-  `ANTHROPIC_API_KEY`.
-
-From the repository root, install the project dependencies:
+- Python 3.11 or newer and [`uv`](https://docs.astral.sh/uv/)
+- The Hugging Face `hf` CLI
+- An installed and authenticated `gemini`, `claude`, or `codex` CLI
+- `GEMINI_API_KEY` for Gemini judging, perturbation, and rubric generation
 
 ```bash
 uv sync
+uv run biomnibench-agent --help
 ```
 
-## Code Layout
-
-The installed `biomnibench-agent` command is the stable interface. Internals are
-grouped by experiment responsibility:
-
-- `agent/`: provider adapters, persistent sessions, task workspaces, run costs,
-  and single/batch execution.
-- `judging/`: target discovery, race-resistant artifact storage, judge execution,
-  strict scoring, and score attestation.
-- `revision/`: the linear same-session revision controller, durable state store,
-  immutable snapshots, feedback projection, and optimizer judge adapter.
-- `rubrics/`: immutable task snapshots, structured schemas, prompts, sealed
-  bundles, task-specific compilation, and retrospective rubric generation.
-- `perturbation/`: perturbation models, Gemini implementation, and concurrent
-  orchestration.
-- `visualization/`: revision histories and paired judge comparisons.
-- `integrations/`: external service clients; `utils/`: only domain-independent
-  paths, progress, hashing, and text helpers.
-
-For local development, the CLI can also be run as a module:
+The selected provider CLI must be on `PATH`:
 
 ```bash
-uv run python -m rubric_gen.biomnibench --help
+command -v gemini
 ```
 
-Saved run formats and command-line behavior remain unchanged by this layout.
-
-Download the BiomniBench-DA task data:
+Download BiomniBench-DA:
 
 ```bash
 hf download phylobio/BiomniBench-DA \
   --repo-type dataset \
-  --local-dir ./data/biomnibench-da \
+  --local-dir data/biomnibench-da \
   --exclude "da-1-3/**" \
   --exclude "da-1-4/**" \
   --exclude "da-17-1/**" \
@@ -62,44 +36,59 @@ hf download phylobio/BiomniBench-DA \
   --exclude "da-17-5/**"
 ```
 
-## Run Agents
+## Run Submission-Revision Experiments
 
-Run one task:
+`revise` keeps one solver session alive. The solver creates `s000`, receives
+judge feedback, revises the same submission, and repeats. A run with
+`--revision-rounds 10` produces `s000` through `s010`.
+
+Run one task with full rubric feedback:
 
 ```bash
-uv run biomnibench-agent one data/biomnibench-da/da-26-4 \
+uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
+  --revision-rounds 10 \
   --provider gemini \
   --model gemini-3.5-flash \
+  --judge-model gemini-3.1-pro \
+  --rubric rubric.txt \
+  --feedback-policy full \
+  --review trajectory \
+  --sandbox \
   --skip-trust
 ```
 
-Run all pending tasks into a batch directory:
+Use `--feedback-policy score_only` for a single score-only ablation.
+
+Run every task under both full-feedback and score-only conditions:
 
 ```bash
-uv run biomnibench-agent all \
+uv run biomnibench-agent revise \
+  --all \
+  --full-v-score \
   --tasks-dir data/biomnibench-da \
-  --runs-dir runs/biomnibench-agents \
+  --revision-rounds 10 \
   --provider gemini \
   --model gemini-3.5-flash \
+  --judge-model gemini-3.1-pro \
+  --rubric rubric.txt \
+  --review trajectory \
+  --sandbox \
   --skip-trust \
-  --continue-on-error \
-  --max-concurrency 1
+  --max-concurrency 90
 ```
 
-Resume an existing all-task run:
+When `--experiment-dir` is omitted, `revise` creates one timestamped base under
+`runs/biomnibench-revisions/`. The final directory name also includes the task
+and all score-relevant command arguments, so different conditions do not
+collide. Pass `--experiment-dir PATH` to override the timestamped base.
 
-```bash
-uv run biomnibench-agent all \
-  --resume-run runs/biomnibench-agents/all-gemini-20260705-185054 \
-  --provider gemini \
-  --continue-on-error
-```
+To continue an interrupted experiment, pass its exact final directory with
+`--experiment-dir PATH --resume`. To delete that experiment and start again at
+`s000`, use `--experiment-dir PATH --restart` instead.
 
-## Compile Canonical Task Process Rubrics
+## Compile Task-Specific Process Rubrics
 
-Run `task-process-rubrics` before using `--rubric-set` with `judge` or `revise`.
-It uses only immutable task inputs and writes a sealed external bundle; repeat
-`--task` to compile more than one task.
+Compile sealed rubrics from immutable task inputs:
 
 ```bash
 uv run biomnibench-agent task-process-rubrics \
@@ -111,359 +100,109 @@ uv run biomnibench-agent task-process-rubrics \
   --max-concurrency 2
 ```
 
-Use `--resume` only to reuse bundles whose task inputs and compiler
-configuration match exactly. A command may select either `--rubric-set` or a
-task-local `--rubric`, not both.
-
-## Perturb Runs
-
-`perturb` creates judge-compatible run directories for controlled quality
-variants. The perturber is rubric-blind: it sees the task instruction and saved
-artifacts, not `rubric.txt` or `process_rubric.txt`.
-
-The perturbation command calls the Gemini API directly; it does not launch a
-Gemini CLI agent. Set `GEMINI_API_KEY` before running, or pass a different key
-variable with `--api-key-env`.
-
-Existing perturbation output directories are overwritten by default. Add
-`--resume` to keep the directory and skip any task-level outputs that are already
-complete.
-
-Perturbation runs show a tqdm progress bar and run up to 30 task-level jobs
-concurrently by default. Use `--max-concurrency` to tune this.
-
-Levels:
-
-- `C`: exact control copy
-- `L0`: verbose irrelevant-detail variant that looks more detailed without adding real evidence
-- `L1`: cosmetic/noise-only edits
-- `L2`: less auditable process
-- `L3`: weaker method evidence
-- `L4`: polished answer with weak or inconsistent process support
-- `L5`: degraded process and degraded final answer
-
-Perturb one task from a batch run:
+Use the resulting bundle in a revision experiment by replacing
+`--rubric rubric.txt` with:
 
 ```bash
-uv run biomnibench-agent perturb \
-  --base-run runs/biomnibench-agents/all-gemini-20260705-185054 \
-  --tasks da-26-4 \
-  --out-dir runs/biomnibench-perturbations/da-26-4-pilot
+--rubric-set runs/task-process-rubrics/pilot
 ```
 
-Perturb every task discovered in the run folder by omitting `--tasks`:
+`--rubric` and `--rubric-set` are mutually exclusive.
+
+## Generate Base Agent Runs
+
+Run one task:
 
 ```bash
-uv run biomnibench-agent perturb \
-  --base-run runs/biomnibench-agents/all-gemini-20260705-185054 \
-  --out-dir runs/biomnibench-perturbations/all-tasks-pilot
-```
-
-Useful options:
-
-```bash
---levels C,L0,L1,L2,L3,L4,L5
---perturber-model gemini-3.5-flash
---api-key-env GEMINI_API_KEY
---max-concurrency 30
---resume
---dry-run
-```
-
-The output layout is:
-
-```text
-runs/biomnibench-perturbations/<experiment>/
-  perturbation_manifest.json
-  C/
-    tasks/<task>/trajectory.stream.jsonl
-    tasks/<task>/status.json
-    workspaces/<task>/trace.md
-    workspaces/<task>/answer.txt
-  L0/
-  L1/
-  ...
-```
-
-## Judge Runs
-
-Judge normal or perturbed runs with the original outcome rubric:
-
-```bash
-uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L3 \
-  --review trace \
-  --rubric rubric.txt \
-  --model gemini-3.1-pro-preview
-```
-
-Judge with the sealed task-specific bundle compiled above:
-
-```bash
-uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
-  --tasks-dir data/biomnibench-da \
-  --review trajectory \
-  --rubric-set runs/task-process-rubrics/pilot \
-  --model gemini-3.1-pro-preview
-```
-
-Judge the same run with a task-local retrospective process rubric:
-
-```bash
-uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L3 \
-  --review trace \
-  --rubric process_rubric.txt \
-  --model gemini-3.1-pro-preview
-```
-
-Judge multiple run directories in one invocation:
-
-```bash
-uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054/tasks/da-26-4 runs/biomnibench-agents/all-gemini-20260705-185054/tasks/da-19-6 runs/biomnibench-agents/all-gemini-20260705-185054/tasks/da-10-1 \
-  --review trajectory \
-  --rubric process_rubric.txt \
+uv run biomnibench-agent one data/biomnibench-da/da-26-4 \
+  --runs-dir runs/biomnibench-agents \
+  --provider gemini \
   --model gemini-3.5-flash \
-  --repeats 5 \
+  --skip-trust
+```
+
+Run all tasks concurrently:
+
+```bash
+uv run biomnibench-agent all \
+  --tasks-dir data/biomnibench-da \
+  --runs-dir runs/biomnibench-agents \
+  --provider gemini \
+  --model gemini-3.5-flash \
+  --skip-trust \
+  --continue-on-error \
   --max-concurrency 10
 ```
 
+Resume a batch by adding `--resume-run PATH_TO_BATCH_RUN`.
 
-Judge raw trajectories instead of `trace.md`:
+## Judge Saved Runs
+
+Judge a task run or batch run:
 
 ```bash
 uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L3 \
+  --run-dir runs/biomnibench-agents/PATH_TO_BATCH_RUN \
+  --tasks-dir data/biomnibench-da \
   --review trajectory \
-  --rubric process_rubric.txt \
-  --model gemini-3.1-pro-preview
-```
-
-Run repeated judges to estimate judge variance:
-
-```bash
-uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-perturbations/da-26-4-pilot/L0 \
-  --review trace \
-  --rubric process_rubric.txt \
+  --rubric rubric.txt \
+  --model gemini-3.1-pro \
   --repeats 5 \
-  --max-concurrency 5
+  --max-concurrency 10 \
+  --resume
 ```
 
-Judge all tasks under a batch run directory:
+To judge with a sealed task-specific bundle, replace `--rubric rubric.txt` with
+`--rubric-set runs/task-process-rubrics/pilot`.
+
+## Generate Controlled Perturbations
+
+Create all perturbation levels (`C,L0,L1,L2,L3,L4,L5`) for every task found in
+a base run:
 
 ```bash
-uv run biomnibench-agent judge \
-  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
-  --review trajectory \
-  --rubric process_rubric.txt \
-  --model gemini-3.1-pro-preview
+uv run biomnibench-agent perturb \
+  --base-run runs/biomnibench-agents/PATH_TO_BATCH_RUN \
+  --out-dir runs/biomnibench-perturbations/pilot \
+  --perturber-model gemini-3.5-flash \
+  --max-concurrency 30
 ```
 
-## Compare Judge Score Files
+Add `--tasks da-19-6,da-26-4` to select tasks, `--levels C,L1,L3,L5` to select
+levels, or `--resume` to keep completed outputs.
 
-Run `judge` once with `--review trace` and once with `--review trajectory`
-without overriding `--output`. After both default score files exist in the
-batch run directory, generate a paired CSV, scatter plot, and sorted-delta plot:
+## Generate Retrospective Rubrics
 
-```bash
-uv run biomnibench-agent compare-judges \
-  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
-  --label-top-n 8
-```
-
-To compare any two compatible score summaries, pass `--left-scores` and
-`--right-scores`, with optional `--left-label` and `--right-label`.
-
-## Generate Retrospective Process Rubrics (Non-Canonical)
-
-`process-rubrics` is trajectory-informed retrospective analysis. It reads a
-completed batch's trajectories, traces, answers, and prior judge artifacts and
-writes `tests/process_rubric.txt` inside each task. These rubrics are useful for
-exploration but are not sealed canonical rewards; use `task-process-rubrics`
-for `--rubric-set` workflows.
+`process-rubrics` reads saved trajectories and writes task-local
+`tests/process_rubric.txt` files. These are exploratory and are not sealed
+canonical rewards.
 
 ```bash
 uv run biomnibench-agent process-rubrics \
   --tasks-dir data/biomnibench-da \
-  --run-dir runs/biomnibench-agents/all-gemini-20260705-185054 \
+  --run-dir runs/biomnibench-agents/PATH_TO_BATCH_RUN \
   --model gemini-3.5-flash \
   --max-concurrency 4 \
   --resume
 ```
 
-## Revise a Submission in One Agent Session
+## Compare Judge Scores
 
-`revise` runs a linear self-revision experiment. One solver session produces an
-initial rubric-blind submission, receives judge feedback, revises the same live
-workspace, and repeats. There is no candidate selection or rollback: a lower
-score still becomes the next revision. If `--revision-rounds` is 3, the command
-produces and judges four submissions (`s000` through `s003`). An explicit
-solver `--model` is required so the requested model can be pinned across the
-persistent session. A provider-reported model identity is also recorded and
-checked when the provider exposes one; otherwise the requested model is used as
-the effective identity. The configured provider executable is recorded and must
-match on resume.
-
-Run the primary full process-rubric feedback condition with Gemini CLI:
+After generating compatible trace and trajectory score files:
 
 ```bash
-uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
-  --experiment-dir runs/biomnibench-revisions/da-19-6-process-full \
-  --revision-rounds 3 \
-  --provider gemini \
-  --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro-preview \
-  --rubric process_rubric.txt \
-  --feedback-policy full \
-  --review trajectory \
-  --sandbox \
-  --skip-trust
+uv run biomnibench-agent compare-judges \
+  --run-dir runs/biomnibench-agents/PATH_TO_BATCH_RUN \
+  --label-top-n 8
 ```
 
-Use a sealed task-specific process-rubric bundle instead of a task-local file:
+## Package Layout
 
-```bash
-uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
-  --experiment-dir runs/biomnibench-revisions/da-19-6-task-process-full \
-  --revision-rounds 3 \
-  --provider gemini \
-  --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro-preview \
-  --rubric-set runs/task-process-rubrics/pilot \
-  --feedback-policy full \
-  --review trajectory \
-  --sandbox \
-  --skip-trust
-```
-
-For the score-only ablation, change only:
-
-```bash
---feedback-policy score_only
-```
-
-The CLI turns the supplied `--experiment-dir` into a readable, condition-specific
-name. It appends the task, feedback policy, revision count, provider, solver and
-judge models, rubric source, review mode, permission settings, truncation,
-executable, and raw-output setting. `--resume` and `--restart` are intentionally
-excluded so they reopen the same experiment. Thus the full-feedback path above
-and its score-only variant are always different directories.
-
-To run every task under both feedback conditions concurrently, use `--all` and
-`--full_v_score`. With 45 tasks, this expands to 90 independent experiments;
-`--max-concurrency 90` permits all 90 to be scheduled at once (subject to
-provider/API capacity):
-
-```bash
-uv run biomnibench-agent revise \
-  --all \
-  --full_v_score \
-  --tasks-dir data/biomnibench-da \
-  --experiment-dir runs/biomnibench-revisions/da-process \
-  --revision-rounds 10 \
-  --provider gemini \
-  --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro-preview \
-  --rubric rubric.txt \
-  --review trajectory \
-  --sandbox \
-  --skip-trust \
-  --max-concurrency 90
-```
-
-Batch mode shows one progress bar for completed experiments; each worker keeps
-one true solver session and its own output directory. `--feedback-policy` is
-used only when `--full_v_score` is absent.
-
-If an incomplete run stopped at a recorded clean judge boundary, repeat the
-same command against the same task and experiment directory with `--resume`:
-
-```bash
-uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
-  --experiment-dir runs/biomnibench-revisions/da-19-6-process-full \
-  --revision-rounds 3 \
-  --provider gemini \
-  --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro-preview \
-  --rubric process_rubric.txt \
-  --feedback-policy full \
-  --review trajectory \
-  --sandbox \
-  --skip-trust \
-  --resume
-```
-
-Resume validates the original configuration, frozen rubric and task hashes,
-requested solver model, any available provider-reported model identity,
-executable configuration, session ID, immutable snapshots, feedback, and live
-workspace. It does not restart an uncertain or failed solver turn, create a
-replacement session, or resume into a different experiment directory.
-
-To discard a matching existing experiment and redo the task from `s000`, repeat
-the original command with `--restart` instead of `--resume`. Restart removes the
-old experiment artifacts and any retained live workspace, so use it only when
-the prior run is no longer needed.
-
-Omit `--rubric` and `--rubric-set` to optimize the task's default outcome
-rubric (`tests/rubric.txt`). The solver never sees the rubric before `s000`.
-Under `full`, later turns receive the frozen rubric, validated criterion scores,
-selected levels, and bounded judge reasons. Under `score_only`, they receive only
-the total score. The current loop keeps that rubric fixed for the full
-trajectory; rubric co-evolution is future work described in `RESEARCH.md`.
-
-Before the solver starts `s000`, the controller freezes the complete scoring
-identity: rubric identity, judge source and runner hashes, scorer-module hash,
-review configuration, and effective judge model. Every score must attest that
-same identity.
-
-Gemini and Claude sessions use an experiment UUID; Codex resumes the thread ID
-reported by its initial JSON stream. Every turn uses the same provider session
-and live workspace. The controller creates that live workspace in an external
-temporary root and records its absolute path in `manifest.json`; it is not
-nested under the experiment artifacts. A resumable incomplete run retains the
-workspace. Successful completion verifies that the temporary root was removed
-and records `live_workspace_removed: true`.
-
-The live root has a sentinel bound to the exact experiment. Resume and cleanup
-accept only a nonsymlink root with the expected prefix directly under the
-platform temporary directory and a matching sentinel. These checks confine what
-the controller will reopen or delete; they are not protection against arbitrary
-same-user host tampering.
-
-The experiment directory preserves `state.json`, the frozen rubric text,
-per-turn prompts and trajectories, immutable submission snapshots, cumulative
-trajectories, judge artifacts, projected feedback, and the complete score
-sequence. The live workspace path is provenance, not a portable artifact: do
-not move or delete it before resuming an incomplete run.
-
-After each solver submission is sealed, the controller assigns a random 128-bit
-judge-attempt ID and stores optimizer artifacts under
-`evaluations/sNNN/<rubric-sha256>/<attempt-id>/run/judges/...`, separate from the
-immutable submission snapshot. The judge runner non-mutatingly revalidates every
-previously scored attempt and re-projects its feedback from the judge artifacts
-on resume, before each later judge boundary, and before completion. Historical
-scored attempts are immutable and are never regenerated; failed revalidation
-stops the experiment. Only the current unscored attempt may have a partial or
-invalid root removed within the confined evaluation namespace and regenerated.
-Only `feedback/sNNN.json` is projected back into the solver conversation; raw
-judge output is never placed in the live solver workspace.
-
-Filesystem isolation is provider-specific. For Gemini, `--sandbox` requests the
-Gemini CLI sandbox and omitting it changes that provider policy. The Codex
-session driver always requests `workspace-write`; this limits writes but is not
-a claim of hostile-process read isolation, and toggling this CLI flag does not
-currently create a Codex unrestricted condition. Claude Code does not receive a
-sandbox flag from this harness, so a controlled Claude run needs an externally
-verified container or equivalent filesystem boundary. Treat omission as an
-unrestricted ablation only when it actually changes the provider or container
-policy. Path separation helps prevent accidental mixing but does not by itself
-keep a hostile solver from reading judge, rubric, or audit artifacts. On POSIX,
-the driver starts each provider turn in its own process group and terminates
-remaining members after the turn, including ordinary descendants. A descendant
-that calls `setsid`, otherwise detaches, or coordinates with another same-user
-process can escape that cleanup and tamper with host-visible paths. Experiments
-requiring hostile-process isolation therefore still need a verified external
-container; this harness does not claim host-unrestricted tamper resistance.
+- `agent/`: provider adapters, sessions, workspaces, and base runs
+- `judging/`: target discovery, execution, validation, and artifacts
+- `revision/`: same-session revision controller and durable state
+- `rubrics/`: task-specific and retrospective rubric generation
+- `perturbation/`: controlled run perturbations
+- `visualization/`: revision and judge-comparison plots
+- `integrations/`: external clients
+- `utils/`: shared paths, progress, hashing, and text helpers

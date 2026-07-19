@@ -30,9 +30,9 @@ The first implementation includes:
 - the existing BiomniBench judge as the only feedback-producing role; and
 - enough provenance to rescore submissions later with frozen audit rubrics.
 
-This implementation excludes harness editing, prompt evolution, candidate
-selection, rollback, beam search, reflection-only memory, rubric adaptation,
-and rubric-generator agents.
+This implementation excludes changing the solver or its tools, prompt
+evolution, candidate selection, rollback, beam search, reflection-only memory,
+rubric adaptation, and rubric-generator agents.
 
 ## Roles and Experimental Boundary
 
@@ -209,9 +209,9 @@ The controlled filesystem boundary must be interpreted per provider:
 - Gemini `--sandbox` requests the Gemini CLI sandbox; omitting it changes the
   provider command policy.
 - Codex sessions always request `workspace-write`. This constrains writes but
-  is not a claim of hostile-process read isolation, and the harness `--sandbox`
+  is not a claim of hostile-process read isolation, and the CLI `--sandbox`
   toggle does not currently create an unrestricted Codex counterpart.
-- Claude Code receives no sandbox option from this harness. A controlled Claude
+- Claude Code receives no sandbox option from this controller. A controlled Claude
   condition requires an externally verified container or equivalent boundary.
 
 An unrestricted ablation is valid only when the actual provider or container
@@ -226,7 +226,7 @@ child processes. This is lifecycle hygiene, not a security boundary: a child
 can call `setsid` or otherwise detach, and another same-user process is outside
 the group entirely. Such processes can still access host-visible paths. A
 verified external container remains necessary for hostile-process conditions;
-the harness makes no host-unrestricted tamper-resistance claim.
+the controller makes no host-unrestricted tamper-resistance claim.
 
 ## Components
 
@@ -294,11 +294,12 @@ to game.
 
 ## Future Co-Evolving Rubrics
 
-`RESEARCH.md` describes future rubric co-evolution over this submission loop,
-not over harness code. Future rubric versions must be immutable, parent-linked,
-and activated only at recorded submission boundaries. When a rubric changes,
-all retained submissions and the current incumbent must be rescored under the
-same version before comparisons are made. A future frozen audit must remain
+`RESEARCH.md` describes future judge-side rubric co-evolution over this
+submission loop without changing the solver or its tools. Future rubric
+versions must be immutable, parent-linked, and activated only at recorded
+submission boundaries. When a rubric changes, all retained submissions and the
+current incumbent must be rescored under the same version before comparisons
+are made. A future frozen audit must remain
 permanently outside both solver and rubric-generator visibility.
 
 No rubric adaptation is implemented in this milestone.

@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
+from datetime import datetime
+from pathlib import Path
 
 from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, BatchRunConfig
@@ -59,7 +61,18 @@ def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
 
+def _timestamped_revision_experiment_dir() -> Path:
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return resolve_project_path(f"runs/biomnibench-revisions/revision-{stamp}")
+
+
 def run_revise(args: argparse.Namespace) -> int:
+    if args.experiment_dir is None:
+        if args.resume:
+            raise ValueError("--resume requires --experiment-dir")
+        if args.restart:
+            raise ValueError("--restart requires --experiment-dir")
+        args.experiment_dir = str(_timestamped_revision_experiment_dir())
     if not args.all and not args.full_v_score:
         run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
         return 0

@@ -8,7 +8,7 @@ The first implementation studies linear self-revision of a BiomniBench
 submission. One persistent solver session produces an initial submission,
 receives judge feedback, revises the same live workspace, and repeats. Every
 revision becomes the next submission: there is no candidate selection,
-rollback, or harness modification. A configured revision count of `R` produces
+rollback, or solver modification. A configured revision count of `R` produces
 and judges `R + 1` submissions.
 
 The judge uses one task-specific rubric frozen before the initial submission.
@@ -82,8 +82,8 @@ exploitation than score-only feedback.
 
 ### Required Safeguards
 
-- Never allow rubric adaptation to alter the solver, its tools, or the task
-  harness; only the judge-side rubric may change.
+- Never allow rubric adaptation to alter the solver or its tools; only the
+  judge-side rubric may change.
 - Accept updates only after evaluation on held-out exploit traces and honest
   alternative submissions.
 - Keep hidden audit evidence out of solver feedback and ordinary rubric-update

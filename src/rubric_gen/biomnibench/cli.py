@@ -48,6 +48,7 @@ def add_agent_args(
     parser.add_argument(
         "--skip-trust",
         action="store_true",
+        default=True,
         help="Forward provider trust bypass when supported.",
     )
     parser.add_argument(
@@ -124,8 +125,11 @@ def _add_revise_parser(
     )
     revise.add_argument(
         "--experiment-dir",
-        required=True,
-        help="Base directory name; the revision configuration is appended to it.",
+        default=None,
+        help=(
+            "Base directory name; defaults to a timestamped directory under "
+            "runs/biomnibench-revisions."
+        ),
     )
     revise.add_argument(
         "--all",

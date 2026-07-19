@@ -42,7 +42,7 @@ def revision_experiment_dir(
     """Derive an identity-bearing experiment directory for one configuration."""
     experiment_dir = resolve_project_path(args.experiment_dir)
     if (
-        args.resume
+        (args.resume or getattr(args, "restart", False))
         and not getattr(args, "all", False)
         and not getattr(args, "full_v_score", False)
         and os.path.lexists(experiment_dir)

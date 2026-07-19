@@ -519,6 +519,61 @@ def test_revise_cli_suppresses_success_output(
     assert capsys.readouterr().out == ""
 
 
+def test_revise_cli_generates_one_timestamped_base_for_a_batch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    _write_task(tmp_path, "da-1-2")
+    generated_base = tmp_path / "revision" / "revision-20260717-120000"
+    args = build_parser().parse_args(
+        [
+            "revise",
+            "--all",
+            "--full-v-score",
+            "--tasks-dir",
+            str(tmp_path / "tasks"),
+            "--revision-rounds",
+            "0",
+            "--model",
+            "test-model",
+        ]
+    )
+    observed: list[SubmissionRevisionConfig] = []
+    monkeypatch.setattr(
+        commands_module,
+        "_timestamped_revision_experiment_dir",
+        lambda: generated_base,
+    )
+    monkeypatch.setattr(
+        commands_module,
+        "run_submission_revision",
+        lambda config: observed.append(config),
+    )
+
+    assert cli_module.run_revise(args) == 0
+    assert len(observed) == 4
+    assert all(config.experiment_dir.parent == generated_base.parent for config in observed)
+    assert all(
+        config.experiment_dir.name.startswith(f"{generated_base.name}--")
+        for config in observed
+    )
+
+
+@pytest.mark.parametrize("mode", ["--resume", "--restart"])
+def test_revise_cli_requires_explicit_directory_for_existing_run_modes(
+    tmp_path: Path,
+    mode: str,
+) -> None:
+    task = _write_task(tmp_path)
+    args = build_parser().parse_args(
+        ["revise", str(task), "--model", "test-model", mode]
+    )
+
+    with pytest.raises(ValueError, match=f"{mode} requires --experiment-dir"):
+        cli_module.run_revise(args)
+
+
 def test_revise_cli_caps_persistent_session_retries_at_five(
     tmp_path: Path,
 ) -> None:
@@ -626,7 +681,11 @@ def test_feedback_policy_selects_matching_experiment_directory(
     assert config.experiment_dir == tmp_path / expected_name
 
 
-def test_resume_uses_an_existing_legacy_experiment_directory(tmp_path: Path) -> None:
+@pytest.mark.parametrize("mode", ["--resume", "--restart"])
+def test_existing_run_modes_use_an_exact_experiment_directory(
+    tmp_path: Path,
+    mode: str,
+) -> None:
     task = _write_task(tmp_path)
     legacy_dir = tmp_path / "da-19-6-process-full"
     legacy_dir.mkdir()
@@ -638,7 +697,7 @@ def test_resume_uses_an_existing_legacy_experiment_directory(tmp_path: Path) -> 
             str(legacy_dir),
             "--model",
             "test-model",
-            "--resume",
+            mode,
         ]
     )
 

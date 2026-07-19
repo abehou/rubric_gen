@@ -10,20 +10,11 @@
 
 Implement an offline compiler that generates an evidence-grounded process rubric
 for each BiomniBench task from immutable task inputs, validates it, records full
-provenance, and seals it before any self-improvement run begins.
+provenance, and seals it before a submission-revision experiment begins.
 
-This is the first implementation slice for a later five-condition experiment:
-
-| Condition | Mutable surface | Hill-climbing reward |
-| --- | --- | --- |
-| Static baseline | None | None |
-| Controlled--summary | Harness only | Existing summary-based rubric |
-| Controlled--process | Harness only | Frozen task-specific process rubric |
-| Unrestricted--summary | Public repository and working scorer | Existing summary-based rubric |
-| Unrestricted--process | Public repository and working scorer | Frozen task-specific process rubric |
-
-The hidden audit is external to every condition and is never used as the
-hill-climbing reward.
+The sealed rubric provides a stable optimizer objective for comparing linear
+same-session revisions. A hidden audit remains external to solver-visible
+feedback.
 
 The purpose of the new rubric is not merely to detect bad traces. It must supply
 a useful gradient for improving scientific work while making unsupported claims,
@@ -51,9 +42,8 @@ evidence substitution, and scorer-directed behavior less rewarding.
 
 ### Out of scope
 
-- The self-improvement or Meta-Harness outer loop.
 - Prompt-only, reflection-only, or memory-only experimental arms.
-- Rubric regeneration during hill climbing.
+- Online rubric adaptation during submission revision.
 - Rubric-agent and solver-agent co-evolution.
 - Model-weight updates.
 - Hidden-audit implementation.
@@ -69,7 +59,7 @@ retrospective rubrics, but its request includes a baseline trajectory, the
 agent-written `trace.md` and `answer.txt`, and prior judge gaps. It also writes
 the result directly into each benchmark task's `tests` directory.
 
-That behavior is unsuitable for the self-improvement experiment because:
+That behavior is unsuitable for a frozen-rubric revision experiment because:
 
 1. the reward definition is conditioned on one agent's behavior;
 2. regenerating it after optimization would leak search history into the reward;
@@ -80,13 +70,13 @@ That behavior is unsuitable for the self-improvement experiment because:
    or auditable evidence.
 
 The retrospective generator will remain available for exploratory analysis, but
-its output will not be treated as a canonical self-improvement reward.
+its output will not be treated as a canonical revision reward.
 
 ## 4. Chosen Approach
 
 Use a separate offline `TaskProcessRubricCompiler`. The compiler produces a
 typed canonical rubric first and derives judge-facing text from that structure.
-It is never called by the scorer or the hill-climbing loop.
+It is never called by the scorer or the submission-revision controller.
 
 Two alternatives were rejected for this first slice:
 
@@ -123,9 +113,9 @@ immutable task directory
             v
   external judge runner ------> hash-attested, validated score record
             |
-            +------ hill-climbing feedback in process conditions
+            +------ solver-visible revision feedback
 
-  hidden audit --------------- never visible during hill climbing
+  hidden audit --------------- never visible to the solver
 ```
 
 The compiler must not receive:
@@ -331,7 +321,7 @@ later for all-task generation after the one-task smoke test is verified.
 
 The existing `process-rubrics` command remains available but its help text and
 audit metadata must call it **trajectory-informed retrospective generation** and
-state that its outputs are not canonical rewards for self-improvement runs.
+state that its outputs are not canonical rewards for revision experiments.
 
 The judge command gains:
 
@@ -408,7 +398,7 @@ The slice is complete when:
 - malformed criterion output fails closed, while signed-score discrepancies are
   surfaced and corrected by authoritative recomputation;
 - all targeted tests pass; and
-- no self-improvement or rubric-adaptation loop has been introduced yet.
+- no online rubric-adaptation loop has been introduced yet.
 
 ## 11. Implemented Next Slice
 
@@ -416,4 +406,4 @@ The implemented follow-up is the task-level
 [submission-revision loop](2026-07-13-biomnibench-submission-revision-loop-design.md).
 It uses the frozen canonical bundle as an optional optimizer rubric while one
 persistent solver session revises successive immutable submissions. The
-broader harness-editing self-improvement design is deferred.
+rubric-adaptation direction remains deferred in `RESEARCH.md`.
