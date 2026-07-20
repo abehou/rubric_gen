@@ -28,13 +28,20 @@ Download BiomniBench-DA:
 ```bash
 hf download phylobio/BiomniBench-DA \
   --repo-type dataset \
+  --revision e1c8ca5e11a620087bc48d97888eb69176a1f235 \
   --local-dir data/biomnibench-da \
   --exclude "da-1-3/**" \
   --exclude "da-1-4/**" \
   --exclude "da-17-1/**" \
   --exclude "da-17-3/**" \
-  --exclude "da-17-5/**"
+  --exclude "da-17-5/**" \
+  --exclude "da-19-3/**" \
+  --exclude "da-19-4/**"
 ```
+
+This snapshot contains 43 tasks below 1 GB each (about 2.85 GB total). The
+excluded task directories are at least 1 GB each. Hugging Face's repository
+metadata is the source of the per-task byte totals.
 
 ## Run Submission-Revision Experiments
 
@@ -62,6 +69,8 @@ Use `--feedback-policy score_only` for a single score-only ablation.
 Run every task under both full-feedback and score-only conditions:
 
 ```bash
+export BIOMNIBENCH_LIVE_ROOT="$BULK/rubric_gen/biomnibench-live"
+
 uv run biomnibench-agent revise \
   --all \
   --full-v-score \
@@ -76,6 +85,14 @@ uv run biomnibench-agent revise \
   --skip-trust \
   --max-concurrency 90
 ```
+
+`BIOMNIBENCH_LIVE_ROOT` must be an absolute path. Set it to large scratch
+storage for batch runs; live solver workspaces, local virtual environments, and
+workspace-local package caches are created below it. Completed submissions are
+still stored under the configured experiment directories.
+
+Add `--dry-run` first to print every selected task, condition, and output
+directory without starting solver or judge processes.
 
 When `--experiment-dir` is omitted, `revise` creates one timestamped base under
 `runs/biomnibench-revisions/`. The final directory name also includes the task

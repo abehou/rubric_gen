@@ -150,6 +150,12 @@ class BiomniSubmissionJudge:
                 attempt_index,
                 record,
             )
+            permanent_error = self._permanent_failure(record)
+            if permanent_error is not None:
+                raise RuntimeError(
+                    "optimizer judge has a non-retryable configuration error: "
+                    + permanent_error
+                )
         else:
             details = [
                 f"status={record.get('status')}",
@@ -170,6 +176,27 @@ class BiomniSubmissionJudge:
         )
         make_tree_read_only(evaluation_root)
         return artifacts
+
+    @staticmethod
+    def _permanent_failure(record: dict[str, object]) -> str | None:
+        stdout_value = record.get("stdout")
+        if type(stdout_value) is not str:
+            return None
+        stdout_path = Path(stdout_value)
+        try:
+            stdout = stdout_path.read_text(errors="replace")
+        except OSError:
+            return None
+        if (
+            "404 NOT_FOUND" in stdout
+            and "is not found" in stdout
+            and "generateContent" in stdout
+        ):
+            return (
+                "the configured judge model is unavailable for generateContent; "
+                f"see {stdout_path}"
+            )
+        return None
 
     def _archive_failed_attempt(
         self,

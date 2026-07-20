@@ -146,3 +146,38 @@ def test_optimizer_judge_reports_details_after_five_retries(
 
     assert runner.calls == 6
     assert len(list((evaluation_root / "judge-attempts").iterdir())) == 6
+
+
+def test_optimizer_judge_does_not_retry_an_unavailable_model(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    judge = _judge(tmp_path)
+    submission = tmp_path / "experiment" / "submissions" / "s000"
+    submission.mkdir(parents=True)
+    evaluation_root = judge._evaluation_root(submission, "c" * 32)
+    output_dir = evaluation_root / "run" / "judges" / "trajectory" / "da-1-1"
+    runner = ScriptedJudgeRunner(output_dir, failures=6)
+
+    def unavailable_model(target: object) -> dict[str, object]:
+        record = ScriptedJudgeRunner.review_target(runner, target)
+        (output_dir / "stdout.txt").write_text(
+            "404 NOT_FOUND: models/gemini-3.5-pro is not found or is not "
+            "supported for generateContent\n"
+        )
+        return record
+
+    runner.review_target = unavailable_model  # type: ignore[method-assign]
+
+    def fake_prepare(submission_dir: Path, root: Path) -> Path:
+        run = root / "run"
+        run.mkdir(parents=True)
+        return run
+
+    monkeypatch.setattr(judge_module, "prepare_evaluation_run", fake_prepare)
+    monkeypatch.setattr(judge, "_runner_and_target", lambda run: (runner, object()))
+
+    with pytest.raises(RuntimeError, match="non-retryable configuration error"):
+        judge.evaluate(submission, "c" * 32)
+
+    assert runner.calls == 1

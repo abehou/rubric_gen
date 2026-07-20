@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 
 from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
-from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES
+from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES, PromptMitigation
 from rubric_gen.biomnibench.integrations.gemini import DEFAULT_GEMINI_API_KEY_ENV
 from rubric_gen.biomnibench.perturbation.models import (
     DEFAULT_PERTURBATION_MAX_CONCURRENCY,
@@ -154,6 +154,14 @@ def _add_revise_parser(
         default=1,
         help="Maximum number of independent revision experiments to run at once.",
     )
+    revise.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "List the selected revision experiments without starting solver or "
+            "judge processes."
+        ),
+    )
     experiment_mode = revise.add_mutually_exclusive_group()
     experiment_mode.add_argument(
         "--resume",
@@ -176,6 +184,15 @@ def _add_revise_parser(
         choices=tuple(policy.value for policy in FeedbackPolicy),
         default=FeedbackPolicy.FULL.value,
         help="Feedback returned to the solver. Defaults to full.",
+    )
+    revise.add_argument(
+        "--mtg",
+        choices=tuple(mitigation.value for mitigation in PromptMitigation),
+        default=PromptMitigation.NONE.value,
+        help=(
+            "Optional reward-hacking mitigation condition. Use 'prompt' to "
+            "repeat anti-gaming principles in the initial and revision prompts."
+        ),
     )
     revise.add_argument(
         "--review",

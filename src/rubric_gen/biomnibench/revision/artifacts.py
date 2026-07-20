@@ -16,9 +16,11 @@ from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
 EXCLUDED_SOLUTION_NAMES = frozenset(
     {
         ".git",
+        ".cache",
         ".mypy_cache",
         ".pytest_cache",
         ".ruff_cache",
+        ".uv_cache",
         ".venv",
         "__pycache__",
         "data",
@@ -27,6 +29,7 @@ EXCLUDED_SOLUTION_NAMES = frozenset(
 )
 
 LIVE_ROOT_PREFIX = "biomnibench-revision-live-"
+LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
 _LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
 _LEGACY_REVISION_MANIFEST_KEYS = frozenset(
@@ -59,7 +62,11 @@ _LEGACY_REVISION_MANIFEST_KEYS = frozenset(
         "task_id",
     }
 )
-_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {"kind"}
+_PRE_MITIGATION_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {"kind"}
+_MITIGATION_LEGACY_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {
+    "mitigation"
+}
+_REVISION_MANIFEST_KEYS = _PRE_MITIGATION_REVISION_MANIFEST_KEYS | {"mitigation"}
 
 
 def copy_solution_workspace(source: Path, destination: Path) -> None:
@@ -176,7 +183,7 @@ def remove_live_tree(root: Path, experiment_dir: Path) -> None:
 
 def remove_created_live_tree(root: Path) -> None:
     """Remove a freshly created live root before its sentinel is durable."""
-    temp_root = Path(tempfile.gettempdir()).resolve()
+    temp_root = live_root_parent()
     if (
         root.is_symlink()
         or not root.is_dir()
@@ -203,7 +210,12 @@ def remove_revision_experiment(experiment_dir: Path, task_dir: Path) -> None:
         manifest_keys == _REVISION_MANIFEST_KEYS
         and manifest.get("kind") == REVISION_EXPERIMENT_KIND
     )
-    if not is_current_manifest and manifest_keys != _LEGACY_REVISION_MANIFEST_KEYS:
+    if (
+        not is_current_manifest
+        and manifest_keys != _PRE_MITIGATION_REVISION_MANIFEST_KEYS
+        and manifest_keys != _MITIGATION_LEGACY_REVISION_MANIFEST_KEYS
+        and manifest_keys != _LEGACY_REVISION_MANIFEST_KEYS
+    ):
         raise RuntimeError(
             f"restart requires a valid revision manifest: {manifest_path}"
         )
@@ -312,7 +324,7 @@ def _hash_tree(root: Path, *, excluded_names: frozenset[str]) -> str:
 
 
 def validate_live_root(root: Path, experiment_dir: Path) -> None:
-    temp_root = Path(tempfile.gettempdir()).resolve()
+    temp_root = live_root_parent()
     if (
         root.is_symlink()
         or not root.is_dir()
@@ -330,6 +342,19 @@ def validate_live_root(root: Path, experiment_dir: Path) -> None:
         "experiment_dir": str(experiment_dir.resolve()),
     }:
         raise RuntimeError(f"live revision root sentinel does not match: {root}")
+
+
+def live_root_parent() -> Path:
+    configured = os.environ.get(LIVE_ROOT_ENV)
+    if configured:
+        root = Path(configured).expanduser()
+        if not root.is_absolute():
+            raise RuntimeError(f"{LIVE_ROOT_ENV} must be an absolute path")
+        root.mkdir(parents=True, exist_ok=True)
+        if root.is_symlink() or not root.is_dir():
+            raise RuntimeError(f"invalid {LIVE_ROOT_ENV}: {root}")
+        return root.resolve()
+    return Path(tempfile.gettempdir()).resolve()
 
 
 def _force_remove_directory(root: Path) -> None:

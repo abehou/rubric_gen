@@ -10,7 +10,7 @@ from pathlib import Path
 
 from tqdm.auto import trange
 
-from rubric_gen.biomnibench.agent.prompts import PROMPT
+from rubric_gen.biomnibench.agent.prompts import PromptMitigation, solver_prompt
 from rubric_gen.biomnibench.agent.sessions import CliSolverSessionDriver
 from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
 from rubric_gen.biomnibench.utils.progress import PROGRESS_BAR_FORMAT
@@ -27,6 +27,7 @@ from rubric_gen.biomnibench.revision.models import (
 )
 from rubric_gen.biomnibench.revision.artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
+    live_root_parent as _live_root_parent,
     REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
     copy_solution_workspace as _copy_solution_workspace,
     make_read_only as _make_read_only,
@@ -113,6 +114,7 @@ class SubmissionRevisionController:
             "approval_mode": self.config.agent.approval_mode,
             "skip_trust": self.config.agent.skip_trust,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
+            "mitigation": PromptMitigation(self.config.mitigation).value,
             "review": self.config.review,
             "judge_model": self.config.judge_model,
             "max_review_chars": self.config.max_review_chars,
@@ -140,7 +142,12 @@ class SubmissionRevisionController:
                 raise FileExistsError(
                     f"experiment directory already exists: {self.experiment_dir}"
                 )
-            live_root = Path(tempfile.mkdtemp(prefix=_LIVE_ROOT_PREFIX))
+            live_root = Path(
+                tempfile.mkdtemp(
+                    prefix=_LIVE_ROOT_PREFIX,
+                    dir=_live_root_parent(),
+                )
+            )
             try:
                 _write_live_root_sentinel(live_root, self.experiment_dir)
             except BaseException:
@@ -155,7 +162,7 @@ class SubmissionRevisionController:
                 submission_ids=[],
                 scores=[],
                 judge_attempts={},
-                next_prompt=PROMPT,
+                next_prompt=solver_prompt(self.config.mitigation),
             )
         try:
             if not initialized:
@@ -629,6 +636,7 @@ class SubmissionRevisionController:
             self.rubric.text,
             self.rubric.sha256,
             self.config.feedback_policy,
+            mitigation=self.config.mitigation,
         )
         feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
         if feedback_path.exists():
@@ -663,7 +671,7 @@ class SubmissionRevisionController:
         )
 
     def _validate_scored_boundaries(self, state: _RevisionState) -> str:
-        expected_prompt = PROMPT
+        expected_prompt = solver_prompt(self.config.mitigation)
         for index, score in enumerate(state.scores):
             submission_id = f"s{index:03d}"
             submission_dir = self.experiment_dir / "submissions" / submission_id
@@ -679,6 +687,7 @@ class SubmissionRevisionController:
                 self.rubric.text,
                 self.rubric.sha256,
                 self.config.feedback_policy,
+                mitigation=self.config.mitigation,
             )
             feedback = _read_json_object(
                 self.experiment_dir / "feedback" / f"{submission_id}.json",

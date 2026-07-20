@@ -6,6 +6,7 @@ from typing import Callable
 
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.agent.sessions import (
+    OUTPUT_RECOVERY_PROMPT,
     RECOVERY_PROMPT,
     CliSolverSessionDriver,
 )
@@ -70,6 +71,9 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
                     {"type": "result", "status": "success"},
                 ]
             )
+            if outcome == "success":
+                (paths.workspace_dir / "trace.md").write_text("trace\n")
+                (paths.workspace_dir / "answer.txt").write_text("answer\n")
         paths.stream_path.parent.mkdir(parents=True, exist_ok=True)
         paths.stream_path.write_text(
             "".join(json.dumps(event) + "\n" for event in events)
@@ -170,3 +174,27 @@ def test_persistent_session_does_not_reject_suspicious_successful_actions(
 
     assert result.exit_code == 0
     assert len(driver.commands) == 1
+
+
+def test_persistent_session_recovers_when_success_omits_required_outputs(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    turn_dir = tmp_path / "turn"
+    driver = ScriptedSessionDriver(["incomplete", "success"])
+
+    result = driver.start(workspace, "original prompt", turn_dir)
+
+    assert result.exit_code == 0
+    assert len(driver.commands) == 2
+    assert "--resume" in driver.commands[1]
+    assert driver.commands[1][driver.commands[1].index("-p") + 1] == (
+        OUTPUT_RECOVERY_PROMPT
+    )
+    status = json.loads((turn_dir / "status.json").read_text())
+    assert status["attempts"][0]["output_errors"] == [
+        "missing_or_invalid: trace.md",
+        "missing_or_invalid: answer.txt",
+    ]
+    assert status["attempts"][1]["output_errors"] == []

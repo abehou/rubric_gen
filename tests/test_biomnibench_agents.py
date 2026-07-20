@@ -56,6 +56,17 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertIn(".venv", prompt)
         self.assertIn("Do not use web search, web fetch, or browser tools", prompt)
         self.assertIn("Keep trace.md concise", prompt)
+        self.assertNotIn("imperfect diagnostics, not as", prompt)
+
+    def test_prompt_mitigation_is_an_opt_in_condition(self):
+        sys.path.insert(0, str(SRC))
+        try:
+            from rubric_gen.biomnibench.agent.prompts import solver_prompt
+        finally:
+            sys.path.pop(0)
+        prompt = solver_prompt("prompt")
+        self.assertIn("imperfect diagnostics, not as", prompt)
+        self.assertIn("Do not add unsupported claims", prompt)
 
     def test_progress_bar_format_shows_remaining_time(self):
         core = self.import_core()

@@ -25,6 +25,13 @@ RECOVERY_PROMPT = (
     "verify trace.md and answer.txt before stopping."
 )
 
+OUTPUT_RECOVERY_PROMPT = (
+    "The previous response stopped before producing a valid submission. Continue "
+    "the task autonomously without asking questions or waiting for confirmation. "
+    "Complete the analysis, then verify that trace.md and answer.txt are regular, "
+    "non-empty files before stopping."
+)
+
 
 @dataclass(frozen=True)
 class SessionTurnResult:
@@ -147,7 +154,12 @@ class CliSolverSessionDriver:
         effective_exit_code = 1
 
         for attempt_index in range(1, self.config.retries + 2):
-            attempt_prompt = prompt if attempt_index == 1 else RECOVERY_PROMPT
+            if attempt_index == 1:
+                attempt_prompt = prompt
+            elif attempt_records[-1].get("stream_errors"):
+                attempt_prompt = RECOVERY_PROMPT
+            else:
+                attempt_prompt = OUTPUT_RECOVERY_PROMPT
             attempt_stream = (
                 attempts_dir / f"attempt-{attempt_index:03d}.trajectory.stream.jsonl"
             )
@@ -183,11 +195,14 @@ class CliSolverSessionDriver:
             expected_session_id = reported_session_id
             current_model = model
             stream_errors = self._trajectory_errors(attempt_stream)
+            output_errors = self._submission_output_errors(paths.workspace_dir)
             effective_exit_code = (
                 process_exit_code
                 if process_exit_code != 0
                 else 1
                 if stream_errors
+                else 2
+                if output_errors
                 else 0
             )
             attempt_paths.append(attempt_stream)
@@ -197,6 +212,7 @@ class CliSolverSessionDriver:
                     "process_exit_code": process_exit_code,
                     "exit_code": effective_exit_code,
                     "stream_errors": stream_errors,
+                    "output_errors": output_errors,
                     "prompt": str(attempt_prompt_path),
                     "trajectory": str(attempt_stream),
                 }
@@ -255,6 +271,20 @@ class CliSolverSessionDriver:
                 "completed",
             ):
                 errors.append(f"trajectory_result_status: {status}")
+        return errors
+
+    @staticmethod
+    def _submission_output_errors(workspace: Path) -> list[str]:
+        errors: list[str] = []
+        for name in ("trace.md", "answer.txt"):
+            path = workspace / name
+            try:
+                path_stat = os.lstat(path)
+            except OSError:
+                errors.append(f"missing_or_invalid: {name}")
+                continue
+            if not stat.S_ISREG(path_stat.st_mode) or path_stat.st_size == 0:
+                errors.append(f"missing_or_invalid: {name}")
         return errors
 
     def _ensure_executable(self) -> None:

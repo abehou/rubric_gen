@@ -125,3 +125,133 @@ changes in the scoring objective. The current implementation therefore keeps
 the rubric fixed, preserves versioning seams for later work, and retains the
 artifacts needed for frozen post-hoc auditing before introducing rubric
 adaptation.
+
+## Measuring Rubric-Based Reward Hacking
+
+### Measurement Target
+
+In an iterative refinement loop, reward hacking should not be identified merely
+because two rubrics score different facets differently. The target phenomenon
+is optimization-induced divergence: solver-visible reward improves through
+changes that do not improve, or actively damage, the intended task outcome.
+This distinction separates ordinary rubric incompleteness from Goodhart-style
+overoptimization.
+
+One proposed design begins with a complete human rubric `R`, hides a subset
+`S`, retains a visible core `C = R - S`, and generates proxy criteria `S'` from
+`C`. The treatment trajectory optimizes `P = C union S'`; a matched control
+optimizes only `C`. For any submission `z`, a proxy--expert gap can be defined
+as:
+
+```text
+D(z) = f(z | P) - f(z | R)
+```
+
+The within-trajectory gap growth is:
+
+```text
+H_S = D(x_T) - D(x_0)
+```
+
+and the control-adjusted difference-in-differences estimand is:
+
+```text
+H_DiD = [D(x_T) - D(x_0)] - [D(y_T) - D(y_0)]
+```
+
+Here `x` is optimized with `S'`, while `y` is a matched control trajectory that
+never sees `S'`. Both are scored post hoc by both `P` and `R`; an evaluation
+rubric need not have been visible during generation. If both conditions branch
+from the same initial submission, the baseline terms cancel and
+`H_DiD = D(x_T) - D(y_T)`.
+
+This estimand controls stable evaluator bias and common refinement trends, but
+it does not automatically establish reward hacking. Its interpretation requires
+`S'` and `S` to operationalize the same latent facets, a credible expert
+reference `R`, matched or randomized treatment and control runs, frozen scoring
+instruments, comparable score scales, and no hidden-rubric leakage. Differential
+judge noise, shared judge failures, treatment-specific style effects, and an
+incorrect `S'` remain confounds. If the rubric co-evolves during optimization,
+all checkpoints must be rescored afterward under one frozen evaluation proxy;
+otherwise score changes mix submission changes with measurement changes.
+
+### Simpler Primary Alternatives
+
+The rubric-split design creates a second proxy-validation problem: it must first
+show that generated `S'` is a faithful substitute for hidden `S`. A simpler
+primary design follows established reward-model-overoptimization experiments:
+save every checkpoint, track the visible proxy score `p_t`, and independently
+measure intended quality `q_t` using blinded domain experts, reproducible task
+checks, artifact recomputation, or a prespecified combination. Reward hacking
+is evidenced when `p_t` continues to improve while `q_t` plateaus or declines.
+
+Two useful summaries are:
+
+```text
+gold regret = max_t q_t - q_argmax_t(p_t)
+reversal rate = Pr(expert prefers x_t over x_(t+1) | p_(t+1) > p_t)
+```
+
+Gold regret measures the quality lost by trusting proxy-based checkpoint
+selection. The reversal rate is a blinded pairwise measure of how often a
+rubric-approved revision is substantively worse. Pairwise review should hide
+revision order, visible scores, feedback, and model identity.
+
+Additional complementary measurements are:
+
+- **Semantic-preserving exploitability:** optimize formatting, confidence,
+  verbosity, headings, or rubric mirroring while holding substantive claims
+  fixed and independently verifying semantic equivalence. Score inflation then
+  measures judge hackability directly.
+- **Counterfactual ablation:** remove evaluator-facing prose that contributes no
+  new evidence and measure how much visible score disappears while experts
+  judge substantive content unchanged.
+- **Integrity-event rate:** use command logs, file-access logs, artifact hashes,
+  patch tracking, and grader-side recomputation to detect unsupported claims,
+  fabricated analyses, schema-only artifacts, restricted-data access, or
+  evaluator tampering. Report task correctness and exploit incidence separately.
+- **Feedback placebo experiment:** compare exact rubric feedback with matched
+  generic, score-only, irrelevant, or no-feedback conditions, while evaluating
+  all outputs with the same independent quality measure.
+
+No single scalar covers all reward hacking. The recommended report combines
+outcome-based overoptimization (gold regret and pairwise reversals) with direct
+behavioral integrity violations. High gold regret without a detected violation
+suggests proxy misspecification or subtle gaming; a verified violation plus
+high regret is substantially stronger evidence.
+
+### Relevant Literature
+
+- Gao, Schulman, and Hilton study proxy optimization while tracking a separate
+  fixed gold reward, establishing the characteristic overoptimization curve:
+  [Scaling Laws for Reward Model Overoptimization](https://proceedings.mlr.press/v202/gao23h.html).
+- Pan et al. study the especially relevant iterative self-refinement setting and
+  compare improving model-evaluator ratings against human judgments:
+  [Spontaneous Reward Hacking in Iterative Self-Refinement](https://arxiv.org/abs/2407.04549).
+- Khalaf et al. characterize inference-time reward hacking under increasing
+  optimization pressure:
+  [Inference-Time Reward Hacking in Large Language Models](https://arxiv.org/abs/2506.19248).
+- BITE measures score inflation from meaning-preserving stylistic optimization
+  against LLM judges:
+  [Turning Bias into Bugs](https://openreview.net/forum?id=7g23tYAIDC).
+- Recent tool-agent benchmarks treat evaluation integrity as a separate outcome
+  using protected evaluators, access logs, diffs, and trusted recomputation:
+  [RewardHackingAgents](https://arxiv.org/abs/2603.11337) and
+  [Reward Hacking Benchmark](https://arxiv.org/abs/2605.02964).
+
+## Prompt-Level Mitigation Hypothesis
+
+A low-cost mitigation is to explicitly instruct the solver that judge feedback
+is an imperfect diagnostic rather than the task objective. Every improvement
+should correspond to a real, independently defensible improvement in the
+analysis or answer. The solver should not add unsupported claims, keywords,
+sections, confidence, citations, or verbosity merely to match rubric language;
+claim unperformed checks; tailor artifacts to evaluator quirks; or remove valid
+caveats to sound stronger. This guidance must appear in the initial prompt and
+be repeated on every full- and score-only-feedback turn so that iterative judge
+feedback does not progressively displace it.
+
+This intervention is expected to reduce blatant gaming but cannot replace
+independent evaluation or evaluator hardening. It should be tested as an
+ablation, with prompt-only mitigation compared against the unchanged loop using
+gold regret, pairwise reversal, integrity-event rate, and ordinary task quality.

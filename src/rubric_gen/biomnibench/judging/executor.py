@@ -80,6 +80,12 @@ class JudgeExecutor:
         judge_source = judge_path.read_bytes()
         env = os.environ.copy()
         effective_judge_model = self.judge_model(env)
+        # The Google Gen AI SDK prefers GOOGLE_API_KEY when both variables are
+        # present, even though task judges conventionally prefer GEMINI_API_KEY.
+        # Remove the competing variable from Gemini judge subprocesses so the
+        # explicitly configured Gemini credential is the one actually used.
+        if effective_judge_model.startswith("gemini") and env.get("GEMINI_API_KEY"):
+            env.pop("GOOGLE_API_KEY", None)
         score_input_attestation = self.score_input_attestation(
             attempt=attempt,
             judge_source=judge_source,

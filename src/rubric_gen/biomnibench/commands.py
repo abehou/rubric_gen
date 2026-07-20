@@ -74,7 +74,15 @@ def run_revise(args: argparse.Namespace) -> int:
             raise ValueError("--restart requires --experiment-dir")
         args.experiment_dir = str(_timestamped_revision_experiment_dir())
     if not args.all and not args.full_v_score:
-        run_submission_revision(SubmissionRevisionConfig.from_namespace(args))
+        config = SubmissionRevisionConfig.from_namespace(args)
+        if args.dry_run:
+            print("Selected 1 task(s) and 1 experiment(s).")
+            print(
+                f"{config.task_dir.name}\t{config.feedback_policy.value}\t"
+                f"{config.experiment_dir}"
+            )
+            return 0
+        run_submission_revision(config)
         return 0
     if args.max_concurrency < 1:
         raise ValueError("max_concurrency must be at least 1")
@@ -104,6 +112,14 @@ def run_revise(args: argparse.Namespace) -> int:
         for task_dir in task_dirs
         for policy in policies
     ]
+    if args.dry_run:
+        print(f"Selected {len(task_dirs)} task(s) and {len(configs)} experiment(s).")
+        for config in configs:
+            print(
+                f"{config.task_dir.name}\t{config.feedback_policy.value}\t"
+                f"{config.experiment_dir}"
+            )
+        return 0
     failures: list[tuple[SubmissionRevisionConfig, Exception]] = []
     with TerminalProgress(
         total=len(configs),

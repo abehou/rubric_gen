@@ -16,6 +16,7 @@ import rubric_gen.biomnibench.revision as submission_revision_module
 import rubric_gen.biomnibench.revision.artifacts as revision_artifacts_module
 import rubric_gen.biomnibench.revision.controller as revision_controller_module
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
+from rubric_gen.biomnibench.agent.prompts import PromptMitigation
 from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.agent.sessions import SessionTurnResult
 from rubric_gen.biomnibench.revision.feedback import (
@@ -640,20 +641,53 @@ def test_revise_all_full_v_score_runs_conditions_concurrently(
     assert len({config.experiment_dir for config in observed}) == 4
 
 
+def test_revise_all_dry_run_lists_every_task_without_running(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    _write_task(tmp_path, "da-1-2")
+    args = build_parser().parse_args(
+        [
+            "revise",
+            "--all",
+            "--dry-run",
+            "--tasks-dir",
+            str(tmp_path / "tasks"),
+            "--experiment-dir",
+            str(tmp_path / "revisions"),
+            "--model",
+            "test-model",
+        ]
+    )
+    monkeypatch.setattr(
+        commands_module,
+        "run_submission_revision",
+        lambda config: pytest.fail("dry run started an experiment"),
+    )
+
+    assert cli_module.run_revise(args) == 0
+    output = capsys.readouterr().out
+    assert "Selected 2 task(s) and 2 experiment(s)." in output
+    assert "da-1-1\tfull\t" in output
+    assert "da-1-2\tfull\t" in output
+
+
 @pytest.mark.parametrize(
     ("feedback_policy", "expected_name"),
     [
         (
             "full",
-            "da-19-6-process-full--t-da-1-1--fb-full--n-3--p-gemini"
-            "--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-0"
+            "da-19-6-process-full--t-da-1-1--fb-full--mtg-none--n-3--p-gemini"
+            "--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-1"
             "--web-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "score_only",
-            "da-19-6-process-score-only--t-da-1-1--fb-score-only--n-3"
+            "da-19-6-process-score-only--t-da-1-1--fb-score-only--mtg-none--n-3"
             "--p-gemini--m-test-model--j-default--rb-default--v-trajectory"
-            "--sb-0--st-0--web-0--ap-default--mc-all--x-default--raw-0",
+            "--sb-0--st-1--web-0--ap-default--mc-all--x-default--raw-0",
         ),
     ],
 )
@@ -679,6 +713,27 @@ def test_feedback_policy_selects_matching_experiment_directory(
     config = SubmissionRevisionConfig.from_namespace(args)
 
     assert config.experiment_dir == tmp_path / expected_name
+
+
+def test_prompt_mitigation_is_named_and_configured(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    args = build_parser().parse_args(
+        [
+            "revise",
+            str(task),
+            "--experiment-dir",
+            str(tmp_path / "experiment"),
+            "--model",
+            "test-model",
+            "--mtg",
+            "prompt",
+        ]
+    )
+
+    config = SubmissionRevisionConfig.from_namespace(args)
+
+    assert config.mitigation is PromptMitigation.PROMPT
+    assert "--mtg-prompt--" in config.experiment_dir.name
 
 
 @pytest.mark.parametrize("mode", ["--resume", "--restart"])
@@ -778,6 +833,22 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
         hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
         FeedbackPolicy.SCORE_ONLY,
     )
+    mitigated_full = project_feedback(
+        validation_path,
+        evaluation_path,
+        "Criterion 1: Evidence quality",
+        hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
+        FeedbackPolicy.FULL,
+        mitigation=PromptMitigation.PROMPT,
+    )
+    mitigated_score_only = project_feedback(
+        validation_path,
+        evaluation_path,
+        "Criterion 1: Evidence quality",
+        hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
+        FeedbackPolicy.SCORE_ONLY,
+        mitigation=PromptMitigation.PROMPT,
+    )
 
     assert full.score == 64
     assert full.payload == {
@@ -796,6 +867,7 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
         "overall_reasoning": "The conclusion is plausible but under-supported.",
     }
     assert "Evidence quality" in full.prompt
+    assert "imperfect diagnostics, not as" not in full.prompt
     assert "/hidden/judge" not in json.dumps(full.payload)
     assert "secret provider output" not in full.prompt
     assert "unvalidated" not in full.prompt
@@ -806,3 +878,37 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     }
     assert "Evidence quality" not in score_only.prompt
     assert "stronger check" not in score_only.prompt
+    assert "imperfect diagnostics, not as" not in score_only.prompt
+    for mitigated in (mitigated_full, mitigated_score_only):
+        assert "imperfect diagnostics, not as" in mitigated.prompt
+        assert "Do not add unsupported claims" in mitigated.prompt
+
+
+def test_prompt_mitigation_repeats_across_revision_turns(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    rubric_text = (task / "tests" / "rubric.txt").read_text()
+    session = FakeSessionDriver()
+    config = SubmissionRevisionConfig(
+        task_dir=task,
+        experiment_dir=tmp_path / "mitigated-experiment",
+        revision_rounds=1,
+        agent=AgentRunConfig(provider="gemini", model="test-model"),
+        feedback_policy=FeedbackPolicy.SCORE_ONLY,
+        mitigation=PromptMitigation.PROMPT,
+        rubric_name="rubric.txt",
+        show_progress=False,
+    )
+    judge = FakeJudge(
+        (50, 75),
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
+        tmp_path / "mitigated-judge",
+    )
+
+    SubmissionRevisionController(
+        config, RevisionDependencies(session=session, judge=judge)
+    ).run()
+
+    assert len(session.prompts) == 2
+    for prompt in session.prompts:
+        assert "imperfect diagnostics, not as" in prompt
+        assert "Do not add unsupported claims" in prompt

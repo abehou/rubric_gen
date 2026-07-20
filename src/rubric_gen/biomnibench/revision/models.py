@@ -11,6 +11,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
+from rubric_gen.biomnibench.agent.prompts import PromptMitigation
 from rubric_gen.biomnibench.agent.sessions import SolverSessionDriver
 from rubric_gen.biomnibench.utils.paths import resolve_project_path
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
@@ -38,6 +39,7 @@ def revision_experiment_dir(
     feedback_policy: FeedbackPolicy,
     rubric_set: Path | None,
     agent: AgentRunConfig,
+    mitigation: PromptMitigation = PromptMitigation.NONE,
 ) -> Path:
     """Derive an identity-bearing experiment directory for one configuration."""
     experiment_dir = resolve_project_path(args.experiment_dir)
@@ -64,6 +66,7 @@ def revision_experiment_dir(
     components = (
         f"t-{_directory_component(task_dir.name)}",
         f"fb-{_directory_component(feedback_policy.value.replace('_', '-'))}",
+        f"mtg-{_directory_component(mitigation.value)}",
         f"n-{args.revision_rounds}",
         f"p-{_directory_component(agent.provider)}",
         f"m-{_directory_component(agent.model)}",
@@ -96,6 +99,7 @@ class SubmissionRevisionConfig:
     revision_rounds: int
     agent: AgentRunConfig
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
+    mitigation: PromptMitigation = PromptMitigation.NONE
     review: str = "trajectory"
     judge_model: str | None = None
     rubric_name: str | None = None
@@ -119,6 +123,7 @@ class SubmissionRevisionConfig:
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
         FeedbackPolicy(self.feedback_policy)
+        PromptMitigation(self.mitigation)
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(
@@ -137,6 +142,7 @@ class SubmissionRevisionConfig:
         rubric_set = getattr(args, "rubric_set", None)
         resolved_rubric_set = resolve_project_path(rubric_set) if rubric_set else None
         feedback_policy = FeedbackPolicy(args.feedback_policy)
+        mitigation = PromptMitigation(getattr(args, "mtg", PromptMitigation.NONE.value))
         task_dir = resolve_project_path(args.task)
         agent = AgentRunConfig.from_namespace(args)
         return cls(
@@ -147,10 +153,12 @@ class SubmissionRevisionConfig:
                 feedback_policy,
                 resolved_rubric_set,
                 agent,
+                mitigation,
             ),
             revision_rounds=args.revision_rounds,
             agent=agent,
             feedback_policy=feedback_policy,
+            mitigation=mitigation,
             review=args.review,
             judge_model=args.judge_model,
             rubric_name=args.rubric,

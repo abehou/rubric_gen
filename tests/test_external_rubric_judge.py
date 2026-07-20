@@ -861,6 +861,32 @@ def test_dry_run_does_not_create_per_target_outputs(tmp_path: Path) -> None:
     assert not output_dir.exists()
 
 
+def test_gemini_judge_subprocess_prefers_gemini_api_key(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path, model="gemini-test-model")
+    captured_env: dict[str, str] = {}
+
+    def fake_run(
+        cmd: object, *, cwd: Path, env: dict[str, str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        captured_env.update(env)
+        write_judge_artifacts(Path(cwd), reported_score=100)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
+
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-secret")
+    monkeypatch.setenv("GOOGLE_API_KEY", "google-secret")
+    monkeypatch.setattr(
+        "rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run
+    )
+
+    assert runner.review_target(target)["status"] == "completed"
+    assert captured_env["GEMINI_API_KEY"] == "gemini-secret"
+    assert "GOOGLE_API_KEY" not in captured_env
+
+
 def test_output_replacement_after_validation_cannot_redirect_input_writes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
