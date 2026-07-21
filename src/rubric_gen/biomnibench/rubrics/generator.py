@@ -30,7 +30,7 @@ HARNESS_PROVIDERS = {
 }
 DEFAULT_MODELS = {
     "gemini-cli": "gemini-3.1-pro-preview",
-    "claude-code": "claude-fable-5",
+    "claude-code": "claude-opus-4-8",
     "codex-cli": "gpt-5.6-sol",
 }
 RUBRIC_NAME = "generated_rubric.md"

@@ -22,7 +22,7 @@ from rubric_gen.biomnibench.utils.progress import TerminalProgress
 
 STRONG_VERIFIER_MODELS = (
     "gpt-5.6-sol",
-    "claude-fable-5",
+    "claude-opus-4-8",
     "gemini-3.1-pro-preview",
 )
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
@@ -270,7 +270,11 @@ class StrongVerifierRunner:
             raise RuntimeError("revision experiment has invalid identity state")
         submissions = submissions[: len(scores)]
         if not submissions:
-            raise RuntimeError("revision experiment has no weak-judged submissions")
+            print(
+                f"Skipping {task}: no weak-judged submissions "
+                f"({experiment_dir})"
+            )
+            return 0
         task_dir = Path(task_dir_value)
         if self.config.artifacts_dir is None:
             ensemble_root = experiment_dir / "strong-verifier"

@@ -77,7 +77,7 @@ Supported harnesses and their defaults are:
 | Harness | Default model | Required CLI |
 | --- | --- | --- |
 | `gemini-cli` | `gemini-3.1-pro-preview` | `gemini` |
-| `claude-code` | `claude-fable-5` | `claude` |
+| `claude-code` | `claude-opus-4-8` | `claude` |
 | `codex-cli` | `gpt-5.6-sol` | `codex` |
 
 `--model` accepts any model ID supported by the selected harness. Omit
@@ -290,7 +290,7 @@ uv run biomnibench-agent judge \
   --max-concurrency 3
 ```
 
-The fixed cross-provider panel is `gpt-5.6-sol`, `claude-fable-5`, and
+The fixed cross-provider panel is `gpt-5.6-sol`, `claude-opus-4-8`, and
 `gemini-3.1-pro-preview`. Successful member evaluations are reused by default;
 pass `--force` to pay for and replace them. The command writes
 `strong-verifier/exploitation.json` beneath the repo-local judge artifact root.

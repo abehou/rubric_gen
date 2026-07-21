@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from rubric_gen.biomnibench.judging.models import JudgeRunConfig
@@ -100,3 +102,34 @@ def test_ensemble_expands_revision_batch_root(tmp_path, monkeypatch) -> None:
 
     assert runner.run() == 0
     assert observed == [batch / "da-1-1", batch / "da-1-2"]
+
+
+def test_ensemble_skips_revision_without_weak_judgments(tmp_path, capsys) -> None:
+    experiment = tmp_path / "da-1-1"
+    experiment.mkdir()
+    (experiment / "manifest.json").write_text(
+        json.dumps(
+            {
+                "kind": "rubric-gen-submission-revision-experiment",
+                "task_id": "da-1-1",
+                "task_dir": str(tmp_path / "tasks" / "da-1-1"),
+            }
+        )
+    )
+    (experiment / "state.json").write_text(
+        json.dumps(
+            {
+                "submission_ids": ["s000"],
+                "scores": [],
+                "judge_attempts": {},
+            }
+        )
+    )
+    runner = StrongVerifierRunner(
+        JudgeRunConfig(run_dir=experiment, tasks_dir=tmp_path, ensemble=True)
+    )
+
+    assert runner.run() == 0
+    output = capsys.readouterr().out
+    assert "Skipping da-1-1: no weak-judged submissions" in output
+    assert str(experiment) in output
