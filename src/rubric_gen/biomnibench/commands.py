@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -57,6 +58,17 @@ def run_one(args: argparse.Namespace) -> int:
     print(f"answer.txt: {paths.workspace_dir / 'answer.txt'}")
     print(f"raw trajectory: {paths.stream_path}")
     return exit_code
+
+
+def run_generate(args: argparse.Namespace) -> int:
+    from rubric_gen.biomnibench.rubrics.generator import (
+        RubricGenerationConfig,
+        RubricGenerationRunner,
+    )
+
+    return RubricGenerationRunner(
+        RubricGenerationConfig.from_namespace(args)
+    ).run()
 
 
 def run_all(args: argparse.Namespace) -> int:
@@ -139,6 +151,21 @@ def run_revise(args: argparse.Namespace) -> int:
                 f"{config.experiment_dir}"
             )
         return 0
+    batch_root = resolve_project_path(args.experiment_dir)
+    batch_root.mkdir(parents=True, exist_ok=True)
+    batch_manifest_path = batch_root / "batch.json"
+    batch_manifest = {
+        "schema_version": 1,
+        "kind": "rubric-gen-submission-revision-batch",
+        "status": "running",
+        "task_ids": [task_dir.name for task_dir in task_dirs],
+        "experiment_dirs": [
+            str(config.experiment_dir.relative_to(batch_root)) for config in configs
+        ],
+        "revision_rounds": args.revision_rounds,
+        "feedback_policies": [policy.value for policy in policies],
+    }
+    batch_manifest_path.write_text(json.dumps(batch_manifest, indent=2) + "\n")
     failures: list[tuple[SubmissionRevisionConfig, Exception]] = []
     with TerminalProgress(
         total=len(configs),
@@ -181,16 +208,28 @@ def run_revise(args: argparse.Namespace) -> int:
                     finally:
                         progress.update()
     if failures:
+        batch_manifest["status"] = "failed"
+        batch_manifest["failed_experiments"] = [
+            str(config.experiment_dir) for config, _ in failures
+        ]
+        batch_manifest_path.write_text(json.dumps(batch_manifest, indent=2) + "\n")
         config, exc = failures[0]
         raise RuntimeError(
             f"{len(failures)} revision experiments failed; first: "
             f"{config.task_dir.name} ({config.feedback_policy.value})"
         ) from exc
+    batch_manifest["status"] = "completed"
+    batch_manifest_path.write_text(json.dumps(batch_manifest, indent=2) + "\n")
     return 0
 
 
 def run_judge(args: argparse.Namespace) -> int:
-    return BiomniBenchJudgeRunner(JudgeRunConfig.from_namespace(args)).run()
+    config = JudgeRunConfig.from_namespace(args)
+    if config.ensemble:
+        from rubric_gen.biomnibench.judging.ensemble import StrongVerifierRunner
+
+        return StrongVerifierRunner(config).run()
+    return BiomniBenchJudgeRunner(config).run()
 
 
 def run_compare_judges(args: argparse.Namespace) -> int:

@@ -316,6 +316,10 @@ class JudgeExecutor:
         return (
             text.replace('"/tests/', f'"{tests}/')
             .replace("'/tests/", f"'{tests}/")
+            .replace('"/tests"', f'"{tests}"')
+            .replace("'/tests'", f"'{tests}'")
             .replace('"/logs/verifier/', f'"{logs}/')
             .replace("'/logs/verifier/", f"'{logs}/")
+            .replace('"/logs/verifier"', f'"{logs}"')
+            .replace("'/logs/verifier'", f"'{logs}'")
         )

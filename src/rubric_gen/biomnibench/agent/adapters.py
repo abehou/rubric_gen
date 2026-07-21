@@ -20,11 +20,15 @@ class AgentAdapter(ABC):
     def install_hint(self) -> str:
         return f"Install `{self.default_executable}` and make it available on PATH."
 
-    def prepare_run(self, paths: RunPaths, config: AgentRunConfig) -> None:
-        paths.prompt_path.write_text(PROMPT)
+    def prepare_run(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> None:
+        paths.prompt_path.write_text(prompt)
 
     @abstractmethod
-    def build_command(self, paths: RunPaths, config: AgentRunConfig) -> list[str]:
+    def build_command(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> list[str]:
         raise NotImplementedError
 
     def print_line(self, line: str, *, raw: bool) -> None:
@@ -51,15 +55,19 @@ class GeminiAdapter(AgentAdapter):
     def install_hint(self) -> str:
         return "Install Gemini CLI with `npm install -g @google/gemini-cli`."
 
-    def prepare_run(self, paths: RunPaths, config: AgentRunConfig) -> None:
-        super().prepare_run(paths, config)
+    def prepare_run(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> None:
+        super().prepare_run(paths, config, prompt)
         paths.policy_path.write_text(NO_WEB_POLICY)
 
-    def build_command(self, paths: RunPaths, config: AgentRunConfig) -> list[str]:
+    def build_command(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> list[str]:
         command = [self.executable(config)]
         if config.model:
             command.extend(["-m", config.model])
-        command.extend(["-p", PROMPT, "--output-format", "stream-json"])
+        command.extend(["-p", prompt, "--output-format", "stream-json"])
         command.extend(["--approval-mode", config.approval_mode or "yolo"])
         if config.sandbox:
             command.append("--sandbox")
@@ -78,7 +86,9 @@ class ClaudeAdapter(AgentAdapter):
     def install_hint(self) -> str:
         return "Install Claude Code from https://github.com/anthropics/claude-code."
 
-    def build_command(self, paths: RunPaths, config: AgentRunConfig) -> list[str]:
+    def build_command(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> list[str]:
         command = [
             self.executable(config),
             "--print",
@@ -95,7 +105,7 @@ class ClaudeAdapter(AgentAdapter):
         if not config.allow_web:
             command.extend(["--disallowed-tools", "WebSearch", "WebFetch"])
         command.extend(config.extra_args)
-        command.append(PROMPT)
+        command.append(prompt)
         return command
 
 
@@ -106,7 +116,9 @@ class CodexAdapter(AgentAdapter):
     def install_hint(self) -> str:
         return "Install Codex CLI with `npm install -g @openai/codex` or the official installer."
 
-    def build_command(self, paths: RunPaths, config: AgentRunConfig) -> list[str]:
+    def build_command(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> list[str]:
         command = [
             self.executable(config),
             "exec",
@@ -126,7 +138,7 @@ class CodexAdapter(AgentAdapter):
         if config.skip_trust:
             command.append("--dangerously-bypass-hook-trust")
         command.extend(config.extra_args)
-        command.append(PROMPT)
+        command.append(prompt)
         return command
 
 

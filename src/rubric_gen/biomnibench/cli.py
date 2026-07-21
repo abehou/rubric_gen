@@ -7,6 +7,7 @@ import argparse
 from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES, PromptMitigation
 from rubric_gen.biomnibench.integrations.gemini import DEFAULT_GEMINI_API_KEY_ENV
+from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 from rubric_gen.biomnibench.perturbation.models import (
     DEFAULT_PERTURBATION_MAX_CONCURRENCY,
     DEFAULT_PERTURBATION_LEVELS,
@@ -110,6 +111,59 @@ def _add_one_parser(
     add_agent_args(one)
 
 
+def _add_generate_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
+    generate = subparsers.add_parser(
+        "generate",
+        help="Explore BiomniBench tasks and generate task-specific rubrics.",
+    )
+    generate.add_argument(
+        "task",
+        nargs="?",
+        help="One task directory. Omit when using --all.",
+    )
+    generate.add_argument(
+        "--all",
+        action="store_true",
+        help="Generate rubrics for every task under --tasks-dir.",
+    )
+    generate.add_argument(
+        "--tasks-dir",
+        default="data/biomnibench-da",
+        help="Task catalog used by --all.",
+    )
+    generate.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Output root. Defaults to a timestamped directory under "
+            "runs/biomnibench-rubrics in the current repository."
+        ),
+    )
+    generate.add_argument(
+        "--harness",
+        choices=("gemini-cli", "claude-code", "codex-cli"),
+        default="gemini-cli",
+        help="Terminal agent harness. Defaults to gemini-cli.",
+    )
+    generate.add_argument(
+        "--model",
+        default=None,
+        help="Harness-native model ID. Defaults to the strongest configured model for the harness.",
+    )
+    generate.add_argument("--executable", default=None)
+    generate.add_argument("--allow-web", action="store_true")
+    generate.add_argument("--sandbox", action="store_true")
+    generate.add_argument("--skip-trust", action="store_true", default=True)
+    generate.add_argument("--approval-mode", default=None)
+    generate.add_argument("--extra-agent-arg", action="append", default=[])
+    generate.add_argument("--max-concurrency", type=int, default=1)
+    generate.add_argument("--limit", type=int, default=None)
+    generate.add_argument("--resume", action="store_true")
+    generate.add_argument("--raw", action="store_true")
+
+
 def _add_revise_parser(
     subparsers: argparse._SubParsersAction,
 ) -> None:
@@ -201,9 +255,10 @@ def _add_revise_parser(
         help="Judge trace.md or the cumulative raw trajectory. Defaults to trajectory.",
     )
     revise.add_argument(
-        "--judge-model",
+        "--judge",
+        dest="judge_model",
         default=None,
-        help="Set the model used by the task judge subprocess.",
+        help=f"Judge model. Defaults to {DEFAULT_JUDGE_MODEL}.",
     )
     rubric_source = revise.add_mutually_exclusive_group()
     rubric_source.add_argument(
@@ -299,12 +354,28 @@ def _add_judge_parser(
     judge.add_argument(
         "--model",
         default=None,
-        help="Set MODEL_NAME for the task judge subprocess.",
+        help=f"Judge model. Defaults to {DEFAULT_JUDGE_MODEL}.",
+    )
+    judge.add_argument(
+        "--ensemble",
+        action="store_true",
+        help=(
+            "Judge every submission in a revision experiment with the strong "
+            "cross-provider panel and calculate exploitation statistics."
+        ),
     )
     judge.add_argument(
         "--output",
         default=None,
         help="Score summary JSON path. Defaults to <run_dir>/judge-<review>-scores.json.",
+    )
+    judge.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Judge artifact root. Defaults to a deterministic directory under "
+            "runs/biomnibench-judges in the current repository."
+        ),
     )
     judge.add_argument(
         "--judge-name",
@@ -595,6 +666,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command")
     _add_one_parser(subparsers)
+    _add_generate_parser(subparsers)
     _add_revise_parser(subparsers)
     _add_all_parser(subparsers)
     _add_judge_parser(subparsers)
@@ -608,6 +680,7 @@ def build_parser() -> argparse.ArgumentParser:
 from rubric_gen.biomnibench.commands import (
     run_all,
     run_compare_judges,
+    run_generate,
     run_judge,
     run_one,
     run_perturb,
@@ -622,6 +695,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "one":
         return run_one(args)
+    if args.command == "generate":
+        return run_generate(args)
     if args.command == "revise":
         return run_revise(args)
     if args.command == "all":

@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import re
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from rubric_gen.biomnibench.utils.paths import resolve_project_path
+from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 
 
-DEFAULT_JUDGE_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_JUDGE_MODEL = "gpt-5.6-luna"
 SCORE_VALIDATION_SCHEMA_VERSION = 1
 SCORE_INPUT_ATTESTATION_KEYS = {
     "schema_version",
@@ -94,10 +95,19 @@ class JudgeRunConfig:
     force: bool = False
     max_concurrency: int = 1
     repeats: int = 1
+    ensemble: bool = False
+    save_input_copies: bool = True
+    artifacts_dir: Path | None = None
 
     def __post_init__(self) -> None:
         if self.rubric_name is not None and self.rubric_set is not None:
             raise ValueError("rubric_name and rubric_set are mutually exclusive")
+        if self.ensemble and self.model is not None:
+            raise ValueError("--ensemble and --model are mutually exclusive")
+        if self.ensemble and self.repeats != 1:
+            raise ValueError("--ensemble does not support --repeats")
+        if self.ensemble and self.dry_run:
+            raise ValueError("--ensemble does not support --dry-run")
         if self.judge_name is not None:
             safe_basename(self.judge_name, "judge_name")
         if self.rubric_name is not None:
@@ -106,6 +116,7 @@ class JudgeRunConfig:
     @classmethod
     def from_namespace(cls, args: Any) -> "JudgeRunConfig":
         output = getattr(args, "output", None)
+        artifacts_dir = getattr(args, "output_dir", None)
         run_dir_args = getattr(args, "run_dir")
         raw_run_dirs = []
         for item in run_dir_args if isinstance(run_dir_args, list) else [run_dir_args]:
@@ -114,6 +125,18 @@ class JudgeRunConfig:
             else:
                 raw_run_dirs.append(item)
         run_dirs = tuple(resolve_project_path(run_dir) for run_dir in raw_run_dirs)
+        if artifacts_dir:
+            resolved_artifacts_dir = resolve_project_path(artifacts_dir)
+        else:
+            identity = hashlib.sha256(
+                "\0".join(str(path) for path in run_dirs).encode("utf-8")
+            ).hexdigest()[:8]
+            resolved_artifacts_dir = (
+                PROJECT_ROOT
+                / "runs"
+                / "biomnibench-judges"
+                / f"{run_dirs[0].name}--{identity}"
+            )
         return cls(
             run_dir=run_dirs[0],
             tasks_dir=resolve_project_path(getattr(args, "tasks_dir")),
@@ -135,6 +158,8 @@ class JudgeRunConfig:
             force=getattr(args, "force", False),
             max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
             repeats=max(1, getattr(args, "repeats", 1)),
+            ensemble=bool(getattr(args, "ensemble", False)),
+            artifacts_dir=resolved_artifacts_dir,
         )
 
     @property

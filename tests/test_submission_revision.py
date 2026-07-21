@@ -834,11 +834,15 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
 
     assert cli_module.run_revise(args) == 0
     assert len(observed) == 4
-    assert all(config.experiment_dir.parent == generated_base.parent for config in observed)
-    assert all(
-        config.experiment_dir.name.startswith(f"{generated_base.name}--")
-        for config in observed
-    )
+    assert {config.experiment_dir for config in observed} == {
+        generated_base / "da-1-1" / "full",
+        generated_base / "da-1-1" / "score-only",
+        generated_base / "da-1-2" / "full",
+        generated_base / "da-1-2" / "score-only",
+    }
+    batch = json.loads((generated_base / "batch.json").read_text())
+    assert batch["kind"] == "rubric-gen-submission-revision-batch"
+    assert batch["status"] == "completed"
 
 
 def test_revise_default_experiment_base_uses_bulk(
@@ -872,6 +876,14 @@ def test_revise_default_experiment_base_rejects_relative_bulk(
 
     with pytest.raises(ValueError, match="BULK must be an absolute path"):
         commands_module._timestamped_revision_experiment_dir()
+
+
+def test_revise_accepts_judge_flag() -> None:
+    args = build_parser().parse_args(
+        ["revise", "--model", "solver-model", "--judge", "gpt-5.6-luna"]
+    )
+
+    assert args.judge_model == "gpt-5.6-luna"
 
 
 def test_revise_all_resume_starts_missing_experiments(

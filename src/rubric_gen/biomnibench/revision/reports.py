@@ -18,6 +18,15 @@ from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 REPORTS_ROOT_ENV = "BIOMNIBENCH_REPORTS_ROOT"
 
 
+def _report_directory_name(experiment_dir: Path) -> str:
+    for parent in experiment_dir.parents:
+        if (parent / "batch.json").is_file():
+            relative = experiment_dir.relative_to(parent)
+            suffix = "--".join(relative.parts)
+            return f"{parent.name}--{suffix}"
+    return experiment_dir.name
+
+
 def revision_reports_root() -> Path:
     configured = os.environ.get(REPORTS_ROOT_ENV)
     root = (
@@ -39,7 +48,7 @@ def publish_revision_report(experiment_dir: Path) -> Path:
     if plot.is_symlink() or not plot.is_file():
         raise RuntimeError(f"revision score plot does not exist: {plot}")
 
-    report_dir = revision_reports_root() / experiment_dir.name
+    report_dir = revision_reports_root() / _report_directory_name(experiment_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
     destination_plot = report_dir / "score_improvement.png"
     temporary_plot = report_dir / f".score-improvement-{secrets.token_hex(8)}.tmp"

@@ -8,6 +8,7 @@ import os
 import stat
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from statistics import pstdev
 from typing import Any, Iterator
@@ -52,6 +53,8 @@ class BiomniBenchJudgeRunner:
     def scores_path(self) -> Path:
         if self.config.output_path is not None:
             return self.config.output_path
+        if self.config.artifacts_dir is not None:
+            return self.config.artifacts_dir / f"judge-{self.config.review}-scores.json"
         return self.config.run_dir / f"judge-{self.config.review}-scores.json"
 
     @property
@@ -88,7 +91,21 @@ class BiomniBenchJudgeRunner:
         return identities
 
     def discover_targets(self) -> list[JudgeTarget]:
-        return self.discovery.discover_targets()
+        targets = self.discovery.discover_targets()
+        if self.config.artifacts_dir is None:
+            return targets
+        self.config.artifacts_dir.mkdir(parents=True, exist_ok=True)
+        remapped: list[JudgeTarget] = []
+        for target in targets:
+            digest = hashlib.sha256(
+                str(target.run_dir.resolve()).encode("utf-8")
+            ).hexdigest()[:8]
+            output_root = self.config.artifacts_dir / f"{target.task}--{digest}"
+            output_root.mkdir(parents=True, exist_ok=True)
+            mapped = replace(target, output_root=output_root)
+            self.validate_target_identity(mapped)
+            remapped.append(mapped)
+        return remapped
 
     def run(self) -> int:
         targets = self.discover_targets()
@@ -356,8 +373,9 @@ class BiomniBenchJudgeRunner:
             output_dir,
             expected_root_identity=identities.output_root,
         ) as output:
-            self._write_output_text(output, "judge_input_trace.md", review_text)
-            self._write_output_text(output, "judge_input_answer.txt", answer_text)
+            if self.config.save_input_copies:
+                self._write_output_text(output, "judge_input_trace.md", review_text)
+                self._write_output_text(output, "judge_input_answer.txt", answer_text)
             result = self._execute_judge_with_output(
                 judge_path,
                 rubric,
@@ -461,11 +479,12 @@ class BiomniBenchJudgeRunner:
 
     def find_judge(self, task_dir: Path) -> Path:
         tests_dir = self._tests_dir(task_dir)
-        names = (
-            [self.config.judge_name]
-            if self.config.judge_name
-            else ["llm_judge.py", "judge.py"]
-        )
+        if self.config.judge_name is None:
+            centralized = Path(__file__).with_name("llm_judge.py")
+            if centralized.is_symlink() or not centralized.is_file():
+                raise SystemExit(f"Missing centralized judge: {centralized}")
+            return centralized
+        names = [self.config.judge_name]
         for name in names:
             if name is None:
                 continue

@@ -5,6 +5,8 @@ import json
 import os
 import shutil
 import subprocess
+import sys
+import types
 from dataclasses import replace
 from pathlib import Path
 
@@ -20,6 +22,30 @@ from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
 from rubric_gen.biomnibench.judging import runner as judge_runner_module
 from rubric_gen.biomnibench.judging import scoring as rubric_scoring_module
 from rubric_gen.biomnibench.judging import executor as judge_executor_module
+from rubric_gen.biomnibench.judging import llm_judge as centralized_judge_module
+from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
+
+
+def test_judge_path_rewrite_handles_directory_and_child_literals(tmp_path: Path) -> None:
+    tests_dir = tmp_path / "tests"
+    logs_dir = tmp_path / "logs"
+    source = (
+        'Path("/tests")\n'
+        'Path("/tests/rubric.txt")\n'
+        "Path('/logs/verifier')\n"
+        "Path('/logs/verifier/reward.json')\n"
+    )
+
+    rewritten = judge_executor_module.JudgeExecutor.rewrite_judge_paths(
+        source, tests_dir, logs_dir
+    )
+
+    assert 'Path("/tests")' not in rewritten
+    assert 'Path("/tests/rubric.txt")' not in rewritten
+    assert "Path('/logs/verifier')" not in rewritten
+    assert "Path('/logs/verifier/reward.json')" not in rewritten
+    assert str(tests_dir) in rewritten
+    assert str(logs_dir) in rewritten
 from rubric_gen.biomnibench.rubrics.compiler import (
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
@@ -110,6 +136,155 @@ class SignedPenaltyRewriter(StaticRewriter):
             }
         )
         return canonical_json(payload)
+
+
+@pytest.mark.parametrize(
+    ("model", "provider"),
+    (
+        ("gpt-5.6-luna", "openai"),
+        ("o3", "openai"),
+        ("gemini-3.1-pro-preview", "gemini"),
+        ("claude-opus-4", "anthropic"),
+    ),
+)
+def test_centralized_judge_routes_models_to_explicit_providers(
+    model: str,
+    provider: str,
+) -> None:
+    assert centralized_judge_module.provider_for_model(model) == provider
+
+
+def test_default_judge_model_is_gpt_5_6_luna() -> None:
+    assert DEFAULT_JUDGE_MODEL == "gpt-5.6-luna"
+
+
+def test_centralized_openai_judge_uses_responses_api(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    class FakeResponses:
+        def create(self, **kwargs: object) -> object:
+            observed.update(kwargs)
+            return types.SimpleNamespace(output_text='{"criteria": {}}')
+
+    class FakeOpenAI:
+        def __init__(self, *, api_key: str) -> None:
+            observed["api_key"] = api_key
+            self.responses = FakeResponses()
+
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+
+    response = centralized_judge_module.generate_response(
+        "gpt-5.6-luna", "judge prompt"
+    )
+
+    assert response == '{"criteria": {}}'
+    assert observed == {
+        "api_key": "openai-secret",
+        "model": "gpt-5.6-luna",
+        "input": "judge prompt",
+        "max_output_tokens": 8192,
+    }
+
+
+def test_centralized_gemini_judge_keeps_client_alive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    class FakeModels:
+        def __init__(self, client: object) -> None:
+            self.client = client
+
+        def generate_content(self, **kwargs: object) -> object:
+            observed.update(kwargs)
+            observed["client"] = self.client
+            return types.SimpleNamespace(text='{"criteria": {}}')
+
+    class FakeClient:
+        def __init__(self, *, api_key: str) -> None:
+            observed["api_key"] = api_key
+            self.models = FakeModels(self)
+
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-secret")
+    monkeypatch.setitem(
+        sys.modules,
+        "google",
+        types.SimpleNamespace(genai=types.SimpleNamespace(Client=FakeClient)),
+    )
+
+    response = centralized_judge_module.generate_response(
+        "gemini-3.1-pro-preview", "judge prompt"
+    )
+
+    assert response == '{"criteria": {}}'
+    assert observed["api_key"] == "gemini-secret"
+    assert observed["model"] == "gemini-3.1-pro-preview"
+    assert observed["contents"] == "judge prompt"
+    assert isinstance(observed["client"], FakeClient)
+
+
+def test_centralized_anthropic_judge_extracts_text_from_multiple_blocks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    class FakeMessages:
+        def create(self, **kwargs: object) -> object:
+            observed.update(kwargs)
+            return types.SimpleNamespace(
+                content=[
+                    types.SimpleNamespace(type="thinking", thinking="private"),
+                    types.SimpleNamespace(type="text", text='{"criteria":'),
+                    types.SimpleNamespace(type="text", text=" {}}"),
+                ],
+                stop_reason="end_turn",
+            )
+
+    class FakeAnthropic:
+        def __init__(self, *, api_key: str) -> None:
+            observed["api_key"] = api_key
+            self.messages = FakeMessages()
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret")
+    monkeypatch.setitem(
+        sys.modules,
+        "anthropic",
+        types.SimpleNamespace(Anthropic=FakeAnthropic),
+    )
+
+    response = centralized_judge_module.generate_response(
+        "claude-fable-5", "judge prompt"
+    )
+
+    assert response == '{"criteria":\n {}}'
+    assert observed["api_key"] == "anthropic-secret"
+    assert observed["model"] == "claude-fable-5"
+    assert observed["max_tokens"] == 8192
+
+
+def test_centralized_anthropic_judge_reports_empty_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeMessages:
+        def create(self, **kwargs: object) -> object:
+            return types.SimpleNamespace(content=[], stop_reason="refusal")
+
+    class FakeAnthropic:
+        def __init__(self, *, api_key: str) -> None:
+            self.messages = FakeMessages()
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret")
+    monkeypatch.setitem(
+        sys.modules,
+        "anthropic",
+        types.SimpleNamespace(Anthropic=FakeAnthropic),
+    )
+
+    with pytest.raises(RuntimeError, match="stop_reason='refusal'"):
+        centralized_judge_module.generate_response("claude-fable-5", "prompt")
 
 
 def rewriter_provenance_for(
@@ -242,6 +417,10 @@ def test_cli_rejects_rubric_and_rubric_set_together(tmp_path: Path) -> None:
 
     assert config.rubric_set == (tmp_path / "rubric-set").resolve()
     assert config.rubric_name is None
+    assert config.artifacts_dir is not None
+    assert config.artifacts_dir.is_relative_to(
+        Path.cwd() / "runs" / "biomnibench-judges"
+    )
 
     with pytest.raises(SystemExit):
         parser.parse_args(
@@ -255,6 +434,54 @@ def test_cli_rejects_rubric_and_rubric_set_together(tmp_path: Path) -> None:
                 str(tmp_path / "rubric-set"),
             ]
         )
+
+
+def test_judge_discovers_final_submissions_from_revision_batch(tmp_path: Path) -> None:
+    tasks_dir = tmp_path / "tasks"
+    batch = tmp_path / "revision-batch"
+    experiment_dirs = []
+    for task_id in ("da-1-1", "da-1-2"):
+        task_dir = make_task(tasks_dir, task_id)
+        experiment = batch / task_id
+        submission = experiment / "submissions" / "s001"
+        workspace = submission / "workspace"
+        workspace.mkdir(parents=True)
+        (submission / "trajectory.stream.jsonl").write_text("{}\n")
+        (workspace / "trace.md").write_text("trace")
+        (workspace / "answer.txt").write_text("answer")
+        (experiment / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "kind": "rubric-gen-submission-revision-experiment",
+                    "task_id": task_id,
+                    "task_dir": str(task_dir),
+                }
+            )
+        )
+        (experiment / "state.json").write_text(
+            json.dumps({"submission_ids": ["s000", "s001"]})
+        )
+        experiment_dirs.append(task_id)
+    (batch / "batch.json").write_text(
+        json.dumps(
+            {
+                "kind": "rubric-gen-submission-revision-batch",
+                "experiment_dirs": experiment_dirs,
+            }
+        )
+    )
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(run_dir=batch, tasks_dir=tasks_dir)
+    )
+
+    targets = runner.discover_targets()
+
+    assert [target.task for target in targets] == ["da-1-1", "da-1-2"]
+    assert all(target.run_dir.name == "s001" for target in targets)
+    assert {target.output_root for target in targets} == {
+        batch / "da-1-1",
+        batch / "da-1-2",
+    }
 
 
 def test_target_task_must_match_canonical_task_directory(tmp_path: Path) -> None:
@@ -1067,7 +1294,9 @@ def test_judge_artifact_overrides_require_safe_basenames(
         )
 
 
-def test_default_judge_symlink_is_rejected(tmp_path: Path) -> None:
+def test_default_judge_is_centralized_and_ignores_task_local_script(
+    tmp_path: Path,
+) -> None:
     target = make_target(tmp_path)
     judge_path = target.task_dir / "tests" / "llm_judge.py"
     outside = tmp_path / "outside-judge.py"
@@ -1075,8 +1304,11 @@ def test_default_judge_symlink_is_rejected(tmp_path: Path) -> None:
     judge_path.unlink()
     judge_path.symlink_to(outside)
 
-    with pytest.raises(SystemExit, match="symlink"):
-        make_runner(tmp_path).find_judge(target.task_dir)
+    resolved = make_runner(tmp_path).find_judge(target.task_dir)
+
+    assert resolved.name == "llm_judge.py"
+    assert resolved.parent.name == "judging"
+    assert resolved != judge_path
 
 
 def test_default_rubric_symlink_is_rejected(tmp_path: Path) -> None:
@@ -1472,7 +1704,7 @@ def test_resume_requires_matching_artifact_hashes(
     monkeypatch.setattr("rubric_gen.biomnibench.judging.executor.subprocess.run", fake_run)
     assert (
         runner.execute_judge(
-            target.task_dir / "tests" / "llm_judge.py",
+            runner.find_judge(target.task_dir),
             resolved,
             output_dir,
             "trace",

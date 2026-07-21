@@ -10,7 +10,9 @@ Requirements:
 - Python 3.11 or newer and [`uv`](https://docs.astral.sh/uv/)
 - The Hugging Face `hf` CLI
 - An installed and authenticated `gemini`, `claude`, or `codex` CLI
-- `GEMINI_API_KEY` for Gemini judging, perturbation, and rubric generation
+- `OPENAI_API_KEY` for the default `gpt-5.6-luna` judge
+- `GEMINI_API_KEY` for Gemini judges, perturbation, and rubric generation
+- `ANTHROPIC_API_KEY` when selecting a Claude judge
 
 ```bash
 uv sync
@@ -43,6 +45,68 @@ This snapshot contains 43 tasks below 1 GB each (about 2.85 GB total). The
 excluded task directories are at least 1 GB each. Hugging Face's repository
 metadata is the source of the per-task byte totals.
 
+## Generate Task-Specific Rubrics
+
+`generate` launches a terminal agent inside a disposable copy of a task. The
+agent reads the instruction, explores the data, executes a tentative analysis,
+records its evidence and uncertainty, and then writes an unconstrained
+task-specific rubric. The human-authored `tests/rubric.txt`, previous runs,
+judge feedback, and reference answers are not copied into the workspace.
+
+Generate one rubric with Gemini CLI:
+
+```bash
+uv run biomnibench-agent generate data/biomnibench-da/da-19-6 \
+  --harness gemini-cli \
+  --model gemini-3.1-pro-preview
+```
+
+Generate every downloaded rubric with bounded concurrency:
+
+```bash
+uv run biomnibench-agent generate \
+  --all \
+  --tasks-dir data/biomnibench-da \
+  --harness gemini-cli \
+  --model gemini-3.1-pro-preview \
+  --max-concurrency 4
+```
+
+Supported harnesses and their defaults are:
+
+| Harness | Default model | Required CLI |
+| --- | --- | --- |
+| `gemini-cli` | `gemini-3.1-pro-preview` | `gemini` |
+| `claude-code` | `claude-fable-5` | `claude` |
+| `codex-cli` | `gpt-5.6-sol` | `codex` |
+
+`--model` accepts any model ID supported by the selected harness. Omit
+`--output-dir` to create a timestamped generation directory under
+`runs/biomnibench-rubrics` in the current repository. Add `--resume` to reuse tasks with
+an existing valid rubric or `--limit N` to select a smaller `--all` batch.
+
+Each task retains only lightweight generation evidence after completion:
+
+```text
+generation-.../
+├── summary.json
+├── tasks/<task-id>/
+│   ├── prompt.txt
+│   ├── status.json
+│   └── trajectory.stream.jsonl
+└── workspaces/<task-id>/
+    ├── instruction.md
+    ├── generated_rubric.md
+    └── solution_notes.md
+```
+
+Task data is copied so the autonomous harness cannot mutate the canonical
+dataset, then deleted immediately after the harness exits. Rubric scoring is
+not constrained to A/B/C levels or a 100-point total; validation checks only
+that the required rubric and evidence notes are substantive artifacts.
+During generation, the terminal shows one overall task bar plus one live bar
+per concurrency slot. Completed worker rows are reused by queued tasks.
+
 ## Run Submission-Revision Experiments
 
 `revise` keeps one solver session alive. The solver creates `s000`, receives
@@ -56,7 +120,7 @@ uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
   --revision-rounds 10 \
   --provider gemini \
   --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro \
+  --judge gpt-5.6-luna \
   --rubric rubric.txt \
   --feedback-policy full \
   --review trajectory \
@@ -77,7 +141,7 @@ uv run biomnibench-agent revise \
   --revision-rounds 10 \
   --provider gemini \
   --model gemini-3.5-flash \
-  --judge-model gemini-3.1-pro \
+  --judge gpt-5.6-luna \
   --rubric rubric.txt \
   --review trajectory \
   --sandbox \
@@ -108,10 +172,20 @@ location.
 
 When `--experiment-dir` is omitted, `revise` requires `BULK` to be set to an
 absolute path and creates one timestamped base under
-`$BULK/rubric_gen/runs/biomnibench-revisions/`. The final directory name also
-includes the task and all score-relevant command arguments, so different
-conditions do not collide. Pass `--experiment-dir PATH` to override the BULK
-default; an explicit path works even when `BULK` is unset.
+`$BULK/rubric_gen/runs/biomnibench-revisions/`. A `--all` run is one real batch
+directory rather than a collection of sibling directories:
+
+```text
+revision-.../
+├── batch.json
+├── da-10-1/
+├── da-10-3/
+└── ...
+```
+
+With `--full-v-score`, each task contains `full/` and `score-only/` experiment
+subdirectories. Pass `--experiment-dir PATH` to choose the batch root; an
+explicit path works even when `BULK` is unset.
 
 Each revision submission remains as an immutable snapshot under `submissions/`.
 Judge staging uses hard links to that snapshot instead of copying its workspace
@@ -183,7 +257,7 @@ uv run biomnibench-agent judge \
   --tasks-dir data/biomnibench-da \
   --review trajectory \
   --rubric rubric.txt \
-  --model gemini-3.1-pro \
+  --model gpt-5.6-luna \
   --repeats 5 \
   --max-concurrency 10 \
   --resume
@@ -191,6 +265,44 @@ uv run biomnibench-agent judge \
 
 To judge with a sealed task-specific bundle, replace `--rubric rubric.txt` with
 `--rubric-set runs/task-process-rubrics/pilot`.
+
+Judge provider routing is centralized: `gpt-*`, `chatgpt-*`, and o-series
+models use the OpenAI Responses API; `gemini*` models use Google GenAI; and
+`claude*` models use Anthropic. Task-local judge scripts are used only when an
+explicit `--judge-name` override is supplied.
+
+Judge inputs may live in `$BULK`, but judge outputs default to a deterministic
+directory under `runs/biomnibench-judges` in the current repository. This
+includes score summaries, validated member evaluations, and ensemble
+exploitation artifacts. Use `--output-dir PATH` to override the artifact root;
+`--output FILE` overrides only the summary JSON path.
+
+The judge accepts the top directory from an `all` or `revise --all` run. For a
+revision batch, ordinary judging selects the final submission from every task.
+The strong reference panel evaluates every weak-judged submission and calculates
+per-task exploitation statistics:
+
+```bash
+uv run biomnibench-agent judge \
+  --ensemble \
+  --run-dir "$BULK/rubric_gen/runs/biomnibench-revisions/REVISION_BATCH" \
+  --tasks-dir data/biomnibench-da \
+  --max-concurrency 3
+```
+
+The fixed cross-provider panel is `gpt-5.6-sol`, `claude-fable-5`, and
+`gemini-3.1-pro-preview`. Successful member evaluations are reused by default;
+pass `--force` to pay for and replace them. The command writes
+`strong-verifier/exploitation.json` beneath the repo-local judge artifact root.
+It reports the
+paper-faithful binary exploitation rate (new transitions to the best rubric
+level that all three panel members reject), an ordinal extension that also
+captures partial level improvements, conservative reference scores, proxy to
+reference gaps, member scores, and panel agreement. A rate is `null` when a
+transition contains no newly credited criteria; it is not falsely reported as
+zero.
+`judge --ensemble` displays one overall model-call bar plus one live bar per
+concurrency slot.
 
 ## Generate Controlled Perturbations
 

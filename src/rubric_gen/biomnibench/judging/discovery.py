@@ -138,7 +138,13 @@ class JudgeTargetDiscovery:
                     f"{run_dir} aliases {canonical_run_dirs[canonical_run_dir]}"
                 )
             canonical_run_dirs[canonical_run_dir] = run_dir
-            if (run_dir / "tasks").is_dir() and (run_dir / "workspaces").is_dir():
+            batch = self._read_json(run_dir / "batch.json")
+            manifest = self._read_json(run_dir / "manifest.json")
+            if batch.get("kind") == "rubric-gen-submission-revision-batch":
+                targets.extend(self._discover_revision_batch(run_dir, batch))
+            elif manifest.get("kind") == "rubric-gen-submission-revision-experiment":
+                targets.append(self._discover_revision_experiment(run_dir, manifest))
+            elif (run_dir / "tasks").is_dir() and (run_dir / "workspaces").is_dir():
                 targets.extend(self._discover_batch_targets(run_dir))
             else:
                 targets.append(self._discover_single_target(run_dir))
@@ -156,6 +162,50 @@ class JudgeTargetDiscovery:
         if self.config.limit is not None:
             targets = targets[: self.config.limit]
         return targets
+
+    def _discover_revision_batch(
+        self, batch_dir: Path, batch: dict[str, object]
+    ) -> list[JudgeTarget]:
+        raw_experiments = batch.get("experiment_dirs")
+        if type(raw_experiments) is not list or any(
+            type(value) is not str for value in raw_experiments
+        ):
+            raise SystemExit("revision batch has invalid experiment_dirs")
+        targets: list[JudgeTarget] = []
+        for relative_value in raw_experiments:
+            relative = Path(relative_value)
+            if relative.is_absolute() or ".." in relative.parts:
+                raise SystemExit("revision batch experiment path is unsafe")
+            experiment = batch_dir / relative
+            manifest = self._read_json(experiment / "manifest.json")
+            if manifest.get("kind") != "rubric-gen-submission-revision-experiment":
+                raise SystemExit(f"invalid revision experiment: {experiment}")
+            targets.append(self._discover_revision_experiment(experiment, manifest))
+        return targets
+
+    def _discover_revision_experiment(
+        self, experiment_dir: Path, manifest: dict[str, object]
+    ) -> JudgeTarget:
+        state = self._read_json(experiment_dir / "state.json")
+        submissions = state.get("submission_ids")
+        task = manifest.get("task_id")
+        if (
+            type(submissions) is not list
+            or not submissions
+            or any(type(value) is not str for value in submissions)
+        ):
+            raise SystemExit(f"revision experiment has no submissions: {experiment_dir}")
+        task_id = self.validated_task_id(task)
+        submission = experiment_dir / "submissions" / submissions[-1]
+        task_dir = self.canonical_task_dir(task_id, manifest.get("task_dir"))
+        return JudgeTarget(
+            task=task_id,
+            task_dir=task_dir,
+            run_dir=submission,
+            workspace_dir=submission / "workspace",
+            trajectory_path=submission / "trajectory.stream.jsonl",
+            output_root=experiment_dir,
+        )
 
     def _discover_batch_targets(self, batch_dir: Path) -> list[JudgeTarget]:
         targets: list[JudgeTarget] = []

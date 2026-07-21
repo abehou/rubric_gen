@@ -43,10 +43,13 @@ def revision_experiment_dir(
 ) -> Path:
     """Derive an identity-bearing experiment directory for one configuration."""
     experiment_dir = resolve_project_path(args.experiment_dir)
+    if getattr(args, "all", False) or getattr(args, "full_v_score", False):
+        task_root = experiment_dir / _directory_component(task_dir.name)
+        if getattr(args, "full_v_score", False):
+            return task_root / feedback_policy.value.replace("_", "-")
+        return task_root
     if (
         (args.resume or getattr(args, "restart", False))
-        and not getattr(args, "all", False)
-        and not getattr(args, "full_v_score", False)
         and os.path.lexists(experiment_dir)
     ):
         return experiment_dir

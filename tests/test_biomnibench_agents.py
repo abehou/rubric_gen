@@ -1660,13 +1660,16 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
     def test_task_judge_supports_rubric_defined_level_letters(self):
         judge_path = (
-            ROOT / "data" / "biomnibench-da" / "da-10-1" / "tests" / "llm_judge.py"
+            ROOT
+            / "src"
+            / "rubric_gen"
+            / "biomnibench"
+            / "judging"
+            / "llm_judge.py"
         )
-        if not judge_path.is_file():
-            self.skipTest("external BiomniBench judge fixture is not available")
         text = judge_path.read_text()
-        self.assertIn("choose ONE of the level letters defined", text)
-        self.assertIn("allowed_level_letters", text)
+        self.assertIn("choose exactly one rubric level", text)
+        self.assertIn("parse_rubric_levels", text)
 
         import importlib.util
 
@@ -2016,7 +2019,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 )
             )
 
-            self.assertTrue(runner.judge_model({}).startswith("gemini"))
+            self.assertEqual(runner.judge_model({}), "gpt-5.6-luna")
             self.assertEqual(
                 runner.judge_model({"MODEL_NAME": "gemini-env-model"}),
                 "gemini-env-model",
