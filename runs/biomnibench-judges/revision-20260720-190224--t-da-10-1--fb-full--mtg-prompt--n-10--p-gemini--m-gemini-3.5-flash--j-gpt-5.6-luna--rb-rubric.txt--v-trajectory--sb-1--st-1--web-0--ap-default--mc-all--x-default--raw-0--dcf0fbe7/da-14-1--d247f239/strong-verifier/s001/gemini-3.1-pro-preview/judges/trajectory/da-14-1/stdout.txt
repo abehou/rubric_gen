@@ -1,0 +1,15 @@
+Installed 30 packages in 4.33s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent perfectly loaded the data, defined exactly the 21 specified endotype scores, verified their dimensions, confirmed they were numeric data types, programmatically checked sample alignment using the 'accession' identifier (verifying 0 nulls and 0 duplicates), and documented the data shape and absence of missing values in the score columns."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent correctly implemented pairwise Spearman correlations to produce a 21x21 matrix. It explicitly justified the use of Spearman correlation (non-parametric, robust to non-normal distributions/probability bounds), mathematically verified the matrix's symmetric nature and diagonal of 1.0, and reported specific correlation values to 3 decimal places."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Hierarchical clustering was implemented correctly using the 1 - correlation dis...
