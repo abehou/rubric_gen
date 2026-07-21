@@ -1,0 +1,13 @@
+Installed 30 packages in 14.99s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly loaded both the GAHT and MHT datasets, skipped metadata rows to correctly parse headers, and normalized protein identifiers by stripping whitespace and converting to uppercase. It applied the appropriate significance threshold (adjusted p < 0.05) separately for CPA (245 significant proteins) and SPIRO (91 significant proteins), and dynamically selected the most significant MHT age-stratified estimate by comparing p-values. All steps are clearly documented in the trace."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent successfully matched proteins using the standardized identifiers, reporting 212 overlaps for CPA and 80 overlaps for SPIRO. It determined the effect direction using the signs of the GAHT and selected MHT effect size estimates. Missing values were safely handled and excluded, and the matching logic is reproducibly documented."
+    },
+    "criter...

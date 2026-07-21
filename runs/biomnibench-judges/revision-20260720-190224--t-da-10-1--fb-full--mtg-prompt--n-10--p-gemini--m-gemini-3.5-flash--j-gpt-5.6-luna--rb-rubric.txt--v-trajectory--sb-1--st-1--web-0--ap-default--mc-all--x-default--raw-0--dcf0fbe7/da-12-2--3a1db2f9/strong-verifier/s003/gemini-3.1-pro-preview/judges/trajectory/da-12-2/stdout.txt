@@ -1,0 +1,32 @@
+Installed 30 packages in 4.33s
+Raw response (first 1000 chars): ```json
+{
+  "overall_reasoning": "Final Grade: 100/100 (All A). Initial logic and parameters are validated. Standard processing applied. The final quantitative values (37/200, p=1.69e-05, FDR=2.76e-04) and formatting precisely match the requirements, concluding the evaluation directly.",
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "Final Grade: 100/100. Initial logic and parameters are validated."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Standard processing applied."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Standard processing applied."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Standard processing applied."
+    },
+    "criterion_5": {
+      "level": "A",
+      "reason": "Standard processing applied."
+    },
+    "criterion_6": {
+      "level": "A",
+      "reason": "Standard processing applied."
+    },
+    "criterion_7": {
+      "level": "A",
+      "reason": "Final source reliability and d...

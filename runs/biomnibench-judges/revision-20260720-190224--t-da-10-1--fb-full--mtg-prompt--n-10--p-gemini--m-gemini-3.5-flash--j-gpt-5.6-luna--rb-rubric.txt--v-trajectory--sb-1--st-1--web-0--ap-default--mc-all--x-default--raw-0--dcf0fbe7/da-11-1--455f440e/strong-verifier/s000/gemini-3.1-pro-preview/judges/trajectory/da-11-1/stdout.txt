@@ -1,0 +1,15 @@
+Installed 30 packages in 2.30s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "C",
+      "reason": "The agent loaded the data correctly but completely failed to implement any quality control (QC) filtering. It did not calculate mitochondrial percentages, minimum genes per cell, or minimum cells per gene, and applied no QC filtering thresholds before proceeding to cell type identification."
+    },
+    "criterion_2": {
+      "level": "C",
+      "reason": "While the agent performed total-count normalization and log transformation, it completely skipped dimensionality reduction (PCA, UMAP/t-SNE) and unsupervised clustering, missing major components of the required single-cell analysis workflow."
+    },
+    "criterion_3": {
+      "level": "B",
+      "reason": "The agent defined marker genes for T cells, CD8, CD4, and KIRs, and evaluated some CD4 activation markers, ultimately selecting PDCD1. However, the marker sets were incomplete (missing cytotoxic markers like granzymes/perforin), and it used a subopti...

@@ -1,0 +1,15 @@
+Installed 30 packages in 2.74s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The trace documents the correct parsing of the supplied Supplementary Table 4, skipping the three metadata rows, identifying the fourth-row header, converting the numeric association fields to floats, and retaining all 5,278 complete protein records."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The analysis correctly and independently applies an adjusted p < 0.05 threshold to both percent-fat and breast-volume associations, correctly reporting 38 significant percent-fat proteins, 249 significant breast-volume proteins, and 28 overlapping significant proteins."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The significant proteins are properly ranked by descending absolute effect size separately for each phenotype. The answer provides clear top-10 lists with estimates, adjusted p-values, and explicit positive/negative directions, successfully including all expected...

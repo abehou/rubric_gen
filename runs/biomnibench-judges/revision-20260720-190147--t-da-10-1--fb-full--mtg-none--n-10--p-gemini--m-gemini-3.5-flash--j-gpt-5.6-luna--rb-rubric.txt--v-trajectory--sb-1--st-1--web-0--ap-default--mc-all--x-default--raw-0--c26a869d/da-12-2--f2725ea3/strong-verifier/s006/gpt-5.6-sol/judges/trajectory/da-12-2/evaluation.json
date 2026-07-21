@@ -1,0 +1,41 @@
+{
+  "total_score": 90,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 20,
+      "reason": "Uses TS7.xlsx, extracts the appropriate gene-name and overlap columns, filters for the \"v\" marker, removes missing entries, deduplicates the result, and obtains 1,543 unique genes."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 20,
+      "reason": "Implements one-tailed hypergeometric ORA with scipy.stats using Hallmark sets from GSEA_gmt.gmt and evaluates the 49 nonzero-overlap pathways with the extracted query list."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 15,
+      "reason": "Reports raw p-values and Benjamini-Hochberg FDR values, applies correction across the 49 evaluated pathways, and consistently uses FDR < 0.05 for significance calls."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 25,
+      "reason": "Reports the expected G2M checkpoint overlap of 37/200, raw p-value 1.6895e-05, FDR 2.7596e-04, rank 3 of 49, and correctly concludes that enrichment is significant."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 10,
+      "reason": "States that 49 pathways were tested and provides a ranked top-10 summary containing pathway names, sizes, overlaps, raw p-values, FDR values, and significance calls, including MITOTIC_SPINDLE and UV_RESPONSE_DN."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 10,
+      "reason": "Clearly identifies the input files and columns, the \"v\" filter, query size, 17,210-gene universe, one-tailed hypergeometric calculation, pathway filtering, and Benjamini-Hochberg procedure, with executable supporting code."
+    },
+    "criterion_7": {
+      "level": "C",
+      "score": -10,
+      "reason": "Although the gene and pathway identifiers are traceable to the supplied files, the decisive 17,210-gene background was found by searching for a universe size that reproduced the rubric\u2019s target p-value, not derived from the provided data or an identified database. The subsequent claims that 17,210 is a standard enrichment default or established human reference universe are unsupported. Likewise, omitting the zero-overlap pathway is presented as standard ORA behavior without documentation. Thus key reported statistics depend on an untraceable, outcome-fitted assumption."
+    }
+  },
+  "reasoning": "The submission matches the rubric\u2019s expected extraction, ORA outputs, multiple-testing results, G2M statistics, and pathway summary. However, the trajectory reveals that the 17,210-gene universe was reverse-engineered to match the expected p-value rather than established from the task data or a documented external source. This materially undermines source reliability even though the resulting calculations are reproducible and numerically match the rubric."
+}

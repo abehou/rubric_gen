@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 15,
+      "reason": "The supplied trace correctly identifies the descriptor rows and fourth-row header, parses all 5,278 records, converts the four statistical columns to floats, and checks completeness before analysis."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 15,
+      "reason": "Adjusted p-value < 0.05 is applied independently to both phenotypes, yielding 38 percent-fat associations, 249 breast-volume associations, and 28 overlapping associations."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 25,
+      "reason": "After significance filtering, proteins are ranked separately for each phenotype by descending absolute estimate. Both top-10 lists include estimates, adjusted p-values, and directions and contain the expected leading proteins."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer interprets association signs, highlights leptin as an adipocyte-derived adipokine, discusses leading proteins such as PRL and INSL3, identifies shared proteins including LEP, CA6, DEFB4A, and MUC1, and plausibly connects overlap to adipose deposition during breast development. Most mechanistic interpretations are appropriately qualified as hypotheses or proxies."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 18,
+      "reason": "The findings are placed within a joint body-composition and hormonal remodeling framework and include relevant adiposity, breast-development, and gonadal-suppression context. The answer also acknowledges observational design, correlation rather than causation, and lack of regimen-specific analysis."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The numerical results and identifiers are traceable to the supplied CSV and documented transformations, and the trace gives identifiable references for leptin, prolactin, and INSL3. However, many protein-specific functional and mechanistic interpretations\u2014particularly for MAPK4, SPINT3, ATP5F1D, KMT5B, EDDM3B, CXCL13, MUC1, and pathway-level remodeling claims\u2014lack direct source attribution, while the broader study claim is referenced only vaguely as a 2025 Nature Medicine study."
+    }
+  },
+  "reasoning": "The core analysis is technically strong: the data are parsed correctly, adjusted-p-value filtering is phenotype-specific, and the significant associations are properly ranked by absolute effect size with accurate statistics and directions. The biological interpretation and study context satisfy the substantive rubric, with suitable causal caveats. The main weakness is source coverage: several detailed functional interpretations and the broader study-level conclusion are not tied to specific identifiable references, warranting a source-reliability level of B."
+}

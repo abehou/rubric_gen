@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "Correctly aligns microbiome and survival records by TCGA sample ID after resolving duplicate microbiome rows, producing the expected 457 matched samples and 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Runs separate univariate Cox PH models for all 229 non-invariant microbiome features, explicitly documents exclusion of zero-variance features, and reports coefficients, HRs, confidence intervals, and p-values in a complete table."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "Consistently applies the exact poor-prognosis rule HR > 1 and p < 0.05, identifying 11 qualifying features."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "Correctly concludes Yes for Kocuria under the specified raw-count analysis, reporting HR 1.0124 and p 0.0225 and explicitly verifying that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "Reports the full ranked results, an 11-feature significant list, at least the top 10, n_samples = 457, n_events = 173, and Kocuria's placement as 9th among both the significant features and all 229 tested features."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The core numerical results are traceable to supplied files and documented scripts, and several identifiable references are provided. However, some biological claims are stronger than the cited or computed evidence supports, including calling the Kocuria association definitively an artifact, describing selected taxa as robust prognostic markers, and asserting specific taxon mechanisms. The claim that Bilophila remains significant across all tested pipelines also conflicts with the trace, where it was significant in 6 of 8 runs."
+    }
+  },
+  "reasoning": "The revised work satisfies the core survival-analysis requirements: it constructs the expected matched cohort, performs and reports the univariate Cox screen, applies the exact dual-threshold rule, correctly classifies Kocuria as significant with the expected statistics, and provides complete cohort, ranking, and top-hit reporting. The only material weakness is source and interpretation reliability: several causal or biological interpretations overreach the univariate data or are not adequately supported by the cited references, and one robustness statement conflicts with the documented sensitivity results."
+}

@@ -1,0 +1,15 @@
+Installed 30 packages in 15.19s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The analysis correctly parsed the datasets, filtered CPA and SPIRO separately using the adjusted p < 0.05 threshold (obtaining 245 and 91 significant proteins respectively), normalized protein identifiers, and adaptively selected the MHT age-stratum estimate with the lowest p-value, clearly documenting these steps."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Significant proteins for CPA and SPIRO were successfully and separately matched to the MHT data, yielding the expected 212 and 80 overlaps. Effect directions were properly determined using the signs of the GAHT and selected MHT coefficients, with missing values handled sensibly."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The response accurately reports regimen-specific overlap and concordance counts along with percentages: CPA yields 160/212 concordant (75.47%) and 52/212 discordant (24.53%), while SPIRO ...

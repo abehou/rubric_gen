@@ -1,0 +1,15 @@
+Installed 30 packages in 11.96s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly parses the supplied Supplementary Table 4, skipping the first four lines (metadata and header) to directly parse the 5,278 protein data rows. It converts the required columns for estimates and adjusted p-values to numeric floats and thoroughly verifies the structure."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent independently applies the adjusted p-value threshold (adj p < 0.05) to both percent fat and breast volume. It correctly identifies 38 significant proteins for percent fat, 249 for breast volume, and 28 overlapping significant proteins, clearly documenting the logic."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent ranks the significant proteins separately for each phenotype by descending absolute effect size. It accurately provides the top-10 lists for both percent fat and breast volume, correctly identifying the strong...

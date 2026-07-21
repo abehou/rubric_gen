@@ -1,0 +1,11 @@
+Installed 30 packages in 2.01s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The answer correctly identifies and separates the datasets into MLO participant sets (OpenCell, DACT1, G3BP1, PhaSepDB), a membrane-bound control (Proteomics of human mitochondri), and a distinct solid aggregation control (Amyloid). It clearly defines the fixed negative background set (hNoPS), lists all evaluated predictors across the two analyses, and documents the overlap checks showing biological justification for overlaps among MLO sets and exclusivity with the mitochondrial control."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent correctly constructs binary labels by defining positive samples from dataset membership and negative samples from the fixed hNoPS background set, explicitly removing overlap (hNoPS==1 AND D==0). UniProt entry merges ensure proper alignment, and final valid positive and negative counts are clearly documented for every dataset-predictor pair in th...

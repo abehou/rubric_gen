@@ -1,0 +1,11 @@
+Installed 30 packages in 1.95s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The answer accurately separates the MLO participant datasets (OpenCell, DACT1, G3BP1, PhaSepDB) from the membrane-bound control (mitochondrial proteomics) and an additional solid-aggregation control (amyloid). It explicitly defines the fixed negative background set as hNoPS and lists all evaluated predictor score columns. It also quantifies and provides a biological justification for the overlap among MLO datasets while confirming mutual exclusivity between MLO and control sets."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Binary labels are correctly constructed for each dataset, with positives defined by the dataset indicator and negatives drawn from the fixed hNoPS background. Target-positive/background overlap is explicitly avoided by ensuring the dataset indicator is zero for the background set. UniProt-based merging maintains proper score-label alignment, and final valid class ...

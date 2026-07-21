@@ -1,0 +1,46 @@
+{
+  "total_score": 3,
+  "criteria": {
+    "criterion_1": {
+      "level": "C",
+      "score": 0,
+      "reason": "The gzip count matrices and multiple samples were loaded correctly, but no valid QC pipeline was implemented: mitochondrial percentage and detected-gene metrics were not calculated, cells/genes were not filtered using QC thresholds, and pre/post-filter statistics were absent."
+    },
+    "criterion_2": {
+      "level": "C",
+      "score": 0,
+      "reason": "Counts were normalized to 10,000 and log-transformed for LIANA, but there was no highly variable gene selection, scaling, PCA, neighborhood graph, UMAP/t-SNE, or unsupervised clustering. Thus the required dimensionality-reduction and clustering workflow is missing."
+    },
+    "criterion_3": {
+      "level": "C",
+      "score": 0,
+      "reason": "Six KIR genes and basic CD3/CD4/CD8 markers were used, but no marker scores were calculated. Cytotoxic validation markers were omitted, and the gliadin-response definition was reduced to PDCD1 alone rather than a comprehensive activated CD4 marker set."
+    },
+    "criterion_4": {
+      "level": "C",
+      "score": 0,
+      "reason": "KIR+ CD8 cells were defined by any nonzero CD8 and KIR count, while 'pathogenic gliadin-specific' CD4 cells were defined solely by one nonzero PDCD1 count. These are fixed dropout-sensitive rules rather than data-driven thresholds, and PDCD1 alone cannot establish gliadin specificity. Reported counts do not rescue the biologically unsupported annotation."
+    },
+    "criterion_5": {
+      "level": "B",
+      "score": 13,
+      "reason": "LIANA's consensus resource and rank aggregation supplied a broad LR database, directional sender/receiver outputs, an expression-proportion filter, and CellPhoneDB permutations. However, MHC-I/KIR interactions were not excluded, pathway annotations were absent, samples were pooled without sample-aware replication, and reported 'p=0' or 'specificity_rank p-value' statements conflate LIANA output fields."
+    },
+    "criterion_6": {
+      "level": "C",
+      "score": 0,
+      "reason": "The analysis did not aggregate LR pairs into pathways, calculate pathway-level scores or significant-pair counts, or produce a ranked pathway table. The named pathways were manually inferred from selected individual interactions."
+    },
+    "criterion_7": {
+      "level": "C",
+      "score": 0,
+      "reason": "Although KIR+ CD8 to CD4 communication was discussed, MHC-I/KIR results were prominently presented rather than excluded. Several mechanistic conclusions exceed the evidence, including treating PDCD1+ cells as gliadin-specific, interpreting missing LIANA rows as absent expression, and describing TGFB1-ITGB1/CXCR4 as direct canonical TGF-beta signaling."
+    },
+    "criterion_8": {
+      "level": "C",
+      "score": -10,
+      "reason": "Raw dimensions and many LIANA values are traceable, and named references were included in trace.md, but important claims misuse computed fields or are not supported by the analysis. Examples include calling specificity_rank a p-value, claiming NaN proves receptor absence or exclusivity, asserting significant SPON2 expression differences from LR scores, and making strong physical/mechanistic claims from transcript co-expression alone."
+    }
+  },
+  "reasoning": "The work successfully loaded all matrices, pooled the CeD samples, normalized counts, and ran a real directional LIANA consensus analysis with permutation-based CellPhoneDB statistics. However, it omitted core scRNA-seq QC, dimensionality reduction, clustering, marker scoring, and defensible cell annotation. The target gliadin-specific population was inadequately defined by PDCD1 alone, MHC-I interactions were not excluded, and no actual pathway-level aggregation was performed. Interpretation also repeatedly overstates LR co-expression and mislabels LIANA ranks or missing rows, substantially weakening scientific validity."
+}

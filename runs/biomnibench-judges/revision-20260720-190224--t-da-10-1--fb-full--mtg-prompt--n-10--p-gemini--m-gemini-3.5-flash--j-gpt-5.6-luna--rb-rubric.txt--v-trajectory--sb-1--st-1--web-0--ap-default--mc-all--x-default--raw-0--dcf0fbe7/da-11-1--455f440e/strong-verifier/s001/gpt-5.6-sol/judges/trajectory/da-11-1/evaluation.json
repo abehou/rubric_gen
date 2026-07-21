@@ -1,0 +1,46 @@
+{
+  "total_score": 76,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 12,
+      "reason": "All 10 gzipped GEO matrices were loaded and handled as separate samples. Total counts, detected genes, and mitochondrial percentages were calculated per cell; explicit thresholds were applied (\u2265200 genes, \u2265500 counts, \u226410% mitochondrial counts), genes were filtered at \u22653 cells, and sample-level pre/post cell counts plus merged gene counts were reported."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 13,
+      "reason": "The workflow performed CP10K normalization, log1p transformation, selection of 2,000 highly variable genes, scaling, 40-component PCA, a 15-neighbor graph using 40 PCs, UMAP, and Leiden clustering at resolution 0.5, with cluster counts and saved embeddings."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 15,
+      "reason": "Comprehensive CD4, CD8, six-gene KIR, cytotoxic, and multi-gene activated-CD4 signatures were defined. All 26 markers were checked against the feature index, expression frequencies were reported, and Scanpy score_genes scores were calculated from log-normalized expression."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 15,
+      "reason": "Annotation used lineage scores and population-specific percentile thresholds, combining CD8, KIR, and cytotoxic scores for KIR+CD8+ cells and CD4 plus a multi-marker activation score for activated CD4+ cells. Counts, percentages, sample-level abundances, and nondegenerate population sizes were reported. The activated CD4 group remains a proxy rather than direct proof of gliadin specificity, but this limitation does not negate the implemented multi-marker, data-driven annotation."
+    },
+    "criterion_5": {
+      "level": "B",
+      "score": 13,
+      "reason": "The analysis was directional, expression-filtered, permutation-tested, structured, and covered numerous signaling categories while excluding MHC-I pairs from its main rankings. However, the hand-built interaction resource was not tied to a named curated LR database and includes several questionable or noncanonical ligand-receptor assignments, such as CCL5-CXCR3, GNLY-LAMP1, and PRF1-CHMP4B. Some directionality is also biologically ambiguous, and label permutation pooled cells across donors while producing a warning about shuffling a categorical object. These issues weaken the claimed statistical and biological rigor."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 15,
+      "reason": "Interactions were grouped into annotated pathways and categories, with total pair counts, significant-pair counts, score sums, and score means calculated separately for both directions. Non-MHC-I pathways were ranked and suppressive, cytotoxic, chemotactic, regulatory, and costimulatory functions were distinguished."
+    },
+    "criterion_7": {
+      "level": "B",
+      "score": 3,
+      "reason": "The primary KIR+CD8+ to activated-CD4+ direction was emphasized and MHC-I interactions were excluded from the main ranking, although they were prominently retained as a separate control. The CeD context and possible suppressive and cytotoxic roles were discussed, but many statements convert transcript co-expression into asserted secretion, recruitment, synapse formation, degranulation, killing, or disease protection. The activated population was also repeatedly called pathogenic or gliadin-specific without direct antigen-specific evidence."
+    },
+    "criterion_8": {
+      "level": "C",
+      "score": -10,
+      "reason": "Computed cell counts and expression summaries are largely traceable, and several identifiable references were supplied. Nevertheless, the final interpretation mixes those results with unsupported or incorrect assertions: Monte Carlo zero exceedances are reported as p=0.000 and described as exact p-values; several noncanonical pairs are treated as established LR interactions; absence or specificity relative to control populations is claimed without the revised analysis computing those comparisons; and disease-specific communication is asserted despite pooling CeD and healthy cells for LR inference. These problems materially compromise source and claim reliability."
+    }
+  },
+  "reasoning": "The revision successfully implements a complete conventional scRNA-seq preprocessing pipeline, comprehensive marker scoring, data-driven annotation, directional scoring, and pathway aggregation. Its principal weakness is no longer missing pipeline components but the scientific validity of the custom communication resource and interpretation. Several proposed interactions are not established ligand-receptor pairs, the cell-level permutation ignores donor structure and is described too strongly, and transcript co-expression is repeatedly presented as demonstrated recruitment, cytolysis, or clinical protection. Thus the preprocessing and pathway-aggregation implementation are strong, while the communication evidence and biological conclusions require substantial caution."
+}

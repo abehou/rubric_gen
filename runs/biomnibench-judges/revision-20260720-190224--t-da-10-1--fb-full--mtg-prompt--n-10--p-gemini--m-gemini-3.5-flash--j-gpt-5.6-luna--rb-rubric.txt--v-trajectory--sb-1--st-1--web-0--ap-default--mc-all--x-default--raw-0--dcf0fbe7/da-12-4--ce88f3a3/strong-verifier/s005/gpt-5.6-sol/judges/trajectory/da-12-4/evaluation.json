@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis resolves duplicate microbiome records, aligns microbiome and survival data by sample ID, and obtains the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "A separate univariate Cox proportional-hazards model was fitted for each of the 229 non-zero-variance microbial features, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact poor-prognosis rule, HR > 1 and p < 0.05, is explicitly stated and applied to every tested feature."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the baseline raw-count model, reporting HR = 1.0124 and p = 0.0225 and explicitly confirming that both thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, all 11 significant poor-prognosis features, at least the top 10 results, the complete per-feature table, and Kocuria's ninth-place ranking among significant and overall features."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed values, identifiers, transformations, and Cox methodology are traceable to supplied files and scripts, and named references with DOIs are provided. However, claims that the Kocuria result is definitively a technical artifact, descriptions of TERT and RBP2 as oncogenic drivers, and some taxon-specific contextual statements extend beyond what the univariate and leave-one-out analyses directly establish; the trace also does not show that the cited papers were locally verified."
+    }
+  },
+  "reasoning": "The submission fully satisfies the core analytical requirements: correct cohort matching, exhaustive univariate Cox modeling, exact dual-threshold filtering, the required positive Kocuria determination, and complete reporting. Its principal numerical conclusions are reproducible from the documented local analysis. The only limitation is source reliability for several ancillary biological and technical interpretations, which remain somewhat stronger than the supplied analyses and documented source verification support."
+}

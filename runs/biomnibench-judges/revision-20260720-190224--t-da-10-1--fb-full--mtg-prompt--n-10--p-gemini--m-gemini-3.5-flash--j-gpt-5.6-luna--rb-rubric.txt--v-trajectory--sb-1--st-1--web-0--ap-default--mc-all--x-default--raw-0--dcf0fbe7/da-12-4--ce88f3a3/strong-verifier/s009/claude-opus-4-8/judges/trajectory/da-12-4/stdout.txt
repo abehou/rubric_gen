@@ -1,0 +1,14 @@
+Installed 30 packages in 4.99s
+Raw response (first 1000 chars): {"criteria": {"criterion_1": {"level": "A", "reason": "The agent loaded TCGA_microbiota-01A.csv (667 rows) and TCGA_RNA-01A.csv (462 rows), resolved 138 duplicate sample IDs via Max Depth Row strategy, and aligned by sample ID to produce exactly 457 matched samples with 173 events. This matches the expected cohort size."}, "criterion_2": {"level": "A", "reason": "The agent ran univariate Cox PH models (using lifelines CoxPHFitter) for all 229 non-zero-variance microbiome features, reporting per-feature coefficients, standard errors, z-statistics, hazard ratios, 95% CIs, and p-values in a complete 229-row table embedded in the final answer."}, "criterion_3": {"level": "A", "reason": "The exact dual-threshold rule (HR > 1 AND p < 0.05) is explicitly stated and applied to every feature, with a 'Poor Prognosis?' column marking Yes/No for each of the 229 features. Exactly 11 features met the rule."}, "criterion_4": {"level": "A", "reason": "The final answer concludes 'YES' for Kocuria and r...
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-b3qxw2fw/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-b3qxw2fw/llm_judge.py", line 209, in main
+    score, criteria, reasoning = score_response(
+                                 ^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-b3qxw2fw/llm_judge.py", line 149, in score_response
+    result = extract_json_object(response_text)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-b3qxw2fw/llm_judge.py", line 142, in extract_json_object
+    raise ValueError("judge response contains an incomplete JSON object")
+ValueError: judge response contains an incomplete JSON object

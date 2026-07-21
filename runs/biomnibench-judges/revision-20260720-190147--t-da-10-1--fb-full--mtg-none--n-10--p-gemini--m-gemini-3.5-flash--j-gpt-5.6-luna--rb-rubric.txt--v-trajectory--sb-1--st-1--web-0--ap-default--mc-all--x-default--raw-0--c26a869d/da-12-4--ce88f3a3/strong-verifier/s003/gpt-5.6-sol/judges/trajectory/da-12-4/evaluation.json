@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The agent aligned microbiome and survival records by sample ID after resolving duplicate microbiome rows, yielding the expected 457 matched samples."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "It fit univariate Cox proportional-hazards models for all 229 non-zero-variance microbiome features and reported each feature\u2019s hazard ratio and p-value in the complete table."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "It explicitly and consistently applied the required poor-prognosis rule: HR > 1 and p < 0.05."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "It concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, correctly noting that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "It reports 457 samples, 173 events, all 11 significant poor-prognosis features, a complete per-feature table, and Kocuria\u2019s rank as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed cohort counts and Cox results are traceable to the supplied files and documented scripts, and named references are provided. However, claims that the association is a technical artifact, that selected RNA features are major oncogenic drivers, and that other taxa provide robust comparative controls extend beyond what the univariate and sensitivity analyses establish; the taxon-specific literature claims were also not locally verified."
+    }
+  },
+  "reasoning": "The submission fully satisfies the cohort construction, exhaustive univariate Cox analysis, exact filtering rule, Kocuria determination, and reporting-completeness requirements. Its main result is clear and supported by the documented computation. Source reliability is reduced only by biological and causal-sounding interpretations that are stronger than the supplied analyses and locally verified evidence warrant."
+}

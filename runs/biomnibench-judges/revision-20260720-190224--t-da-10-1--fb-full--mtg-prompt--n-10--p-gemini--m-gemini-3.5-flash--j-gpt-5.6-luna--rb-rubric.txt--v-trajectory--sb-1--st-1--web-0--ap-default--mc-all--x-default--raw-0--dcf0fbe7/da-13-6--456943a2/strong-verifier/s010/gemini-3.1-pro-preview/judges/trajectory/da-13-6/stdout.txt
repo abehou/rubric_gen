@@ -1,0 +1,15 @@
+Installed 30 packages in 2.78s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The analysis correctly loaded and parsed the metadata-containing GAHT and MHT tables, normalized identifiers by trimming and uppercasing, applied adj. p < 0.05 separately to CPA and SPIRO to obtain 245 and 91 significant proteins respectively, selected the lower-p-value MHT age stratum per matched protein, and documented missing-value handling."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "CPA and SPIRO significant proteins were matched separately to Table 7 using standardized protein identifiers. The analysis correctly reported 212 and 80 overlaps, respectively, and assigned concordance based on the signs of the GAHT coefficient and the dynamically selected MHT coefficient, explicitly excluding proteins lacking usable estimates."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The response perfectly reports regimen-specific overlap and directional counts: CPA has 16...

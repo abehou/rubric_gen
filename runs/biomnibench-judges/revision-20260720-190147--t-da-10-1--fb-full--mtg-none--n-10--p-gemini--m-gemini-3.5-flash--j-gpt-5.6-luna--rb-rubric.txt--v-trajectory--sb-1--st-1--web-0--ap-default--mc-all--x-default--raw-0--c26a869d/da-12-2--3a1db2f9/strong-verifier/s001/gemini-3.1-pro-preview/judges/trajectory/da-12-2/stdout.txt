@@ -1,0 +1,48 @@
+Installed 30 packages in 2.62s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-itg4nlgi/llm_judge.py", line 208, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-itg4nlgi/llm_judge.py", line 187, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-itg4nlgi/llm_judge.py", line 39, in generate_response
+    response = genai.Client(api_key=api_key).models.generate_content(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/google/genai/models.py", line 6558, in generate_content
+    response = self._generate_content(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/google/genai/models.py", line 4986, in _generate_content
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/google/genai/_api_client.py", line 1650, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/google/genai/_api_client.py", line 1443, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/tenacity/__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/tenacity/__init__.py", line 371, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/tenacity/__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/tenacity/__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/tenacity/__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/google/genai/_api_client.py", line 1419, in _request_once
+    response = self._httpx_client.send(httpx_request, stream=stream)  # type: ignore[union-attr]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3cfcb8fd9dc13171/lib/python3.12/site-packages/httpx/_client.py", line 901, in send
+    raise RuntimeError("Cannot send a request, as the client has been closed.")
+RuntimeError: Cannot send a request, as the client has been closed.

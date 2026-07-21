@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis deduplicated microbiome records, aligned them with survival outcomes by sample ID, and obtained the expected 457 matched samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox PH models were fitted for all 229 non-zero-variance microbiome features, with HRs, p-values, coefficients, confidence intervals, and classifications reported in the complete table."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 was explicitly defined and consistently applied to every modeled feature."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, explicitly noting that both poor-prognosis thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, at least the top 10 results, all 11 qualifying features, and Kocuria's ninth-place ranking among significant and overall tested features."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "Computed results and identifiers are traceable to supplied files and documented scripts, and named references with DOIs are provided. However, some added interpretations\u2014such as characterizing RBP2 as a major oncogenic driver and linking specific cited studies to exact taxa or clinical contexts\u2014are not directly substantiated within the supplied evidence."
+    }
+  },
+  "reasoning": "The core analysis fully satisfies the cohort construction, exhaustive univariate Cox modeling, exact filtering rule, Kocuria determination, and reporting-completeness requirements. Kocuria is correctly classified under the specified baseline model, with appropriate sensitivity caveats. Source grounding is strong for computed outputs but only partial for several ancillary biological interpretations."
+}

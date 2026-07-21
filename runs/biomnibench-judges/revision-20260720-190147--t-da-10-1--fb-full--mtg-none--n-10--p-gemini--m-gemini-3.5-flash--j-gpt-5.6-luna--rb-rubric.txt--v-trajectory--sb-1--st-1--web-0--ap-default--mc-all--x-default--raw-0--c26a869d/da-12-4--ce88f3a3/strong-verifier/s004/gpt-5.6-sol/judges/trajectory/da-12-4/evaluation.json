@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis resolves duplicate microbiome records, aligns microbiome and survival data by sample ID, and reports the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox proportional-hazards models were fitted for all 229 microbiome features having non-zero variance, with coefficients, hazard ratios, confidence intervals, and p-values reported in the complete per-feature table."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 is explicitly applied, including a per-feature poor-prognosis indicator."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, explicitly noting that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The answer reports n_samples = 457, n_events = 173, all 11 significant features, at least the top 10 results, a complete per-feature table, and Kocuria\u2019s placement as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "Computed statistics, identifiers, transformations, and model details are traceable to the supplied files and documented scripts, and identifiable references with DOIs are supplied. However, some interpretive language\u2014such as labeling correlations false or technical artifacts, calling TERT and RBP2 major oncogenic drivers, and describing other taxa as highly robust comparative controls\u2014extends beyond what the univariate analysis itself establishes and is not fully supported by directly matched citations."
+    }
+  },
+  "reasoning": "The submission fully satisfies the cohort construction, exhaustive univariate Cox analysis, dual-threshold filtering, Kocuria determination, and reporting-completeness requirements. Kocuria is correctly classified as significant under the specified baseline raw-count model, while the sensitivity analyses appropriately qualify that result. The only limitation is that several biological and robustness interpretations remain somewhat broader than the directly demonstrated statistical evidence or cited support."
+}

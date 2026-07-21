@@ -1,0 +1,46 @@
+{
+  "total_score": 93,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 12,
+      "reason": "The revised pipeline loads all 10 gzipped GEO count matrices, calculates n_counts, n_genes, and pct_counts_mt (using the 13 MT- genes), applies filtering thresholds (n_genes>=200, n_counts>=500, mt<=10%), reports pre/post QC cell and gene counts in a detailed table (71,281 -> 63,549 cells; 33,562 -> 18,450 genes after min_cells=3 gene filter), and handles multiple samples correctly."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 13,
+      "reason": "The revised pipeline normalizes to 10,000 counts/cell (CP10K), applies log1p, selects 2,000 HVGs (seurat flavor), scales data (max_value=10), performs PCA with 40 components, computes neighbors (n_neighbors=15, n_pcs=40), generates UMAP, and performs Leiden clustering at resolution 0.5 yielding 13 clusters. All required steps are present."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 15,
+      "reason": "Comprehensive marker sets are defined: CD8 (CD8A, CD8B, CD3D/E/G), CD4 (CD4, CD3 genes), 6 KIR genes, cytotoxic markers (GZMB, PRF1, GNLY, NKG7), and multiple activated CD4 markers (PDCD1, CD40LG, TNFRSF9, IFNG, IL2, IL21, CD69, IL2RA, HLA-DRA, HLA-DRB1). Marker expression was verified (26/26 expressed with reported rates) and scores computed with sc.tl.score_genes on log-normalized data."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 15,
+      "reason": "Data-driven percentile thresholds are used (median lineage split, KIR score >80th percentile with cytotoxic support >50th percentile, activated CD4 >85th percentile). KIR+CD8+ combines CD3/CD8/KIR/cytotoxic criteria; activated CD4+ uses multi-marker activation signature. Final counts reported with percentages (543 KIR+CD8+, 1,619 activated CD4+), and populations validated as biologically reasonable (not all/none)."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 25,
+      "reason": "A custom LR database covers 8 pathway categories (coinhibitory, TGF-beta, cytotoxic granule/adhesion, death receptor, TNF superfamily, cytokine/chemotaxis, costimulatory, and MHC-I as a separate excluded category). Directional scoring computes separate KIR+CD8+ -> Activated CD4+ and reverse scores using mean-product, with 10% expression filtering, 500-permutation significance testing, pathway annotations, and structured output. MHC-I interactions are explicitly separated and excluded from top reported results."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 15,
+      "reason": "LR pairs are grouped by pathway with summary statistics (significant pairs count, significant score sum, significant score mean, plus all-score sums), ranked tables produced for both directions, categories explicitly labeled Suppressive/Cytotoxic/Chemotactic/Costimulatory/Regulatory, and top pathways beyond MHC-I presented in ranked tables distinguishing suppressive (Galectin-1, TGF-beta, LAG3) vs cytotoxic (SPON2, granulysin, perforin, granzyme) functions."
+    },
+    "criterion_7": {
+      "level": "B",
+      "score": 3,
+      "reason": "The revision explicitly focuses on KIR+CD8+ -> Activated CD4+, demonstrates MHC-I exclusion (reported separately as a control), and connects to CeD context. However, several mechanistic claims remain overstated relative to what transcript co-expression supports (e.g., 'induces rapid cytotoxic degranulation', 'selectively recruits and guides', 'stabilizing the cytotoxic synapse'), presenting predictions as validated mechanisms without acknowledging these limits in the answer itself. The gliadin-specific population is a PD-1/activation proxy rather than a true gliadin-specific definition. This falls short of full-credit rigor."
+    },
+    "criterion_8": {
+      "level": "B",
+      "score": -5,
+      "reason": "Most numerical results, gene identifiers, sample counts, and statistical methods (permutation p-values, Welch's t-test) are now traceable to computed artifacts, and the earlier error of describing specificity ranks as p-values is corrected with actual permutation p-values. Named references with DOIs are provided. However, some references appear to have malformed/garbled titles (e.g., 'CD244 (2B4) receptor on human CD8+ T cells: and costimulation'), and several detailed mechanistic assertions (recruitment, synapse stabilization, degranulation triggering) are presented as established fact without direct validation from the computed co-expression data, so interpretive claims exceed direct support."
+    }
+  },
+  "reasoning": "The revised submission substantially improved over the initial version, implementing a complete QC workflow, full normalization/DR/clustering pipeline, comprehensive marker sets with score_genes scoring, data-driven percentile-based cell annotation, a custom directional permutation-tested LR framework with explicit MHC-I exclusion and pathway categorization, and pathway-level aggregation/ranking. Criteria 1-6 meet the A-level requirements based on the executed pipeline evidence. Criterion 7 remains at B because mechanistic overinterpretation of co-expression predictions persists in the answer. Criterion 8 remains at B due to some references being garbled and interpretive claims asserted beyond direct data validation."
+}

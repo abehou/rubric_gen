@@ -1,0 +1,15 @@
+Installed 30 packages in 2.09s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly identifies and categorizes the four MLO participant datasets, the mitochondrial membrane-bound control dataset, and the amyloid solid-aggregation control. It clearly defines the fixed negative background set (hNoPS), lists all evaluated predictor score columns across both analyses, and quantitatively documents membership overlap to justify groupings."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent constructs labels for each dataset by defining positives based on dataset-membership flags and negatives from the hNoPS background set, explicitly enforcing that target-positive/background overlaps are removed (D==0). Merges on UniProt identifiers perfectly preserve label-score alignment, and valid positive/negative counts are reported in the detailed final tables."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Missing predictor scores (NaNs) a...

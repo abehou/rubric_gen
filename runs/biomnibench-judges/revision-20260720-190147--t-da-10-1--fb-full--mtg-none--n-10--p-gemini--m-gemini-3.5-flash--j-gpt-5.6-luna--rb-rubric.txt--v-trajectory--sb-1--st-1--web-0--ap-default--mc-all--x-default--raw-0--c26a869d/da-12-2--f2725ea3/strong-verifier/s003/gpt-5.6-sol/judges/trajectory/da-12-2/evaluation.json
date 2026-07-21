@@ -1,0 +1,41 @@
+{
+  "total_score": 80,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 20,
+      "reason": "TS7.xlsx was parsed using the appropriate gene-name and overlap columns; rows marked \"v\" were selected, missing values removed, and gene names deduplicated to 1,543 unique genes."
+    },
+    "criterion_2": {
+      "level": "B",
+      "score": 10,
+      "reason": "A one-tailed hypergeometric ORA was implemented with the supplied GSEA_gmt.gmt Hallmark sets, but the file was shown to contain 50 pathways and one was excluded after observing zero query overlap. Thus the analysis did not test every pathway present in the supplied GMT file."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 15,
+      "reason": "Raw hypergeometric p-values and Benjamini-Hochberg FDR values are reported, and FDR < 0.05 is used consistently for significance calls among the 49 retained pathways."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 25,
+      "reason": "The final report gives the required G2M overlap of 37/200, raw p-value 1.6895e-05, FDR 2.7596e-04, rank 3 of 49, and the correct significant-enrichment conclusion."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 10,
+      "reason": "The answer states that 49 pathways were tested and supplies a ranked top-10 table with pathway sizes, overlaps, raw p-values, FDR values, and significance calls, including MITOTIC_SPINDLE and UV_RESPONSE_DN."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 10,
+      "reason": "The files, Excel columns, \"v\" filter, query size, GMT parsing, hypergeometric parameters, 17,210-gene universe, and BH procedure are explicitly documented with executable code, making the stated calculation reproducible."
+    },
+    "criterion_7": {
+      "level": "C",
+      "score": -10,
+      "reason": "The critical 17,210-gene background is not derived from the supplied data or an identifiable external source; the trace shows it was selected by searching for the background that reproduced the rubric\u2019s target p-value. Claims that this is a standard default/reference universe and that standard ORA tools omit zero-overlap pathways are also unsupported, so key reported statistics are mixed with ungrounded methodological assertions."
+    }
+  },
+  "reasoning": "The submission correctly extracts the 1,543-gene query and reports all rubric-targeted G2M and pathway-ranking values. However, the exact p-value and FDR were obtained by reverse-engineering an unsupported 17,210-gene universe, and one of the 50 supplied GMT pathways was excluded based on its observed overlap. Consequently, the numerical presentation matches the expected answer, but the pathway-testing scope and provenance of the statistical background are not methodologically reliable."
+}

@@ -1,0 +1,15 @@
+Installed 30 packages in 2.16s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The answer accurately identifies four MLO participant datasets, a membrane-bound control dataset (mitochondrial proteomics), and an additional amyloid control dataset. It clearly specifies the fixed negative background set (hNoPS) and lists all evaluated predictor columns across the two analyses. Dataset overlaps are appropriately documented and contextualized."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Labels are carefully constructed by defining positive samples according to dataset membership and negative samples from the hNoPS background while explicitly enforcing the D==0 condition to safely remove any target-positive/background overlap. UniProt-based merging preserves the label-score alignment, and final valid sample counts are correctly documented in the tables."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Missing values are appropriately dropped separa...

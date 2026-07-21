@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome and survival datasets were aligned by sample ID after resolving duplicate microbiome records, producing the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox proportional-hazards models were fitted for all 229 non-zero-variance microbial features, with coefficients, hazard ratios, confidence intervals, and p-values reported in the complete table; constant features were appropriately excluded."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact poor-prognosis rule, HR > 1 and p < 0.05, was explicitly applied to every fitted feature and used to identify 11 qualifying taxa."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, explicitly verifying that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, at least the top 10 results, all 11 significant poor-prognosis features, the complete per-feature table, and Kocuria\u2019s rank as 9th among significant features and overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The principal numerical results and feature identifiers are traceable to the supplied files and documented scripts, and several identifiable references are provided. However, claims that the Kocuria result is definitively a technical artifact, descriptions of certain genes as major oncogenic drivers, and some taxon-specific mechanistic or robustness interpretations extend beyond what the univariate analyses directly establish and are not consistently supported by the cited references."
+    }
+  },
+  "reasoning": "The submission fully satisfies the cohort construction, exhaustive univariate Cox analysis, dual-threshold filtering, Kocuria determination, and reporting-completeness requirements. Kocuria is correctly classified under the specified baseline model, with appropriate statistics and ranking. The additional sensitivity analysis is useful as a qualification, but several biological and causal-sounding interpretations remain stronger than the supplied analysis and sourcing can support."
+}

@@ -1,0 +1,36 @@
+{
+  "total_score": 100,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis resolves duplicate microbiome records, aligns microbiome and survival data by sample ID, and obtains the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox proportional-hazards models were fitted for all 229 non-zero-variance microbiome features, with coefficients, hazard ratios, confidence intervals, and p-values reported per feature."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 is explicitly defined, applied to every modeled feature, and shown in the results table."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the baseline raw-count model, reporting HR = 1.0124 and p = 0.0225 and explicitly verifying that both thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, all 11 significant poor-prognosis features, a complete 229-feature table, and Kocuria's placement as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 0,
+      "reason": "Computed values and sample identifiers are traceable to the supplied files and documented scripts; the reported method matches the Cox models run. Taxon context is conservatively framed as non-causal and accompanied by identifiable references with authors, years, journals, and DOIs."
+    }
+  },
+  "reasoning": "The submission fully satisfies the requested matched-cohort construction, exhaustive univariate Cox analysis, exact dual-threshold filtering, Kocuria determination, and reporting requirements. It clearly distinguishes the required baseline classification from supplementary sensitivity findings, while grounding numerical outputs in the local analysis and limiting biological interpretation appropriately."
+}

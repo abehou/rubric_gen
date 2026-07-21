@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis resolves duplicate microbiome records, aligns microbiome and survival data by sample ID, and obtains the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox proportional-hazards models were fit for all 229 non-zero-variance microbial features, with coefficients, hazard ratios, confidence intervals, and p-values reported in the complete per-feature table. Constant features were appropriately not modeled."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact poor-prognosis rule, HR > 1 and p < 0.05, is explicitly stated, applied to every modeled feature, and represented in the results table."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the specified baseline model and reports HR = 1.0124 and p = 0.0225, explicitly noting that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, all 11 significant poor-prognosis features, at least the top 10 results, a complete feature-level table, and Kocuria's placement as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed values, feature identifiers, transformations, cohort construction, and statistical method are traceable to the supplied files and documented scripts, and several named references with DOIs are supplied. However, some interpretations remain stronger than the evidence supports: the response calls the Kocuria result a technical artifact and its correlations false rather than simply outlier-sensitive, labels TERT and RBP2 major oncogenic drivers without a directly supporting citation, and describes other taxa as highly robust comparative controls. These claims go beyond what the univariate and sensitivity analyses alone establish."
+    }
+  },
+  "reasoning": "The core requested analysis is complete and correctly reported: the expected matched cohort was constructed, all variable microbiome features received univariate Cox models, the required dual-threshold rule was applied, and Kocuria was correctly classified as significant with the requested statistics and rank. Reporting is comprehensive. The only material weakness is residual overinterpretation in the biological and robustness discussion; the sensitivity analyses demonstrate fragility and outlier dependence, but not definitively a technical artifact, false correlation, or causal biological distinction."
+}

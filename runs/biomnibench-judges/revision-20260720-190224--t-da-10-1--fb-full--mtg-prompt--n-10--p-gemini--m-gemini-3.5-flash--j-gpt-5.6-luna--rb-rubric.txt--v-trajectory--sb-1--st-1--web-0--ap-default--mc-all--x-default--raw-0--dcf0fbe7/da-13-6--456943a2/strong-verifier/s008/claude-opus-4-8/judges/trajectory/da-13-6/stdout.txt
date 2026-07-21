@@ -1,0 +1,14 @@
+Installed 30 packages in 15.06s
+Raw response (first 1000 chars): {"criteria": {"criterion_1": {"level": "A", "reason": "The final analysis correctly parsed both metadata-containing CSVs (handling the header row starting with protein_id), filtered CPA and SPIRO separately at adj.p < 0.05 obtaining 245 and 91 significant proteins (within expected ranges), normalized identifiers by trimming and uppercasing, and implemented adaptive MHT age-stratum selection choosing the lower-p-value estimate per protein with explicit missing-value handling. All steps are documented in run_concordance.py and trace.md."}, "criterion_2": {"level": "A", "reason": "CPA and SPIRO significant proteins were matched separately to Table 7 using standardized protein IDs, reporting 212 and 80 overlaps (within expected ranges of 200-215 and 75-85). Direction was determined from the signs of GAHT and selected MHT coefficients, with proteins lacking usable estimates explicitly excluded and matching logic documented."}, "criterion_3": {"level": "A", "reason": "The answer clearly repo...
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-36how8fq/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-36how8fq/llm_judge.py", line 209, in main
+    score, criteria, reasoning = score_response(
+                                 ^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-36how8fq/llm_judge.py", line 149, in score_response
+    result = extract_json_object(response_text)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-36how8fq/llm_judge.py", line 142, in extract_json_object
+    raise ValueError("judge response contains an incomplete JSON object")
+ValueError: judge response contains an incomplete JSON object

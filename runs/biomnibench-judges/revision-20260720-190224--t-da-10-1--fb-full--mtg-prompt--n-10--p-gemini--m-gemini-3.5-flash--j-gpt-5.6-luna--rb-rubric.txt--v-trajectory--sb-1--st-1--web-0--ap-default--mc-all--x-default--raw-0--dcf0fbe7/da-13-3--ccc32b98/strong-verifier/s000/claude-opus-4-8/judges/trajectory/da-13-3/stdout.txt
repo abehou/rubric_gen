@@ -1,0 +1,5 @@
+Installed 30 packages in 12.05s
+Raw response (first 1000 chars): {"criteria": {
+  "criterion_1": {"level": "A", "reason": "Correctly reads Supplementary Table 4, programmatically inspects rows, skips the 3 metadata/descriptor lines to reach the proper header row (protein_id, estimate_Percent_Fat, adj.p.value_Percent_Fat, estimate_Breast_Volume, adj.p.value_Breast_Volume), converts numeric columns to float, verifies 5278 rows with zero missing values, and documents structure thoroughly."},
+  "criterion_2": {"level": "A", "reason": "Applies adj p < 0.05 threshold separately to both phenotypes, reports 38 significant for percent fat, 249 for breast volume, and 28 for both. Filtering criteria clearly documented, matching the expected scale (tens for fat, hundreds for breast volume)."},
+  "criterion_3": {"level": "B", "reason": "The agent ranks and sorts by adjusted p-value rather than by absolute effect size (|estimate|). The rubric's A level requires ranking by absolute value of the effect size estimates for each phenotype. Direction is clearly indicat...

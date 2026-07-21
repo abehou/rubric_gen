@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome and survival records were aligned by sample ID after resolving duplicate microbiome rows, yielding the expected 457 matched samples and 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox PH models were fitted for all 229 microbiome features with nonzero variance, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values. Constant features were appropriately not modeled."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact poor-prognosis rule, HR > 1 and p < 0.05, was explicitly applied to every modeled feature."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the stated baseline model, reporting HR = 1.0124 and p = 0.0225 and explicitly verifying that both thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The answer reports 457 samples, 173 events, all 11 significant poor-prognosis features, a complete per-feature table, and Kocuria's placement as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed cohort counts and Cox results are traceable to the supplied files and documented scripts, and the taxon names come from the dataset feature index. However, some biological descriptions remain stronger than the evidence supports\u2014for example, labeling TERT and RBP2 collectively as major oncogenic drivers, calling correlations false or technical artifacts rather than merely outlier-sensitive, and making broad robustness or comparative-control claims. The cited references are identifiable, but the supplied work does not demonstrate that every taxon-specific interpretation follows directly from them."
+    }
+  },
+  "reasoning": "The submission fully satisfies the core analytical requirements: correct matched-cohort construction, exhaustive modeling of testable features, exact dual-threshold filtering, the required positive Kocuria determination, and complete reporting of cohort counts, top hits, ranks, and per-feature results. Its only material weakness is interpretive overreach in the biological and robustness discussion; those caveats do not affect the correctness of the requested Cox-analysis result."
+}

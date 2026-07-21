@@ -1,0 +1,11 @@
+Installed 30 packages in 1.95s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The answer clearly identifies and separates the four MLO participant datasets (OpenCell, DACT1, G3BP1, PhaSepDB), the mitochondrial membrane-bound control dataset, and an amyloid solid-aggregation control. It correctly defines the hNoPS background set, lists all the evaluated predictor columns (PScore, PLAAC, catGRANULE, SaPS/PdPS features, DeepCoil, Phos freq, DeepPhase), and explicitly documents dataset membership overlaps with biological justifications."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Labels are constructed perfectly: positives are defined by the specific dataset membership (D == 1), and negatives are drawn from the consistent hNoPS background while explicitly removing any overlap (hNoPS == 1 AND D == 0). The merging is based on UniProt identifiers, ensuring correct alignment, and the final valid sample sizes for positives and negatives are recorded in the provided s...

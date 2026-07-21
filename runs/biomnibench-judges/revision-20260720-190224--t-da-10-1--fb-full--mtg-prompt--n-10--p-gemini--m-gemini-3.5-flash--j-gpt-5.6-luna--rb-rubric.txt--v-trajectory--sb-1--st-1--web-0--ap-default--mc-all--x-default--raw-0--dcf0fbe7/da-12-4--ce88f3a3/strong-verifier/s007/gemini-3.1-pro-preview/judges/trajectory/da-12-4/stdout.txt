@@ -1,0 +1,19 @@
+Installed 30 packages in 2.53s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent successfully aligned the microbiome features to survival outcomes by deduplicating and matching sample IDs, resulting in the correct matched cohort size of 457 samples."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent ran a univariate Cox Proportional Hazards model for each of the 229 microbiome features with non-zero variance and provided a complete table reporting the coefficient, standard error, z-statistic, HR, 95% CI, and p-value for each feature."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The exact poor-prognosis filtering rule (HR > 1 AND p < 0.05) was explicitly stated and accurately applied to all tested microbiome features to determine significance."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "The agent correctly concluded 'YES' for Kocuria under the baseline raw-count model, reporting HR = 1.0124 and p = 0.0225 (...

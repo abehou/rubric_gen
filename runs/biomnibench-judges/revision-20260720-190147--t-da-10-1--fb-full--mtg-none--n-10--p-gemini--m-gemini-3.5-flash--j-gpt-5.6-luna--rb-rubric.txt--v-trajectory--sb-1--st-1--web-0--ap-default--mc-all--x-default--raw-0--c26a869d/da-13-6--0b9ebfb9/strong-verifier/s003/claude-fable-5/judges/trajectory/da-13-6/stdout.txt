@@ -1,0 +1,11 @@
+Installed 30 packages in 2.16s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-4bq9trez/llm_judge.py", line 208, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-4bq9trez/llm_judge.py", line 187, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-4bq9trez/llm_judge.py", line 55, in generate_response
+    return response.content[0].text
+           ~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

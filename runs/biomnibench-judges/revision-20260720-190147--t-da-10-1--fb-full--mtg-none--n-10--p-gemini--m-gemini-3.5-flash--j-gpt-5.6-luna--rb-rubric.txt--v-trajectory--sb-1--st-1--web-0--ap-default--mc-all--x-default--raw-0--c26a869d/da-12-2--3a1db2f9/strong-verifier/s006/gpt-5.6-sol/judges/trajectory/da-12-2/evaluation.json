@@ -1,0 +1,41 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 20,
+      "reason": "Uses TS7.xlsx, extracts Gene name for rows carrying the overlap flag, removes missing values, deduplicates, and obtains 1,543 unique genes. The trace confirms the flag column contains only 'v' or missing values."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 20,
+      "reason": "Implements one-tailed hypergeometric ORA with scipy.stats using the supplied GSEA_gmt.gmt Hallmark sets and evaluates the 49 pathways with nonzero query overlap against the documented Hallmark-gene universe."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 15,
+      "reason": "Reports raw p-values and Benjamini-Hochberg FDR values, uses FDR < 0.05 for primary significance calls, and clearly notes that the alternative DEG-union result is significant only before correction."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 25,
+      "reason": "Reports the expected G2M result: 37/200 overlap, raw p approximately 1.69e-05, FDR approximately 2.76e-04, rank 3 of 49, and a correct significant-enrichment conclusion."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 10,
+      "reason": "States that 49 pathways were tested and supplies a ranked table sorted by FDR with pathway names, overlaps, raw p-values, FDR values, and significance calls, including MITOTIC_SPINDLE and UV_RESPONSE_DN."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 10,
+      "reason": "Clearly identifies the input files and relevant columns, documents query extraction, universe construction, zero-overlap handling, the hypergeometric test, and Benjamini-Hochberg correction with sufficient intermediate counts for reproduction."
+    },
+    "criterion_7": {
+      "level": "B",
+      "score": -5,
+      "reason": "The numerical results and pathway identifiers are traceable to the supplied files, and identifiable references are provided in the trace. However, the claim that the noncoding RNA has a 'master oncogenic role' and promotes mitotic entry is stronger than ORA and expression-direction data alone establish and is not directly supported by a study-specific citation."
+    }
+  },
+  "reasoning": "The core ORA is complete, reproducible, and quantitatively matches the expected result, including extraction of 1,543 genes, the 37/200 G2M overlap, multiple-testing correction, rank, and global pathway summary. The only material weakness is overinterpretation of an association-based enrichment result as evidence of a master oncogenic regulatory role."
+}

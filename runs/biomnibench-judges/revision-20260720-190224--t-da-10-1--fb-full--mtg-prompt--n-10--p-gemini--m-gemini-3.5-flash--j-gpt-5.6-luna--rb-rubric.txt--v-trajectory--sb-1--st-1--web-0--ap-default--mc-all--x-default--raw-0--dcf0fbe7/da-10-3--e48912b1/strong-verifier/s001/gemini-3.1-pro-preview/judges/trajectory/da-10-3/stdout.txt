@@ -1,0 +1,15 @@
+Installed 30 packages in 2.18s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent explicitly structures the six datasets into three mutually exclusive categories: MLO Participant Group, Membrane-bound Organelle Control Group, and Pathological/Solid Aggregation Control Group. It justifies the biological overlap among MLO sets and verifies the lack of overlap between the control groups and MLO groups. It clearly defines the fixed hNoPS background set and lists all evaluated predictors."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent correctly constructs binary labels by taking dataset members as positives and hNoPS=1 proteins outside the target dataset as negatives, explicitly removing overlap. Final positive and negative counts per dataset are systematically documented in the results tables."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Missing values are properly handled by filtering NaNs on a per-predictor, per-dataset basis....

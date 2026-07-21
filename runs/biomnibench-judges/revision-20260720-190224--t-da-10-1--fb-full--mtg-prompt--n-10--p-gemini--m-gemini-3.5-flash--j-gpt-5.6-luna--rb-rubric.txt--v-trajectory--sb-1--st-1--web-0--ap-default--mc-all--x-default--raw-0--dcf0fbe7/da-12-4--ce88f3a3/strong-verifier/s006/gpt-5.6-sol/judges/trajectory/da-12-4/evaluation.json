@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome records were resolved to unique sample IDs and matched to survival outcomes by exact sample ID, yielding the expected 457-sample cohort."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox PH models were fitted for all 229 microbiome features with non-zero variance, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values per tested feature."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 is explicitly stated, applied to every fitted feature, and represented in the results table."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, explicitly noting that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports 457 samples, 173 events, all 11 significant poor-prognosis features, at least the top 10 results, the complete per-feature table, and Kocuria's ninth-place ranking among significant features."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed cohort counts, feature identifiers, Cox outputs, and transformations are traceable to the supplied files and documented scripts. Named references with DOIs are included, but some biological characterizations\u2014such as labeling TERT and RBP2 as major oncogenic drivers\u2014and several taxon-specific contextual claims are not directly supported by the local analysis or clearly established by the cited references."
+    }
+  },
+  "reasoning": "The work fully satisfies the core analytical requirements: correct cohort matching, exhaustive modeling of estimable features, exact dual-threshold filtering, the required affirmative Kocuria determination, and complete reporting. Its main limitation is source reliability for a small number of biological and clinical interpretations that go beyond the directly computed evidence."
+}

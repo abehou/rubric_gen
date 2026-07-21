@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome records were resolved to unique sample IDs and matched to survival records by exact sample ID, producing the expected 457-sample cohort with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "A univariate Cox proportional-hazards model was attempted for every microbiome feature; 229 non-zero-variance features were estimable, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis explicitly and consistently applies the required poor-prognosis rule of HR > 1 and p < 0.05, including a per-feature classification in the results table."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the baseline raw-count model, reporting HR = 1.0124 and p = 0.0225 and verifying that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports 457 samples, 173 events, all 11 significant poor-prognosis features, at least the top 10 results, the complete per-feature table, and Kocuria\u2019s placement as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed cohort counts, identifiers, Cox outputs, and transformations are traceable to the supplied files and scripts, and named references with DOIs are provided. However, some biological statements\u2014such as labeling TERT and RBP2 as major oncogenic drivers and characterizing particular transformations as proper or composition-aware\u2014are not directly supported by a cited source in the final answer, so source grounding is not fully complete."
+    }
+  },
+  "reasoning": "The submission fully satisfies the requested cohort construction, exhaustive estimable-feature Cox analysis, exact dual-threshold filtering, Kocuria determination, and reporting requirements. Kocuria is correctly classified under the specified baseline model with the expected HR and p-value, and its rank and cohort statistics are clearly reported. The extensive sensitivity analysis appropriately qualifies\u2014but does not reverse\u2014the baseline classification. The only shortcoming is that a few ancillary biological or methodological interpretations remain incompletely sourced."
+}

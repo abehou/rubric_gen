@@ -1,0 +1,11 @@
+Installed 30 packages in 1.79s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly separates the datasets into MLO participants (OpenCell, DACT1, G3BP1, PhaSepDB), a membrane-bound control (mitochondrial proteomics), and a solid-aggregation control (amyloid). It explicitly defines the fixed negative background set (hNoPS) and lists all evaluated predictor columns (PScore, PLAAC, catGRANULE, SaPS/PdPS 8- and 10-feature scores, DeepCoil, Phos freq, DeepPhase). It also documents and justifies the overlap within MLO datasets and verifies mutual exclusivity against controls."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent defines positives based on dataset membership and negatives from the fixed hNoPS background while explicitly removing any overlap (by ensuring dataset membership == 0 for negatives). Score-label alignment is preserved through UniProt ID merging, and final valid positive and negative sample counts are documented in the detail...

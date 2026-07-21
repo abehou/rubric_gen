@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome and survival files were aligned by exact sample identifiers with an inner join, producing the expected matched cohort of 457 samples."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "A separate univariate Cox PH analysis was attempted for all 250 microbiome features. HRs and p-values are reported for 229 fitted features, while 20 zero-variance features and one convergence failure are explicitly identified."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The poor-prognosis definition is consistently and explicitly applied as HR > 1 AND p < 0.05."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer concludes Yes for Kocuria and reports HR = 1.012396 and p = 0.023403, correctly noting that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The answer reports n_samples = 457, n_events = 173, at least the top 10 significant results, the complete significant-feature list, and Kocuria's rank as 7th in the primary analysis."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "Computed statistics, feature identifiers, cohort counts, transformations, and the Cox implementation are traceable to the supplied files and scripts, and identifiable references are provided. However, the patient-specific interpretation that the outlier likely represents an opportunistic infection rather than a tumor-related signal is speculative and is not established by the cited data or references."
+    }
+  },
+  "reasoning": "The submission satisfies the core analytical rubric: it constructs the expected cohort, attempts feature-wise Cox models with complete status reporting, applies the exact dual threshold, reproduces the expected Kocuria result, and supplies comprehensive cohort and ranking information. The only material weakness is an overextended biological interpretation of the influential outlier as an individual infection event."
+}

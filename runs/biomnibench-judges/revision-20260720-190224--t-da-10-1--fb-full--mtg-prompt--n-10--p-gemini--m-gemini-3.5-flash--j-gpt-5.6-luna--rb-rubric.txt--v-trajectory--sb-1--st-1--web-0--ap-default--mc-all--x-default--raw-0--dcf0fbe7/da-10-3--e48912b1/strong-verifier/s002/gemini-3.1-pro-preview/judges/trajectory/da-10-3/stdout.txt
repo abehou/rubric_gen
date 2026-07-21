@@ -1,0 +1,13 @@
+Installed 30 packages in 2.09s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly separates the datasets into an MLO participant group, a membrane-bound control group (mitochondria), and a pathological aggregation control group (amyloid). It clearly defines the fixed 'hNoPS' background set, lists all the predictor columns evaluated, and explicitly checks and documents the mutual exclusivity (or biologically justified overlap) between datasets."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Labels are correctly constructed for each dataset, with positives defined by dataset membership and negatives drawn from the fixed hNoPS background. Crucially, the agent explicitly removes any overlap by enforcing the condition that the negative samples must have the target dataset indicator equal to zero. Alignments are preserved using dataset merges on UniProt identifiers, and sample counts are extensively documented in the results."
+    },
+    "criterion_3"...

@@ -1,0 +1,15 @@
+Installed 30 packages in 15.01s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly loads both supplementary tables, skips the necessary metadata rows, and identifies 2,791 overlapping proteins. It properly filters the GAHT-affected proteins using the 'adj.p.value < 0.05' threshold, yielding appropriately sized significant subsets for CPA (N=212) and SPIRO (N=80). The agent successfully extracts the relevant estimates for different age brackets and handles missing values properly in its custom Python script."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent perfectly matches the proteins between the datasets using standard identifiers and correctly determines the direction of change based on the sign of the effect size estimates. It handles missing and ambiguous values by safely skipping them, and documents the directional matching logic explicitly using a custom sign consistency test."
+    },
+    "criterion_3": {
+      "level": "A",
+      ...

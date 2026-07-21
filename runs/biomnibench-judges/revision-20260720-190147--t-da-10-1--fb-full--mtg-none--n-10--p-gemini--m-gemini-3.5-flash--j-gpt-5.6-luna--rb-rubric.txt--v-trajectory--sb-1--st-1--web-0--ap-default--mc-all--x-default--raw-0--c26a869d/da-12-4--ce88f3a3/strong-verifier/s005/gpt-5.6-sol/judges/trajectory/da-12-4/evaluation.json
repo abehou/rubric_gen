@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis resolves duplicate microbiome records, aligns microbiome and survival data by sample ID, and obtains the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "A separate univariate Cox proportional-hazards model was fitted for each of 229 non-zero-variance microbiome features, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 is explicitly stated, applied to every modeled feature, and represented in the results table."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the baseline raw-count model, reporting HR = 1.0124 and p = 0.0225 and explicitly confirming that both thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, all 11 significant poor-prognosis features, at least the top 10 results, the complete per-feature output, and Kocuria\u2019s rank as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed values, feature identifiers, cohort construction, and Cox methodology are traceable to the supplied files and scripts, and named references with DOIs are provided. However, claims that the Kocuria result is definitively a technical artifact, descriptions of certain expression features as major oncogenic drivers, and some taxon-specific or robustness interpretations extend beyond what the univariate and sensitivity analyses directly establish and are not all individually supported by the cited references."
+    }
+  },
+  "reasoning": "The submission fully satisfies the requested cohort matching, exhaustive univariate Cox analysis, exact poor-prognosis filtering, Kocuria determination, and reporting-completeness requirements. Its principal result is clear and supported by the documented analysis. The only material weakness is overstatement in some secondary biological and robustness interpretations; the leave-one-out and normalization checks establish fragility and model dependence, but not definitively a technical artifact or biological mechanism."
+}

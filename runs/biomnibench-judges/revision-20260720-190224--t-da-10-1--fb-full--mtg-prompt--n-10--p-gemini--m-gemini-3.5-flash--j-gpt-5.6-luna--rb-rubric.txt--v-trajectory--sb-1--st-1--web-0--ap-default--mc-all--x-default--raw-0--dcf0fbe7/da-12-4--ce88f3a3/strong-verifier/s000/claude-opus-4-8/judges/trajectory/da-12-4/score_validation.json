@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "scorer_version": "rubric-scoring-v1",
+  "review_input_sha256": "84b5ba24d0de8001f4568169caf1fcaf59744aae6b75d78f90db670b13001b78",
+  "answer_input_sha256": "41e8186559fe5a53b38e19b9c732ff33a2aaa6882d763a74fb4e3f9c7ea95923",
+  "judge_source_sha256": "51d1858569013a27b8db7861cdcddf165e90b280d9605f160b1b73267846810e",
+  "judge_runner_sha256": "f34a0082df79f96fe8b83e242a7a679313c9b4b673605c5ee44573ec3b47b7f9",
+  "scorer_module_sha256": "8ca2695235f4ef8501ccbfe47e26c731bfc50a9241d48f1c328ad351f1cf8b03",
+  "effective_judge_model": "claude-opus-4-8",
+  "review_mode": "trajectory",
+  "max_review_chars": null,
+  "task": "da-12-4",
+  "run_identity": "/juice2/u/nlp/data/abe_models/rubric_gen/runs/biomnibench-revisions/revision-20260720-190224--t-da-12-4--fb-full--mtg-prompt--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-1--st-1--web-0--ap-default--mc-all--x-default--raw-0/submissions/s000",
+  "repeat_index": 1,
+  "score": 73,
+  "raw_score": 73,
+  "reported_score": 73,
+  "score_matches_reported": true,
+  "selected_levels": {
+    "criterion_1": "A",
+    "criterion_2": "A",
+    "criterion_3": "A",
+    "criterion_4": "C",
+    "criterion_5": "A",
+    "criterion_6": "A"
+  },
+  "criterion_scores": {
+    "criterion_1": 19,
+    "criterion_2": 19,
+    "criterion_3": 19,
+    "criterion_4": 0,
+    "criterion_5": 16,
+    "criterion_6": 0
+  },
+  "rubric_source": "task-local",
+  "rubric_set_id": null,
+  "rubric_id": null,
+  "structured_rubric_sha256": null,
+  "rendered_rubric_sha256": "11e28936e7b1b43a7958730b6d4c2ecc0666541ca762ffb36431ba6e09534d1f",
+  "manifest_sha256": null,
+  "reward_sha256": "ff9703fbe22c3bde36c35253629f39924f75e1dafc0c41bd2686c259696e2d31",
+  "evaluation_sha256": "98612fd7d7713f1a00876487c9da731ad93bbc02e4b64785a4af48d7077b0bb3"
+}

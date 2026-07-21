@@ -1,0 +1,14 @@
+Installed 30 packages in 11.99s
+Raw response (first 1000 chars): {"criteria": {"criterion_1": {"level": "A", "reason": "The agent correctly reads Supplementary Table 4, skips the 3 descriptor/metadata rows to reach the fourth-row header, identifies the correct column names (protein_id, estimate_Percent_Fat, adj.p.value_Percent_Fat, estimate_Breast_Volume, adj.p.value_Breast_Volume), converts numeric fields to float, parses 5,278 records, and verifies zero missing values in both estimates and p-values."}, "criterion_2": {"level": "A", "reason": "The agent applies adj p < 0.05 independently to each phenotype, reporting 38 significant proteins for percent fat, 249 for breast volume, and 28 overlapping. The scale matches expectations (tens for fat, hundreds for breast volume) and the filtering criteria are clearly documented."}, "criterion_3": {"level": "A", "reason": "In the revised solution the agent ranks significant proteins separately for each phenotype by descending absolute effect size (|estimate|), providing top-10 lists with estimates, adjusted...
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-c95_nz86/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-c95_nz86/llm_judge.py", line 209, in main
+    score, criteria, reasoning = score_response(
+                                 ^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-c95_nz86/llm_judge.py", line 149, in score_response
+    result = extract_json_object(response_text)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-c95_nz86/llm_judge.py", line 142, in extract_json_object
+    raise ValueError("judge response contains an incomplete JSON object")
+ValueError: judge response contains an incomplete JSON object

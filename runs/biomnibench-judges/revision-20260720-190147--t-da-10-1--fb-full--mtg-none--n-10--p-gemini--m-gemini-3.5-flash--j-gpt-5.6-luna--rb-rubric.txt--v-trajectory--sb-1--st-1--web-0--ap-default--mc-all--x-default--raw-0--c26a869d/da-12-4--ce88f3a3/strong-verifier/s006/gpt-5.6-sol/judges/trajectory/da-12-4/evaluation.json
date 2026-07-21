@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome records were resolved to unique sample IDs, aligned with survival records by exact sample ID, and yielded the expected 457 matched samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox PH models were fitted for all 229 non-zero-variance microbial features, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 was explicitly applied and reported for every modeled feature."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria under the baseline raw-count model and reports HR = 1.0124 and p = 0.0225, which satisfy both required thresholds."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports n_samples = 457, n_events = 173, all 11 significant poor-prognosis features, at least the top 10 results, a complete per-feature table, and Kocuria\u2019s rank as ninth among significant and overall tested features."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "Computed values and feature identifiers are traceable to the supplied files and documented scripts, and named references with DOIs are given. However, some biological characterizations\u2014such as calling TERT and RBP2 major oncogenic drivers and contextual claims connecting particular taxa to tumor profiling\u2014were not directly established by this analysis, and the trace does not demonstrate that every cited taxon-specific claim was verified against an allowed local source."
+    }
+  },
+  "reasoning": "The work fully satisfies the cohort construction, exhaustive univariate Cox analysis, dual-threshold filtering, Kocuria determination, and reporting-completeness requirements. Kocuria is correctly classified as significant in the specified baseline model, while the additional sensitivity analysis appropriately qualifies that result. The only material weakness is that a few biological interpretations are broader than the locally demonstrated evidence or clearly verified references."
+}

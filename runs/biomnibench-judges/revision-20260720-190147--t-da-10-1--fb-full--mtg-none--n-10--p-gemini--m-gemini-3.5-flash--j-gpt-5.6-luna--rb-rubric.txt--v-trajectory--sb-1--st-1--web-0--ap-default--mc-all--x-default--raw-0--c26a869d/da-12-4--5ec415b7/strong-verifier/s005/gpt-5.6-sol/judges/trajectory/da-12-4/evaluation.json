@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome and survival files were aligned by sample identifier after resolving duplicate microbiome records, producing the expected matched cohort of 457 samples with 173 events."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "A separate univariate Cox PH analysis was attempted for each of the 250 microbiome features. HR and p-value are reported for 229 fitted features, while 20 zero-variance features and one convergence failure are explicitly identified rather than silently omitted."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis explicitly defines and applies the required poor-prognosis rule as HR > 1 AND p < 0.05."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer concludes Yes for Kocuria and reports HR = 1.012396 and p = 0.023403, with a 95% CI of [1.001669, 1.023238], explicitly noting that HR > 1 and p < 0.05."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The answer reports n_samples = 457, n_events = 173, all 11 significant poor-prognosis features, and Kocuria's rank as 7th under the primary first-occurrence analysis and 9th under the highest-depth sensitivity analysis."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The numerical results, identifiers, transformations, and Cox implementation are traceable to the supplied files and documented scripts, and identifiable references support Kocuria's general opportunistic-pathogen biology. However, the claim that the outlying signal likely represents an individual opportunistic infection is not established by the provided data, which contain no clinical infection evidence, and is therefore a speculative interpretation beyond the cited support."
+    }
+  },
+  "reasoning": "The submission fully satisfies the core analytical requirements: it constructs the expected matched cohort, attempts feature-wise univariate Cox models with complete status reporting, applies the exact dual threshold, verifies Kocuria with the expected statistics, and reports cohort counts, top hits, and rank. The only material weakness is an unsupported patient-specific biological interpretation of the Kocuria outlier; the statistical conclusion and sensitivity caveat themselves are well documented."
+}

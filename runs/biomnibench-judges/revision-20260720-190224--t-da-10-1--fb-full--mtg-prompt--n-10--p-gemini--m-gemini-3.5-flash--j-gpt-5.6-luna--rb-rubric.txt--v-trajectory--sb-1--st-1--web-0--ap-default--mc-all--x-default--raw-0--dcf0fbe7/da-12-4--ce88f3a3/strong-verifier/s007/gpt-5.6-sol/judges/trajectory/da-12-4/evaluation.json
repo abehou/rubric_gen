@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The microbiome and survival files were aligned by sample ID after resolving duplicate microbiome records, yielding the expected 457 matched samples."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "Univariate Cox PH models were fitted for all 229 non-zero-variance microbial features, and the complete table reports coefficients, hazard ratios, confidence intervals, and p-values for each."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 was explicitly applied and reported for every modeled feature."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer correctly concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, explicitly verifying that both poor-prognosis thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "The response reports 457 samples, 173 events, all 11 significant features, at least the top 10 results, the complete per-feature table, and Kocuria's ninth-place rank."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "Computed values, identifiers, cohort construction, and methods are traceable to the supplied files and scripts, and named references with DOIs are provided. However, a few interpretations\u2014such as labeling RNA features as oncogenic drivers, characterizing transformations or correlations as robust, and linking specific taxa to broader clinical contexts\u2014are not directly established by the univariate analysis or clearly supported by the cited references."
+    }
+  },
+  "reasoning": "The work fully satisfies the cohort construction, exhaustive univariate Cox modeling, dual-threshold filtering, Kocuria determination, and reporting-completeness requirements. Kocuria is correctly classified under the baseline raw-count model, with appropriate sensitivity caveats. The only limitation is that some ancillary biological and robustness interpretations extend beyond the directly demonstrated statistical evidence."
+}

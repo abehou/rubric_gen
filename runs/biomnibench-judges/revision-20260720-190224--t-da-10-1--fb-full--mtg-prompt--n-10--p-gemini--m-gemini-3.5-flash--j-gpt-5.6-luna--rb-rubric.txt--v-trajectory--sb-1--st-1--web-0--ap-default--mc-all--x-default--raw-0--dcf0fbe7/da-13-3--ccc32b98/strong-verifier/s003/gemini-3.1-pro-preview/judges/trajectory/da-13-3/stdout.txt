@@ -1,0 +1,15 @@
+Installed 30 packages in 11.83s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly parsed the provided CSV file, properly skipped the 3 descriptor lines to use the 4th row as the header, converted the estimate and p-value columns to floats, and checked for missing data (finding 5,278 valid rows)."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent successfully applied an adjusted p-value threshold of < 0.05 for both phenotypes independently. It accurately reported 38 significant proteins for percent fat, 249 for breast volume, and 28 overlapping proteins, clearly documenting the filtering criteria."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent correctly ranked the significant proteins for each phenotype by their absolute effect size. It provided clear Top 10 lists for both percent fat (including MAPK4, DEFB4A, LEP, MUC1, CA6) and breast volume (including SPINT3, INSL3, ATP5F1D, KMT5B, EDDM3B, CXCL13), reporting ...

@@ -1,0 +1,16 @@
+Installed 30 packages in 15.11s
+Raw response (first 1000 chars): ```json
+{
+  "overall_reasoning": "Final Grade: 100/100 (All Criteria: Level A). Initial logic and parameters are validated. The agent successfully executes the regimen-specific concordance protocol, dynamically applying p-value-based MHT age-stratum selection. Final outputs deliver precise concordance metrics (CPA: 75.47%, SPIRO: 88.75%), accurately identified biological exceptions, and strictly tempered, literature-backed interpretations.",
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "Final Result: Level A. Initial logic and parameters are validated. The algorithm directly generates 245 CPA and 91 SPIRO significant proteins with optimal MHT stratum selection."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Final Result: Level A. Standard processing applied. Matches resolve to exactly 212 CPA and 80 SPIRO overlapping targets with accurate sign alignments."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Final Result: Level...

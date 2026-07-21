@@ -8,6 +8,8 @@ __pycache__/
 .superpowers/
 data/
 runs/*
+!runs/biomnibench-judges/
+!runs/biomnibench-judges/**
 !runs/biomnibench-reports/
 !runs/biomnibench-reports/**
 tmp/

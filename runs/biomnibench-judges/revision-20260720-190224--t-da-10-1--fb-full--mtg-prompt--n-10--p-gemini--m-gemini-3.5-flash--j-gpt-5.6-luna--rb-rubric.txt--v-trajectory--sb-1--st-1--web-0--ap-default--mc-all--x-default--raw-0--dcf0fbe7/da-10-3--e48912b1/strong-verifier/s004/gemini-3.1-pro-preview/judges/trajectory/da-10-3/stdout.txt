@@ -1,0 +1,14 @@
+Installed 30 packages in 1.89s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly identifies four MLO participant datasets, a membrane-bound control (mitochondrial proteomics), and a solid-aggregation control (amyloid). It clearly defines the fixed hNoPS background and lists all evaluated predictor columns across both analyses. The agent also quantitatively documents dataset overlaps and justifies them biologically, while confirming mutual exclusivity between MLOs and controls."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent correctly constructs binary labels by defining positives via dataset membership and negatives via the hNoPS background, explicitly applying a D==0 condition to remove overlap between positive sets and the negative background. Label-to-score alignment is preserved through UniProt ID merges, and valid sample sizes for positive and negative classes are reported in the detailed tables."
+    },
+    "criterion_3": {
+     ...

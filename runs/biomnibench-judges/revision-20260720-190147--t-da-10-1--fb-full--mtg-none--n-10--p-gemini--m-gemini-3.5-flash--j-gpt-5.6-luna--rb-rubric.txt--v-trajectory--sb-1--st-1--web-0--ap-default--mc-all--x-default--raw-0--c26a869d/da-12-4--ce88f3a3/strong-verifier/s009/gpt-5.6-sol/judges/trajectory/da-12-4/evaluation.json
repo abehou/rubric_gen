@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 19,
+      "reason": "The analysis resolves duplicate microbiome records, aligns unique microbiome and survival records by the supplied sample IDs, and obtains the expected matched cohort of 457 samples."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 19,
+      "reason": "It fits a separate univariate Cox proportional-hazards model for each of the 229 non-zero-variance microbial features and reports coefficients, hazard ratios, confidence intervals, and p-values in the complete results table."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 19,
+      "reason": "The exact rule HR > 1 and p < 0.05 is stated, applied consistently, and represented by a per-feature poor-prognosis indicator."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "The answer concludes Yes for Kocuria and reports HR = 1.0124 and p = 0.0225, explicitly confirming that both required thresholds are met."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 16,
+      "reason": "It reports 457 samples, 173 events, all 11 significant poor-prognosis features, at least the top 10 results, the complete per-feature table, and Kocuria\u2019s placement as ninth among significant features and ninth overall."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "The computed cohort counts, feature identifiers, model outputs, and transformations are traceable to supplied files and documented scripts, and named references with identifiers are given. However, some contextual assertions\u2014such as describing specific RNA features as oncogenic drivers, characterizing Spearman correlation as inherently robust to outliers, and making taxon-specific literature summaries\u2014were introduced without local verification and extend beyond the directly computed evidence, even though the final causal language is appropriately conservative."
+    }
+  },
+  "reasoning": "The submission fully satisfies the core analytical requirements: it constructs the expected matched cohort, performs exhaustive univariate Cox modeling for all usable microbial features, applies the specified dual-threshold rule, correctly classifies Kocuria, and provides complete cohort, ranking, and top-result reporting. The main limitation is source reliability for a few ancillary biological and methodological interpretations that were not independently verified from the permitted local materials; this does not affect the central computed conclusion."
+}
