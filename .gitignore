@@ -7,5 +7,7 @@ __pycache__/
 .env.*
 .superpowers/
 data/
-runs/
+runs/*
+!runs/biomnibench-reports/
+!runs/biomnibench-reports/**
 tmp/

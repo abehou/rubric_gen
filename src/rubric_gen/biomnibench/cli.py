@@ -128,7 +128,7 @@ def _add_revise_parser(
         default=None,
         help=(
             "Base directory name; defaults to a timestamped directory under "
-            "runs/biomnibench-revisions."
+            "$BULK/rubric_gen/runs/biomnibench-revisions."
         ),
     )
     revise.add_argument(

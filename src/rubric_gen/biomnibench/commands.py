@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
 from datetime import datetime
@@ -62,8 +64,23 @@ def run_all(args: argparse.Namespace) -> int:
 
 
 def _timestamped_revision_experiment_dir() -> Path:
+    bulk = os.environ.get("BULK")
+    if bulk is None or not bulk.strip():
+        raise ValueError(
+            "BULK must be set when --experiment-dir is omitted; set BULK to an "
+            "absolute large-storage directory or pass --experiment-dir explicitly"
+        )
+    bulk_root = Path(bulk).expanduser()
+    if not bulk_root.is_absolute():
+        raise ValueError("BULK must be an absolute path")
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return resolve_project_path(f"runs/biomnibench-revisions/revision-{stamp}")
+    return (
+        bulk_root
+        / "rubric_gen"
+        / "runs"
+        / "biomnibench-revisions"
+        / f"revision-{stamp}"
+    )
 
 
 def run_revise(args: argparse.Namespace) -> int:
@@ -97,21 +114,23 @@ def run_revise(args: argparse.Namespace) -> int:
         else (FeedbackPolicy(args.feedback_policy),)
     )
     configs = [
-        replace(
-            SubmissionRevisionConfig.from_namespace(
-                argparse.Namespace(
-                    **{
-                        **vars(args),
-                        "task": str(task_dir),
-                        "feedback_policy": policy.value,
-                    }
-                )
-            ),
-            show_progress=False,
+        SubmissionRevisionConfig.from_namespace(
+            argparse.Namespace(
+                **{
+                    **vars(args),
+                    "task": str(task_dir),
+                    "feedback_policy": policy.value,
+                }
+            )
         )
         for task_dir in task_dirs
         for policy in policies
     ]
+    if args.resume:
+        configs = [
+            replace(config, resume=os.path.lexists(config.experiment_dir))
+            for config in configs
+        ]
     if args.dry_run:
         print(f"Selected {len(task_dirs)} task(s) and {len(configs)} experiment(s).")
         for config in configs:
@@ -125,19 +144,33 @@ def run_revise(args: argparse.Namespace) -> int:
         total=len(configs),
         description="revise batch",
         unit="experiment",
+        position=0,
     ) as progress:
         if args.max_concurrency == 1:
             for config in configs:
                 try:
-                    run_submission_revision(config)
+                    run_submission_revision(replace(config, progress_position=1))
                 except Exception as exc:
                     failures.append((config, exc))
                 finally:
                     progress.update()
         else:
+            progress_positions: queue.SimpleQueue[int] = queue.SimpleQueue()
+            for position in range(1, args.max_concurrency + 1):
+                progress_positions.put(position)
+
+            def run_with_progress(config: SubmissionRevisionConfig) -> None:
+                position = progress_positions.get()
+                try:
+                    run_submission_revision(
+                        replace(config, progress_position=position)
+                    )
+                finally:
+                    progress_positions.put(position)
+
             with ThreadPoolExecutor(max_workers=args.max_concurrency) as executor:
                 futures = {
-                    executor.submit(run_submission_revision, config): config
+                    executor.submit(run_with_progress, config): config
                     for config in configs
                 }
                 for future in as_completed(futures):

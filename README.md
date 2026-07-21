@@ -66,11 +66,10 @@ uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
 
 Use `--feedback-policy score_only` for a single score-only ablation.
 
-Run every task under both full-feedback and score-only conditions:
+Run every task under both full-feedback and score-only conditions. `BULK` must
+name an absolute large-storage path:
 
 ```bash
-export BIOMNIBENCH_LIVE_ROOT="$BULK/rubric_gen/biomnibench-live"
-
 uv run biomnibench-agent revise \
   --all \
   --full-v-score \
@@ -86,18 +85,39 @@ uv run biomnibench-agent revise \
   --max-concurrency 90
 ```
 
-`BIOMNIBENCH_LIVE_ROOT` must be an absolute path. Set it to large scratch
-storage for batch runs; live solver workspaces, local virtual environments, and
-workspace-local package caches are created below it. Completed submissions are
-still stored under the configured experiment directories.
+By default, durable experiment data is stored under
+`$BULK/rubric_gen/runs/biomnibench-revisions/`, while live solver workspaces,
+local virtual environments, and workspace-local package caches use
+`$BULK/rubric_gen/biomnibench-live/`. Set `BIOMNIBENCH_LIVE_ROOT` to another
+absolute path to override only the live-storage location.
 
 Add `--dry-run` first to print every selected task, condition, and output
 directory without starting solver or judge processes.
 
-When `--experiment-dir` is omitted, `revise` creates one timestamped base under
-`runs/biomnibench-revisions/`. The final directory name also includes the task
-and all score-relevant command arguments, so different conditions do not
-collide. Pass `--experiment-dir PATH` to override the timestamped base.
+During `revise --all`, the terminal shows one overall experiment progress bar
+plus one revision-round bar for each active worker, up to `--max-concurrency`.
+Worker bars disappear on completion and their terminal rows are reused by the
+next queued experiments.
+
+After every judged revision round, `revise` also publishes a lightweight,
+Git-trackable mirror under `runs/biomnibench-reports/`. Each experiment report
+contains only `score_improvement.png` and `summary.json`; heavy submissions,
+trajectories, judge logs, and environments remain exclusively in BULK. Set
+`BIOMNIBENCH_REPORTS_ROOT` to another absolute path to override the report
+location.
+
+When `--experiment-dir` is omitted, `revise` requires `BULK` to be set to an
+absolute path and creates one timestamped base under
+`$BULK/rubric_gen/runs/biomnibench-revisions/`. The final directory name also
+includes the task and all score-relevant command arguments, so different
+conditions do not collide. Pass `--experiment-dir PATH` to override the BULK
+default; an explicit path works even when `BULK` is unset.
+
+Each revision submission remains as an immutable snapshot under `submissions/`.
+Judge staging uses hard links to that snapshot instead of copying its workspace
+and cumulative trajectory, so the judge layout does not consume a second set of
+file data blocks. Judge results and validation artifacts remain durable for
+resume and audit.
 
 To continue an interrupted experiment, pass its exact final directory with
 `--experiment-dir PATH --resume`. To delete that experiment and start again at

@@ -108,6 +108,8 @@ class SubmissionRevisionConfig:
     resume: bool = False
     restart: bool = False
     show_progress: bool = True
+    progress_position: int | None = None
+    publish_report: bool = False
 
     def __post_init__(self) -> None:
         if type(self.revision_rounds) is not int or self.revision_rounds < 0:
@@ -120,6 +122,12 @@ class SubmissionRevisionConfig:
             raise ValueError("resume and restart are mutually exclusive")
         if type(self.show_progress) is not bool:
             raise ValueError("show_progress must be a boolean")
+        if self.progress_position is not None and (
+            type(self.progress_position) is not int or self.progress_position < 0
+        ):
+            raise ValueError("progress_position must be a non-negative integer")
+        if type(self.publish_report) is not bool:
+            raise ValueError("publish_report must be a boolean")
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
         FeedbackPolicy(self.feedback_policy)
@@ -166,6 +174,7 @@ class SubmissionRevisionConfig:
             max_review_chars=args.max_review_chars,
             resume=args.resume,
             restart=getattr(args, "restart", False),
+            publish_report=True,
         )
 
 

@@ -1,0 +1,20 @@
+{
+  "completed_rounds": 1,
+  "experiment_dir": "/juice2/scr2/abehou/.cache/tmp/pytest-of-abehou/pytest-38/test_restart_replaces_an_inter0/experiment--t-da-1-1--fb-full--mtg-none--n-0--p-gemini--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-1--web-0--ap-default--mc-all--x-default--raw-0",
+  "feedback_policy": "full",
+  "judge_model": null,
+  "mitigation": "none",
+  "phase": "completed",
+  "provider": "gemini",
+  "review": "trajectory",
+  "rubric_name": null,
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "eeec7ab96bd5c31a3115409329597c0ad6b8c2a3ffa0737f20f814ffe3d7ab40",
+  "scores": [
+    95
+  ],
+  "solver_model": "test-model",
+  "task_id": "da-1-1",
+  "total_rounds": 1
+}

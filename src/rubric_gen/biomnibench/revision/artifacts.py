@@ -20,6 +20,7 @@ EXCLUDED_SOLUTION_NAMES = frozenset(
         ".mypy_cache",
         ".pytest_cache",
         ".ruff_cache",
+        ".uv-cache",
         ".uv_cache",
         ".venv",
         "__pycache__",
@@ -83,9 +84,9 @@ def prepare_evaluation_run(submission_dir: Path, evaluation_root: Path) -> Path:
     run_dir = evaluation_root / "run"
     workspace = run_dir / "workspace"
     run_dir.mkdir(parents=True)
-    copy_solution_workspace(submission_dir / "workspace", workspace)
+    _link_solution_workspace(submission_dir / "workspace", workspace)
     make_tree_read_only(workspace)
-    shutil.copyfile(
+    os.link(
         submission_dir / "trajectory.stream.jsonl",
         run_dir / "trajectory.stream.jsonl",
         follow_symlinks=False,
@@ -300,6 +301,29 @@ def _copy_solution_entry(source: Path, destination: Path) -> None:
     shutil.copyfile(source, destination, follow_symlinks=False)
 
 
+def _link_solution_workspace(source: Path, destination: Path) -> None:
+    """Mirror an immutable snapshot without duplicating regular-file contents."""
+    if source.is_symlink() or not source.is_dir():
+        raise RuntimeError(f"invalid submission workspace: {source}")
+    destination.mkdir()
+    for child in sorted(source.iterdir(), key=lambda path: path.name):
+        _link_solution_entry(child, destination / child.name)
+
+
+def _link_solution_entry(source: Path, destination: Path) -> None:
+    source_stat = os.lstat(source)
+    if stat.S_ISLNK(source_stat.st_mode):
+        raise RuntimeError(f"submission snapshot contains a symlink: {source}")
+    if stat.S_ISDIR(source_stat.st_mode):
+        destination.mkdir()
+        for child in sorted(source.iterdir(), key=lambda path: path.name):
+            _link_solution_entry(child, destination / child.name)
+        return
+    if not stat.S_ISREG(source_stat.st_mode):
+        raise RuntimeError(f"submission snapshot contains a special file: {source}")
+    os.link(source, destination, follow_symlinks=False)
+
+
 def _hash_tree(root: Path, *, excluded_names: frozenset[str]) -> str:
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*")):
@@ -324,12 +348,15 @@ def _hash_tree(root: Path, *, excluded_names: frozenset[str]) -> str:
 
 
 def validate_live_root(root: Path, experiment_dir: Path) -> None:
-    temp_root = live_root_parent()
+    allowed_parents = {
+        Path(tempfile.gettempdir()).resolve(),
+        live_root_parent(),
+    }
     if (
         root.is_symlink()
         or not root.is_dir()
         or not root.name.startswith(LIVE_ROOT_PREFIX)
-        or root.parent.resolve() != temp_root
+        or root.parent.resolve() not in allowed_parents
     ):
         raise RuntimeError(f"invalid live revision root: {root}")
     sentinel = root / _LIVE_ROOT_SENTINEL
@@ -346,15 +373,22 @@ def validate_live_root(root: Path, experiment_dir: Path) -> None:
 
 def live_root_parent() -> Path:
     configured = os.environ.get(LIVE_ROOT_ENV)
-    if configured:
-        root = Path(configured).expanduser()
-        if not root.is_absolute():
-            raise RuntimeError(f"{LIVE_ROOT_ENV} must be an absolute path")
-        root.mkdir(parents=True, exist_ok=True)
-        if root.is_symlink() or not root.is_dir():
-            raise RuntimeError(f"invalid {LIVE_ROOT_ENV}: {root}")
-        return root.resolve()
-    return Path(tempfile.gettempdir()).resolve()
+    source = LIVE_ROOT_ENV
+    if not configured:
+        bulk = os.environ.get("BULK")
+        if bulk is None or not bulk.strip():
+            return Path(tempfile.gettempdir()).resolve()
+        configured = str(
+            Path(bulk).expanduser() / "rubric_gen" / "biomnibench-live"
+        )
+        source = "BULK"
+    root = Path(configured).expanduser()
+    if not root.is_absolute():
+        raise RuntimeError(f"{source} must be an absolute path")
+    root.mkdir(parents=True, exist_ok=True)
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError(f"invalid revision live root from {source}: {root}")
+    return root.resolve()
 
 
 def _force_remove_directory(root: Path) -> None:

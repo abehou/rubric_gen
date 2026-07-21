@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import stat
 import threading
 from dataclasses import replace
@@ -15,6 +16,7 @@ import rubric_gen.biomnibench.commands as commands_module
 import rubric_gen.biomnibench.revision as submission_revision_module
 import rubric_gen.biomnibench.revision.artifacts as revision_artifacts_module
 import rubric_gen.biomnibench.revision.controller as revision_controller_module
+import rubric_gen.biomnibench.revision.reports as revision_reports_module
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptMitigation
 from rubric_gen.biomnibench.cli import build_parser
@@ -351,6 +353,7 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     ]
     assert [kwargs["initial"] for _, _, kwargs in progress_calls] == [0, 1, 2]
     assert all(kwargs["total"] == 3 for _, _, kwargs in progress_calls)
+    assert all(kwargs["unit"] == "round" for _, _, kwargs in progress_calls)
 
 
 def test_resume_recovers_failed_turn_after_stream_retry_exhaustion(
@@ -402,6 +405,163 @@ def test_resume_recovers_failed_turn_after_stream_retry_exhaustion(
         for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
     ]
     assert any(event["event"] == "turn_recovered" for event in events)
+
+
+@pytest.mark.parametrize(
+    ("cache_name", "interrupted", "expected_recovery_status"),
+    (
+        (".uv_cache", False, "accepted_after_cache_exclusion"),
+        (".uv-cache", False, "accepted_after_cache_exclusion"),
+        (".uv_cache", True, "accepted_after_interrupted_boundary"),
+    ),
+)
+def test_resume_recovers_legacy_workspace_cache_snapshot_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    cache_name: str,
+    interrupted: bool,
+    expected_recovery_status: str,
+) -> None:
+    task = _write_task(tmp_path)
+    session = FakeSessionDriver()
+    rubric_text = (task / "tests" / "rubric.txt").read_text()
+    judge = FakeJudge(
+        (80,),
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
+        tmp_path / "fake-judge",
+    )
+    config = SubmissionRevisionConfig(
+        task_dir=task,
+        experiment_dir=tmp_path / "experiment",
+        revision_rounds=0,
+        agent=AgentRunConfig(
+            provider="gemini",
+            model="test-model",
+            retries=5,
+        ),
+        rubric_name="rubric.txt",
+    )
+    dependencies = RevisionDependencies(session=session, judge=judge)
+    original_solution_hash = revision_controller_module._solution_tree_sha256
+    monkeypatch.setattr(
+        revision_controller_module,
+        "_solution_tree_sha256",
+        lambda workspace: (_ for _ in ()).throw(
+            RuntimeError(
+                "snapshot contains a non-regular file: "
+                f"{cache_name}/wheels-v6/example"
+            )
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="snapshot contains a non-regular file"):
+        SubmissionRevisionController(config, dependencies).run()
+
+    status_path = config.experiment_dir / "turns" / "turn-000" / "status.json"
+    status_path.chmod(status_path.stat().st_mode | stat.S_IWUSR)
+    status = json.loads(status_path.read_text())
+    status.update(
+        {
+            "attempt_count": 1,
+            "max_retries": 5,
+            "attempts": [
+                {
+                    "process_exit_code": 0,
+                    "stream_errors": [],
+                    "output_errors": [],
+                }
+            ],
+            "transport_exit_code": 0,
+            "accepted_after_retry_exhaustion": False,
+        }
+    )
+    if interrupted:
+        state_path = config.experiment_dir / "state.json"
+        state = json.loads(state_path.read_text())
+        state["phase"] = "turn_in_progress"
+        state_path.write_text(json.dumps(state))
+        status.pop("status", None)
+        status.pop("validation_errors", None)
+        status["exit_code"] = 0
+    status_path.write_text(json.dumps(status))
+    monkeypatch.setattr(
+        revision_controller_module,
+        "_solution_tree_sha256",
+        original_solution_hash,
+    )
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.submission_ids == ("s000",)
+    assert result.scores == (80,)
+    recovered_status = json.loads(status_path.read_text())
+    assert recovered_status["status"] == expected_recovery_status
+    assert recovered_status["recovered_on_resume"] is True
+
+
+def test_resume_archives_and_retries_an_unrecoverable_failed_turn(
+    tmp_path: Path,
+) -> None:
+    class FirstAttemptFails(FakeSessionDriver):
+        def start(
+            self,
+            workspace: Path,
+            prompt: str,
+            turn_dir: Path,
+            *,
+            on_session_id: Callable[[str], None] | None = None,
+        ) -> SessionTurnResult:
+            result = super().start(
+                workspace,
+                prompt,
+                turn_dir,
+                on_session_id=on_session_id,
+            )
+            return replace(result, exit_code=1)
+
+        def resume(
+            self,
+            workspace: Path,
+            prompt: str,
+            turn_dir: Path,
+            session_id: str,
+        ) -> SessionTurnResult:
+            self.prompts.append(prompt)
+            self.session_ids.append(session_id)
+            return self._turn(workspace, turn_dir, 0)
+
+    task = _write_task(tmp_path)
+    session = FirstAttemptFails()
+    rubric_text = (task / "tests" / "rubric.txt").read_text()
+    judge = FakeJudge(
+        (80,),
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
+        tmp_path / "fake-judge",
+    )
+    config = SubmissionRevisionConfig(
+        task_dir=task,
+        experiment_dir=tmp_path / "experiment",
+        revision_rounds=0,
+        agent=AgentRunConfig(provider="gemini", model="test-model"),
+        rubric_name="rubric.txt",
+    )
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(RuntimeError, match="provider exited with code 1"):
+        SubmissionRevisionController(config, dependencies).run()
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.submission_ids == ("s000",)
+    assert session.start_count == 1
+    assert len(session.prompts) == 2
+    assert (
+        config.experiment_dir / "interrupted-turns" / "turn-000" / "status.json"
+    ).is_file()
 
 
 def test_restart_replaces_an_interrupted_experiment(
@@ -520,6 +680,126 @@ def test_revise_cli_suppresses_success_output(
     assert capsys.readouterr().out == ""
 
 
+def test_revision_live_root_can_be_redirected_to_bulk_storage(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bulk_root = tmp_path / "bulk" / "biomnibench-live"
+    monkeypatch.setenv("BIOMNIBENCH_LIVE_ROOT", str(bulk_root))
+
+    assert revision_artifacts_module.live_root_parent() == bulk_root
+    assert bulk_root.is_dir()
+
+
+def test_revision_live_root_defaults_to_bulk(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bulk_root = tmp_path / "bulk"
+    monkeypatch.delenv("BIOMNIBENCH_LIVE_ROOT", raising=False)
+    monkeypatch.setenv("BULK", str(bulk_root))
+
+    assert revision_artifacts_module.live_root_parent() == (
+        bulk_root / "rubric_gen" / "biomnibench-live"
+    )
+
+
+def test_solution_snapshot_excludes_disposable_local_uv_cache(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "answer.txt").write_text("answer\n")
+    (workspace / "trace.md").write_text("trace\n")
+    cache_target = tmp_path / "bulk-cache"
+    cache_target.mkdir()
+    (workspace / ".uv_cache").symlink_to(cache_target, target_is_directory=True)
+
+    digest = revision_artifacts_module.solution_tree_sha256(workspace)
+    snapshot = tmp_path / "snapshot"
+    revision_artifacts_module.copy_solution_workspace(workspace, snapshot)
+
+    assert len(digest) == 64
+    assert not (snapshot / ".uv_cache").exists()
+    assert (snapshot / "answer.txt").read_text() == "answer\n"
+
+
+def test_evaluation_run_hard_links_immutable_submission_inputs(tmp_path: Path) -> None:
+    submission = tmp_path / "submission"
+    workspace = submission / "workspace"
+    nested = workspace / "nested"
+    nested.mkdir(parents=True)
+    (workspace / "answer.txt").write_text("answer\n")
+    (nested / "result.txt").write_text("result\n")
+    (submission / "trajectory.stream.jsonl").write_text('{"turn": 0}\n')
+    (submission / "status.json").write_text(
+        json.dumps(
+            {
+                "task": "da-1-1",
+                "workspace_dir": str(workspace),
+            }
+        )
+    )
+
+    run = revision_artifacts_module.prepare_evaluation_run(
+        submission,
+        tmp_path / "evaluation",
+    )
+
+    assert (run / "workspace" / "answer.txt").stat().st_ino == (
+        workspace / "answer.txt"
+    ).stat().st_ino
+    assert (run / "workspace" / "nested" / "result.txt").stat().st_ino == (
+        nested / "result.txt"
+    ).stat().st_ino
+    assert (run / "trajectory.stream.jsonl").stat().st_ino == (
+        submission / "trajectory.stream.jsonl"
+    ).stat().st_ino
+    assert json.loads((run / "status.json").read_text())["workspace_dir"] == str(
+        run / "workspace"
+    )
+
+
+def test_revision_report_contains_only_plot_and_compact_summary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    experiment = tmp_path / "revision-test"
+    experiment.mkdir()
+    (experiment / "score_improvement.png").write_bytes(b"plot")
+    (experiment / "manifest.json").write_text(
+        json.dumps(
+            {
+                "task_id": "da-1-1",
+                "revision_rounds": 2,
+                "feedback_policy": "full",
+                "mitigation": "prompt",
+                "provider": "gemini",
+                "model": "solver-model",
+                "judge_model": "judge-model",
+                "review": "trajectory",
+                "rubric_name": "rubric.txt",
+                "rubric_set": None,
+            }
+        )
+    )
+    (experiment / "state.json").write_text(
+        json.dumps({"phase": "ready_for_turn", "scores": [60, 80]})
+    )
+    reports_root = tmp_path / "reports"
+    monkeypatch.setenv("BIOMNIBENCH_REPORTS_ROOT", str(reports_root))
+
+    report = revision_reports_module.publish_revision_report(experiment)
+
+    assert {path.name for path in report.iterdir()} == {
+        "score_improvement.png",
+        "summary.json",
+    }
+    summary = json.loads((report / "summary.json").read_text())
+    assert summary["task_id"] == "da-1-1"
+    assert summary["scores"] == [60, 80]
+    assert summary["completed_rounds"] == 2
+    assert summary["total_rounds"] == 3
+
+
 def test_revise_cli_generates_one_timestamped_base_for_a_batch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -559,6 +839,78 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
         config.experiment_dir.name.startswith(f"{generated_base.name}--")
         for config in observed
     )
+
+
+def test_revise_default_experiment_base_uses_bulk(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bulk_root = tmp_path / "bulk"
+    monkeypatch.setenv("BULK", str(bulk_root))
+
+    generated = commands_module._timestamped_revision_experiment_dir()
+
+    assert generated.parent == (
+        bulk_root / "rubric_gen" / "runs" / "biomnibench-revisions"
+    )
+    assert re.fullmatch(r"revision-\d{8}-\d{6}", generated.name)
+
+
+def test_revise_default_experiment_base_requires_bulk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("BULK", raising=False)
+
+    with pytest.raises(ValueError, match="BULK must be set"):
+        commands_module._timestamped_revision_experiment_dir()
+
+
+def test_revise_default_experiment_base_rejects_relative_bulk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BULK", "relative/bulk")
+
+    with pytest.raises(ValueError, match="BULK must be an absolute path"):
+        commands_module._timestamped_revision_experiment_dir()
+
+
+def test_revise_all_resume_starts_missing_experiments(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    _write_task(tmp_path, "da-1-2")
+    args = build_parser().parse_args(
+        [
+            "revise",
+            "--all",
+            "--resume",
+            "--tasks-dir",
+            str(tmp_path / "tasks"),
+            "--experiment-dir",
+            str(tmp_path / "revision"),
+            "--revision-rounds",
+            "0",
+            "--model",
+            "test-model",
+        ]
+    )
+    first = SubmissionRevisionConfig.from_namespace(
+        type(args)(**{**vars(args), "task": str(tmp_path / "tasks/da-1-1")})
+    )
+    first.experiment_dir.mkdir(parents=True)
+    observed: list[SubmissionRevisionConfig] = []
+    monkeypatch.setattr(
+        commands_module,
+        "run_submission_revision",
+        lambda config: observed.append(config),
+    )
+
+    assert cli_module.run_revise(args) == 0
+
+    by_task = {config.task_dir.name: config for config in observed}
+    assert by_task["da-1-1"].resume is True
+    assert by_task["da-1-2"].resume is False
 
 
 @pytest.mark.parametrize("mode", ["--resume", "--restart"])
@@ -637,7 +989,8 @@ def test_revise_all_full_v_score_runs_conditions_concurrently(
         ("da-1-2", "full"),
         ("da-1-2", "score_only"),
     }
-    assert all(not config.show_progress for config in observed)
+    assert all(config.show_progress for config in observed)
+    assert {config.progress_position for config in observed} == {1, 2}
     assert len({config.experiment_dir for config in observed}) == 4
 
 

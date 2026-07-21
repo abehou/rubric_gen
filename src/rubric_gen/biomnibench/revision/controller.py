@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import shutil
 import stat
 import tempfile
 from pathlib import Path
@@ -55,6 +56,7 @@ from rubric_gen.biomnibench.revision.store import (
     RevisionStore,
     extract_scoring_identity as _extract_scoring_identity,
 )
+from rubric_gen.biomnibench.revision.reports import publish_revision_report
 from rubric_gen.biomnibench.visualization.revisions import write_revision_score_plot
 
 
@@ -184,10 +186,15 @@ class SubmissionRevisionController:
                     total,
                     initial=progress_initial,
                     total=total,
-                    desc=f"revise {self.task_dir.name}",
-                    unit="submission",
+                    desc=(
+                        f"revise {self.task_dir.name} "
+                        f"[{FeedbackPolicy(self.config.feedback_policy).value}]"
+                    ),
+                    unit="round",
                     dynamic_ncols=True,
                     bar_format=PROGRESS_BAR_FORMAT,
+                    position=self.config.progress_position,
+                    leave=self.config.progress_position is None,
                 )
                 if self.config.show_progress
                 else range(progress_initial, total)
@@ -208,6 +215,8 @@ class SubmissionRevisionController:
             self._validate_scored_boundaries(state)
             state.phase = _RevisionPhase.COMPLETED
             self._write_state(state)
+            if self.config.publish_report:
+                publish_revision_report(self.experiment_dir)
             self._append_event(
                 {
                     "event": "experiment_completed",
@@ -277,6 +286,32 @@ class SubmissionRevisionController:
             raise RuntimeError("revision manifest has no live workspace")
         workspace = Path(workspace_value)
         live_root = workspace.parent
+        desired_live_parent = _live_root_parent()
+        if (
+            os.path.lexists(live_root)
+            and live_root.parent.resolve() != desired_live_parent
+        ):
+            _validate_live_root(live_root, self.experiment_dir)
+            relocated_root = desired_live_parent / live_root.name
+            if os.path.lexists(relocated_root):
+                _validate_live_root(relocated_root, self.experiment_dir)
+                _remove_tree(relocated_root, self.experiment_dir)
+            shutil.copytree(
+                live_root,
+                relocated_root,
+                symlinks=True,
+                copy_function=shutil.copyfile,
+            )
+            _validate_live_root(relocated_root, self.experiment_dir)
+            workspace = relocated_root / "workspace"
+            manifest["live_workspace_dir"] = str(workspace)
+            try:
+                _write_json_atomic(self.experiment_dir / "manifest.json", manifest)
+            except BaseException:
+                _remove_tree(relocated_root, self.experiment_dir)
+                raise
+            _remove_tree(live_root, self.experiment_dir)
+            live_root = relocated_root
         self._verify_frozen_rubric()
         self._verify_canonical_task_inputs()
         state = self._read_state()
@@ -296,18 +331,21 @@ class SubmissionRevisionController:
                 return state, live_root, workspace
             raise RuntimeError(f"live revision workspace is unavailable: {workspace}")
         self._verify_live_task_inputs(workspace)
-        if state.phase is _RevisionPhase.FAILED_TURN:
-            self._recover_stream_retry_exhaustion(state, workspace, manifest)
+        if state.phase in {
+            _RevisionPhase.FAILED_TURN,
+            _RevisionPhase.TURN_IN_PROGRESS,
+        }:
+            self._recover_failed_solver_boundary(state, workspace, manifest)
         self._validate_resume_state(state, workspace, manifest)
         return state, live_root, workspace
 
-    def _recover_stream_retry_exhaustion(
+    def _recover_failed_solver_boundary(
         self,
         state: _RevisionState,
         workspace: Path,
         manifest: dict[str, object],
     ) -> None:
-        """Promote a legacy stream-only failure to a judgeable boundary."""
+        """Promote a safely completed legacy solver failure to judging."""
         turn_index = state.next_turn_index
         if not 0 <= turn_index < self.config.revision_rounds + 1:
             raise RuntimeError("failed revision state has an invalid turn index")
@@ -353,12 +391,12 @@ class SubmissionRevisionController:
         status = _read_json_object(status_path, "failed solver turn status")
         attempts = status.get("attempts")
         retry_count = status.get("max_retries")
-        recoverable = (
-            status.get("status") == "failed"
+        common_attempt_boundary = (
+            status.get("status") in {None, "failed"}
             and type(retry_count) is int
             and retry_count == self.config.agent.retries
             and isinstance(attempts, list)
-            and len(attempts) == retry_count + 1
+            and bool(attempts)
             and status.get("attempt_count") == len(attempts)
             and all(
                 isinstance(attempt, dict)
@@ -366,13 +404,42 @@ class SubmissionRevisionController:
                 and attempt["process_exit_code"] == 0
                 for attempt in attempts
             )
+        )
+        stream_retry_exhaustion = (
+            common_attempt_boundary
+            and len(attempts) == retry_count + 1
             and isinstance(attempts[-1].get("stream_errors"), list)
             and bool(attempts[-1]["stream_errors"])
         )
-        if not recoverable:
-            raise RuntimeError(
-                "failed solver turn was not a recoverable stream retry exhaustion"
+        validation_errors = status.get("validation_errors")
+        excluded_cache_failure = (
+            common_attempt_boundary
+            and len(attempts) == 1
+            and attempts[-1].get("stream_errors") == []
+            and attempts[-1].get("output_errors") == []
+            and isinstance(validation_errors, list)
+            and len(validation_errors) == 1
+            and isinstance(validation_errors[0], str)
+            and validation_errors[0].startswith(
+                "snapshot contains a non-regular file: "
             )
+            and validation_errors[0].split(": ", 1)[1].split("/", 1)[0]
+            in {".cache", ".uv-cache", ".uv_cache"}
+        )
+        interrupted_after_provider_success = (
+            state.phase is _RevisionPhase.TURN_IN_PROGRESS
+            and common_attempt_boundary
+            and status.get("exit_code") == 0
+            and attempts[-1].get("stream_errors") == []
+            and attempts[-1].get("output_errors") == []
+        )
+        if not (
+            stream_retry_exhaustion
+            or excluded_cache_failure
+            or interrupted_after_provider_success
+        ):
+            self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
+            return
 
         self._validate_submission_outputs(workspace)
         _solution_tree_sha256(workspace)
@@ -403,12 +470,19 @@ class SubmissionRevisionController:
             transport_exit_code = (
                 provider_exit_code if type(provider_exit_code) is int else 1
             )
+        recovery_status = (
+            "accepted_after_retry_exhaustion"
+            if stream_retry_exhaustion
+            else "accepted_after_cache_exclusion"
+            if excluded_cache_failure
+            else "accepted_after_interrupted_boundary"
+        )
         status.update(
             {
-                "status": "accepted_after_retry_exhaustion",
+                "status": recovery_status,
                 "exit_code": 0,
                 "transport_exit_code": transport_exit_code,
-                "accepted_after_retry_exhaustion": True,
+                "accepted_after_retry_exhaustion": stream_retry_exhaustion,
                 "recovered_on_resume": True,
             }
         )
@@ -423,7 +497,43 @@ class SubmissionRevisionController:
                 "event": "turn_recovered",
                 "turn": turn_index,
                 "session_id": state.session_id,
-                "reason": "accepted workspace after stream retry exhaustion",
+                "reason": (
+                    "accepted workspace after stream retry exhaustion"
+                    if stream_retry_exhaustion
+                    else "accepted workspace after excluding disposable cache"
+                    if excluded_cache_failure
+                    else "accepted completed provider turn after interruption"
+                ),
+            }
+        )
+
+    def _reset_uncertain_solver_turn(
+        self,
+        state: _RevisionState,
+        turn_dir: Path,
+        turn_index: int,
+    ) -> None:
+        for path in (self.experiment_dir, turn_dir.parent, turn_dir):
+            path.chmod(stat.S_IMODE(os.lstat(path).st_mode) | stat.S_IRWXU)
+        archive_root = self.experiment_dir / "interrupted-turns"
+        archive_root.mkdir(exist_ok=True)
+        archive_root.chmod(
+            stat.S_IMODE(os.lstat(archive_root).st_mode) | stat.S_IRWXU
+        )
+        archive = archive_root / f"turn-{turn_index:03d}"
+        suffix = 1
+        while os.path.lexists(archive):
+            archive = archive_root / f"turn-{turn_index:03d}-{suffix:03d}"
+            suffix += 1
+        shutil.move(str(turn_dir), str(archive))
+        state.phase = _RevisionPhase.READY_FOR_TURN
+        self._write_state(state)
+        self._append_event(
+            {
+                "event": "turn_reset_after_interruption",
+                "turn": turn_index,
+                "session_id": state.session_id,
+                "archive": str(archive.relative_to(self.experiment_dir)),
             }
         )
 
@@ -555,7 +665,7 @@ class SubmissionRevisionController:
             self._record_session_id(session_id)
             self._write_state(state)
 
-        if turn_index == 0:
+        if state.session_id is None:
             turn = self.dependencies.session.start(
                 workspace,
                 state.next_prompt,
@@ -564,8 +674,6 @@ class SubmissionRevisionController:
             )
             record_early_session_id(turn.session_id)
         else:
-            if state.session_id is None:
-                raise RuntimeError("revision state is missing the provider session")
             turn = self.dependencies.session.resume(
                 workspace,
                 state.next_prompt,
@@ -658,6 +766,8 @@ class SubmissionRevisionController:
             task_id=self.task_dir.name,
             feedback_policy=FeedbackPolicy(self.config.feedback_policy).value,
         )
+        if self.config.publish_report:
+            publish_revision_report(self.experiment_dir)
         self._append_event(
             {
                 "event": "submission_judged",

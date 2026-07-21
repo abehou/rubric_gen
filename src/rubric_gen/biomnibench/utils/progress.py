@@ -20,10 +20,20 @@ PROGRESS_BAR_FORMAT = (
 class TerminalProgress:
     """Context-managed wrapper around the optional terminal progress bar."""
 
-    def __init__(self, *, total: int, description: str, unit: str) -> None:
+    def __init__(
+        self,
+        *,
+        total: int,
+        description: str,
+        unit: str,
+        position: int | None = None,
+        leave: bool = True,
+    ) -> None:
         self.total = total
         self.description = description
         self.unit = unit
+        self.position = position
+        self.leave = leave
         self._bar: Any = None
 
     def __enter__(self) -> "TerminalProgress":
@@ -35,6 +45,8 @@ class TerminalProgress:
                 dynamic_ncols=True,
                 bar_format=PROGRESS_BAR_FORMAT,
                 file=sys.stderr,
+                position=self.position,
+                leave=self.leave,
             )
         return self
 
