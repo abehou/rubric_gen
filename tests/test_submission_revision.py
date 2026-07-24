@@ -335,6 +335,19 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     assert (
         config.experiment_dir / "submissions" / "s002" / "workspace" / "answer.txt"
     ).read_text() == "answer-2\n"
+    assert not (
+        config.experiment_dir / "submissions" / "s001" / "workspace" / "analysis.py"
+    ).exists()
+    assert (
+        config.experiment_dir / "submissions" / "s002" / "workspace" / "analysis.py"
+    ).read_text() == "ROUND = 2\n"
+    historical_snapshot = json.loads(
+        (
+            config.experiment_dir / "submissions" / "s001" / "snapshot.json"
+        ).read_text()
+    )
+    assert historical_snapshot["workspace_scope"] == "judge-inputs"
+    assert historical_snapshot["historical_workspace_files_removed"] == 1
     snapshot_mode = (
         (config.experiment_dir / "submissions" / "s000" / "workspace" / "answer.txt")
         .stat()
@@ -722,6 +735,90 @@ def test_solution_snapshot_excludes_disposable_local_uv_cache(tmp_path: Path) ->
     assert (snapshot / "answer.txt").read_text() == "answer\n"
 
 
+def test_solution_snapshot_deduplicates_unchanged_files_from_previous_round(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "answer.txt").write_text("answer-0\n")
+    (workspace / "large-result.bin").write_bytes(b"result" * 1024)
+    (workspace / "nested").mkdir()
+    (workspace / "nested" / "stable.csv").write_text("x\n1\n")
+    first = tmp_path / "s000"
+
+    first_stats = revision_artifacts_module.copy_solution_workspace(workspace, first)
+    (workspace / "answer.txt").write_text("answer-1\n")
+    second = tmp_path / "s001"
+    second_stats = revision_artifacts_module.copy_solution_workspace(
+        workspace,
+        second,
+        previous=first,
+    )
+
+    assert first_stats.linked_files == 0
+    assert second_stats.copied_files == 1
+    assert second_stats.linked_files == 2
+    assert second_stats.linked_bytes == len(b"result" * 1024) + len("x\n1\n")
+    assert (first / "large-result.bin").stat().st_ino == (
+        second / "large-result.bin"
+    ).stat().st_ino
+    assert (first / "nested" / "stable.csv").stat().st_ino == (
+        second / "nested" / "stable.csv"
+    ).stat().st_ino
+    assert (first / "answer.txt").stat().st_ino != (
+        second / "answer.txt"
+    ).stat().st_ino
+
+
+def test_solution_snapshot_excludes_disposable_dependency_directories(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "answer.txt").write_text("answer\n")
+    for name in (".venv", "venv", "packages"):
+        dependency = workspace / name
+        dependency.mkdir()
+        (dependency / "large-library.so").write_bytes(b"library")
+
+    snapshot = tmp_path / "snapshot"
+    stats = revision_artifacts_module.copy_solution_workspace(workspace, snapshot)
+
+    assert (snapshot / "answer.txt").is_file()
+    assert stats.copied_files == 1
+    for name in (".venv", "venv", "packages"):
+        assert not (snapshot / name).exists()
+
+
+def test_historical_workspace_compaction_keeps_only_judge_inputs(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    nested = workspace / "derived"
+    nested.mkdir(parents=True)
+    (workspace / "answer.txt").write_text("answer\n")
+    (workspace / "trace.md").write_text("trace\n")
+    (workspace / "analysis.py").write_text("print('work')\n")
+    (nested / "large-result.bin").write_bytes(b"result" * 1024)
+    revision_artifacts_module.make_tree_read_only(workspace)
+
+    stats = revision_artifacts_module.compact_historical_workspace(workspace)
+
+    assert sorted(path.name for path in workspace.iterdir()) == [
+        "answer.txt",
+        "trace.md",
+    ]
+    assert stats.removed_files == 2
+    assert stats.removed_logical_bytes == len("print('work')\n") + len(
+        b"result" * 1024
+    )
+    assert not workspace.stat().st_mode & stat.S_IWUSR
+
+    repeated = revision_artifacts_module.compact_historical_workspace(workspace)
+    assert repeated.removed_files == 0
+    assert repeated.removed_logical_bytes == 0
+
+
 def test_evaluation_run_hard_links_immutable_submission_inputs(tmp_path: Path) -> None:
     submission = tmp_path / "submission"
     workspace = submission / "workspace"
@@ -810,7 +907,8 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
     args = build_parser().parse_args(
         [
             "revise",
-            "--all",
+            "--top",
+            "1",
             "--full-v-score",
             "--tasks-dir",
             str(tmp_path / "tasks"),
@@ -833,12 +931,10 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
     )
 
     assert cli_module.run_revise(args) == 0
-    assert len(observed) == 4
+    assert len(observed) == 2
     assert {config.experiment_dir for config in observed} == {
         generated_base / "da-1-1" / "full",
         generated_base / "da-1-1" / "score-only",
-        generated_base / "da-1-2" / "full",
-        generated_base / "da-1-2" / "score-only",
     }
     batch = json.loads((generated_base / "batch.json").read_text())
     assert batch["kind"] == "rubric-gen-submission-revision-batch"
@@ -886,7 +982,7 @@ def test_revise_accepts_judge_flag() -> None:
     assert args.judge_model == "gpt-5.6-luna"
 
 
-def test_revise_all_resume_starts_missing_experiments(
+def test_revise_top_resume_starts_missing_experiments(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -895,7 +991,8 @@ def test_revise_all_resume_starts_missing_experiments(
     args = build_parser().parse_args(
         [
             "revise",
-            "--all",
+            "--top",
+            "-1",
             "--resume",
             "--tasks-dir",
             str(tmp_path / "tasks"),
@@ -959,7 +1056,7 @@ def test_revise_cli_caps_persistent_session_retries_at_five(
         )
 
 
-def test_revise_all_full_v_score_runs_conditions_concurrently(
+def test_revise_top_full_v_score_runs_conditions_concurrently(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -969,7 +1066,8 @@ def test_revise_all_full_v_score_runs_conditions_concurrently(
     args = build_parser().parse_args(
         [
             "revise",
-            "--all",
+            "--top",
+            "-1",
             "--full_v_score",
             "--tasks-dir",
             str(tmp_path / "tasks"),
@@ -1006,7 +1104,7 @@ def test_revise_all_full_v_score_runs_conditions_concurrently(
     assert len({config.experiment_dir for config in observed}) == 4
 
 
-def test_revise_all_dry_run_lists_every_task_without_running(
+def test_revise_top_dry_run_lists_every_task_without_running(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -1016,7 +1114,8 @@ def test_revise_all_dry_run_lists_every_task_without_running(
     args = build_parser().parse_args(
         [
             "revise",
-            "--all",
+            "--top",
+            "-1",
             "--dry-run",
             "--tasks-dir",
             str(tmp_path / "tasks"),
@@ -1053,6 +1152,12 @@ def test_revise_all_dry_run_lists_every_task_without_running(
             "da-19-6-process-score-only--t-da-1-1--fb-score-only--mtg-none--n-3"
             "--p-gemini--m-test-model--j-default--rb-default--v-trajectory"
             "--sb-0--st-1--web-0--ap-default--mc-all--x-default--raw-0",
+        ),
+        (
+            "semi",
+            "da-19-6-process-semi--t-da-1-1--fb-semi--mtg-none--n-3--p-gemini"
+            "--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-1"
+            "--web-0--ap-default--mc-all--x-default--raw-0",
         ),
     ],
 )
@@ -1149,7 +1254,12 @@ def test_restart_refuses_an_unowned_directory(tmp_path: Path) -> None:
     assert valuable.read_text() == "keep me"
 
 
-def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
+def test_feedback_projection_full_semi_and_score_only(tmp_path: Path) -> None:
+    rubric_text = (
+        "Criterion 1: Evidence quality\n"
+        "    Levels: A=100 B=64 C=0"
+    )
+    rubric_sha256 = hashlib.sha256(rubric_text.encode()).hexdigest()
     evaluation = {
         "criteria": {
             "criterion_1": {
@@ -1172,9 +1282,7 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
                 "raw_score": 64,
                 "selected_levels": {"criterion_1": "B"},
                 "criterion_scores": {"criterion_1": 64},
-                "rendered_rubric_sha256": hashlib.sha256(
-                    b"Criterion 1: Evidence quality"
-                ).hexdigest(),
+                "rendered_rubric_sha256": rubric_sha256,
                 "evaluation_sha256": hashlib.sha256(
                     evaluation_path.read_bytes()
                 ).hexdigest(),
@@ -1187,31 +1295,46 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     full = project_feedback(
         validation_path,
         evaluation_path,
-        "Criterion 1: Evidence quality",
-        hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
+        rubric_text,
+        rubric_sha256,
         FeedbackPolicy.FULL,
     )
     score_only = project_feedback(
         validation_path,
         evaluation_path,
-        "Criterion 1: Evidence quality",
-        hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
+        rubric_text,
+        rubric_sha256,
         FeedbackPolicy.SCORE_ONLY,
+    )
+    semi = project_feedback(
+        validation_path,
+        evaluation_path,
+        rubric_text,
+        rubric_sha256,
+        FeedbackPolicy.SEMI,
     )
     mitigated_full = project_feedback(
         validation_path,
         evaluation_path,
-        "Criterion 1: Evidence quality",
-        hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
+        rubric_text,
+        rubric_sha256,
         FeedbackPolicy.FULL,
         mitigation=PromptMitigation.PROMPT,
     )
     mitigated_score_only = project_feedback(
         validation_path,
         evaluation_path,
-        "Criterion 1: Evidence quality",
-        hashlib.sha256(b"Criterion 1: Evidence quality").hexdigest(),
+        rubric_text,
+        rubric_sha256,
         FeedbackPolicy.SCORE_ONLY,
+        mitigation=PromptMitigation.PROMPT,
+    )
+    mitigated_semi = project_feedback(
+        validation_path,
+        evaluation_path,
+        rubric_text,
+        rubric_sha256,
+        FeedbackPolicy.SEMI,
         mitigation=PromptMitigation.PROMPT,
     )
 
@@ -1219,7 +1342,7 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     assert full.payload == {
         "schema_version": 1,
         "policy": "full",
-        "rubric_text": "Criterion 1: Evidence quality",
+        "rubric_text": rubric_text,
         "score": 64,
         "raw_score": 64,
         "criteria": {
@@ -1236,6 +1359,25 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     assert "/hidden/judge" not in json.dumps(full.payload)
     assert "secret provider output" not in full.prompt
     assert "unvalidated" not in full.prompt
+    assert semi.payload == {
+        "schema_version": 1,
+        "policy": "semi",
+        "score": 64,
+        "raw_score": 64,
+        "criteria": {
+            "criterion_1": {
+                "title": "Evidence quality",
+                "selected_level": "B",
+                "points": 64,
+                "maximum_points": 100,
+            }
+        },
+    }
+    assert "criterion_1" in semi.prompt
+    assert '"points": 64' in semi.prompt
+    assert "Evidence quality" in semi.prompt
+    assert "stronger check" not in semi.prompt
+    assert "under-supported" not in semi.prompt
     assert score_only.payload == {
         "schema_version": 1,
         "policy": "score_only",
@@ -1244,7 +1386,7 @@ def test_feedback_projection_full_and_score_only(tmp_path: Path) -> None:
     assert "Evidence quality" not in score_only.prompt
     assert "stronger check" not in score_only.prompt
     assert "imperfect diagnostics, not as" not in score_only.prompt
-    for mitigated in (mitigated_full, mitigated_score_only):
+    for mitigated in (mitigated_full, mitigated_semi, mitigated_score_only):
         assert "imperfect diagnostics, not as" in mitigated.prompt
         assert "Do not add unsupported claims" in mitigated.prompt
 

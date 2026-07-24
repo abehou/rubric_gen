@@ -94,6 +94,7 @@ class JudgeRunConfig:
     resume: bool = False
     force: bool = False
     max_concurrency: int = 1
+    max_retries: int = 2
     repeats: int = 1
     ensemble: bool = False
     save_input_copies: bool = True
@@ -112,6 +113,8 @@ class JudgeRunConfig:
             safe_basename(self.judge_name, "judge_name")
         if self.rubric_name is not None:
             safe_basename(self.rubric_name, "rubric_name")
+        if self.max_retries < 0:
+            raise ValueError("max_retries must be non-negative")
 
     @classmethod
     def from_namespace(cls, args: Any) -> "JudgeRunConfig":
@@ -157,6 +160,7 @@ class JudgeRunConfig:
             resume=getattr(args, "resume", False),
             force=getattr(args, "force", False),
             max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
+            max_retries=max(0, getattr(args, "max_retries", 2)),
             repeats=max(1, getattr(args, "repeats", 1)),
             ensemble=bool(getattr(args, "ensemble", False)),
             artifacts_dir=resolved_artifacts_dir,

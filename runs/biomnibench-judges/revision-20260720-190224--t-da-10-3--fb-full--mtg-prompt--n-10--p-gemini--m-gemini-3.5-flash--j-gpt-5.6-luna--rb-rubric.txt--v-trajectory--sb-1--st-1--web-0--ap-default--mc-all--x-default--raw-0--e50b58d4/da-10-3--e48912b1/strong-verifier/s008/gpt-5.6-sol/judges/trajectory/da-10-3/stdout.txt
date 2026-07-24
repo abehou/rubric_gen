@@ -1,0 +1,66 @@
+Installed 30 packages in 13.44s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-6g17f711/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-6g17f711/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-6g17f711/llm_judge.py", line 82, in generate_response
+    response = OpenAI(api_key=api_key).responses.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/resources/responses/responses.py", line 1003, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_base_client.py", line 1110, in request
+    return self._process_response(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_base_client.py", line 1199, in _process_response
+    return api_response.parse()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_response.py", line 326, in parse
+    parsed = self._parse(to=to)
+             ^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_response.py", line 270, in _parse
+    return self._client._process_response_data(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_base_client.py", line 676, in _process_response_data
+    return cast(ResponseT, construct_type(type_=cast_to, value=data))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_models.py", line 673, in construct_type
+    return type_.construct(**value)  # type: ignore[arg-type]
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_models.py", line 261, in construct
+    extra_field_type = _get_extra_fields_type(__cls)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/openai/_models.py", line 526, in _get_extra_fields_type
+    if schema["type"] == "model":
+       ~~~~~~^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/pydantic/_internal/_mock_val_ser.py", line 41, in __getitem__
+    return self._get_built().__getitem__(key)
+           ^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/pydantic/_internal/_mock_val_ser.py", line 54, in _get_built
+    schema = self._attempt_rebuild()
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/pydantic/_internal/_mock_val_ser.py", line 165, in handler
+    if cls.model_rebuild(raise_errors=False, _parent_namespace_depth=5) is not False:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/pydantic/main.py", line 683, in model_rebuild
+    return _model_construction.complete_model_class(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/pydantic/_internal/_model_construction.py", line 690, in complete_model_class
+    cls.__pydantic_validator__ = create_schema_validator(
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-9a4d9237c22bce40/lib/python3.12/site-packages/pydantic/plugin/_schema_validator.py", line 53, in create_schema_validator
+    return SchemaValidator(schema, config, _use_prebuilt=_use_prebuilt)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.SchemaError: Error building "definitions" validator:
+  SchemaError: Error building "model" validator:
+  SchemaError: Error building "model-fields" validator:
+  SchemaError: Field "background":
+  SchemaError: Error building "default" validator:
+  SchemaError: Error building "nullable" validator:
+  SchemaError: Error building "literal" validator:
+  KeyboardInterrupt: 

@@ -1,0 +1,11 @@
+Installed 30 packages in 13.45s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly identifies and categorizes the four MLO participant datasets (OpenCell, DACT1, G3BP1, PhaSepDB), the membrane-bound control dataset (Mitochondrial proteomics), and a solid aggregation control (Amyloid). The fixed negative background set is clearly defined using the hNoPS group. All evaluated predictor columns are listed for both analyses, and the overlaps among positive datasets and between positives and controls are quantitatively documented with valid biological justifications."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent defines positives as proteins belonging to the specific dataset and negatives as proteins from the fixed hNoPS background that do not belong to the target dataset, strictly preventing overlap. Data alignment is preserved through UniProt-based merges, and the exact valid sample counts for positives and negatives are provided in the re...

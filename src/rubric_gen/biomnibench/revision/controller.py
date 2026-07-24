@@ -30,6 +30,7 @@ from rubric_gen.biomnibench.revision.artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
     live_root_parent as _live_root_parent,
     REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
+    compact_historical_workspace as _compact_historical_workspace,
     copy_solution_workspace as _copy_solution_workspace,
     make_read_only as _make_read_only,
     make_tree_read_only as _make_tree_read_only,
@@ -215,6 +216,7 @@ class SubmissionRevisionController:
             self._validate_scored_boundaries(state)
             state.phase = _RevisionPhase.COMPLETED
             self._write_state(state)
+            compaction = self._compact_historical_submissions(state)
             if self.config.publish_report:
                 publish_revision_report(self.experiment_dir)
             self._append_event(
@@ -223,6 +225,8 @@ class SubmissionRevisionController:
                     "session_id": state.session_id,
                     "submission_count": len(state.submission_ids),
                     "scores": state.scores,
+                    "historical_workspace_files_removed": compaction[0],
+                    "historical_workspace_logical_bytes_removed": compaction[1],
                 }
             )
             completed = True
@@ -315,6 +319,8 @@ class SubmissionRevisionController:
         self._verify_frozen_rubric()
         self._verify_canonical_task_inputs()
         state = self._read_state()
+        if state.phase is _RevisionPhase.COMPLETED:
+            self._compact_historical_submissions(state)
         if workspace.name != "workspace" or not workspace.is_absolute():
             raise RuntimeError("revision manifest has an invalid live workspace path")
         if os.path.lexists(live_root):
@@ -810,6 +816,71 @@ class SubmissionRevisionController:
             expected_prompt = projected.prompt
         return expected_prompt
 
+    def _compact_historical_submissions(
+        self, state: _RevisionState
+    ) -> tuple[int, int]:
+        """Drop bulky derived files from scored non-final submissions.
+
+        Completed state is written first, so this deliberately idempotent operation
+        can finish repairing both sides of an interrupted compaction during resume.
+        """
+        if state.phase is not _RevisionPhase.COMPLETED:
+            raise RuntimeError("historical snapshots may only be compacted when complete")
+        removed_files = 0
+        removed_logical_bytes = 0
+        for submission_id in state.submission_ids[:-1]:
+            submission_removed_files = 0
+            submission_removed_logical_bytes = 0
+            submission_dir = self.experiment_dir / "submissions" / submission_id
+            attempt_id = state.judge_attempts[submission_id]
+            evaluation_workspace = (
+                self.experiment_dir
+                / "evaluations"
+                / submission_id
+                / self.rubric.sha256
+                / attempt_id
+                / "run"
+                / "workspace"
+            )
+            # Custom judge implementations may keep their evaluation cache
+            # outside the standard experiment tree. Standard staging is compacted
+            # first so its tree continues to match the submission after both steps.
+            if os.path.lexists(evaluation_workspace):
+                _compact_historical_workspace(evaluation_workspace)
+            stats = _compact_historical_workspace(submission_dir / "workspace")
+            removed_files += stats.removed_files
+            removed_logical_bytes += stats.removed_logical_bytes
+            submission_removed_files += stats.removed_files
+            submission_removed_logical_bytes += stats.removed_logical_bytes
+
+            snapshot_path = submission_dir / "snapshot.json"
+            snapshot = _read_json_object(snapshot_path, "submission snapshot")
+            snapshot.update(
+                {
+                    "workspace_scope": "judge-inputs",
+                    "workspace_sha256": _tree_sha256(submission_dir / "workspace"),
+                    "historical_workspace_files_removed": snapshot.get(
+                        "historical_workspace_files_removed", 0
+                    )
+                    + submission_removed_files,
+                    "historical_workspace_logical_bytes_removed": snapshot.get(
+                        "historical_workspace_logical_bytes_removed", 0
+                    )
+                    + submission_removed_logical_bytes,
+                }
+            )
+            submission_dir.chmod(
+                stat.S_IMODE(os.lstat(submission_dir).st_mode) | stat.S_IRWXU
+            )
+            if snapshot_path.exists():
+                snapshot_path.chmod(
+                    stat.S_IMODE(os.lstat(snapshot_path).st_mode) | stat.S_IWUSR
+                )
+            _write_json_atomic(snapshot_path, snapshot)
+            _make_read_only(snapshot_path)
+            _make_read_only(submission_dir)
+        return removed_files, removed_logical_bytes
+
     def _persist_rubric(self) -> None:
         self.store.persist_rubric()
 
@@ -924,8 +995,20 @@ class SubmissionRevisionController:
     ) -> Path:
         submission_dir = self.experiment_dir / "submissions" / submission_id
         snapshot_workspace = submission_dir / "workspace"
+        submissions_root = self.experiment_dir / "submissions"
+        submissions_root.mkdir(exist_ok=True)
+        previous_workspaces = sorted(
+            path / "workspace"
+            for path in submissions_root.iterdir()
+            if path.is_dir() and path.name < submission_id
+        )
+        previous_workspace = previous_workspaces[-1] if previous_workspaces else None
         submission_dir.mkdir(parents=True)
-        _copy_solution_workspace(workspace, snapshot_workspace)
+        copy_stats = _copy_solution_workspace(
+            workspace,
+            snapshot_workspace,
+            previous=previous_workspace,
+        )
         _make_tree_read_only(snapshot_workspace)
 
         cumulative = submission_dir / "trajectory.stream.jsonl"
@@ -960,6 +1043,11 @@ class SubmissionRevisionController:
                 "session_id": session_id,
                 "workspace_sha256": workspace_sha256,
                 "trajectory_sha256": trajectory_sha256,
+                "workspace_logical_bytes": copy_stats.logical_bytes,
+                "workspace_copied_bytes": copy_stats.copied_bytes,
+                "workspace_deduplicated_bytes": copy_stats.linked_bytes,
+                "workspace_copied_files": copy_stats.copied_files,
+                "workspace_deduplicated_files": copy_stats.linked_files,
             },
         )
         for path in (cumulative, status_path, snapshot_path):
@@ -971,6 +1059,9 @@ class SubmissionRevisionController:
                 "submission_id": submission_id,
                 "workspace_sha256": workspace_sha256,
                 "trajectory_sha256": trajectory_sha256,
+                "workspace_logical_bytes": copy_stats.logical_bytes,
+                "workspace_copied_bytes": copy_stats.copied_bytes,
+                "workspace_deduplicated_bytes": copy_stats.linked_bytes,
             }
         )
         return submission_dir

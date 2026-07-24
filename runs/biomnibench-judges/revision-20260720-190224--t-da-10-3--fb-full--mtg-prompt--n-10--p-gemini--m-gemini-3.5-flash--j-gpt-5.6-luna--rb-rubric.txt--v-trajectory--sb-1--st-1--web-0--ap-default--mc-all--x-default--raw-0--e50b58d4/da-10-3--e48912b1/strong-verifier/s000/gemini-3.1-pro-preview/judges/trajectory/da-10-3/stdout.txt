@@ -1,0 +1,15 @@
+Installed 30 packages in 13.39s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly identified the MLO participant datasets (OpenCell, DACT1, G3BP1, PhaSepDB, Amyloid) and the membrane-bound control dataset (Mitochondria). It explicitly defined the fixed negative background set as 'hNoPS' == 1 from 'h_combined_with_flags.xlsx' and listed all evaluated predictor score columns (PScore, PLAAC, catGRANULE, SaPS, PdPS, DeepCoil, Phos freq, DeepPhase)."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent constructed binary labels correctly by defining positives as proteins belonging to the specific dataset (dataset == 1) and negatives from the fixed background set (hNoPS == 1). It explicitly removed any overlap by ensuring negatives also had (dataset == 0). It documented the exact positive and negative counts per dataset after this overlap removal."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent handled missing values pro...

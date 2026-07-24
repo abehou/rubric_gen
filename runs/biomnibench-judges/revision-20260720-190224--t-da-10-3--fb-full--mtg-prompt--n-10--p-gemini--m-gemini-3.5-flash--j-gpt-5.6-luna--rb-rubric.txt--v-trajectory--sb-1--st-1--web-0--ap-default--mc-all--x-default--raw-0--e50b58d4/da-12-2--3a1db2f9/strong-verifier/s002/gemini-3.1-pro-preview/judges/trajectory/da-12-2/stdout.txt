@@ -1,0 +1,52 @@
+Installed 30 packages in 14.40s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-61l8480y/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-61l8480y/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-61l8480y/llm_judge.py", line 34, in generate_response
+    from google import genai
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/google/genai/__init__.py", line 19, in <module>
+    from . import types
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/google/genai/types.py", line 9934, in <module>
+    class RecontextImageConfig(_common.BaseModel):
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_model_construction.py", line 256, in __new__
+    complete_model_class(
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_model_construction.py", line 667, in complete_model_class
+    schema = gen_schema.generate_schema(cls)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 744, in generate_schema
+    schema = self._generate_schema_inner(obj)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 1038, in _generate_schema_inner
+    return self._model_schema(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 868, in _model_schema
+    {k: self._generate_md_field_schema(k, v, decorators) for k, v in fields.items()},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 1245, in _generate_md_field_schema
+    schema, metadata = self._common_field_schema(name, field_info, decorators)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 1299, in _common_field_schema
+    schema = self._apply_annotations(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 2252, in _apply_annotations
+    schema = get_inner_schema(source_type)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py", line 83, in __call__
+    schema = self._handler(source_type)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 2231, in inner_handler
+    schema = self._generate_schema_inner(obj)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 1043, in _generate_schema_inner
+    return self.match_type(obj)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ef224f1282570150/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 1114, in match_type
+    elif obj in MAPPING_TYPES:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 1592, in __eq__
+    def __eq__(self, other):
+
+KeyboardInterrupt

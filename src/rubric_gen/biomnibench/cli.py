@@ -121,17 +121,18 @@ def _add_generate_parser(
     generate.add_argument(
         "task",
         nargs="?",
-        help="One task directory. Omit when using --all.",
+        help="One task directory. Omit when using --top.",
     )
     generate.add_argument(
-        "--all",
-        action="store_true",
-        help="Generate rubrics for every task under --tasks-dir.",
+        "--top",
+        type=int,
+        default=None,
+        help="Run the first N discovered tasks; -1 runs every task.",
     )
     generate.add_argument(
         "--tasks-dir",
         default="data/biomnibench-da",
-        help="Task catalog used by --all.",
+        help="Task catalog used by --top.",
     )
     generate.add_argument(
         "--output-dir",
@@ -159,7 +160,6 @@ def _add_generate_parser(
     generate.add_argument("--approval-mode", default=None)
     generate.add_argument("--extra-agent-arg", action="append", default=[])
     generate.add_argument("--max-concurrency", type=int, default=1)
-    generate.add_argument("--limit", type=int, default=None)
     generate.add_argument("--resume", action="store_true")
     generate.add_argument("--raw", action="store_true")
 
@@ -174,7 +174,7 @@ def _add_revise_parser(
     revise.add_argument(
         "task",
         nargs="?",
-        default="data/biomnibench-da/da-10-1",
+        default=None,
         help="BiomniBench task directory, e.g. data/biomnibench-da/da-24-3.",
     )
     revise.add_argument(
@@ -186,14 +186,15 @@ def _add_revise_parser(
         ),
     )
     revise.add_argument(
-        "--all",
-        action="store_true",
-        help="Run every valid BiomniBench-DA task under --tasks-dir.",
+        "--top",
+        type=int,
+        default=None,
+        help="Run the first N discovered tasks; -1 runs every task.",
     )
     revise.add_argument(
         "--tasks-dir",
         default="data/biomnibench-da",
-        help="Directory containing tasks used by --all.",
+        help="Directory containing tasks used by --top.",
     )
     revise.add_argument(
         "--full_v_score",
@@ -333,12 +334,21 @@ def _add_judge_parser(
     judge = subparsers.add_parser(
         "judge", help="Run task-local LLM judges over saved runs."
     )
-    judge.add_argument(
+    judge_inputs = judge.add_mutually_exclusive_group(required=True)
+    judge_inputs.add_argument(
         "--run-dir",
         action="append",
         nargs="+",
-        required=True,
         help="Single task run dir or all-run batch dir to judge. Accepts one or more paths; repeat if desired.",
+    )
+    judge_inputs.add_argument(
+        "--case-dir",
+        action="append",
+        nargs="+",
+        help=(
+            "Blinded forensic evidence case directories. Valid only with "
+            "--agent-ensemble; accepts one or more paths and may be repeated."
+        ),
     )
     judge.add_argument(
         "--tasks-dir",
@@ -356,12 +366,21 @@ def _add_judge_parser(
         default=None,
         help=f"Judge model. Defaults to {DEFAULT_JUDGE_MODEL}.",
     )
-    judge.add_argument(
+    ensemble_mode = judge.add_mutually_exclusive_group()
+    ensemble_mode.add_argument(
         "--ensemble",
         action="store_true",
         help=(
             "Judge every submission in a revision experiment with the strong "
             "cross-provider panel and calculate exploitation statistics."
+        ),
+    )
+    ensemble_mode.add_argument(
+        "--agent-ensemble",
+        action="store_true",
+        help=(
+            "Forensically audit revision experiments with independent Codex, "
+            "Claude Code, and Gemini CLI agents instead of rubric-scoring judges."
         ),
     )
     judge.add_argument(
@@ -408,7 +427,7 @@ def _add_judge_parser(
     judge.add_argument(
         "--resume",
         action="store_true",
-        help="Skip tasks whose judge output already has a scored reward.json.",
+        help="Reuse completed judge or forensic-panel outputs.",
     )
     judge.add_argument(
         "--force",
@@ -420,6 +439,15 @@ def _add_judge_parser(
         type=int,
         default=1,
         help="Run up to this many judge subprocesses concurrently.",
+    )
+    judge.add_argument(
+        "--max-retries",
+        type=int,
+        default=2,
+        help=(
+            "Retry each failed ensemble member this many times. Defaults to 2 "
+            "retries (3 total attempts)."
+        ),
     )
     judge.add_argument(
         "--repeats",

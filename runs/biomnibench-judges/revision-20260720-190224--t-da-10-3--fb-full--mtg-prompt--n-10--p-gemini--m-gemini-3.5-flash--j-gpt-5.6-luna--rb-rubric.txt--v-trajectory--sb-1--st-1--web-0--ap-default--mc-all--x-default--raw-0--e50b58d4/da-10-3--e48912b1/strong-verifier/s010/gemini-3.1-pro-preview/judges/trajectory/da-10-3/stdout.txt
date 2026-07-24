@@ -1,0 +1,26 @@
+Installed 30 packages in 14.87s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-zpyv2x9p/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-zpyv2x9p/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-zpyv2x9p/llm_judge.py", line 34, in generate_response
+    from google import genai
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-aa6a2f938d4699a6/lib/python3.12/site-packages/google/genai/__init__.py", line 19, in <module>
+    from . import types
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-aa6a2f938d4699a6/lib/python3.12/site-packages/google/genai/types.py", line 17845, in <module>
+    class BatchJobSource(_common.BaseModel):
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-aa6a2f938d4699a6/lib/python3.12/site-packages/google/genai/types.py", line 17854, in BatchJobSource
+    gcs_uri: Optional[list[str]] = Field(
+                                   ^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-aa6a2f938d4699a6/lib/python3.12/site-packages/pydantic/fields.py", line 1357, in Field
+    return FieldInfo.from_field(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-aa6a2f938d4699a6/lib/python3.12/site-packages/pydantic/fields.py", line 316, in from_field
+    return FieldInfo(default=default, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-aa6a2f938d4699a6/lib/python3.12/site-packages/pydantic/fields.py", line 256, in __init__
+    self.serialization_alias = kwargs.pop('serialization_alias', None)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

@@ -1,0 +1,36 @@
+Installed 30 packages in 14.63s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-4c_hkm05/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-4c_hkm05/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-4c_hkm05/llm_judge.py", line 53, in generate_response
+    from anthropic import Anthropic
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/__init__.py", line 60, in <module>
+    from .lib.middleware import BetaFallbackState, BetaRefusalFallbackMiddleware
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/lib/middleware/__init__.py", line 1, in <module>
+    from ._fallbacks import (
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/lib/middleware/_fallbacks.py", line 34, in <module>
+    from ...types.beta.beta_message import BetaMessage
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/types/beta/__init__.py", line 109, in <module>
+    from .deployment_create_params import DeploymentCreateParams as DeploymentCreateParams
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/types/beta/deployment_create_params.py", line 15, in <module>
+    from .beta_managed_agents_deployment_initial_event_params import BetaManagedAgentsDeploymentInitialEventParams
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/types/beta/beta_managed_agents_deployment_initial_event_params.py", line 8, in <module>
+    from .sessions.beta_managed_agents_user_message_event_params import BetaManagedAgentsUserMessageEventParams
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/types/beta/sessions/__init__.py", line 6, in <module>
+    from .event_send_params import EventSendParams as EventSendParams
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/types/beta/sessions/event_send_params.py", line 10, in <module>
+    from .beta_managed_agents_event_params import BetaManagedAgentsEventParams
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-8356c275105fb98b/lib/python3.12/site-packages/anthropic/types/beta/sessions/beta_managed_agents_event_params.py", line 11, in <module>
+    from .beta_managed_agents_user_tool_result_event_params import BetaManagedAgentsUserToolResultEventParams
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1146, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1214, in _cache_bytecode
+  File "<frozen importlib._bootstrap_external>", line 1239, in set_data
+  File "<frozen importlib._bootstrap_external>", line 206, in _write_atomic
+KeyboardInterrupt

@@ -1,0 +1,22 @@
+Installed 30 packages in 17.69s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "Correctly loaded and normalized data, applied the p < 0.05 threshold separately (CPA: 245, SPIRO: 91), and dynamically selected the lowest-p-value MHT estimate."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Accurately matched proteins obtaining expected overlaps (CPA: 212, SPIRO: 80), correctly assigned direction based on coefficient signs, and handled missing values appropriately."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Properly reported exact counts and percentages of concordant and discordant proteins for both regimens (CPA: 160/52, SPIRO: 71/9), perfectly matching expected outcomes."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Identified exact counts of discordant proteins and thoroughly characterized the required notable exceptions (CXCL13, NOS3, immune modulators, INSL3, ACRBP) with biological context."
+    },
+    "criterion_5": {
+...

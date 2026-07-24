@@ -1,0 +1,20 @@
+Installed 30 packages in 21.38s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly loaded the tables, normalized identifiers, separately filtered CPA and SPIRO by adj p < 0.05, and adaptively selected MHT estimates with the lowest p-value."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Proteins were matched correctly, yielding expected overlaps (212 CPA, 80 SPIRO). Directionality was accurately determined based on coefficient signs, and missing values were properly excluded."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent clearly reported regimen-specific overlap, same-direction (CPA: 160, SPIRO: 71), and opposite-direction (CPA: 52, SPIRO: 9) counts alongside their respective percentages."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Discordant counts were provided, and all key examples (CXCL13, NOS3, CCL16, CCL25, CD70, ACRBP, INSL3) were identified and thoroughly contextualized biologically."
+   ...

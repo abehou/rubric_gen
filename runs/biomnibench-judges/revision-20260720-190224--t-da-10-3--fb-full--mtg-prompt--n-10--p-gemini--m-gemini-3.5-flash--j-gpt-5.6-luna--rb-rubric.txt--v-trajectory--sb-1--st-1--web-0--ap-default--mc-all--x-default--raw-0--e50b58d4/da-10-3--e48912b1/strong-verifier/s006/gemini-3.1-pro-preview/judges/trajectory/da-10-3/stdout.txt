@@ -1,0 +1,15 @@
+Installed 30 packages in 13.95s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly identifies four MLO participant datasets (OpenCell, DACT1, G3BP1, PhaSepDB) and separates them from the membrane-bound control (mitochondrial proteomics) and an additional amyloid control. It explicitly defines the fixed negative background (hNoPS), lists all evaluated predictors across both analyses, and quantitatively verifies the overlap between positive and control groups."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent properly constructs binary labels by defining positive samples as members of the specific dataset and negative samples from the hNoPS background, explicitly removing any overlap by ensuring negatives have the target dataset indicator equal to zero. Label-to-score alignment is preserved through UniProt merges, and final valid counts are reported in detailed tables."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Missing...

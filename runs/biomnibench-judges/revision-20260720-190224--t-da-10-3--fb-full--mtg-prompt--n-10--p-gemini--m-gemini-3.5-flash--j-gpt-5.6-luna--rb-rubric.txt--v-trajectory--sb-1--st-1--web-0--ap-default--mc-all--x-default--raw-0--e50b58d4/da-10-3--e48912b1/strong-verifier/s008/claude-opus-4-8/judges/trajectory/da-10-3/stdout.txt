@@ -1,0 +1,14 @@
+Installed 30 packages in 13.53s
+Raw response (first 1000 chars): {"criteria": {"criterion_1": {"level": "A", "reason": "The answer clearly separates the four MLO participant datasets (OpenCell, DACT1, G3BP1, PhaSepDB), the mitochondrial proteomics membrane-bound control, and amyloid as a distinct solid-aggregation control. It defines the fixed hNoPS background (8,801 non-phase-separating proteins), lists all evaluated predictors across both analyses (PScore, PLAAC, catGRANULE, SaPS/PdPS 8- and 10-feature, DeepCoil, Phos freq, DeepPhase), and quantitatively documents dataset overlaps (416 shared in original, 350 in training-removed) with biological justification rather than assuming disjoint positive sets. Membership criteria and mutual exclusivity checks are documented."}, "criterion_2": {"level": "A", "reason": "For each dataset, positives are defined by dataset membership (D==1) and negatives by hNoPS==1 AND D==0, explicitly removing target-positive/background overlap. UniProt-based merges preserve score-label alignment, and detailed tables report...
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-7tgc4s96/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-7tgc4s96/llm_judge.py", line 209, in main
+    score, criteria, reasoning = score_response(
+                                 ^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-7tgc4s96/llm_judge.py", line 149, in score_response
+    result = extract_json_object(response_text)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-7tgc4s96/llm_judge.py", line 142, in extract_json_object
+    raise ValueError("judge response contains an incomplete JSON object")
+ValueError: judge response contains an incomplete JSON object

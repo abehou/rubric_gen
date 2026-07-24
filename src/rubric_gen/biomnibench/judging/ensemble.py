@@ -6,7 +6,7 @@ import json
 import hashlib
 import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +26,17 @@ STRONG_VERIFIER_MODELS = (
     "gemini-3.1-pro-preview",
 )
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
+
+
+@dataclass
+class _ExperimentPlan:
+    experiment_dir: Path
+    task: str
+    submissions: list[str]
+    weak: list[dict[str, str]]
+    ensemble_root: Path
+    jobs: list[tuple[str, str, BiomniBenchJudgeRunner, JudgeTarget]]
+    panel_paths: dict[str, dict[str, Path]]
 
 
 def _object(path: Path, context: str) -> dict[str, Any]:
@@ -243,12 +254,94 @@ class StrongVerifierRunner:
                 experiments.append(run_dir)
         if self.config.output_path is not None and len(experiments) != 1:
             raise ValueError("--output requires exactly one --run-dir with --ensemble")
-        exit_code = 0
+        plans: list[_ExperimentPlan] = []
         for experiment_dir in experiments:
-            exit_code = max(exit_code, self._run_experiment(experiment_dir))
+            plan = self._prepare_experiment(experiment_dir)
+            if plan is not None:
+                plans.append(plan)
+        jobs = [
+            (plan, submission_id, model, runner, target)
+            for plan in plans
+            for submission_id, model, runner, target in plan.jobs
+        ]
+        failures: dict[Path, list[str]] = {
+            plan.experiment_dir: [] for plan in plans
+        }
+        positions: queue.SimpleQueue[int] = queue.SimpleQueue()
+        for position in range(1, self.config.max_concurrency + 1):
+            positions.put(position)
+
+        def judge_with_progress(
+            plan: _ExperimentPlan,
+            submission_id: str,
+            model: str,
+            runner: BiomniBenchJudgeRunner,
+            target: JudgeTarget,
+        ) -> dict[str, Any]:
+            position = positions.get()
+            try:
+                with TerminalProgress(
+                    total=1,
+                    description=f"{plan.task}/{submission_id}",
+                    unit="call",
+                    position=position,
+                    leave=False,
+                ) as child:
+                    child.set_status(model)
+                    result = self._judge_one(runner, target)
+                    child.update()
+                    return result
+            finally:
+                positions.put(position)
+
+        with TerminalProgress(
+            total=len(jobs),
+            description="ensemble all tasks",
+            unit="call",
+            position=0,
+        ) as progress:
+            with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
+                futures = {
+                    pool.submit(
+                        judge_with_progress,
+                        plan,
+                        submission_id,
+                        model,
+                        runner,
+                        target,
+                    ): (plan, submission_id, model)
+                    for plan, submission_id, model, runner, target in jobs
+                }
+                for future in as_completed(futures):
+                    plan, submission_id, model = futures[future]
+                    try:
+                        record = future.result()
+                    except Exception as exc:
+                        failures[plan.experiment_dir].append(
+                            f"{submission_id}/{model}: {exc}"
+                        )
+                    else:
+                        if record.get("exit_code") != 0:
+                            failures[plan.experiment_dir].append(
+                                f"{submission_id}/{model}: judge failed"
+                            )
+                    finally:
+                        progress.update()
+
+        exit_code = 0
+        for plan in plans:
+            plan_failures = failures[plan.experiment_dir]
+            if plan_failures:
+                print(
+                    f"Strong verifier failed for {plan.task} "
+                    f"({len(plan_failures)}): {plan_failures[0]}"
+                )
+                exit_code = 1
+                continue
+            self._finish_experiment(plan)
         return exit_code
 
-    def _run_experiment(self, experiment_dir: Path) -> int:
+    def _prepare_experiment(self, experiment_dir: Path) -> _ExperimentPlan | None:
         manifest = _object(experiment_dir / "manifest.json", "revision manifest")
         state = _object(experiment_dir / "state.json", "revision state")
         if manifest.get("kind") != REVISION_EXPERIMENT_KIND:
@@ -274,7 +367,7 @@ class StrongVerifierRunner:
                 f"Skipping {task}: no weak-judged submissions "
                 f"({experiment_dir})"
             )
-            return 0
+            return None
         task_dir = Path(task_dir_value)
         if self.config.artifacts_dir is None:
             ensemble_root = experiment_dir / "strong-verifier"
@@ -357,101 +450,57 @@ class StrongVerifierRunner:
                     runner.output_dir(target) / "score_validation.json"
                 )
                 jobs.append((submission_id, model, runner, target))
-
-        failures: list[str] = []
-        with TerminalProgress(
-            total=len(jobs),
-            description=f"ensemble {task}",
-            unit="call",
-            position=0,
-        ) as progress:
-            positions: queue.SimpleQueue[int] = queue.SimpleQueue()
-            for position in range(1, self.config.max_concurrency + 1):
-                positions.put(position)
-
-            def judge_with_progress(
-                submission_id: str,
-                model: str,
-                runner: BiomniBenchJudgeRunner,
-                target: JudgeTarget,
-            ) -> dict[str, Any]:
-                position = positions.get()
-                try:
-                    with TerminalProgress(
-                        total=1,
-                        description=f"judge {submission_id}",
-                        unit="call",
-                        position=position,
-                        leave=False,
-                    ) as child:
-                        child.set_status(model)
-                        result = self._judge_one(runner, target)
-                        child.update()
-                        return result
-                finally:
-                    positions.put(position)
-
-            with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
-                futures = {
-                    pool.submit(
-                        judge_with_progress,
-                        submission_id,
-                        model,
-                        runner,
-                        target,
-                    ): (submission_id, model)
-                    for submission_id, model, runner, target in jobs
-                }
-                for future in as_completed(futures):
-                    submission_id, model = futures[future]
-                    try:
-                        record = future.result()
-                    except Exception as exc:
-                        failures.append(f"{submission_id}/{model}: {exc}")
-                    else:
-                        if record.get("exit_code") != 0:
-                            failures.append(f"{submission_id}/{model}: judge failed")
-                    finally:
-                        progress.update()
-        if failures:
-            print(f"Strong verifier failed ({len(failures)}): {failures[0]}")
-            return 1
-
         if not jobs:
             raise RuntimeError("revision experiment has no saved submissions")
-        rubric = jobs[0][2].resolve_rubric(jobs[0][3])
+        return _ExperimentPlan(
+            experiment_dir=experiment_dir,
+            task=task,
+            submissions=submissions,
+            weak=weak,
+            ensemble_root=ensemble_root,
+            jobs=jobs,
+            panel_paths=panel_paths,
+        )
+
+    def _finish_experiment(self, plan: _ExperimentPlan) -> None:
+        rubric = plan.jobs[0][2].resolve_rubric(plan.jobs[0][3])
         rubric_levels = parse_rubric_levels_strict(rubric.text)
         panel: list[dict[str, dict[str, str]]] = []
-        for submission_id in submissions:
+        for submission_id in plan.submissions:
             panel.append(
                 {
-                    model: _selected_levels(panel_paths[submission_id][model])
+                    model: _selected_levels(plan.panel_paths[submission_id][model])
                     for model in STRONG_VERIFIER_MODELS
                 }
             )
-        statistics = calculate_exploitation(rubric_levels, weak, panel)
+        statistics = calculate_exploitation(rubric_levels, plan.weak, panel)
         output = {
             "schema_version": 1,
             "method": "paper-binary-with-ordinal-extension",
-            "experiment_dir": str(experiment_dir.resolve()),
-            "task_id": task,
+            "experiment_dir": str(plan.experiment_dir.resolve()),
+            "task_id": plan.task,
             "models": list(STRONG_VERIFIER_MODELS),
-            "submission_ids": submissions,
+            "submission_ids": plan.submissions,
             **statistics,
         }
-        output_path = self.config.output_path or ensemble_root / "exploitation.json"
+        output_path = self.config.output_path or plan.ensemble_root / "exploitation.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
         print(
-            f"{task}: binary exploitation={statistics['binary_exploitation_rate']}, "
+            f"{plan.task}: binary exploitation={statistics['binary_exploitation_rate']}, "
             f"ordinal exploitation={statistics['ordinal_exploitation_rate']}"
         )
         print(f"Wrote exploitation statistics: {output_path}")
-        return 0
 
-    @staticmethod
     def _judge_one(
-        runner: BiomniBenchJudgeRunner, target: JudgeTarget
+        self, runner: BiomniBenchJudgeRunner, target: JudgeTarget
     ) -> dict[str, Any]:
         completed = runner.completed_record(JudgeAttempt(target, 1))
-        return completed if completed is not None else runner.review_target(target)
+        if completed is not None:
+            return completed
+        record: dict[str, Any] = {}
+        for _attempt in range(self.config.max_retries + 1):
+            record = runner.review_target(target)
+            if record.get("exit_code") == 0:
+                return record
+        return record

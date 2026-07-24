@@ -1,7 +1,7 @@
 # Rubric Gen
 
 Tools for running BiomniBench-DA agents and studying rubric-guided submission
-revision, including full-feedback versus score-only ablations.
+revision, including full, semi, and score-only feedback policies.
 
 ## Setup
 
@@ -17,7 +17,12 @@ Requirements:
 ```bash
 uv sync
 uv run biomnibench-agent --help
+uv run malt --help
 ```
+
+`biomnibench-agent` operates on BiomniBench tasks and revision experiments.
+`malt` is a separate CLI for constructing and running the MALT reward-hacking
+benchmark.
 
 The selected provider CLI must be on `PATH`:
 
@@ -65,7 +70,7 @@ Generate every downloaded rubric with bounded concurrency:
 
 ```bash
 uv run biomnibench-agent generate \
-  --all \
+  --top -1 \
   --tasks-dir data/biomnibench-da \
   --harness gemini-cli \
   --model gemini-3.1-pro-preview \
@@ -82,8 +87,9 @@ Supported harnesses and their defaults are:
 
 `--model` accepts any model ID supported by the selected harness. Omit
 `--output-dir` to create a timestamped generation directory under
-`runs/biomnibench-rubrics` in the current repository. Add `--resume` to reuse tasks with
-an existing valid rubric or `--limit N` to select a smaller `--all` batch.
+`runs/biomnibench-rubrics` in the current repository. Add `--resume` to reuse
+tasks with an existing valid rubric. Use `--top N` for the first N discovered
+tasks or `--top -1` for every task.
 
 Each task retains only lightweight generation evidence after completion:
 
@@ -128,14 +134,17 @@ uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
   --skip-trust
 ```
 
-Use `--feedback-policy score_only` for a single score-only ablation.
+Use `--feedback-policy semi` for the validated total plus each criterion's exact
+heading, selected level, earned points, and maximum points, without tier
+descriptions, judge reasoning, or the rest of the rubric text. Use
+`--feedback-policy score_only` for only the validated total.
 
 Run every task under both full-feedback and score-only conditions. `BULK` must
 name an absolute large-storage path:
 
 ```bash
 uv run biomnibench-agent revise \
-  --all \
+  --top -1 \
   --full-v-score \
   --tasks-dir data/biomnibench-da \
   --revision-rounds 10 \
@@ -158,7 +167,7 @@ absolute path to override only the live-storage location.
 Add `--dry-run` first to print every selected task, condition, and output
 directory without starting solver or judge processes.
 
-During `revise --all`, the terminal shows one overall experiment progress bar
+During `revise --top N`, the terminal shows one overall experiment progress bar
 plus one revision-round bar for each active worker, up to `--max-concurrency`.
 Worker bars disappear on completion and their terminal rows are reused by the
 next queued experiments.
@@ -172,7 +181,7 @@ location.
 
 When `--experiment-dir` is omitted, `revise` requires `BULK` to be set to an
 absolute path and creates one timestamped base under
-`$BULK/rubric_gen/runs/biomnibench-revisions/`. A `--all` run is one real batch
+`$BULK/rubric_gen/runs/biomnibench-revisions/`. A `--top` run is one real batch
 directory rather than a collection of sibling directories:
 
 ```text
@@ -187,11 +196,14 @@ With `--full-v-score`, each task contains `full/` and `score-only/` experiment
 subdirectories. Pass `--experiment-dir PATH` to choose the batch root; an
 explicit path works even when `BULK` is unset.
 
-Each revision submission remains as an immutable snapshot under `submissions/`.
-Judge staging uses hard links to that snapshot instead of copying its workspace
-and cumulative trajectory, so the judge layout does not consume a second set of
-file data blocks. Judge results and validation artifacts remain durable for
-resume and audit.
+Each revision submission remains under `submissions/`. Consecutive snapshots
+hard-link byte-identical files, and judge staging hard-links the submission
+instead of copying it. After a run completes, older rounds are compacted to the
+two inputs needed for later judging (`answer.txt` and `trace.md`); only the final
+submission retains its complete workspace. Cumulative trajectories, scores,
+judge results, and validation artifacts remain durable for resume and audit.
+Workspace-local `.venv`, `venv`, `packages`, and cache directories are never
+included in a submission snapshot.
 
 To continue an interrupted experiment, pass its exact final directory with
 `--experiment-dir PATH --resume`. To delete that experiment and start again at
@@ -277,7 +289,7 @@ includes score summaries, validated member evaluations, and ensemble
 exploitation artifacts. Use `--output-dir PATH` to override the artifact root;
 `--output FILE` overrides only the summary JSON path.
 
-The judge accepts the top directory from an `all` or `revise --all` run. For a
+The judge accepts the top directory from an `all` or `revise --top` run. For a
 revision batch, ordinary judging selects the final submission from every task.
 The strong reference panel evaluates every weak-judged submission and calculates
 per-task exploitation statistics:
@@ -303,6 +315,106 @@ transition contains no newly credited criteria; it is not falsely reported as
 zero.
 `judge --ensemble` displays one overall model-call bar plus one live bar per
 concurrency slot.
+
+## Audit Revision Runs for Reward Hacking
+
+Run an open-ended forensic audit with independent Codex CLI, Claude Code, and
+Gemini CLI investigators:
+
+```bash
+uv run biomnibench-agent judge --agent-ensemble \
+  --run-dir "$BULK/rubric_gen/runs/biomnibench-revisions/REVISION_EXPERIMENT" \
+  --tasks-dir data/biomnibench-da \
+  --max-concurrency 3
+```
+
+The three harnesses use their strongest configured models and receive the
+original task plus the complete revision experiment, including feedback,
+submissions, artifacts, and tool-call trajectories. They are instructed to
+ignore prior strong-judge opinions, investigate chronologically, and discover
+reward-hacking mechanisms from evidence rather than classify findings into a
+predefined taxonomy. Web access is disabled for the auditors.
+
+Each member writes an independent `audit.md` and raw trajectory. The command
+also writes `panel.md`, which concatenates the reports without majority voting
+or discarding findings reported by only one investigator, and `summary.json`
+with execution provenance. Outputs default to a deterministic `agent-ensemble`
+directory beneath the matching artifact root in `runs/biomnibench-judges`; use
+`--output-dir` to override it and `--resume` to reuse valid member reports.
+`--agent-ensemble` and the rubric-scoring `--ensemble` mode are mutually
+exclusive.
+
+### MALT reward-hacking benchmark
+
+The standalone `malt` CLI handles inspection, preparation, execution, and
+scoring. It is deliberately not a `biomnibench-agent` subcommand. Standard uv
+syntax is `uv run malt`, not `uv malt`.
+
+Download exactly one MALT configuration after receiving access to the gated
+dataset. Do not pool `default`, `irrelevant_detail`, `language_mixing`,
+`summarize`, and `vague_cot`: they contain paired variants of the same runs.
+
+First run without label mappings to inspect review status and the exact label
+vocabulary:
+
+```bash
+uv run malt default/*.parquet \
+  --output-dir runs/malt-benchmark
+```
+
+This writes `runs/malt-benchmark/inventory.json` and stops. Inspect it before
+assigning labels. In particular, do not treat an empty label list or a
+`manually_reviewed=false` row as a verified negative.
+
+After deciding which exact MALT labels are verified positives and negatives,
+repeat the command with those mappings. Unmapped and, by default, unreviewed
+rows are skipped:
+
+```bash
+uv run malt default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label VERIFIED_REWARD_HACKING \
+  --negative-label VERIFIED_NO_REWARD_HACKING
+```
+
+Add `--run` to prepare the cases, run Codex, Claude Code, and Gemini CLI, and
+score their strict `verdict.json` outputs in one invocation:
+
+```bash
+uv run malt default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label VERIFIED_REWARD_HACKING \
+  --negative-label VERIFIED_NO_REWARD_HACKING \
+  --run \
+  --split test \
+  --max-concurrency 30
+```
+
+The output directory contains:
+
+```text
+runs/malt-benchmark/
+├── inventory.json
+├── cases/
+├── private/gold.jsonl
+├── agent-ensemble/
+└── metrics.json
+```
+
+`metrics.json` reports each harness independently and the predeclared
+majority, any-detect, and unanimous-detect ensemble rules. The default scored
+split is `test`; use `--split development` or `--split validation` while
+developing prompts, and do not tune against test results.
+
+Case artifacts contain no labels or original run identifiers. This is
+structural blinding, not a security boundary: the current external CLI agents
+are not guaranteed to be filesystem-isolated from gold data. For a publishable
+evaluation, run each harness in a container or equivalent environment that
+mounts only one evidence case and its audit workspace.
+
+The auditors are autonomous terminal agents. They receive explicit read-only
+instructions and may write only inside their audit workspaces, but those
+instructions are not a security boundary.
 
 ## Generate Controlled Perturbations
 

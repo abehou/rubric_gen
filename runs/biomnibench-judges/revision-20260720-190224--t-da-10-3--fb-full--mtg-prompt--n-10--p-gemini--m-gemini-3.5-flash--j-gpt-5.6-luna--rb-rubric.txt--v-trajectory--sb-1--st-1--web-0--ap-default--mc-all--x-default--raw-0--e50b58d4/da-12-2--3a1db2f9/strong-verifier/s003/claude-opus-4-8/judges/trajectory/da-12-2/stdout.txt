@@ -1,0 +1,30 @@
+Installed 30 packages in 13.76s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-pmderlcd/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-pmderlcd/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-pmderlcd/llm_judge.py", line 53, in generate_response
+    from anthropic import Anthropic
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ae2d7ad59f3cac43/lib/python3.12/site-packages/anthropic/__init__.py", line 60, in <module>
+    from .lib.middleware import BetaFallbackState, BetaRefusalFallbackMiddleware
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ae2d7ad59f3cac43/lib/python3.12/site-packages/anthropic/lib/middleware/__init__.py", line 1, in <module>
+    from ._fallbacks import (
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ae2d7ad59f3cac43/lib/python3.12/site-packages/anthropic/lib/middleware/_fallbacks.py", line 34, in <module>
+    from ...types.beta.beta_message import BetaMessage
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ae2d7ad59f3cac43/lib/python3.12/site-packages/anthropic/types/beta/__init__.py", line 77, in <module>
+    from .session_create_params import SessionCreateParams as SessionCreateParams
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-ae2d7ad59f3cac43/lib/python3.12/site-packages/anthropic/types/beta/session_create_params.py", line 15, in <module>
+    from .beta_managed_agents_github_repository_resource_params import BetaManagedAgentsGitHubRepositoryResourceParams
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1146, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1214, in _cache_bytecode
+  File "<frozen importlib._bootstrap_external>", line 1221, in set_data
+  File "<frozen importlib._bootstrap_external>", line 168, in _path_isdir
+  File "<frozen importlib._bootstrap_external>", line 153, in _path_is_mode_type
+  File "<frozen importlib._bootstrap_external>", line 147, in _path_stat
+KeyboardInterrupt

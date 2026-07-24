@@ -1,0 +1,36 @@
+{
+  "total_score": 100,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 15,
+      "reason": "The agent correctly skips metadata rows, parses the header, extracts the required columns, converts to numeric types, and verifies data completeness."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 15,
+      "reason": "The agent filters proteins by adjusted p-value < 0.05 for both phenotypes independently and correctly reports the number of significant associations for each."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 25,
+      "reason": "Significant proteins are correctly ranked by absolute effect size for both percent fat and breast volume, presenting the requested top-10 lists with estimates and directions."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 27,
+      "reason": "Provides deep biological interpretation, accurately discussing Leptin as an adipokine, Prolactin, INSL3, and explaining the overlapping markers in the context of adipose tissue deposition."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 18,
+      "reason": "Appropriately frames proteomic remodeling as jointly driven by body composition and hormones, while explicitly noting the correlative limitations of observational models."
+    },
+    "criterion_6": {
+      "level": "A",
+      "score": 0,
+      "reason": "All numerical results are grounded in the data, and biological interpretations are supported by verifiable, peer-reviewed references cited in the trace."
+    }
+  },
+  "reasoning": "The agent executed all requirements flawlessly. It properly parsed the data, performed correct statistical filtering, and accurately ranked associations by absolute effect size. The biological interpretations are highly detailed, biologically sound, and properly caveated regarding causality, placing the findings excellently within the broader study context."
+}

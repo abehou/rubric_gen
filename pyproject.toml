@@ -6,11 +6,13 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "matplotlib>=3.8",
+  "pyarrow>=18.0",
   "tqdm>=4.66",
 ]
 
 [project.scripts]
 biomnibench-agent = "rubric_gen.biomnibench.cli:main"
+malt = "rubric_gen.malt.cli:main"
 
 [dependency-groups]
 dev = [

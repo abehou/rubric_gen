@@ -1,0 +1,41 @@
+Installed 30 packages in 14.45s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-mett8m8z/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-mett8m8z/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-mett8m8z/llm_judge.py", line 34, in generate_response
+    from google import genai
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-811432933c80112c/lib/python3.12/site-packages/google/genai/__init__.py", line 19, in <module>
+    from . import types
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-811432933c80112c/lib/python3.12/site-packages/google/genai/types.py", line 18048, in <module>
+    class InlinedEmbedContentResponse(_common.BaseModel):
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-811432933c80112c/lib/python3.12/site-packages/google/genai/types.py", line 18058, in InlinedEmbedContentResponse
+    metadata: Optional[dict[str, Any]] = Field(
+              ~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 395, in inner
+    return _caches[func](*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 517, in __getitem__
+    return self._getitem(self, parameters)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 751, in Optional
+    return Union[arg, type(None)]
+           ~~~~~^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 395, in inner
+    return _caches[func](*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 517, in __getitem__
+    return self._getitem(self, parameters)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 730, in Union
+    parameters = tuple(_type_check(p, msg) for p in parameters)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 730, in <genexpr>
+    parameters = tuple(_type_check(p, msg) for p in parameters)
+                       ^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/typing.py", line 175, in _type_check
+    def _type_check(arg, msg, is_argument=True, module=None, *, allow_special_forms=False):
+    
+KeyboardInterrupt

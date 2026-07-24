@@ -1,0 +1,19 @@
+Installed 30 packages in 18.01s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly loaded and parsed the data, separated CPA and SPIRO regimens, applied the significance threshold, and dynamically selected the most significant MHT age-stratified estimate per protein."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Protein matching was accurate, yielding the expected 212 CPA and 80 SPIRO overlaps. Direction determination was correctly based on coefficient signs, and the logic was well-documented."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent properly calculated and reported regimen-specific concordance counts and percentages, obtaining the expected 160/52 for CPA and 71/9 for SPIRO, clearly labeled."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "The response identifies all key discordant exceptions (CXCL13, NOS3, chemokines, INSL3), provides exact counts, and offers appropriate biological rationales ...

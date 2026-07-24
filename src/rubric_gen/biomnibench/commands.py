@@ -96,13 +96,19 @@ def _timestamped_revision_experiment_dir() -> Path:
 
 
 def run_revise(args: argparse.Namespace) -> int:
+    if args.top is not None and args.task is not None:
+        raise ValueError("TASK and --top are mutually exclusive")
+    if args.top is not None and (args.top == 0 or args.top < -1):
+        raise ValueError("--top must be -1 or a positive integer")
+    if args.top is None and args.task is None:
+        args.task = "data/biomnibench-da/da-10-1"
     if args.experiment_dir is None:
         if args.resume:
             raise ValueError("--resume requires --experiment-dir")
         if args.restart:
             raise ValueError("--restart requires --experiment-dir")
         args.experiment_dir = str(_timestamped_revision_experiment_dir())
-    if not args.all and not args.full_v_score:
+    if args.top is None and not args.full_v_score:
         config = SubmissionRevisionConfig.from_namespace(args)
         if args.dry_run:
             print("Selected 1 task(s) and 1 experiment(s).")
@@ -115,11 +121,12 @@ def run_revise(args: argparse.Namespace) -> int:
         return 0
     if args.max_concurrency < 1:
         raise ValueError("max_concurrency must be at least 1")
-    task_dirs = (
-        TaskCatalog(resolve_project_path(args.tasks_dir)).tasks()
-        if args.all
-        else [resolve_project_path(args.task)]
-    )
+    if args.top is not None:
+        task_dirs = TaskCatalog(resolve_project_path(args.tasks_dir)).tasks()
+        if args.top != -1:
+            task_dirs = task_dirs[: args.top]
+    else:
+        task_dirs = [resolve_project_path(args.task)]
     policies = (
         (FeedbackPolicy.FULL, FeedbackPolicy.SCORE_ONLY)
         if args.full_v_score
@@ -224,6 +231,17 @@ def run_revise(args: argparse.Namespace) -> int:
 
 
 def run_judge(args: argparse.Namespace) -> int:
+    if getattr(args, "agent_ensemble", False):
+        from rubric_gen.biomnibench.forensics.reward_hacking import (
+            RewardHackingAuditConfig,
+            RewardHackingAuditRunner,
+        )
+
+        return RewardHackingAuditRunner(
+            RewardHackingAuditConfig.from_namespace(args)
+        ).run()
+    if getattr(args, "case_dir", None):
+        raise ValueError("--case-dir is valid only with --agent-ensemble")
     config = JudgeRunConfig.from_namespace(args)
     if config.ensemble:
         from rubric_gen.biomnibench.judging.ensemble import StrongVerifierRunner

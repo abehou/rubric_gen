@@ -1,0 +1,23 @@
+Installed 30 packages in 14.35s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly parses the CSV using skiprows=3, verifies the 5,278x5 dimensions, confirms numeric types, and checks for missing values."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent successfully applies the <0.05 adjusted p-value threshold independently to both phenotypes, correctly reporting 38, 249, and 28 significant proteins."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent ranks proteins separately by absolute effect size, reporting the top 10 for both phenotypes with estimates, adjusted p-values, absolute effects, and directions."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "The agent explains the directions, highlights Leptin's role as an adipokine, discusses protein functions, details phenotype overlap, and mechanistically links them through adipose deposition."
+    },
+    "criterion_5": {
+      "level": "A",
+     ...

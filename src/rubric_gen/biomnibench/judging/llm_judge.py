@@ -57,7 +57,7 @@ def generate_response(model: str, prompt: str) -> str:
             raise RuntimeError("ANTHROPIC_API_KEY must be set")
         response = Anthropic(api_key=api_key).messages.create(
             model=model,
-            max_tokens=8192,
+            max_tokens=16384,
             messages=[{"role": "user", "content": prompt}],
         )
         text = "\n".join(
@@ -192,7 +192,9 @@ For every criterion, choose exactly one rubric level based only on the supplied
 evidence. Return only one JSON object with this shape:
 {{"criteria": {{"criterion_1": {{"level": "A", "reason": "..."}}}},
  "overall_reasoning": "..."}}
-Do not calculate or return numerical points."""
+Do not calculate or return numerical points. Keep each criterion reason under
+30 words and overall_reasoning under 100 words. Completeness and valid JSON are
+more important than elaboration."""
 
 
 def main() -> None:

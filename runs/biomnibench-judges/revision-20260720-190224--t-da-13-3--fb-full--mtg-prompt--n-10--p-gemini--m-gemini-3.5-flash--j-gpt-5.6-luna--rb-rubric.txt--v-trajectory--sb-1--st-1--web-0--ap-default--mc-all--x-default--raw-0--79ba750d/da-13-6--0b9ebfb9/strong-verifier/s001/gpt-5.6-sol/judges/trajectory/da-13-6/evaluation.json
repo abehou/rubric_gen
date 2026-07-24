@@ -1,0 +1,36 @@
+{
+  "total_score": 95,
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "score": 20,
+      "reason": "Correctly loads both tables, normalizes identifiers, filters regimens separately, and reproducibly selects each protein\u2019s MHT age stratum using the smaller adjusted p-value."
+    },
+    "criterion_2": {
+      "level": "A",
+      "score": 20,
+      "reason": "Standardized matching yields expected overlaps of 212 CPA and 80 SPIRO proteins; directions derive correctly from effect signs with missing estimates excluded."
+    },
+    "criterion_3": {
+      "level": "A",
+      "score": 20,
+      "reason": "Reports correct regimen-specific denominators, concordant and discordant counts, and percentages: CPA 160/52 of 212 and SPIRO 71/9 of 80."
+    },
+    "criterion_4": {
+      "level": "A",
+      "score": 20,
+      "reason": "Reports discordant counts and highlights CXCL13, NOS3, CCL16, CCL25, CD70, INSL3, MSMB, and ACRBP with directions and biological context."
+    },
+    "criterion_5": {
+      "level": "A",
+      "score": 20,
+      "reason": "Connects majority concordance to hormonal mimicry, compares CPA and SPIRO rates, and acknowledges incomplete concordance, age stratification, anatomy, and differing endocrine contexts."
+    },
+    "criterion_6": {
+      "level": "B",
+      "score": -5,
+      "reason": "Computed values and identifiers are traceable, but several mechanistic claims about CPA, immune activation, CXCL13, and NOS3 are speculative or not directly supported by cited references."
+    }
+  },
+  "reasoning": "The revised work directly answers the requested analysis. It uses appropriate GAHT filtering, standardized matching, per-protein age-stratified MHT selection, correct overlap denominators, and exact concordance counts. It also provides the required discordant examples and nuanced regimen/context limitations. The principal weakness is source reliability: several detailed mechanistic explanations go beyond what the supplied data establish and lack directly relevant citations."
+}

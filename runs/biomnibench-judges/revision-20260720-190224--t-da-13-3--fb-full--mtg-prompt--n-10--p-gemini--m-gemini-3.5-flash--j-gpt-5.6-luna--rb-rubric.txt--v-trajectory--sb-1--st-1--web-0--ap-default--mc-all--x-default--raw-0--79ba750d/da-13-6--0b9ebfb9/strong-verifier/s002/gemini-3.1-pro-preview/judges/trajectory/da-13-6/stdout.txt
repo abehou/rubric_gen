@@ -1,0 +1,23 @@
+Installed 30 packages in 19.06s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "Correctly loaded datasets, filtered GAHT by adj. p < 0.05 (245 CPA, 91 SPIRO), normalized identifiers, and selected the most significant MHT age-stratum estimate per protein."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Matched proteins accurately, obtaining 212 overlaps for CPA and 80 for SPIRO, correctly handled missing values, and determined direction based on estimate signs."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Accurately reported exact concordance counts and percentages (CPA 160 same/52 opposite, 75.47%; SPIRO 71 same/9 opposite, 88.75%) with clear contexts."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Successfully identified 52 CPA and 9 SPIRO discordant proteins, highlighting CXCL13, NOS3, specific immune modulators, and reproductive markers with strong biological rationales."
+    },
+    "criterion_5": {
+      "level": "A",
+  ...

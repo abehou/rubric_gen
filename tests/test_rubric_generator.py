@@ -59,12 +59,13 @@ def test_generation_prompt_requires_exploration_without_fixed_score_schema() -> 
     assert "tests/rubric.txt" in prompt
 
 
-def test_generate_rejects_task_with_all(tmp_path: Path) -> None:
+def test_generate_rejects_task_with_top(tmp_path: Path) -> None:
     args = build_parser().parse_args(
         [
             "generate",
             str(tmp_path / "da-1-1"),
-            "--all",
+            "--top",
+            "-1",
             "--output-dir",
             str(tmp_path / "out"),
         ]

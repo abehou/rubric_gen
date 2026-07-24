@@ -262,7 +262,7 @@ def test_centralized_anthropic_judge_extracts_text_from_multiple_blocks(
     assert response == '{"criteria":\n {}}'
     assert observed["api_key"] == "anthropic-secret"
     assert observed["model"] == "claude-fable-5"
-    assert observed["max_tokens"] == 8192
+    assert observed["max_tokens"] == 16384
 
 
 def test_centralized_anthropic_judge_reports_empty_response(

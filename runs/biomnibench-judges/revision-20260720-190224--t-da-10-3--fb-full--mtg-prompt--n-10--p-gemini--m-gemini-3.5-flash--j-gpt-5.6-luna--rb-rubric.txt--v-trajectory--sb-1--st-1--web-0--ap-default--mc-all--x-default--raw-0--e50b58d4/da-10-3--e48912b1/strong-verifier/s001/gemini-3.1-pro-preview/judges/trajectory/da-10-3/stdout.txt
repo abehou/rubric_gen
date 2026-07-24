@@ -1,0 +1,14 @@
+Installed 30 packages in 13.54s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent perfectly categorizes the datasets into MLO participant group, membrane-bound control (mitochondria), and an additional pathological control (amyloid). It clearly defines the hNoPS background set, lists all predictors evaluated across two analyses, and explicitly documents and quantifies membership overlap, correctly noting that MLO overlap is biologically expected while verifying that the control groups are virtually mutually exclusive from the MLO sets."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent constructs labels using dataset membership for positives and the fixed hNoPS background set for negatives, while explicitly removing overlapping proteins by ensuring D == 0 for the negative set. It documents the final positive and negative valid counts for every single dataset and predictor combination in the provided summary tables."
+    },
+    "criterion_3": {
+     ...

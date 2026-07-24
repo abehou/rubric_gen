@@ -1,0 +1,23 @@
+Installed 30 packages in 14.22s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly loaded both tables, filtered GAHT by adj p < 0.05, standardized identifiers, and selected the MHT age-stratum with the smaller p-value."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent correctly matched identifiers, excluded missing estimates, determined direction by effect size signs, and achieved expected overlaps (212 CPA, 80 SPIRO)."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent accurately reported both counts and percentages for same- and opposite-direction changes matching expected values (160/212 for CPA; 71/80 for SPIRO)."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "The agent explicitly identified CXCL13, NOS3, required immune modulators, and reproductive markers, reporting exact discordant counts and providing detailed biological rationales."
+    },
+    "criterion_5": {
+      "level": "A",
+      "re...

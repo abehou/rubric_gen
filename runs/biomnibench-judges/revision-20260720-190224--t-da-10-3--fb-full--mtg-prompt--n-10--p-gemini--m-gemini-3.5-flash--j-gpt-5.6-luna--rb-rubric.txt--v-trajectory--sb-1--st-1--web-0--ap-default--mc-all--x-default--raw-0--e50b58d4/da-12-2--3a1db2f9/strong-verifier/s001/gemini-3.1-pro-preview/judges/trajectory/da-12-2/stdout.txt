@@ -1,0 +1,55 @@
+Installed 30 packages in 14.36s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-5kuq600x/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-5kuq600x/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-5kuq600x/llm_judge.py", line 34, in generate_response
+    from google import genai
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/google/genai/__init__.py", line 19, in <module>
+    from . import types
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/google/genai/types.py", line 17111, in <module>
+    class ListFileSearchStoresConfig(_common.BaseModel):
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_model_construction.py", line 256, in __new__
+    complete_model_class(
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_model_construction.py", line 667, in complete_model_class
+    schema = gen_schema.generate_schema(cls)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 744, in generate_schema
+    schema = self._generate_schema_inner(obj)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 1038, in _generate_schema_inner
+    return self._model_schema(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 878, in _model_schema
+    inner_schema = apply_model_validators(inner_schema, model_validators, 'inner')
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py", line 2637, in apply_model_validators
+    info_arg = inspect_validator(validator.func, mode=validator.info.mode, type='model')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_decorators.py", line 566, in inspect_validator
+    sig = signature_no_eval(validator)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-3781ccc3a442124e/lib/python3.12/site-packages/pydantic/_internal/_typing_extra.py", line 582, in signature_no_eval
+    return signature(f)
+           ^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/inspect.py", line 3348, in signature
+    return Signature.from_callable(obj, follow_wrapped=follow_wrapped,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/inspect.py", line 3085, in from_callable
+    return _signature_from_callable(obj, sigcls=cls,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/inspect.py", line 2527, in _signature_from_callable
+    sig = _get_signature_of(obj.__func__)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/inspect.py", line 2597, in _signature_from_callable
+    return _signature_from_function(sigcls, obj,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/inspect.py", line 2424, in _signature_from_function
+    annotations = get_annotations(func, globals=globals, locals=locals, eval_str=eval_str)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/juice2/u/abehou/anaconda3/lib/python3.12/inspect.py", line 266, in get_annotations
+    return dict(ann)
+           ^^^^^^^^^
+KeyboardInterrupt

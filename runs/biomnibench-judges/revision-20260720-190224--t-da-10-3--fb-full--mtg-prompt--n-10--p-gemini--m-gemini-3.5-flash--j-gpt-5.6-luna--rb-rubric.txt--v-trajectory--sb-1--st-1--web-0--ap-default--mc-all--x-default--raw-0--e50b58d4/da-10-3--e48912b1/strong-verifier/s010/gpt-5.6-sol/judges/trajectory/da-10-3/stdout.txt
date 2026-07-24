@@ -1,0 +1,30 @@
+Installed 30 packages in 14.85s
+Traceback (most recent call last):
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-d8jh7yyv/llm_judge.py", line 228, in <module>
+    main()
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-d8jh7yyv/llm_judge.py", line 207, in main
+    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nlp/scr/abehou/.cache/tmp/biomnibench-judge-d8jh7yyv/llm_judge.py", line 77, in generate_response
+    from openai import OpenAI
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-0dd8a51e48859c7a/lib/python3.12/site-packages/openai/__init__.py", line 106, in <module>
+    from .lib.streaming import (
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-0dd8a51e48859c7a/lib/python3.12/site-packages/openai/lib/streaming/__init__.py", line 1, in <module>
+    from ._assistants import (
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-0dd8a51e48859c7a/lib/python3.12/site-packages/openai/lib/streaming/_assistants.py", line 14, in <module>
+    from ...types.beta import AssistantStreamEvent
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-0dd8a51e48859c7a/lib/python3.12/site-packages/openai/types/beta/__init__.py", line 8, in <module>
+    from .beta_response import BetaResponse as BetaResponse
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-0dd8a51e48859c7a/lib/python3.12/site-packages/openai/types/beta/beta_response.py", line 17, in <module>
+    from .beta_response_input_item import BetaResponseInputItem
+  File "/nlp/scr/abehou/.cache/uv/environments-v2/llm-judge-0dd8a51e48859c7a/lib/python3.12/site-packages/openai/types/beta/beta_response_input_item.py", line 26, in <module>
+    from .beta_response_function_call_output_item_list import BetaResponseFunctionCallOutputItemList
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1146, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1213, in _cache_bytecode
+  File "<frozen importlib._bootstrap_external>", line 630, in _calc_mode
+  File "<frozen importlib._bootstrap_external>", line 147, in _path_stat
+KeyboardInterrupt

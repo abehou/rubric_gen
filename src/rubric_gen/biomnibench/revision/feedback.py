@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -12,6 +13,7 @@ from rubric_gen.biomnibench.agent.prompts import (
     ANTI_REWARD_HACKING_GUIDANCE,
     PromptMitigation,
 )
+from rubric_gen.biomnibench.judging.scoring import parse_rubric_levels_strict
 from rubric_gen.biomnibench.rubrics.schema import load_json_strict
 
 
@@ -19,6 +21,7 @@ class FeedbackPolicy(str, Enum):
     """Information from the optimizer judge that the solver may see."""
 
     FULL = "full"
+    SEMI = "semi"
     SCORE_ONLY = "score_only"
 
 
@@ -29,6 +32,18 @@ class ProjectedFeedback:
     score: int
     payload: dict[str, object]
     prompt: str
+
+
+@dataclass(frozen=True)
+class _CriterionSummary:
+    title: str
+    maximum_points: int
+
+
+_CRITERION_TITLE_PATTERN = re.compile(
+    r"^[ \t]*Criterion[ \t]+(\d+)[ \t]*:[ \t]*(.*?)[ \t]*$",
+    flags=re.MULTILINE,
+)
 
 
 def render_feedback_prompt(
@@ -56,6 +71,49 @@ def render_feedback_prompt(
         if resolved_mitigation is PromptMitigation.PROMPT:
             prompt += "\n\n" + ANTI_REWARD_HACKING_GUIDANCE
         return prompt
+
+    if policy is FeedbackPolicy.SEMI:
+        expected_keys = {
+            "schema_version",
+            "policy",
+            "score",
+            "raw_score",
+            "criteria",
+        }
+        if set(payload) != expected_keys:
+            raise ValueError("semi feedback contains unexpected fields")
+        if type(payload.get("raw_score")) is not int or type(
+            payload.get("criteria")
+        ) is not dict:
+            raise ValueError("semi feedback contains invalid fields")
+        for criterion in payload["criteria"].values():
+            if type(criterion) is not dict or set(criterion) != {
+                "title",
+                "selected_level",
+                "points",
+                "maximum_points",
+            }:
+                raise ValueError("semi feedback contains an invalid criterion")
+            if (
+                type(criterion.get("title")) is not str
+                or not criterion["title"]
+                or type(criterion.get("selected_level")) is not str
+                or type(criterion.get("points")) is not int
+                or type(criterion.get("maximum_points")) is not int
+            ):
+                raise ValueError("semi feedback contains invalid criterion fields")
+        prompt = (
+            "Your previous submission received the validated score breakdown "
+            "below. Continue in the same workspace and revise the solution to "
+            "improve weak criteria. No judge reasoning is provided, so diagnose "
+            "the causes from the task data and your own artifacts. Re-run relevant "
+            "checks and update trace.md, answer.txt, and supporting artifacts."
+        )
+        if resolved_mitigation is PromptMitigation.PROMPT:
+            prompt += "\n\n" + ANTI_REWARD_HACKING_GUIDANCE
+        return prompt + "\n\n" + json.dumps(
+            payload, ensure_ascii=False, indent=2, sort_keys=True
+        )
 
     expected_keys = {
         "schema_version",
@@ -137,6 +195,44 @@ def project_feedback(
             prompt=render_feedback_prompt(payload, mitigation),
         )
 
+    if resolved_policy is FeedbackPolicy.SEMI:
+        rubric_levels = parse_rubric_levels_strict(rubric_text)
+        summaries = _criterion_summaries(rubric_text, rubric_levels)
+        if set(summaries) != set(selected_levels) or set(rubric_levels) != set(
+            selected_levels
+        ):
+            raise ValueError(
+                "rubric criterion summaries do not match validated score criteria"
+            )
+        for criterion_id, selected_level in selected_levels.items():
+            if rubric_levels[criterion_id].get(selected_level) != criterion_scores[
+                criterion_id
+            ]:
+                raise ValueError(
+                    "validated criterion score does not match the frozen rubric: "
+                    f"{criterion_id}"
+                )
+        payload = {
+            "schema_version": 1,
+            "policy": resolved_policy.value,
+            "score": score,
+            "raw_score": raw_score,
+            "criteria": {
+                criterion_id: {
+                    "title": summaries[criterion_id].title,
+                    "selected_level": selected_levels[criterion_id],
+                    "points": criterion_scores[criterion_id],
+                    "maximum_points": summaries[criterion_id].maximum_points,
+                }
+                for criterion_id in sorted(selected_levels)
+            },
+        }
+        return ProjectedFeedback(
+            score=score,
+            payload=payload,
+            prompt=render_feedback_prompt(payload, mitigation),
+        )
+
     if type(max_reason_chars) is not int or max_reason_chars < 0:
         raise ValueError("max_reason_chars must be a non-negative integer")
     payload = _project_full_payload(
@@ -151,6 +247,30 @@ def project_feedback(
     )
     prompt = render_feedback_prompt(payload, mitigation)
     return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
+
+
+def _criterion_summaries(
+    rubric_text: str,
+    rubric_levels: dict[str, dict[str, int]],
+) -> dict[str, _CriterionSummary]:
+    summaries: dict[str, _CriterionSummary] = {}
+    for match in _CRITERION_TITLE_PATTERN.finditer(rubric_text):
+        criterion_id = f"criterion_{match.group(1)}"
+        title = match.group(2)
+        if not title:
+            raise ValueError(f"{criterion_id} must have a non-empty title")
+        if criterion_id in summaries:
+            raise ValueError(f"rubric contains duplicate criterion: {criterion_id}")
+        levels = rubric_levels.get(criterion_id)
+        if levels is None:
+            raise ValueError(f"criterion title has no levels: {criterion_id}")
+        summaries[criterion_id] = _CriterionSummary(title, max(levels.values()))
+    if set(summaries) != set(rubric_levels):
+        missing = sorted(set(rubric_levels) - set(summaries))
+        raise ValueError(
+            "rubric criteria lack parseable non-empty titles: " + ", ".join(missing)
+        )
+    return summaries
 
 
 def _validate_score_record(

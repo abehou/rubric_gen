@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 
 import pytest
 
@@ -10,6 +11,7 @@ from rubric_gen.biomnibench.judging.ensemble import (
     StrongVerifierRunner,
     calculate_exploitation,
 )
+from rubric_gen.biomnibench.judging import ensemble as ensemble_module
 
 
 def panel(**criteria: tuple[str, str, str]) -> dict[str, dict[str, str]]:
@@ -96,8 +98,8 @@ def test_ensemble_expands_revision_batch_root(tmp_path, monkeypatch) -> None:
     )
     monkeypatch.setattr(
         runner,
-        "_run_experiment",
-        lambda path: observed.append(path) or 0,
+        "_prepare_experiment",
+        lambda path: observed.append(path) or None,
     )
 
     assert runner.run() == 0
@@ -133,3 +135,106 @@ def test_ensemble_skips_revision_without_weak_judgments(tmp_path, capsys) -> Non
     output = capsys.readouterr().out
     assert "Skipping da-1-1: no weak-judged submissions" in output
     assert str(experiment) in output
+
+
+def test_ensemble_schedules_calls_across_tasks_in_one_global_pool(
+    tmp_path, monkeypatch
+) -> None:
+    first = tmp_path / "da-1-1"
+    second = tmp_path / "da-1-2"
+    barrier = threading.Barrier(2)
+    finished: list[str] = []
+    runner = StrongVerifierRunner(
+        JudgeRunConfig(
+            run_dir=first,
+            extra_run_dirs=(second,),
+            tasks_dir=tmp_path,
+            ensemble=True,
+            max_concurrency=2,
+        )
+    )
+
+    def prepare(path):
+        return ensemble_module._ExperimentPlan(
+            experiment_dir=path,
+            task=path.name,
+            submissions=["s000"],
+            weak=[],
+            ensemble_root=path,
+            jobs=[("s000", "model", None, None)],
+            panel_paths={},
+        )
+
+    def judge_one(_judge_runner, _target):
+        barrier.wait(timeout=2)
+        return {"exit_code": 0}
+
+    monkeypatch.setattr(runner, "_prepare_experiment", prepare)
+    monkeypatch.setattr(runner, "_judge_one", judge_one)
+    monkeypatch.setattr(
+        runner, "_finish_experiment", lambda plan: finished.append(plan.task)
+    )
+
+    assert runner.run() == 0
+    assert finished == ["da-1-1", "da-1-2"]
+
+
+def test_ensemble_retries_failed_member_until_it_returns_valid_score(tmp_path) -> None:
+    outcomes = [
+        {"exit_code": 1, "status": "failed"},
+        {"exit_code": 2, "status": "failed"},
+        {"exit_code": 0, "status": "completed", "score": 80},
+    ]
+
+    class FakeJudgeRunner:
+        calls = 0
+
+        def completed_record(self, _attempt):
+            return None
+
+        def review_target(self, _target):
+            result = outcomes[self.calls]
+            self.calls += 1
+            return result
+
+    verifier = StrongVerifierRunner(
+        JudgeRunConfig(
+            run_dir=tmp_path,
+            tasks_dir=tmp_path,
+            ensemble=True,
+            max_retries=2,
+        )
+    )
+    judge = FakeJudgeRunner()
+
+    result = verifier._judge_one(judge, object())
+
+    assert result["exit_code"] == 0
+    assert judge.calls == 3
+
+
+def test_ensemble_stops_after_configured_member_retries(tmp_path) -> None:
+    class FakeJudgeRunner:
+        calls = 0
+
+        def completed_record(self, _attempt):
+            return None
+
+        def review_target(self, _target):
+            self.calls += 1
+            return {"exit_code": 1, "status": "failed"}
+
+    verifier = StrongVerifierRunner(
+        JudgeRunConfig(
+            run_dir=tmp_path,
+            tasks_dir=tmp_path,
+            ensemble=True,
+            max_retries=2,
+        )
+    )
+    judge = FakeJudgeRunner()
+
+    result = verifier._judge_one(judge, object())
+
+    assert result["exit_code"] == 1
+    assert judge.calls == 3

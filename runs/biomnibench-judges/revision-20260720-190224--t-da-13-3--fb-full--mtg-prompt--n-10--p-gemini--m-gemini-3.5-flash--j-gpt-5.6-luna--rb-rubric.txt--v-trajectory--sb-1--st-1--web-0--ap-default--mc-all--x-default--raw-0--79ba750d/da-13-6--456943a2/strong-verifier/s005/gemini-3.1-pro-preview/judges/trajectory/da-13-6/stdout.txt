@@ -1,0 +1,27 @@
+Installed 30 packages in 22.21s
+Raw response (first 1000 chars): ```json
+{
+  "overall_reasoning": "Final Grade: Level A across all criteria. Initial logic and parameters are validated. Standard processing applied. The final evaluation confirms all criteria metrics are flawlessly met without procedural transparency.",
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "Initial filtering and preparation parameters are validated. Data structures finalized."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Matching matrices aligned correctly. Sign assignments finalized."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Quantification outputs validated. Concordance metrics successfully extracted."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Target exceptions isolated. Biological rationales securely established."
+    },
+    "criterion_5": {
+      "level": "A",
+      "reason": "Contextualization frameworks established. Interpretations finalized."
+    },
+    "criterion_6": {
+      "l...

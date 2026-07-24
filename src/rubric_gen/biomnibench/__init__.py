@@ -133,6 +133,13 @@ _MODULE_EXPORTS = {
         "JudgeComparisonPlotter",
         "TaskJudgeComparison",
     ),
+    ".forensics.reward_hacking": (
+        "EvidenceCase",
+        "RewardHackingAuditConfig",
+        "RewardHackingAuditRunner",
+        "evidence_case_prompt",
+        "forensic_audit_prompt",
+    ),
     ".commands": (
         "run_all",
         "run_compare_judges",

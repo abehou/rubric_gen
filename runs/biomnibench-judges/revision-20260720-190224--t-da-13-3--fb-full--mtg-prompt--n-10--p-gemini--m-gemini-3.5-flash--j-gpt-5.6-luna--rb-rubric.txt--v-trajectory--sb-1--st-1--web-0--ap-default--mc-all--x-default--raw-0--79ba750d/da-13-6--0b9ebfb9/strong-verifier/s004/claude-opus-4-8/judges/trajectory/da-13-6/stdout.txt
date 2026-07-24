@@ -1,0 +1,7 @@
+Installed 30 packages in 20.03s
+Raw response (first 1000 chars): {"criteria": {
+"criterion_1": {"level": "A", "reason": "Dynamically located protein_id header, filtered CPA/SPIRO at adj.p<0.05 (245/91), uppercased/trimmed identifiers, selected MHT stratum with smaller adjusted p-value, handled missing estimates, documented reproducibly."},
+"criterion_2": {"level": "A", "reason": "Matched GAHT-significant proteins to MHT estimates using standardized IDs, excluded NA, assigned direction by estimate signs, achieved expected 212 CPA and 80 SPIRO overlaps."},
+"criterion_3": {"level": "A", "reason": "Reports correct denominators: CPA 160/212 (75.47%) same, 52/212 (24.53%) opposite; SPIRO 71/80 (88.75%) same, 9/80 (11.25%) opposite, clearly labeled."},
+"criterion_4": {"level": "A", "reason": "Identifies CXCL13 and NOS3, immune modulators (CCL16, CCL25, CD70, CCL28, IL17RB), reproductive markers (INSL3, MSMB, ACRBP), with counts and biological rationale."},
+"criterion_5": {"level": "A", "reason": "Emphasizes majority concordance, distinguishes higher SPIRO ...

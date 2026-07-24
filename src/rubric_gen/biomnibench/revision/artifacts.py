@@ -8,6 +8,7 @@ import os
 import shutil
 import stat
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
@@ -26,8 +27,11 @@ EXCLUDED_SOLUTION_NAMES = frozenset(
         "__pycache__",
         "data",
         "instruction.md",
+        "packages",
+        "venv",
     }
 )
+RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 
 LIVE_ROOT_PREFIX = "biomnibench-revision-live-"
 LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
@@ -70,12 +74,80 @@ _MITIGATION_LEGACY_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {
 _REVISION_MANIFEST_KEYS = _PRE_MITIGATION_REVISION_MANIFEST_KEYS | {"mitigation"}
 
 
-def copy_solution_workspace(source: Path, destination: Path) -> None:
+@dataclass
+class SnapshotCopyStats:
+    copied_files: int = 0
+    copied_bytes: int = 0
+    linked_files: int = 0
+    linked_bytes: int = 0
+
+    @property
+    def logical_bytes(self) -> int:
+        return self.copied_bytes + self.linked_bytes
+
+
+@dataclass
+class WorkspaceCompactionStats:
+    removed_files: int = 0
+    removed_logical_bytes: int = 0
+
+
+def copy_solution_workspace(
+    source: Path,
+    destination: Path,
+    *,
+    previous: Path | None = None,
+) -> SnapshotCopyStats:
+    """Snapshot a solution, hard-linking files unchanged from the prior round."""
+    if previous is not None and (previous.is_symlink() or not previous.is_dir()):
+        raise RuntimeError(f"invalid previous solution snapshot: {previous}")
+    stats = SnapshotCopyStats()
     destination.mkdir()
     for child in sorted(source.iterdir(), key=lambda path: path.name):
         if child.name in EXCLUDED_SOLUTION_NAMES:
             continue
-        _copy_solution_entry(child, destination / child.name)
+        previous_child = previous / child.name if previous is not None else None
+        _copy_solution_entry(
+            child,
+            destination / child.name,
+            previous_child,
+            stats,
+        )
+    return stats
+
+
+def compact_historical_workspace(root: Path) -> WorkspaceCompactionStats:
+    """Retain only immutable judge inputs in a historical workspace snapshot."""
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError(f"invalid historical solution snapshot: {root}")
+    stats = WorkspaceCompactionStats()
+    root.chmod(stat.S_IMODE(os.lstat(root).st_mode) | stat.S_IRWXU)
+    for child in sorted(root.iterdir(), key=lambda path: path.name):
+        if child.name in RETAINED_HISTORICAL_SOLUTION_NAMES:
+            child_stat = os.lstat(child)
+            if not stat.S_ISREG(child_stat.st_mode):
+                raise RuntimeError(
+                    f"retained historical artifact is not a regular file: {child}"
+                )
+            continue
+        removed_files, removed_bytes = _tree_file_totals(child)
+        if child.is_symlink():
+            raise RuntimeError(
+                f"historical solution snapshot contains a symlink: {child}"
+            )
+        if child.is_dir():
+            _force_remove_directory(child)
+        elif child.is_file():
+            child.chmod(stat.S_IMODE(os.lstat(child).st_mode) | stat.S_IWUSR)
+            child.unlink()
+        else:
+            raise RuntimeError(
+                f"historical solution snapshot contains a special file: {child}"
+            )
+        stats.removed_files += removed_files
+        stats.removed_logical_bytes += removed_bytes
+    make_tree_read_only(root)
+    return stats
 
 
 def prepare_evaluation_run(submission_dir: Path, evaluation_root: Path) -> Path:
@@ -287,18 +359,81 @@ def read_json_object(path: Path, context: str) -> dict[str, object]:
     return value
 
 
-def _copy_solution_entry(source: Path, destination: Path) -> None:
+def _copy_solution_entry(
+    source: Path,
+    destination: Path,
+    previous: Path | None,
+    stats: SnapshotCopyStats,
+) -> None:
     source_stat = os.lstat(source)
     if stat.S_ISLNK(source_stat.st_mode):
         raise RuntimeError(f"solution snapshot contains a symlink: {source}")
     if stat.S_ISDIR(source_stat.st_mode):
         destination.mkdir()
+        previous_dir = (
+            previous
+            if previous is not None
+            and not previous.is_symlink()
+            and previous.is_dir()
+            else None
+        )
         for child in sorted(source.iterdir(), key=lambda path: path.name):
-            _copy_solution_entry(child, destination / child.name)
+            _copy_solution_entry(
+                child,
+                destination / child.name,
+                previous_dir / child.name if previous_dir is not None else None,
+                stats,
+            )
         return
     if not stat.S_ISREG(source_stat.st_mode):
         raise RuntimeError(f"solution snapshot contains a special file: {source}")
+    if (
+        previous is not None
+        and not previous.is_symlink()
+        and previous.is_file()
+        and _regular_files_equal(source, previous)
+    ):
+        os.link(previous, destination, follow_symlinks=False)
+        stats.linked_files += 1
+        stats.linked_bytes += source_stat.st_size
+        return
     shutil.copyfile(source, destination, follow_symlinks=False)
+    stats.copied_files += 1
+    stats.copied_bytes += source_stat.st_size
+
+
+def _regular_files_equal(first: Path, second: Path) -> bool:
+    first_stat = os.lstat(first)
+    second_stat = os.lstat(second)
+    if not stat.S_ISREG(second_stat.st_mode) or first_stat.st_size != second_stat.st_size:
+        return False
+    with first.open("rb") as first_stream, second.open("rb") as second_stream:
+        while True:
+            first_chunk = first_stream.read(1024 * 1024)
+            second_chunk = second_stream.read(1024 * 1024)
+            if first_chunk != second_chunk:
+                return False
+            if not first_chunk:
+                return True
+
+
+def _tree_file_totals(root: Path) -> tuple[int, int]:
+    root_stat = os.lstat(root)
+    if stat.S_ISLNK(root_stat.st_mode):
+        raise RuntimeError(f"historical solution snapshot contains a symlink: {root}")
+    if stat.S_ISREG(root_stat.st_mode):
+        return 1, root_stat.st_size
+    if not stat.S_ISDIR(root_stat.st_mode):
+        raise RuntimeError(
+            f"historical solution snapshot contains a special file: {root}"
+        )
+    files = 0
+    logical_bytes = 0
+    for child in root.iterdir():
+        child_files, child_bytes = _tree_file_totals(child)
+        files += child_files
+        logical_bytes += child_bytes
+    return files, logical_bytes
 
 
 def _link_solution_workspace(source: Path, destination: Path) -> None:

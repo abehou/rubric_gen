@@ -1,0 +1,22 @@
+Installed 30 packages in 13.64s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly skips metadata rows, parses the header, extracts the required columns, converts to numeric types, and verifies data completeness."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent filters proteins by adjusted p-value < 0.05 for both phenotypes independently and correctly reports the number of significant associations for each."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Significant proteins are correctly ranked by absolute effect size for both percent fat and breast volume, presenting the requested top-10 lists with estimates and directions."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Provides deep biological interpretation, accurately discussing Leptin as an adipokine, Prolactin, INSL3, and explaining the overlapping markers in the context of adipose tissue deposition."
+    },
+    "criterion_5": {
+      "level": "...

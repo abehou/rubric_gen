@@ -96,17 +96,17 @@ class RubricGenerationConfig:
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "RubricGenerationConfig":
         tasks_dir = resolve_project_path(args.tasks_dir)
-        if args.all and args.task is not None:
-            raise ValueError("TASK and --all are mutually exclusive")
-        if args.limit is not None and args.limit < 1:
-            raise ValueError("--limit must be at least 1")
-        if args.all:
+        if args.top is not None and args.task is not None:
+            raise ValueError("TASK and --top are mutually exclusive")
+        if args.top is not None and (args.top == 0 or args.top < -1):
+            raise ValueError("--top must be -1 or a positive integer")
+        if args.top is not None:
             task_dirs = tuple(TaskCatalog(tasks_dir).tasks())
-            if args.limit is not None:
-                task_dirs = task_dirs[: args.limit]
+            if args.top != -1:
+                task_dirs = task_dirs[: args.top]
         else:
             if args.task is None:
-                raise ValueError("generate requires TASK or --all")
+                raise ValueError("generate requires TASK or --top")
             task = resolve_project_path(args.task)
             task_dirs = (task,)
         output = (

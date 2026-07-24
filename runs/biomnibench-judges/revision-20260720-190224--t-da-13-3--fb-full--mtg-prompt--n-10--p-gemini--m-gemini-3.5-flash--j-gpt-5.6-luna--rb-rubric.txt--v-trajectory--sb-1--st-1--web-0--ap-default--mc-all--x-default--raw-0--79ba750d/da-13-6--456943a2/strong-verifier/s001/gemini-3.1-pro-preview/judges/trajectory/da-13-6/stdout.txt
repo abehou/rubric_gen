@@ -1,0 +1,21 @@
+Installed 30 packages in 18.11s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly loaded and prepared both datasets, filtered by adjusted p<0.05 separately for each regimen, and properly selected the most significant MHT age-stratified estimate."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent accurately matched proteins (212 for CPA, 80 for SPIRO) using standardized IDs and correctly determined effect directions based on the signs of the estimates."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "The agent correctly quantified and reported same-direction versus opposite-direction changes for CPA (160/52) and SPIRO (71/9), computing accurate concordance rates."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "The agent identified key discordant proteins including CXCL13, NOS3, CCL16, CCL25, CD70, ACRBP, and INSL3, providing counts per regimen and thoughtful biological explanations."
+    },
+    "criterion_...

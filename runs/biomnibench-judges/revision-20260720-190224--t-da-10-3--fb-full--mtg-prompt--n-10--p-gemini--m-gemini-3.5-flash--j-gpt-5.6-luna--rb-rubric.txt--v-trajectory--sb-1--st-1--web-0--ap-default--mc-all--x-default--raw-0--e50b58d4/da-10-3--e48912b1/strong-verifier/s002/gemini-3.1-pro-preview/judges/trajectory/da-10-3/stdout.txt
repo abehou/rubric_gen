@@ -1,0 +1,13 @@
+Installed 30 packages in 13.57s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "The agent correctly identifies the four MLO participant datasets, the membrane-bound mitochondrial control dataset, and an additional pathological solid aggregation control. It clearly defines the hNoPS set as the fixed negative background. All available predictor score columns across both provided files are listed, and dataset groupings/overlaps are quantitatively documented with biological justifications for overlaps."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "The agent correctly constructs labels for each dataset. Positives are defined by dataset membership (D == 1), and negatives are consistently drawn from the hNoPS background while explicitly enforcing D == 0 to remove any overlap. The merging on UniProtEntry guarantees label-to-score alignment, and valid positive and negative counts are documented extensively for every combination in the final tables."
+    },
+    "criterion...

@@ -1,0 +1,19 @@
+Installed 30 packages in 19.51s
+Raw response (first 1000 chars): ```json
+{
+  "criteria": {
+    "criterion_1": {
+      "level": "A",
+      "reason": "Correctly loaded the CSV using skiprows=3, verified the 5,278x5 structure, confirmed correct numeric data types for estimates and p-values, and reported no missing data."
+    },
+    "criterion_2": {
+      "level": "A",
+      "reason": "Independently filtered both phenotypes using adjusted p-value < 0.05, reporting 38 significant percent-fat proteins, 249 significant breast-volume proteins, and 28 significant for both."
+    },
+    "criterion_3": {
+      "level": "A",
+      "reason": "Accurately ranked significant proteins for each phenotype by absolute effect size, reporting the top 10 with estimates, adjusted p-values, and correct positive/negative directions."
+    },
+    "criterion_4": {
+      "level": "A",
+      "reason": "Interpreted positive/negative directions, emphasized LEP as an adipokine tracking fat, discussed leading protein roles, and accurately explained the overlap linked to adipose deposi...
