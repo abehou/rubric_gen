@@ -181,12 +181,71 @@ def test_centralized_openai_judge_uses_responses_api(
     )
 
     assert response == '{"criteria": {}}'
-    assert observed == {
-        "api_key": "openai-secret",
-        "model": "gpt-5.6-luna",
-        "input": "judge prompt",
-        "max_output_tokens": 8192,
-    }
+    assert observed["api_key"] == "openai-secret"
+    assert observed["model"] == "gpt-5.6-luna"
+    assert observed["input"] == "judge prompt"
+    assert observed["max_output_tokens"] == 16_384
+    assert observed["reasoning"] == {"effort": "low"}
+    assert observed["text"]["verbosity"] == "low"  # type: ignore[index]
+    assert observed["text"]["format"]["type"] == "json_schema"  # type: ignore[index]
+
+
+def test_centralized_openai_judge_escalates_incomplete_token_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    budgets: list[int] = []
+
+    class FakeResponses:
+        def create(self, **kwargs: object) -> object:
+            budgets.append(int(kwargs["max_output_tokens"]))
+            if len(budgets) == 1:
+                return types.SimpleNamespace(
+                    status="incomplete",
+                    incomplete_details=types.SimpleNamespace(
+                        reason="max_output_tokens"
+                    ),
+                    output_text='{"criteria":',
+                )
+            return types.SimpleNamespace(
+                status="completed",
+                output_text='{"criteria": {}, "overall_reasoning": "ok"}',
+            )
+
+    class FakeOpenAI:
+        def __init__(self, *, api_key: str) -> None:
+            self.responses = FakeResponses()
+
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+
+    response = centralized_judge_module.generate_response(
+        "gpt-5.6-luna", "judge prompt", ("criterion_1",)
+    )
+
+    assert budgets == [16_384, 65_536]
+    assert response.endswith('"ok"}')
+
+
+def test_centralized_openai_judge_reports_incomplete_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResponses:
+        def create(self, **kwargs: object) -> object:
+            return types.SimpleNamespace(
+                status="incomplete",
+                incomplete_details=types.SimpleNamespace(reason="content_filter"),
+                output_text="",
+            )
+
+    class FakeOpenAI:
+        def __init__(self, *, api_key: str) -> None:
+            self.responses = FakeResponses()
+
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+
+    with pytest.raises(RuntimeError, match="reason=content_filter"):
+        centralized_judge_module.generate_response("gpt-5.6-luna", "prompt")
 
 
 def test_centralized_gemini_judge_keeps_client_alive(

@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 
 
+_OPENAI_OUTPUT_BUDGETS = (16_384, 65_536)
 def provider_for_model(model: str) -> str:
     if model.startswith("gemini"):
         return "gemini"
@@ -28,7 +29,11 @@ def provider_for_model(model: str) -> str:
     )
 
 
-def generate_response(model: str, prompt: str) -> str:
+def generate_response(
+    model: str,
+    prompt: str,
+    criterion_ids: tuple[str, ...] = (),
+) -> str:
     provider = provider_for_model(model)
     if provider == "gemini":
         from google import genai
@@ -79,12 +84,74 @@ def generate_response(model: str, prompt: str) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY must be set")
-    response = OpenAI(api_key=api_key).responses.create(
-        model=model,
-        input=prompt,
-        max_output_tokens=8192,
-    )
-    return response.output_text or ""
+    client = OpenAI(api_key=api_key)
+    for index, output_budget in enumerate(_OPENAI_OUTPUT_BUDGETS):
+        response = client.responses.create(
+            model=model,
+            input=prompt,
+            max_output_tokens=output_budget,
+            reasoning={"effort": "low"},
+            text={
+                "format": _openai_text_format(criterion_ids),
+                "verbosity": "low",
+            },
+        )
+        status = getattr(response, "status", None)
+        if status == "incomplete":
+            details = getattr(response, "incomplete_details", None)
+            reason = getattr(details, "reason", None) or "unknown"
+            if reason == "max_output_tokens" and index + 1 < len(
+                _OPENAI_OUTPUT_BUDGETS
+            ):
+                continue
+            raise RuntimeError(
+                "OpenAI returned an incomplete judge response "
+                f"(reason={reason}, max_output_tokens={output_budget})"
+            )
+        if status not in {None, "completed"}:
+            error = getattr(response, "error", None)
+            raise RuntimeError(
+                f"OpenAI judge response failed (status={status}, error={error!r})"
+            )
+        text = response.output_text or ""
+        if not text:
+            raise RuntimeError("OpenAI returned an empty judge response")
+        return text
+    raise AssertionError("OpenAI output budget escalation was exhausted")
+
+
+def _openai_text_format(criterion_ids: tuple[str, ...]) -> dict[str, object]:
+    criterion_schema = {
+        "type": "object",
+        "properties": {
+            "level": {"type": "string"},
+            "reason": {"type": "string"},
+        },
+        "required": ["level", "reason"],
+        "additionalProperties": False,
+    }
+    return {
+        "type": "json_schema",
+        "name": "biomnibench_judge_evaluation",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "criteria": {
+                    "type": "object",
+                    "properties": {
+                        criterion_id: criterion_schema
+                        for criterion_id in criterion_ids
+                    },
+                    "required": list(criterion_ids),
+                    "additionalProperties": False,
+                },
+                "overall_reasoning": {"type": "string"},
+            },
+            "required": ["criteria", "overall_reasoning"],
+            "additionalProperties": False,
+        },
+    }
 
 
 def parse_rubric_levels(rubric: str) -> dict[str, dict[str, int]]:
@@ -206,11 +273,16 @@ def main() -> None:
     model = os.getenv("MODEL_NAME", "")
     if not model:
         raise RuntimeError("MODEL_NAME must be set")
-    response_text = generate_response(model, judge_prompt(rubric, trace, answer))
+    rubric_levels = parse_rubric_levels(rubric)
+    response_text = generate_response(
+        model,
+        judge_prompt(rubric, trace, answer),
+        tuple(rubric_levels),
+    )
     print(f"Raw response (first 1000 chars): {response_text[:1000]}...")
     score, criteria, reasoning = score_response(
         response_text,
-        parse_rubric_levels(rubric),
+        rubric_levels,
     )
     logs = Path("/logs/verifier")
     logs.mkdir(parents=True, exist_ok=True)

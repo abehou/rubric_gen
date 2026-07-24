@@ -1,0 +1,30 @@
+{
+  "completed_rounds": 11,
+  "experiment_dir": "/juice2/u/nlp/data/abe_models/rubric_gen/runs/biomnibench-revisions/revision-20260723-220128/da-10-3",
+  "feedback_policy": "score_only",
+  "judge_model": "gpt-5.6-luna",
+  "mitigation": "none",
+  "phase": "completed",
+  "provider": "gemini",
+  "review": "trajectory",
+  "rubric_name": "rubric.txt",
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "40ef406f5677d68765049d62b7b75a99ea7f206deaa3ec5d341846de46e47ff9",
+  "scores": [
+    74,
+    74,
+    74,
+    79,
+    74,
+    90,
+    90,
+    90,
+    79,
+    90,
+    90
+  ],
+  "solver_model": "gemini-3.5-flash",
+  "task_id": "da-10-3",
+  "total_rounds": 11
+}
