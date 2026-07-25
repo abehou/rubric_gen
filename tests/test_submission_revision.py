@@ -886,6 +886,7 @@ def test_revision_report_contains_only_plot_and_compact_summary(
 
     report = revision_reports_module.publish_revision_report(experiment)
 
+    assert report == reports_root / "revision-test" / "da-1-1"
     assert {path.name for path in report.iterdir()} == {
         "score_improvement.png",
         "summary.json",
@@ -922,7 +923,7 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
     monkeypatch.setattr(
         commands_module,
         "_timestamped_revision_experiment_dir",
-        lambda: generated_base,
+        lambda args: generated_base,
     )
     monkeypatch.setattr(
         commands_module,
@@ -941,6 +942,36 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
     assert batch["status"] == "completed"
 
 
+def test_revise_cli_places_automatic_single_task_under_run_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = _write_task(tmp_path, "da-1-1")
+    generated_base = tmp_path / "revision-identity"
+    args = build_parser().parse_args(
+        ["revise", str(task), "--revision-rounds", "0", "--model", "test-model"]
+    )
+    observed: list[SubmissionRevisionConfig] = []
+    monkeypatch.setattr(
+        commands_module,
+        "_timestamped_revision_experiment_dir",
+        lambda args: generated_base,
+    )
+    monkeypatch.setattr(
+        commands_module,
+        "run_submission_revision",
+        lambda config: observed.append(config),
+    )
+
+    assert cli_module.run_revise(args) == 0
+    assert [config.experiment_dir for config in observed] == [
+        generated_base / "da-1-1"
+    ]
+    assert json.loads((generated_base / "batch.json").read_text())["task_ids"] == [
+        "da-1-1"
+    ]
+
+
 def test_revise_default_experiment_base_uses_bulk(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -948,12 +979,20 @@ def test_revise_default_experiment_base_uses_bulk(
     bulk_root = tmp_path / "bulk"
     monkeypatch.setenv("BULK", str(bulk_root))
 
-    generated = commands_module._timestamped_revision_experiment_dir()
+    args = build_parser().parse_args(
+        ["revise", "--top", "4", "--model", "test-model"]
+    )
+    generated = commands_module._timestamped_revision_experiment_dir(args)
 
     assert generated.parent == (
         bulk_root / "rubric_gen" / "runs" / "biomnibench-revisions"
     )
-    assert re.fullmatch(r"revision-\d{8}-\d{6}", generated.name)
+    assert re.fullmatch(
+        r"revision-\d{8}-\d{6}--top-4--fb-full--mtg-none--n-3--p-gemini"
+        r"--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0"
+        r"--st-1--web-0--ap-default--mc-all--c-1--x-default--raw-0",
+        generated.name,
+    )
 
 
 def test_revise_default_experiment_base_requires_bulk(
@@ -961,8 +1000,9 @@ def test_revise_default_experiment_base_requires_bulk(
 ) -> None:
     monkeypatch.delenv("BULK", raising=False)
 
+    args = build_parser().parse_args(["revise", "--top", "1", "--model", "m"])
     with pytest.raises(ValueError, match="BULK must be set"):
-        commands_module._timestamped_revision_experiment_dir()
+        commands_module._timestamped_revision_experiment_dir(args)
 
 
 def test_revise_default_experiment_base_rejects_relative_bulk(
@@ -970,8 +1010,22 @@ def test_revise_default_experiment_base_rejects_relative_bulk(
 ) -> None:
     monkeypatch.setenv("BULK", "relative/bulk")
 
+    args = build_parser().parse_args(["revise", "--top", "1", "--model", "m"])
     with pytest.raises(ValueError, match="BULK must be an absolute path"):
-        commands_module._timestamped_revision_experiment_dir()
+        commands_module._timestamped_revision_experiment_dir(args)
+
+
+def test_revision_batch_report_path_preserves_run_and_task_hierarchy(
+    tmp_path: Path,
+) -> None:
+    batch = tmp_path / "revision-identity-bearing"
+    experiment = batch / "da-1-1" / "semi"
+    experiment.mkdir(parents=True)
+    (batch / "batch.json").write_text("{}\n")
+
+    assert revision_reports_module._report_relative_directory(
+        experiment, "da-1-1"
+    ) == Path("revision-identity-bearing/da-1-1/semi")
 
 
 def test_revise_accepts_judge_flag() -> None:

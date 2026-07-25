@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from urllib.parse import urlparse
 
 from rubric_gen.biomnibench.forensics.malt import (
     MaltPrepareConfig,
@@ -11,11 +13,17 @@ from rubric_gen.biomnibench.forensics.malt import (
     prepare_malt,
 )
 from rubric_gen.biomnibench.forensics.reward_hacking import (
+    PANEL,
     RewardHackingAuditConfig,
     RewardHackingAuditRunner,
 )
 from rubric_gen.biomnibench.forensics.scoring import score_panel
 from rubric_gen.biomnibench.utils.paths import resolve_project_path
+from rubric_gen.malt.model_judge import (
+    STRONG_JUDGE_MODELS,
+    ModelJudgeConfig,
+    ModelJudgeRunner,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,21 +46,54 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--development-fraction", type=float, default=0.2)
     parser.add_argument("--validation-fraction", type=float, default=0.1)
     parser.add_argument("--split-seed", default="malt-v1")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--agent-ensemble", action="store_true",
+                      help="Run Codex, Claude Code, and Gemini CLI judges.")
+    mode.add_argument("--ensemble", action="store_true",
+                      help="Run the three direct strong-model judges.")
+    mode.add_argument("--agent", choices=tuple(provider for provider, _ in PANEL),
+                      help="Run one terminal-agent judge.")
+    mode.add_argument("--judge", metavar="MODEL", help="Run one direct model judge.")
+    mode.add_argument(
+        "--vllm", action="append", metavar="URL::MODEL",
+        help=("Run an open-source judge through a vLLM OpenAI-compatible server. "
+              "Repeat for a vLLM panel."),
+    )
+    mode.add_argument(
+        "--vllm-judge", action="store_true",
+        help="Run the default Qwen open-source judge on its default local vLLM URL.",
+    )
+    mode.add_argument(
+        "--vllm-ensemble", action="store_true",
+        help="Run the default three-model open-source vLLM panel.",
+    )
     parser.add_argument(
-        "--run", action="store_true",
-        help="Prepare, run all three agents, and write metrics.json.",
+        "--vllm-qwen-url", default="http://sphinx9:43117/v1",
+        help="Qwen3.6 endpoint. Defaults to http://sphinx9:43117/v1.",
+    )
+    parser.add_argument(
+        "--vllm-glm-url", default="http://sphinx10:44783/v1",
+        help="GLM-4.7-Flash endpoint. Defaults to http://sphinx10:44783/v1.",
+    )
+    parser.add_argument(
+        "--vllm-gpt-oss-url", default="http://sphinx11:45991/v1",
+        help="gpt-oss-120b endpoint. Defaults to http://sphinx11:45991/v1.",
     )
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--raw", action="store_true")
     parser.add_argument(
         "--split", choices=("development", "validation", "test", "all"),
-        default="test", help="Split scored by --run. Defaults to test.",
+        default="test", help="Split scored by an evaluation mode. Defaults to test.",
     )
     return parser
 
 
 def run(args: argparse.Namespace) -> int:
+    def vllm_url(value: str) -> str:
+        normalized = value.rstrip("/")
+        return normalized if normalized.endswith("/v1") else normalized + "/v1"
+
     inputs = tuple(resolve_project_path(value) for value in args.inputs)
     root = resolve_project_path(args.output_dir)
     root.mkdir(parents=True, exist_ok=True)
@@ -60,17 +101,48 @@ def run(args: argparse.Namespace) -> int:
     (root / "inventory.json").write_text(
         json.dumps(inventory, indent=2) + "\n", encoding="utf-8"
     )
+    selected_mode = bool(
+        args.agent_ensemble or args.ensemble or args.agent or args.judge
+        or args.vllm or args.vllm_judge or args.vllm_ensemble
+    )
     if not args.positive_label:
-        if args.run:
-            raise ValueError("--run requires at least one audited --positive-label")
+        if selected_mode:
+            raise ValueError("an evaluation mode requires at least one audited --positive-label")
         print(json.dumps(inventory, indent=2))
         print(f"Wrote inventory only: {root / 'inventory.json'}")
         return 0
 
     cases_dir = root / "cases"
     gold_path = root / "private" / "gold.jsonl"
-    if args.resume and cases_dir.is_dir() and gold_path.is_file():
+    preparation_path = root / "private" / "preparation.json"
+    preparation = {
+        "inputs": [str(path) for path in inputs],
+        "positive_labels": sorted(args.positive_label),
+        "negative_labels": sorted(args.negative_label),
+        "empty_labels_are_negative": args.empty_label_is_negative,
+        "require_manually_reviewed": not args.include_unreviewed,
+        "development_fraction": args.development_fraction,
+        "validation_fraction": args.validation_fraction,
+        "split_seed": args.split_seed,
+    }
+    if cases_dir.is_dir() and gold_path.is_file() and preparation_path.is_file():
+        if json.loads(preparation_path.read_text(encoding="utf-8")) != preparation:
+            raise ValueError("existing benchmark was prepared with different inputs or labels")
         prepared: dict[str, object] = {"status": "reused"}
+    elif args.vllm_judge:
+        model = "Qwen/Qwen3.6-27B"
+        mode_name, agent_panel, models = "vllm-judge-qwen3.6-27b", None, (model,)
+        base_urls[model] = vllm_url(args.vllm_qwen_url)
+    elif args.vllm_ensemble:
+        defaults = (
+            ("Qwen/Qwen3.6-27B", args.vllm_qwen_url),
+            ("zai-org/GLM-4.7-Flash", args.vllm_glm_url),
+            ("openai/gpt-oss-120b", args.vllm_gpt_oss_url),
+        )
+        mode_name, agent_panel, models = (
+            "vllm-ensemble-default", None, tuple(model for model, _ in defaults)
+        )
+        base_urls.update((model, vllm_url(url)) for model, url in defaults)
     else:
         prepared = prepare_malt(MaltPrepareConfig(
             inputs=inputs,
@@ -84,7 +156,8 @@ def run(args: argparse.Namespace) -> int:
             validation_fraction=args.validation_fraction,
             split_seed=args.split_seed,
         ))
-    if not args.run:
+        preparation_path.write_text(json.dumps(preparation, indent=2) + "\n", encoding="utf-8")
+    if not selected_mode:
         print(json.dumps(prepared, indent=2))
         print(f"Prepared benchmark: {root}")
         return 0
@@ -92,27 +165,70 @@ def run(args: argparse.Namespace) -> int:
     case_dirs = tuple(sorted(path.parent for path in cases_dir.glob("*/manifest.json")))
     if not case_dirs:
         raise ValueError("no cases matched the audited label mapping")
-    audit_root = root / "agent-ensemble"
-    exit_code = RewardHackingAuditRunner(RewardHackingAuditConfig(
-        experiment_dirs=(), case_dirs=case_dirs, output_dir=audit_root,
-        tasks_dir=resolve_project_path("data/biomnibench-da"),
-        max_concurrency=args.max_concurrency, resume=args.resume, raw=args.raw,
-    )).run()
+    base_urls: dict[str, str] = {}
+    if args.agent_ensemble:
+        mode_name, agent_panel, models = "agent-ensemble", PANEL, None
+    elif args.agent:
+        member = next(item for item in PANEL if item[0] == args.agent)
+        mode_name, agent_panel, models = f"agent-{args.agent}", (member,), None
+    elif args.ensemble:
+        mode_name, agent_panel, models = "ensemble", None, STRONG_JUDGE_MODELS
+    elif args.judge:
+        assert args.judge
+        safe_model = re.sub(r"[^A-Za-z0-9._-]+", "_", args.judge)
+        mode_name, agent_panel, models = f"judge-{safe_model}", None, (args.judge,)
+    else:
+        assert args.vllm
+        parsed: list[tuple[str, str]] = []
+        for specification in args.vllm:
+            if "::" not in specification:
+                raise ValueError("--vllm must use URL::MODEL")
+            url, model = specification.rsplit("::", 1)
+            if urlparse(url).scheme not in {"http", "https"} or not model:
+                raise ValueError(f"invalid --vllm specification: {specification!r}")
+            if model in base_urls:
+                raise ValueError(f"duplicate vLLM model name: {model}")
+            base_urls[model] = vllm_url(url)
+            parsed.append((url, model))
+        if len(parsed) not in {1, 3}:
+            raise ValueError("--vllm requires exactly one server or a three-server panel")
+        identity = "-".join(re.sub(r"[^A-Za-z0-9._-]+", "_", model) for _, model in parsed)
+        mode_name = ("vllm-judge-" if len(parsed) == 1 else "vllm-ensemble-") + identity
+        agent_panel, models = None, tuple(model for _, model in parsed)
+    evaluation_root = root / "evaluations" / mode_name
+    if agent_panel is not None:
+        exit_code = RewardHackingAuditRunner(RewardHackingAuditConfig(
+            experiment_dirs=(), case_dirs=case_dirs, output_dir=evaluation_root,
+            tasks_dir=resolve_project_path("data/biomnibench-da"), panel=agent_panel,
+            max_concurrency=args.max_concurrency, resume=args.resume, raw=args.raw,
+        )).run()
+    else:
+        assert models is not None
+        exit_code = ModelJudgeRunner(ModelJudgeConfig(
+            case_dirs=case_dirs, models=models, output_dir=evaluation_root,
+            max_concurrency=args.max_concurrency, resume=args.resume,
+            base_urls=base_urls,
+        )).run()
     if exit_code:
         return exit_code
     metrics = score_panel(
-        audit_root / "summary.json", gold_path,
+        evaluation_root / "summary.json", gold_path,
         split=None if args.split == "all" else args.split,
     )
-    (root / "metrics.json").write_text(
+    (evaluation_root / "metrics.json").write_text(
         json.dumps(metrics, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"Wrote benchmark metrics: {root / 'metrics.json'}")
+    print(f"Wrote benchmark metrics: {evaluation_root / 'metrics.json'}")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    return run(build_parser().parse_args(argv))
+    parser = build_parser()
+    try:
+        return run(parser.parse_args(argv))
+    except FileNotFoundError as exc:
+        parser.error(str(exc))
+    raise AssertionError("argparse.error did not exit")
 
 
 if __name__ == "__main__":

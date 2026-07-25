@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import queue
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
 from datetime import datetime
@@ -16,6 +18,7 @@ from rubric_gen.biomnibench.agent.models import AgentRunConfig, BatchRunConfig
 from rubric_gen.biomnibench.agent.runners import AgentRunner, BiomniBenchBatchRunner
 from rubric_gen.biomnibench.agent.workspaces import TaskCatalog
 from rubric_gen.biomnibench.judging.models import JudgeRunConfig
+from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
 from rubric_gen.biomnibench.perturbation.models import PerturbationRunConfig
 from rubric_gen.biomnibench.perturbation.runner import BiomniBenchPerturbationRunner
@@ -75,7 +78,57 @@ def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
 
-def _timestamped_revision_experiment_dir() -> Path:
+def _revision_directory_component(value: object) -> str:
+    text = str(value) if value is not None else "default"
+    compact = re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip(".-") or "default"
+    if len(compact) <= 48:
+        return compact
+    digest = hashlib.sha256(compact.encode()).hexdigest()[:8]
+    return f"{compact[:39]}-{digest}"
+
+
+def _revision_batch_name(args: argparse.Namespace, stamp: str) -> str:
+    feedback = (
+        "full-v-score"
+        if args.full_v_score
+        else FeedbackPolicy(args.feedback_policy).value.replace("_", "-")
+    )
+    rubric = (
+        f"set-{_revision_directory_component(args.rubric_set)}"
+        if args.rubric_set
+        else _revision_directory_component(args.rubric or "rubric.txt")
+    )
+    selection = (
+        f"top-{'all' if args.top == -1 else args.top}"
+        if args.top is not None
+        else "tasks-1"
+    )
+    components = (
+        selection,
+        f"fb-{feedback}",
+        f"mtg-{_revision_directory_component(args.mtg)}",
+        f"n-{args.revision_rounds}",
+        f"p-{_revision_directory_component(args.provider)}",
+        f"m-{_revision_directory_component(args.model)}",
+        f"j-{_revision_directory_component(args.judge_model or DEFAULT_JUDGE_MODEL)}",
+        f"rb-{rubric}",
+        f"v-{_revision_directory_component(args.review)}",
+        f"sb-{int(args.sandbox)}",
+        f"st-{int(args.skip_trust)}",
+        f"web-{int(args.allow_web)}",
+        f"ap-{_revision_directory_component(args.approval_mode)}",
+        f"mc-{args.max_review_chars if args.max_review_chars is not None else 'all'}",
+        f"c-{args.max_concurrency}",
+        f"x-{_revision_directory_component(args.executable)}",
+        f"raw-{int(args.raw)}",
+    )
+    name = "--".join((f"revision-{stamp}", *components))
+    if len(name) > 240:
+        raise ValueError("derived revision batch directory name is too long")
+    return name
+
+
+def _timestamped_revision_experiment_dir(args: argparse.Namespace) -> Path:
     bulk = os.environ.get("BULK")
     if bulk is None or not bulk.strip():
         raise ValueError(
@@ -86,12 +139,13 @@ def _timestamped_revision_experiment_dir() -> Path:
     if not bulk_root.is_absolute():
         raise ValueError("BULK must be an absolute path")
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    name = _revision_batch_name(args, stamp)
     return (
         bulk_root
         / "rubric_gen"
         / "runs"
         / "biomnibench-revisions"
-        / f"revision-{stamp}"
+        / name
     )
 
 
@@ -102,13 +156,17 @@ def run_revise(args: argparse.Namespace) -> int:
         raise ValueError("--top must be -1 or a positive integer")
     if args.top is None and args.task is None:
         args.task = "data/biomnibench-da/da-10-1"
-    if args.experiment_dir is None:
+    automatic_experiment_dir = args.experiment_dir is None
+    if automatic_experiment_dir:
         if args.resume:
             raise ValueError("--resume requires --experiment-dir")
         if args.restart:
             raise ValueError("--restart requires --experiment-dir")
-        args.experiment_dir = str(_timestamped_revision_experiment_dir())
-    if args.top is None and not args.full_v_score:
+        args.experiment_dir = str(_timestamped_revision_experiment_dir(args))
+    args.revision_batch_layout = (
+        automatic_experiment_dir or args.top is not None or args.full_v_score
+    )
+    if not args.revision_batch_layout:
         config = SubmissionRevisionConfig.from_namespace(args)
         if args.dry_run:
             print("Selected 1 task(s) and 1 experiment(s).")

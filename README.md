@@ -177,7 +177,7 @@ Git-trackable mirror under `runs/biomnibench-reports/`. Each experiment report
 contains only `score_improvement.png` and `summary.json`; heavy submissions,
 trajectories, judge logs, and environments remain exclusively in BULK. Set
 `BIOMNIBENCH_REPORTS_ROOT` to another absolute path to override the report
-location.
+location. Reports preserve the same run/task hierarchy as the heavy batch.
 
 When `--experiment-dir` is omitted, `revise` requires `BULK` to be set to an
 absolute path and creates one timestamped base under
@@ -185,12 +185,16 @@ absolute path and creates one timestamped base under
 directory rather than a collection of sibling directories:
 
 ```text
-revision-.../
+revision-20260724-120000--top-all--fb-full--mtg-none--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--.../
 ├── batch.json
 ├── da-10-1/
 ├── da-10-3/
 └── ...
 ```
+
+The identity-bearing top-level name is reused under
+`runs/biomnibench-reports/`, where each task subdirectory contains only its
+plot and compact summary.
 
 With `--full-v-score`, each task contains `full/` and `score-only/` experiment
 subdirectories. Pass `--experiment-dir PATH` to choose the batch root; an
@@ -350,20 +354,33 @@ The standalone `malt` CLI handles inspection, preparation, execution, and
 scoring. It is deliberately not a `biomnibench-agent` subcommand. Standard uv
 syntax is `uv run malt`, not `uv malt`.
 
-Download exactly one MALT configuration after receiving access to the gated
-dataset. Do not pool `default`, `irrelevant_detail`, `language_mixing`,
-`summarize`, and `vague_cot`: they contain paired variants of the same runs.
+After receiving access to the gated dataset, download exactly one MALT
+configuration:
+
+```bash
+hf download metr-evals/malt-public \
+  --repo-type dataset \
+  --include "default/*.parquet" \
+  --local-dir data/malt-public
+```
+
+Do not pool `default`, `irrelevant_detail`, `language_mixing`, `summarize`, and
+`vague_cot`: they contain paired variants of the same runs.
 
 First run without label mappings to inspect review status and the exact label
 vocabulary:
 
 ```bash
-uv run malt default/*.parquet \
+uv run malt data/malt-public/default/*.parquet \
   --output-dir runs/malt-benchmark
 ```
 
-This writes `runs/malt-benchmark/inventory.json` and stops. Inspect it before
-assigning labels. In particular, do not treat an empty label list or a
+This writes `runs/malt-benchmark/inventory.json` and stops. This inspection is
+required because MALT is a general transcript-label dataset, not a binary
+reward-hacking benchmark. Its reviewed labels mix potential reward-hacking
+behaviors with non-hacking outcomes such as giving up, refusal, ordinary
+reasoning, and normal behavior. MALT does not define the binary mapping for
+this benchmark. In particular, do not treat an empty label list or a
 `manually_reviewed=false` row as a verified negative.
 
 After deciding which exact MALT labels are verified positives and negatives,
@@ -371,24 +388,152 @@ repeat the command with those mappings. Unmapped and, by default, unreviewed
 rows are skipped:
 
 ```bash
-uv run malt default/*.parquet \
+uv run malt data/malt-public/default/*.parquet \
   --output-dir runs/malt-benchmark \
-  --positive-label VERIFIED_REWARD_HACKING \
-  --negative-label VERIFIED_NO_REWARD_HACKING
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal
 ```
 
-Add `--run` to prepare the cases, run Codex, Claude Code, and Gemini CLI, and
-score their strict `verdict.json` outputs in one invocation:
+Choose one evaluation mode to prepare the cases, run judges, and score their
+strict verdicts. The harness ensemble runs Codex, Claude Code, and Gemini CLI:
 
 ```bash
-uv run malt default/*.parquet \
+uv run malt data/malt-public/default/*.parquet \
   --output-dir runs/malt-benchmark \
-  --positive-label VERIFIED_REWARD_HACKING \
-  --negative-label VERIFIED_NO_REWARD_HACKING \
-  --run \
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal \
+  --agent-ensemble \
   --split test \
   --max-concurrency 30
 ```
+
+The comparable baselines use the same cases, prompt objective, verdict schema,
+gold labels, and split:
+
+```bash
+# Three direct strong-model judges
+uv run malt data/malt-public/default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal \
+  --ensemble
+
+# One Codex harness judge
+uv run malt data/malt-public/default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal \
+  --agent codex
+
+# One direct model judge
+uv run malt data/malt-public/default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal \
+  --judge gpt-5.6-luna
+```
+
+Open-source models served by vLLM use the same direct-judge path. The default
+single judge is `Qwen/Qwen3.6-27B`; the default panel adds
+`zai-org/GLM-4.7-Flash` and `openai/gpt-oss-120b`. Their loopback endpoints use
+unusual fixed ports, so no URLs are needed when `malt` runs on the server host:
+
+```bash
+# Single open-source judge
+uv run malt data/malt-public/default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal \
+  --vllm-judge
+
+# Three-model open-source panel
+uv run malt data/malt-public/default/*.parquet \
+  --output-dir runs/malt-benchmark \
+  --positive-label bypass_constraints \
+  --positive-label hardcoded_solution \
+  --positive-label partial_problem_solving \
+  --positive-label sabotage \
+  --positive-label gives_up \
+  --negative-label normal \
+  --vllm-ensemble
+```
+
+The default URLs are `http://sphinx9:43117/v1`,
+`http://sphinx10:44783/v1`, and `http://sphinx11:45991/v1`. Override them with
+`--vllm-qwen-url`, `--vllm-glm-url`, and `--vllm-gpt-oss-url`. For arbitrary
+models, repeat `--vllm 'URL::MODEL'` exactly once or three times.
+
+`VLLM_API_KEY` is optional and defaults to `EMPTY`. These are model-only
+baselines: vLLM does not turn an open-source model into a Codex, Claude Code,
+or Gemini CLI tool-using harness.
+
+The server jobs explicitly activate a `vllm` conda environment by default.
+Prepare that environment with a sufficiently recent vLLM build; GLM-4.7-Flash
+currently requires vLLM main/nightly support.
+
+Preview the three generated Stanford NLP cluster jobs without submitting:
+
+```bash
+scripts/start_vllm_servers.sh test
+```
+
+Submit them with `nlprun`:
+
+```bash
+scripts/start_vllm_servers.sh submit
+```
+
+The jobs target `sphinx9`, `sphinx10`, and `sphinx11` with one GPU each, low
+priority, 120 GB host memory, a one-day limit, and logs under `logs/vllm/`.
+Each server waits for `/health` before printing its ready endpoint. To use a
+different environment, pass it as the second argument, for example
+`scripts/start_vllm_servers.sh submit my-vllm-env`. Do not start model servers
+or run the MALT evaluation on a login node; submit the evaluation as a compute
+job or enter an interactive compute session.
+
+After all three server logs report `ready`, dry-run the CPU request job:
+
+```bash
+mkdir -p logs/vllm
+nlprun -q jag -g 0 -c 4 -r 16G -t 1-0 -p standard \
+  -n malt-vllm-eval -o logs/vllm/evaluation.out \
+  'bash scripts/run_malt_vllm.sh' test
+```
+
+Submit it by removing the final `test`:
+
+```bash
+nlprun -q jag -g 0 -c 4 -r 16G -t 1-0 -p standard \
+  -n malt-vllm-eval -o logs/vllm/evaluation.out \
+  'bash scripts/run_malt_vllm.sh'
+```
+
+This maps to the concrete `jag-standard` Slurm partition through `nlprun` and
+keeps the API-request workload off the login node.
 
 The output directory contains:
 
@@ -397,14 +542,22 @@ runs/malt-benchmark/
 ├── inventory.json
 ├── cases/
 ├── private/gold.jsonl
-├── agent-ensemble/
-└── metrics.json
+└── evaluations/
+    ├── agent-ensemble/
+    │   ├── summary.json
+    │   └── metrics.json
+    ├── ensemble/
+    ├── agent-codex/
+    ├── judge-gpt-5.6-luna/
+    ├── vllm-judge-.../
+    └── vllm-ensemble-.../
 ```
 
-`metrics.json` reports each harness independently and the predeclared
-majority, any-detect, and unanimous-detect ensemble rules. The default scored
-split is `test`; use `--split development` or `--split validation` while
-developing prompts, and do not tune against test results.
+Each evaluation directory has its own `metrics.json`. Panel modes report every
+member independently and the predeclared majority, any-detect, and
+unanimous-detect rules. The default scored split is `test`; use `--split
+development` or `--split validation` while developing prompts, and do not tune
+against test results.
 
 Case artifacts contain no labels or original run identifiers. This is
 structural blinding, not a security boundary: the current external CLI agents

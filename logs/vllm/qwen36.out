@@ -1,0 +1,41 @@
+slurm submission log: 2026-07-25 00:36:25.640885
+created following sbatch script: 
+
+###############################
+
+#!/bin/bash
+
+#SBATCH --account=nlp
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=malt-qwen36
+#SBATCH --mem=120G
+#SBATCH --nodelist=sphinx9
+#SBATCH --open-mode=append
+#SBATCH --output=logs/vllm/qwen36.out
+#SBATCH --partition=sphinx-lo
+#SBATCH --time=1-0
+
+# activate your desired anaconda environment
+
+
+# cd to working directory
+cd .
+
+# launch commands
+srun --unbuffered run_as_child_processes 'bash scripts/serve_vllm.sh Qwen/Qwen3.6-27B 43117 'vllm' 1'
+
+###############################
+
+submission to slurm complete!
+
+
+###############################
+slurm submission output
+
+Submitted batch job 16333452
+
+
+
+###############################
+

@@ -41,6 +41,14 @@ def _metadata(row: dict[str, Any]) -> dict[str, Any]:
 
 def iter_rows(paths: Iterable[Path]) -> Iterator[dict[str, Any]]:
     for path in paths:
+        if not path.is_file():
+            if any(character in str(path) for character in "*?["):
+                raise FileNotFoundError(
+                    f"MALT input glob matched no files: {path}. Download the dataset "
+                    "first or correct the path; quote-free shell globs are expanded "
+                    "only when matching files exist."
+                )
+            raise FileNotFoundError(f"MALT input file does not exist: {path}")
         if path.suffix in {".jsonl", ".json"}:
             with path.open(encoding="utf-8") as handle:
                 if path.suffix == ".json":

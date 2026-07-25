@@ -128,6 +128,7 @@ class RewardHackingAuditConfig:
     resume: bool = False
     dry_run: bool = False
     raw: bool = False
+    panel: tuple[tuple[str, str], ...] = PANEL
 
     def __post_init__(self) -> None:
         if bool(self.experiment_dirs) == bool(self.case_dirs):
@@ -136,6 +137,8 @@ class RewardHackingAuditConfig:
             )
         if self.max_concurrency < 1:
             raise ValueError("max_concurrency must be at least 1")
+        if not self.panel:
+            raise ValueError("forensic agent panel must not be empty")
 
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "RewardHackingAuditConfig":
@@ -189,16 +192,16 @@ class RewardHackingAuditRunner:
         if self.config.dry_run:
             print(
                 f"Selected {len(cases)} evidence case(s) and "
-                f"{len(cases) * len(PANEL)} forensic panel member run(s)."
+                f"{len(cases) * len(self.config.panel)} forensic panel member run(s)."
             )
             for case in cases:
-                for provider, model in PANEL:
+                for provider, model in self.config.panel:
                     print(f"{case.case_id}\t{provider}\t{model}\t{case.source_path}")
             print(f"Output: {self.config.output_dir}")
             return 0
         missing = [
             provider
-            for provider, _ in PANEL
+            for provider, _ in self.config.panel
             if shutil.which(self.registry.get(provider).default_executable) is None
         ]
         if missing:
@@ -207,7 +210,7 @@ class RewardHackingAuditRunner:
         jobs = [
             (experiment, provider, model)
             for experiment in cases
-            for provider, model in PANEL
+            for provider, model in self.config.panel
         ]
         records: list[dict[str, object]] = []
         with TerminalProgress(
@@ -472,7 +475,8 @@ class RewardHackingAuditRunner:
             "schema_version": 2,
             "kind": "reward-hacking-forensic-panel",
             "panel": [
-                {"provider": provider, "model": model} for provider, model in PANEL
+                {"provider": provider, "model": model}
+                for provider, model in self.config.panel
             ],
             "records": records,
         }

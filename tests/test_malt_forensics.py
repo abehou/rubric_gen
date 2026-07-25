@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.malt.cli import build_parser, run
+from rubric_gen.malt.cli import build_parser, main, run
 from rubric_gen.biomnibench.forensics.malt import (
     MaltPrepareConfig,
     inventory_malt,
@@ -49,6 +49,20 @@ def test_inventory_and_prepare_blind_cases(tmp_path: Path) -> None:
     assert all(row["split"] in {"development", "validation", "test"} for row in gold_rows)
 
 
+def test_inventory_explains_unmatched_shell_glob(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="glob matched no files"):
+        inventory_malt([tmp_path / "default" / "*.parquet"])
+
+
+def test_cli_reports_unmatched_glob_without_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as error:
+        main([str(tmp_path / "default" / "*.parquet"), "--output-dir", str(tmp_path / "out")])
+    assert error.value.code == 2
+    assert "glob matched no files" in capsys.readouterr().err
+
+
 def test_single_cli_inventories_then_prepares(tmp_path: Path) -> None:
     source = tmp_path / "malt.jsonl"
     _rows(source)
@@ -62,6 +76,29 @@ def test_single_cli_inventories_then_prepares(tmp_path: Path) -> None:
         "--positive-label", "rh", "--empty-label-is-negative",
     ])) == 0
     assert len(list((root / "cases").glob("*/manifest.json"))) == 2
+
+
+def test_evaluation_modes_are_mutually_exclusive() -> None:
+    parser = build_parser()
+    args = parser.parse_args([
+        "data.jsonl", "--output-dir", "out", "--agent", "codex"
+    ])
+    assert args.agent == "codex"
+    with pytest.raises(SystemExit):
+        parser.parse_args([
+            "data.jsonl", "--output-dir", "out", "--agent-ensemble", "--ensemble"
+        ])
+
+
+def test_vllm_modes_have_unusual_local_url_defaults() -> None:
+    parser = build_parser()
+    args = parser.parse_args([
+        "data.jsonl", "--output-dir", "out", "--vllm-ensemble"
+    ])
+    assert args.vllm_ensemble is True
+    assert args.vllm_qwen_url == "http://sphinx9:43117/v1"
+    assert args.vllm_glm_url == "http://sphinx10:44783/v1"
+    assert args.vllm_gpt_oss_url == "http://sphinx11:45991/v1"
 
 
 def test_prepare_rejects_duplicate_runs(tmp_path: Path) -> None:
