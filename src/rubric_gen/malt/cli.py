@@ -68,16 +68,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the default three-model open-source vLLM panel.",
     )
     parser.add_argument(
-        "--vllm-qwen-url", default="http://sphinx9:43117/v1",
-        help="Qwen3.6 endpoint. Defaults to http://sphinx9:43117/v1.",
+        "--vllm-endpoint-dir", default="runs/vllm-endpoints",
+        help=("Directory containing endpoints published by server jobs. "
+              "Defaults to runs/vllm-endpoints."),
     )
     parser.add_argument(
-        "--vllm-glm-url", default="http://sphinx10:44783/v1",
-        help="GLM-4.7-Flash endpoint. Defaults to http://sphinx10:44783/v1.",
+        "--vllm-qwen-url", default=None,
+        help="Override the dynamically discovered Qwen3.6 endpoint.",
     )
     parser.add_argument(
-        "--vllm-gpt-oss-url", default="http://sphinx11:45991/v1",
-        help="gpt-oss-120b endpoint. Defaults to http://sphinx11:45991/v1.",
+        "--vllm-glm-url", default=None,
+        help="Override the dynamically discovered GLM-4.7-Flash endpoint.",
+    )
+    parser.add_argument(
+        "--vllm-gpt-oss-url", default=None,
+        help="Override the dynamically discovered gpt-oss-120b endpoint.",
     )
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument("--resume", action="store_true")
@@ -93,6 +98,26 @@ def run(args: argparse.Namespace) -> int:
     def vllm_url(value: str) -> str:
         normalized = value.rstrip("/")
         return normalized if normalized.endswith("/v1") else normalized + "/v1"
+
+    def discovered_vllm_url(filename: str, override: str | None, model: str) -> str:
+        if override is not None:
+            return vllm_url(override)
+        endpoint_path = resolve_project_path(args.vllm_endpoint_dir) / filename
+        try:
+            specification = endpoint_path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise FileNotFoundError(
+                f"missing ready vLLM endpoint for {model}: {endpoint_path}; "
+                "start the server jobs first or pass the corresponding URL override"
+            ) from exc
+        if "::" not in specification:
+            raise ValueError(f"malformed vLLM endpoint file: {endpoint_path}")
+        url, published_model = specification.rsplit("::", 1)
+        if published_model != model:
+            raise ValueError(
+                f"vLLM endpoint model mismatch in {endpoint_path}: {published_model!r}"
+            )
+        return vllm_url(url)
 
     inputs = tuple(resolve_project_path(value) for value in args.inputs)
     root = resolve_project_path(args.output_dir)
@@ -132,17 +157,22 @@ def run(args: argparse.Namespace) -> int:
     elif args.vllm_judge:
         model = "Qwen/Qwen3.6-27B"
         mode_name, agent_panel, models = "vllm-judge-qwen3.6-27b", None, (model,)
-        base_urls[model] = vllm_url(args.vllm_qwen_url)
+        base_urls[model] = discovered_vllm_url(
+            "qwen.endpoint", args.vllm_qwen_url, model
+        )
     elif args.vllm_ensemble:
         defaults = (
-            ("Qwen/Qwen3.6-27B", args.vllm_qwen_url),
-            ("zai-org/GLM-4.7-Flash", args.vllm_glm_url),
-            ("openai/gpt-oss-120b", args.vllm_gpt_oss_url),
+            ("Qwen/Qwen3.6-27B", "qwen.endpoint", args.vllm_qwen_url),
+            ("zai-org/GLM-4.7-Flash", "glm.endpoint", args.vllm_glm_url),
+            ("openai/gpt-oss-120b", "gpt-oss.endpoint", args.vllm_gpt_oss_url),
         )
         mode_name, agent_panel, models = (
-            "vllm-ensemble-default", None, tuple(model for model, _ in defaults)
+            "vllm-ensemble-default", None, tuple(model for model, _, _ in defaults)
         )
-        base_urls.update((model, vllm_url(url)) for model, url in defaults)
+        base_urls.update(
+            (model, discovered_vllm_url(filename, override, model))
+            for model, filename, override in defaults
+        )
     else:
         prepared = prepare_malt(MaltPrepareConfig(
             inputs=inputs,

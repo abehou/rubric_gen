@@ -90,15 +90,16 @@ def test_evaluation_modes_are_mutually_exclusive() -> None:
         ])
 
 
-def test_vllm_modes_have_unusual_local_url_defaults() -> None:
+def test_vllm_modes_use_dynamic_endpoint_directory_defaults() -> None:
     parser = build_parser()
     args = parser.parse_args([
         "data.jsonl", "--output-dir", "out", "--vllm-ensemble"
     ])
     assert args.vllm_ensemble is True
-    assert args.vllm_qwen_url == "http://sphinx9:43117/v1"
-    assert args.vllm_glm_url == "http://sphinx10:44783/v1"
-    assert args.vllm_gpt_oss_url == "http://sphinx11:45991/v1"
+    assert args.vllm_endpoint_dir == "runs/vllm-endpoints"
+    assert args.vllm_qwen_url is None
+    assert args.vllm_glm_url is None
+    assert args.vllm_gpt_oss_url is None
 
 
 def test_prepare_rejects_duplicate_runs(tmp_path: Path) -> None:

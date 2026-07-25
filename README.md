@@ -455,8 +455,9 @@ uv run malt data/malt-public/default/*.parquet \
 
 Open-source models served by vLLM use the same direct-judge path. The default
 single judge is `Qwen/Qwen3.6-27B`; the default panel adds
-`zai-org/GLM-4.7-Flash` and `openai/gpt-oss-120b`. Their loopback endpoints use
-unusual fixed ports, so no URLs are needed when `malt` runs on the server host:
+`zai-org/GLM-4.7-Flash` and `openai/gpt-oss-120b`. Server jobs publish their
+dynamically allocated hostnames under `runs/vllm-endpoints`, so no URLs are
+needed:
 
 ```bash
 # Single open-source judge
@@ -482,10 +483,11 @@ uv run malt data/malt-public/default/*.parquet \
   --vllm-ensemble
 ```
 
-The default URLs are `http://sphinx9:43117/v1`,
-`http://sphinx10:44783/v1`, and `http://sphinx11:45991/v1`. Override them with
-`--vllm-qwen-url`, `--vllm-glm-url`, and `--vllm-gpt-oss-url`. For arbitrary
-models, repeat `--vllm 'URL::MODEL'` exactly once or three times.
+The server ports remain the unusual fixed values `43117`, `44783`, and `45991`,
+but Slurm chooses the available Sphinx hosts. Override discovery with
+`--vllm-qwen-url`, `--vllm-glm-url`, and `--vllm-gpt-oss-url`, or change the
+endpoint directory with `--vllm-endpoint-dir`. For arbitrary models, repeat
+`--vllm 'URL::MODEL'` exactly once or three times.
 
 `VLLM_API_KEY` is optional and defaults to `EMPTY`. These are model-only
 baselines: vLLM does not turn an open-source model into a Codex, Claude Code,
@@ -507,9 +509,10 @@ Submit them with `nlprun`:
 scripts/start_vllm_servers.sh submit
 ```
 
-The jobs target `sphinx9`, `sphinx10`, and `sphinx11` with one GPU each, low
-priority, 120 GB host memory, a one-day limit, and logs under `logs/vllm/`.
-Each server waits for `/health` before printing its ready endpoint. To use a
+The jobs request the `sphinx` queue with one GPU each and let Slurm select
+currently available A100, H100, or H200 hosts. They use low priority, 120 GB
+host memory, a one-day limit, and logs under `logs/vllm/`. Each server waits
+for `/health` before atomically publishing its ready endpoint. To use a
 different environment, pass it as the second argument, for example
 `scripts/start_vllm_servers.sh submit my-vllm-env`. Do not start model servers
 or run the MALT evaluation on a login node; submit the evaluation as a compute
