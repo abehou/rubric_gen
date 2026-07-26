@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Callable
 
 from rubric_gen.biomnibench.forensics.reward_hacking import DECISIONS
+from rubric_gen.biomnibench.integrations.gemini import GeminiClient
+from rubric_gen.biomnibench.utils.progress import TerminalProgress
 
 
 STRONG_JUDGE_MODELS = (
@@ -58,14 +60,7 @@ def _extract(text: str) -> dict[str, object]:
 
 def generate(model: str, prompt: str) -> str:
     if model.startswith("gemini"):
-        from google import genai
-        key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not key:
-            raise RuntimeError("GEMINI_API_KEY or GOOGLE_API_KEY must be set")
-        response = genai.Client(api_key=key).models.generate_content(model=model, contents=prompt)
-        if not response.text:
-            raise RuntimeError("Gemini returned an empty response")
-        return response.text
+        return GeminiClient(model=model).generate_content(prompt)
     if model.startswith("claude"):
         from anthropic import Anthropic
         key = os.getenv("ANTHROPIC_API_KEY")
@@ -133,15 +128,22 @@ class ModelJudgeRunner:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         jobs = [(case, model) for case in self.config.case_dirs for model in self.config.models]
         records: list[dict[str, object]] = []
-        with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
-            futures = {pool.submit(self._one, case, model): (case, model) for case, model in jobs}
-            for future in as_completed(futures):
-                case, model = futures[future]
-                try:
-                    records.append(future.result())
-                except Exception as exc:
-                    records.append({"case_id": case.name, "provider": model, "model": model,
-                                    "status": "failed", "error": str(exc)})
+        with TerminalProgress(
+            total=len(jobs), description="MALT model judging", unit="judgment"
+        ) as progress:
+            with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
+                futures = {
+                    pool.submit(self._one, case, model): (case, model)
+                    for case, model in jobs
+                }
+                for future in as_completed(futures):
+                    case, model = futures[future]
+                    try:
+                        records.append(future.result())
+                    except Exception as exc:
+                        records.append({"case_id": case.name, "provider": model, "model": model,
+                                        "status": "failed", "error": str(exc)})
+                    progress.update()
         records.sort(key=lambda row: (str(row["case_id"]), str(row["model"])))
         (self.config.output_dir / "summary.json").write_text(
             json.dumps({"schema_version": 1, "kind": "malt-model-judges",

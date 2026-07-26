@@ -20,7 +20,10 @@ from rubric_gen.biomnibench.rubrics import retrospective as process_rubrics_modu
 from rubric_gen.biomnibench.rubrics import schema as task_rubrics_module
 from rubric_gen.biomnibench.utils.paths import resolve_project_path
 from rubric_gen.biomnibench.cli import build_parser
-from rubric_gen.biomnibench.integrations.gemini import GeminiGenerateContentResponse
+from rubric_gen.biomnibench.integrations.gemini import (
+    GeminiClient,
+    GeminiGenerateContentResponse,
+)
 from rubric_gen.biomnibench.rubrics.compiler import (
     GeminiTaskRubricRewriter,
     RubricBundleError,
@@ -42,6 +45,15 @@ from rubric_gen.biomnibench.rubrics.schema import (
 
 ROOT = Path(__file__).resolve().parents[1]
 REAL_DA_19_1 = ROOT / "data" / "biomnibench-da" / "da-19-1"
+
+
+def test_gemini_client_does_not_fall_back_to_google_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("GOOGLE_API_KEY", "wrong-account")
+    with pytest.raises(RuntimeError, match="Set GEMINI_API_KEY"):
+        GeminiClient().api_key()
 
 
 class FakeRewriter:

@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from rubric_gen.malt import model_judge
 from rubric_gen.malt.model_judge import ModelJudgeConfig, ModelJudgeRunner
 
 
@@ -52,3 +55,29 @@ def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:
     )
     assert runner.run() == 0
     assert observed == {"model": "Qwen/Test", "url": "http://node:8000/v1"}
+
+
+def test_malt_gemini_uses_only_canonical_gemini_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, str] = {}
+
+    class FakeGeminiClient:
+        def __init__(self, *, model: str) -> None:
+            observed["model"] = model
+
+        def generate_content(self, prompt: str) -> str:
+            observed["prompt"] = prompt
+            observed["key"] = model_judge.os.environ["GEMINI_API_KEY"]
+            return "response"
+
+    monkeypatch.setenv("GEMINI_API_KEY", "canonical-key")
+    monkeypatch.setenv("GOOGLE_API_KEY", "wrong-key")
+    monkeypatch.setattr(model_judge, "GeminiClient", FakeGeminiClient)
+
+    assert model_judge.generate("gemini-test", "prompt") == "response"
+    assert observed == {
+        "model": "gemini-test",
+        "prompt": "prompt",
+        "key": "canonical-key",
+    }

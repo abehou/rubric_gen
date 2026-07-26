@@ -14,6 +14,7 @@ from statistics import pstdev
 from typing import Any, Iterator
 
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.biomnibench.judging.artifacts import (
     JudgeArtifactStore,
     OpenOutputDirectory as _OpenOutputDirectory,
@@ -150,7 +151,7 @@ class BiomniBenchJudgeRunner:
                             overall_exit = int(record["exit_code"])
 
         summary = self.score_summary(records)
-        self.scores_path.write_text(json.dumps(summary, indent=2) + "\n")
+        write_json_atomic(self.scores_path, summary)
         self.print_score_summary(summary)
         print(f"Wrote judge scores: {self.scores_path}")
         return overall_exit

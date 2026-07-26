@@ -153,7 +153,7 @@ class BiomniSubmissionJudge:
             permanent_error = self._permanent_failure(record)
             if permanent_error is not None:
                 raise RuntimeError(
-                    "optimizer judge has a non-retryable configuration error: "
+                    "optimizer judge has a non-retryable error: "
                     + permanent_error
                 )
         else:
@@ -194,6 +194,18 @@ class BiomniSubmissionJudge:
         ):
             return (
                 "the configured judge model is unavailable for generateContent; "
+                f"see {stdout_path}"
+            )
+        if "insufficient_quota" in stdout:
+            return (
+                "the OpenAI account has insufficient quota; update billing or "
+                f"use a different judge provider; see {stdout_path}"
+            )
+        if "invalid_api_key" in stdout or "Incorrect API key provided" in stdout:
+            return f"the OpenAI API key is invalid; see {stdout_path}"
+        if "model_not_found" in stdout and "openai" in stdout.lower():
+            return (
+                "the configured OpenAI judge model is unavailable to this account; "
                 f"see {stdout_path}"
             )
         return None

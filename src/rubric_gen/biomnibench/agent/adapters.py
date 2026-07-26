@@ -69,8 +69,7 @@ class GeminiAdapter(AgentAdapter):
             command.extend(["-m", config.model])
         command.extend(["-p", prompt, "--output-format", "stream-json"])
         command.extend(["--approval-mode", config.approval_mode or "yolo"])
-        if config.sandbox:
-            command.append("--sandbox")
+        command.append(f"--sandbox={'true' if config.sandbox else 'false'}")
         if config.skip_trust:
             command.append("--skip-trust")
         if not config.allow_web:
@@ -103,7 +102,7 @@ class ClaudeAdapter(AgentAdapter):
         if config.skip_trust:
             command.append("--allow-dangerously-skip-permissions")
         if not config.allow_web:
-            command.extend(["--disallowed-tools", "WebSearch", "WebFetch"])
+            command.append("--disallowed-tools=WebSearch,WebFetch")
         command.extend(config.extra_args)
         command.append(prompt)
         return command
@@ -126,8 +125,8 @@ class CodexAdapter(AgentAdapter):
             "--color",
             "never",
             "--json",
-            "--ask-for-approval",
-            config.approval_mode or "never",
+            "--config",
+            f'approval_policy="{config.approval_mode or "never"}"',
             "--sandbox",
             "workspace-write",
         ]

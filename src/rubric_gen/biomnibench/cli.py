@@ -221,7 +221,8 @@ def _add_revise_parser(
     experiment_mode.add_argument(
         "--resume",
         action="store_true",
-        help="Resume an existing experiment only from its recorded safe boundary.",
+        help=("Resume from recorded safe boundaries. Without --experiment-dir, "
+              "select the newest batch matching the current arguments and tasks."),
     )
     experiment_mode.add_argument(
         "--restart",

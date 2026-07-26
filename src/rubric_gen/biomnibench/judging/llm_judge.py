@@ -16,6 +16,8 @@ from pathlib import Path
 
 
 _OPENAI_OUTPUT_BUDGETS = (16_384, 65_536)
+
+
 def provider_for_model(model: str) -> str:
     if model.startswith("gemini"):
         return "gemini"
@@ -121,6 +123,10 @@ def generate_response(
 
 
 def _openai_text_format(criterion_ids: tuple[str, ...]) -> dict[str, object]:
+    if not criterion_ids:
+        raise ValueError("judge rubric must contain at least one criterion")
+    if len(set(criterion_ids)) != len(criterion_ids):
+        raise ValueError("judge rubric criterion IDs must be unique")
     criterion_schema = {
         "type": "object",
         "properties": {

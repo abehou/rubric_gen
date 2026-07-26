@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import queue
-import re
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
 from datetime import datetime
@@ -35,8 +34,9 @@ from rubric_gen.biomnibench.rubrics.retrospective import (
     ProcessRubricConfig,
     ProcessRubricGenerator,
 )
-from rubric_gen.biomnibench.utils.paths import resolve_project_path
+from rubric_gen.biomnibench.utils.paths import directory_component, resolve_project_path
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.biomnibench.visualization.comparisons import (
     JudgeComparisonConfig,
     JudgeComparisonPlotter,
@@ -78,15 +78,6 @@ def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
 
-def _revision_directory_component(value: object) -> str:
-    text = str(value) if value is not None else "default"
-    compact = re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip(".-") or "default"
-    if len(compact) <= 48:
-        return compact
-    digest = hashlib.sha256(compact.encode()).hexdigest()[:8]
-    return f"{compact[:39]}-{digest}"
-
-
 def _revision_batch_name(args: argparse.Namespace, stamp: str) -> str:
     feedback = (
         "full-v-score"
@@ -94,9 +85,9 @@ def _revision_batch_name(args: argparse.Namespace, stamp: str) -> str:
         else FeedbackPolicy(args.feedback_policy).value.replace("_", "-")
     )
     rubric = (
-        f"set-{_revision_directory_component(args.rubric_set)}"
+        f"set-{directory_component(args.rubric_set)}"
         if args.rubric_set
-        else _revision_directory_component(args.rubric or "rubric.txt")
+        else directory_component(args.rubric or "rubric.txt")
     )
     selection = (
         f"top-{'all' if args.top == -1 else args.top}"
@@ -106,20 +97,20 @@ def _revision_batch_name(args: argparse.Namespace, stamp: str) -> str:
     components = (
         selection,
         f"fb-{feedback}",
-        f"mtg-{_revision_directory_component(args.mtg)}",
+        f"mtg-{directory_component(args.mtg)}",
         f"n-{args.revision_rounds}",
-        f"p-{_revision_directory_component(args.provider)}",
-        f"m-{_revision_directory_component(args.model)}",
-        f"j-{_revision_directory_component(args.judge_model or DEFAULT_JUDGE_MODEL)}",
+        f"p-{directory_component(args.provider)}",
+        f"m-{directory_component(args.model)}",
+        f"j-{directory_component(args.judge_model or DEFAULT_JUDGE_MODEL)}",
         f"rb-{rubric}",
-        f"v-{_revision_directory_component(args.review)}",
+        f"v-{directory_component(args.review)}",
         f"sb-{int(args.sandbox)}",
         f"st-{int(args.skip_trust)}",
         f"web-{int(args.allow_web)}",
-        f"ap-{_revision_directory_component(args.approval_mode)}",
+        f"ap-{directory_component(args.approval_mode)}",
         f"mc-{args.max_review_chars if args.max_review_chars is not None else 'all'}",
         f"c-{args.max_concurrency}",
-        f"x-{_revision_directory_component(args.executable)}",
+        f"x-{directory_component(args.executable)}",
         f"raw-{int(args.raw)}",
     )
     name = "--".join((f"revision-{stamp}", *components))
@@ -129,6 +120,12 @@ def _revision_batch_name(args: argparse.Namespace, stamp: str) -> str:
 
 
 def _timestamped_revision_experiment_dir(args: argparse.Namespace) -> Path:
+    runs_root = _revision_runs_root()
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return runs_root / _revision_batch_name(args, stamp)
+
+
+def _revision_runs_root() -> Path:
     bulk = os.environ.get("BULK")
     if bulk is None or not bulk.strip():
         raise ValueError(
@@ -138,15 +135,33 @@ def _timestamped_revision_experiment_dir(args: argparse.Namespace) -> Path:
     bulk_root = Path(bulk).expanduser()
     if not bulk_root.is_absolute():
         raise ValueError("BULK must be an absolute path")
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    name = _revision_batch_name(args, stamp)
     return (
         bulk_root
         / "rubric_gen"
         / "runs"
         / "biomnibench-revisions"
-        / name
     )
+
+
+def _latest_revision_experiment_dir(
+    args: argparse.Namespace, task_ids: list[str]
+) -> Path:
+    runs_root = _revision_runs_root()
+    suffix = _revision_batch_name(args, "TIMESTAMP").split("--", 1)[1]
+    candidates: list[Path] = []
+    for path in runs_root.glob(f"revision-*--{suffix}"):
+        manifest_path = path / "batch.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if manifest.get("task_ids") == task_ids:
+            candidates.append(path)
+    if not candidates:
+        raise FileNotFoundError(
+            "no previous revision batch matches the current arguments and tasks"
+        )
+    return sorted(candidates)[-1]
 
 
 def run_revise(args: argparse.Namespace) -> int:
@@ -156,13 +171,24 @@ def run_revise(args: argparse.Namespace) -> int:
         raise ValueError("--top must be -1 or a positive integer")
     if args.top is None and args.task is None:
         args.task = "data/biomnibench-da/da-10-1"
+    if args.top is not None:
+        task_dirs = TaskCatalog(resolve_project_path(args.tasks_dir)).tasks()
+        if args.top != -1:
+            task_dirs = task_dirs[: args.top]
+    else:
+        task_dirs = [resolve_project_path(args.task)]
     automatic_experiment_dir = args.experiment_dir is None
     if automatic_experiment_dir:
         if args.resume:
-            raise ValueError("--resume requires --experiment-dir")
+            args.experiment_dir = str(
+                _latest_revision_experiment_dir(
+                    args, [task_dir.name for task_dir in task_dirs]
+                )
+            )
         if args.restart:
             raise ValueError("--restart requires --experiment-dir")
-        args.experiment_dir = str(_timestamped_revision_experiment_dir(args))
+        if args.experiment_dir is None:
+            args.experiment_dir = str(_timestamped_revision_experiment_dir(args))
     args.revision_batch_layout = (
         automatic_experiment_dir or args.top is not None or args.full_v_score
     )
@@ -179,12 +205,6 @@ def run_revise(args: argparse.Namespace) -> int:
         return 0
     if args.max_concurrency < 1:
         raise ValueError("max_concurrency must be at least 1")
-    if args.top is not None:
-        task_dirs = TaskCatalog(resolve_project_path(args.tasks_dir)).tasks()
-        if args.top != -1:
-            task_dirs = task_dirs[: args.top]
-    else:
-        task_dirs = [resolve_project_path(args.task)]
     policies = (
         (FeedbackPolicy.FULL, FeedbackPolicy.SCORE_ONLY)
         if args.full_v_score
@@ -223,15 +243,33 @@ def run_revise(args: argparse.Namespace) -> int:
         "schema_version": 1,
         "kind": "rubric-gen-submission-revision-batch",
         "status": "running",
+        "run_name": batch_root.name,
         "task_ids": [task_dir.name for task_dir in task_dirs],
         "experiment_dirs": [
             str(config.experiment_dir.relative_to(batch_root)) for config in configs
         ],
         "revision_rounds": args.revision_rounds,
         "feedback_policies": [policy.value for policy in policies],
+        "configuration": {
+            "provider": args.provider,
+            "solver_model": args.model,
+            "judge_model": args.judge_model or DEFAULT_JUDGE_MODEL,
+            "rubric": args.rubric or "rubric.txt",
+            "rubric_set": args.rubric_set,
+            "review": args.review,
+            "mitigation": args.mtg,
+            "sandbox": args.sandbox,
+            "skip_trust": args.skip_trust,
+            "allow_web": args.allow_web,
+            "approval_mode": args.approval_mode,
+            "max_review_chars": args.max_review_chars,
+            "max_concurrency": args.max_concurrency,
+            "executable": args.executable,
+            "raw": args.raw,
+        },
     }
-    batch_manifest_path.write_text(json.dumps(batch_manifest, indent=2) + "\n")
-    failures: list[tuple[SubmissionRevisionConfig, Exception]] = []
+    write_json_atomic(batch_manifest_path, batch_manifest)
+    failures: list[tuple[SubmissionRevisionConfig, Exception, str]] = []
     with TerminalProgress(
         total=len(configs),
         description="revise batch",
@@ -243,7 +281,7 @@ def run_revise(args: argparse.Namespace) -> int:
                 try:
                     run_submission_revision(replace(config, progress_position=1))
                 except Exception as exc:
-                    failures.append((config, exc))
+                    failures.append((config, exc, traceback.format_exc()))
                 finally:
                     progress.update()
         else:
@@ -269,22 +307,33 @@ def run_revise(args: argparse.Namespace) -> int:
                     try:
                         future.result()
                     except Exception as exc:
-                        failures.append((futures[future], exc))
+                        failures.append(
+                            (futures[future], exc, traceback.format_exc())
+                        )
                     finally:
                         progress.update()
     if failures:
         batch_manifest["status"] = "failed"
         batch_manifest["failed_experiments"] = [
-            str(config.experiment_dir) for config, _ in failures
+            {
+                "experiment_dir": str(config.experiment_dir),
+                "task_id": config.task_dir.name,
+                "feedback_policy": config.feedback_policy.value,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "traceback": failure_traceback,
+            }
+            for config, exc, failure_traceback in failures
         ]
-        batch_manifest_path.write_text(json.dumps(batch_manifest, indent=2) + "\n")
-        config, exc = failures[0]
+        write_json_atomic(batch_manifest_path, batch_manifest)
+        config, exc, _ = failures[0]
         raise RuntimeError(
             f"{len(failures)} revision experiments failed; first: "
-            f"{config.task_dir.name} ({config.feedback_policy.value})"
+            f"{config.task_dir.name} ({config.feedback_policy.value}): "
+            f"{type(exc).__name__}: {exc}"
         ) from exc
     batch_manifest["status"] = "completed"
-    batch_manifest_path.write_text(json.dumps(batch_manifest, indent=2) + "\n")
+    write_json_atomic(batch_manifest_path, batch_manifest)
     return 0
 
 

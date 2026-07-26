@@ -204,6 +204,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertIn("--approval-mode", cmd)
         self.assertIn("yolo", cmd)
         self.assertIn("--skip-trust", cmd)
+        self.assertIn("--sandbox=false", cmd)
         self.assertIn("--policy", cmd)
         self.assertIn(str(paths.policy_path), cmd)
 
@@ -231,7 +232,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
         cmd = core.AgentRunner(
             config=core.AgentRunConfig(provider="gemini", sandbox=True),
         ).build_command(paths)
-        self.assertIn("--sandbox", cmd)
+        self.assertIn("--sandbox=true", cmd)
 
     def test_claude_command_uses_headless_stream_json(self):
         core = self.import_core()
@@ -252,7 +253,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertIn("bypassPermissions", cmd)
         self.assertIn("--model", cmd)
         self.assertIn("sonnet", cmd)
-        self.assertIn("--disallowed-tools", cmd)
+        self.assertIn("--disallowed-tools=WebSearch,WebFetch", cmd)
+        self.assertEqual(cmd[-1], core.PROMPT)
 
     def test_codex_command_uses_exec_json_and_workspace_sandbox(self):
         core = self.import_core()
@@ -268,8 +270,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         self.assertEqual(cmd[:2], ["codex", "exec"])
         self.assertIn("--json", cmd)
-        self.assertIn("--ask-for-approval", cmd)
-        self.assertIn("never", cmd)
+        self.assertNotIn("--ask-for-approval", cmd)
+        self.assertIn('approval_policy="never"', cmd)
         self.assertIn("--sandbox", cmd)
         self.assertIn("workspace-write", cmd)
         self.assertIn("--model", cmd)

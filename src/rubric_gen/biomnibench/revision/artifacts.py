@@ -213,28 +213,6 @@ def write_json(path: Path, value: object) -> None:
     )
 
 
-def write_json_atomic(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        text=True,
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(
-                json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
-            )
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.lexists(temporary):
-            temporary.unlink()
-
-
 def write_live_root_sentinel(root: Path, experiment_dir: Path) -> None:
     write_json(
         root / _LIVE_ROOT_SENTINEL,

@@ -19,6 +19,7 @@ from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
 
 PANEL = (
@@ -320,9 +321,20 @@ class RewardHackingAuditRunner:
                 experiment, provider, model, member_root, report, "skipped", 0
             )
         if member_root.exists():
-            raise RuntimeError(
-                f"audit output exists for {experiment_key}/{provider}; use --resume or a new --output-dir"
-            )
+            if not self.config.resume:
+                raise RuntimeError(
+                    f"audit output exists for {experiment_key}/{provider}; "
+                    "use --resume or a new --output-dir"
+                )
+            archive_index = 1
+            while True:
+                archive = member_root.with_name(
+                    f"{member_root.name}.failed-{archive_index:03d}"
+                )
+                if not archive.exists():
+                    member_root.replace(archive)
+                    break
+                archive_index += 1
         workspace.mkdir(parents=True)
         if experiment.source_kind == "revision":
             task_dir = self.config.tasks_dir / task_id
@@ -394,7 +406,7 @@ class RewardHackingAuditRunner:
             status["audit_sha256"] = sha256_file(report)
             status["verdict_sha256"] = sha256_file(verdict_path)
             status["verdict"] = verdict
-        paths.status_path.write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
+        write_json_atomic(paths.status_path, status)
         return self._record(
             experiment,
             provider,
@@ -480,9 +492,7 @@ class RewardHackingAuditRunner:
             ],
             "records": records,
         }
-        (self.config.output_dir / "summary.json").write_text(
-            json.dumps(payload, indent=2) + "\n", encoding="utf-8"
-        )
+        write_json_atomic(self.config.output_dir / "summary.json", payload)
 
     def _write_panels(self, records: list[dict[str, object]]) -> None:
         by_experiment: dict[str, list[dict[str, object]]] = {}

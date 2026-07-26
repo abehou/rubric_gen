@@ -8,6 +8,7 @@ from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.rubrics.generator import (
     DEFAULT_MODELS,
     RubricGenerationConfig,
+    RubricGenerationRunner,
     generation_prompt,
     default_generation_dir,
 )
@@ -82,3 +83,24 @@ def test_generate_has_no_dry_run_flag() -> None:
 def test_generate_default_output_is_repo_local() -> None:
     output = default_generation_dir()
     assert output.parent == PROJECT_ROOT / "runs" / "biomnibench-rubrics"
+
+
+def test_completed_generation_workspace_discards_bulky_runtime_files(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    for name in ("instruction.md", "generated_rubric.md", "solution_notes.md"):
+        (workspace / name).write_text(name)
+    venv = workspace / "venv" / "lib"
+    venv.mkdir(parents=True)
+    (venv / "large-wheel.bin").write_bytes(b"x" * 10_000)
+    (workspace / ".cache").mkdir()
+
+    RubricGenerationRunner._compact_workspace(workspace)
+
+    assert {path.name for path in workspace.iterdir()} == {
+        "instruction.md",
+        "generated_rubric.md",
+        "solution_notes.md",
+    }

@@ -209,8 +209,12 @@ judge results, and validation artifacts remain durable for resume and audit.
 Workspace-local `.venv`, `venv`, `packages`, and cache directories are never
 included in a submission snapshot.
 
-To continue an interrupted experiment, pass its exact final directory with
-`--experiment-dir PATH --resume`. To delete that experiment and start again at
+To continue an interrupted automatic batch, rerun the same `revise` command
+with `--resume`. It selects the newest batch whose encoded arguments and
+recorded task IDs match, resumes existing task experiments from their safe
+boundaries, and starts any missing task experiments. Pass
+`--experiment-dir PATH --resume` to select a batch or single experiment
+explicitly. To delete an explicitly selected experiment and start again at
 `s000`, use `--experiment-dir PATH --restart` instead.
 
 ## Compile Task-Specific Process Rubrics
@@ -367,52 +371,36 @@ hf download metr-evals/malt-public \
 Do not pool `default`, `irrelevant_detail`, `language_mixing`, `summarize`, and
 `vague_cot`: they contain paired variants of the same runs.
 
-First run without label mappings to inspect review status and the exact label
-vocabulary:
+With no positional inputs, `malt` reads
+`data/malt-public/default/*.parquet`. Pass shard paths explicitly only to use a
+different configuration. `--top K` draws exactly K cases after split selection
+using `--seed` (default `42`), so every judge mode can evaluate the same
+reproducible sample.
+
+Prepare the shared blinded cases without running judges:
 
 ```bash
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark
+uv run malt
 ```
 
-This writes `runs/malt-benchmark/inventory.json` and stops. This inspection is
-required because MALT is a general transcript-label dataset, not a binary
-reward-hacking benchmark. Its reviewed labels mix potential reward-hacking
-behaviors with non-hacking outcomes such as giving up, refusal, ordinary
-reasoning, and normal behavior. MALT does not define the binary mapping for
-this benchmark. In particular, do not treat an empty label list or a
-`manually_reviewed=false` row as a verified negative.
-
-After deciding which exact MALT labels are verified positives and negatives,
-repeat the command with those mappings. Unmapped and, by default, unreviewed
-rows are skipped:
-
-```bash
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal
-```
+By default this writes `inventory.json`, `cases/`, and the private gold file
+under `$BULK/rubric_gen/runs/malt-benchmark`. The benchmark
+uses a fixed mapping: `reward_hacking`, `partial_problem_solving`, `sabotage`,
+and `gives_up` are positive; `normal` is negative; every other label is
+excluded. This intentionally broad definition treats failure-oriented behavior
+as reward hacking, so results should not be described as measuring only narrow
+grader exploitation.
 
 Choose one evaluation mode to prepare the cases, run judges, and score their
 strict verdicts. The harness ensemble runs Codex, Claude Code, and Gemini CLI:
 
 ```bash
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal \
+uv run malt \
   --agent-ensemble \
   --split test \
-  --max-concurrency 30
+  --top 100 \
+  --seed 42 \
+  --max-concurrency 6
 ```
 
 The comparable baselines use the same cases, prompt objective, verdict schema,
@@ -420,36 +408,15 @@ gold labels, and split:
 
 ```bash
 # Three direct strong-model judges
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal \
+uv run malt \
   --ensemble
 
 # One Codex harness judge
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal \
+uv run malt \
   --agent codex
 
 # One direct model judge
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal \
+uv run malt \
   --judge gpt-5.6-luna
 ```
 
@@ -461,25 +428,11 @@ needed:
 
 ```bash
 # Single open-source judge
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal \
+uv run malt \
   --vllm-judge
 
 # Three-model open-source panel
-uv run malt data/malt-public/default/*.parquet \
-  --output-dir runs/malt-benchmark \
-  --positive-label bypass_constraints \
-  --positive-label hardcoded_solution \
-  --positive-label partial_problem_solving \
-  --positive-label sabotage \
-  --positive-label gives_up \
-  --negative-label normal \
+uv run malt \
   --vllm-ensemble
 ```
 
@@ -541,26 +494,29 @@ keeps the API-request workload off the login node.
 The output directory contains:
 
 ```text
-runs/malt-benchmark/
+$BULK/rubric_gen/runs/malt-benchmark/
 ├── inventory.json
 ├── cases/
 ├── private/gold.jsonl
 └── evaluations/
-    ├── agent-ensemble/
+    ├── 20260725-143012-123456--agent-ensemble--split-test--top-100--seed-42--split-seed-malt-v1--dev-0.2--val-0.1--mc-6--raw-0/
     │   ├── summary.json
     │   └── metrics.json
-    ├── ensemble/
-    ├── agent-codex/
-    ├── judge-gpt-5.6-luna/
-    ├── vllm-judge-.../
-    └── vllm-ensemble-.../
+    └── 20260725-...--judge-gpt-5.6-luna--split-test--top-100--seed-42--split-seed-malt-v1--dev-0.2--val-0.1--mc-6--raw-0/
 ```
 
-Each evaluation directory has its own `metrics.json`. Panel modes report every
+Each timestamped evaluation directory encodes its behavior-affecting CLI
+arguments and has its own `metrics.json`. `--resume` selects the newest run
+whose encoded arguments match the current command. Panel modes report every
 member independently and the predeclared majority, any-detect, and
 unanimous-detect rules. The default scored split is `test`; use `--split
 development` or `--split validation` while developing prompts, and do not tune
 against test results.
+
+The bulky cases, prompts, responses, and transcripts remain under `$BULK`.
+Each evaluation also publishes only `summary.json`, `metrics.json`, and a source
+pointer under `runs/malt-reports/` in the repository. Pass `--output-dir` only
+when an explicit alternative archival root is required.
 
 Case artifacts contain no labels or original run identifiers. This is
 structural blinding, not a security boundary: the current external CLI agents

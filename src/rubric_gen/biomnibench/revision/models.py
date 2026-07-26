@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import os
-import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -13,24 +11,13 @@ from pathlib import Path
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptMitigation
 from rubric_gen.biomnibench.agent.sessions import SolverSessionDriver
-from rubric_gen.biomnibench.utils.paths import resolve_project_path
+from rubric_gen.biomnibench.utils.paths import directory_component, resolve_project_path
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
 from rubric_gen.biomnibench.revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
 )
-
-
-_DIRECTORY_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
-
-
-def _directory_component(value: object) -> str:
-    text = str(value) if value is not None else "default"
-    compact = _DIRECTORY_COMPONENT_RE.sub("-", text).strip(".-") or "default"
-    if len(compact) <= 48:
-        return compact
-    digest = hashlib.sha256(compact.encode("utf-8")).hexdigest()[:8]
-    return f"{compact[:39]}-{digest}"
+from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 
 
 def revision_experiment_dir(
@@ -48,7 +35,7 @@ def revision_experiment_dir(
         or getattr(args, "top", None) is not None
         or getattr(args, "full_v_score", False)
     ):
-        task_root = experiment_dir / _directory_component(task_dir.name)
+        task_root = experiment_dir / directory_component(task_dir.name)
         if getattr(args, "full_v_score", False):
             return task_root / feedback_policy.value.replace("_", "-")
         return task_root
@@ -66,26 +53,26 @@ def revision_experiment_dir(
             )
             break
     rubric = (
-        f"set-{_directory_component(rubric_set)}"
+        f"set-{directory_component(rubric_set)}"
         if rubric_set is not None
-        else _directory_component(args.rubric)
+        else directory_component(args.rubric or "rubric.txt")
     )
     components = (
-        f"t-{_directory_component(task_dir.name)}",
-        f"fb-{_directory_component(feedback_policy.value.replace('_', '-'))}",
-        f"mtg-{_directory_component(mitigation.value)}",
+        f"t-{directory_component(task_dir.name)}",
+        f"fb-{directory_component(feedback_policy.value.replace('_', '-'))}",
+        f"mtg-{directory_component(mitigation.value)}",
         f"n-{args.revision_rounds}",
-        f"p-{_directory_component(agent.provider)}",
-        f"m-{_directory_component(agent.model)}",
-        f"j-{_directory_component(args.judge_model)}",
+        f"p-{directory_component(agent.provider)}",
+        f"m-{directory_component(agent.model)}",
+        f"j-{directory_component(args.judge_model or DEFAULT_JUDGE_MODEL)}",
         f"rb-{rubric}",
-        f"v-{_directory_component(args.review)}",
+        f"v-{directory_component(args.review)}",
         f"sb-{int(agent.sandbox)}",
         f"st-{int(agent.skip_trust)}",
         f"web-{int(agent.allow_web)}",
-        f"ap-{_directory_component(agent.approval_mode)}",
+        f"ap-{directory_component(agent.approval_mode)}",
         f"mc-{args.max_review_chars if args.max_review_chars is not None else 'all'}",
-        f"x-{_directory_component(agent.executable)}",
+        f"x-{directory_component(agent.executable)}",
         f"raw-{int(agent.raw)}",
     )
     name = "--".join((experiment_dir.name, *components))

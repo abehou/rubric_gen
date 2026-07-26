@@ -940,6 +940,43 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
     batch = json.loads((generated_base / "batch.json").read_text())
     assert batch["kind"] == "rubric-gen-submission-revision-batch"
     assert batch["status"] == "completed"
+    assert batch["run_name"] == generated_base.name
+    assert batch["configuration"] == {
+        "provider": "gemini",
+        "solver_model": "test-model",
+        "judge_model": "gpt-5.6-luna",
+        "rubric": "rubric.txt",
+        "rubric_set": None,
+        "review": "trajectory",
+        "mitigation": "none",
+        "sandbox": False,
+        "skip_trust": True,
+        "allow_web": False,
+        "approval_mode": None,
+        "max_review_chars": None,
+        "max_concurrency": 1,
+        "executable": None,
+        "raw": False,
+    }
+
+
+def test_revise_rejects_control_characters_in_experiment_path(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path, "da-1-1")
+    args = build_parser().parse_args(
+        [
+            "revise",
+            str(task),
+            "--experiment-dir",
+            str(tmp_path / "split\npath"),
+            "--model",
+            "test-model",
+        ]
+    )
+
+    with pytest.raises(ValueError, match="control characters"):
+        cli_module.run_revise(args)
 
 
 def test_revise_cli_places_automatic_single_task_under_run_root(
@@ -1076,18 +1113,70 @@ def test_revise_top_resume_starts_missing_experiments(
     assert by_task["da-1-2"].resume is False
 
 
-@pytest.mark.parametrize("mode", ["--resume", "--restart"])
 def test_revise_cli_requires_explicit_directory_for_existing_run_modes(
     tmp_path: Path,
-    mode: str,
 ) -> None:
     task = _write_task(tmp_path)
     args = build_parser().parse_args(
-        ["revise", str(task), "--model", "test-model", mode]
+        ["revise", str(task), "--model", "test-model", "--restart"]
     )
 
-    with pytest.raises(ValueError, match=f"{mode} requires --experiment-dir"):
+    with pytest.raises(ValueError, match="--restart requires --experiment-dir"):
         cli_module.run_revise(args)
+
+
+def test_revise_auto_resume_selects_newest_matching_batch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bulk = tmp_path / "bulk"
+    tasks = tmp_path / "tasks"
+    _write_task(tmp_path, "da-1-1")
+    monkeypatch.setenv("BULK", str(bulk))
+    args = build_parser().parse_args([
+        "revise", "--top", "1", "--tasks-dir", str(tasks),
+        "--model", "test-model", "--resume",
+    ])
+    runs_root = commands_module._revision_runs_root()
+    for stamp in ("20260724-120000", "20260725-120000"):
+        candidate = runs_root / commands_module._revision_batch_name(args, stamp)
+        candidate.mkdir(parents=True)
+        (candidate / "batch.json").write_text(
+            json.dumps({"task_ids": ["da-1-1"]}) + "\n"
+        )
+    wrong = runs_root / commands_module._revision_batch_name(args, "20260726-120000")
+    wrong.mkdir(parents=True)
+    (wrong / "batch.json").write_text(json.dumps({"task_ids": ["da-9-9"]}) + "\n")
+
+    selected = commands_module._latest_revision_experiment_dir(args, ["da-1-1"])
+    assert selected.name.startswith("revision-20260725-120000--")
+
+
+def test_revise_batch_preserves_underlying_failure_details(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    batch = tmp_path / "revision"
+    args = build_parser().parse_args([
+        "revise", "--top", "1", "--tasks-dir", str(tmp_path / "tasks"),
+        "--experiment-dir", str(batch), "--model", "test-model",
+    ])
+
+    def fail(config: SubmissionRevisionConfig) -> None:
+        raise ValueError("specific provider failure")
+
+    monkeypatch.setattr(commands_module, "run_submission_revision", fail)
+    with pytest.raises(
+        RuntimeError, match="ValueError: specific provider failure"
+    ):
+        cli_module.run_revise(args)
+
+    failure = json.loads((batch / "batch.json").read_text())["failed_experiments"][0]
+    assert failure["task_id"] == "da-1-1"
+    assert failure["error_type"] == "ValueError"
+    assert failure["error"] == "specific provider failure"
+    assert "ValueError: specific provider failure" in failure["traceback"]
 
 
 def test_revise_cli_caps_persistent_session_retries_at_five(
@@ -1198,19 +1287,19 @@ def test_revise_top_dry_run_lists_every_task_without_running(
         (
             "full",
             "da-19-6-process-full--t-da-1-1--fb-full--mtg-none--n-3--p-gemini"
-            "--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-1"
+            "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0--st-1"
             "--web-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "score_only",
             "da-19-6-process-score-only--t-da-1-1--fb-score-only--mtg-none--n-3"
-            "--p-gemini--m-test-model--j-default--rb-default--v-trajectory"
+            "--p-gemini--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory"
             "--sb-0--st-1--web-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "semi",
             "da-19-6-process-semi--t-da-1-1--fb-semi--mtg-none--n-3--p-gemini"
-            "--m-test-model--j-default--rb-default--v-trajectory--sb-0--st-1"
+            "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0--st-1"
             "--web-0--ap-default--mc-all--x-default--raw-0",
         ),
     ],

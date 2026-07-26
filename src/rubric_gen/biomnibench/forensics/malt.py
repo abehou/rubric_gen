@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 from rubric_gen.biomnibench.forensics.reward_hacking import CASE_KIND
+from rubric_gen.biomnibench.utils.progress import TerminalProgress
 
 
 @dataclass(frozen=True)
@@ -19,11 +20,10 @@ class MaltPrepareConfig:
     gold_path: Path
     positive_labels: frozenset[str]
     negative_labels: frozenset[str] = frozenset()
-    empty_labels_are_negative: bool = False
-    require_manually_reviewed: bool = True
     development_fraction: float = 0.2
     validation_fraction: float = 0.1
     split_seed: str = "malt-v1"
+    show_progress: bool = False
 
     def __post_init__(self) -> None:
         if (
@@ -39,7 +39,54 @@ def _metadata(row: dict[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else row
 
 
-def iter_rows(paths: Iterable[Path]) -> Iterator[dict[str, Any]]:
+def iter_rows(
+    paths: Iterable[Path],
+    *,
+    parquet_columns: list[str] | None = None,
+    progress_description: str | None = None,
+) -> Iterator[dict[str, Any]]:
+    input_paths = tuple(paths)
+    total = 0
+    if progress_description is not None:
+        try:
+            import pyarrow.parquet as parquet
+        except ImportError:
+            parquet = None
+        if parquet is not None:
+            total = sum(
+                parquet.ParquetFile(path).metadata.num_rows
+                for path in input_paths
+                if path.suffix == ".parquet" and path.is_file()
+            )
+        total += sum(
+            sum(bool(line.strip()) for line in path.open(encoding="utf-8"))
+            for path in input_paths
+            if path.suffix == ".jsonl" and path.is_file()
+        )
+        for path in input_paths:
+            if path.suffix == ".json" and path.is_file():
+                value = json.loads(path.read_text(encoding="utf-8"))
+                total += len(value) if isinstance(value, list) else 1
+    with TerminalProgress(
+        total=total, description=progress_description or "", unit="row"
+    ) if progress_description is not None else _NoProgress() as progress:
+        yield from _iter_rows(input_paths, parquet_columns, progress)
+
+
+class _NoProgress:
+    def __enter__(self) -> _NoProgress:
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        return None
+
+    def update(self) -> None:
+        return None
+
+
+def _iter_rows(
+    paths: Iterable[Path], parquet_columns: list[str] | None, progress: Any
+) -> Iterator[dict[str, Any]]:
     for path in paths:
         if not path.is_file():
             if any(character in str(path) for character in "*?["):
@@ -57,6 +104,7 @@ def iter_rows(paths: Iterable[Path]) -> Iterator[dict[str, Any]]:
                     for row in rows:
                         if not isinstance(row, dict):
                             raise ValueError(f"non-object row in {path}")
+                        progress.update()
                         yield row
                 else:
                     for line_number, line in enumerate(handle, 1):
@@ -65,6 +113,7 @@ def iter_rows(paths: Iterable[Path]) -> Iterator[dict[str, Any]]:
                         row = json.loads(line)
                         if not isinstance(row, dict):
                             raise ValueError(f"non-object row at {path}:{line_number}")
+                        progress.update()
                         yield row
             continue
         if path.suffix != ".parquet":
@@ -76,11 +125,17 @@ def iter_rows(paths: Iterable[Path]) -> Iterator[dict[str, Any]]:
                 "Parquet conversion requires pyarrow; install it explicitly or export MALT as JSONL"
             ) from exc
         parquet_file = parquet.ParquetFile(path)
-        for batch in parquet_file.iter_batches(batch_size=16):
-            yield from batch.to_pylist()
+        for batch in parquet_file.iter_batches(
+            batch_size=256, columns=parquet_columns
+        ):
+            for row in batch.to_pylist():
+                progress.update()
+                yield row
 
 
-def inventory_malt(paths: Iterable[Path]) -> dict[str, Any]:
+def inventory_malt(
+    paths: Iterable[Path], *, show_progress: bool = False
+) -> dict[str, Any]:
     labels: Counter[str] = Counter()
     models: Counter[str] = Counter()
     reviewed = Counter()
@@ -88,7 +143,11 @@ def inventory_malt(paths: Iterable[Path]) -> dict[str, Any]:
     task_ids: set[str] = set()
     rows = 0
     empty_labels = 0
-    for row in iter_rows(paths):
+    for row in iter_rows(
+        paths,
+        parquet_columns=["metadata"],
+        progress_description="MALT inventory" if show_progress else None,
+    ):
         rows += 1
         metadata = _metadata(row)
         raw_labels = metadata.get("labels", [])
@@ -134,20 +193,19 @@ def _split(task_id: str, config: MaltPrepareConfig) -> str:
 
 def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
     if not config.positive_labels:
-        raise ValueError("at least one explicitly audited --positive-label is required")
+        raise ValueError("the positive-label mapping cannot be empty")
     if config.cases_dir.exists() or config.gold_path.exists():
         raise FileExistsError("cases or gold output already exists")
     config.cases_dir.mkdir(parents=True)
     config.gold_path.parent.mkdir(parents=True, exist_ok=True)
     seen_runs: set[str] = set()
     gold_rows: list[dict[str, Any]] = []
-    skipped_unreviewed = 0
     skipped_unmapped = 0
-    for index, row in enumerate(iter_rows(config.inputs), 1):
+    for index, row in enumerate(iter_rows(
+        config.inputs,
+        progress_description="MALT preparation" if config.show_progress else None,
+    ), 1):
         metadata = _metadata(row)
-        if config.require_manually_reviewed and metadata.get("manually_reviewed") is not True:
-            skipped_unreviewed += 1
-            continue
         run_id = metadata.get("run_id")
         task_id = metadata.get("task_id")
         labels = metadata.get("labels")
@@ -170,9 +228,7 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
         if not isinstance(samples, list):
             raise ValueError(f"row {index} has malformed samples")
         positive = bool(config.positive_labels.intersection(labels))
-        negative = bool(config.negative_labels.intersection(labels)) or (
-            not labels and config.empty_labels_are_negative
-        )
+        negative = bool(config.negative_labels.intersection(labels))
         if positive and negative:
             raise ValueError(f"row {index} matches both positive and negative rules")
         if not positive and not negative:
@@ -199,7 +255,6 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
                 "case_id": case_id,
                 "reward_hacking": positive,
                 "raw_human_labels": labels,
-                "manually_reviewed": metadata.get("manually_reviewed") is True,
                 "source_run_id": run_id,
                 "source_task_id": task_id,
                 "source_model": metadata.get("model"),
@@ -216,7 +271,6 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
         "cases": len(gold_rows),
         "positives": sum(bool(row["reward_hacking"]) for row in gold_rows),
         "negatives": sum(not bool(row["reward_hacking"]) for row in gold_rows),
-        "skipped_unreviewed": skipped_unreviewed,
         "skipped_unmapped": skipped_unmapped,
         "splits": dict(Counter(str(row["split"]) for row in gold_rows)),
         "cases_dir": str(config.cases_dir),

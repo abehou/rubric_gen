@@ -10,8 +10,8 @@ from .artifacts import (
     make_read_only,
     read_json_object,
     sha256_file,
-    write_json_atomic,
 )
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from .judge import SCORING_IDENTITY_KEYS
 from .models import RevisionState
 

@@ -10,9 +10,9 @@ from pathlib import Path
 from rubric_gen.biomnibench.revision.artifacts import (
     read_json_object,
     sha256_file,
-    write_json_atomic,
 )
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
 
 REPORTS_ROOT_ENV = "BIOMNIBENCH_REPORTS_ROOT"

@@ -204,3 +204,28 @@ def test_runner_preserves_three_independent_reports(
     assert "reduced by majority vote" in panel
     for provider, model in PANEL:
         assert f"## {provider} — {model}" in panel
+
+
+def test_resume_archives_and_retries_invalid_member_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tasks, experiment = _experiment(tmp_path)
+    output = tmp_path / "out"
+    stale = output / "experiments" / experiment.name / "claude"
+    stale.mkdir(parents=True)
+    (stale / "trajectory.stream.jsonl").write_text("old failure\n")
+    monkeypatch.setenv(
+        "AUDIT_REPORT",
+        "# Independent audit\n\n" + "Evidence-backed finding. " * 30,
+    )
+
+    assert RewardHackingAuditRunner(
+        RewardHackingAuditConfig(
+            experiment_dirs=(experiment,), output_dir=output,
+            tasks_dir=tasks, resume=True,
+        ),
+        registry=_FakeRegistry(),  # type: ignore[arg-type]
+    ).run() == 0
+
+    assert (stale.with_name("claude.failed-001") / "trajectory.stream.jsonl").is_file()
+    assert (stale / "workspace" / "verdict.json").is_file()

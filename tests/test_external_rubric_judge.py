@@ -177,7 +177,7 @@ def test_centralized_openai_judge_uses_responses_api(
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
 
     response = centralized_judge_module.generate_response(
-        "gpt-5.6-luna", "judge prompt"
+        "gpt-5.6-luna", "judge prompt", ("criterion_1",)
     )
 
     assert response == '{"criteria": {}}'
@@ -245,7 +245,18 @@ def test_centralized_openai_judge_reports_incomplete_reason(
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
 
     with pytest.raises(RuntimeError, match="reason=content_filter"):
-        centralized_judge_module.generate_response("gpt-5.6-luna", "prompt")
+        centralized_judge_module.generate_response(
+            "gpt-5.6-luna", "prompt", ("criterion_1",)
+        )
+
+
+def test_openai_judge_rejects_empty_or_duplicate_criterion_ids() -> None:
+    with pytest.raises(ValueError, match="at least one criterion"):
+        centralized_judge_module._openai_text_format(())
+    with pytest.raises(ValueError, match="must be unique"):
+        centralized_judge_module._openai_text_format(
+            ("criterion_1", "criterion_1")
+        )
 
 
 def test_centralized_gemini_judge_keeps_client_alive(

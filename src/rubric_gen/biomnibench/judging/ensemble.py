@@ -18,6 +18,7 @@ from rubric_gen.biomnibench.judging.models import (
 from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
 from rubric_gen.biomnibench.judging.scoring import parse_rubric_levels_strict
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
 
 STRONG_VERIFIER_MODELS = (
@@ -485,7 +486,7 @@ class StrongVerifierRunner:
         }
         output_path = self.config.output_path or plan.ensemble_root / "exploitation.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+        write_json_atomic(output_path, output)
         print(
             f"{plan.task}: binary exploitation={statistics['binary_exploitation_rate']}, "
             f"ordinal exploitation={statistics['ordinal_exploitation_rate']}"

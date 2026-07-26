@@ -100,18 +100,7 @@ class GeminiClient:
         key = os.environ.get(self.api_key_env)
         if key:
             return key
-        if self.api_key_env == DEFAULT_GEMINI_API_KEY_ENV:
-            fallback = os.environ.get("GOOGLE_API_KEY")
-            if fallback:
-                return fallback
-        raise RuntimeError(
-            f"Missing Gemini API key. Set {self.api_key_env}"
-            + (
-                " or GOOGLE_API_KEY."
-                if self.api_key_env == DEFAULT_GEMINI_API_KEY_ENV
-                else "."
-            )
-        )
+        raise RuntimeError(f"Missing Gemini API key. Set {self.api_key_env}.")
 
     def generate_content_url(self, api_key: str) -> str:
         model_name = (

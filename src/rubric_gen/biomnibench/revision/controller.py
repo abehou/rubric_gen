@@ -44,8 +44,10 @@ from rubric_gen.biomnibench.revision.artifacts import (
     validate_live_root as _validate_live_root,
     verify_submission_snapshot as _verify_submission_snapshot,
     write_json as _write_json,
-    write_json_atomic as _write_json_atomic,
     write_live_root_sentinel as _write_live_root_sentinel,
+)
+from rubric_gen.biomnibench.utils.serialization import (
+    write_json_atomic as _write_json_atomic,
 )
 from rubric_gen.biomnibench.revision.judge import (
     SCORING_IDENTITY_KEYS as _SCORING_IDENTITY_KEYS,

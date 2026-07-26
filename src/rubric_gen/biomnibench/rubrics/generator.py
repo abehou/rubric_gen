@@ -8,6 +8,7 @@ import json
 import os
 import queue
 import shutil
+import stat
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from rubric_gen.biomnibench.agent.workspaces import TaskCatalog
 from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
 
 HARNESS_PROVIDERS = {
@@ -226,9 +228,7 @@ class RubricGenerationRunner:
             "model": self.config.effective_model,
             "records": records,
         }
-        (self.config.output_dir / "summary.json").write_text(
-            json.dumps(summary, indent=2) + "\n", encoding="utf-8"
-        )
+        write_json_atomic(self.config.output_dir / "summary.json", summary)
         failures = [record for record in records if record["status"] == "failed"]
         if failures:
             print(f"{len(failures)} rubric generation task(s) failed; first: {failures[0]}")
@@ -297,7 +297,9 @@ class RubricGenerationRunner:
         if not errors:
             status["rubric_sha256"] = sha256_file(rubric)
             status["solution_notes_sha256"] = sha256_file(workspace / NOTES_NAME)
-        paths.status_path.write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
+        write_json_atomic(paths.status_path, status)
+        if not errors:
+            self._compact_workspace(workspace)
         return self._record(
             task_dir,
             run_dir,
@@ -324,6 +326,22 @@ class RubricGenerationRunner:
             log.flush()
             if self.config.raw:
                 print(line.rstrip(), flush=True)
+
+    @staticmethod
+    def _compact_workspace(workspace: Path) -> None:
+        retained = {"instruction.md", RUBRIC_NAME, NOTES_NAME}
+
+        def retry_writable(function: object, path: str, _: object) -> None:
+            os.chmod(path, stat.S_IRWXU)
+            function(path)  # type: ignore[operator]
+
+        for path in workspace.iterdir():
+            if path.name in retained:
+                continue
+            if path.is_dir() and not path.is_symlink():
+                shutil.rmtree(path, onerror=retry_writable)
+            else:
+                path.unlink()
 
     @staticmethod
     def _valid_rubric(path: Path) -> bool:
