@@ -12,4 +12,10 @@ runs/*
 !runs/biomnibench-judges/**
 !runs/biomnibench-reports/
 !runs/biomnibench-reports/**
+!runs/malt-runs/
+runs/malt-runs/*
+!runs/malt-runs/biomni-rh/
+runs/malt-runs/biomni-rh/**
+!runs/malt-runs/biomni-rh/**/
+!runs/malt-runs/biomni-rh/**/detection-rates.png
 tmp/

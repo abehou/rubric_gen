@@ -1,0 +1,22 @@
+{
+  "completed_rounds": 3,
+  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/full_semi_score/full/da-10-3",
+  "feedback_policy": "full",
+  "judge_model": "gpt-5.6-luna",
+  "mitigation": "none",
+  "phase": "ready_for_turn",
+  "provider": "codex",
+  "review": "trace",
+  "rubric_name": "rubric.txt",
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "478714867cdbffe0dee3c502ad5afcca0e5a1b60fd4db04665fa3e6280fde75b",
+  "scores": [
+    89,
+    100,
+    100
+  ],
+  "solver_model": "gpt-5.6-luna",
+  "task_id": "da-10-3",
+  "total_rounds": 11
+}
