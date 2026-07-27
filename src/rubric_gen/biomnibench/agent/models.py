@@ -116,11 +116,16 @@ class AgentRunConfig:
     quiet: bool = False
     skip_trust: bool = False
     allow_web: bool = False
+    allow_network: bool = False
     approval_mode: str | None = None
     sandbox: bool = False
     executable: str | None = None
     extra_args: tuple[str, ...] = field(default_factory=tuple)
     retries: int = 1
+
+    def __post_init__(self) -> None:
+        if self.allow_network and self.provider != "codex":
+            raise ValueError("--allow-network is supported only by the Codex provider")
 
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "AgentRunConfig":
@@ -131,6 +136,7 @@ class AgentRunConfig:
             quiet=getattr(args, "quiet", False),
             skip_trust=getattr(args, "skip_trust", False),
             allow_web=getattr(args, "allow_web", False),
+            allow_network=getattr(args, "allow_network", False),
             approval_mode=getattr(args, "approval_mode", None),
             sandbox=getattr(args, "sandbox", False),
             executable=getattr(args, "executable", None),
@@ -148,6 +154,7 @@ class BatchRunConfig:
     raw: bool = False
     skip_trust: bool = False
     allow_web: bool = False
+    allow_network: bool = False
     approval_mode: str | None = None
     sandbox: bool = False
     executable: str | None = None
@@ -170,6 +177,7 @@ class BatchRunConfig:
             raw=getattr(args, "raw", False),
             skip_trust=getattr(args, "skip_trust", False),
             allow_web=getattr(args, "allow_web", False),
+            allow_network=getattr(args, "allow_network", False),
             approval_mode=getattr(args, "approval_mode", None),
             sandbox=getattr(args, "sandbox", False),
             executable=getattr(args, "executable", None),
@@ -190,6 +198,7 @@ class BatchRunConfig:
             quiet=True,
             skip_trust=self.skip_trust,
             allow_web=self.allow_web,
+            allow_network=self.allow_network,
             approval_mode=self.approval_mode,
             sandbox=self.sandbox,
             executable=self.executable,

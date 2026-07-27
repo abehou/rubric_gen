@@ -58,6 +58,14 @@ def add_agent_args(
         help="Allow provider web tools when supported. Disabled by prompt/policy by default.",
     )
     parser.add_argument(
+        "--allow-network",
+        action="store_true",
+        help=(
+            "Allow outbound network access for commands inside the Codex "
+            "workspace-write sandbox. This is separate from provider web tools."
+        ),
+    )
+    parser.add_argument(
         "--approval-mode",
         default=None,
         help="Provider-native approval/permission mode. Defaults are provider-specific.",
@@ -458,6 +466,11 @@ def _add_judge_parser(
             "Retry each failed ensemble member this many times. Defaults to 2 "
             "retries (3 total attempts)."
         ),
+    )
+    judge.add_argument(
+        "--category-model",
+        default="gpt-5.6-sol",
+        help="Model used only to induce post-hoc finding categories.",
     )
     judge.add_argument(
         "--repeats",

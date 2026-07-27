@@ -10,9 +10,9 @@
   "rubric_name": "rubric.txt",
   "rubric_set": null,
   "schema_version": 1,
-  "score_plot_sha256": "9c00b77e2277978c658626b715ddd3c093ebee27c724e768af26939925f2524c",
+  "score_plot_sha256": "a8a02c8508c5605dde4cfbd0b1c2909eea819b7c800bd59f782ace6efdcf0b39",
   "scores": [
-    34
+    40
   ],
   "solver_model": "gpt-5.6-luna",
   "task_id": "da-11-1",

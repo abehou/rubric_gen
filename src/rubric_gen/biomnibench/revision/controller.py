@@ -116,6 +116,7 @@ class SubmissionRevisionController:
             "executable": self.config.agent.executable,
             "sandbox_requested": self.config.agent.sandbox,
             "allow_web": self.config.agent.allow_web,
+            "allow_network": self.config.agent.allow_network,
             "approval_mode": self.config.agent.approval_mode,
             "skip_trust": self.config.agent.skip_trust,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,

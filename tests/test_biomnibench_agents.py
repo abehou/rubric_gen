@@ -278,6 +278,28 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertIn("--model", cmd)
         self.assertIn("gpt-5.1-codex", cmd)
 
+    def test_codex_command_can_enable_shell_network_without_web_search(self):
+        core = self.import_core()
+        paths = core.RunPaths.for_task(
+            task_dir=Path("/tmp/da-1-1"),
+            runs_dir=Path("/tmp/runs"),
+            provider="codex",
+            stamp="20260101-000000",
+        )
+        cmd = core.AgentRunner(
+            config=core.AgentRunConfig(
+                provider="codex", model="gpt-5.6-luna", allow_network=True
+            ),
+        ).build_command(paths)
+
+        self.assertIn("sandbox_workspace_write.network_access=true", cmd)
+        self.assertNotIn("--search", cmd)
+
+    def test_allow_network_rejects_non_codex_provider(self):
+        core = self.import_core()
+        with self.assertRaisesRegex(ValueError, "only by the Codex provider"):
+            core.AgentRunConfig(provider="gemini", allow_network=True)
+
     def test_prepare_workspace_hides_runner_metadata(self):
         core = self.import_core()
 

@@ -1,5 +1,5 @@
 {
-  "completed_rounds": 4,
+  "completed_rounds": 1,
   "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/full_semi_score/semi/da-12-2",
   "feedback_policy": "semi",
   "judge_model": "gpt-5.6-luna",
@@ -10,12 +10,9 @@
   "rubric_name": "rubric.txt",
   "rubric_set": null,
   "schema_version": 1,
-  "score_plot_sha256": "290af3b8cff99502b277a107b6103a7c386756f95e3079584f5fcf200e4e940c",
+  "score_plot_sha256": "ceff35e5f1458b0070e2693559b8d89876f29ed6f82020c0a3abb314f8b26869",
   "scores": [
-    42,
-    45,
-    72,
-    95
+    30
   ],
   "solver_model": "gpt-5.6-luna",
   "task_id": "da-12-2",

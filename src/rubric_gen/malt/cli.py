@@ -191,6 +191,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         f"{mode}--detect-{detection}--source-biomnibench-{identity_hash}"
         f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
     )
+    identity += "--cat-" + re.sub(r"[^A-Za-z0-9._-]+", "_", args.category_model)
     if args.agent_ensemble:
         identity += f"--steps-{args.agent_step_limit}"
     output_root = (
@@ -214,6 +215,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
                 resume=args.resume,
                 raw=args.raw,
                 detection=detection,
+                category_model=args.category_model,
             )
         ).run()
     else:
@@ -228,6 +230,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
                 max_retries=args.max_retries,
                 resume=args.resume,
                 detection=detection,
+                category_model=args.category_model,
             )
         ).run()
     print(f"Wrote unscored Biomni forensic judgments: {evaluation_root / 'summary.json'}")
@@ -336,6 +339,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the dynamically discovered gpt-oss-120b endpoint.",
     )
     parser.add_argument("--max-concurrency", type=int, default=3)
+    parser.add_argument(
+        "--category-model",
+        default="gpt-5.6-sol",
+        help="Model used only to induce post-hoc finding categories.",
+    )
     parser.add_argument(
         "--max-retries",
         type=int,
@@ -570,6 +578,9 @@ def run(args: argparse.Namespace) -> int:
     )
     if agent_panel is not None:
         mode_name += f"--steps-{args.agent_step_limit}"
+    mode_name += "--cat-" + re.sub(
+        r"[^A-Za-z0-9._-]+", "_", args.category_model
+    )
     output_root = (
         resolve_project_path(args.output_dir)
         if args.output_dir is not None
@@ -585,6 +596,7 @@ def run(args: argparse.Namespace) -> int:
             max_retries=args.max_retries,
             step_limit=args.agent_step_limit,
             detection=target.name,
+            category_model=args.category_model,
         )).run()
     else:
         assert models is not None
@@ -594,6 +606,7 @@ def run(args: argparse.Namespace) -> int:
             max_retries=args.max_retries,
             base_urls=base_urls,
             detection=target.name,
+            category_model=args.category_model,
         )).run()
     metrics = score_panel(
         evaluation_root / "summary.json", gold_path,

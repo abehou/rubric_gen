@@ -166,6 +166,10 @@ to override only the live-storage location.
 Add `--dry-run` first to print every selected task, condition, and output
 directory without starting solver or judge processes.
 
+Codex runs use a network-isolated workspace sandbox by default. Add
+`--allow-network` when solver commands must install packages; this enables
+outbound command access without enabling the provider's web-search tool.
+
 During `revise --top N`, the terminal shows one overall experiment progress bar
 plus one revision-round bar for each active worker, up to `--max-concurrency`.
 Worker bars disappear on completion and their terminal rows are reused by the

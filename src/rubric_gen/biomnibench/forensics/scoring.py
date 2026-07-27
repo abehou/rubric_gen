@@ -25,7 +25,7 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
         if isinstance(record, dict) and isinstance(record.get("provider"), str)
     })
     by_provider: dict[str, dict[str, int | float | None]] = {}
-    by_case: dict[str, dict[str, str]] = defaultdict(dict)
+    by_case: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
     for provider in providers:
         attempted = [
             record for record in records
@@ -59,7 +59,7 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
             continue
         if record["provider"] in by_case[case_key]:
             raise ValueError(f"duplicate provider verdict for {case_key}")
-        by_case[case_key][record["provider"]] = verdict["decision"]
+        by_case[case_key][record["provider"]] = verdict
 
     complete = {
         case: decisions
@@ -69,8 +69,11 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
 
     def ensemble(rule: Callable[[int, int], bool]) -> dict[str, int | float | None]:
         evaluated = detected_cases = abstained = 0
-        for decisions in complete.values():
-            substantive = [value for value in decisions.values() if value != "abstain"]
+        for verdicts in complete.values():
+            substantive = [
+                value["decision"] for value in verdicts.values()
+                if value["decision"] != "abstain"
+            ]
             if not substantive:
                 abstained += 1
                 continue

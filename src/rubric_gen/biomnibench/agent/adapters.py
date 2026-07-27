@@ -133,6 +133,8 @@ class CodexAdapter(AgentAdapter):
         ]
         if config.model:
             command.extend(["--model", config.model])
+        if config.allow_network:
+            command.extend(["--config", "sandbox_workspace_write.network_access=true"])
         if config.allow_web:
             command.append("--search")
         if config.skip_trust:

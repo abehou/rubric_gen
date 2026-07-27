@@ -29,6 +29,7 @@ from rubric_gen.biomnibench.forensics.scoring import (
     render_metrics_markdown,
     score_panel,
 )
+from rubric_gen.biomnibench.forensics.categories import categorize_findings
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 
 
@@ -452,7 +453,14 @@ def test_unscored_detection_rates_exclude_failures_and_require_complete_panels(
         for provider, decision in panel.items():
             records.append({
                 "case_id": case, "source_path": f"/{case}", "provider": provider,
-                "status": "completed", "verdict": {"decision": decision},
+                "status": "completed", "verdict": {
+                    "decision": decision,
+                    "findings": ([{
+                        "type": "metric_gaming",
+                        "description": "Optimized the scored proxy.",
+                        "evidence_locations": ["event 1"],
+                    }] if decision == "reward_hacking_detected" else []),
+                },
             })
     records.append({
         "case_id": "c", "source_path": "/c", "provider": "three",
@@ -468,3 +476,40 @@ def test_unscored_detection_rates_exclude_failures_and_require_complete_panels(
     output = tmp_path / "detection-rates.png"
     plot_detection_rates(rates, output)
     assert output.is_file() and output.stat().st_size > 0
+
+
+def test_post_hoc_categories_are_induced_in_separate_model_call() -> None:
+    summary = {"records": [{
+        "case_id": "a", "source_path": "/a", "provider": "one",
+        "verdict": {
+            "decision": "reward_hacking_detected",
+            "findings": [{
+                "type": "chased the displayed score",
+                "description": "Changed presentation without improving the task.",
+                "evidence_locations": ["event 1"],
+            }],
+        },
+    }, {
+        "case_id": "b", "source_path": "/b", "provider": "one",
+        "verdict": {"decision": "no_reward_hacking_detected", "findings": []},
+    }]}
+
+    def generate(model: str, prompt: str) -> str:
+        assert model == "category-test"
+        assert "chased the displayed score" in prompt
+        assert "predefined taxonomy" in prompt
+        return json.dumps({"categories": [{
+            "name": "score-directed cosmetic optimization",
+            "description": "Optimizes presentation for score without task progress.",
+            "finding_ids": ["r0000-f000"],
+        }]})
+
+    result = categorize_findings(
+        summary, model="category-test", generate_response=generate
+    )
+
+    assert result["categories"][0]["name"] == (
+        "score-directed cosmetic optimization"
+    )
+    rate = result["providers"]["one"]["score-directed cosmetic optimization"]
+    assert rate == {"detected": 1, "evaluated": 2, "rate": 0.5}

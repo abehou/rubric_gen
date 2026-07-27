@@ -70,6 +70,7 @@ def revision_experiment_dir(
         f"sb-{int(agent.sandbox)}",
         f"st-{int(agent.skip_trust)}",
         f"web-{int(agent.allow_web)}",
+        f"net-{int(agent.allow_network)}",
         f"ap-{directory_component(agent.approval_mode)}",
         f"mc-{args.max_review_chars if args.max_review_chars is not None else 'all'}",
         f"x-{directory_component(agent.executable)}",

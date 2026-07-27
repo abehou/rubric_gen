@@ -72,7 +72,11 @@ _PRE_MITIGATION_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {"kind
 _MITIGATION_LEGACY_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {
     "mitigation"
 }
-_REVISION_MANIFEST_KEYS = _PRE_MITIGATION_REVISION_MANIFEST_KEYS | {"mitigation"}
+_PRE_NETWORK_REVISION_MANIFEST_KEYS = (
+    _PRE_MITIGATION_REVISION_MANIFEST_KEYS | {"mitigation"}
+)
+_REVISION_MANIFEST_KEYS = _PRE_NETWORK_REVISION_MANIFEST_KEYS | {"allow_network"}
+_NETWORK_PRE_KIND_REVISION_MANIFEST_KEYS = _REVISION_MANIFEST_KEYS - {"kind"}
 
 
 @dataclass
@@ -267,6 +271,8 @@ def remove_revision_experiment(experiment_dir: Path, task_dir: Path) -> None:
         and manifest_keys != _PRE_MITIGATION_REVISION_MANIFEST_KEYS
         and manifest_keys != _MITIGATION_LEGACY_REVISION_MANIFEST_KEYS
         and manifest_keys != _LEGACY_REVISION_MANIFEST_KEYS
+        and manifest_keys != _NETWORK_PRE_KIND_REVISION_MANIFEST_KEYS
+        and manifest_keys != _PRE_NETWORK_REVISION_MANIFEST_KEYS
     ):
         raise RuntimeError(
             f"restart requires a valid revision manifest: {manifest_path}"

@@ -997,6 +997,7 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
         "sandbox": False,
         "skip_trust": True,
         "allow_web": False,
+        "allow_network": False,
         "approval_mode": None,
         "max_review_chars": None,
         "max_concurrency": 1,
@@ -1066,7 +1067,7 @@ def test_revise_default_experiment_base_uses_repository() -> None:
     assert re.fullmatch(
         r"revision-\d{8}-\d{6}--top-4--fb-full--mtg-none--n-3--p-gemini"
         r"--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0"
-        r"--st-1--web-0--ap-default--mc-all--c-1--x-default--raw-0",
+        r"--st-1--web-0--net-0--ap-default--mc-all--c-1--x-default--raw-0",
         generated.name,
     )
 def test_revision_batch_report_path_preserves_run_and_task_hierarchy(
@@ -1418,19 +1419,19 @@ def test_revise_top_dry_run_lists_every_task_without_running(
             "full",
             "da-19-6-process-full--t-da-1-1--fb-full--mtg-none--n-3--p-gemini"
             "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0--st-1"
-            "--web-0--ap-default--mc-all--x-default--raw-0",
+            "--web-0--net-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "score_only",
             "da-19-6-process-score-only--t-da-1-1--fb-score-only--mtg-none--n-3"
             "--p-gemini--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory"
-            "--sb-0--st-1--web-0--ap-default--mc-all--x-default--raw-0",
+            "--sb-0--st-1--web-0--net-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "semi",
             "da-19-6-process-semi--t-da-1-1--fb-semi--mtg-none--n-3--p-gemini"
             "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0--st-1"
-            "--web-0--ap-default--mc-all--x-default--raw-0",
+            "--web-0--net-0--ap-default--mc-all--x-default--raw-0",
         ),
     ],
 )

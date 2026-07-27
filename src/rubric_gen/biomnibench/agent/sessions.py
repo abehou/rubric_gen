@@ -342,6 +342,12 @@ class CliSolverSessionDriver:
                     'sandbox_mode="workspace-write"',
                     "-c",
                     (
+                        "sandbox_workspace_write.network_access=true"
+                        if self.config.allow_network
+                        else "sandbox_workspace_write.network_access=false"
+                    ),
+                    "-c",
+                    (
                         'web_search="live"'
                         if self.config.allow_web
                         else 'web_search="disabled"'
