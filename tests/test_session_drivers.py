@@ -123,7 +123,7 @@ def test_persistent_session_retries_in_same_session_and_preserves_all_streams(
     assert status["attempts"][2]["stream_errors"] == []
 
 
-def test_persistent_session_accepts_workspace_after_five_stream_retries(
+def test_persistent_session_fails_after_five_stream_retries(
     tmp_path: Path,
 ) -> None:
     workspace = tmp_path / "workspace"
@@ -133,14 +133,14 @@ def test_persistent_session_accepts_workspace_after_five_stream_retries(
 
     result = driver.start(workspace, "original prompt", turn_dir)
 
-    assert result.exit_code == 0
+    assert result.exit_code == 1
     assert len(driver.commands) == 6
     status = json.loads((turn_dir / "status.json").read_text())
     assert status["attempt_count"] == 6
     assert status["max_retries"] == 5
-    assert status["exit_code"] == 0
+    assert status["exit_code"] == 1
     assert status["transport_exit_code"] == 1
-    assert status["accepted_after_retry_exhaustion"] is True
+    assert "accepted_after_retry_exhaustion" not in status
     assert (turn_dir / "trajectory.stream.jsonl").read_text().count(
         '"message": "Invalid stream"'
     ) == 6
@@ -160,7 +160,7 @@ def test_persistent_session_does_not_accept_process_crashes_after_retries(
     status = json.loads((turn_dir / "status.json").read_text())
     assert status["exit_code"] == 9
     assert status["transport_exit_code"] == 9
-    assert status["accepted_after_retry_exhaustion"] is False
+    assert "accepted_after_retry_exhaustion" not in status
 
 
 def test_persistent_session_does_not_reject_suspicious_successful_actions(

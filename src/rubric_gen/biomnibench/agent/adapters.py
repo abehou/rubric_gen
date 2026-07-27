@@ -91,6 +91,7 @@ class ClaudeAdapter(AgentAdapter):
         command = [
             self.executable(config),
             "--print",
+            "--verbose",
             "--output-format",
             "stream-json",
             "--permission-mode",

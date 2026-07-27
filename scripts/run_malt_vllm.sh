@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-environment="${1:-harness}"
-output_dir="${2:-${BULK:?BULK must be set}/rubric_gen/runs/malt-benchmark}"
-top="${3:-100}"
+detection="${1:?usage: run_malt_vllm.sh DETECTION [ENVIRONMENT] [OUTPUT_DIR] [TOP]}"
+environment="${2:-harness}"
+output_dir="${3:-runs/malt-runs}"
+top="${4:-100}"
 
 source /juice2/u/abehou/anaconda3/etc/profile.d/conda.sh
 conda activate "$environment"
 cd /nlp/scr/abehou/rubric_gen
 
 uv run malt \
+  --detect "$detection" \
   --output-dir "$output_dir" \
   --vllm-ensemble \
   --top "$top" \

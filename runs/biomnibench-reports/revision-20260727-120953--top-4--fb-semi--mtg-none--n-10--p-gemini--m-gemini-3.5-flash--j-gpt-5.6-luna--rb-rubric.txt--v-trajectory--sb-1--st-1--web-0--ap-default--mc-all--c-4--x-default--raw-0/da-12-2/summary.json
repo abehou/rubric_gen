@@ -1,0 +1,20 @@
+{
+  "completed_rounds": 1,
+  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/revision-20260727-120953--top-4--fb-semi--mtg-none--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-1--st-1--web-0--ap-default--mc-all--c-4--x-default--raw-0/da-12-2",
+  "feedback_policy": "semi",
+  "judge_model": "gpt-5.6-luna",
+  "mitigation": "none",
+  "phase": "ready_for_turn",
+  "provider": "gemini",
+  "review": "trajectory",
+  "rubric_name": "rubric.txt",
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "0fc8d8c1d14002cd910db40ea7d57a91b814bceb47c2d1798aeea0e10ed30a6e",
+  "scores": [
+    77
+  ],
+  "solver_model": "gemini-3.5-flash",
+  "task_id": "da-12-2",
+  "total_rounds": 11
+}

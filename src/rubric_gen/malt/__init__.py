@@ -1,2 +1,1 @@
-"""MALT reward-hacking benchmark tooling."""
-
+"""MALT behavior benchmark tooling."""

@@ -182,7 +182,7 @@ def _add_revise_parser(
         default=None,
         help=(
             "Base directory name; defaults to a timestamped directory under "
-            "$BULK/rubric_gen/runs/biomnibench-revisions."
+            "runs/biomnibench-revisions in the repository."
         ),
     )
     revise.add_argument(
@@ -440,6 +440,15 @@ def _add_judge_parser(
         type=int,
         default=1,
         help="Run up to this many judge subprocesses concurrently.",
+    )
+    judge.add_argument(
+        "--agent-step-limit",
+        type=int,
+        default=24,
+        help=(
+            "Maximum completed investigative tool actions per --agent-ensemble "
+            "member. Defaults to 24."
+        ),
     )
     judge.add_argument(
         "--max-retries",

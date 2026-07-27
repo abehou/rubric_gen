@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
+from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 
 
 EXCLUDED_SOLUTION_NAMES = frozenset(
@@ -488,13 +489,8 @@ def live_root_parent() -> Path:
     configured = os.environ.get(LIVE_ROOT_ENV)
     source = LIVE_ROOT_ENV
     if not configured:
-        bulk = os.environ.get("BULK")
-        if bulk is None or not bulk.strip():
-            return Path(tempfile.gettempdir()).resolve()
-        configured = str(
-            Path(bulk).expanduser() / "rubric_gen" / "biomnibench-live"
-        )
-        source = "BULK"
+        configured = str(PROJECT_ROOT / "tmp" / "biomnibench-live")
+        source = "repository default"
     root = Path(configured).expanduser()
     if not root.is_absolute():
         raise RuntimeError(f"{source} must be an absolute path")

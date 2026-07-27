@@ -386,6 +386,31 @@ class SubmissionRevisionController:
         status_path = turn_dir / "status.json"
         trajectory_path = turn_dir / "trajectory.stream.jsonl"
         if (
+            state.phase is _RevisionPhase.TURN_IN_PROGRESS
+            and turn_index > 0
+            and not os.path.lexists(status_path)
+            and not os.path.lexists(trajectory_path)
+            and not turn_dir.is_symlink()
+            and turn_dir.is_dir()
+            and sorted(path.name for path in turn_dir.iterdir()) == ["prompt.txt"]
+            and (turn_dir / "prompt.txt").is_file()
+            and not (turn_dir / "prompt.txt").is_symlink()
+            and (turn_dir / "prompt.txt").read_text() == state.next_prompt
+        ):
+            snapshot = _read_json_object(
+                self.experiment_dir
+                / "submissions"
+                / state.submission_ids[-1]
+                / "snapshot.json",
+                "submission snapshot",
+            )
+            if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
+                raise RuntimeError(
+                    "live workspace changed during an interrupted solver turn"
+                )
+            self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
+            return
+        if (
             turn_dir.is_symlink()
             or not turn_dir.is_dir()
             or status_path.is_symlink()
@@ -413,12 +438,6 @@ class SubmissionRevisionController:
                 for attempt in attempts
             )
         )
-        stream_retry_exhaustion = (
-            common_attempt_boundary
-            and len(attempts) == retry_count + 1
-            and isinstance(attempts[-1].get("stream_errors"), list)
-            and bool(attempts[-1]["stream_errors"])
-        )
         validation_errors = status.get("validation_errors")
         excluded_cache_failure = (
             common_attempt_boundary
@@ -441,11 +460,8 @@ class SubmissionRevisionController:
             and attempts[-1].get("stream_errors") == []
             and attempts[-1].get("output_errors") == []
         )
-        if not (
-            stream_retry_exhaustion
-            or excluded_cache_failure
-            or interrupted_after_provider_success
-        ):
+        if not (excluded_cache_failure or interrupted_after_provider_success):
+            self._restore_last_scored_workspace(state, workspace)
             self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
             return
 
@@ -479,9 +495,7 @@ class SubmissionRevisionController:
                 provider_exit_code if type(provider_exit_code) is int else 1
             )
         recovery_status = (
-            "accepted_after_retry_exhaustion"
-            if stream_retry_exhaustion
-            else "accepted_after_cache_exclusion"
+            "accepted_after_cache_exclusion"
             if excluded_cache_failure
             else "accepted_after_interrupted_boundary"
         )
@@ -490,7 +504,6 @@ class SubmissionRevisionController:
                 "status": recovery_status,
                 "exit_code": 0,
                 "transport_exit_code": transport_exit_code,
-                "accepted_after_retry_exhaustion": stream_retry_exhaustion,
                 "recovered_on_resume": True,
             }
         )
@@ -506,14 +519,51 @@ class SubmissionRevisionController:
                 "turn": turn_index,
                 "session_id": state.session_id,
                 "reason": (
-                    "accepted workspace after stream retry exhaustion"
-                    if stream_retry_exhaustion
-                    else "accepted workspace after excluding disposable cache"
+                    "accepted workspace after excluding disposable cache"
                     if excluded_cache_failure
                     else "accepted completed provider turn after interruption"
                 ),
             }
         )
+
+    def _restore_last_scored_workspace(
+        self,
+        state: _RevisionState,
+        workspace: Path,
+    ) -> None:
+        restored = workspace.parent / "workspace-restore"
+        if os.path.lexists(restored):
+            raise RuntimeError(f"stale workspace restore path exists: {restored}")
+        if state.submission_ids:
+            source = (
+                self.experiment_dir
+                / "submissions"
+                / state.submission_ids[-1]
+                / "workspace"
+            )
+            _verify_submission_snapshot(source.parent)
+            shutil.copytree(source, restored, copy_function=shutil.copyfile)
+            for path in [restored, *restored.rglob("*")]:
+                if not path.is_symlink():
+                    path.chmod(
+                        stat.S_IMODE(os.lstat(path).st_mode)
+                        | stat.S_IRUSR
+                        | stat.S_IWUSR
+                        | (stat.S_IXUSR if path.is_dir() else 0)
+                    )
+        else:
+            restored.mkdir()
+            TaskWorkspace(self.task_dir, restored).prepare()
+        for path in [workspace, *workspace.rglob("*")]:
+            if not path.is_symlink():
+                path.chmod(
+                    stat.S_IMODE(os.lstat(path).st_mode)
+                    | stat.S_IRUSR
+                    | stat.S_IWUSR
+                    | (stat.S_IXUSR if path.is_dir() else 0)
+                )
+        shutil.rmtree(workspace)
+        restored.rename(workspace)
 
     def _reset_uncertain_solver_turn(
         self,

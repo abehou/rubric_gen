@@ -6,6 +6,8 @@ import argparse
 import json
 import os
 import queue
+import signal
+import socket
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
@@ -34,13 +36,21 @@ from rubric_gen.biomnibench.rubrics.retrospective import (
     ProcessRubricConfig,
     ProcessRubricGenerator,
 )
-from rubric_gen.biomnibench.utils.paths import directory_component, resolve_project_path
+from rubric_gen.biomnibench.utils.paths import (
+    PROJECT_ROOT,
+    directory_component,
+    resolve_project_path,
+)
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.biomnibench.visualization.comparisons import (
     JudgeComparisonConfig,
     JudgeComparisonPlotter,
 )
+
+
+class _BatchTermination(KeyboardInterrupt):
+    pass
 
 
 def run_one(args: argparse.Namespace) -> int:
@@ -126,21 +136,7 @@ def _timestamped_revision_experiment_dir(args: argparse.Namespace) -> Path:
 
 
 def _revision_runs_root() -> Path:
-    bulk = os.environ.get("BULK")
-    if bulk is None or not bulk.strip():
-        raise ValueError(
-            "BULK must be set when --experiment-dir is omitted; set BULK to an "
-            "absolute large-storage directory or pass --experiment-dir explicitly"
-        )
-    bulk_root = Path(bulk).expanduser()
-    if not bulk_root.is_absolute():
-        raise ValueError("BULK must be an absolute path")
-    return (
-        bulk_root
-        / "rubric_gen"
-        / "runs"
-        / "biomnibench-revisions"
-    )
+    return PROJECT_ROOT / "runs" / "biomnibench-revisions"
 
 
 def _latest_revision_experiment_dir(
@@ -239,10 +235,30 @@ def run_revise(args: argparse.Namespace) -> int:
     batch_root = resolve_project_path(args.experiment_dir)
     batch_root.mkdir(parents=True, exist_ok=True)
     batch_manifest_path = batch_root / "batch.json"
+    previous_interruption: dict[str, object] | None = None
+    if args.resume and batch_manifest_path.is_file():
+        try:
+            previous_manifest = json.loads(batch_manifest_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            previous_manifest = None
+        if (
+            isinstance(previous_manifest, dict)
+            and previous_manifest.get("status") == "running"
+        ):
+            previous_interruption = {
+                "status": "abandoned",
+                "started_at": previous_manifest.get("started_at"),
+                "pid": previous_manifest.get("pid"),
+                "hostname": previous_manifest.get("hostname"),
+                "detected_at": datetime.now().astimezone().isoformat(),
+            }
     batch_manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "rubric-gen-submission-revision-batch",
         "status": "running",
+        "started_at": datetime.now().astimezone().isoformat(),
+        "pid": os.getpid(),
+        "hostname": socket.gethostname(),
         "run_name": batch_root.name,
         "task_ids": [task_dir.name for task_dir in task_dirs],
         "experiment_dirs": [
@@ -268,52 +284,74 @@ def run_revise(args: argparse.Namespace) -> int:
             "raw": args.raw,
         },
     }
+    if previous_interruption is not None:
+        batch_manifest["previous_interruption"] = previous_interruption
     write_json_atomic(batch_manifest_path, batch_manifest)
-    failures: list[tuple[SubmissionRevisionConfig, Exception, str]] = []
-    with TerminalProgress(
-        total=len(configs),
-        description="revise batch",
-        unit="experiment",
-        position=0,
-    ) as progress:
-        if args.max_concurrency == 1:
-            for config in configs:
-                try:
-                    run_submission_revision(replace(config, progress_position=1))
-                except Exception as exc:
-                    failures.append((config, exc, traceback.format_exc()))
-                finally:
-                    progress.update()
-        else:
-            progress_positions: queue.SimpleQueue[int] = queue.SimpleQueue()
-            for position in range(1, args.max_concurrency + 1):
-                progress_positions.put(position)
+    failures: list[tuple[SubmissionRevisionConfig, BaseException, str]] = []
 
-            def run_with_progress(config: SubmissionRevisionConfig) -> None:
-                position = progress_positions.get()
-                try:
-                    run_submission_revision(
-                        replace(config, progress_position=position)
-                    )
-                finally:
-                    progress_positions.put(position)
+    def terminate_batch(signum: int, frame: object) -> None:
+        del frame
+        raise _BatchTermination(f"received signal {signum}")
 
-            with ThreadPoolExecutor(max_workers=args.max_concurrency) as executor:
-                futures = {
-                    executor.submit(run_with_progress, config): config
-                    for config in configs
-                }
-                for future in as_completed(futures):
+    previous_sigterm_handler = signal.signal(signal.SIGTERM, terminate_batch)
+    try:
+        with TerminalProgress(
+            total=len(configs),
+            description="revise batch",
+            unit="experiment",
+            position=0,
+        ) as progress:
+            if args.max_concurrency == 1:
+                for config in configs:
                     try:
-                        future.result()
-                    except Exception as exc:
-                        failures.append(
-                            (futures[future], exc, traceback.format_exc())
-                        )
+                        run_submission_revision(replace(config, progress_position=1))
+                    except (Exception, SystemExit) as exc:
+                        failures.append((config, exc, traceback.format_exc()))
                     finally:
                         progress.update()
+            else:
+                progress_positions: queue.SimpleQueue[int] = queue.SimpleQueue()
+                for position in range(1, args.max_concurrency + 1):
+                    progress_positions.put(position)
+
+                def run_with_progress(config: SubmissionRevisionConfig) -> None:
+                    position = progress_positions.get()
+                    try:
+                        run_submission_revision(
+                            replace(config, progress_position=position)
+                        )
+                    finally:
+                        progress_positions.put(position)
+
+                with ThreadPoolExecutor(max_workers=args.max_concurrency) as executor:
+                    futures = {
+                        executor.submit(run_with_progress, config): config
+                        for config in configs
+                    }
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except (Exception, SystemExit) as exc:
+                            failures.append(
+                                (futures[future], exc, traceback.format_exc())
+                            )
+                        finally:
+                            progress.update()
+    except BaseException as exc:
+        batch_manifest["status"] = "interrupted"
+        batch_manifest["finished_at"] = datetime.now().astimezone().isoformat()
+        batch_manifest["interruption"] = {
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+            "traceback": traceback.format_exc(),
+        }
+        write_json_atomic(batch_manifest_path, batch_manifest)
+        raise
+    finally:
+        signal.signal(signal.SIGTERM, previous_sigterm_handler)
     if failures:
         batch_manifest["status"] = "failed"
+        batch_manifest["finished_at"] = datetime.now().astimezone().isoformat()
         batch_manifest["failed_experiments"] = [
             {
                 "experiment_dir": str(config.experiment_dir),
@@ -333,6 +371,7 @@ def run_revise(args: argparse.Namespace) -> int:
             f"{type(exc).__name__}: {exc}"
         ) from exc
     batch_manifest["status"] = "completed"
+    batch_manifest["finished_at"] = datetime.now().astimezone().isoformat()
     write_json_atomic(batch_manifest_path, batch_manifest)
     return 0
 

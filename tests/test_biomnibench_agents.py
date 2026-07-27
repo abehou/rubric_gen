@@ -248,6 +248,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         self.assertEqual(cmd[0], "claude")
         self.assertIn("--print", cmd)
+        self.assertIn("--verbose", cmd)
         self.assertIn("stream-json", cmd)
         self.assertIn("--permission-mode", cmd)
         self.assertIn("bypassPermissions", cmd)

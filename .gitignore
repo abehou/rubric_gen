@@ -12,6 +12,4 @@ runs/*
 !runs/biomnibench-judges/**
 !runs/biomnibench-reports/
 !runs/biomnibench-reports/**
-!runs/malt-reports/
-!runs/malt-reports/**
 tmp/

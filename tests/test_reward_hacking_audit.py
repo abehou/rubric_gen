@@ -14,6 +14,11 @@ from rubric_gen.biomnibench.forensics.reward_hacking import (
     RewardHackingAuditRunner,
     forensic_audit_prompt,
 )
+from rubric_gen.biomnibench.forensics.evidence_index import (
+    build_evidence_index,
+    ensure_evidence_index,
+    query_main,
+)
 
 
 class _FakeAdapter:
@@ -68,6 +73,10 @@ def _experiment(tmp_path: Path) -> tuple[Path, Path]:
     return tasks, experiment
 
 
+def _experiment_output(output: Path, experiment: Path) -> Path:
+    return output / "experiments" / RewardHackingAuditRunner._source_key(experiment)
+
+
 def test_prompt_is_open_ended_and_task_first(tmp_path: Path) -> None:
     tasks, experiment = _experiment(tmp_path)
     prompt = forensic_audit_prompt(
@@ -76,10 +85,43 @@ def test_prompt_is_open_ended_and_task_first(tmp_path: Path) -> None:
         experiment_dir=experiment,
     )
 
-    assert "Do not assume a predefined set or taxonomy" in prompt
+    assert "Require concrete evidence of exploitation or constraint bypass" in prompt
+    assert "do not silently broaden it" in prompt
     assert "Read the original task before the rubric" in prompt
     assert "actively search for disconfirming evidence" in prompt
     assert "Ignore every opinion" in prompt
+
+
+def test_evidence_index_supports_bounded_lossless_retrieval(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = tmp_path / "case"
+    case.mkdir()
+    (case / "manifest.json").write_text(json.dumps({
+        "evidence_files": ["transcript.json"],
+    }))
+    long_content = "prefix " + "x" * 5000 + " suspicious-marker tail"
+    (case / "transcript.json").write_text(json.dumps({
+        "samples": [{"input": [
+            {"role": "user", "content": "task"},
+            {"role": "assistant", "content": long_content},
+        ]}]
+    }))
+    database = tmp_path / "evidence.sqlite"
+
+    inventory = build_evidence_index(case, database)
+    assert inventory["events"] == 2
+    assert inventory["roles"] == {"assistant": 1, "user": 1}
+
+    assert query_main(database, ["search", "suspicious-marker"]) == 0
+    assert "suspicious-marker" in capsys.readouterr().out
+    assert query_main(database, ["show", "2", "--limit", "100"]) == 0
+    shown = capsys.readouterr().out
+    assert "continue at --start 100" in shown
+    assert len(shown) < 400
+    assert query_main(database, ["occurrences", "2"]) == 0
+    assert "transcript.json:$/samples/0/input/1" in capsys.readouterr().out
+    assert ensure_evidence_index(case, database) is None
 
 
 def test_config_flattens_repeated_run_dir_arguments(tmp_path: Path) -> None:
@@ -93,6 +135,7 @@ def test_config_flattens_repeated_run_dir_arguments(tmp_path: Path) -> None:
         resume=True,
         dry_run=False,
         raw=False,
+        agent_step_limit=7,
     )
 
     config = RewardHackingAuditConfig.from_namespace(args)
@@ -100,6 +143,59 @@ def test_config_flattens_repeated_run_dir_arguments(tmp_path: Path) -> None:
     assert config.experiment_dirs == (first, second)
     assert config.max_concurrency == 2
     assert config.resume is True
+    assert config.step_limit == 7
+    assert config.max_retries == 2
+
+
+def test_agent_panel_retries_failed_member(tmp_path: Path) -> None:
+    tasks, experiment = _experiment(tmp_path)
+    runner = RewardHackingAuditRunner(RewardHackingAuditConfig(
+        experiment_dirs=(experiment,), output_dir=tmp_path / "out",
+        tasks_dir=tasks, panel=(("gemini", "gemini-test"),), max_retries=1,
+    ))
+    case = runner._revision_case(experiment)
+    attempts: list[bool] = []
+
+    def member(*args, retry: bool = False, **kwargs):
+        attempts.append(retry)
+        return {
+            "case_id": case.case_id,
+            "source_kind": case.source_kind,
+            "source_path": str(case.source_path),
+            "provider": "gemini",
+            "model": "gemini-test",
+            "status": "failed" if len(attempts) == 1 else "completed",
+        }
+
+    runner._run_member = member  # type: ignore[method-assign]
+    record = runner._run_member_with_retries(case, "gemini", "gemini-test")
+
+    assert attempts == [False, True]
+    assert record["status"] == "completed"
+    assert record["attempt_count"] == 2
+    assert record["retry_exhausted"] is False
+
+
+def test_agent_step_limit_validation_and_event_counting(tmp_path: Path) -> None:
+    tasks, experiment = _experiment(tmp_path)
+    with pytest.raises(ValueError, match="step limit"):
+        RewardHackingAuditConfig(
+            experiment_dirs=(experiment,), output_dir=tmp_path / "out",
+            tasks_dir=tasks, step_limit=0,
+        )
+
+    count = RewardHackingAuditRunner._completed_steps
+    assert count('{"type":"tool_result"}', "gemini") == 1
+    assert count(json.dumps({
+        "type": "item.completed",
+        "item": {"type": "command_execution"},
+    }), "codex") == 1
+    assert count(json.dumps({
+        "message": {"content": [
+            {"type": "tool_result"}, {"type": "tool_result"},
+        ]},
+    }), "claude") == 2
+    assert count('{"type":"message"}', "gemini") == 0
 
 
 def test_dry_run_plans_all_panel_members(
@@ -132,6 +228,12 @@ def test_judge_agent_ensemble_is_mutually_exclusive_with_score_ensemble() -> Non
 
     assert args.agent_ensemble is True
     assert args.ensemble is False
+    assert args.agent_step_limit == 24
+    limited = parser.parse_args([
+        "judge", "--agent-ensemble", "--run-dir", "revision-example",
+        "--agent-step-limit", "9",
+    ])
+    assert limited.agent_step_limit == 9
     with pytest.raises(SystemExit):
         parser.parse_args(
             [
@@ -193,14 +295,16 @@ def test_runner_preserves_three_independent_reports(
     assert exit_code == 0
     summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
     assert len(summary["records"]) == len(PANEL) == 3
+    assert (output / "detection-rates.json").is_file()
+    assert (output / "detection-rates.png").is_file()
     assert {record["provider"] for record in summary["records"]} == {
         "codex",
         "claude",
         "gemini",
     }
-    panel = (
-        output / "experiments" / experiment.name / "panel.md"
-    ).read_text(encoding="utf-8")
+    panel = (_experiment_output(output, experiment) / "panel.md").read_text(
+        encoding="utf-8"
+    )
     assert "reduced by majority vote" in panel
     for provider, model in PANEL:
         assert f"## {provider} — {model}" in panel
@@ -211,7 +315,7 @@ def test_resume_archives_and_retries_invalid_member_output(
 ) -> None:
     tasks, experiment = _experiment(tmp_path)
     output = tmp_path / "out"
-    stale = output / "experiments" / experiment.name / "claude"
+    stale = _experiment_output(output, experiment) / "claude"
     stale.mkdir(parents=True)
     (stale / "trajectory.stream.jsonl").write_text("old failure\n")
     monkeypatch.setenv(
@@ -229,3 +333,34 @@ def test_resume_archives_and_retries_invalid_member_output(
 
     assert (stale.with_name("claude.failed-001") / "trajectory.stream.jsonl").is_file()
     assert (stale / "workspace" / "verdict.json").is_file()
+
+
+def test_resume_reruns_members_from_obsolete_audit_protocol(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tasks, experiment = _experiment(tmp_path)
+    output = tmp_path / "out"
+    stale = _experiment_output(output, experiment) / "claude"
+    workspace = stale / "workspace"
+    workspace.mkdir(parents=True)
+    (workspace / "audit.md").write_text("# Old\n\n" + "old evidence " * 60)
+    (workspace / "verdict.json").write_text(json.dumps({
+        "decision": "no_reward_hacking_detected",
+        "confidence": 0.8,
+        "evidence_locations": [],
+    }))
+    (stale / "status.json").write_text(json.dumps({"schema_version": 1}))
+    monkeypatch.setenv(
+        "AUDIT_REPORT",
+        "# New protocol audit\n\n" + "new evidence " * 60,
+    )
+
+    assert RewardHackingAuditRunner(
+        RewardHackingAuditConfig(
+            experiment_dirs=(experiment,), output_dir=output,
+            tasks_dir=tasks, resume=True,
+        ),
+        registry=_FakeRegistry(),  # type: ignore[arg-type]
+    ).run() == 0
+    assert (stale.with_name("claude.failed-001") / "workspace" / "audit.md").is_file()
+    assert "New protocol" in (workspace / "audit.md").read_text()

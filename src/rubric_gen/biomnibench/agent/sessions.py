@@ -225,14 +225,6 @@ class CliSolverSessionDriver:
                 combined.write(attempt_path.read_bytes())
         assert current_model is not None
         transport_exit_code = effective_exit_code
-        accepted_after_retry_exhaustion = (
-            transport_exit_code != 0
-            and bool(attempt_records)
-            and all(record["process_exit_code"] == 0 for record in attempt_records)
-            and bool(attempt_records[-1]["stream_errors"])
-        )
-        if accepted_after_retry_exhaustion:
-            effective_exit_code = 0
         self._write_status(
             paths,
             effective_exit_code,
@@ -241,7 +233,6 @@ class CliSolverSessionDriver:
             resumed=resume,
             attempts=attempt_records,
             transport_exit_code=transport_exit_code,
-            accepted_after_retry_exhaustion=accepted_after_retry_exhaustion,
         )
         return SessionTurnResult(
             current_session_id,
@@ -595,7 +586,6 @@ class CliSolverSessionDriver:
         resumed: bool,
         attempts: list[dict[str, object]] | None = None,
         transport_exit_code: int | None = None,
-        accepted_after_retry_exhaustion: bool = False,
     ) -> None:
         status: dict[str, object] = {
             "provider": self.adapter.name,
@@ -613,9 +603,6 @@ class CliSolverSessionDriver:
                     "max_retries": self.config.retries,
                     "attempts": attempts,
                     "transport_exit_code": transport_exit_code,
-                    "accepted_after_retry_exhaustion": (
-                        accepted_after_retry_exhaustion
-                    ),
                 }
             )
         paths.status_path.write_text(

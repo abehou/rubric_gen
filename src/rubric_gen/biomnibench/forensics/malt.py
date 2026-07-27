@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -125,9 +126,10 @@ def _iter_rows(
                 "Parquet conversion requires pyarrow; install it explicitly or export MALT as JSONL"
             ) from exc
         parquet_file = parquet.ParquetFile(path)
-        for batch in parquet_file.iter_batches(
-            batch_size=256, columns=parquet_columns
-        ):
+        # A MALT row can contain a very large agent trajectory. Converting a
+        # batch of them to Python objects multiplies peak memory for no useful
+        # throughput gain during preparation, which is dominated by output I/O.
+        for batch in parquet_file.iter_batches(batch_size=1, columns=parquet_columns):
             for row in batch.to_pylist():
                 progress.update()
                 yield row
@@ -194,13 +196,14 @@ def _split(task_id: str, config: MaltPrepareConfig) -> str:
 def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
     if not config.positive_labels:
         raise ValueError("the positive-label mapping cannot be empty")
-    if config.cases_dir.exists() or config.gold_path.exists():
-        raise FileExistsError("cases or gold output already exists")
-    config.cases_dir.mkdir(parents=True)
+    if config.gold_path.exists():
+        raise FileExistsError("gold output already exists")
+    config.cases_dir.mkdir(parents=True, exist_ok=True)
     config.gold_path.parent.mkdir(parents=True, exist_ok=True)
     seen_runs: set[str] = set()
     gold_rows: list[dict[str, Any]] = []
     skipped_unmapped = 0
+    resumed_cases = 0
     for index, row in enumerate(iter_rows(
         config.inputs,
         progress_description="MALT preparation" if config.show_progress else None,
@@ -236,24 +239,32 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
             continue
         case_id = _case_id(run_id)
         case_dir = config.cases_dir / case_id
-        case_dir.mkdir()
         manifest = {
             "schema_version": 1,
             "kind": CASE_KIND,
             "case_id": case_id,
             "evidence_files": ["transcript.json"],
         }
-        (case_dir / "manifest.json").write_text(
-            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-        )
-        (case_dir / "transcript.json").write_text(
-            json.dumps({"samples": samples}, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        manifest_path = case_dir / "manifest.json"
+        transcript_path = case_dir / "transcript.json"
+        if case_dir.exists():
+            if not manifest_path.is_file() or not transcript_path.is_file():
+                raise ValueError(f"incomplete prepared case checkpoint: {case_dir}")
+            if json.loads(manifest_path.read_text(encoding="utf-8")) != manifest:
+                raise ValueError(f"invalid prepared case checkpoint: {case_dir}")
+            if transcript_path.stat().st_size == 0:
+                raise ValueError(f"empty prepared transcript checkpoint: {case_dir}")
+            resumed_cases += 1
+        else:
+            case_dir.mkdir()
+            _write_json_atomic(manifest_path, manifest, indent=2)
+            _write_json_atomic(
+                transcript_path, {"samples": samples}, indent=2, ensure_ascii=False
+            )
         gold_rows.append(
             {
                 "case_id": case_id,
-                "reward_hacking": positive,
+                "positive": positive,
                 "raw_human_labels": labels,
                 "source_run_id": run_id,
                 "source_task_id": task_id,
@@ -263,17 +274,39 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
             }
         )
         seen_runs.add(run_key)
-    with config.gold_path.open("x", encoding="utf-8") as handle:
-        for row in gold_rows:
-            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    temporary_gold = config.gold_path.with_name(
+        f".{config.gold_path.name}.tmp-{os.getpid()}"
+    )
+    try:
+        with temporary_gold.open("x", encoding="utf-8") as handle:
+            for row in gold_rows:
+                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+        temporary_gold.replace(config.gold_path)
+    finally:
+        temporary_gold.unlink(missing_ok=True)
     return {
         "schema_version": 1,
         "cases": len(gold_rows),
-        "positives": sum(bool(row["reward_hacking"]) for row in gold_rows),
-        "negatives": sum(not bool(row["reward_hacking"]) for row in gold_rows),
+        "positives": sum(bool(row["positive"]) for row in gold_rows),
+        "negatives": sum(not bool(row["positive"]) for row in gold_rows),
         "skipped_unmapped": skipped_unmapped,
+        "resumed_cases": resumed_cases,
         "splits": dict(Counter(str(row["split"]) for row in gold_rows)),
         "cases_dir": str(config.cases_dir),
         "gold_path": str(config.gold_path),
         "warning": "gold is structurally separated but agent filesystem isolation is not guaranteed",
     }
+
+
+def _write_json_atomic(
+    path: Path, value: Any, *, indent: int | None = None,
+    ensure_ascii: bool = True,
+) -> None:
+    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    try:
+        with temporary.open("x", encoding="utf-8") as handle:
+            json.dump(value, handle, indent=indent, ensure_ascii=ensure_ascii)
+            handle.write("\n")
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)

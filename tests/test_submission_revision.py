@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import signal
 import stat
 import threading
 from dataclasses import replace
@@ -34,6 +36,7 @@ from rubric_gen.biomnibench.revision import (
     SubmissionRevisionConfig,
     SubmissionRevisionController,
 )
+from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 
 
 def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
@@ -126,7 +129,6 @@ class StreamExhaustionSessionDriver(FakeSessionDriver):
                     "max_retries": 5,
                     "attempts": attempts,
                     "transport_exit_code": 1,
-                    "accepted_after_retry_exhaustion": False,
                 }
             )
         )
@@ -369,7 +371,7 @@ def test_linear_revision_keeps_one_session_and_continues_after_regression(
     assert all(kwargs["unit"] == "round" for _, _, kwargs in progress_calls)
 
 
-def test_resume_recovers_failed_turn_after_stream_retry_exhaustion(
+def test_resume_does_not_accept_failed_turn_after_stream_retry_exhaustion(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
@@ -400,24 +402,18 @@ def test_resume_recovers_failed_turn_after_stream_retry_exhaustion(
     failed_status_path = config.experiment_dir / "turns" / "turn-001" / "status.json"
     assert json.loads(failed_status_path.read_text())["status"] == "failed"
 
-    result = SubmissionRevisionController(
-        replace(config, resume=True),
-        dependencies,
-    ).run()
+    with pytest.raises(RuntimeError, match="provider exited with code 1"):
+        SubmissionRevisionController(
+            replace(config, resume=True),
+            dependencies,
+        ).run()
 
-    assert result.submission_ids == ("s000", "s001")
-    assert result.scores == (60, 85)
-    assert len(session.prompts) == 2
+    assert len(session.prompts) == 3
     recovered_status = json.loads(failed_status_path.read_text())
-    assert recovered_status["status"] == "accepted_after_retry_exhaustion"
-    assert recovered_status["exit_code"] == 0
+    assert recovered_status["status"] == "failed"
+    assert recovered_status["exit_code"] == 1
     assert recovered_status["transport_exit_code"] == 1
-    assert recovered_status["accepted_after_retry_exhaustion"] is True
-    events = [
-        json.loads(line)
-        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
-    ]
-    assert any(event["event"] == "turn_recovered" for event in events)
+    assert "accepted_after_retry_exhaustion" not in recovered_status
 
 
 @pytest.mark.parametrize(
@@ -485,7 +481,6 @@ def test_resume_recovers_legacy_workspace_cache_snapshot_failure(
                 }
             ],
             "transport_exit_code": 0,
-            "accepted_after_retry_exhaustion": False,
         }
     )
     if interrupted:
@@ -574,6 +569,59 @@ def test_resume_archives_and_retries_an_unrecoverable_failed_turn(
     assert len(session.prompts) == 2
     assert (
         config.experiment_dir / "interrupted-turns" / "turn-000" / "status.json"
+    ).is_file()
+
+
+def test_resume_archives_and_retries_a_prompt_only_interrupted_turn(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    session = FakeSessionDriver()
+    rubric_text = (task / "tests" / "rubric.txt").read_text()
+    judge = FakeJudge(
+        (60, 85),
+        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
+        tmp_path / "fake-judge",
+    )
+    config = SubmissionRevisionConfig(
+        task_dir=task,
+        experiment_dir=tmp_path / "experiment",
+        revision_rounds=1,
+        agent=AgentRunConfig(provider="gemini", model="test-model"),
+        rubric_name="rubric.txt",
+    )
+    dependencies = RevisionDependencies(session=session, judge=judge)
+    original_resume = session.resume
+
+    def interrupt_after_prompt(
+        workspace: Path,
+        prompt: str,
+        turn_dir: Path,
+        session_id: str,
+    ) -> SessionTurnResult:
+        raise KeyboardInterrupt
+
+    session.resume = interrupt_after_prompt  # type: ignore[method-assign]
+    with pytest.raises(KeyboardInterrupt):
+        SubmissionRevisionController(config, dependencies).run()
+
+    turn_dir = config.experiment_dir / "turns" / "turn-001"
+    turn_dir.chmod(turn_dir.stat().st_mode | stat.S_IWUSR)
+    (turn_dir / "status.json").unlink()
+    state_path = config.experiment_dir / "state.json"
+    state = json.loads(state_path.read_text())
+    state["phase"] = "turn_in_progress"
+    state_path.write_text(json.dumps(state))
+    assert sorted(path.name for path in turn_dir.iterdir()) == ["prompt.txt"]
+
+    session.resume = original_resume  # type: ignore[method-assign]
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.submission_ids == ("s000", "s001")
+    assert (
+        config.experiment_dir / "interrupted-turns" / "turn-001" / "prompt.txt"
     ).is_file()
 
 
@@ -704,16 +752,13 @@ def test_revision_live_root_can_be_redirected_to_bulk_storage(
     assert bulk_root.is_dir()
 
 
-def test_revision_live_root_defaults_to_bulk(
-    tmp_path: Path,
+def test_revision_live_root_defaults_to_repository(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    bulk_root = tmp_path / "bulk"
     monkeypatch.delenv("BIOMNIBENCH_LIVE_ROOT", raising=False)
-    monkeypatch.setenv("BULK", str(bulk_root))
 
     assert revision_artifacts_module.live_root_parent() == (
-        bulk_root / "rubric_gen" / "biomnibench-live"
+        PROJECT_ROOT / "tmp" / "biomnibench-live"
     )
 
 
@@ -1009,20 +1054,14 @@ def test_revise_cli_places_automatic_single_task_under_run_root(
     ]
 
 
-def test_revise_default_experiment_base_uses_bulk(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    bulk_root = tmp_path / "bulk"
-    monkeypatch.setenv("BULK", str(bulk_root))
-
+def test_revise_default_experiment_base_uses_repository() -> None:
     args = build_parser().parse_args(
         ["revise", "--top", "4", "--model", "test-model"]
     )
     generated = commands_module._timestamped_revision_experiment_dir(args)
 
     assert generated.parent == (
-        bulk_root / "rubric_gen" / "runs" / "biomnibench-revisions"
+        PROJECT_ROOT / "runs" / "biomnibench-revisions"
     )
     assert re.fullmatch(
         r"revision-\d{8}-\d{6}--top-4--fb-full--mtg-none--n-3--p-gemini"
@@ -1030,28 +1069,6 @@ def test_revise_default_experiment_base_uses_bulk(
         r"--st-1--web-0--ap-default--mc-all--c-1--x-default--raw-0",
         generated.name,
     )
-
-
-def test_revise_default_experiment_base_requires_bulk(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("BULK", raising=False)
-
-    args = build_parser().parse_args(["revise", "--top", "1", "--model", "m"])
-    with pytest.raises(ValueError, match="BULK must be set"):
-        commands_module._timestamped_revision_experiment_dir(args)
-
-
-def test_revise_default_experiment_base_rejects_relative_bulk(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("BULK", "relative/bulk")
-
-    args = build_parser().parse_args(["revise", "--top", "1", "--model", "m"])
-    with pytest.raises(ValueError, match="BULK must be an absolute path"):
-        commands_module._timestamped_revision_experiment_dir(args)
-
-
 def test_revision_batch_report_path_preserves_run_and_task_hierarchy(
     tmp_path: Path,
 ) -> None:
@@ -1129,10 +1146,9 @@ def test_revise_auto_resume_selects_newest_matching_batch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    bulk = tmp_path / "bulk"
     tasks = tmp_path / "tasks"
     _write_task(tmp_path, "da-1-1")
-    monkeypatch.setenv("BULK", str(bulk))
+    monkeypatch.setattr(commands_module, "PROJECT_ROOT", tmp_path)
     args = build_parser().parse_args([
         "revise", "--top", "1", "--tasks-dir", str(tasks),
         "--model", "test-model", "--resume",
@@ -1177,6 +1193,120 @@ def test_revise_batch_preserves_underlying_failure_details(
     assert failure["error_type"] == "ValueError"
     assert failure["error"] == "specific provider failure"
     assert "ValueError: specific provider failure" in failure["traceback"]
+
+
+def test_concurrent_revise_batch_records_system_exit_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    _write_task(tmp_path, "da-1-2")
+    batch = tmp_path / "revision"
+    args = build_parser().parse_args([
+        "revise", "--top", "2", "--tasks-dir", str(tmp_path / "tasks"),
+        "--experiment-dir", str(batch), "--model", "test-model",
+        "--max-concurrency", "2",
+    ])
+
+    def fail(config: SubmissionRevisionConfig) -> None:
+        if config.task_dir.name == "da-1-2":
+            raise SystemExit("missing provider executable")
+
+    monkeypatch.setattr(commands_module, "run_submission_revision", fail)
+    with pytest.raises(RuntimeError, match="SystemExit: missing provider executable"):
+        cli_module.run_revise(args)
+
+    manifest = json.loads((batch / "batch.json").read_text())
+    assert manifest["status"] == "failed"
+    assert manifest["failed_experiments"][0]["error_type"] == "SystemExit"
+
+
+def test_revise_batch_records_keyboard_interrupt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    batch = tmp_path / "revision"
+    args = build_parser().parse_args([
+        "revise", "--top", "1", "--tasks-dir", str(tmp_path / "tasks"),
+        "--experiment-dir", str(batch), "--model", "test-model",
+    ])
+
+    def interrupt(config: SubmissionRevisionConfig) -> None:
+        raise KeyboardInterrupt("operator interrupt")
+
+    monkeypatch.setattr(commands_module, "run_submission_revision", interrupt)
+    with pytest.raises(KeyboardInterrupt, match="operator interrupt"):
+        cli_module.run_revise(args)
+
+    manifest = json.loads((batch / "batch.json").read_text())
+    assert manifest["status"] == "interrupted"
+    assert manifest["interruption"]["error_type"] == "KeyboardInterrupt"
+    assert manifest["interruption"]["error"] == "operator interrupt"
+    assert "KeyboardInterrupt: operator interrupt" in manifest["interruption"][
+        "traceback"
+    ]
+    assert manifest["finished_at"]
+
+
+def test_revise_batch_records_sigterm(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    batch = tmp_path / "revision"
+    args = build_parser().parse_args([
+        "revise", "--top", "1", "--tasks-dir", str(tmp_path / "tasks"),
+        "--experiment-dir", str(batch), "--model", "test-model",
+    ])
+
+    def terminate(config: SubmissionRevisionConfig) -> None:
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    monkeypatch.setattr(commands_module, "run_submission_revision", terminate)
+    with pytest.raises(KeyboardInterrupt, match="received signal"):
+        cli_module.run_revise(args)
+
+    manifest = json.loads((batch / "batch.json").read_text())
+    assert manifest["status"] == "interrupted"
+    assert manifest["interruption"]["error_type"] == "_BatchTermination"
+    assert manifest["interruption"]["error"] == (
+        f"received signal {signal.SIGTERM}"
+    )
+
+
+def test_revise_resume_records_abandoned_running_batch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_task(tmp_path, "da-1-1")
+    batch = tmp_path / "revision"
+    batch.mkdir()
+    (batch / "batch.json").write_text(json.dumps({
+        "status": "running",
+        "started_at": "2026-07-26T17:29:11-07:00",
+        "pid": 1234,
+        "hostname": "old-host",
+    }))
+    args = build_parser().parse_args([
+        "revise", "--top", "1", "--resume", "--tasks-dir",
+        str(tmp_path / "tasks"), "--experiment-dir", str(batch),
+        "--model", "test-model",
+    ])
+    monkeypatch.setattr(commands_module, "run_submission_revision", lambda config: None)
+
+    assert cli_module.run_revise(args) == 0
+
+    manifest = json.loads((batch / "batch.json").read_text())
+    assert manifest["schema_version"] == 2
+    assert manifest["status"] == "completed"
+    assert manifest["previous_interruption"] == {
+        "status": "abandoned",
+        "started_at": "2026-07-26T17:29:11-07:00",
+        "pid": 1234,
+        "hostname": "old-host",
+        "detected_at": manifest["previous_interruption"]["detected_at"],
+    }
 
 
 def test_revise_cli_caps_persistent_session_retries_at_five(

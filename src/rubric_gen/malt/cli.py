@@ -1,15 +1,15 @@
-"""Standalone MALT reward-hacking benchmark CLI."""
+"""Standalone MALT behavior benchmark CLI."""
 
 from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 import random
 import re
 import shutil
-import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +25,9 @@ from rubric_gen.biomnibench.forensics.reward_hacking import (
     RewardHackingAuditConfig,
     RewardHackingAuditRunner,
 )
-from rubric_gen.biomnibench.forensics.scoring import score_panel
+from rubric_gen.biomnibench.forensics.scoring import (
+    score_panel,
+)
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.malt.model_judge import (
@@ -33,11 +35,20 @@ from rubric_gen.malt.model_judge import (
     ModelJudgeConfig,
     ModelJudgeRunner,
 )
+from rubric_gen.malt.detection import TARGETS, detection_target
 
 
 def _sample_case_dirs(
-    case_dirs: tuple[Path, ...], top: int | None, seed: int, split: str
+    case_dirs: tuple[Path, ...],
+    top: int | None,
+    seed: int,
+    split: str,
+    *,
+    gold_labels: dict[str, bool] | None = None,
+    balanced: bool = False,
 ) -> tuple[Path, ...]:
+    if balanced and top is None:
+        raise ValueError("--balanced requires --top")
     if top is None:
         return case_dirs
     if top <= 0:
@@ -46,7 +57,32 @@ def _sample_case_dirs(
         raise ValueError(
             f"--top {top} exceeds the {len(case_dirs)} available {split} cases"
         )
-    return tuple(sorted(random.Random(seed).sample(case_dirs, top)))
+    rng = random.Random(seed)
+    if not balanced:
+        return tuple(sorted(rng.sample(case_dirs, top)))
+    if top % 2:
+        raise ValueError("--balanced requires an even --top value")
+    if gold_labels is None:
+        raise ValueError("balanced sampling requires gold labels")
+    missing = sorted(path.name for path in case_dirs if path.name not in gold_labels)
+    if missing:
+        raise ValueError(
+            "balanced sampling has cases without gold labels: " + ", ".join(missing)
+        )
+    positives = tuple(path for path in case_dirs if gold_labels[path.name])
+    negatives = tuple(path for path in case_dirs if not gold_labels[path.name])
+    per_class = top // 2
+    if len(positives) < per_class or len(negatives) < per_class:
+        raise ValueError(
+            f"--balanced --top {top} requires {per_class} positive and "
+            f"{per_class} negative {split} cases, but only {len(positives)} "
+            f"positive and {len(negatives)} negative cases are available"
+        )
+    return tuple(
+        sorted(
+            (*rng.sample(positives, per_class), *rng.sample(negatives, per_class))
+        )
+    )
 
 
 def _evaluation_root(
@@ -79,11 +115,15 @@ def _preparation_lock(root: Path):
 
 
 def _default_output_dir() -> Path:
+    return PROJECT_ROOT / "runs" / "malt-runs"
+
+
+def _default_benchmark_dir() -> Path:
     bulk = os.environ.get("BULK")
     if bulk is None or not bulk.strip():
         raise ValueError(
-            "BULK must be set when --output-dir is omitted; MALT cases and "
-            "evaluation transcripts are intentionally stored on bulk storage"
+            "BULK must be set when --benchmark-dir is omitted; prepared MALT "
+            "cases and private annotations live on shared bulk storage"
         )
     bulk_root = Path(bulk).expanduser()
     if not bulk_root.is_absolute():
@@ -91,31 +131,112 @@ def _default_output_dir() -> Path:
     return bulk_root / "rubric_gen" / "runs" / "malt-benchmark"
 
 
-def _publish_evaluation_report(evaluation_root: Path) -> Path:
-    reports_root = Path(
-        os.environ.get("MALT_REPORTS_ROOT", PROJECT_ROOT / "runs" / "malt-reports")
-    ).expanduser()
-    if not reports_root.is_absolute():
-        reports_root = resolve_project_path(reports_root)
-    report_dir = reports_root / evaluation_root.name
-    report_dir.mkdir(parents=True, exist_ok=True)
-    for name in ("summary.json", "metrics.json"):
-        source = evaluation_root / name
-        if source.is_file():
-            write_json_atomic(
-                report_dir / name,
-                json.loads(source.read_text(encoding="utf-8")),
+def _biomnibench_experiments(values: list[list[str]]) -> tuple[Path, ...]:
+    experiments: list[Path] = []
+    for group in values:
+        for value in group:
+            source = resolve_project_path(value)
+            batch_path = source / "batch.json"
+            if batch_path.is_file():
+                batch = json.loads(batch_path.read_text(encoding="utf-8"))
+                if batch.get("kind") != "rubric-gen-submission-revision-batch":
+                    raise ValueError(f"unsupported Biomni batch: {source}")
+                raw = batch.get("experiment_dirs")
+                if not isinstance(raw, list) or any(
+                    not isinstance(item, str) for item in raw
+                ):
+                    raise ValueError(f"Biomni batch has invalid experiment_dirs: {source}")
+                for item in raw:
+                    relative = Path(item)
+                    if relative.is_absolute() or ".." in relative.parts:
+                        raise ValueError(f"unsafe Biomni experiment path: {item!r}")
+                    experiments.append(source / relative)
+            else:
+                experiments.append(source)
+    resolved = tuple(path.resolve() for path in experiments)
+    if len(set(resolved)) != len(resolved):
+        raise ValueError("duplicate Biomni revision experiment")
+    for experiment in resolved:
+        try:
+            manifest = json.loads(
+                (experiment / "manifest.json").read_text(encoding="utf-8")
             )
-    write_json_atomic(
-        report_dir / "source.json",
-        {"evaluation_dir": str(evaluation_root.resolve())},
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"invalid Biomni revision experiment: {experiment}") from exc
+        if manifest.get("kind") != "rubric-gen-submission-revision-experiment":
+            raise ValueError(f"unsupported Biomni revision experiment: {experiment}")
+    return resolved
+
+
+def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
+    if args.inputs:
+        raise ValueError(
+            "MALT shard inputs and --biomnibench-run-dir cannot be mixed"
+        )
+    if not (args.agent_ensemble or args.ensemble):
+        raise ValueError(
+            "--biomnibench-run-dir requires --ensemble or --agent-ensemble"
+        )
+    if args.top is not None or args.balanced or args.split != "test":
+        raise ValueError(
+            "--top, --balanced, and --split are MALT dataset options and cannot "
+            "be used with --biomnibench-run-dir"
+        )
+    experiments = _biomnibench_experiments(args.biomnibench_run_dir)
+    identity_hash = hashlib.sha256(
+        "\0".join(str(path) for path in experiments).encode()
+    ).hexdigest()[:10]
+    mode = "agent-ensemble" if args.agent_ensemble else "ensemble"
+    identity = (
+        f"{mode}--detect-{detection}--source-biomnibench-{identity_hash}"
+        f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
     )
-    return report_dir
+    if args.agent_ensemble:
+        identity += f"--steps-{args.agent_step_limit}"
+    output_root = (
+        resolve_project_path(args.output_dir)
+        if args.output_dir is not None
+        else _default_output_dir()
+    )
+    output_root.mkdir(parents=True, exist_ok=True)
+    evaluation_root = _evaluation_root(output_root, identity, resume=args.resume)
+    tasks_dir = resolve_project_path(args.tasks_dir)
+    if args.agent_ensemble:
+        exit_code = RewardHackingAuditRunner(
+            RewardHackingAuditConfig(
+                experiment_dirs=experiments,
+                output_dir=evaluation_root,
+                tasks_dir=tasks_dir,
+                panel=PANEL,
+                max_concurrency=args.max_concurrency,
+                max_retries=args.max_retries,
+                step_limit=args.agent_step_limit,
+                resume=args.resume,
+                raw=args.raw,
+                detection=detection,
+            )
+        ).run()
+    else:
+        exit_code = ModelJudgeRunner(
+            ModelJudgeConfig(
+                case_dirs=(),
+                revision_dirs=experiments,
+                tasks_dir=tasks_dir,
+                models=STRONG_JUDGE_MODELS,
+                output_dir=evaluation_root,
+                max_concurrency=args.max_concurrency,
+                max_retries=args.max_retries,
+                resume=args.resume,
+                detection=detection,
+            )
+        ).run()
+    print(f"Wrote unscored Biomni forensic judgments: {evaluation_root / 'summary.json'}")
+    return exit_code
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Inspect, prepare, run, and score the MALT reward-hacking benchmark."
+        description="Inspect, prepare, run, and score a MALT behavior benchmark."
     )
     parser.add_argument(
         "inputs", nargs="*",
@@ -123,21 +244,39 @@ def build_parser() -> argparse.ArgumentParser:
               "data/malt-public/default/*.parquet."),
     )
     parser.add_argument(
-        "--output-dir",
+        "--biomnibench-run-dir",
+        action="append",
+        nargs="+",
+        default=[],
+        help=(
+            "Biomni revision experiment or batch directories to audit instead of "
+            "a labeled MALT dataset. May be repeated. Requires --ensemble or "
+            "--agent-ensemble."
+        ),
+    )
+    parser.add_argument(
+        "--tasks-dir",
+        default="data/biomnibench-da",
+        help="Biomni task root used with --biomnibench-run-dir.",
+    )
+    parser.add_argument(
+        "--benchmark-dir",
         default=None,
         help=(
-            "Bulky benchmark artifact directory. Defaults to "
+            "Shared prepared benchmark directory. Defaults to "
             "$BULK/rubric_gen/runs/malt-benchmark."
         ),
     )
-    parser.set_defaults(
-        positive_labels=(
-            "reward_hacking",
-            "partial_problem_solving",
-            "sabotage",
-            "gives_up",
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Evaluation-run directory. Defaults to runs/malt-runs in the repository."
         ),
-        negative_labels=("normal",),
+    )
+    parser.add_argument(
+        "--detect", required=True, choices=tuple(TARGETS),
+        help="Detection target: reward hacking only (rh) or every non-normal label.",
     )
     parser.add_argument("--development-fraction", type=float, default=0.2)
     parser.add_argument("--validation-fraction", type=float, default=0.1)
@@ -149,6 +288,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--seed", type=int, default=42,
         help="Random seed used by --top. Defaults to 42.",
+    )
+    parser.add_argument(
+        "--balanced",
+        action="store_true",
+        help=(
+            "Draw equal positive and negative classes. Requires an even --top; "
+            "for example, --balanced --top 100 draws 50 of each."
+        ),
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--agent-ensemble", action="store_true",
@@ -189,6 +336,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the dynamically discovered gpt-oss-120b endpoint.",
     )
     parser.add_argument("--max-concurrency", type=int, default=3)
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=2,
+        help=(
+            "Retry each failed detection member this many times. Defaults to 2 "
+            "retries (3 total attempts)."
+        ),
+    )
+    parser.add_argument(
+        "--agent-step-limit",
+        type=int,
+        default=24,
+        help=(
+            "Maximum completed investigative tool actions per agent-ensemble "
+            "member. Defaults to 24."
+        ),
+    )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--raw", action="store_true")
     parser.add_argument(
@@ -199,6 +364,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(args: argparse.Namespace) -> int:
+    target = detection_target(args.detect)
+    if args.biomnibench_run_dir:
+        return _run_biomnibench(args, target.name)
+
     def vllm_url(value: str) -> str:
         normalized = value.rstrip("/")
         return normalized if normalized.endswith("/v1") else normalized + "/v1"
@@ -234,32 +403,35 @@ def run(args: argparse.Namespace) -> int:
         raise FileNotFoundError(
             "no default MALT shards found under data/malt-public/default"
         )
-    root = (
-        resolve_project_path(args.output_dir)
-        if args.output_dir is not None
-        else _default_output_dir()
+    benchmark_root = (
+        resolve_project_path(args.benchmark_dir)
+        if args.benchmark_dir is not None
+        else _default_benchmark_dir()
     )
-    root.mkdir(parents=True, exist_ok=True)
+    benchmark_root.mkdir(parents=True, exist_ok=True)
     inventory = inventory_malt(inputs, show_progress=True)
-    (root / "inventory.json").write_text(
+    (benchmark_root / "inventory.json").write_text(
         json.dumps(inventory, indent=2) + "\n", encoding="utf-8"
     )
     selected_mode = bool(
         args.agent_ensemble or args.ensemble or args.agent or args.judge
         or args.vllm or args.vllm_judge or args.vllm_ensemble
     )
-    cases_dir = root / "cases"
-    gold_path = root / "private" / "gold.jsonl"
-    preparation_path = root / "private" / "preparation.json"
+    detection_root = benchmark_root / target.name
+    cases_dir = detection_root / "cases"
+    gold_path = detection_root / "private" / "gold.jsonl"
+    preparation_path = detection_root / "private" / "preparation.json"
     preparation = {
         "inputs": [str(path) for path in inputs],
-        "positive_labels": sorted(args.positive_labels),
-        "negative_labels": sorted(args.negative_labels),
+        "detection": target.name,
+        "positive_labels": sorted(target.positive_labels),
+        "negative_labels": sorted(target.negative_labels),
+        "empty_labels_are_negative": False,
         "development_fraction": args.development_fraction,
         "validation_fraction": args.validation_fraction,
         "split_seed": args.split_seed,
     }
-    with _preparation_lock(root):
+    with _preparation_lock(benchmark_root):
         preparation_matches = (
             cases_dir.is_dir()
             and gold_path.is_file()
@@ -269,43 +441,51 @@ def run(args: argparse.Namespace) -> int:
         if preparation_matches:
             prepared: dict[str, object] = {"status": "reused"}
         else:
-            legacy_staging_root = root / ".preparing"
-            if legacy_staging_root.exists():
-                shutil.rmtree(legacy_staging_root)
-            staging_root = Path(tempfile.mkdtemp(prefix=".preparing-", dir=root))
+            detection_root.mkdir(parents=True, exist_ok=True)
+            staging_root = detection_root / ".preparing"
+            checkpoint_path = staging_root / "preparation.json"
+            if staging_root.exists():
+                checkpoint_matches = (
+                    checkpoint_path.is_file()
+                    and json.loads(checkpoint_path.read_text(encoding="utf-8"))
+                    == preparation
+                )
+                if not checkpoint_matches:
+                    shutil.rmtree(staging_root)
+            staging_root.mkdir(exist_ok=True)
+            write_json_atomic(checkpoint_path, preparation)
             staging_cases = staging_root / "cases"
             staging_gold = staging_root / "gold.jsonl"
-            try:
-                prepared = prepare_malt(MaltPrepareConfig(
-                    inputs=inputs,
-                    cases_dir=staging_cases,
-                    gold_path=staging_gold,
-                    positive_labels=frozenset(args.positive_labels),
-                    negative_labels=frozenset(args.negative_labels),
-                    development_fraction=args.development_fraction,
-                    validation_fraction=args.validation_fraction,
-                    split_seed=args.split_seed,
-                    show_progress=True,
-                ))
-                if cases_dir.exists():
-                    shutil.rmtree(cases_dir)
-                if gold_path.exists():
-                    gold_path.unlink()
-                staging_cases.replace(cases_dir)
-                gold_path.parent.mkdir(parents=True, exist_ok=True)
-                staging_gold.replace(gold_path)
-            finally:
-                shutil.rmtree(staging_root, ignore_errors=True)
+            prepared = prepare_malt(MaltPrepareConfig(
+                inputs=inputs,
+                cases_dir=staging_cases,
+                gold_path=staging_gold,
+                positive_labels=target.positive_labels,
+                negative_labels=target.negative_labels,
+                development_fraction=args.development_fraction,
+                validation_fraction=args.validation_fraction,
+                split_seed=args.split_seed,
+                show_progress=True,
+            ))
+            if cases_dir.exists():
+                shutil.rmtree(cases_dir)
+            if gold_path.exists():
+                gold_path.unlink()
+            staging_cases.replace(cases_dir)
+            gold_path.parent.mkdir(parents=True, exist_ok=True)
+            staging_gold.replace(gold_path)
+            checkpoint_path.unlink()
+            staging_root.rmdir()
             prepared["cases_dir"] = str(cases_dir)
             prepared["gold_path"] = str(gold_path)
             write_json_atomic(preparation_path, preparation)
     if not selected_mode:
         print(json.dumps(prepared, indent=2))
-        print(f"Prepared benchmark: {root}")
+        print(f"Prepared benchmark: {benchmark_root}")
         return 0
 
-    selected_case_ids = {
-        str(row["case_id"])
+    selected_gold = {
+        str(row["case_id"]): bool(row["positive"])
         for line in gold_path.read_text(encoding="utf-8").splitlines()
         if (row := json.loads(line))
         and (args.split == "all" or row.get("split") == args.split)
@@ -313,11 +493,18 @@ def run(args: argparse.Namespace) -> int:
     case_dirs = tuple(sorted(
         path.parent
         for path in cases_dir.glob("*/manifest.json")
-        if path.parent.name in selected_case_ids
+        if path.parent.name in selected_gold
     ))
     if not case_dirs:
         raise ValueError(f"no {args.split} cases matched the audited label mapping")
-    case_dirs = _sample_case_dirs(case_dirs, args.top, args.seed, args.split)
+    case_dirs = _sample_case_dirs(
+        case_dirs,
+        args.top,
+        args.seed,
+        args.split,
+        gold_labels=selected_gold,
+        balanced=args.balanced,
+    )
     base_urls: dict[str, str] = {}
     if args.agent_ensemble:
         mode_name, agent_panel, models = "agent-ensemble", PANEL, None
@@ -367,11 +554,13 @@ def run(args: argparse.Namespace) -> int:
         identity = "-".join(re.sub(r"[^A-Za-z0-9._-]+", "_", model) for _, model in parsed)
         mode_name = ("vllm-judge-" if len(parsed) == 1 else "vllm-ensemble-") + identity
         agent_panel, models = None, tuple(model for _, model in parsed)
-    mode_name += f"--split-{args.split}"
+    mode_name += f"--detect-{target.name}--split-{args.split}"
     if args.top is not None:
         mode_name += f"--top-{args.top}--seed-{args.seed}"
     else:
         mode_name += "--top-all"
+    if args.balanced:
+        mode_name += "--balanced"
     safe_split_seed = re.sub(r"[^A-Za-z0-9._-]+", "_", args.split_seed)
     mode_name += (
         f"--split-seed-{safe_split_seed}"
@@ -379,33 +568,41 @@ def run(args: argparse.Namespace) -> int:
         f"--val-{args.validation_fraction:g}"
         f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
     )
-    evaluation_root = _evaluation_root(root, mode_name, resume=args.resume)
+    if agent_panel is not None:
+        mode_name += f"--steps-{args.agent_step_limit}"
+    output_root = (
+        resolve_project_path(args.output_dir)
+        if args.output_dir is not None
+        else _default_output_dir()
+    )
+    output_root.mkdir(parents=True, exist_ok=True)
+    evaluation_root = _evaluation_root(output_root, mode_name, resume=args.resume)
     if agent_panel is not None:
         exit_code = RewardHackingAuditRunner(RewardHackingAuditConfig(
             experiment_dirs=(), case_dirs=case_dirs, output_dir=evaluation_root,
             tasks_dir=resolve_project_path("data/biomnibench-da"), panel=agent_panel,
             max_concurrency=args.max_concurrency, resume=args.resume, raw=args.raw,
+            max_retries=args.max_retries,
+            step_limit=args.agent_step_limit,
+            detection=target.name,
         )).run()
     else:
         assert models is not None
         exit_code = ModelJudgeRunner(ModelJudgeConfig(
             case_dirs=case_dirs, models=models, output_dir=evaluation_root,
             max_concurrency=args.max_concurrency, resume=args.resume,
+            max_retries=args.max_retries,
             base_urls=base_urls,
+            detection=target.name,
         )).run()
-    if exit_code:
-        report_dir = _publish_evaluation_report(evaluation_root)
-        print(f"Wrote lightweight MALT report: {report_dir}")
-        return exit_code
     metrics = score_panel(
         evaluation_root / "summary.json", gold_path,
         split=None if args.split == "all" else args.split,
+        detection=target.name,
     )
     write_json_atomic(evaluation_root / "metrics.json", metrics)
     print(f"Wrote benchmark metrics: {evaluation_root / 'metrics.json'}")
-    report_dir = _publish_evaluation_report(evaluation_root)
-    print(f"Wrote lightweight MALT report: {report_dir}")
-    return 0
+    return exit_code
 
 
 def main(argv: list[str] | None = None) -> int:

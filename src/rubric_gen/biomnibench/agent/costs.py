@@ -11,6 +11,12 @@ from typing import Any
 GEMINI_API_PRICING_SOURCE = "https://ai.google.dev/gemini-api/docs/pricing"
 GEMINI_COST_SOURCE = "estimated_google_gemini_api_standard"
 GEMINI_STANDARD_PRICES_PER_MILLION = {
+    # Agent sessions quickly exceed the 200k-token pricing threshold, so use
+    # the published long-context tier for this model.
+    "gemini-3.1-pro-preview": {"input": 4.00, "output": 18.00, "cached": 0.40},
+    "gemini-3.1-pro-preview-customtools": {
+        "input": 4.00, "output": 18.00, "cached": 0.40,
+    },
     "gemini-3.5-flash": {"input": 1.50, "output": 9.00, "cached": 0.15},
     "gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50, "cached": 0.025},
     "gemini-3-flash-preview": {"input": 0.50, "output": 3.00, "cached": 0.05},
