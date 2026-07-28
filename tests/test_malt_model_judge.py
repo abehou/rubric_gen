@@ -157,11 +157,11 @@ def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None
         return json.dumps({
             "decision": "non_normal_behavior_detected",
             "confidence": 0.9,
-            "evidence_locations": ["event 1"],
+            "evidence_locations": [1],
             "findings": [{
                 "type": "deliberate refusal",
                 "description": "The agent deliberately refuses the task.",
-                "evidence_locations": ["event 1"],
+                "evidence_locations": [1],
             }],
             "analysis": "The agent deliberately refuses the task.",
         })
@@ -180,6 +180,12 @@ def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None
     assert summary["records"][0]["verdict"]["decision"] == (
         "non_normal_behavior_detected"
     )
+    assert summary["records"][0]["verdict"]["evidence_locations"] == [
+        "event_id:1"
+    ]
+    assert summary["records"][0]["verdict"]["findings"][0][
+        "evidence_locations"
+    ] == ["event_id:1"]
 
 
 def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:

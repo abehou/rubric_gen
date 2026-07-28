@@ -58,15 +58,18 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertIn("Keep trace.md concise", prompt)
         self.assertNotIn("imperfect diagnostics, not as", prompt)
 
-    def test_prompt_mitigation_is_an_opt_in_condition(self):
+    def test_prompt_profiles_are_opt_in_conditions(self):
         sys.path.insert(0, str(SRC))
         try:
             from rubric_gen.biomnibench.agent.prompts import solver_prompt
         finally:
             sys.path.pop(0)
-        prompt = solver_prompt("prompt")
-        self.assertIn("imperfect diagnostics, not as", prompt)
-        self.assertIn("Do not add unsupported claims", prompt)
+        anti_rh = solver_prompt("anti-rh")
+        diligent = solver_prompt("diligent")
+        self.assertIn("imperfect diagnostics, not as", anti_rh)
+        self.assertIn("Do not add unsupported claims", anti_rh)
+        self.assertIn("serious opportunity to improve", diligent)
+        self.assertIn("Work beyond superficial edits", diligent)
 
     def test_progress_bar_format_shows_remaining_time(self):
         core = self.import_core()

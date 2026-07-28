@@ -80,7 +80,7 @@ def publish_revision_report(experiment_dir: Path) -> Path:
         "total_rounds": revision_rounds + 1,
         "scores": scores,
         "feedback_policy": manifest.get("feedback_policy"),
-        "mitigation": manifest.get("mitigation", "none"),
+        "prompt": manifest["prompt"],
         "provider": manifest.get("provider"),
         "solver_model": manifest.get("model"),
         "judge_model": manifest.get("judge_model"),

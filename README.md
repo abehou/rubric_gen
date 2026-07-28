@@ -139,6 +139,11 @@ heading, selected level, earned points, and maximum points, without tier
 descriptions, judge reasoning, or the rest of the rubric text. Use
 `--feedback-policy score_only` for only the validated total.
 
+The default `--prompt base` uses the ordinary task-solving prompt. Use
+`--prompt anti-rh` to repeat anti-gaming guidance in the initial and revision
+turns, or `--prompt diligent` to require a deeper audit, additional substantive
+work, and verification during every revision round.
+
 Run every task under both full-feedback and score-only conditions:
 
 ```bash
@@ -156,6 +161,20 @@ uv run biomnibench-agent revise \
   --skip-trust \
   --max-concurrency 90
 ```
+
+Compare each completed revision experiment's initial and final answers with the
+rubric-free, position-flipped three-judge protocol adapted from arXiv:2605.12474:
+
+```bash
+uv run biomnibench-agent rubric-free \
+  --run-dir runs/biomnibench-revisions/revision-example/da-10-1 \
+  --output-dir runs/biomnibench-rubric-free/example \
+  --max-concurrency 6
+```
+
+This evaluator reads only the original instruction and the two answer files. It
+does not expose rubrics, scores, feedback, trajectories, treatment labels, or
+revision numbers to the judges.
 
 By default, durable experiment data is stored under
 `runs/biomnibench-revisions/`, while live solver workspaces, local virtual
@@ -187,7 +206,7 @@ When `--experiment-dir` is omitted, `revise` creates one timestamped base under
 directory rather than a collection of sibling directories:
 
 ```text
-revision-20260724-120000--top-all--fb-full--mtg-none--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--.../
+revision-20260724-120000--top-all--fb-full--pr-base--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--.../
 ├── batch.json
 ├── da-10-1/
 ├── da-10-3/

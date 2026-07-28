@@ -84,6 +84,21 @@ def run_generate(args: argparse.Namespace) -> int:
     ).run()
 
 
+def run_rubric_free(args: argparse.Namespace) -> int:
+    from rubric_gen.biomnibench.revision.rubric_free import (
+        RubricFreeConfig,
+        RubricFreeRunner,
+    )
+
+    return RubricFreeRunner(RubricFreeConfig(
+        experiment_dirs=tuple(resolve_project_path(path) for path in args.run_dir),
+        output_dir=resolve_project_path(args.output_dir),
+        models=tuple(args.models),
+        max_concurrency=args.max_concurrency,
+        max_retries=args.max_retries,
+    )).run()
+
+
 def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
@@ -107,7 +122,7 @@ def _revision_batch_name(args: argparse.Namespace, stamp: str) -> str:
     components = (
         selection,
         f"fb-{feedback}",
-        f"mtg-{directory_component(args.mtg)}",
+        f"pr-{directory_component(args.prompt)}",
         f"n-{args.revision_rounds}",
         f"p-{directory_component(args.provider)}",
         f"m-{directory_component(args.model)}",
@@ -274,7 +289,7 @@ def run_revise(args: argparse.Namespace) -> int:
             "rubric": args.rubric or "rubric.txt",
             "rubric_set": args.rubric_set,
             "review": args.review,
-            "mitigation": args.mtg,
+            "prompt": args.prompt,
             "sandbox": args.sandbox,
             "skip_trust": args.skip_trust,
             "allow_web": args.allow_web,

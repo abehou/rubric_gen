@@ -11,7 +11,7 @@ from pathlib import Path
 
 from tqdm.auto import trange
 
-from rubric_gen.biomnibench.agent.prompts import PromptMitigation, solver_prompt
+from rubric_gen.biomnibench.agent.prompts import PromptProfile, solver_prompt
 from rubric_gen.biomnibench.agent.sessions import CliSolverSessionDriver
 from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
 from rubric_gen.biomnibench.utils.progress import PROGRESS_BAR_FORMAT
@@ -120,7 +120,7 @@ class SubmissionRevisionController:
             "approval_mode": self.config.agent.approval_mode,
             "skip_trust": self.config.agent.skip_trust,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
-            "mitigation": PromptMitigation(self.config.mitigation).value,
+            "prompt": PromptProfile(self.config.prompt_profile).value,
             "review": self.config.review,
             "judge_model": self.config.judge_model,
             "max_review_chars": self.config.max_review_chars,
@@ -168,7 +168,7 @@ class SubmissionRevisionController:
                 submission_ids=[],
                 scores=[],
                 judge_attempts={},
-                next_prompt=solver_prompt(self.config.mitigation),
+                next_prompt=solver_prompt(self.config.prompt_profile),
             )
         try:
             if not initialized:
@@ -803,7 +803,7 @@ class SubmissionRevisionController:
             self.rubric.text,
             self.rubric.sha256,
             self.config.feedback_policy,
-            mitigation=self.config.mitigation,
+            prompt_profile=self.config.prompt_profile,
         )
         feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
         if feedback_path.exists():
@@ -840,7 +840,7 @@ class SubmissionRevisionController:
         )
 
     def _validate_scored_boundaries(self, state: _RevisionState) -> str:
-        expected_prompt = solver_prompt(self.config.mitigation)
+        expected_prompt = solver_prompt(self.config.prompt_profile)
         for index, score in enumerate(state.scores):
             submission_id = f"s{index:03d}"
             submission_dir = self.experiment_dir / "submissions" / submission_id
@@ -856,7 +856,7 @@ class SubmissionRevisionController:
                 self.rubric.text,
                 self.rubric.sha256,
                 self.config.feedback_policy,
-                mitigation=self.config.mitigation,
+                prompt_profile=self.config.prompt_profile,
             )
             feedback = _read_json_object(
                 self.experiment_dir / "feedback" / f"{submission_id}.json",

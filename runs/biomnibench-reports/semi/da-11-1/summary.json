@@ -1,7 +1,7 @@
 {
-  "completed_rounds": 5,
-  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/full_semi_score/full/da-11-1",
-  "feedback_policy": "full",
+  "completed_rounds": 3,
+  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/full_semi_score/semi/da-11-1",
+  "feedback_policy": "semi",
   "judge_model": "gpt-5.6-luna",
   "mitigation": "none",
   "phase": "ready_for_turn",
@@ -10,13 +10,11 @@
   "rubric_name": "rubric.txt",
   "rubric_set": null,
   "schema_version": 1,
-  "score_plot_sha256": "114210f00cca71cd8af7f4cd1dd67203efcd9bde789a0c9bfb6b0eb1c48a0700",
+  "score_plot_sha256": "53e20814456c79d728cae7f592db18ccf33209c2951b7a2a7462c4c760ff3009",
   "scores": [
-    55,
+    34,
     62,
-    55,
-    60,
-    82
+    62
   ],
   "solver_model": "gpt-5.6-luna",
   "task_id": "da-11-1",

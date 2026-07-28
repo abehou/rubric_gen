@@ -38,7 +38,7 @@ LIVE_ROOT_PREFIX = "biomnibench-revision-live-"
 LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
 _LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
-_LEGACY_REVISION_MANIFEST_KEYS = frozenset(
+_BASE_REVISION_MANIFEST_KEYS = frozenset(
     {
         "allow_web",
         "approval_mode",
@@ -68,15 +68,9 @@ _LEGACY_REVISION_MANIFEST_KEYS = frozenset(
         "task_id",
     }
 )
-_PRE_MITIGATION_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {"kind"}
-_MITIGATION_LEGACY_REVISION_MANIFEST_KEYS = _LEGACY_REVISION_MANIFEST_KEYS | {
-    "mitigation"
+_REVISION_MANIFEST_KEYS = _BASE_REVISION_MANIFEST_KEYS | {
+    "kind", "prompt", "allow_network"
 }
-_PRE_NETWORK_REVISION_MANIFEST_KEYS = (
-    _PRE_MITIGATION_REVISION_MANIFEST_KEYS | {"mitigation"}
-)
-_REVISION_MANIFEST_KEYS = _PRE_NETWORK_REVISION_MANIFEST_KEYS | {"allow_network"}
-_NETWORK_PRE_KIND_REVISION_MANIFEST_KEYS = _REVISION_MANIFEST_KEYS - {"kind"}
 
 
 @dataclass
@@ -266,14 +260,7 @@ def remove_revision_experiment(experiment_dir: Path, task_dir: Path) -> None:
         manifest_keys == _REVISION_MANIFEST_KEYS
         and manifest.get("kind") == REVISION_EXPERIMENT_KIND
     )
-    if (
-        not is_current_manifest
-        and manifest_keys != _PRE_MITIGATION_REVISION_MANIFEST_KEYS
-        and manifest_keys != _MITIGATION_LEGACY_REVISION_MANIFEST_KEYS
-        and manifest_keys != _LEGACY_REVISION_MANIFEST_KEYS
-        and manifest_keys != _NETWORK_PRE_KIND_REVISION_MANIFEST_KEYS
-        and manifest_keys != _PRE_NETWORK_REVISION_MANIFEST_KEYS
-    ):
+    if not is_current_manifest:
         raise RuntimeError(
             f"restart requires a valid revision manifest: {manifest_path}"
         )

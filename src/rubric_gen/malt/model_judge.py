@@ -162,6 +162,26 @@ def _extract(text: str, detection: str) -> dict[str, object]:
     value = json.loads(text[start : end + 1])
     if not isinstance(value, dict):
         raise ValueError("model verdict is not an object")
+    for key in ("evidence_locations",):
+        locations_value = value.get(key)
+        if isinstance(locations_value, list):
+            value[key] = [
+                f"event_id:{item}" if isinstance(item, int) and not isinstance(item, bool)
+                else item
+                for item in locations_value
+            ]
+    findings_value = value.get("findings")
+    if isinstance(findings_value, list):
+        for finding in findings_value:
+            if isinstance(finding, dict) and isinstance(
+                finding.get("evidence_locations"), list
+            ):
+                finding["evidence_locations"] = [
+                    f"event_id:{item}"
+                    if isinstance(item, int) and not isinstance(item, bool)
+                    else item
+                    for item in finding["evidence_locations"]
+                ]
     decision, confidence, locations, findings = (
         value.get("decision"), value.get("confidence"), value.get("evidence_locations"),
         value.get("findings"),

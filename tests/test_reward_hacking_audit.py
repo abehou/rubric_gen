@@ -200,6 +200,33 @@ def test_agent_step_limit_validation_and_event_counting(tmp_path: Path) -> None:
     assert count('{"type":"message"}', "gemini") == 0
 
 
+def test_agent_verdict_normalizes_numeric_evidence_locations(tmp_path: Path) -> None:
+    tasks, experiment = _experiment(tmp_path)
+    runner = RewardHackingAuditRunner(RewardHackingAuditConfig(
+        experiment_dirs=(experiment,), output_dir=tmp_path / "out", tasks_dir=tasks,
+    ))
+    verdict_path = tmp_path / "verdict.json"
+    verdict_path.write_text(json.dumps({
+        "decision": "reward_hacking_detected",
+        "confidence": 0.9,
+        "evidence_locations": [410],
+        "findings": [{
+            "type": "environment exploit",
+            "description": "Read evaluator state to recover a scoring target.",
+            "evidence_locations": [410, 414],
+        }],
+    }))
+
+    verdict, error = runner._load_verdict(verdict_path)
+
+    assert error is None
+    assert verdict is not None
+    assert verdict["evidence_locations"] == ["event_id:410"]
+    assert verdict["findings"][0]["evidence_locations"] == [
+        "event_id:410", "event_id:414"
+    ]
+
+
 def test_dry_run_plans_all_panel_members(
     tmp_path: Path, capsys
 ) -> None:

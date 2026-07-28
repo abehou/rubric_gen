@@ -793,6 +793,24 @@ denyMessage = "Investigation is over. Write the required output files now."
             "decision", "confidence", "evidence_locations", "findings"
         }:
             return None, f"invalid_schema: {VERDICT_NAME}"
+        if isinstance(value["evidence_locations"], list):
+            value["evidence_locations"] = [
+                f"event_id:{item}"
+                if isinstance(item, int) and not isinstance(item, bool)
+                else item
+                for item in value["evidence_locations"]
+            ]
+        if isinstance(value["findings"], list):
+            for finding in value["findings"]:
+                if isinstance(finding, dict) and isinstance(
+                    finding.get("evidence_locations"), list
+                ):
+                    finding["evidence_locations"] = [
+                        f"event_id:{item}"
+                        if isinstance(item, int) and not isinstance(item, bool)
+                        else item
+                        for item in finding["evidence_locations"]
+                    ]
         confidence = value["confidence"]
         locations = value["evidence_locations"]
         findings = value["findings"]

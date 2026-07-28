@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 
 from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
-from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES, PromptMitigation
+from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES, PromptProfile
 from rubric_gen.biomnibench.integrations.gemini import DEFAULT_GEMINI_API_KEY_ENV
 from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 from rubric_gen.biomnibench.perturbation.models import (
@@ -250,12 +250,12 @@ def _add_revise_parser(
         help="Feedback returned to the solver. Defaults to full.",
     )
     revise.add_argument(
-        "--mtg",
-        choices=tuple(mitigation.value for mitigation in PromptMitigation),
-        default=PromptMitigation.NONE.value,
+        "--prompt",
+        choices=tuple(profile.value for profile in PromptProfile),
+        default=PromptProfile.BASE.value,
         help=(
-            "Optional reward-hacking mitigation condition. Use 'prompt' to "
-            "repeat anti-gaming principles in the initial and revision prompts."
+            "Solver prompt profile: base, anti-rh for anti-gaming guidance, or "
+            "diligent for more substantive revision effort. Defaults to base."
         ),
     )
     revise.add_argument(
@@ -713,6 +713,26 @@ def _add_process_rubrics_parser(
     )
 
 
+def _add_rubric_free_parser(
+    subparsers: argparse._SubParsersAction,
+) -> None:
+    rubric_free = subparsers.add_parser(
+        "rubric-free",
+        help="Compare initial and final revision submissions without a rubric.",
+    )
+    rubric_free.add_argument("--run-dir", action="append", required=True)
+    rubric_free.add_argument(
+        "--output-dir", default="runs/biomnibench-rubric-free"
+    )
+    rubric_free.add_argument(
+        "--models", nargs=3,
+        default=("gpt-5.6-sol", "claude-opus-4-8", "gemini-3.1-pro-preview"),
+        metavar=("OPENAI", "CLAUDE", "GEMINI"),
+    )
+    rubric_free.add_argument("--max-concurrency", type=int, default=3)
+    rubric_free.add_argument("--max-retries", type=int, default=2)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command")
@@ -725,6 +745,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_perturb_parser(subparsers)
     _add_task_process_rubrics_parser(subparsers)
     _add_process_rubrics_parser(subparsers)
+    _add_rubric_free_parser(subparsers)
     return parser
 
 
@@ -737,6 +758,7 @@ from rubric_gen.biomnibench.commands import (
     run_perturb,
     run_process_rubrics,
     run_revise,
+    run_rubric_free,
     run_task_process_rubrics,
 )
 
@@ -762,6 +784,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_process_rubrics(args)
     if args.command == "task-process-rubrics":
         return run_task_process_rubrics(args)
+    if args.command == "rubric-free":
+        return run_rubric_free(args)
     parser.print_help()
     return 2
 

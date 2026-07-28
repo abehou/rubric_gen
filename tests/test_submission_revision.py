@@ -20,7 +20,7 @@ import rubric_gen.biomnibench.revision.artifacts as revision_artifacts_module
 import rubric_gen.biomnibench.revision.controller as revision_controller_module
 import rubric_gen.biomnibench.revision.reports as revision_reports_module
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
-from rubric_gen.biomnibench.agent.prompts import PromptMitigation
+from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.agent.sessions import SessionTurnResult
 from rubric_gen.biomnibench.revision.feedback import (
@@ -668,9 +668,6 @@ def test_restart_replaces_an_interrupted_experiment(
     manifest = json.loads((experiment_dir / "manifest.json").read_text())
     old_live_root = Path(manifest["live_workspace_dir"]).parent
     assert old_live_root.is_dir()
-    manifest.pop("kind")
-    (experiment_dir / "manifest.json").write_text(json.dumps(manifest))
-
     original_remove = revision_artifacts_module._force_remove_directory
     failed_once = False
 
@@ -913,7 +910,7 @@ def test_revision_report_contains_only_plot_and_compact_summary(
                 "task_id": "da-1-1",
                 "revision_rounds": 2,
                 "feedback_policy": "full",
-                "mitigation": "prompt",
+                "prompt": "anti-rh",
                 "provider": "gemini",
                 "model": "solver-model",
                 "judge_model": "judge-model",
@@ -993,7 +990,7 @@ def test_revise_cli_generates_one_timestamped_base_for_a_batch(
         "rubric": "rubric.txt",
         "rubric_set": None,
         "review": "trajectory",
-        "mitigation": "none",
+        "prompt": "base",
         "sandbox": False,
         "skip_trust": True,
         "allow_web": False,
@@ -1065,7 +1062,7 @@ def test_revise_default_experiment_base_uses_repository() -> None:
         PROJECT_ROOT / "runs" / "biomnibench-revisions"
     )
     assert re.fullmatch(
-        r"revision-\d{8}-\d{6}--top-4--fb-full--mtg-none--n-3--p-gemini"
+        r"revision-\d{8}-\d{6}--top-4--fb-full--pr-base--n-3--p-gemini"
         r"--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0"
         r"--st-1--web-0--net-0--ap-default--mc-all--c-1--x-default--raw-0",
         generated.name,
@@ -1417,19 +1414,19 @@ def test_revise_top_dry_run_lists_every_task_without_running(
     [
         (
             "full",
-            "da-19-6-process-full--t-da-1-1--fb-full--mtg-none--n-3--p-gemini"
+            "da-19-6-process-full--t-da-1-1--fb-full--pr-base--n-3--p-gemini"
             "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0--st-1"
             "--web-0--net-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "score_only",
-            "da-19-6-process-score-only--t-da-1-1--fb-score-only--mtg-none--n-3"
+            "da-19-6-process-score-only--t-da-1-1--fb-score-only--pr-base--n-3"
             "--p-gemini--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory"
             "--sb-0--st-1--web-0--net-0--ap-default--mc-all--x-default--raw-0",
         ),
         (
             "semi",
-            "da-19-6-process-semi--t-da-1-1--fb-semi--mtg-none--n-3--p-gemini"
+            "da-19-6-process-semi--t-da-1-1--fb-semi--pr-base--n-3--p-gemini"
             "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--sb-0--st-1"
             "--web-0--net-0--ap-default--mc-all--x-default--raw-0",
         ),
@@ -1459,7 +1456,7 @@ def test_feedback_policy_selects_matching_experiment_directory(
     assert config.experiment_dir == tmp_path / expected_name
 
 
-def test_prompt_mitigation_is_named_and_configured(tmp_path: Path) -> None:
+def test_prompt_profile_is_named_and_configured(tmp_path: Path) -> None:
     task = _write_task(tmp_path)
     args = build_parser().parse_args(
         [
@@ -1469,15 +1466,19 @@ def test_prompt_mitigation_is_named_and_configured(tmp_path: Path) -> None:
             str(tmp_path / "experiment"),
             "--model",
             "test-model",
-            "--mtg",
-            "prompt",
+            "--prompt",
+            "diligent",
         ]
     )
 
     config = SubmissionRevisionConfig.from_namespace(args)
 
-    assert config.mitigation is PromptMitigation.PROMPT
-    assert "--mtg-prompt--" in config.experiment_dir.name
+    assert config.prompt_profile is PromptProfile.DILIGENT
+    assert "--pr-diligent--" in config.experiment_dir.name
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "revise", str(task), "--model", "test-model", "--mtg", "prompt"
+        ])
 
 
 @pytest.mark.parametrize("mode", ["--resume", "--restart"])
@@ -1593,7 +1594,7 @@ def test_feedback_projection_full_semi_and_score_only(tmp_path: Path) -> None:
         rubric_text,
         rubric_sha256,
         FeedbackPolicy.FULL,
-        mitigation=PromptMitigation.PROMPT,
+        prompt_profile=PromptProfile.ANTI_RH,
     )
     mitigated_score_only = project_feedback(
         validation_path,
@@ -1601,7 +1602,7 @@ def test_feedback_projection_full_semi_and_score_only(tmp_path: Path) -> None:
         rubric_text,
         rubric_sha256,
         FeedbackPolicy.SCORE_ONLY,
-        mitigation=PromptMitigation.PROMPT,
+        prompt_profile=PromptProfile.ANTI_RH,
     )
     mitigated_semi = project_feedback(
         validation_path,
@@ -1609,7 +1610,7 @@ def test_feedback_projection_full_semi_and_score_only(tmp_path: Path) -> None:
         rubric_text,
         rubric_sha256,
         FeedbackPolicy.SEMI,
-        mitigation=PromptMitigation.PROMPT,
+        prompt_profile=PromptProfile.ANTI_RH,
     )
 
     assert full.score == 64
@@ -1665,7 +1666,13 @@ def test_feedback_projection_full_semi_and_score_only(tmp_path: Path) -> None:
         assert "Do not add unsupported claims" in mitigated.prompt
 
 
-def test_prompt_mitigation_repeats_across_revision_turns(tmp_path: Path) -> None:
+@pytest.mark.parametrize(("profile", "needle"), [
+    (PromptProfile.ANTI_RH, "imperfect diagnostics, not as"),
+    (PromptProfile.DILIGENT, "serious opportunity to improve"),
+])
+def test_prompt_profile_repeats_across_revision_turns(
+    tmp_path: Path, profile: PromptProfile, needle: str
+) -> None:
     task = _write_task(tmp_path)
     rubric_text = (task / "tests" / "rubric.txt").read_text()
     session = FakeSessionDriver()
@@ -1675,7 +1682,7 @@ def test_prompt_mitigation_repeats_across_revision_turns(tmp_path: Path) -> None
         revision_rounds=1,
         agent=AgentRunConfig(provider="gemini", model="test-model"),
         feedback_policy=FeedbackPolicy.SCORE_ONLY,
-        mitigation=PromptMitigation.PROMPT,
+        prompt_profile=profile,
         rubric_name="rubric.txt",
         show_progress=False,
     )
@@ -1691,5 +1698,4 @@ def test_prompt_mitigation_repeats_across_revision_turns(tmp_path: Path) -> None
 
     assert len(session.prompts) == 2
     for prompt in session.prompts:
-        assert "imperfect diagnostics, not as" in prompt
-        assert "Do not add unsupported claims" in prompt
+        assert needle in prompt
