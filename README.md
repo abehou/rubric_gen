@@ -115,14 +115,41 @@ per concurrency slot. Completed worker rows are reused by queued tasks.
 
 ## Run Submission-Revision Experiments
 
-`revise` keeps one solver session alive. The solver creates `s000`, receives
-judge feedback, revises the same submission, and repeats. A run with
-`--revision-rounds 10` produces `s000` through `s010`.
+Initial solving and revision are separate stages. `seed` creates one immutable
+`s000` per task. Every treatment points at that same seed set, scores the shared
+`s000`, and then starts a new persistent solver session for its revisions. A run
+with `--revision-rounds 10` produces `s000` through `s010`.
+
+Create the shared initial submissions once:
+
+```bash
+uv run biomnibench-agent seed \
+  --top 4 \
+  --tasks-dir data/biomnibench-da \
+  --output-dir runs/biomnibench-seeds/gemini-3.5-flash-top4 \
+  --provider gemini \
+  --model gemini-3.5-flash \
+  --judge gpt-5.6-luna \
+  --rubric rubric.txt \
+  --review trace \
+  --sandbox \
+  --max-concurrency 4
+```
+
+Seed directories are immutable and integrity checked. Each seed seals the
+solution files, initial trajectory, initial optimizer judgment, validated score,
+and complete scoring identity. Task data, virtual environments, and package
+caches are excluded. Every revision condition reuses that exact `s000`
+judgment; agent rubric evolution begins at `s001`. If generation is interrupted,
+rerun the identical command with `--resume`; valid completed judged seeds are
+reused and only missing tasks are generated. Solver-only seed formats are not
+accepted.
 
 Run one task with full rubric feedback:
 
 ```bash
 uv run biomnibench-agent revise data/biomnibench-da/da-19-6 \
+  --seed-run-dir runs/biomnibench-seeds/gemini-3.5-flash-top4 \
   --revision-rounds 10 \
   --provider gemini \
   --model gemini-3.5-flash \
@@ -139,15 +166,33 @@ heading, selected level, earned points, and maximum points, without tier
 descriptions, judge reasoning, or the rest of the rubric text. Use
 `--feedback-policy score_only` for only the validated total.
 
-The default `--prompt base` uses the ordinary task-solving prompt. Use
-`--prompt anti-rh` to repeat anti-gaming guidance in the initial and revision
-turns, or `--prompt diligent` to require a deeper audit, additional substantive
-work, and verification during every revision round.
+Use `--rubric-evolution agent` to run a separate Codex rubric proposer after
+each preliminary score. The proposer receives `trace.md` and can selectively
+retrieve complete events from an indexed JSONL trajectory. Configure it with
+`--rubric-proposer-model` and `--rubric-proposer-step-limit`; the latter limits
+trajectory queries per proposal. Retrieved event IDs are audited, and every
+failure claim must cite an event the proposer actually retrieved. The proposer
+may append one general process-penalty criterion (`A=0, B=-5, C=-10`) or make no
+patch; it cannot rewrite, remove, merge, or reweight the stable task rubric.
+The scoring judge then rescores the same submission against the sealed rubric,
+which supplies the next round's feedback. Use `--review trace` to keep scoring
+inputs bounded. Versioned rubrics, proposal metadata, and proposer traces are
+stored under each experiment's `rubric/` directory. `static` remains the
+control. Because the optimizer rubric can gain penalty criteria, compare final
+quality using the independent rubric-free and reward-hacking evaluations, not
+raw evolving-rubric scores alone.
+
+The seed stage always uses the ordinary task-solving prompt. The default
+revision profile, `--prompt base`, adds no mitigation. Use `--prompt anti-rh`
+to repeat anti-gaming guidance during revisions, or `--prompt diligent` to
+require a deeper audit, additional substantive work, and verification during
+every revision round.
 
 Run every task under both full-feedback and score-only conditions:
 
 ```bash
 uv run biomnibench-agent revise \
+  --seed-run-dir runs/biomnibench-seeds/gemini-3.5-flash-top4 \
   --top -1 \
   --full-v-score \
   --tasks-dir data/biomnibench-da \
@@ -206,7 +251,7 @@ When `--experiment-dir` is omitted, `revise` creates one timestamped base under
 directory rather than a collection of sibling directories:
 
 ```text
-revision-20260724-120000--top-all--fb-full--pr-base--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--.../
+revision-20260724-120000--top-all--fb-full--pr-base--sd-gemini-3.5-flash-top4--n-10--p-gemini--m-gemini-3.5-flash--j-gpt-5.6-luna--rb-rubric.txt--v-trajectory--.../
 ├── batch.json
 ├── da-10-1/
 ├── da-10-3/
@@ -220,14 +265,14 @@ plot and compact summary.
 With `--full-v-score`, each task contains `full/` and `score-only/` experiment
 subdirectories. Pass `--experiment-dir PATH` to choose the batch root.
 
-Each revision submission remains under `submissions/`. Consecutive snapshots
-hard-link byte-identical files, and judge staging hard-links the submission
-instead of copying it. After a run completes, older rounds are compacted to the
-two inputs needed for later judging (`answer.txt` and `trace.md`); only the final
-submission retains its complete workspace. Cumulative trajectories, scores,
-judge results, and validation artifacts remain durable for resume and audit.
-Workspace-local `.venv`, `venv`, `packages`, and cache directories are never
-included in a submission snapshot.
+Each revision submission remains under `submissions/`. A treatment's local
+`s000` hard-links the immutable seed payload instead of copying it. The mutable
+live workspace is private to the treatment so an agent cannot corrupt the
+shared seed. Consecutive snapshots hard-link byte-identical files, and judge
+staging also uses hard links. After completion, older rounds are compacted to
+`answer.txt` and `trace.md`; only the final submission retains its complete
+workspace. Workspace-local `.venv`, `venv`, `packages`, and cache directories
+are never included in a submission snapshot.
 
 To continue an interrupted automatic batch, rerun the same `revise` command
 with `--resume`. It selects the newest batch whose encoded arguments and

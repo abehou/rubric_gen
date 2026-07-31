@@ -80,14 +80,10 @@ class JudgeTargetDiscovery:
         return canonical
 
     @staticmethod
-    def standalone_workspace_options(run_dir: Path) -> tuple[Path, ...]:
-        expected = run_dir.parent / "_workspaces" / run_dir.name
-        legacy = run_dir / "workspace"
-        if expected.exists() or expected.is_symlink():
-            return (expected,)
-        if legacy.exists() or legacy.is_symlink():
-            return (legacy,)
-        return (expected,)
+    def expected_workspace_dir(run_dir: Path) -> Path:
+        if run_dir.parent.name == "submissions":
+            return run_dir / "workspace"
+        return run_dir.parent / "_workspaces" / run_dir.name
 
     def validate_target_identity(self, target: JudgeTarget) -> None:
         canonical_task_dir = self.canonical_task_dir(target.task)
@@ -114,7 +110,7 @@ class JudgeTargetDiscovery:
         else:
             self.validated_workspace(
                 target.workspace_dir,
-                expected=self.standalone_workspace_options(target.run_dir),
+                expected=self.expected_workspace_dir(target.run_dir),
             )
         expected_trajectory = (target.run_dir / "trajectory.stream.jsonl").absolute()
         if target.trajectory_path.expanduser().absolute() != expected_trajectory:
@@ -263,7 +259,7 @@ class JudgeTargetDiscovery:
         if workspace is None and run_dir.parent.name == "tasks":
             workspace = run_dir.parents[1] / "workspaces" / task
         if workspace is None:
-            workspace = self.standalone_workspace_options(run_dir)[0]
+            workspace = self.expected_workspace_dir(run_dir)
         if type(workspace) is not str and not isinstance(workspace, Path):
             raise SystemExit("status workspace_dir must be a path string")
         workspace_path = Path(workspace)
@@ -275,7 +271,7 @@ class JudgeTargetDiscovery:
         else:
             workspace_path = self.validated_workspace(
                 workspace_path,
-                expected=self.standalone_workspace_options(run_dir),
+                expected=self.expected_workspace_dir(run_dir),
             )
         return JudgeTarget(
             task=task,

@@ -69,7 +69,14 @@ _BASE_REVISION_MANIFEST_KEYS = frozenset(
     }
 )
 _REVISION_MANIFEST_KEYS = _BASE_REVISION_MANIFEST_KEYS | {
-    "kind", "prompt", "allow_network"
+    "kind",
+    "prompt",
+    "allow_network",
+    "rubric_evolution",
+    "rubric_proposer_model",
+    "rubric_proposer_step_limit",
+    "seed_run_dir",
+    "seed_sha256",
 }
 
 
@@ -103,7 +110,7 @@ def copy_solution_workspace(
     stats = SnapshotCopyStats()
     destination.mkdir()
     for child in sorted(source.iterdir(), key=lambda path: path.name):
-        if child.name in EXCLUDED_SOLUTION_NAMES:
+        if is_excluded_solution_root(child):
             continue
         previous_child = previous / child.name if previous is not None else None
         _copy_solution_entry(
@@ -175,6 +182,11 @@ def prepare_evaluation_run(submission_dir: Path, evaluation_root: Path) -> Path:
     return run_dir
 
 
+def link_solution_workspace(source: Path, destination: Path) -> None:
+    """Hardlink an immutable solution tree without duplicating file contents."""
+    _link_solution_workspace(source, destination)
+
+
 def verify_submission_snapshot(submission_dir: Path) -> None:
     snapshot = read_json_object(submission_dir / "snapshot.json", "submission snapshot")
     if snapshot.get("submission_id") != submission_dir.name:
@@ -192,7 +204,25 @@ def tree_sha256(root: Path) -> str:
 
 
 def solution_tree_sha256(root: Path) -> str:
-    return _hash_tree(root, excluded_names=EXCLUDED_SOLUTION_NAMES)
+    excluded_names = EXCLUDED_SOLUTION_NAMES | frozenset(
+        child.name
+        for child in root.iterdir()
+        if is_excluded_solution_root(child)
+    )
+    return _hash_tree(root, excluded_names=excluded_names)
+
+
+def is_excluded_solution_root(path: Path) -> bool:
+    """Return whether a top-level workspace entry is disposable run state."""
+    if path.name in EXCLUDED_SOLUTION_NAMES:
+        return True
+    try:
+        path_stat = os.lstat(path)
+        marker = path / "pyvenv.cfg"
+        marker_stat = os.lstat(marker)
+    except OSError:
+        return False
+    return stat.S_ISDIR(path_stat.st_mode) and stat.S_ISREG(marker_stat.st_mode)
 
 
 def make_tree_read_only(root: Path) -> None:

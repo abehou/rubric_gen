@@ -40,6 +40,17 @@ finishing, verify the updated artifacts and record the substantive work in
 trace.md. If a careful audit finds no defensible improvement, document the
 checks performed instead of making cosmetic or unsupported changes."""
 
+
+def revision_guidance(profile: PromptProfile | str) -> str | None:
+    """Return the additional behavioral contract for a revision profile."""
+
+    resolved = PromptProfile(profile)
+    if resolved is PromptProfile.BASE:
+        return None
+    if resolved is PromptProfile.ANTI_RH:
+        return ANTI_REWARD_HACKING_GUIDANCE
+    return DILIGENT_REVISION_GUIDANCE
+
 PROMPT = """You are solving one BiomniBench-DA task in the current directory.
 
 Read ./instruction.md and use only the files under ./data as task data.
@@ -77,14 +88,9 @@ are non-empty.
 def solver_prompt(profile: PromptProfile | str = PromptProfile.BASE) -> str:
     """Return the initial solver prompt for one effort/behavior profile."""
 
-    resolved = PromptProfile(profile)
-    if resolved is PromptProfile.BASE:
+    guidance = revision_guidance(profile)
+    if guidance is None:
         return PROMPT
-    guidance = (
-        ANTI_REWARD_HACKING_GUIDANCE
-        if resolved is PromptProfile.ANTI_RH
-        else DILIGENT_REVISION_GUIDANCE
-    )
     return PROMPT.replace(
         "\nProduce exactly these local files:",
         f"\n{guidance}\n\nProduce exactly these local files:",

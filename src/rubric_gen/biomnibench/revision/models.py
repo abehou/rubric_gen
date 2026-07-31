@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -11,78 +10,14 @@ from pathlib import Path
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.agent.sessions import SolverSessionDriver
-from rubric_gen.biomnibench.utils.paths import directory_component, resolve_project_path
+from rubric_gen.biomnibench.utils.paths import resolve_project_path
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
+from rubric_gen.biomnibench.revision.evolution import RubricEvolution, RubricEvolver
 from rubric_gen.biomnibench.revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
 )
-from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
-
-
-def revision_experiment_dir(
-    args: argparse.Namespace,
-    task_dir: Path,
-    feedback_policy: FeedbackPolicy,
-    rubric_set: Path | None,
-    agent: AgentRunConfig,
-    prompt_profile: PromptProfile = PromptProfile.BASE,
-) -> Path:
-    """Derive an identity-bearing experiment directory for one configuration."""
-    experiment_dir = resolve_project_path(args.experiment_dir)
-    if (
-        getattr(args, "revision_batch_layout", False)
-        or getattr(args, "top", None) is not None
-        or getattr(args, "full_v_score", False)
-    ):
-        task_root = experiment_dir / directory_component(task_dir.name)
-        if getattr(args, "full_v_score", False):
-            return task_root / feedback_policy.value.replace("_", "-")
-        return task_root
-    if (
-        (args.resume or getattr(args, "restart", False))
-        and os.path.lexists(experiment_dir)
-    ):
-        return experiment_dir
-    policy_suffix = f"-{feedback_policy.value.replace('_', '-')}"
-    for candidate in FeedbackPolicy:
-        candidate_suffix = f"-{candidate.value.replace('_', '-')}"
-        if experiment_dir.name.endswith(candidate_suffix):
-            experiment_dir = experiment_dir.with_name(
-                experiment_dir.name[: -len(candidate_suffix)] + policy_suffix
-            )
-            break
-    rubric = (
-        f"set-{directory_component(rubric_set)}"
-        if rubric_set is not None
-        else directory_component(args.rubric or "rubric.txt")
-    )
-    components = (
-        f"t-{directory_component(task_dir.name)}",
-        f"fb-{directory_component(feedback_policy.value.replace('_', '-'))}",
-        f"pr-{directory_component(prompt_profile.value)}",
-        f"n-{args.revision_rounds}",
-        f"p-{directory_component(agent.provider)}",
-        f"m-{directory_component(agent.model)}",
-        f"j-{directory_component(args.judge_model or DEFAULT_JUDGE_MODEL)}",
-        f"rb-{rubric}",
-        f"v-{directory_component(args.review)}",
-        f"sb-{int(agent.sandbox)}",
-        f"st-{int(agent.skip_trust)}",
-        f"web-{int(agent.allow_web)}",
-        f"net-{int(agent.allow_network)}",
-        f"ap-{directory_component(agent.approval_mode)}",
-        f"mc-{args.max_review_chars if args.max_review_chars is not None else 'all'}",
-        f"x-{directory_component(agent.executable)}",
-        f"raw-{int(agent.raw)}",
-    )
-    name = "--".join((experiment_dir.name, *components))
-    if len(name) > 240:
-        raise ValueError(
-            "derived experiment directory name is too long; choose a shorter "
-            "--experiment-dir base name"
-        )
-    return experiment_dir.with_name(name)
+from rubric_gen.biomnibench.revision.naming import revision_experiment_dir
 
 
 @dataclass(frozen=True)
@@ -92,10 +27,14 @@ class SubmissionRevisionConfig:
     task_dir: Path
     experiment_dir: Path
     revision_rounds: int
+    seed_run_dir: Path
     agent: AgentRunConfig
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
     prompt_profile: PromptProfile = PromptProfile.BASE
-    review: str = "trajectory"
+    rubric_evolution: RubricEvolution = RubricEvolution.STATIC
+    rubric_proposer_model: str = "gpt-5.6-luna"
+    rubric_proposer_step_limit: int = 12
+    review: str = "trace"
     judge_model: str | None = None
     rubric_name: str | None = None
     rubric_set: Path | None = None
@@ -127,6 +66,14 @@ class SubmissionRevisionConfig:
             raise ValueError("submission revision requires an explicit solver model")
         FeedbackPolicy(self.feedback_policy)
         PromptProfile(self.prompt_profile)
+        RubricEvolution(self.rubric_evolution)
+        if not self.rubric_proposer_model.strip():
+            raise ValueError("rubric_proposer_model must be nonempty")
+        if (
+            type(self.rubric_proposer_step_limit) is not int
+            or self.rubric_proposer_step_limit < 1
+        ):
+            raise ValueError("rubric_proposer_step_limit must be positive")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(
@@ -146,6 +93,7 @@ class SubmissionRevisionConfig:
         resolved_rubric_set = resolve_project_path(rubric_set) if rubric_set else None
         feedback_policy = FeedbackPolicy(args.feedback_policy)
         prompt_profile = PromptProfile(args.prompt)
+        rubric_evolution = RubricEvolution(args.rubric_evolution)
         task_dir = resolve_project_path(args.task)
         agent = AgentRunConfig.from_namespace(args)
         return cls(
@@ -160,8 +108,12 @@ class SubmissionRevisionConfig:
             ),
             revision_rounds=args.revision_rounds,
             agent=agent,
+            seed_run_dir=resolve_project_path(args.seed_run_dir),
             feedback_policy=feedback_policy,
             prompt_profile=prompt_profile,
+            rubric_evolution=rubric_evolution,
+            rubric_proposer_model=args.rubric_proposer_model,
+            rubric_proposer_step_limit=args.rubric_proposer_step_limit,
             review=args.review,
             judge_model=args.judge_model,
             rubric_name=args.rubric,
@@ -179,6 +131,7 @@ class RevisionDependencies:
 
     session: SolverSessionDriver
     judge: SubmissionJudge
+    evolver: RubricEvolver | None = None
 
 
 @dataclass(frozen=True)

@@ -126,6 +126,57 @@ def test_evidence_index_supports_bounded_lossless_retrieval(
     assert ensure_evidence_index(case, database) is None
 
 
+def test_evidence_index_preserves_jsonl_trajectory_events(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = tmp_path / "case"
+    case.mkdir()
+    trajectory = case / "trajectory.stream.jsonl"
+    trajectory.write_text(
+        '{"type":"turn.started"}\n'
+        '{"type":"item.completed","item":{"type":"command_execution",'
+        '"command":"python analysis.py","exit_code":0}}\n',
+        encoding="utf-8",
+    )
+    (case / "manifest.json").write_text(json.dumps({
+        "evidence_files": [trajectory.name],
+    }))
+    database = tmp_path / "evidence.sqlite"
+    audit = tmp_path / "query-audit.jsonl"
+
+    inventory = build_evidence_index(case, database)
+
+    assert inventory["events"] == 2
+    assert inventory["roles"] == {
+        "trajectory:item.completed": 1,
+        "trajectory:turn.started": 1,
+    }
+    assert query_main(database, ["show", "2"], audit_path=audit) == 0
+    shown = capsys.readouterr().out
+    assert "python analysis.py" in shown
+    assert "$line/2" in shown
+    assert json.loads(audit.read_text())["event_ids"] == [2]
+
+
+def test_evidence_query_budget_is_enforced(tmp_path: Path) -> None:
+    case = tmp_path / "case"
+    case.mkdir()
+    (case / "manifest.json").write_text(json.dumps({
+        "evidence_files": ["transcript.json"],
+    }))
+    (case / "transcript.json").write_text(json.dumps({"content": "evidence"}))
+    database = tmp_path / "evidence.sqlite"
+    build_evidence_index(case, database)
+    counter = tmp_path / "query-count.txt"
+
+    assert query_main(
+        database, ["inventory"], max_queries=1, counter_path=counter
+    ) == 0
+    with pytest.raises(SystemExit, match="budget exhausted"):
+        query_main(database, ["inventory"], max_queries=1, counter_path=counter)
+    assert counter.read_text() == "1"
+
+
 def test_config_flattens_repeated_run_dir_arguments(tmp_path: Path) -> None:
     tasks, first = _experiment(tmp_path)
     second = tmp_path / "revision-second"

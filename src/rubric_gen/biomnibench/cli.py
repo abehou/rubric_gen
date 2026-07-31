@@ -14,6 +14,7 @@ from rubric_gen.biomnibench.perturbation.models import (
     DEFAULT_PERTURBER_MODEL,
 )
 from rubric_gen.biomnibench.revision import FeedbackPolicy
+from rubric_gen.biomnibench.revision.evolution import RubricEvolution
 
 
 def add_agent_args(
@@ -186,6 +187,11 @@ def _add_revise_parser(
         help="BiomniBench task directory, e.g. data/biomnibench-da/da-24-3.",
     )
     revise.add_argument(
+        "--seed-run-dir",
+        required=True,
+        help="Completed immutable seed set that supplies the shared s000.",
+    )
+    revise.add_argument(
         "--experiment-dir",
         default=None,
         help=(
@@ -259,10 +265,31 @@ def _add_revise_parser(
         ),
     )
     revise.add_argument(
+        "--rubric-evolution",
+        choices=tuple(mode.value for mode in RubricEvolution),
+        default=RubricEvolution.STATIC.value,
+        help=(
+            "Optimizer rubric policy: static, or agent for a trajectory-grounded "
+            "additive process-penalty proposal after each preliminary score. "
+            "The stable task rubric is never rewritten. Defaults to static."
+        ),
+    )
+    revise.add_argument(
+        "--rubric-proposer-model",
+        default="gpt-5.6-luna",
+        help="Codex model used only for agent rubric proposals.",
+    )
+    revise.add_argument(
+        "--rubric-proposer-step-limit",
+        type=int,
+        default=12,
+        help="Maximum bounded trajectory queries per rubric proposal.",
+    )
+    revise.add_argument(
         "--review",
         choices=("trace", "trajectory"),
-        default="trajectory",
-        help="Judge trace.md or the cumulative raw trajectory. Defaults to trajectory.",
+        default="trace",
+        help="Judge trace.md or the cumulative raw trajectory. Defaults to trace.",
     )
     revise.add_argument(
         "--judge",
@@ -289,6 +316,29 @@ def _add_revise_parser(
     )
     add_agent_args(revise, persistent_session=True)
     revise.set_defaults(quiet=True)
+
+
+def _add_seed_parser(subparsers: argparse._SubParsersAction) -> None:
+    seed = subparsers.add_parser(
+        "seed", help="Generate sealed, judged initial submissions for paired revisions."
+    )
+    seed.add_argument("--tasks-dir", default="data/biomnibench-da")
+    seed.add_argument("--top", type=int, default=4)
+    seed.add_argument("--output-dir", required=True)
+    seed.add_argument("--max-concurrency", type=int, default=1)
+    seed.add_argument("--review", choices=("trace", "trajectory"), default="trace")
+    seed.add_argument("--judge", dest="judge_model", default=None)
+    rubric_source = seed.add_mutually_exclusive_group()
+    rubric_source.add_argument("--rubric", default=None)
+    rubric_source.add_argument("--rubric-set", default=None)
+    seed.add_argument("--max-review-chars", type=int, default=None)
+    seed.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse integrity-checked judged seeds and generate missing tasks.",
+    )
+    add_agent_args(seed, persistent_session=True)
+    seed.set_defaults(quiet=True)
 
 
 def _add_all_parser(
@@ -731,6 +781,11 @@ def _add_rubric_free_parser(
     )
     rubric_free.add_argument("--max-concurrency", type=int, default=3)
     rubric_free.add_argument("--max-retries", type=int, default=2)
+    rubric_free.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse completed experiment/model/position judgments.",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -738,6 +793,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     _add_one_parser(subparsers)
     _add_generate_parser(subparsers)
+    _add_seed_parser(subparsers)
     _add_revise_parser(subparsers)
     _add_all_parser(subparsers)
     _add_judge_parser(subparsers)
@@ -758,6 +814,7 @@ from rubric_gen.biomnibench.commands import (
     run_perturb,
     run_process_rubrics,
     run_revise,
+    run_seed,
     run_rubric_free,
     run_task_process_rubrics,
 )
@@ -770,6 +827,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_one(args)
     if args.command == "generate":
         return run_generate(args)
+    if args.command == "seed":
+        return run_seed(args)
     if args.command == "revise":
         return run_revise(args)
     if args.command == "all":

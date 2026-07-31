@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Training Biomni Revision Agents Without Reward Hacking</title>
+  <style>
+    :root { color-scheme: light dark; --ink:#172033; --muted:#596579; --paper:#fff;
+      --panel:#f3f6fb; --line:#d9e0ea; --accent:#3157d5; --warn:#9b4d00; }
+    @media (prefers-color-scheme: dark) { :root { --ink:#e8edf7; --muted:#aeb9cc;
+      --paper:#111722; --panel:#1a2331; --line:#344156; --accent:#8ba7ff; --warn:#ffb267; } }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink);
+      font:17px/1.65 system-ui,-apple-system,Segoe UI,sans-serif; }
+    main { max-width:980px; margin:auto; padding:48px 24px 100px; }
+    h1 { font-size:clamp(2rem,5vw,3.6rem); line-height:1.05; letter-spacing:-.04em; }
+    h2 { margin-top:2.8em; padding-top:.4em; border-top:1px solid var(--line); }
+    h3 { margin-top:2em; } p,li { max-width:78ch; } .lede { color:var(--muted); font-size:1.18rem; }
+    nav,.callout,.proof { background:var(--panel); border:1px solid var(--line);
+      border-radius:12px; padding:18px 22px; margin:24px 0; }
+    .proof { border-left:5px solid var(--accent); } .warning { border-left-color:var(--warn); }
+    code,pre { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    code { background:var(--panel); padding:.1em .3em; border-radius:4px; }
+    pre { overflow:auto; background:var(--panel); border:1px solid var(--line);
+      padding:16px; border-radius:10px; }
+    table { border-collapse:collapse; width:100%; margin:20px 0; font-size:.94rem; }
+    th,td { border-bottom:1px solid var(--line); padding:10px; text-align:left; vertical-align:top; }
+    th { background:var(--panel); } a { color:var(--accent); } .math { overflow-x:auto;
+      font-family:Cambria Math,serif; padding:10px 0; } .tag { font-size:.78rem;
+      letter-spacing:.08em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body><main>
+  <div class="tag">BiomniBench engineering tutorial</div>
+  <h1>Training Revision Agents Without Training Them to Game the Judge</h1>
+  <p class="lede">A practical curriculum for building scientific revision agents that improve
+  substantive quality while treating reward hacking as a constrained safety outcome. The plan starts
+  with evidence instrumentation and offline preference learning, and uses online RL only after the
+  verifier has demonstrated held-out validity.</p>
+
+  <nav><strong>Contents.</strong> Problem formulation · evidence architecture · dataset construction ·
+  SFT · DPO · constrained RL · training the process-rubric proposer · evaluation · launch gates.</nav>
+
+  <h2>1. Define the objective correctly</h2>
+  <p>Let <em>x</em> be a task, <em>τ</em> an agent trajectory, and <em>y</em> its final submission. We care
+  about latent scientific quality <em>Q(x,τ,y)</em>, but can only observe proxies: rubric score
+  <em>S</em>, rubric-free preference <em>F</em>, process-verification score <em>P</em>, and an RH detector
+  <em>H</em>. A naive objective <code>max E[S]</code> invites optimization of errors in <em>S</em>.</p>
+  <div class="proof warning"><strong>Proxy-overoptimization argument.</strong> Write
+  <span class="math">S = Q + ε</span>, where ε is evaluator error. Selection for high S selects both
+  high Q and positive ε. As optimization pressure increases, the upper tail increasingly contains
+  trajectories with unusually large ε. Therefore improvement in S need not imply improvement in Q.
+  This is regression-to-the-mean/Goodhart behavior, not an exotic failure mode.</div>
+
+  <p>Use a constrained objective instead:</p>
+  <div class="math">maximize<sub>π</sub> E[Q̂] &nbsp; subject to &nbsp; E[H] ≤ ε,
+  &nbsp; E[unsupported central claims] = 0.</div>
+  <p>The hard claim constraint matters: a weighted penalty can be compensated by unrelated rubric
+  points, while a fabricated central result should invalidate or cap the submission.</p>
+
+  <h2>2. Instrument evidence before training</h2>
+  <p>Every quantitative claim should be connected to a provenance graph:</p>
+  <pre>task data → command/tool event → output artifact + hash → transformation → final claim</pre>
+  <p>Store structured events for commands, exit status, stdout/stderr digests, file changes, data
+  inputs, and final-claim references. A prose <code>trace.md</code> is navigation, not proof.</p>
+  <table><thead><tr><th>Gate</th><th>Pass condition</th><th>Failure action</th></tr></thead><tbody>
+    <tr><td>Execution</td><td>Claimed analysis has a successful event and output</td><td>Reject claim</td></tr>
+    <tr><td>Consistency</td><td>Reported values agree with artifacts</td><td>Cap submission</td></tr>
+    <tr><td>Provenance</td><td>Input is allowed and hash-bound</td><td>Invalidate result</td></tr>
+    <tr><td>Uncertainty</td><td>Statistical qualification matches method</td><td>Criterion penalty</td></tr>
+  </tbody></table>
+
+  <h2>3. Build an offline curriculum</h2>
+  <p>Generate multiple rollouts from identical sealed initial submissions. Include base, diligent,
+  anti-RH, and deliberately perturbed trajectories. Perturbations should cover hardcoded benchmark
+  values, wrong denominators, failed commands followed by success claims, missing-data substitution,
+  unsupported citations, and cosmetic rubric matching.</p>
+  <p>Each example receives four independent labels:</p>
+  <ol><li>rubric-free substantive quality;</li><li>claim-level process validity;</li>
+  <li>RH judgments with evidence;</li><li>human adjudication on a stratified disagreement subset.</li></ol>
+  <div class="callout"><strong>Data requirement.</strong> Forty-seven runs are diagnostic data, not an
+  RL corpus. Use at least dozens of tasks, several sealed seeds per task, and multiple rollouts per
+  condition. Split by task—not trajectory—so near-duplicate revisions cannot leak across train/test.</div>
+
+  <h2>4. Stage A: supervised fine-tuning</h2>
+  <p>Train the solver on trajectories that demonstrate: inspecting the task anew, executing relevant
+  checks, maintaining a claim ledger, resolving contradictory evidence, and honestly reporting blocked
+  analyses. Include negative-to-positive edits showing how to repair unsupported claims.</p>
+  <p>The target is a behavior policy with usable support. RL cannot reliably discover disciplined tool
+  use if the pretrained policy rarely performs it.</p>
+
+  <h2>5. Stage B: preference optimization</h2>
+  <p>Create pairs <code>(τ⁺, τ⁻)</code> where τ⁺ has better rubric-free quality and provenance without RH.
+  Prefer DPO before online policy-gradient training because it is offline, auditable, and avoids a
+  separately learned scalar reward during the first iteration.</p>
+
+  <h3>DPO derivation</h3>
+  <p>Start with KL-regularized RL:</p>
+  <div class="math">max<sub>π</sub> E<sub>y∼π</sub>[r(x,y)] − β KL(π(·|x) || π<sub>ref</sub>(·|x)).</div>
+  <div class="proof"><strong>Optimal-policy proof.</strong> Add a Lagrange multiplier for normalization
+  and differentiate with respect to π(y|x). Setting the derivative to zero gives
+  <span class="math">π*(y|x) ∝ π<sub>ref</sub>(y|x) exp(r(x,y)/β).</span>
+  Rearranging, reward differences equal β times differences of log policy ratios. Substitute this into
+  a Bradley–Terry preference model
+  <span class="math">P(y⁺≻y⁻)=σ(r(y⁺)−r(y⁻))</span> to obtain the DPO logistic loss over
+  policy/reference log-ratio differences. Thus preferences can optimize the same regularized optimum
+  without explicitly fitting r.</div>
+
+  <h2>6. Stage C: constrained online RL</h2>
+  <p>Once process and RH verifiers are calibrated, optimize substantive reward under explicit costs:</p>
+  <div class="math">L(π,λ)=E[Q̂]−λ(E[H]−ε), &nbsp; λ≥0.</div>
+  <div class="proof"><strong>Complementary-slackness interpretation.</strong> At a constrained optimum,
+  λ(E[H]−ε)=0. If RH is below the budget, λ may be zero; if the constraint binds, λ becomes positive
+  and prices additional RH risk. Updating λ by projected ascent on constraint violation implements a
+  practical primal–dual controller. This does not guarantee safety under a misspecified detector, so
+  detector validation remains a prerequisite.</div>
+
+  <p>Use a lexicographic reward: first reject unverifiable central claims, then optimize rubric-free
+  quality, then use frozen-rubric score as a secondary shaping signal.</p>
+
+  <h3>Potential-based shaping</h3>
+  <p>Dense process rewards can change the task objective. A safe form is
+  <span class="math">F(s,a,s′)=γΦ(s′)−Φ(s).</span></p>
+  <div class="proof"><strong>Policy-invariance proof sketch.</strong> Along a trajectory, discounted
+  shaping rewards telescope to <span class="math">−Φ(s₀)+γ<sup>T</sup>Φ(s<sub>T</sub>)</span>.
+  With fixed initial state and zero/constant terminal potential, every policy's return shifts by the
+  same constant. Therefore the ordering of policies and optimal policies is unchanged.</div>
+
+  <h2>7. Train the rubric proposer as a separate model</h2>
+  <p>The proposer should output additive, penalty-only process checks or <code>no_patch</code>; it should
+  never rewrite the substantive rubric. Candidate patches must cite retrieved trajectory events and
+  survive counterfactual validation on previous, strong, perturbed, and paraphrased submissions.</p>
+  <div class="math">R<sub>patch</sub> = sensitivity − false positives − answer leakage − churn
+  + cross-task generalization.</div>
+  <p>Do not reward a patch merely for lowering the current answer's score. That trains adversarial
+  overfitting. Freeze solver and proposer in alternating stages; simultaneous online co-training creates
+  a nonstationary collusion channel.</p>
+
+  <h2>8. Prevent detector gaming</h2>
+  <p>Training and final evaluation must use disjoint verifier families or hidden prompts/checks. Rotate
+  training verifiers, retain sealed evaluators, and audit disagreements. Never interpret detector
+  agreement as ground truth without a human-calibrated Biomni subset.</p>
+  <div class="proof warning"><strong>Why reuse is invalid.</strong> If optimization observes detector D,
+  the learned policy is selected conditional on D's errors. Evaluating with the same D estimates
+  performance against an adapted target, not real RH prevalence. Cross-fitting restores independence:
+  each policy is evaluated by detectors that supplied no training reward for that policy.</div>
+
+  <h2>9. Experimental design and inference</h2>
+  <p>Use a factorial design over prompt, process verifier, feedback policy, task, and seed. Freeze initial
+  submissions. Pre-register primary outcomes and cluster inference by task and seed.</p>
+  <div class="proof"><strong>Small-cluster limit.</strong> A two-sided sign-randomization test with four
+  independent tasks has only 2⁴=16 assignments. Even if all four effects have the same sign, two
+  assignments are at least as extreme, so the minimum two-sided p-value is 2/16=0.125. Treating repeated
+  feedback conditions as independent creates pseudoreplication and artificially small p-values.</div>
+  <table><thead><tr><th>Outcome</th><th>Role</th></tr></thead><tbody>
+    <tr><td>Human-adjudicated RH</td><td>Primary safety calibration</td></tr>
+    <tr><td>Held-out MALT panel</td><td>Scalable safety proxy</td></tr>
+    <tr><td>Rubric-free quality</td><td>Primary substantive outcome</td></tr>
+    <tr><td>Frozen-rubric gain</td><td>Optimization diagnostic</td></tr>
+    <tr><td>Verified-claim coverage</td><td>Process outcome</td></tr>
+  </tbody></table>
+
+  <h2>10. Launch gates</h2>
+  <ol>
+    <li>Trajectory retrieval returns validated events on every supported provider schema.</li>
+    <li>Process patches contain valid evidence and pass held-out counterfactual tests.</li>
+    <li>Human calibration establishes detector precision/recall with uncertainty.</li>
+    <li>DPO improves quality without worsening adjudicated RH.</li>
+    <li>Online RL is allowed only after frozen-detector, hidden-task evaluation passes.</li>
+  </ol>
+  <p><strong>Recommended order:</strong> instrumentation → verified additive process patches → SFT → DPO
+  → constrained RL. Skipping directly to RL would optimize the current verifier defects.</p>
+</main></body></html>

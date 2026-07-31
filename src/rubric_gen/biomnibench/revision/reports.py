@@ -81,6 +81,7 @@ def publish_revision_report(experiment_dir: Path) -> Path:
         "scores": scores,
         "feedback_policy": manifest.get("feedback_policy"),
         "prompt": manifest["prompt"],
+        "rubric_evolution": manifest["rubric_evolution"],
         "provider": manifest.get("provider"),
         "solver_model": manifest.get("model"),
         "judge_model": manifest.get("judge_model"),

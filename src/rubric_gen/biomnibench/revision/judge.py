@@ -70,6 +70,7 @@ class SubmissionJudgeConfig:
     rubric_set: Path | None
     max_review_chars: int | None
     max_retries: int = MAX_TRANSIENT_RETRIES
+    rubric_path: Path | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -269,6 +270,7 @@ class BiomniSubmissionJudge:
                 model=self.config.judge_model,
                 rubric_name=self.config.rubric_name,
                 rubric_set=self.rubric_set,
+                rubric_path=self.config.rubric_path,
                 max_review_chars=self.config.max_review_chars,
                 resume=resume,
             )

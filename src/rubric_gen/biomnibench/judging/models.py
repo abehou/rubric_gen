@@ -88,6 +88,7 @@ class JudgeRunConfig:
     judge_name: str | None = None
     rubric_name: str | None = None
     rubric_set: Path | None = None
+    rubric_path: Path | None = None
     limit: int | None = None
     dry_run: bool = False
     max_review_chars: int | None = None
@@ -101,8 +102,10 @@ class JudgeRunConfig:
     artifacts_dir: Path | None = None
 
     def __post_init__(self) -> None:
-        if self.rubric_name is not None and self.rubric_set is not None:
-            raise ValueError("rubric_name and rubric_set are mutually exclusive")
+        if sum(value is not None for value in (
+            self.rubric_name, self.rubric_set, self.rubric_path
+        )) > 1:
+            raise ValueError("rubric_name, rubric_set, and rubric_path are mutually exclusive")
         if self.ensemble and self.model is not None:
             raise ValueError("--ensemble and --model are mutually exclusive")
         if self.ensemble and self.repeats != 1:

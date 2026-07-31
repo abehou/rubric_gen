@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 import os
+import json
 import secrets
 import shutil
 import stat
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 from tqdm.auto import trange
 
+from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile, solver_prompt
 from rubric_gen.biomnibench.agent.sessions import CliSolverSessionDriver
 from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
+from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 from rubric_gen.biomnibench.utils.progress import PROGRESS_BAR_FORMAT
 from rubric_gen.biomnibench.revision.feedback import (
     FeedbackPolicy,
@@ -29,6 +33,8 @@ from rubric_gen.biomnibench.revision.models import (
 from rubric_gen.biomnibench.revision.artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
     live_root_parent as _live_root_parent,
+    is_excluded_solution_root as _is_excluded_solution_root,
+    link_solution_workspace as _link_solution_workspace,
     REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
     compact_historical_workspace as _compact_historical_workspace,
     copy_solution_workspace as _copy_solution_workspace,
@@ -52,9 +58,12 @@ from rubric_gen.biomnibench.utils.serialization import (
 from rubric_gen.biomnibench.revision.judge import (
     SCORING_IDENTITY_KEYS as _SCORING_IDENTITY_KEYS,
     BiomniSubmissionJudge,
+    FrozenRubric,
     JudgeArtifacts as JudgeArtifacts,
     resolve_optimizer_rubric as _resolve_optimizer_rubric,
 )
+from rubric_gen.biomnibench.revision.evolution import RubricEvolution, RubricEvolver
+from rubric_gen.biomnibench.revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.biomnibench.revision.store import (
     RevisionStore,
     extract_scoring_identity as _extract_scoring_identity,
@@ -84,10 +93,30 @@ class SubmissionRevisionController:
         self.rubric = _resolve_optimizer_rubric(judge_config)
         self.instruction_sha256 = _sha256_file(self.task_dir / "instruction.md")
         self.data_sha256 = _tree_sha256(self.task_dir / "environment" / "data")
+        self.seed: ResolvedSeed = resolve_seed(config.seed_run_dir, self.task_dir)
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent),
             judge=BiomniSubmissionJudge(judge_config, self.rubric),
+            evolver=(
+                None if config.rubric_evolution is RubricEvolution.STATIC
+                else RubricEvolver(
+                    agent=AgentRunConfig(
+                        provider="codex",
+                        model=config.rubric_proposer_model,
+                        quiet=True,
+                        skip_trust=config.agent.skip_trust,
+                        retries=0,
+                    ),
+                    query_limit=config.rubric_proposer_step_limit,
+                    max_retries=config.agent.retries,
+                )
+            ),
         )
+        if (
+            config.rubric_evolution is not RubricEvolution.STATIC
+            and self.dependencies.evolver is None
+        ):
+            raise ValueError("non-static rubric evolution requires an evolver")
         reported_scoring_identity = self.dependencies.judge.scoring_identity()
         if set(reported_scoring_identity) != set(_SCORING_IDENTITY_KEYS):
             raise RuntimeError(
@@ -99,6 +128,13 @@ class SubmissionRevisionController:
         )
         if self.scoring_identity["rendered_rubric_sha256"] != self.rubric.sha256:
             raise RuntimeError("submission judge resolved a different optimizer rubric")
+        _, _, seed_scoring_identity = self.seed.judgment
+        if _extract_scoring_identity(
+            seed_scoring_identity, context="seeded initial judgment"
+        ) != self.scoring_identity:
+            raise RuntimeError(
+                "seeded initial judgment does not match the revision judge identity"
+            )
         self.store = RevisionStore(
             self.experiment_dir,
             rubric_text=self.rubric.text,
@@ -121,6 +157,9 @@ class SubmissionRevisionController:
             "skip_trust": self.config.agent.skip_trust,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
+            "rubric_evolution": RubricEvolution(self.config.rubric_evolution).value,
+            "rubric_proposer_model": self.config.rubric_proposer_model,
+            "rubric_proposer_step_limit": self.config.rubric_proposer_step_limit,
             "review": self.config.review,
             "judge_model": self.config.judge_model,
             "max_review_chars": self.config.max_review_chars,
@@ -133,6 +172,8 @@ class SubmissionRevisionController:
             "rubric_sha256": self.rubric.sha256,
             "instruction_sha256": self.instruction_sha256,
             "data_sha256": self.data_sha256,
+            "seed_run_dir": str(self.seed.root),
+            "seed_sha256": self.seed.sha256,
         }
 
     def run(self) -> SubmissionRevisionResult:
@@ -161,11 +202,11 @@ class SubmissionRevisionController:
                 raise
             workspace = live_root / "workspace"
             state = _RevisionState(
-                phase=_RevisionPhase.READY_FOR_TURN,
-                next_turn_index=0,
+                phase=_RevisionPhase.READY_FOR_JUDGE,
+                next_turn_index=1,
                 session_id=None,
                 effective_solver_model=None,
-                submission_ids=[],
+                submission_ids=["s000"],
                 scores=[],
                 judge_attempts={},
                 next_prompt=solver_prompt(self.config.prompt_profile),
@@ -253,6 +294,8 @@ class SubmissionRevisionController:
     ) -> None:
         self.experiment_dir.mkdir(parents=True)
         TaskWorkspace(self.task_dir, workspace).prepare()
+        self._materialize_seed(workspace)
+        self._link_seed_snapshot()
         _make_read_only(workspace / "instruction.md")
         _make_tree_read_only(workspace / "data")
         _write_json(
@@ -271,6 +314,27 @@ class SubmissionRevisionController:
         )
         self._persist_rubric()
         self._write_state(state)
+
+    def _materialize_seed(self, workspace: Path) -> None:
+        source = self.seed.submission_dir / "workspace"
+        for child in source.iterdir():
+            destination = workspace / child.name
+            if destination.exists():
+                raise RuntimeError(f"seed conflicts with task workspace: {child.name}")
+            if child.is_dir():
+                shutil.copytree(child, destination, copy_function=shutil.copyfile)
+            else:
+                shutil.copyfile(child, destination)
+
+    def _link_seed_snapshot(self) -> None:
+        source = self.seed.submission_dir
+        destination = self.experiment_dir / "submissions" / "s000"
+        destination.mkdir(parents=True)
+        _link_solution_workspace(source / "workspace", destination / "workspace")
+        os.link(source / "trajectory.stream.jsonl", destination / "trajectory.stream.jsonl")
+        for name in ("status.json", "snapshot.json"):
+            shutil.copyfile(source / name, destination / name)
+        _make_tree_read_only(destination)
 
     def _load_resume(self) -> tuple[_RevisionState, Path, Path]:
         if not self.experiment_dir.is_dir():
@@ -365,13 +429,6 @@ class SubmissionRevisionController:
             or set(state.judge_attempts) != set(state.submission_ids)
         ):
             raise RuntimeError("failed revision state boundary counts are inconsistent")
-        if (
-            not state.session_id
-            or not state.effective_solver_model
-            or manifest.get("session_id") != state.session_id
-            or manifest.get("effective_solver_model") != state.effective_solver_model
-        ):
-            raise RuntimeError("failed revision state has inconsistent solver identity")
         if state.next_prompt != self._validate_scored_boundaries(state):
             raise RuntimeError(
                 "failed revision state next prompt disagrees with feedback"
@@ -380,7 +437,7 @@ class SubmissionRevisionController:
         turn_dir = self.experiment_dir / "turns" / f"turn-{turn_index:03d}"
         expected_turns = [
             self.experiment_dir / "turns" / f"turn-{index:03d}"
-            for index in range(turn_index + 1)
+            for index in range(1, turn_index + 1)
         ]
         if sorted((self.experiment_dir / "turns").glob("turn-*")) != expected_turns:
             raise RuntimeError("experiment contains an uncertain failed solver turn")
@@ -412,6 +469,13 @@ class SubmissionRevisionController:
             self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
             return
         if (
+            not state.session_id
+            or not state.effective_solver_model
+            or manifest.get("session_id") != state.session_id
+            or manifest.get("effective_solver_model") != state.effective_solver_model
+        ):
+            raise RuntimeError("failed revision state has inconsistent solver identity")
+        if (
             turn_dir.is_symlink()
             or not turn_dir.is_dir()
             or status_path.is_symlink()
@@ -440,7 +504,7 @@ class SubmissionRevisionController:
             )
         )
         validation_errors = status.get("validation_errors")
-        excluded_cache_failure = (
+        excluded_root_failure = (
             common_attempt_boundary
             and len(attempts) == 1
             and attempts[-1].get("stream_errors") == []
@@ -451,8 +515,10 @@ class SubmissionRevisionController:
             and validation_errors[0].startswith(
                 "snapshot contains a non-regular file: "
             )
-            and validation_errors[0].split(": ", 1)[1].split("/", 1)[0]
-            in {".cache", ".uv-cache", ".uv_cache"}
+            and _is_excluded_solution_root(
+                workspace
+                / validation_errors[0].split(": ", 1)[1].split("/", 1)[0]
+            )
         )
         interrupted_after_provider_success = (
             state.phase is _RevisionPhase.TURN_IN_PROGRESS
@@ -461,7 +527,7 @@ class SubmissionRevisionController:
             and attempts[-1].get("stream_errors") == []
             and attempts[-1].get("output_errors") == []
         )
-        if not (excluded_cache_failure or interrupted_after_provider_success):
+        if not (excluded_root_failure or interrupted_after_provider_success):
             self._restore_last_scored_workspace(state, workspace)
             self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
             return
@@ -471,12 +537,12 @@ class SubmissionRevisionController:
         submission_id = f"s{turn_index:03d}"
         if os.path.lexists(self.experiment_dir / "submissions" / submission_id):
             raise RuntimeError("failed solver turn already has a submission snapshot")
-        trajectories = [
+        trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
             self.experiment_dir
             / "turns"
             / f"turn-{index:03d}"
             / "trajectory.stream.jsonl"
-            for index in range(turn_index + 1)
+            for index in range(1, turn_index + 1)
         ]
         self._snapshot_submission(
             submission_id,
@@ -496,8 +562,8 @@ class SubmissionRevisionController:
                 provider_exit_code if type(provider_exit_code) is int else 1
             )
         recovery_status = (
-            "accepted_after_cache_exclusion"
-            if excluded_cache_failure
+            "accepted_after_disposable_exclusion"
+            if excluded_root_failure
             else "accepted_after_interrupted_boundary"
         )
         status.update(
@@ -520,8 +586,8 @@ class SubmissionRevisionController:
                 "turn": turn_index,
                 "session_id": state.session_id,
                 "reason": (
-                    "accepted workspace after excluding disposable cache"
-                    if excluded_cache_failure
+                    "accepted workspace after excluding disposable run state"
+                    if excluded_root_failure
                     else "accepted completed provider turn after interruption"
                 ),
             }
@@ -544,6 +610,10 @@ class SubmissionRevisionController:
             )
             _verify_submission_snapshot(source.parent)
             shutil.copytree(source, restored, copy_function=shutil.copyfile)
+            restored.chmod(
+                stat.S_IMODE(os.lstat(restored).st_mode) | stat.S_IRWXU
+            )
+            TaskWorkspace(self.task_dir, restored).prepare()
             for path in [restored, *restored.rglob("*")]:
                 if not path.is_symlink():
                     path.chmod(
@@ -647,7 +717,7 @@ class SubmissionRevisionController:
             for attempt_id in state.judge_attempts.values()
         ):
             raise RuntimeError("revision state has invalid judge attempt identities")
-        if state.next_turn_index and (
+        if state.next_turn_index > 1 and (
             not state.session_id or not state.effective_solver_model
         ):
             raise RuntimeError("revision state is missing solver identity")
@@ -658,7 +728,7 @@ class SubmissionRevisionController:
         turn_dirs = sorted((self.experiment_dir / "turns").glob("turn-*"))
         expected_turns = [
             self.experiment_dir / "turns" / f"turn-{index:03d}"
-            for index in range(state.next_turn_index)
+            for index in range(1, state.next_turn_index)
         ]
         if turn_dirs != expected_turns:
             raise RuntimeError("experiment contains an uncertain solver turn")
@@ -754,12 +824,12 @@ class SubmissionRevisionController:
             raise _SolverTurnFailure(str(exc), 2) from exc
         _make_tree_read_only(turn_dir)
         submission_id = f"s{turn_index:03d}"
-        trajectories = [
+        trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
             self.experiment_dir
             / "turns"
             / f"turn-{index:03d}"
             / "trajectory.stream.jsonl"
-            for index in range(turn_index + 1)
+            for index in range(1, turn_index + 1)
         ]
         self._snapshot_submission(
             submission_id,
@@ -793,15 +863,54 @@ class SubmissionRevisionController:
         submission_dir = self.experiment_dir / "submissions" / submission_id
         _verify_submission_snapshot(submission_dir)
         self._verify_canonical_task_inputs()
-        artifacts = self.dependencies.judge.evaluate(submission_dir, attempt_id)
+        rubric = self.rubric
+        judge = self.dependencies.judge
+        if self.config.rubric_evolution is not RubricEvolution.STATIC:
+            current_version = max(turn_index - 1, 0)
+            rubric = self._rubric_version(current_version)
+            judge = self._judge_for_rubric(rubric, current_version)
+        if turn_index == 0:
+            validation_path, evaluation_path, _ = self.seed.judgment
+            artifacts = JudgeArtifacts(validation_path, evaluation_path)
+        else:
+            artifacts = judge.evaluate(submission_dir, attempt_id)
+        if (
+            turn_index > 0
+            and self.config.rubric_evolution is not RubricEvolution.STATIC
+        ):
+            assert self.dependencies.evolver is not None
+            workspace = submission_dir / "workspace"
+            evolved = self.dependencies.evolver.evolve(
+                instruction=(self.task_dir / "instruction.md").read_text(),
+                current_rubric=rubric.text,
+                answer=(workspace / "answer.txt").read_text(),
+                trace=(workspace / "trace.md").read_text(),
+                trajectory_path=submission_dir / "trajectory.stream.jsonl",
+                evaluation=json.loads(artifacts.evaluation_path.read_text()),
+                version=turn_index,
+                output_dir=self.experiment_dir / "rubric",
+            )
+            rubric = FrozenRubric(
+                text=evolved.text,
+                sha256=evolved.sha256,
+                source="evolved",
+                rubric_set_id=None,
+                rubric_id=None,
+                structured_rubric_sha256=None,
+                manifest_sha256=None,
+            )
+            judge = self._judge_for_rubric(rubric, turn_index)
+            artifacts = judge.evaluate(submission_dir, attempt_id)
         self._verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
-        self._pin_or_verify_scoring_identity(artifacts.score_validation_path)
+        self._verify_round_scoring_identity(
+            artifacts.score_validation_path, rubric, judge
+        )
         feedback = project_feedback(
             artifacts.score_validation_path,
             artifacts.evaluation_path,
-            self.rubric.text,
-            self.rubric.sha256,
+            rubric.text,
+            rubric.sha256,
             self.config.feedback_policy,
             prompt_profile=self.config.prompt_profile,
         )
@@ -836,8 +945,60 @@ class SubmissionRevisionController:
                 "score": feedback.score,
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
                 "feedback_sha256": _sha256_file(feedback_path),
+                "rubric_version": (
+                    0 if self.config.rubric_evolution is RubricEvolution.STATIC
+                    else turn_index
+                ),
+                "rubric_sha256": rubric.sha256,
             }
         )
+
+    def _rubric_version(self, version: int) -> FrozenRubric:
+        path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"
+        if version == 0:
+            text = path.read_text(encoding="utf-8")
+            if text != self.rubric.text:
+                raise RuntimeError("base optimizer rubric changed")
+            return self.rubric
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError(f"evolved rubric version is missing: {path}")
+        text = path.read_text(encoding="utf-8")
+        return FrozenRubric(
+            text=text, sha256=_sha256_file(path), source="evolved",
+            rubric_set_id=None, rubric_id=None,
+            structured_rubric_sha256=None, manifest_sha256=None,
+        )
+
+    def _judge_for_rubric(
+        self, rubric: FrozenRubric, version: int
+    ) -> BiomniSubmissionJudge:
+        path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"
+        config = replace(
+            self.config.judge_config(),
+            rubric_name=None,
+            rubric_set=None,
+            rubric_path=path,
+        )
+        return BiomniSubmissionJudge(config, rubric)
+
+    def _verify_round_scoring_identity(
+        self,
+        validation_path: Path,
+        rubric: FrozenRubric,
+        judge: object,
+    ) -> None:
+        if self.config.rubric_evolution is RubricEvolution.STATIC:
+            self._pin_or_verify_scoring_identity(validation_path)
+            return
+        validation = _read_json_object(validation_path, "optimizer score validation")
+        identity = _extract_scoring_identity(
+            validation, context="optimizer score validation"
+        )
+        reported = judge.scoring_identity()  # type: ignore[attr-defined]
+        if identity != _extract_scoring_identity(reported, context="round judge"):
+            raise RuntimeError("round scoring identity does not match rubric judge")
+        if identity["rendered_rubric_sha256"] != rubric.sha256:
+            raise RuntimeError("round score attests a different rubric")
 
     def _validate_scored_boundaries(self, state: _RevisionState) -> str:
         expected_prompt = solver_prompt(self.config.prompt_profile)
@@ -848,13 +1009,24 @@ class SubmissionRevisionController:
             attempt_id = state.judge_attempts.get(submission_id)
             if attempt_id is None:
                 raise RuntimeError("scored submission has no judge attempt identity")
-            artifacts = self.dependencies.judge.validate(submission_dir, attempt_id)
-            self._pin_or_verify_scoring_identity(artifacts.score_validation_path)
+            rubric = self.rubric
+            judge = self.dependencies.judge
+            if index == 0:
+                validation_path, evaluation_path, _ = self.seed.judgment
+                artifacts = JudgeArtifacts(validation_path, evaluation_path)
+            else:
+                if self.config.rubric_evolution is not RubricEvolution.STATIC:
+                    rubric = self._rubric_version(index)
+                    judge = self._judge_for_rubric(rubric, index)
+                artifacts = judge.validate(submission_dir, attempt_id)
+            self._verify_round_scoring_identity(
+                artifacts.score_validation_path, rubric, judge
+            )
             projected = project_feedback(
                 artifacts.score_validation_path,
                 artifacts.evaluation_path,
-                self.rubric.text,
-                self.rubric.sha256,
+                rubric.text,
+                rubric.sha256,
                 self.config.feedback_policy,
                 prompt_profile=self.config.prompt_profile,
             )

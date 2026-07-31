@@ -40,6 +40,12 @@ class BiomniBenchJudgeRunner:
         self.config = config
         self.artifacts = JudgeArtifactStore(config)
         self.discovery = JudgeTargetDiscovery(config, self.artifacts)
+        # The imported implementation is fixed for this Python process. Pin its
+        # attestation at construction time as well, so an unrelated source edit
+        # during a long-running revision batch cannot invalidate earlier scores
+        # or make later scores claim a different implementation identity.
+        self._judge_runner_sha256 = JudgeExecutor.judge_runner_sha256()
+        self._scorer_module_sha256 = JudgeExecutor.scorer_module_sha256()
         self.executor = JudgeExecutor(
             config,
             self.artifacts,
@@ -75,8 +81,8 @@ class BiomniBenchJudgeRunner:
     ) -> Path:
         return self.discovery.validated_workspace(workspace, expected=expected)
 
-    def _standalone_workspace_options(self, run_dir: Path) -> tuple[Path, ...]:
-        return self.discovery.standalone_workspace_options(run_dir)
+    def _expected_workspace_dir(self, run_dir: Path) -> Path:
+        return self.discovery.expected_workspace_dir(run_dir)
 
     def validate_target_identity(self, target: JudgeTarget) -> None:
         self.discovery.validate_target_identity(target)
@@ -510,6 +516,19 @@ class BiomniBenchJudgeRunner:
 
     def resolve_rubric(self, target: JudgeTarget) -> ResolvedRubric:
         self.validate_target_identity(target)
+        if self.config.rubric_path is not None:
+            resolved = self.resolved_local_rubric(self.config.rubric_path)
+            return ResolvedRubric(
+                text=resolved.text,
+                path=resolved.path,
+                structured_rubric_sha256=None,
+                rendered_rubric_sha256=resolved.rendered_rubric_sha256,
+                rubric_id=None,
+                rubric_set_id=None,
+                source="evolved",
+                manifest_path=None,
+                manifest_sha256=None,
+            )
         if self.config.rubric_set is None:
             return self.resolved_local_rubric(self.find_rubric(target.task_dir))
 
@@ -859,10 +878,10 @@ class BiomniBenchJudgeRunner:
         )
 
     def judge_runner_sha256(self) -> str:
-        return self.executor.judge_runner_sha256()
+        return self._judge_runner_sha256
 
     def scorer_module_sha256(self) -> str:
-        return self.executor.scorer_module_sha256()
+        return self._scorer_module_sha256
 
     def judge_model(self, env: dict[str, str] | None = None) -> str:
         return self.executor.judge_model(env)

@@ -99,7 +99,8 @@ _MODULE_EXPORTS = {
         "SubmissionRevisionResult",
         "run_submission_revision",
     ),
-    ".revision.models": ("RevisionPhase", "RevisionState", "revision_experiment_dir"),
+    ".revision.models": ("RevisionPhase", "RevisionState"),
+    ".revision.naming": ("revision_experiment_dir",),
     ".utils.hashing": ("sha256_bytes", "sha256_file"),
     ".rubrics.compiler": (
         "GeminiTaskRubricRewriter",

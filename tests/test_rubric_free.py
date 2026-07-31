@@ -64,6 +64,17 @@ def test_rubric_free_runner_position_flips_and_aggregates(tmp_path: Path) -> Non
     assert result["judges"]["one"]["overall_delta"] == 4
     assert summary["protocol"]["position_flipped"] is True
 
+    resumed_calls = []
+    resumed = RubricFreeRunner(
+        RubricFreeConfig(
+            experiment_dirs=(experiment,), output_dir=output,
+            models=("one", "two", "three"), max_concurrency=2, resume=True,
+        ),
+        generate_response=lambda model, prompt: resumed_calls.append((model, prompt)),
+    )
+    assert resumed.run() == 0
+    assert resumed_calls == []
+
 
 def test_rubric_free_cli_requires_three_models() -> None:
     args = build_parser().parse_args([

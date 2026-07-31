@@ -9,8 +9,8 @@ from .models import (
     RevisionState,
     SubmissionRevisionConfig,
     SubmissionRevisionResult,
-    revision_experiment_dir,
 )
+from .naming import revision_experiment_dir
 
 __all__ = [
     "FeedbackPolicy",

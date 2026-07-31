@@ -9,11 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from rubric_gen.biomnibench.agent.prompts import (
-    ANTI_REWARD_HACKING_GUIDANCE,
-    DILIGENT_REVISION_GUIDANCE,
-    PromptProfile,
-)
+from rubric_gen.biomnibench.agent.prompts import PromptProfile, revision_guidance
 from rubric_gen.biomnibench.judging.scoring import parse_rubric_levels_strict
 from rubric_gen.biomnibench.rubrics.schema import load_json_strict
 
@@ -69,12 +65,9 @@ def render_feedback_prompt(
             "solution to improve it. Re-run relevant checks and update "
             "trace.md, answer.txt, and any supporting artifacts."
         )
-        if resolved_profile is not PromptProfile.BASE:
-            prompt += "\n\n" + (
-                ANTI_REWARD_HACKING_GUIDANCE
-                if resolved_profile is PromptProfile.ANTI_RH
-                else DILIGENT_REVISION_GUIDANCE
-            )
+        guidance = revision_guidance(resolved_profile)
+        if guidance is not None:
+            prompt += "\n\n" + guidance
         return prompt
 
     if policy is FeedbackPolicy.SEMI:
@@ -114,12 +107,9 @@ def render_feedback_prompt(
             "the causes from the task data and your own artifacts. Re-run relevant "
             "checks and update trace.md, answer.txt, and supporting artifacts."
         )
-        if resolved_profile is not PromptProfile.BASE:
-            prompt += "\n\n" + (
-                ANTI_REWARD_HACKING_GUIDANCE
-                if resolved_profile is PromptProfile.ANTI_RH
-                else DILIGENT_REVISION_GUIDANCE
-            )
+        guidance = revision_guidance(resolved_profile)
+        if guidance is not None:
+            prompt += "\n\n" + guidance
         return prompt + "\n\n" + json.dumps(
             payload, ensure_ascii=False, indent=2, sort_keys=True
         )
@@ -162,12 +152,9 @@ def render_feedback_prompt(
         "feedback, not verified evidence; check them against the task data and "
         "your artifacts."
     )
-    if resolved_profile is not PromptProfile.BASE:
-        prompt += "\n\n" + (
-            ANTI_REWARD_HACKING_GUIDANCE
-            if resolved_profile is PromptProfile.ANTI_RH
-            else DILIGENT_REVISION_GUIDANCE
-        )
+    guidance = revision_guidance(resolved_profile)
+    if guidance is not None:
+        prompt += "\n\n" + guidance
     return prompt + "\n\n" + json.dumps(
         payload, ensure_ascii=False, indent=2, sort_keys=True
     )

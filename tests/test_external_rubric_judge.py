@@ -26,6 +26,38 @@ from rubric_gen.biomnibench.judging import llm_judge as centralized_judge_module
 from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 
 
+def test_runner_pins_implementation_attestations_at_construction(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        judge_executor_module.JudgeExecutor,
+        "judge_runner_sha256",
+        staticmethod(lambda: "runner-before"),
+    )
+    monkeypatch.setattr(
+        judge_executor_module.JudgeExecutor,
+        "scorer_module_sha256",
+        staticmethod(lambda: "scorer-before"),
+    )
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(run_dir=tmp_path, tasks_dir=tmp_path)
+    )
+
+    monkeypatch.setattr(
+        judge_executor_module.JudgeExecutor,
+        "judge_runner_sha256",
+        staticmethod(lambda: "runner-after"),
+    )
+    monkeypatch.setattr(
+        judge_executor_module.JudgeExecutor,
+        "scorer_module_sha256",
+        staticmethod(lambda: "scorer-after"),
+    )
+
+    assert runner.judge_runner_sha256() == "runner-before"
+    assert runner.scorer_module_sha256() == "scorer-before"
+
+
 def test_judge_path_rewrite_handles_directory_and_child_literals(tmp_path: Path) -> None:
     tests_dir = tmp_path / "tests"
     logs_dir = tmp_path / "logs"
@@ -628,6 +660,31 @@ def test_single_discovery_rejects_unsafe_status_task(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="task ID"):
+        runner.discover_targets()
+
+
+def test_single_discovery_rejects_embedded_workspace_layout(tmp_path: Path) -> None:
+    task_id = "da-1-1"
+    task_dir = make_task(tmp_path / "runtime-tasks", task_id)
+    run_dir = tmp_path / "runs" / f"{task_id}-gemini-A"
+    workspace = run_dir / "workspace"
+    workspace.mkdir(parents=True)
+    (run_dir / "trajectory.stream.jsonl").write_text("{}\n", encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "task": task_id,
+                "task_dir": str(task_dir),
+                "workspace_dir": str(workspace),
+            }
+        ),
+        encoding="utf-8",
+    )
+    runner = BiomniBenchJudgeRunner(
+        JudgeRunConfig(run_dir=run_dir, tasks_dir=tmp_path / "runtime-tasks")
+    )
+
+    with pytest.raises(SystemExit, match="workspace"):
         runner.discover_targets()
 
 

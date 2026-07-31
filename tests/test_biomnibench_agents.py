@@ -1842,9 +1842,9 @@ class BiomniBenchAgentTests(unittest.TestCase):
             output_dir = root / "judge-output"
             output_dir.mkdir()
             run_dir = root / "run"
-            workspace_dir = run_dir / "workspace"
+            workspace_dir = root / "_workspaces" / run_dir.name
             run_dir.mkdir()
-            workspace_dir.mkdir()
+            workspace_dir.mkdir(parents=True)
 
             def fake_run(cmd, cwd, env, text, stdout, stderr, check):
                 self.assertEqual(
