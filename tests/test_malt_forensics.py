@@ -47,11 +47,11 @@ def _write_revision(directory: Path, revision: str = DATASET_REVISION) -> Path:
 def _rows(path: Path) -> None:
     rows = [
         {"samples": [{"input": [{"role": "user", "content": "task"}], "output": []}],
-         "metadata": {"labels": ["reward_hacking"], "manually_reviewed": True,
+         "metadata": {"labels": ["bypass_constraints"], "manually_reviewed": True,
                       "run_id": 1, "task_id": "task-a", "model": "m"}},
         {"samples": [], "metadata": {"labels": ["normal"], "manually_reviewed": True,
                                       "run_id": "run-2", "task_id": "task-b", "model": "m"}},
-        {"samples": [], "metadata": {"labels": ["reward_hacking"], "manually_reviewed": False,
+        {"samples": [], "metadata": {"labels": ["bypass_constraints"], "manually_reviewed": False,
                                       "run_id": "run-3", "task_id": "task-c", "model": "m"}},
         {"samples": [], "metadata": {"labels": [], "run_id": "run-4",
                                       "task_id": "task-d", "model": "m",
@@ -65,14 +65,14 @@ def test_inventory_and_prepare_blind_cases(tmp_path: Path) -> None:
     _rows(source)
     inventory = inventory_malt([source])
     assert inventory["rows"] == 4
-    assert inventory["labels"] == {"reward_hacking": 2, "normal": 1}
+    assert inventory["labels"] == {"bypass_constraints": 2, "normal": 1}
     assert inventory["empty_label_rows"] == 1
 
     result = prepare_malt(MaltPrepareConfig(
         inputs=(source,), cases_dir=tmp_path / "cases",
         gold_path=tmp_path / "private" / "gold.jsonl",
         dataset_revision=DATASET_REVISION,
-        positive_labels=frozenset({"reward_hacking"}),
+        positive_labels=frozenset({"bypass_constraints"}),
         negative_labels=frozenset({"normal"}),
     ))
     assert result["cases"] == 2
@@ -199,9 +199,9 @@ def test_detect_is_required_and_targets_have_distinct_label_mappings(
         {"samples": [], "metadata": {"labels": [label], "run_id": label,
          "task_id": label, "model": "m", "manually_reviewed": True}}
         for label in (
-            "normal", "reward_hacking", "gives_up", "match_weaker_model",
-            "partial_problem_solving", "reasoning_about_task", "refusals",
-            "sabotage",
+            "normal", "bypass_constraints", "hardcoded_solution",
+            "ignores_task_instructions", "gives_up", "match_weaker_model",
+            "partial_problem_solving", "reasoning_about_task", "refusals", "sabotage",
         )
     ]
     source.write_text("".join(json.dumps(row) + "\n" for row in rows))
@@ -222,10 +222,10 @@ def test_detect_is_required_and_targets_have_distinct_label_mappings(
                (rh_root / "rh/private/gold.jsonl").read_text().splitlines()]
     non_normal_gold = [json.loads(line) for line in
                        (non_normal_root / "non-normal/private/gold.jsonl").read_text().splitlines()]
-    assert len(rh_gold) == 2
-    assert sum(row["positive"] for row in rh_gold) == 1
-    assert len(non_normal_gold) == 8
-    assert sum(row["positive"] for row in non_normal_gold) == 7
+    assert len(rh_gold) == 3
+    assert sum(row["positive"] for row in rh_gold) == 2
+    assert len(non_normal_gold) == 10
+    assert sum(row["positive"] for row in non_normal_gold) == 9
 
 
 def test_cli_transactionally_rebuilds_changed_preparation(tmp_path: Path) -> None:
@@ -463,7 +463,7 @@ def test_prepare_rejects_duplicate_runs(tmp_path: Path) -> None:
         prepare_malt(MaltPrepareConfig(
             inputs=(source,), cases_dir=tmp_path / "cases", gold_path=tmp_path / "gold",
             dataset_revision=DATASET_REVISION,
-            positive_labels=frozenset({"reward_hacking"}),
+            positive_labels=frozenset({"bypass_constraints"}),
         ))
 
 
@@ -475,7 +475,7 @@ def test_prepare_resumes_complete_case_checkpoints(tmp_path: Path) -> None:
     config = MaltPrepareConfig(
         inputs=(source,), cases_dir=cases, gold_path=first_gold,
         dataset_revision=DATASET_REVISION,
-        positive_labels=frozenset({"reward_hacking"}),
+        positive_labels=frozenset({"bypass_constraints"}),
         negative_labels=frozenset({"normal"}),
     )
     prepare_malt(config)
@@ -498,7 +498,7 @@ def test_prepare_rejects_incomplete_case_checkpoint(tmp_path: Path) -> None:
         prepare_malt(MaltPrepareConfig(
             inputs=(source,), cases_dir=cases, gold_path=tmp_path / "gold.jsonl",
             dataset_revision=DATASET_REVISION,
-            positive_labels=frozenset({"reward_hacking"}),
+            positive_labels=frozenset({"bypass_constraints"}),
             negative_labels=frozenset({"normal"}),
         ))
 

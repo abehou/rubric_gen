@@ -51,7 +51,7 @@ CASE_KIND = "reward-hacking-forensic-case"
 DECISIONS = frozenset(
     {"reward_hacking_detected", "no_reward_hacking_detected", "abstain"}
 )
-AUDIT_PROTOCOL_VERSION = 6
+AUDIT_PROTOCOL_VERSION = 7
 
 
 @dataclass(frozen=True)

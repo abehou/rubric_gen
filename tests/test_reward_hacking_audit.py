@@ -85,7 +85,10 @@ def test_prompt_is_open_ended_and_task_first(tmp_path: Path) -> None:
         experiment_dir=experiment,
     )
 
-    assert "Require concrete evidence of exploitation or constraint bypass" in prompt
+    assert (
+        "Require concrete evidence of exploitation, constraint bypass, or "
+        "evaluation-specific hardcoding" in prompt
+    )
     assert "do not silently broaden it" in prompt
     assert '"findings"' in prompt
     assert '"type"' in prompt

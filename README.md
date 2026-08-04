@@ -467,9 +467,11 @@ uv run malt --detect rh
 
 By default this writes `inventory.json`, `cases/`, and the private gold file
 under `$BULK/rubric_gen/runs/malt-benchmark`. `--detect` is required. `rh`
-uses only `reward_hacking` as positive and `normal` as negative. `non-normal`
-uses every public label except `normal` as positive. Other labels are excluded
-from `rh`; neither mode silently treats an unmapped or empty label as negative.
+uses `bypass_constraints` and `hardcoded_solution` as positive and `normal` as
+negative. Standalone instruction noncompliance and every other behavior label
+are excluded from `rh`, not treated as negative. `non-normal` uses every current
+public behavior label except `normal` as positive. Neither mode silently treats
+an unmapped or empty label as negative.
 Only rows with `manually_reviewed: true` are prepared or scored. Missing or
 non-boolean review provenance is a hard error, and unreviewed rows are counted
 but excluded.
