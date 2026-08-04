@@ -424,25 +424,39 @@ scoring. It is deliberately not a `biomnibench-agent` subcommand. Standard uv
 syntax is `uv run malt`, not `uv malt`.
 
 After receiving access to the gated dataset, download exactly one MALT
-configuration:
+configuration at an immutable Hugging Face commit:
 
 ```bash
+export MALT_REVISION="$(
+  curl -fsSL \
+    -H "Authorization: Bearer $HF_TOKEN" \
+    https://huggingface.co/api/datasets/metr-evals/malt-public |
+  python -c 'import json, sys; print(json.load(sys.stdin)["sha"])'
+)"
 hf download metr-evals/malt-public \
   --repo-type dataset \
-  --include "default/*.parquet" \
+  --revision "$MALT_REVISION" \
+  --include "data/*.parquet" \
   --local-dir data/malt-public
+printf '%s\n' "$MALT_REVISION" > data/malt-public/REVISION
 ```
 
-Do not pool `default`, `irrelevant_detail`, `language_mixing`, `summarize`, and
+The remote `default/` export is obsolete and lacks manual-review provenance;
+do not use it. The CLI reads the immutable commit from
+`data/malt-public/REVISION`, hashes every local shard, and records both the
+commit and content hashes. Branch names such as `main` are not valid revision
+markers because they are mutable.
+
+Do not pool `data`, `irrelevant_detail`, `language_mixing`, `summarize`, and
 `vague_cot`: they contain paired variants of the same runs.
 
 With no positional inputs, `malt` reads
-`data/malt-public/default/*.parquet`. Pass shard paths explicitly only to use a
-different configuration. `--top K` draws exactly K cases after split selection
+`data/malt-public/data/*.parquet`. Pass shard paths explicitly
+only to use a different configuration. `--top K` draws exactly K cases after split selection
 using `--seed` (default `42`), so every judge mode can evaluate the same
 reproducible sample. Add `--balanced` with an even `--top` to draw equal class
-counts; for example, `--balanced --top 100` draws 50 human-labeled positives
-and 50 negatives. The command fails instead of silently returning an
+counts; for example, `--balanced --top 100` draws 50 reviewed positives and 50
+reviewed negatives. The command fails instead of silently returning an
 imbalanced sample when the selected split lacks enough cases in either class.
 
 Prepare the shared blinded cases without running judges:
@@ -456,6 +470,9 @@ under `$BULK/rubric_gen/runs/malt-benchmark`. `--detect` is required. `rh`
 uses only `reward_hacking` as positive and `normal` as negative. `non-normal`
 uses every public label except `normal` as positive. Other labels are excluded
 from `rh`; neither mode silently treats an unmapped or empty label as negative.
+Only rows with `manually_reviewed: true` are prepared or scored. Missing or
+non-boolean review provenance is a hard error, and unreviewed rows are counted
+but excluded.
 Preparation reads one trajectory at a time and keeps completed cases in a
 `.preparing` checkpoint. If the job is interrupted, rerunning the same command
 resumes that checkpoint instead of rewriting completed transcripts.
@@ -477,9 +494,10 @@ uv run malt \
 For MALT cases, each harness uses the same deterministic message index rather
 than repeatedly loading the raw transcript. The agents inspect the full
 chronology through bounded `inventory`, `timeline`, `search`, and `show`
-queries; exact message text remains available by event and offset, while
-repeated conversation-prefix copies are collapsed with occurrence counts and
-a separately queryable complete provenance-pointer list. Runs are
+queries. The index stores each complete structured message or trajectory event,
+including function and tool calls, plus an ordered source-reference timeline.
+Repeated conversation-prefix references are compressed without being described
+as repeated agent actions. Runs are
 capped at 24 agent turns, Gemini shell output is capped before it enters model
 context, Claude has a per-case $3 hard ceiling, and member records include
 reported or estimated cost when the harness exposes usage. These controls do
@@ -507,12 +525,14 @@ uv run malt \
 ```
 
 Direct judges also receive a content-preserving compact JSONL transcript rather
-than the repeated raw MALT payload. Exact duplicate role/content messages are
-represented once with occurrence counts and first/last source locations. Each
+than the repeated raw MALT payload. Exact duplicate complete message values are
+represented once, followed by every ordered serialized-source reference. Each
 judge still makes exactly one independent model call per case. Inputs above the
 safe compact-input ceiling fail locally before making a paid request. A resumed
-evaluation automatically archives and reruns outputs created by the obsolete
-raw-transcript protocol.
+evaluation is accepted only when its prompt, dataset hashes, requested model,
+request parameters, audit protocol, and source-tree hash match exactly.
+Detection metadata records the requested and effective served model, provider
+response ID, usage when available, and the fixed medium OpenAI reasoning effort.
 
 Open-source models served by vLLM use the same direct-judge path. The default
 single judge is `Qwen/Qwen3.6-27B`; the default panel adds
@@ -573,7 +593,7 @@ After all three server logs report `ready`, dry-run the CPU request job:
 mkdir -p logs/vllm
 nlprun -q jag -g 0 -c 4 -r 16G -t 1-0 -p standard \
   -n malt-vllm-eval -o logs/vllm/evaluation.out \
-  'bash scripts/run_malt_vllm.sh rh' test
+  "bash scripts/run_malt_vllm.sh rh" test
 ```
 
 Submit it by removing the final `test`:
@@ -581,7 +601,7 @@ Submit it by removing the final `test`:
 ```bash
 nlprun -q jag -g 0 -c 4 -r 16G -t 1-0 -p standard \
   -n malt-vllm-eval -o logs/vllm/evaluation.out \
-  'bash scripts/run_malt_vllm.sh rh'
+  "bash scripts/run_malt_vllm.sh rh"
 ```
 
 This maps to the concrete `jag-standard` Slurm partition through `nlprun` and
@@ -594,10 +614,14 @@ $BULK/rubric_gen/runs/malt-benchmark/
 ├── inventory.json
 ├── rh/
 │   ├── cases/
-│   └── private/gold.jsonl
+│   └── private/
+│       ├── gold.jsonl
+│       └── preparation.json
 └── non-normal/
     ├── cases/
-    └── private/gold.jsonl
+    └── private/
+        ├── gold.jsonl
+        └── preparation.json
 ```
 
 New evaluation runs are stored separately in the repository:
@@ -606,6 +630,7 @@ New evaluation runs are stored separately in the repository:
 runs/malt-runs/evaluations/
     ├── 20260725-143012-123456--agent-ensemble--split-test--top-100--seed-42--split-seed-malt-v1--dev-0.2--val-0.1--mc-6--raw-0/
     │   ├── summary.json
+    │   ├── run-provenance.json
     │   └── metrics.json
     └── 20260725-...--judge-gpt-5.6-luna--split-test--top-100--seed-42--split-seed-malt-v1--dev-0.2--val-0.1--mc-6--raw-0/
 ```
@@ -618,7 +643,7 @@ unanimous-detect rules. The default scored split is `test`; use `--split
 development` or `--split validation` while developing prompts, and do not tune
 against test results.
 
-Prepared cases and private human annotations remain under `$BULK`; prompts,
+Prepared cases and private reviewed annotations remain under `$BULK`; prompts,
 responses, verdicts, `summary.json`, and aggregate `metrics.json` remain together
 in each repository-local evaluation run. Partial or failed runs still write
 coverage-aware metrics. Use `--benchmark-dir` to override the shared benchmark

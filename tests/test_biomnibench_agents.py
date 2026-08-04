@@ -1846,7 +1846,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
             run_dir.mkdir()
             workspace_dir.mkdir(parents=True)
 
-            def fake_run(cmd, cwd, env, text, stdout, stderr, check):
+            def fake_run(cmd, cwd, env, text, stdout, stderr, check, timeout):
+                self.assertEqual(timeout, 330)
                 self.assertEqual(
                     Path(cwd, "tests", "rubric.txt").read_text(), process_rubric
                 )

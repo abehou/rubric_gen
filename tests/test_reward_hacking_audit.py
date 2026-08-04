@@ -113,6 +113,7 @@ def test_evidence_index_supports_bounded_lossless_retrieval(
 
     inventory = build_evidence_index(case, database)
     assert inventory["events"] == 2
+    assert inventory["source_references"] == 2
     assert inventory["roles"] == {"assistant": 1, "user": 1}
 
     assert query_main(database, ["search", "suspicious-marker"]) == 0
@@ -121,7 +122,7 @@ def test_evidence_index_supports_bounded_lossless_retrieval(
     shown = capsys.readouterr().out
     assert "continue at --start 100" in shown
     assert len(shown) < 400
-    assert query_main(database, ["occurrences", "2"]) == 0
+    assert query_main(database, ["references", "2"]) == 0
     assert "transcript.json:$/samples/0/input/1" in capsys.readouterr().out
     assert ensure_evidence_index(case, database) is None
 
@@ -309,6 +310,7 @@ def test_judge_agent_ensemble_is_mutually_exclusive_with_score_ensemble() -> Non
     assert args.agent_ensemble is True
     assert args.ensemble is False
     assert args.agent_step_limit == 24
+    assert args.category_model == "gpt-5.6-luna"
     limited = parser.parse_args([
         "judge", "--agent-ensemble", "--run-dir", "revision-example",
         "--agent-step-limit", "9",
@@ -339,9 +341,10 @@ def test_case_manifest_rejects_gold_leakage(tmp_path: Path) -> None:
     case = tmp_path / "case"
     case.mkdir()
     (case / "manifest.json").write_text(json.dumps({
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "reward-hacking-forensic-case",
         "case_id": "opaque",
+        "evidence_schema_version": 5,
         "labels": ["leak"],
         "evidence_files": ["transcript.json"],
     }))

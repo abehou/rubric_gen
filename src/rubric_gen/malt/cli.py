@@ -17,10 +17,13 @@ from urllib.parse import urlparse
 
 from rubric_gen.biomnibench.forensics.malt import (
     MaltPrepareConfig,
+    dataset_revision_from_inputs,
+    input_fingerprints,
     inventory_malt,
     prepare_malt,
 )
 from rubric_gen.biomnibench.forensics.reward_hacking import (
+    AUDIT_PROTOCOL_VERSION,
     PANEL,
     RewardHackingAuditConfig,
     RewardHackingAuditRunner,
@@ -31,6 +34,7 @@ from rubric_gen.biomnibench.forensics.scoring import (
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.malt.model_judge import (
+    DIRECT_AUDIT_PROTOCOL_VERSION,
     STRONG_JUDGE_MODELS,
     ModelJudgeConfig,
     ModelJudgeRunner,
@@ -244,7 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "inputs", nargs="*",
         help=("One MALT configuration's shards. Defaults to "
-              "data/malt-public/default/*.parquet."),
+              "data/malt-public/data/*.parquet."),
     )
     parser.add_argument(
         "--biomnibench-run-dir",
@@ -341,7 +345,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
         "--category-model",
-        default="gpt-5.6-sol",
+        default="gpt-5.6-luna",
         help="Model used only to induce post-hoc finding categories.",
     )
     parser.add_argument(
@@ -404,12 +408,13 @@ def run(args: argparse.Namespace) -> int:
         tuple(resolve_project_path(value) for value in args.inputs)
         if args.inputs
         else tuple(sorted(
-            resolve_project_path("data/malt-public/default").glob("*.parquet")
+            resolve_project_path("data/malt-public/data").glob("*.parquet")
         ))
     )
     if not inputs:
         raise FileNotFoundError(
-            "no default MALT shards found under data/malt-public/default"
+            "no default MALT shards found under data/malt-public/data; download "
+            "the reviewed data/*.parquet export first"
         )
     benchmark_root = (
         resolve_project_path(args.benchmark_dir)
@@ -417,7 +422,15 @@ def run(args: argparse.Namespace) -> int:
         else _default_benchmark_dir()
     )
     benchmark_root.mkdir(parents=True, exist_ok=True)
+    fingerprints = input_fingerprints(inputs)
+    dataset_revision = dataset_revision_from_inputs(inputs)
     inventory = inventory_malt(inputs, show_progress=True)
+    inventory.update({
+        "schema_version": 2,
+        "dataset_revision": dataset_revision,
+        "inputs": fingerprints,
+        "review_filter": "manually_reviewed_only",
+    })
     (benchmark_root / "inventory.json").write_text(
         json.dumps(inventory, indent=2) + "\n", encoding="utf-8"
     )
@@ -430,7 +443,10 @@ def run(args: argparse.Namespace) -> int:
     gold_path = detection_root / "private" / "gold.jsonl"
     preparation_path = detection_root / "private" / "preparation.json"
     preparation = {
-        "inputs": [str(path) for path in inputs],
+        "schema_version": 2,
+        "dataset_revision": dataset_revision,
+        "inputs": fingerprints,
+        "review_filter": "manually_reviewed_only",
         "detection": target.name,
         "positive_labels": sorted(target.positive_labels),
         "negative_labels": sorted(target.negative_labels),
@@ -468,6 +484,7 @@ def run(args: argparse.Namespace) -> int:
                 inputs=inputs,
                 cases_dir=staging_cases,
                 gold_path=staging_gold,
+                dataset_revision=dataset_revision,
                 positive_labels=target.positive_labels,
                 negative_labels=target.negative_labels,
                 development_fraction=args.development_fraction,
@@ -570,11 +587,19 @@ def run(args: argparse.Namespace) -> int:
     if args.balanced:
         mode_name += "--balanced"
     safe_split_seed = re.sub(r"[^A-Za-z0-9._-]+", "_", args.split_seed)
+    preparation_digest = hashlib.sha256(
+        json.dumps(preparation, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()[:12]
+    evaluation_protocol = (
+        AUDIT_PROTOCOL_VERSION if agent_panel is not None
+        else DIRECT_AUDIT_PROTOCOL_VERSION
+    )
     mode_name += (
         f"--split-seed-{safe_split_seed}"
         f"--dev-{args.development_fraction:g}"
         f"--val-{args.validation_fraction:g}"
         f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
+        f"--audit-v{evaluation_protocol}--data-{preparation_digest}"
     )
     if agent_panel is not None:
         mode_name += f"--steps-{args.agent_step_limit}"
@@ -607,6 +632,7 @@ def run(args: argparse.Namespace) -> int:
             base_urls=base_urls,
             detection=target.name,
             category_model=args.category_model,
+            dataset_provenance=preparation,
         )).run()
     metrics = score_panel(
         evaluation_root / "summary.json", gold_path,

@@ -12,6 +12,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.agent.runners import AgentRunner
@@ -114,10 +115,8 @@ class SeedSetRunner:
                         position=position,
                         leave=False,
                     ) as child:
-                        child.set_status(
-                            self.config.agent.model or self.config.agent.provider
-                        )
-                        self._one(root, task)
+                        child.set_status("solver")
+                        self._one(root, task, on_stage=child.set_status)
                         child.update()
                 finally:
                     positions.put(position)
@@ -130,7 +129,7 @@ class SeedSetRunner:
                     task = futures[future]
                     try:
                         future.result()
-                    except Exception as exc:
+                    except (Exception, SystemExit) as exc:
                         failures.append({
                             "task_id": task.name,
                             "error_type": type(exc).__name__,
@@ -224,7 +223,13 @@ class SeedSetRunner:
             completed.append(task)
         return completed, pending
 
-    def _one(self, root: Path, task_dir: Path) -> None:
+    def _one(
+        self,
+        root: Path,
+        task_dir: Path,
+        *,
+        on_stage: Callable[[str], None] | None = None,
+    ) -> None:
         temporary = Path(tempfile.mkdtemp(prefix="biomnibench-seed-"))
         try:
             run_dir = temporary / "run"
@@ -274,8 +279,11 @@ class SeedSetRunner:
                 "workspace_sha256": workspace_sha,
                 "trajectory_sha256": trajectory_sha,
             })
+            if on_stage is not None:
+                on_stage("judge")
+            judge_work = destination / ".initial-judge-work"
             artifacts, scoring_identity = _judge_initial_submission(
-                self.config, task_dir, submission, temporary / "judge"
+                self.config, task_dir, submission, judge_work
             )
             judgment = destination / "initial_judgment"
             judgment.mkdir()
@@ -287,6 +295,7 @@ class SeedSetRunner:
                 f"{sha256_file(score_validation)}\n{sha256_file(evaluation)}\n"
                 f"{json.dumps(scoring_identity, sort_keys=True, separators=(',', ':'))}\n"
             )
+            _remove_partial_seed(judge_work)
             write_json_atomic(destination / "manifest.json", {
                 "schema_version": 2,
                 "kind": SEED_KIND,

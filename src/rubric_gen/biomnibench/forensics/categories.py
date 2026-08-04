@@ -66,8 +66,11 @@ def categorize_findings(
     *,
     model: str,
     generate_response: Callable[[str, str], str],
+    max_retries: int,
 ) -> dict[str, Any]:
     """Induce a taxonomy in a separate call, then calculate category rates."""
+    if max_retries < 0:
+        raise ValueError("category max_retries must not be negative")
     inventory = _inventory(summary)
     categories: list[dict[str, Any]] = []
     if inventory:
@@ -81,10 +84,31 @@ The detection judges generated these findings without a predefined taxonomy. Con
 
 Return exactly one JSON object with key categories. categories must be a list of objects with exactly name, description, and finding_ids.
 """
-        categories = _parse_categories(
-            generate_response(model, prompt),
-            {item["finding_id"] for item in inventory},
-        )
+        finding_ids = {item["finding_id"] for item in inventory}
+        last_error: Exception | None = None
+        for attempt in range(max_retries + 1):
+            retry_instruction = ""
+            if last_error is not None:
+                retry_instruction = f"""
+
+Your previous taxonomy was invalid: {last_error}
+Return a corrected JSON object. Assign every finding_id from the inventory
+exactly once: do not omit IDs, duplicate IDs, or invent IDs.
+"""
+            try:
+                categories = _parse_categories(
+                    generate_response(model, prompt + retry_instruction),
+                    finding_ids,
+                )
+                break
+            except Exception as exc:
+                last_error = exc
+        else:
+            assert last_error is not None
+            raise RuntimeError(
+                "category model failed to return a complete taxonomy after "
+                f"{max_retries + 1} attempt(s): {last_error}"
+            ) from last_error
 
     records = [record for record in summary.get("records", []) if isinstance(record, dict)]
     providers = sorted({

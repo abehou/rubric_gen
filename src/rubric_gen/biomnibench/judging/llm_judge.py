@@ -15,7 +15,8 @@ import re
 from pathlib import Path
 
 
-_OPENAI_OUTPUT_BUDGETS = (16_384, 65_536)
+_OPENAI_OUTPUT_BUDGETS = (4_096, 16_384)
+_OPENAI_TIMEOUT_SECONDS = 300.0
 
 
 def provider_for_model(model: str) -> str:
@@ -86,7 +87,13 @@ def generate_response(
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY must be set")
-    client = OpenAI(api_key=api_key)
+    # BiomniBench owns retry policy. Hidden SDK retries multiply the outer
+    # retry loop and can turn one failed judgment into an hours-long stall.
+    client = OpenAI(
+        api_key=api_key,
+        timeout=_OPENAI_TIMEOUT_SECONDS,
+        max_retries=0,
+    )
     for index, output_budget in enumerate(_OPENAI_OUTPUT_BUDGETS):
         response = client.responses.create(
             model=model,

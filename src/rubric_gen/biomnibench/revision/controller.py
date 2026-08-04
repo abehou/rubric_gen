@@ -261,8 +261,6 @@ class SubmissionRevisionController:
             state.phase = _RevisionPhase.COMPLETED
             self._write_state(state)
             compaction = self._compact_historical_submissions(state)
-            if self.config.publish_report:
-                publish_revision_report(self.experiment_dir)
             self._append_event(
                 {
                     "event": "experiment_completed",
@@ -273,6 +271,7 @@ class SubmissionRevisionController:
                     "historical_workspace_logical_bytes_removed": compaction[1],
                 }
             )
+            self._publish_progress_report(state, state.submission_ids[-1])
             completed = True
             return SubmissionRevisionResult(
                 experiment_dir=self.experiment_dir,
@@ -928,14 +927,7 @@ class SubmissionRevisionController:
         state.next_prompt = feedback.prompt
         state.phase = _RevisionPhase.READY_FOR_TURN
         self._write_state(state)
-        write_revision_score_plot(
-            state.scores,
-            self.experiment_dir / "score_improvement.png",
-            task_id=self.task_dir.name,
-            feedback_policy=FeedbackPolicy(self.config.feedback_policy).value,
-        )
-        if self.config.publish_report:
-            publish_revision_report(self.experiment_dir)
+        self._publish_progress_report(state, submission_id)
         self._append_event(
             {
                 "event": "submission_judged",
@@ -952,6 +944,31 @@ class SubmissionRevisionController:
                 "rubric_sha256": rubric.sha256,
             }
         )
+
+    def _publish_progress_report(
+        self,
+        state: _RevisionState,
+        submission_id: str,
+    ) -> None:
+        """Best-effort publication that cannot abort a scientific revision."""
+        try:
+            write_revision_score_plot(
+                state.scores,
+                self.experiment_dir / "score_improvement.png",
+                task_id=self.task_dir.name,
+                feedback_policy=FeedbackPolicy(self.config.feedback_policy).value,
+            )
+            if self.config.publish_report:
+                publish_revision_report(self.experiment_dir)
+        except Exception as exc:
+            self._append_event(
+                {
+                    "event": "report_publication_failed",
+                    "submission_id": submission_id,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc) or type(exc).__name__,
+                }
+            )
 
     def _rubric_version(self, version: int) -> FrozenRubric:
         path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"

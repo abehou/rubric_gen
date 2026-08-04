@@ -67,6 +67,7 @@ def test_seed_set_is_compact_immutable_and_integrity_checked(
     task = _task(tmp_path)
     output = tmp_path / "seed-set"
     progress_events: list[tuple[str, str]] = []
+    judge_roots: list[Path] = []
 
     class _Progress:
         def __init__(self, *, description: str, **kwargs: object) -> None:
@@ -88,7 +89,11 @@ def test_seed_set_is_compact_immutable_and_integrity_checked(
 
     monkeypatch.setattr(seeds_module, "AgentRunner", _FakeAgentRunner)
     monkeypatch.setattr(seeds_module, "TerminalProgress", _Progress)
-    monkeypatch.setattr(seeds_module, "_judge_initial_submission", _fake_judgment)
+    def record_judgment(*args, **kwargs):
+        judge_roots.append(args[3])
+        return _fake_judgment(*args, **kwargs)
+
+    monkeypatch.setattr(seeds_module, "_judge_initial_submission", record_judgment)
 
     exit_code = SeedSetRunner(SeedSetConfig(
         tasks_dir=tmp_path / "tasks",
@@ -104,7 +109,10 @@ def test_seed_set_is_compact_immutable_and_integrity_checked(
     assert not (seed.submission_dir / "workspace" / ".uv_cache").exists()
     assert json.loads((output / "manifest.json").read_text())["status"] == "completed"
     assert ("seed batch", "updated") in progress_events
-    assert ("seed da-1-1", "test-model") in progress_events
+    assert ("seed da-1-1", "solver") in progress_events
+    assert ("seed da-1-1", "judge") in progress_events
+    assert judge_roots == [output / "tasks" / task.name / ".initial-judge-work"]
+    assert not judge_roots[0].exists()
     assert ("seed da-1-1", "updated") in progress_events
     assert not (seed.submission_dir / "workspace" / "answer.txt").stat().st_mode & 0o200
 
@@ -126,6 +134,36 @@ def test_seed_set_refuses_to_overwrite(tmp_path: Path) -> None:
             top=-1,
             max_concurrency=1,
         )).run()
+
+
+def test_seed_set_records_task_system_exit_instead_of_aborting_batch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _task(tmp_path)
+    output = tmp_path / "seed-set"
+    monkeypatch.setattr(seeds_module, "AgentRunner", _FakeAgentRunner)
+
+    def reject_judgment(*args: object, **kwargs: object):
+        raise SystemExit("invalid staged judge layout")
+
+    monkeypatch.setattr(
+        seeds_module, "_judge_initial_submission", reject_judgment
+    )
+
+    assert SeedSetRunner(SeedSetConfig(
+        tasks_dir=tmp_path / "tasks",
+        output_dir=output,
+        agent=AgentRunConfig(provider="gemini", model="test-model"),
+        top=-1,
+        max_concurrency=1,
+    )).run() == 1
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["status"] == "failed"
+    assert manifest["failures"] == [{
+        "task_id": "da-1-1",
+        "error_type": "SystemExit",
+        "error": "invalid staged judge layout",
+    }]
 
 
 def test_seed_resume_reuses_valid_tasks_and_runs_only_missing_tasks(

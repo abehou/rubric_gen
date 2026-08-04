@@ -1,0 +1,31 @@
+{
+  "completed_rounds": 11,
+  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/luna-top30-semi-r10-base-static/da-18-7",
+  "feedback_policy": "semi",
+  "judge_model": "gpt-5.6-luna",
+  "phase": "completed",
+  "prompt": "base",
+  "provider": "codex",
+  "review": "trace",
+  "rubric_evolution": "static",
+  "rubric_name": "rubric.txt",
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "6ead9c55d78142899a8f333bc7c59bbe361e6e66b9c48f4b2d386865d50ff74b",
+  "scores": [
+    52,
+    67,
+    57,
+    57,
+    57,
+    67,
+    67,
+    57,
+    57,
+    57,
+    57
+  ],
+  "solver_model": "gpt-5.6-luna",
+  "task_id": "da-18-7",
+  "total_rounds": 11
+}

@@ -23,6 +23,7 @@ class GeminiGenerateContentResponse:
     text: str
     model_version: str
     response_id: str
+    usage_metadata: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         for field_name in ("text", "model_version", "response_id"):
@@ -142,4 +143,10 @@ class GeminiClient:
                 error.raw_response = text  # type: ignore[attr-defined]
                 raise error
             metadata[field_name] = value
-        return GeminiGenerateContentResponse(text=text, **metadata)
+        raw_usage = payload.get("usageMetadata")
+        usage_metadata = raw_usage if isinstance(raw_usage, dict) else None
+        return GeminiGenerateContentResponse(
+            text=text,
+            usage_metadata=usage_metadata,
+            **metadata,
+        )

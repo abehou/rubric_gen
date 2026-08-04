@@ -5,13 +5,57 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 from rubric_gen.biomnibench.forensics.reward_hacking import CASE_KIND
+from rubric_gen.biomnibench.forensics.evidence_index import INDEX_SCHEMA_VERSION
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.biomnibench.utils.hashing import sha256_file
+
+
+IMMUTABLE_DATASET_REVISION = re.compile(r"[0-9a-f]{40}")
+DATASET_REVISION_FILENAME = "REVISION"
+
+
+def dataset_revision_from_inputs(paths: Iterable[Path]) -> str:
+    """Read the immutable dataset revision recorded above every input shard."""
+    revisions: dict[Path, str] = {}
+    for path in paths:
+        resolved = path.resolve()
+        marker = next(
+            (
+                parent / DATASET_REVISION_FILENAME
+                for parent in (resolved.parent, *resolved.parents)
+                if (parent / DATASET_REVISION_FILENAME).is_file()
+            ),
+            None,
+        )
+        if marker is None:
+            raise FileNotFoundError(
+                f"no {DATASET_REVISION_FILENAME} marker found above MALT input "
+                f"{path}; write the pinned 40-character Hugging Face commit SHA "
+                f"to data/malt-public/{DATASET_REVISION_FILENAME}"
+            )
+        revision = marker.read_text(encoding="utf-8").strip()
+        if IMMUTABLE_DATASET_REVISION.fullmatch(revision) is None:
+            raise ValueError(
+                f"{marker} must contain exactly one lowercase 40-character "
+                "Hugging Face commit SHA"
+            )
+        revisions[marker.resolve()] = revision
+    distinct = set(revisions.values())
+    if len(distinct) != 1:
+        details = ", ".join(
+            f"{marker}={revision}" for marker, revision in sorted(revisions.items())
+        )
+        raise ValueError(f"MALT inputs span different dataset revisions: {details}")
+    if not distinct:
+        raise ValueError("MALT inputs must not be empty")
+    return distinct.pop()
 
 
 @dataclass(frozen=True)
@@ -19,6 +63,7 @@ class MaltPrepareConfig:
     inputs: tuple[Path, ...]
     cases_dir: Path
     gold_path: Path
+    dataset_revision: str
     positive_labels: frozenset[str]
     negative_labels: frozenset[str] = frozenset()
     development_fraction: float = 0.2
@@ -27,12 +72,33 @@ class MaltPrepareConfig:
     show_progress: bool = False
 
     def __post_init__(self) -> None:
+        if IMMUTABLE_DATASET_REVISION.fullmatch(self.dataset_revision) is None:
+            raise ValueError("dataset_revision must be a 40-character commit SHA")
         if (
             self.development_fraction < 0
             or self.validation_fraction < 0
             or self.development_fraction + self.validation_fraction >= 1
         ):
             raise ValueError("split fractions must be nonnegative and sum to less than 1")
+
+
+def input_fingerprints(paths: Iterable[Path]) -> list[dict[str, Any]]:
+    """Return immutable content identities for every input shard."""
+    fingerprints: list[dict[str, Any]] = []
+    for path in paths:
+        if not path.is_file():
+            if any(character in str(path) for character in "*?["):
+                raise FileNotFoundError(
+                    f"MALT input glob matched no files: {path}. Download the dataset "
+                    "first or correct the path."
+                )
+            raise FileNotFoundError(f"MALT input file does not exist: {path}")
+        fingerprints.append({
+            "path": str(path.resolve()),
+            "bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        })
+    return fingerprints
 
 
 def _metadata(row: dict[str, Any]) -> dict[str, Any]:
@@ -159,7 +225,12 @@ def inventory_malt(
             raise ValueError(f"row {rows} has malformed labels")
         labels.update(raw_labels)
         empty_labels += not raw_labels
-        reviewed[str(metadata.get("manually_reviewed"))] += 1
+        manually_reviewed = metadata.get("manually_reviewed")
+        if type(manually_reviewed) is not bool:
+            raise ValueError(
+                f"row {rows} has no boolean manually_reviewed provenance"
+            )
+        reviewed[str(manually_reviewed).lower()] += 1
         models[str(metadata.get("model"))] += 1
         if isinstance(metadata.get("run_id"), (str, int)) and not isinstance(
             metadata.get("run_id"), bool
@@ -203,6 +274,7 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
     seen_runs: set[str] = set()
     gold_rows: list[dict[str, Any]] = []
     skipped_unmapped = 0
+    skipped_unreviewed = 0
     resumed_cases = 0
     for index, row in enumerate(iter_rows(
         config.inputs,
@@ -212,6 +284,7 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
         run_id = metadata.get("run_id")
         task_id = metadata.get("task_id")
         labels = metadata.get("labels")
+        manually_reviewed = metadata.get("manually_reviewed")
         samples = row.get("samples")
         if (
             not isinstance(run_id, (str, int))
@@ -224,12 +297,20 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
             raise ValueError(
                 f"duplicate run_id {run_id!r}; convert one MALT configuration at a time"
             )
+        seen_runs.add(run_key)
         if not isinstance(labels, list) or not all(isinstance(label, str) for label in labels):
             raise ValueError(f"row {index} has malformed labels")
         if not isinstance(task_id, str) or not task_id:
             raise ValueError(f"row {index} has no task_id")
         if not isinstance(samples, list):
             raise ValueError(f"row {index} has malformed samples")
+        if type(manually_reviewed) is not bool:
+            raise ValueError(
+                f"row {index} has no boolean manually_reviewed provenance"
+            )
+        if not manually_reviewed:
+            skipped_unreviewed += 1
+            continue
         positive = bool(config.positive_labels.intersection(labels))
         negative = bool(config.negative_labels.intersection(labels))
         if positive and negative:
@@ -240,9 +321,10 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
         case_id = _case_id(run_id)
         case_dir = config.cases_dir / case_id
         manifest = {
-            "schema_version": 1,
+            "schema_version": 2,
             "kind": CASE_KIND,
             "case_id": case_id,
+            "evidence_schema_version": INDEX_SCHEMA_VERSION,
             "evidence_files": ["transcript.json"],
         }
         manifest_path = case_dir / "manifest.json"
@@ -265,7 +347,9 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
             {
                 "case_id": case_id,
                 "positive": positive,
-                "raw_human_labels": labels,
+                "source_labels": labels,
+                "manually_reviewed": True,
+                "dataset_revision": config.dataset_revision,
                 "source_run_id": run_id,
                 "source_task_id": task_id,
                 "source_model": metadata.get("model"),
@@ -273,7 +357,6 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
                 "split": _split(task_id, config),
             }
         )
-        seen_runs.add(run_key)
     temporary_gold = config.gold_path.with_name(
         f".{config.gold_path.name}.tmp-{os.getpid()}"
     )
@@ -285,11 +368,13 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
     finally:
         temporary_gold.unlink(missing_ok=True)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
+        "dataset_revision": config.dataset_revision,
         "cases": len(gold_rows),
         "positives": sum(bool(row["positive"]) for row in gold_rows),
         "negatives": sum(not bool(row["positive"]) for row in gold_rows),
         "skipped_unmapped": skipped_unmapped,
+        "skipped_unreviewed": skipped_unreviewed,
         "resumed_cases": resumed_cases,
         "splits": dict(Counter(str(row["split"]) for row in gold_rows)),
         "cases_dir": str(config.cases_dir),

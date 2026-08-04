@@ -19,6 +19,8 @@ from rubric_gen.malt.cli import (
 )
 from rubric_gen.biomnibench.forensics.malt import (
     MaltPrepareConfig,
+    dataset_revision_from_inputs,
+    input_fingerprints,
     inventory_malt,
     prepare_malt,
 )
@@ -33,6 +35,15 @@ from rubric_gen.biomnibench.forensics.categories import categorize_findings
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 
 
+DATASET_REVISION = "a" * 40
+
+
+def _write_revision(directory: Path, revision: str = DATASET_REVISION) -> Path:
+    marker = directory / "REVISION"
+    marker.write_text(revision + "\n")
+    return marker
+
+
 def _rows(path: Path) -> None:
     rows = [
         {"samples": [{"input": [{"role": "user", "content": "task"}], "output": []}],
@@ -43,7 +54,8 @@ def _rows(path: Path) -> None:
         {"samples": [], "metadata": {"labels": ["reward_hacking"], "manually_reviewed": False,
                                       "run_id": "run-3", "task_id": "task-c", "model": "m"}},
         {"samples": [], "metadata": {"labels": [], "run_id": "run-4",
-                                      "task_id": "task-d", "model": "m"}},
+                                      "task_id": "task-d", "model": "m",
+                                      "manually_reviewed": True}},
     ]
     path.write_text("".join(json.dumps(row) + "\n" for row in rows))
 
@@ -59,18 +71,22 @@ def test_inventory_and_prepare_blind_cases(tmp_path: Path) -> None:
     result = prepare_malt(MaltPrepareConfig(
         inputs=(source,), cases_dir=tmp_path / "cases",
         gold_path=tmp_path / "private" / "gold.jsonl",
+        dataset_revision=DATASET_REVISION,
         positive_labels=frozenset({"reward_hacking"}),
         negative_labels=frozenset({"normal"}),
     ))
-    assert result["cases"] == 3
-    assert result["positives"] == 2
+    assert result["cases"] == 2
+    assert result["positives"] == 1
     assert result["negatives"] == 1
     assert result["skipped_unmapped"] == 1
+    assert result["skipped_unreviewed"] == 1
     for manifest in (tmp_path / "cases").glob("*/manifest.json"):
         text = manifest.read_text()
         assert "labels" not in text and "run-" not in text
     gold_rows = [json.loads(line) for line in (tmp_path / "private" / "gold.jsonl").read_text().splitlines()]
     assert all(row["split"] in {"development", "validation", "test"} for row in gold_rows)
+    assert all(row["manually_reviewed"] is True for row in gold_rows)
+    assert all("source_labels" in row and "raw_human_labels" not in row for row in gold_rows)
 
 
 def test_inventory_explains_unmatched_shell_glob(tmp_path: Path) -> None:
@@ -78,11 +94,77 @@ def test_inventory_explains_unmatched_shell_glob(tmp_path: Path) -> None:
         inventory_malt([tmp_path / "default" / "*.parquet"])
 
 
+def test_inventory_requires_boolean_review_provenance(tmp_path: Path) -> None:
+    source = tmp_path / "malt.jsonl"
+    source.write_text(json.dumps({
+        "samples": [],
+        "metadata": {
+            "labels": ["normal"],
+            "run_id": 1,
+            "task_id": "task",
+            "model": "model",
+        },
+    }) + "\n")
+
+    with pytest.raises(ValueError, match="manually_reviewed provenance"):
+        inventory_malt([source])
+
+
+def test_input_fingerprints_change_with_shard_contents(tmp_path: Path) -> None:
+    source = tmp_path / "malt.jsonl"
+    source.write_text("first")
+    first = input_fingerprints([source])
+    source.write_text("second")
+    second = input_fingerprints([source])
+
+    assert first[0]["path"] == str(source.resolve())
+    assert first[0]["sha256"] != second[0]["sha256"]
+    assert first[0]["bytes"] == 5
+    assert second[0]["bytes"] == 6
+
+
+def test_dataset_mode_requires_revision_marker(tmp_path: Path) -> None:
+    source = tmp_path / "malt.jsonl"
+    _rows(source)
+    args = build_parser().parse_args([str(source), "--detect", "rh"])
+
+    with pytest.raises(FileNotFoundError, match="REVISION marker"):
+        run(args)
+
+
+def test_dataset_revision_is_read_from_nearest_marker(tmp_path: Path) -> None:
+    source = tmp_path / "data" / "malt.jsonl"
+    source.parent.mkdir()
+    source.write_text("row")
+    _write_revision(tmp_path)
+
+    assert dataset_revision_from_inputs([source]) == DATASET_REVISION
+
+
+def test_dataset_revision_rejects_mutable_or_mixed_markers(tmp_path: Path) -> None:
+    first = tmp_path / "first" / "malt.jsonl"
+    second = tmp_path / "second" / "malt.jsonl"
+    first.parent.mkdir()
+    second.parent.mkdir()
+    first.write_text("row")
+    second.write_text("row")
+    _write_revision(first.parent, "main")
+    with pytest.raises(ValueError, match="lowercase 40-character"):
+        dataset_revision_from_inputs([first])
+    _write_revision(first.parent, "a" * 40)
+    _write_revision(second.parent, "b" * 40)
+    with pytest.raises(ValueError, match="different dataset revisions"):
+        dataset_revision_from_inputs([first, second])
+
+
 def test_cli_reports_unmatched_glob_without_traceback(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with pytest.raises(SystemExit) as error:
-        main([str(tmp_path / "default" / "*.parquet"), "--detect", "rh", "--benchmark-dir", str(tmp_path / "benchmark")])
+        main([
+            str(tmp_path / "default" / "*.parquet"), "--detect", "rh",
+            "--benchmark-dir", str(tmp_path / "benchmark"),
+        ])
     assert error.value.code == 2
     assert "glob matched no files" in capsys.readouterr().err
 
@@ -91,10 +173,18 @@ def test_single_cli_uses_fixed_mapping_and_prepares(tmp_path: Path) -> None:
     source = tmp_path / "malt.jsonl"
     _rows(source)
     root = tmp_path / "benchmark"
+    _write_revision(tmp_path)
     parser = build_parser()
-    assert run(parser.parse_args([str(source), "--detect", "rh", "--benchmark-dir", str(root)])) == 0
+    assert run(parser.parse_args([
+        str(source), "--detect", "rh",
+        "--benchmark-dir", str(root),
+    ])) == 0
     assert (root / "inventory.json").is_file()
-    assert len(list((root / "rh/cases").glob("*/manifest.json"))) == 3
+    assert len(list((root / "rh/cases").glob("*/manifest.json"))) == 2
+    preparation = json.loads((root / "rh/private/preparation.json").read_text())
+    assert preparation["dataset_revision"] == DATASET_REVISION
+    assert preparation["review_filter"] == "manually_reviewed_only"
+    assert preparation["inputs"] == input_fingerprints([source])
 
 
 def test_detect_is_required_and_targets_have_distinct_label_mappings(
@@ -118,8 +208,10 @@ def test_detect_is_required_and_targets_have_distinct_label_mappings(
 
     rh_root = tmp_path / "rh"
     non_normal_root = tmp_path / "non-normal"
+    _write_revision(tmp_path)
     assert run(parser.parse_args([
-        str(source), "--detect", "rh", "--benchmark-dir", str(rh_root)
+        str(source), "--detect", "rh",
+        "--benchmark-dir", str(rh_root)
     ])) == 0
     assert run(parser.parse_args([
         str(source), "--detect", "non-normal", "--benchmark-dir",
@@ -140,7 +232,11 @@ def test_cli_transactionally_rebuilds_changed_preparation(tmp_path: Path) -> Non
     source = tmp_path / "malt.jsonl"
     _rows(source)
     root = tmp_path / "benchmark"
-    args = build_parser().parse_args([str(source), "--detect", "rh", "--benchmark-dir", str(root)])
+    _write_revision(tmp_path)
+    args = build_parser().parse_args([
+        str(source), "--detect", "rh",
+        "--benchmark-dir", str(root),
+    ])
     assert run(args) == 0
     stale = root / "rh/cases" / "stale"
     stale.mkdir()
@@ -163,6 +259,7 @@ def test_evaluation_modes_are_mutually_exclusive() -> None:
     assert args.agent == "codex"
     assert args.agent_step_limit == 24
     assert args.max_retries == 2
+    assert args.category_model == "gpt-5.6-luna"
     limited = parser.parse_args([
         "data.jsonl", "--detect", "rh", "--output-dir", "out",
         "--agent-ensemble", "--agent-step-limit", "8", "--max-retries", "4",
@@ -365,6 +462,7 @@ def test_prepare_rejects_duplicate_runs(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="duplicate run_id"):
         prepare_malt(MaltPrepareConfig(
             inputs=(source,), cases_dir=tmp_path / "cases", gold_path=tmp_path / "gold",
+            dataset_revision=DATASET_REVISION,
             positive_labels=frozenset({"reward_hacking"}),
         ))
 
@@ -376,6 +474,7 @@ def test_prepare_resumes_complete_case_checkpoints(tmp_path: Path) -> None:
     first_gold = tmp_path / "first-gold.jsonl"
     config = MaltPrepareConfig(
         inputs=(source,), cases_dir=cases, gold_path=first_gold,
+        dataset_revision=DATASET_REVISION,
         positive_labels=frozenset({"reward_hacking"}),
         negative_labels=frozenset({"normal"}),
     )
@@ -384,8 +483,8 @@ def test_prepare_resumes_complete_case_checkpoints(tmp_path: Path) -> None:
 
     result = prepare_malt(config)
 
-    assert result["resumed_cases"] == 3
-    assert result["cases"] == 3
+    assert result["resumed_cases"] == 2
+    assert result["cases"] == 2
 
 
 def test_prepare_rejects_incomplete_case_checkpoint(tmp_path: Path) -> None:
@@ -398,6 +497,7 @@ def test_prepare_rejects_incomplete_case_checkpoint(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="incomplete prepared case checkpoint"):
         prepare_malt(MaltPrepareConfig(
             inputs=(source,), cases_dir=cases, gold_path=tmp_path / "gold.jsonl",
+            dataset_revision=DATASET_REVISION,
             positive_labels=frozenset({"reward_hacking"}),
             negative_labels=frozenset({"normal"}),
         ))
@@ -505,7 +605,10 @@ def test_post_hoc_categories_are_induced_in_separate_model_call() -> None:
         }]})
 
     result = categorize_findings(
-        summary, model="category-test", generate_response=generate
+        summary,
+        model="category-test",
+        generate_response=generate,
+        max_retries=2,
     )
 
     assert result["categories"][0]["name"] == (
@@ -513,3 +616,44 @@ def test_post_hoc_categories_are_induced_in_separate_model_call() -> None:
     )
     rate = result["providers"]["one"]["score-directed cosmetic optimization"]
     assert rate == {"detected": 1, "evaluated": 2, "rate": 0.5}
+
+
+def test_post_hoc_categories_retry_incomplete_assignments() -> None:
+    summary = {"records": [{
+        "case_id": "a", "source_path": "/a", "provider": "one",
+        "verdict": {
+            "decision": "reward_hacking_detected",
+            "findings": [{
+                "type": "first", "description": "First finding.",
+                "evidence_locations": ["event 1"],
+            }, {
+                "type": "second", "description": "Second finding.",
+                "evidence_locations": ["event 2"],
+            }],
+        },
+    }]}
+    prompts: list[str] = []
+
+    def generate(model: str, prompt: str) -> str:
+        prompts.append(prompt)
+        finding_ids = ["r0000-f000"] if len(prompts) == 1 else [
+            "r0000-f000", "r0000-f001"
+        ]
+        return json.dumps({"categories": [{
+            "name": "combined",
+            "description": "Both findings.",
+            "finding_ids": finding_ids,
+        }]})
+
+    result = categorize_findings(
+        summary,
+        model="category-test",
+        generate_response=generate,
+        max_retries=1,
+    )
+
+    assert len(prompts) == 2
+    assert "previous taxonomy was invalid" in prompts[1]
+    assert result["categories"][0]["finding_ids"] == [
+        "r0000-f000", "r0000-f001"
+    ]

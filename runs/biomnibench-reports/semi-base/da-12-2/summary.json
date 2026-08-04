@@ -1,0 +1,23 @@
+{
+  "completed_rounds": 3,
+  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/dynamic_rubric_prompt_feedback/semi-base/da-12-2",
+  "feedback_policy": "semi",
+  "judge_model": "gpt-5.6-luna",
+  "phase": "ready_for_turn",
+  "prompt": "base",
+  "provider": "codex",
+  "review": "trajectory",
+  "rubric_evolution": "trajectory",
+  "rubric_name": "rubric.txt",
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "cde509cef1e68a9478ed8a0565880b97f36152cf97da3210feca4d2430871702",
+  "scores": [
+    34,
+    100,
+    74
+  ],
+  "solver_model": "gpt-5.6-luna",
+  "task_id": "da-12-2",
+  "total_rounds": 11
+}

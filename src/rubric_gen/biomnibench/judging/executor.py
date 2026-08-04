@@ -37,6 +37,9 @@ from .scoring import (
 )
 
 
+JUDGE_SUBPROCESS_TIMEOUT_SECONDS = 330
+
+
 class JudgeExecutor:
     """Execute one task judge and validate the exact produced score artifacts."""
 
@@ -123,15 +126,30 @@ class JudgeExecutor:
                 )
             )
             env["MODEL_NAME"] = effective_judge_model
-            proc = subprocess.run(
-                ["uv", "run", str(rewritten_judge)],
-                cwd=tmp_dir,
-                env=env,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
+            try:
+                proc = subprocess.run(
+                    ["uv", "run", str(rewritten_judge)],
+                    cwd=tmp_dir,
+                    env=env,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    timeout=JUDGE_SUBPROCESS_TIMEOUT_SECONDS,
+                )
+            except subprocess.TimeoutExpired as exc:
+                captured = exc.stdout or ""
+                if isinstance(captured, bytes):
+                    captured = captured.decode(errors="replace")
+                proc = subprocess.CompletedProcess(
+                    exc.cmd,
+                    124,
+                    stdout=(
+                        captured
+                        + "\noptimizer judge exceeded the hard subprocess timeout "
+                        + f"of {JUDGE_SUBPROCESS_TIMEOUT_SECONDS} seconds\n"
+                    ),
+                )
             self.artifacts.write_output_text(output, "stdout.txt", proc.stdout)
             for filename in ("reward.json", "evaluation.json"):
                 source = logs_dir / filename

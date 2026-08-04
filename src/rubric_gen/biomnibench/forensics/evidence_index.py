@@ -10,15 +10,26 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterator
 
-INDEX_SCHEMA_VERSION = 4
+INDEX_SCHEMA_VERSION = 5
+
+
+def _canonical_json(value: Any) -> str:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def _messages(value: Any, pointer: str = "$") -> Iterator[tuple[str, str, str]]:
     if isinstance(value, dict):
         role = value.get("role")
-        content = value.get("content")
-        if isinstance(role, str) and isinstance(content, str):
-            yield pointer, role, content
+        if isinstance(role, str) and role:
+            # The complete structured message is the evidence. In particular,
+            # function/tool calls commonly have empty textual content.
+            yield pointer, role, _canonical_json(value)
+            return
         for key, child in value.items():
             yield from _messages(child, f"{pointer}/{key}")
     elif isinstance(value, list):
@@ -58,7 +69,7 @@ def _evidence_records(path: Path) -> Iterator[tuple[str, str, str]]:
             yield (
                 f"$line/{line_number}",
                 _jsonl_role(event),
-                json.dumps(event, ensure_ascii=False, separators=(",", ":")),
+                _canonical_json(event),
             )
         return
     try:
@@ -78,44 +89,48 @@ def indexable_event_count(path: Path) -> int:
 
 
 def render_compact_evidence(evidence_dir: Path) -> tuple[str, dict[str, int]]:
-    """Render distinct messages once, preserving order and repetition metadata."""
+    """Render full values once plus every ordered source reference."""
     manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
     seen: dict[tuple[str, str], dict[str, Any]] = {}
+    references: list[dict[str, Any]] = []
     source_bytes = 0
-    occurrences = 0
     for relative in manifest["evidence_files"]:
         path = evidence_dir / relative
         source_bytes += path.stat().st_size
-        for pointer, role, content in _evidence_records(path):
-            occurrences += 1
-            digest = hashlib.sha256(content.encode()).hexdigest()
+        for pointer, role, value_json in _evidence_records(path):
+            digest = hashlib.sha256(value_json.encode()).hexdigest()
             key = (role, digest)
-            if key in seen:
-                seen[key]["occurrences"] += 1
-                seen[key]["last_location"] = f"{relative}:{pointer}"
-                continue
-            seen[key] = {
-                "event_id": len(seen) + 1,
-                "role": role,
-                "occurrences": 1,
-                "first_location": f"{relative}:{pointer}",
-                "last_location": f"{relative}:{pointer}",
-                "content": content,
-            }
+            if key not in seen:
+                seen[key] = {
+                    "record_type": "event",
+                    "event_id": len(seen) + 1,
+                    "role": role,
+                    "source_references": 0,
+                    "value": json.loads(value_json),
+                }
+            event = seen[key]
+            event["source_references"] += 1
+            references.append({
+                "record_type": "source_reference",
+                "reference_id": len(references) + 1,
+                "event_id": event["event_id"],
+                "location": f"{relative}:{pointer}",
+            })
     rendered = "\n".join(
-        json.dumps(event, ensure_ascii=False, separators=(",", ":"))
-        for event in seen.values()
+        _canonical_json(record)
+        for record in (*seen.values(), *references)
     )
     return rendered, {
+        "evidence_schema_version": INDEX_SCHEMA_VERSION,
         "source_bytes": source_bytes,
-        "source_occurrences": occurrences,
+        "source_references": len(references),
         "distinct_events": len(seen),
         "compact_chars": len(rendered),
     }
 
 
 def build_evidence_index(evidence_dir: Path, database: Path) -> dict[str, object]:
-    """Index all role/content messages without lossy model summarization."""
+    """Index complete structured values and their ordered source references."""
     manifest = json.loads((evidence_dir / "manifest.json").read_text(encoding="utf-8"))
     files = manifest["evidence_files"]
     database.parent.mkdir(parents=True, exist_ok=True)
@@ -125,56 +140,56 @@ def build_evidence_index(evidence_dir: Path, database: Path) -> dict[str, object
     connection.execute("CREATE TABLE metadata (schema_version INTEGER NOT NULL)")
     connection.execute("INSERT INTO metadata VALUES (?)", (INDEX_SCHEMA_VERSION,))
     connection.execute(
-        "CREATE TABLE events (event_id INTEGER PRIMARY KEY, source TEXT NOT NULL, "
-        "first_pointer TEXT NOT NULL, last_pointer TEXT NOT NULL, "
-        "occurrences INTEGER NOT NULL, role TEXT NOT NULL, chars INTEGER NOT NULL, "
+        "CREATE TABLE events (event_id INTEGER PRIMARY KEY, "
+        "role TEXT NOT NULL, chars INTEGER NOT NULL, "
         "sha256 TEXT NOT NULL, content TEXT NOT NULL, UNIQUE(role, sha256))"
     )
     connection.execute(
-        "CREATE TABLE event_occurrences (event_id INTEGER NOT NULL, "
-        "source TEXT NOT NULL, pointer TEXT NOT NULL)"
+        "CREATE TABLE source_references (reference_id INTEGER PRIMARY KEY, "
+        "event_id INTEGER NOT NULL, source TEXT NOT NULL, pointer TEXT NOT NULL)"
     )
     roles: Counter[str] = Counter()
     source_bytes = 0
     event_id = 0
+    reference_count = 0
     for relative in files:
         path = evidence_dir / relative
         source_bytes += path.stat().st_size
-        for pointer, role, content in _evidence_records(path):
-            digest = hashlib.sha256(content.encode()).hexdigest()
+        for pointer, role, value_json in _evidence_records(path):
+            digest = hashlib.sha256(value_json.encode()).hexdigest()
             existing = connection.execute(
                 "SELECT event_id FROM events WHERE role = ? AND sha256 = ?",
                 (role, digest),
             ).fetchone()
-            if existing is not None:
+            if existing is None:
+                event_id += 1
+                roles[role] += 1
                 connection.execute(
-                    "UPDATE events SET occurrences = occurrences + 1, "
-                    "last_pointer = ? WHERE event_id = ?", (pointer, existing[0])
+                    "INSERT INTO events VALUES (?, ?, ?, ?, ?)",
+                    (event_id, role, len(value_json), digest, value_json),
                 )
-                connection.execute(
-                    "INSERT INTO event_occurrences VALUES (?, ?, ?)",
-                    (existing[0], relative, pointer),
-                )
-                continue
-            event_id += 1
-            roles[role] += 1
+            else:
+                event_id_for_reference = existing[0]
             connection.execute(
-                "INSERT INTO events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (event_id, relative, pointer, pointer, 1, role, len(content), digest, content),
+                "INSERT INTO source_references (event_id, source, pointer) "
+                "VALUES (?, ?, ?)",
+                (
+                    event_id if existing is None else event_id_for_reference,
+                    relative,
+                    pointer,
+                ),
             )
-            connection.execute(
-                "INSERT INTO event_occurrences VALUES (?, ?, ?)",
-                (event_id, relative, pointer),
-            )
+            reference_count += 1
     connection.execute("CREATE INDEX events_role ON events(role)")
     connection.execute(
-        "CREATE INDEX event_occurrences_event ON event_occurrences(event_id)"
+        "CREATE INDEX source_references_event ON source_references(event_id)"
     )
     connection.commit()
     connection.close()
     temporary.replace(database)
     return {
         "events": event_id,
+        "source_references": reference_count,
         "roles": dict(sorted(roles.items())),
         "source_bytes": source_bytes,
     }
@@ -243,10 +258,10 @@ def query_main(
     show.add_argument("event_id", type=int)
     show.add_argument("--start", type=int, default=0)
     show.add_argument("--limit", type=int, default=12000)
-    occurrences = sub.add_parser("occurrences")
-    occurrences.add_argument("event_id", type=int)
-    occurrences.add_argument("--start", type=int, default=0)
-    occurrences.add_argument("--limit", type=int, default=100)
+    references = sub.add_parser("references")
+    references.add_argument("event_id", type=int)
+    references.add_argument("--start", type=int, default=0)
+    references.add_argument("--limit", type=int, default=100)
     args = parser.parse_args(argv)
     if max_queries is not None:
         if max_queries < 1 or counter_path is None:
@@ -264,63 +279,98 @@ def query_main(
     retrieved_event_ids: list[int] = []
     if args.command == "inventory":
         rows = connection.execute(
-            "SELECT role, COUNT(*), SUM(occurrences), SUM(chars), MAX(chars) "
-            "FROM events GROUP BY role"
+            "SELECT events.role, COUNT(*), "
+            "SUM((SELECT COUNT(*) FROM source_references "
+            "WHERE source_references.event_id = events.event_id)), "
+            "SUM(events.chars), MAX(events.chars) FROM events GROUP BY events.role"
         ).fetchall()
-        print("role\tdistinct_events\tstored_occurrences\ttotal_chars\tmax_chars")
+        print("role\tdistinct_events\tsource_references\ttotal_chars\tmax_chars")
         for row in rows:
             print("\t".join(map(str, row)))
         print("total\t" + str(connection.execute("SELECT COUNT(*) FROM events").fetchone()[0]))
     elif args.command == "timeline":
         limit = min(max(args.limit, 1), 200)
         rows = connection.execute(
-            "SELECT event_id, role, occurrences, chars, source, first_pointer, content FROM events "
-            "WHERE event_id >= ? ORDER BY event_id LIMIT ?", (max(args.start, 1), limit)
+            "SELECT source_references.reference_id, events.event_id, events.role, "
+            "events.chars, source_references.source, source_references.pointer, "
+            "events.content FROM source_references JOIN events "
+            "ON events.event_id = source_references.event_id "
+            "WHERE source_references.reference_id >= ? "
+            "ORDER BY source_references.reference_id LIMIT ?",
+            (max(args.start, 1), limit),
         ).fetchall()
-        for event_id, role, occurrences, chars, source, pointer, content in rows:
+        for reference_id, event_id, role, chars, source, pointer, content in rows:
             retrieved_event_ids.append(event_id)
             preview = " ".join(content[:240].splitlines())
-            print(f"{event_id}\t{role}\tx{occurrences}\t{chars}\t{source}:{pointer}\t{preview}")
+            print(
+                f"{reference_id}\tevent:{event_id}\t{role}\t{chars}\t"
+                f"{source}:{pointer}\t{preview}"
+            )
     elif args.command == "search":
         limit = min(max(args.limit, 1), 100)
         context = min(max(args.context, 40), 1000)
         rows = connection.execute(
-            "SELECT event_id, role, occurrences, chars, source, first_pointer, content FROM events "
-            "WHERE instr(lower(content), lower(?)) > 0 ORDER BY event_id LIMIT ?",
+            "SELECT events.event_id, events.role, COUNT(source_references.reference_id), "
+            "events.chars, MIN(source_references.source), "
+            "MIN(source_references.pointer), events.content FROM events "
+            "JOIN source_references ON events.event_id = source_references.event_id "
+            "WHERE instr(lower(events.content), lower(?)) > 0 "
+            "GROUP BY events.event_id ORDER BY events.event_id LIMIT ?",
             (args.query, limit),
         ).fetchall()
-        for event_id, role, occurrences, chars, source, pointer, content in rows:
+        for event_id, role, reference_count, chars, source, pointer, content in rows:
             retrieved_event_ids.append(event_id)
             position = content.lower().find(args.query.lower())
             start = max(0, position - context)
             excerpt = " ".join(content[start:position + len(args.query) + context].splitlines())
-            print(f"{event_id}\t{role}\tx{occurrences}\t{chars}\t{source}:{pointer}\t{excerpt}")
-    elif args.command == "occurrences":
+            print(
+                f"{event_id}\t{role}\treferences:{reference_count}\t{chars}\t"
+                f"{source}:{pointer}\t{excerpt}"
+            )
+    elif args.command == "references":
         limit = min(max(args.limit, 1), 500)
         rows = connection.execute(
-            "SELECT source, pointer FROM event_occurrences WHERE event_id = ? "
-            "ORDER BY rowid LIMIT ? OFFSET ?",
+            "SELECT reference_id, source, pointer FROM source_references "
+            "WHERE event_id = ? ORDER BY reference_id LIMIT ? OFFSET ?",
             (args.event_id, limit, max(args.start, 0)),
         ).fetchall()
-        for source, pointer in rows:
-            print(f"{source}:{pointer}")
+        for reference_id, source, pointer in rows:
+            print(f"{reference_id}\t{source}:{pointer}")
         if rows:
             retrieved_event_ids.append(args.event_id)
         if len(rows) == limit:
             print(f"...[more may remain; continue at --start {max(args.start, 0) + limit}]")
     else:
         row = connection.execute(
-            "SELECT role, occurrences, chars, source, first_pointer, last_pointer, content "
-            "FROM events WHERE event_id = ?",
+            "SELECT role, chars, content FROM events WHERE event_id = ?",
             (args.event_id,),
         ).fetchone()
         if row is None:
             raise SystemExit(f"unknown event_id: {args.event_id}")
-        role, occurrences, chars, source, first, last, content = row
+        role, chars, content = row
+        reference_summary = connection.execute(
+            "SELECT COUNT(*), MIN(reference_id), MAX(reference_id) "
+            "FROM source_references WHERE event_id = ?",
+            (args.event_id,),
+        ).fetchone()
+        assert reference_summary is not None
+        reference_count, first_reference, last_reference = reference_summary
+        first_location = connection.execute(
+            "SELECT source, pointer FROM source_references "
+            "WHERE reference_id = ?", (first_reference,),
+        ).fetchone()
+        last_location = connection.execute(
+            "SELECT source, pointer FROM source_references "
+            "WHERE reference_id = ?", (last_reference,),
+        ).fetchone()
+        assert first_location is not None and last_location is not None
         retrieved_event_ids.append(args.event_id)
         print(
-            f"event_id={args.event_id} role={role} occurrences={occurrences} "
-            f"chars={chars} first={source}:{first} last={source}:{last}"
+            f"event_id={args.event_id} role={role} source_references={reference_count} "
+            f"chars={chars} first_reference={first_reference} "
+            f"first={first_location[0]}:{first_location[1]} "
+            f"last_reference={last_reference} "
+            f"last={last_location[0]}:{last_location[1]}"
         )
         print(_bounded(content, start=max(args.start, 0), limit=min(max(args.limit, 1), 24000)))
     connection.close()

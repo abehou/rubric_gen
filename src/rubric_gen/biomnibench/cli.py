@@ -519,7 +519,7 @@ def _add_judge_parser(
     )
     judge.add_argument(
         "--category-model",
-        default="gpt-5.6-sol",
+        default="gpt-5.6-luna",
         help="Model used only to induce post-hoc finding categories.",
     )
     judge.add_argument(

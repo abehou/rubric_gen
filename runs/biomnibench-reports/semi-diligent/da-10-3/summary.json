@@ -1,0 +1,23 @@
+{
+  "completed_rounds": 3,
+  "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/dynamic_rubric_prompt_feedback/semi-diligent/da-10-3",
+  "feedback_policy": "semi",
+  "judge_model": "gpt-5.6-luna",
+  "phase": "ready_for_turn",
+  "prompt": "diligent",
+  "provider": "codex",
+  "review": "trajectory",
+  "rubric_evolution": "trajectory",
+  "rubric_name": "rubric.txt",
+  "rubric_set": null,
+  "schema_version": 1,
+  "score_plot_sha256": "779b838fa03ceb54d57e7d79204ee7fd4243243a5ea049054ce0d181243ed081",
+  "scores": [
+    38,
+    52,
+    66
+  ],
+  "solver_model": "gpt-5.6-luna",
+  "task_id": "da-10-3",
+  "total_rounds": 11
+}

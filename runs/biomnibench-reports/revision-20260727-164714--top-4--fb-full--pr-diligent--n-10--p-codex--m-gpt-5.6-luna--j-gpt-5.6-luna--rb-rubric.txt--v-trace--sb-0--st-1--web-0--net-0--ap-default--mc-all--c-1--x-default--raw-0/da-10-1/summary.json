@@ -1,5 +1,5 @@
 {
-  "completed_rounds": 2,
+  "completed_rounds": 3,
   "experiment_dir": "/juice2/scr2/abehou/rubric_gen/runs/biomnibench-revisions/revision-20260727-164714--top-4--fb-full--pr-diligent--n-10--p-codex--m-gpt-5.6-luna--j-gpt-5.6-luna--rb-rubric.txt--v-trace--sb-0--st-1--web-0--net-0--ap-default--mc-all--c-1--x-default--raw-0/da-10-1",
   "feedback_policy": "full",
   "judge_model": "gpt-5.6-luna",
@@ -10,9 +10,10 @@
   "rubric_name": "rubric.txt",
   "rubric_set": null,
   "schema_version": 1,
-  "score_plot_sha256": "46129231294a6cc37f35137fe86e6858202c50100a41c89d43dbf7c157d9a239",
+  "score_plot_sha256": "81dbf7840a48ae5b4abe65ffd16bd10b5728aab96662337a4bbdbe5eec73bf86",
   "scores": [
     27,
+    100,
     100
   ],
   "solver_model": "gpt-5.6-luna",

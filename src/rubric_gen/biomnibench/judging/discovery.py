@@ -81,7 +81,21 @@ class JudgeTargetDiscovery:
 
     @staticmethod
     def expected_workspace_dir(run_dir: Path) -> Path:
-        if run_dir.parent.name == "submissions":
+        # Immutable evaluation snapshots are self-contained single runs. Prefer
+        # their local workspace when present; ordinary agent runs retain the
+        # sibling _workspaces layout.
+        parents = run_dir.parents
+        is_evaluation_snapshot = (
+            len(parents) >= 4
+            and parents[3].name == "evaluations"
+            and len(parents[0].name) == 32
+            and all(character in "0123456789abcdef" for character in parents[0].name)
+            and len(parents[1].name) == 64
+            and all(character in "0123456789abcdef" for character in parents[1].name)
+        )
+        if (
+            run_dir.parent.name == "submissions" or is_evaluation_snapshot
+        ) and (run_dir / "workspace").is_dir():
             return run_dir / "workspace"
         return run_dir.parent / "_workspaces" / run_dir.name
 

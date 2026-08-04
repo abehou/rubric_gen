@@ -19,6 +19,7 @@ from rubric_gen.biomnibench.judging.models import (
     JudgeTarget,
 )
 from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
+from rubric_gen.biomnibench.judging.discovery import JudgeTargetDiscovery
 from rubric_gen.biomnibench.judging import runner as judge_runner_module
 from rubric_gen.biomnibench.judging import scoring as rubric_scoring_module
 from rubric_gen.biomnibench.judging import executor as judge_executor_module
@@ -201,8 +202,12 @@ def test_centralized_openai_judge_uses_responses_api(
             return types.SimpleNamespace(output_text='{"criteria": {}}')
 
     class FakeOpenAI:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(
+            self, *, api_key: str, timeout: float, max_retries: int
+        ) -> None:
             observed["api_key"] = api_key
+            observed["timeout"] = timeout
+            observed["max_retries"] = max_retries
             self.responses = FakeResponses()
 
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
@@ -216,7 +221,9 @@ def test_centralized_openai_judge_uses_responses_api(
     assert observed["api_key"] == "openai-secret"
     assert observed["model"] == "gpt-5.6-luna"
     assert observed["input"] == "judge prompt"
-    assert observed["max_output_tokens"] == 16_384
+    assert observed["max_output_tokens"] == 4_096
+    assert observed["timeout"] == 300.0
+    assert observed["max_retries"] == 0
     assert observed["reasoning"] == {"effort": "low"}
     assert observed["text"]["verbosity"] == "low"  # type: ignore[index]
     assert observed["text"]["format"]["type"] == "json_schema"  # type: ignore[index]
@@ -244,7 +251,7 @@ def test_centralized_openai_judge_escalates_incomplete_token_budget(
             )
 
     class FakeOpenAI:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, **kwargs: object) -> None:
             self.responses = FakeResponses()
 
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
@@ -254,7 +261,7 @@ def test_centralized_openai_judge_escalates_incomplete_token_budget(
         "gpt-5.6-luna", "judge prompt", ("criterion_1",)
     )
 
-    assert budgets == [16_384, 65_536]
+    assert budgets == [4_096, 16_384]
     assert response.endswith('"ok"}')
 
 
@@ -270,7 +277,7 @@ def test_centralized_openai_judge_reports_incomplete_reason(
             )
 
     class FakeOpenAI:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, **kwargs: object) -> None:
             self.responses = FakeResponses()
 
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
@@ -497,6 +504,23 @@ def make_runner(
             max_review_chars=max_review_chars,
             repeats=repeats,
         )
+    )
+
+
+def test_single_run_prefers_self_contained_evaluation_workspace(
+    tmp_path: Path,
+) -> None:
+    run = (
+        tmp_path / "evaluations" / "submission" / ("a" * 64) / ("b" * 32) / "run"
+    )
+    local = run / "workspace"
+    local.mkdir(parents=True)
+
+    assert JudgeTargetDiscovery.expected_workspace_dir(run) == local
+
+    local.rmdir()
+    assert JudgeTargetDiscovery.expected_workspace_dir(run) == (
+        run.parent / "_workspaces" / run.name
     )
 
 
@@ -1239,6 +1263,31 @@ def test_gemini_judge_subprocess_prefers_gemini_api_key(
     assert runner.review_target(target)["status"] == "completed"
     assert captured_env["GEMINI_API_KEY"] == "gemini-secret"
     assert "GOOGLE_API_KEY" not in captured_env
+
+
+def test_judge_subprocess_timeout_is_a_retryable_failed_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = make_target(tmp_path)
+    runner = make_runner(tmp_path)
+    observed: dict[str, object] = {}
+
+    def time_out(cmd: object, **kwargs: object):
+        observed.update(kwargs)
+        raise subprocess.TimeoutExpired(cmd, kwargs["timeout"], output="partial\n")
+
+    monkeypatch.setattr(
+        "rubric_gen.biomnibench.judging.executor.subprocess.run", time_out
+    )
+
+    record = runner.review_target(target)
+
+    assert record["status"] == "failed"
+    assert record["exit_code"] == 124
+    assert observed["timeout"] == 330
+    stdout = Path(str(record["stdout"])).read_text()
+    assert "hard subprocess timeout of 330 seconds" in stdout
 
 
 def test_output_replacement_after_validation_cannot_redirect_input_writes(
