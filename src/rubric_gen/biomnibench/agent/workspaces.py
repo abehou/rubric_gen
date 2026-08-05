@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import stat
@@ -80,42 +79,4 @@ class TaskCatalog:
             and (task_dir / "instruction.md").is_file()
             and not (task_dir / "environment" / "data").is_symlink()
             and (task_dir / "environment" / "data").is_dir()
-        )
-
-
-class CompletedRunIndex:
-    def __init__(self, runs_dir: Path, provider: str) -> None:
-        self.runs_dir = runs_dir
-        self.provider = provider
-
-    def find(self, task_name: str) -> Path | None:
-        for run_dir in sorted(
-            self.runs_dir.glob(f"{task_name}-{self.provider}-*"), reverse=True
-        ):
-            if self.is_completed(run_dir, self.provider):
-                return run_dir
-        return None
-
-    @staticmethod
-    def is_completed(run_dir: Path, provider: str) -> bool:
-        status_path = run_dir / "status.json"
-        if not status_path.is_file():
-            return False
-        try:
-            status = json.loads(status_path.read_text())
-        except json.JSONDecodeError:
-            return False
-        if status.get("provider") not in (None, provider):
-            return False
-
-        workspace_dir = Path(status.get("workspace_dir") or run_dir / "workspace")
-        trace_path = workspace_dir / "trace.md"
-        answer_path = workspace_dir / "answer.txt"
-        return (
-            status.get("exit_code") == 0
-            and not status.get("validation_errors")
-            and trace_path.is_file()
-            and answer_path.is_file()
-            and trace_path.stat().st_size > 0
-            and answer_path.stat().st_size > 0
         )

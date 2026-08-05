@@ -1307,12 +1307,9 @@ class ModelJudgeConfig:
     execution: str = "standard"
     primary_rule: str = "majority"
     design_sha256s: tuple[str, ...] = ()
-    preflight_only: bool = False
 
     def __post_init__(self) -> None:
         detection_target(self.detection)
-        if type(self.preflight_only) is not bool:
-            raise ValueError("preflight_only must be boolean")
         if self.max_concurrency < 1:
             raise ValueError("max_concurrency must be at least 1")
         if self.max_retries < 0:
@@ -2012,12 +2009,6 @@ class ModelJudgeRunner:
         if self.config.execution == "standard":
             self._initialize_cost_state()
         jobs = self._preflight()
-        if self.config.preflight_only:
-            print(
-                "MALT preflight complete; no generation requests were made: "
-                f"{self.config.output_dir / 'cost-preflight.json'}"
-            )
-            return 0
         if self.config.execution == "batch":
             return self._run_batch(jobs)
         records: list[dict[str, object]] = []

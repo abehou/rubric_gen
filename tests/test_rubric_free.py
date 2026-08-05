@@ -78,6 +78,7 @@ def test_rubric_free_runner_position_flips_and_aggregates(tmp_path: Path) -> Non
 
 def test_rubric_free_cli_requires_three_models() -> None:
     args = build_parser().parse_args([
-        "rubric-free", "--run-dir", "revision", "--models", "a", "b", "c"
+        "judge", "--run-dir", "revision", "--output-dir", "out",
+        "--models", "a", "b", "c"
     ])
     assert args.models == ["a", "b", "c"]

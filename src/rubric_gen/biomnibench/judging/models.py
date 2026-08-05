@@ -91,7 +91,6 @@ class JudgeRunConfig:
     rubric_set: Path | None = None
     rubric_path: Path | None = None
     limit: int | None = None
-    dry_run: bool = False
     max_review_chars: int | None = None
     resume: bool = False
     force: bool = False
@@ -149,7 +148,6 @@ class JudgeRunConfig:
                 else None
             ),
             limit=getattr(args, "limit", None),
-            dry_run=getattr(args, "dry_run", False),
             max_review_chars=getattr(args, "max_review_chars", None),
             resume=getattr(args, "resume", False),
             force=getattr(args, "force", False),

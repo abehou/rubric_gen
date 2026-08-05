@@ -1,4 +1,4 @@
-"""Blinded forensic evidence, scoring, and MALT preparation."""
+"""Reward-hacking evidence preparation and scoring."""
 
 from .malt import CASE_KIND
 

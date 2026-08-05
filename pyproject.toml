@@ -1,7 +1,7 @@
 [project]
 name = "rubric-gen"
 version = "0.1.0"
-description = "Tools for running, perturbing, judging, and revising BiomniBench-DA agent experiments."
+description = "Seed, revise, and evaluate BiomniBench-DA submissions."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

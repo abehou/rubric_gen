@@ -1,4 +1,4 @@
-"""Stable, lazily loaded interfaces for BiomniBench experiments."""
+"""Lazily loaded BiomniBench interfaces."""
 
 from __future__ import annotations
 
@@ -19,8 +19,6 @@ _MODULE_EXPORTS = {
     ),
     ".agent.models": (
         "AgentRunConfig",
-        "BatchRunConfig",
-        "BatchRunPaths",
         "RunPaths",
     ),
     ".agent.costs": (
@@ -30,7 +28,6 @@ _MODULE_EXPORTS = {
         "RunCost",
     ),
     ".agent.workspaces": (
-        "CompletedRunIndex",
         "TaskCatalog",
         "TaskWorkspace",
     ),
@@ -55,31 +52,12 @@ _MODULE_EXPORTS = {
         "SCORE_VALIDATION_SCHEMA_VERSION",
         "safe_basename",
     ),
-    ".integrations.gemini": ("DEFAULT_GEMINI_API_KEY_ENV",),
-    ".perturbation.models": (
-        "DEFAULT_PERTURBER_MODEL",
-        "DEFAULT_PERTURBATION_LEVELS",
-        "DEFAULT_PERTURBATION_MAX_CONCURRENCY",
-        "PERTURBATION_LEVELS",
-        "PerturbationRequest",
-        "PerturbationResult",
-        "PerturbationRunConfig",
-    ),
-    ".perturbation.gemini": ("GeminiPerturber",),
-    ".perturbation.runner": ("BiomniBenchPerturbationRunner",),
-    ".rubrics.retrospective": (
-        "GeminiProcessRubricRewriter",
-        "ProcessRubricConfig",
-        "ProcessRubricGenerator",
-        "ProcessRubricRequest",
-    ),
     ".rubrics.bundles": (
         "ResolvedRubricBundle",
         "resolve_rubric_bundle",
     ),
     ".agent.runners": (
         "AgentRunner",
-        "BiomniBenchBatchRunner",
         "RunValidation",
     ),
     ".agent.sessions": (
@@ -104,14 +82,6 @@ _MODULE_EXPORTS = {
         "SubmissionRevisionResult",
     ),
     ".utils.hashing": ("sha256_bytes", "sha256_file"),
-    ".rubrics.compiler": (
-        "GeminiTaskRubricRewriter",
-        "TaskProcessRubricCompiler",
-        "TaskRubricCompilerConfig",
-        "TaskRubricRewriteResult",
-        "TaskRubricRewriter",
-        "TaskRubricRewriterProvenance",
-    ),
     ".rubrics.prompts": ("TaskRubricRequest",),
     ".rubrics.schema": (
         "DataFileSnapshot",
@@ -131,29 +101,13 @@ _MODULE_EXPORTS = {
         "validate_rendered_task_process_rubric",
         "validate_task_process_rubric",
     ),
-    ".visualization.comparisons": (
-        "JudgeComparisonConfig",
-        "JudgeComparisonPlotter",
-        "TaskJudgeComparison",
-    ),
     ".commands": (
-        "run_all",
-        "run_compare_judges",
-        "run_judge",
-        "run_one",
-        "run_perturb",
-        "run_process_rubrics",
-        "run_design",
+        "run_detect",
+        "run_judge_quality",
+        "run_revise",
         "run_seed",
-        "run_study",
-        "run_status",
-        "run_analyze",
-        "run_cross_score",
-        "run_blind_export",
-        "run_task_process_rubrics",
     ),
     ".cli": (
-        "add_agent_args",
         "build_parser",
         "main",
     ),

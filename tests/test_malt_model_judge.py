@@ -934,35 +934,6 @@ def test_cost_preflight_stops_before_generation(tmp_path: Path) -> None:
     )
 
 
-def test_preflight_only_never_generates(tmp_path: Path) -> None:
-    case = _case(tmp_path / "case-a", {"samples": []})
-    calls = 0
-
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
-        nonlocal calls
-        calls += 1
-        raise AssertionError("generation must not start")
-
-    output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,),
-            models=("gpt-5.6-luna",),
-            output_dir=output,
-            dataset_provenance=DATASET_PROVENANCE,
-            max_cost_usd=10.0,
-            preflight_only=True,
-        ),
-        generate_response=generate,
-        count_tokens=lambda _model, _request: 100_000,
-    )
-
-    assert runner.run() == 0
-    assert calls == 0
-    assert (output / "cost-preflight.json").is_file()
-    assert not (output / "summary.json").exists()
-
-
 def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     # Luna: 300k uncached input at 2x $0.20/MTok plus 100k output at
     # 1.5x $1.20/MTok.

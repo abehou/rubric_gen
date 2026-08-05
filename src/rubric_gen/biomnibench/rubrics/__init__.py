@@ -1,1 +1,1 @@
-"""Task-specific and retrospective process-rubric workflows."""
+"""Rubric parsing and sealed-bundle support for revision judging."""

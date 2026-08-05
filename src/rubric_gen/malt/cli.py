@@ -391,16 +391,12 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
             execution=execution,
             primary_rule=primary_rule,
             design_sha256s=(design_sha256,),
-            preflight_only=args.preflight_only,
         )
     ).run()
-    if args.preflight_only:
-        print(f"Wrote Biomni cost preflight: {evaluation_root / 'cost-preflight.json'}")
-    else:
-        print(
-            "Wrote unscored Biomni forensic judgments: "
-            f"{evaluation_root / 'summary.json'}"
-        )
+    print(
+        "Wrote unscored Biomni forensic judgments: "
+        f"{evaluation_root / 'summary.json'}"
+    )
     return exit_code
 
 
@@ -517,11 +513,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-cost-usd", type=float, default=None,
         help="Hard total hosted-API budget; Biomni studies load this from the design.",
-    )
-    parser.add_argument(
-        "--preflight-only",
-        action="store_true",
-        help="Write exact token/cost preflight and exit before model generation.",
     )
     parser.add_argument(
         "--execution", choices=("standard", "batch"), default=None,
@@ -843,16 +834,10 @@ def run(args: argparse.Namespace) -> int:
         max_cost_usd=args.max_cost_usd,
         execution=args.execution,
         primary_rule=args.primary_rule,
-        preflight_only=args.preflight_only,
     )).run()
     summary_path = evaluation_root / "summary.json"
     if not summary_path.is_file():
-        artifact = (
-            evaluation_root / "cost-preflight.json"
-            if args.preflight_only
-            else evaluation_root
-        )
-        print(f"Wrote pre-generation state: {artifact}")
+        print(f"Wrote pre-generation state: {evaluation_root}")
         return exit_code
     metrics = score_panel(
         summary_path, gold_path,

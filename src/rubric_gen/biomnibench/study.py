@@ -40,31 +40,10 @@ class StudyRunConfig:
     output_dir: Path
     max_concurrency: int
     resume: bool = False
-    dry_run: bool = False
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
             raise ValueError("max_concurrency must be positive")
-
-
-@dataclass(frozen=True)
-class StudyHealth:
-    total: int
-    completed: int
-    pending: int
-    running: int
-    failed: int
-    invalid: int
-
-    @property
-    def complete(self) -> bool:
-        return self.completed == self.total and not (
-            self.pending or self.running or self.failed or self.invalid
-        )
-
-    @property
-    def healthy(self) -> bool:
-        return self.failed == 0 and self.invalid == 0
 
 
 class StudyRunner:
@@ -81,14 +60,6 @@ class StudyRunner:
             self.design.assignments,
             key=lambda item: int(item["execution_order"]),
         )
-        if self.config.dry_run:
-            for assignment in assignments:
-                print(
-                    f"{int(assignment['execution_order']):04d}\t"
-                    f"{assignment['assignment_id']}\t"
-                    f"{self._experiment_dir(assignment)}"
-                )
-            return 0
         existed = os.path.lexists(self.root)
         if existed and not self.config.resume:
             raise FileExistsError(f"study output already exists: {self.root}")
@@ -322,68 +293,6 @@ class StudyRunner:
             raise RuntimeError("study assignment ledger differs from the design")
         for record, assignment in zip(records, assignments, strict=True):
             resolve_study_experiment(self.root, record, assignment)
-
-
-def inspect_study(run_dir: Path, design: ExperimentDesign) -> StudyHealth:
-    root = run_dir.resolve()
-    manifest = read_json_object(root / "study.json", "study manifest")
-    if (
-        manifest.get("schema_version") != STUDY_RUN_SCHEMA_VERSION
-        or manifest.get("kind") != STUDY_RUN_KIND
-        or manifest.get("design_path") != str(design.path)
-        or manifest.get("design_sha256") != design.sha256
-        or manifest.get("protocol_id") != design.protocol_id
-        or type(manifest.get("seed_run_dir")) is not str
-    ):
-        raise RuntimeError("study manifest does not match the design")
-    counts = {name: 0 for name in ("completed", "pending", "running", "failed", "invalid")}
-    assignments = {str(item["assignment_id"]): item for item in design.assignments}
-    records = _records(manifest)
-    record_ids = [str(record.get("assignment_id")) for record in records]
-    counts["invalid"] += (
-        len(record_ids) - len(set(record_ids))
-        + len(set(assignments) - set(record_ids))
-    )
-    seed_root = Path(str(manifest["seed_run_dir"])).resolve()
-    for record in records:
-        status = str(record.get("status"))
-        assignment_id = str(record.get("assignment_id"))
-        assignment = assignments.get(assignment_id)
-        if assignment is None:
-            counts["invalid"] += 1
-            continue
-        try:
-            experiment = resolve_study_experiment(root, record, assignment)
-        except Exception:
-            counts["invalid"] += 1
-            continue
-        if status == "completed":
-            try:
-                validate_completed_revision(
-                    experiment,
-                    assignment,
-                    design,
-                    seed_root,
-                )
-            except Exception:
-                counts["invalid"] += 1
-            else:
-                counts["completed"] += 1
-        elif status in counts:
-            counts[status] += 1
-        else:
-            counts["invalid"] += 1
-    manifest_status = manifest.get("status")
-    if manifest_status not in {"pending", "running", "completed", "failed"}:
-        counts["invalid"] = max(1, counts["invalid"])
-    elif (
-        manifest_status == "completed"
-    ) != (
-        counts["completed"] == len(assignments)
-        and not any(counts[name] for name in ("pending", "running", "failed", "invalid"))
-    ):
-        counts["invalid"] = max(1, counts["invalid"])
-    return StudyHealth(total=len(assignments), **counts)
 
 
 def study_experiment_relative_path(assignment: dict[str, object]) -> Path:

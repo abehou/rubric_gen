@@ -1,15 +1,5 @@
-"""Plots for revision experiments and judge comparisons."""
+"""Plots for revision experiments."""
 
-from .comparisons import (
-    JudgeComparisonConfig,
-    JudgeComparisonPlotter,
-    TaskJudgeComparison,
-)
 from .revisions import write_revision_score_plot
 
-__all__ = [
-    "JudgeComparisonConfig",
-    "JudgeComparisonPlotter",
-    "TaskJudgeComparison",
-    "write_revision_score_plot",
-]
+__all__ = ["write_revision_score_plot"]

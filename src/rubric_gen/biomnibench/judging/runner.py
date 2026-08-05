@@ -290,7 +290,7 @@ class BiomniBenchJudgeRunner:
             )
 
     def completed_record(self, attempt: JudgeAttempt) -> dict[str, Any] | None:
-        if not self.config.resume or self.config.force or self.config.dry_run:
+        if not self.config.resume or self.config.force:
             return None
         target = attempt.target
         output_dir = self.output_dir(target, attempt.repeat_index)
@@ -371,9 +371,6 @@ class BiomniBenchJudgeRunner:
             "output_dir": str(output_dir),
             **self.rubric_record(rubric),
         }
-        if self.config.dry_run:
-            return {**base_record, "status": "planned", "exit_code": 0}
-
         identities = self._target_directory_identities(target)
         with self._open_output_directory(
             target.output_root,
