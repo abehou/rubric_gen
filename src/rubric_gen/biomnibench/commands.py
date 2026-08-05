@@ -3,35 +3,28 @@
 from __future__ import annotations
 
 import argparse
-import json
-import os
-import queue
-import signal
-import socket
-import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import replace
-from datetime import datetime
 from pathlib import Path
 
 from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, BatchRunConfig
 from rubric_gen.biomnibench.agent.runners import AgentRunner, BiomniBenchBatchRunner
-from rubric_gen.biomnibench.agent.workspaces import TaskCatalog
+from rubric_gen.biomnibench.analysis import analyze_study
+from rubric_gen.biomnibench.blinding import export_blinded_review
+from rubric_gen.biomnibench.cross_scoring import CrossScoreConfig, CrossScoreRunner
+from rubric_gen.biomnibench.cost_report import study_cost_report
+from rubric_gen.biomnibench.experiments import (
+    DesignConfig,
+    create_design,
+    load_design,
+    verify_runtime_provenance,
+)
 from rubric_gen.biomnibench.judging.models import JudgeRunConfig
-from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
 from rubric_gen.biomnibench.perturbation.models import PerturbationRunConfig
 from rubric_gen.biomnibench.perturbation.runner import BiomniBenchPerturbationRunner
-from rubric_gen.biomnibench.revision import (
-    FeedbackPolicy,
-    SubmissionRevisionConfig,
-    run_submission_revision,
-)
-from rubric_gen.biomnibench.revision.naming import (
-    latest_revision_batch_dir,
-    timestamped_revision_batch_dir,
-)
+from rubric_gen.biomnibench.revision.evolution import RubricEvolution
+from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
+from rubric_gen.biomnibench.revision.seeds import SeedSetConfig, SeedSetRunner
 from rubric_gen.biomnibench.rubrics.compiler import (
     TaskProcessRubricCompiler,
     TaskRubricCompilerConfig,
@@ -40,17 +33,13 @@ from rubric_gen.biomnibench.rubrics.retrospective import (
     ProcessRubricConfig,
     ProcessRubricGenerator,
 )
+from rubric_gen.biomnibench.study import StudyRunConfig, StudyRunner, inspect_study
 from rubric_gen.biomnibench.utils.paths import resolve_project_path
-from rubric_gen.biomnibench.utils.progress import TerminalProgress
-from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.biomnibench.visualization.comparisons import (
     JudgeComparisonConfig,
     JudgeComparisonPlotter,
 )
-
-
-class _BatchTermination(KeyboardInterrupt):
-    pass
+from rubric_gen.biomnibench.agent.prompts import PromptProfile
 
 
 def run_one(args: argparse.Namespace) -> int:
@@ -60,10 +49,9 @@ def run_one(args: argparse.Namespace) -> int:
         task_dir,
         runs_dir,
     )
-    print("\nFinished.")
+    cost = RunCost.from_stream(paths.stream_path)
     print(f"Provider: {paths.provider}")
     print(f"Exit code: {exit_code}")
-    cost = RunCost.from_stream(paths.stream_path)
     print(f"cost_usd: {cost.cost_usd}")
     print(f"estimated_cost_usd: {cost.estimated_cost_usd}")
     print(f"cost_source: {cost.source}")
@@ -84,26 +72,168 @@ def run_generate(args: argparse.Namespace) -> int:
     ).run()
 
 
-def run_seed(args: argparse.Namespace) -> int:
-    from rubric_gen.biomnibench.revision.seeds import SeedSetConfig, SeedSetRunner
-
-    if args.top == 0 or args.top < -1:
-        raise ValueError("--top must be -1 or a positive integer")
-    if args.max_concurrency < 1:
-        raise ValueError("--max-concurrency must be positive")
-    return SeedSetRunner(SeedSetConfig(
+def run_design(args: argparse.Namespace) -> int:
+    design = create_design(DesignConfig(
         tasks_dir=resolve_project_path(args.tasks_dir),
-        output_dir=resolve_project_path(args.output_dir),
+        output_path=resolve_project_path(args.output),
+        protocol_id=args.protocol_id,
+        dataset_revision=args.dataset_revision,
+        random_seed=args.random_seed,
+        sample_size=args.sample_size,
+        replicates=args.replicates,
+        revision_rounds=args.revision_rounds,
+        feedback_policy=FeedbackPolicy(args.feedback_policy),
+        treatment_prompt=PromptProfile(args.treatment_prompt),
         agent=AgentRunConfig.from_namespace(args),
-        top=args.top,
-        max_concurrency=args.max_concurrency,
         judge_model=args.judge_model,
+        judge_max_retries=args.judge_max_retries,
+        minimum_detectable_effect=args.minimum_detectable_effect,
+        anticipated_discordance=args.anticipated_discordance,
+        stage=args.stage,
+        validated_design_path=(
+            resolve_project_path(args.validated_design)
+            if args.validated_design is not None
+            else None
+        ),
         rubric_name=args.rubric,
-        rubric_set=(resolve_project_path(args.rubric_set) if args.rubric_set else None),
         review=args.review,
         max_review_chars=args.max_review_chars,
+        rubric_proposer_model=args.rubric_proposer_model,
+        rubric_proposer_step_limit=args.rubric_proposer_step_limit,
+        rubric_proposer_max_retries=args.rubric_proposer_max_retries,
+        primary_rh_rule=args.primary_rh_rule,
+        alpha=args.alpha,
+        target_power=args.target_power,
+        audit_max_input_tokens=args.audit_max_input_tokens,
+        audit_max_output_tokens=args.audit_max_output_tokens,
+        audit_max_event_text_chars=args.audit_max_event_text_chars,
+        audit_max_command_output_chars=args.audit_max_command_output_chars,
+        audit_max_retries=args.audit_max_retries,
+        audit_max_cost_usd=args.audit_max_cost_usd,
+    ))
+    print(f"design_sha256: {design.sha256}")
+    print(f"assignments: {len(design.assignments)}")
+    cost_plan = design.payload["cost_plan"]
+    assert isinstance(cost_plan, dict)
+    print(
+        "nominal_stage_invocations: "
+        f"{cost_plan['nominal_total_stage_invocations']}"
+    )
+    print(f"design: {design.path}")
+    return 0
+
+
+def run_seed(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    verify_runtime_provenance(design)
+    return SeedSetRunner(SeedSetConfig(
+        design=design,
+        output_dir=resolve_project_path(args.output_dir),
+        max_concurrency=args.max_concurrency,
         resume=args.resume,
     )).run()
+
+
+def run_study(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    return StudyRunner(StudyRunConfig(
+        design=design,
+        seed_run_dir=resolve_project_path(args.seed_run_dir),
+        output_dir=resolve_project_path(args.output_dir),
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+        dry_run=args.dry_run,
+    )).run()
+
+
+def run_status(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    health = inspect_study(resolve_project_path(args.run_dir), design)
+    print(f"total: {health.total}")
+    print(f"completed: {health.completed}")
+    print(f"pending: {health.pending}")
+    print(f"running: {health.running}")
+    print(f"failed: {health.failed}")
+    print(f"invalid: {health.invalid}")
+    print(f"healthy: {str(health.healthy).lower()}")
+    print(f"complete: {str(health.complete).lower()}")
+    return 0 if health.complete else 1
+
+
+def run_cost(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    result = study_cost_report(
+        design,
+        seed_run_dir=(
+            resolve_project_path(args.seed_run_dir)
+            if args.seed_run_dir is not None else None
+        ),
+        study_dir=(
+            resolve_project_path(args.run_dir)
+            if args.run_dir is not None else None
+        ),
+        audit_summary=(
+            resolve_project_path(args.audit_summary)
+            if args.audit_summary is not None else None
+        ),
+        output_path=(
+            resolve_project_path(args.output)
+            if args.output is not None else None
+        ),
+    )
+    stages = result["stages"]
+    assert isinstance(stages, dict)
+    for name, stage in stages.items():
+        assert isinstance(stage, dict)
+        print(
+            f"{name}: ${float(stage['observed_cost_usd']):.2f} "
+            f"({stage['observed_stage_invocations']}/"
+            f"{stage['planned_stage_invocations']} stages observed; "
+            f"{stage['fully_priced_stage_invocations']} fully, "
+            f"{stage['partially_priced_stage_invocations']} partially, "
+            f"{stage['unpriced_stage_invocations']} unpriced)"
+        )
+    print(f"observed_total: ${float(result['observed_cost_usd']):.2f}")
+    if args.output is not None:
+        print(f"report: {resolve_project_path(args.output)}")
+    return 0
+
+
+def run_analyze(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    result = analyze_study(
+        design,
+        resolve_project_path(args.run_dir),
+        resolve_project_path(args.audit_summary),
+        resolve_project_path(args.output),
+    )
+    print(f"observed: {result['observed_count']}/{result['assignment_count']}")
+    print(f"analysis: {resolve_project_path(args.output)}")
+    return 0
+
+
+def run_cross_score(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    return CrossScoreRunner(CrossScoreConfig(
+        design=design,
+        study_dir=resolve_project_path(args.run_dir),
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+    )).run()
+
+
+def run_blind_export(args: argparse.Namespace) -> int:
+    design = load_design(resolve_project_path(args.design))
+    count = export_blinded_review(
+        design,
+        resolve_project_path(args.run_dir),
+        resolve_project_path(args.output_dir),
+        resolve_project_path(args.key_output),
+    )
+    print(f"blinded cases: {count}")
+    print(f"review packet: {resolve_project_path(args.output_dir)}")
+    print(f"private key: {resolve_project_path(args.key_output)}")
+    return 0
 
 
 def run_rubric_free(args: argparse.Namespace) -> int:
@@ -126,244 +256,8 @@ def run_all(args: argparse.Namespace) -> int:
     return BiomniBenchBatchRunner(BatchRunConfig.from_namespace(args)).run()
 
 
-def run_revise(args: argparse.Namespace) -> int:
-    if args.top is not None and args.task is not None:
-        raise ValueError("TASK and --top are mutually exclusive")
-    if args.top is not None and (args.top == 0 or args.top < -1):
-        raise ValueError("--top must be -1 or a positive integer")
-    if args.top is None and args.task is None:
-        args.task = "data/biomnibench-da/da-10-1"
-    if args.top is not None:
-        task_dirs = TaskCatalog(resolve_project_path(args.tasks_dir)).tasks()
-        if args.top != -1:
-            task_dirs = task_dirs[: args.top]
-    else:
-        task_dirs = [resolve_project_path(args.task)]
-    automatic_experiment_dir = args.experiment_dir is None
-    if automatic_experiment_dir:
-        if args.resume:
-            args.experiment_dir = str(
-                latest_revision_batch_dir(
-                    args, [task_dir.name for task_dir in task_dirs]
-                )
-            )
-        if args.restart:
-            raise ValueError("--restart requires --experiment-dir")
-        if args.experiment_dir is None:
-            args.experiment_dir = str(timestamped_revision_batch_dir(args))
-    args.revision_batch_layout = (
-        automatic_experiment_dir or args.top is not None or args.full_v_score
-    )
-    if not args.revision_batch_layout:
-        config = SubmissionRevisionConfig.from_namespace(args)
-        if args.dry_run:
-            print("Selected 1 task(s) and 1 experiment(s).")
-            print(
-                f"{config.task_dir.name}\t{config.feedback_policy.value}\t"
-                f"{config.experiment_dir}"
-            )
-            return 0
-        run_submission_revision(config)
-        return 0
-    if args.max_concurrency < 1:
-        raise ValueError("max_concurrency must be at least 1")
-    policies = (
-        (FeedbackPolicy.FULL, FeedbackPolicy.SCORE_ONLY)
-        if args.full_v_score
-        else (FeedbackPolicy(args.feedback_policy),)
-    )
-    configs = [
-        SubmissionRevisionConfig.from_namespace(
-            argparse.Namespace(
-                **{
-                    **vars(args),
-                    "task": str(task_dir),
-                    "feedback_policy": policy.value,
-                }
-            )
-        )
-        for task_dir in task_dirs
-        for policy in policies
-    ]
-    if args.resume:
-        configs = [
-            replace(config, resume=os.path.lexists(config.experiment_dir))
-            for config in configs
-        ]
-    if args.dry_run:
-        print(f"Selected {len(task_dirs)} task(s) and {len(configs)} experiment(s).")
-        for config in configs:
-            print(
-                f"{config.task_dir.name}\t{config.feedback_policy.value}\t"
-                f"{config.experiment_dir}"
-            )
-        return 0
-    batch_root = resolve_project_path(args.experiment_dir)
-    batch_root.mkdir(parents=True, exist_ok=True)
-    batch_manifest_path = batch_root / "batch.json"
-    previous_interruption: dict[str, object] | None = None
-    if args.resume and batch_manifest_path.is_file():
-        try:
-            previous_manifest = json.loads(batch_manifest_path.read_text())
-        except (OSError, json.JSONDecodeError):
-            previous_manifest = None
-        if (
-            isinstance(previous_manifest, dict)
-            and previous_manifest.get("status") == "running"
-        ):
-            previous_interruption = {
-                "status": "abandoned",
-                "started_at": previous_manifest.get("started_at"),
-                "pid": previous_manifest.get("pid"),
-                "hostname": previous_manifest.get("hostname"),
-                "detected_at": datetime.now().astimezone().isoformat(),
-            }
-    batch_manifest = {
-        "schema_version": 2,
-        "kind": "rubric-gen-submission-revision-batch",
-        "status": "running",
-        "started_at": datetime.now().astimezone().isoformat(),
-        "pid": os.getpid(),
-        "hostname": socket.gethostname(),
-        "run_name": batch_root.name,
-        "task_ids": [task_dir.name for task_dir in task_dirs],
-        "experiment_dirs": [
-            str(config.experiment_dir.relative_to(batch_root)) for config in configs
-        ],
-        "revision_rounds": args.revision_rounds,
-        "feedback_policies": [policy.value for policy in policies],
-        "configuration": {
-            "provider": args.provider,
-            "solver_model": args.model,
-            "judge_model": args.judge_model or DEFAULT_JUDGE_MODEL,
-            "rubric": args.rubric or "rubric.txt",
-            "rubric_set": args.rubric_set,
-            "review": args.review,
-            "prompt": args.prompt,
-            "seed_run_dir": str(resolve_project_path(args.seed_run_dir)),
-            "rubric_evolution": args.rubric_evolution,
-            "rubric_proposer_model": args.rubric_proposer_model,
-            "rubric_proposer_step_limit": args.rubric_proposer_step_limit,
-            "sandbox": args.sandbox,
-            "skip_trust": args.skip_trust,
-            "allow_web": args.allow_web,
-            "allow_network": args.allow_network,
-            "approval_mode": args.approval_mode,
-            "max_review_chars": args.max_review_chars,
-            "max_concurrency": args.max_concurrency,
-            "executable": args.executable,
-            "raw": args.raw,
-        },
-    }
-    if previous_interruption is not None:
-        batch_manifest["previous_interruption"] = previous_interruption
-    write_json_atomic(batch_manifest_path, batch_manifest)
-    failures: list[tuple[SubmissionRevisionConfig, BaseException, str]] = []
-
-    def terminate_batch(signum: int, frame: object) -> None:
-        del frame
-        raise _BatchTermination(f"received signal {signum}")
-
-    previous_sigterm_handler = signal.signal(signal.SIGTERM, terminate_batch)
-    try:
-        with TerminalProgress(
-            total=len(configs),
-            description="revise batch",
-            unit="experiment",
-            position=0,
-        ) as progress:
-            if args.max_concurrency == 1:
-                for config in configs:
-                    try:
-                        run_submission_revision(replace(config, progress_position=1))
-                    except (Exception, SystemExit) as exc:
-                        failures.append((config, exc, traceback.format_exc()))
-                    finally:
-                        progress.update()
-            else:
-                progress_positions: queue.SimpleQueue[int] = queue.SimpleQueue()
-                for position in range(1, args.max_concurrency + 1):
-                    progress_positions.put(position)
-
-                def run_with_progress(config: SubmissionRevisionConfig) -> None:
-                    position = progress_positions.get()
-                    try:
-                        run_submission_revision(
-                            replace(config, progress_position=position)
-                        )
-                    finally:
-                        progress_positions.put(position)
-
-                with ThreadPoolExecutor(max_workers=args.max_concurrency) as executor:
-                    futures = {
-                        executor.submit(run_with_progress, config): config
-                        for config in configs
-                    }
-                    for future in as_completed(futures):
-                        try:
-                            future.result()
-                        except (Exception, SystemExit) as exc:
-                            failures.append(
-                                (futures[future], exc, traceback.format_exc())
-                            )
-                        finally:
-                            progress.update()
-    except BaseException as exc:
-        batch_manifest["status"] = "interrupted"
-        batch_manifest["finished_at"] = datetime.now().astimezone().isoformat()
-        batch_manifest["interruption"] = {
-            "error_type": type(exc).__name__,
-            "error": str(exc),
-            "traceback": traceback.format_exc(),
-        }
-        write_json_atomic(batch_manifest_path, batch_manifest)
-        raise
-    finally:
-        signal.signal(signal.SIGTERM, previous_sigterm_handler)
-    if failures:
-        batch_manifest["status"] = "failed"
-        batch_manifest["finished_at"] = datetime.now().astimezone().isoformat()
-        batch_manifest["failed_experiments"] = [
-            {
-                "experiment_dir": str(config.experiment_dir),
-                "task_id": config.task_dir.name,
-                "feedback_policy": config.feedback_policy.value,
-                "error_type": type(exc).__name__,
-                "error": str(exc),
-                "traceback": failure_traceback,
-            }
-            for config, exc, failure_traceback in failures
-        ]
-        write_json_atomic(batch_manifest_path, batch_manifest)
-        config, exc, _ = failures[0]
-        raise RuntimeError(
-            f"{len(failures)} revision experiments failed; first: "
-            f"{config.task_dir.name} ({config.feedback_policy.value}): "
-            f"{type(exc).__name__}: {exc}"
-        ) from exc
-    batch_manifest["status"] = "completed"
-    batch_manifest["finished_at"] = datetime.now().astimezone().isoformat()
-    write_json_atomic(batch_manifest_path, batch_manifest)
-    return 0
-
-
 def run_judge(args: argparse.Namespace) -> int:
-    if getattr(args, "agent_ensemble", False):
-        from rubric_gen.biomnibench.forensics.reward_hacking import (
-            RewardHackingAuditConfig,
-            RewardHackingAuditRunner,
-        )
-
-        return RewardHackingAuditRunner(
-            RewardHackingAuditConfig.from_namespace(args)
-        ).run()
-    if getattr(args, "case_dir", None):
-        raise ValueError("--case-dir is valid only with --agent-ensemble")
     config = JudgeRunConfig.from_namespace(args)
-    if config.ensemble:
-        from rubric_gen.biomnibench.judging.ensemble import StrongVerifierRunner
-
-        return StrongVerifierRunner(config).run()
     return BiomniBenchJudgeRunner(config).run()
 
 

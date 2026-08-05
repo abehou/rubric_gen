@@ -13,17 +13,37 @@ from typing import Any, Callable
 from rubric_gen.malt.detection import detection_target
 
 
+def wilson_interval(successes: int, total: int, z: float = 1.959963984540054) -> list[float] | None:
+    """Return a two-sided Wilson score interval for a binomial proportion."""
+    if type(successes) is not int or type(total) is not int:
+        raise TypeError("Wilson inputs must be integers")
+    if total < 0 or successes < 0 or successes > total:
+        raise ValueError("Wilson inputs are out of range")
+    if total == 0:
+        return None
+    estimate = successes / total
+    denominator = 1 + z * z / total
+    center = (estimate + z * z / (2 * total)) / denominator
+    radius = (
+        z
+        * math.sqrt(estimate * (1 - estimate) / total + z * z / (4 * total * total))
+        / denominator
+    )
+    return [max(0.0, center - radius), min(1.0, center + radius)]
+
+
 def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
     """Summarize unscored positive-decision rates and fixed ensemble rules."""
     target = detection_target(str(summary.get("detection")))
     records = summary.get("records")
     if not isinstance(records, list):
         raise ValueError("panel summary has no records")
-    providers = sorted({
-        str(record["provider"])
-        for record in records
-        if isinstance(record, dict) and isinstance(record.get("provider"), str)
-    })
+    configured = summary.get("models")
+    if not isinstance(configured, list) or not configured or any(
+        type(provider) is not str for provider in configured
+    ) or len(set(configured)) != len(configured):
+        raise ValueError("panel summary has no unique configured model panel")
+    providers = sorted(configured)
     by_provider: dict[str, dict[str, int | float | None]] = {}
     by_case: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
     for provider in providers:
@@ -47,6 +67,7 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
             "evaluated": len(substantive),
             "detected": detected,
             "rate": detected / len(substantive) if substantive else None,
+            "rate_wilson_95": wilson_interval(detected, len(substantive)),
         }
     for record in records:
         if not isinstance(record, dict) or not isinstance(record.get("provider"), str):
@@ -67,37 +88,50 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
         if set(decisions) == set(providers)
     }
 
-    def ensemble(rule: Callable[[int, int], bool]) -> dict[str, int | float | None]:
+    def ensemble(rule: Callable[[int, int], bool]) -> dict[str, Any]:
         evaluated = detected_cases = abstained = 0
         for verdicts in complete.values():
-            substantive = [
-                value["decision"] for value in verdicts.values()
-                if value["decision"] != "abstain"
-            ]
-            if not substantive:
+            decisions = [value["decision"] for value in verdicts.values()]
+            if "abstain" in decisions:
                 abstained += 1
                 continue
-            detected = sum(value == target.positive_decision for value in substantive)
+            detected = sum(value == target.positive_decision for value in decisions)
             evaluated += 1
-            detected_cases += int(rule(detected, len(substantive)))
+            detected_cases += int(rule(detected, len(decisions)))
         return {
             "complete_panels": len(complete),
+            "incomplete_panels": len(by_case) - len(complete),
             "abstained": abstained,
             "evaluated": evaluated,
             "detected": detected_cases,
             "rate": detected_cases / evaluated if evaluated else None,
+            "rate_wilson_95": wilson_interval(detected_cases, evaluated),
+            "missingness_bounds": {
+                "lower": detected_cases / len(by_case) if by_case else None,
+                "upper": (
+                    (detected_cases + len(by_case) - evaluated) / len(by_case)
+                    if by_case else None
+                ),
+            },
         }
 
+    ensembles = {
+        "majority": ensemble(lambda detected, total: detected > total / 2),
+        "any_detects": ensemble(lambda detected, total: detected > 0),
+        "unanimous_detects": ensemble(lambda detected, total: detected == total),
+    }
+    primary_rule = summary.get("primary_rule")
+    if primary_rule not in ensembles:
+        raise ValueError("panel summary has no valid prespecified primary rule")
     return {
         "schema_version": 1,
         "detection": target.name,
         "cases_with_any_verdict": len(by_case),
         "complete_panel_cases": len(complete),
         "providers": by_provider,
-        "ensembles": {
-            "majority": ensemble(lambda detected, total: detected > total / 2),
-            "any_detects": ensemble(lambda detected, total: detected > 0),
-        },
+        "primary_rule": primary_rule,
+        "primary": ensembles[primary_rule],
+        "ensembles": ensembles,
     }
 
 
@@ -184,6 +218,12 @@ def _metrics(pairs: list[tuple[bool, bool]], abstentions: int) -> dict[str, Any]
             if recall is not None and specificity is not None
             else None
         ),
+        "intervals_95": {
+            "accuracy": wilson_interval(tp + tn, len(pairs)),
+            "recall": wilson_interval(tp, tp + fn),
+            "specificity": wilson_interval(tn, tn + fp),
+            "precision": wilson_interval(tp, tp + fp),
+        },
     }
 
 
@@ -199,6 +239,12 @@ def score_panel(
     records = summary.get("records")
     if not isinstance(records, list):
         raise ValueError("panel summary has no records")
+    configured = summary.get("models")
+    if not isinstance(configured, list) or not configured or any(
+        type(provider) is not str for provider in configured
+    ) or len(set(configured)) != len(configured):
+        raise ValueError("panel summary has no unique configured model panel")
+    expected_providers = set(configured)
     split_gold = {}
     for row in _jsonl(gold_path):
         if split is not None and row.get("split") != split:
@@ -257,19 +303,18 @@ def score_panel(
     def ensemble(rule: Callable[[int, int], bool]) -> dict[str, Any]:
         items = []
         for case_id, provider_decisions in by_case.items():
-            if len(provider_decisions) != 3:
+            if set(provider_decisions) != expected_providers:
                 continue
             decisions = list(provider_decisions.values())
-            substantive = [decision for decision in decisions if decision != "abstain"]
-            if not substantive:
+            if "abstain" in decisions:
                 items.append((case_id, "abstain"))
                 continue
-            detected = sum(d == target.positive_decision for d in substantive)
+            detected = sum(d == target.positive_decision for d in decisions)
             items.append(
                 (
                     case_id,
                     target.positive_decision
-                    if rule(detected, len(substantive))
+                    if rule(detected, len(decisions))
                     else target.negative_decision,
                 )
             )
@@ -282,7 +327,10 @@ def score_panel(
         "split_gold_cases": len(split_gold),
         "gold_cases": len(gold),
         "covered_cases": len(by_case),
-        "complete_panel_cases": sum(len(value) == 3 for value in by_case.values()),
+        "complete_panel_cases": sum(
+            set(value) == expected_providers for value in by_case.values()
+        ),
+        "expected_providers": sorted(expected_providers),
         "providers": provider_results,
         "ensembles": {
             "majority": ensemble(lambda detected, total: detected > total / 2),

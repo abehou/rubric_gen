@@ -6,6 +6,8 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
+import time
 import types
 from dataclasses import replace
 from pathlib import Path
@@ -25,6 +27,64 @@ from rubric_gen.biomnibench.judging import scoring as rubric_scoring_module
 from rubric_gen.biomnibench.judging import executor as judge_executor_module
 from rubric_gen.biomnibench.judging import llm_judge as centralized_judge_module
 from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
+
+
+def _judge_request() -> centralized_judge_module.JudgePrompt:
+    return centralized_judge_module.JudgePrompt(
+        instructions="judge instructions",
+        evidence="judge evidence",
+    )
+
+
+def test_prompt_cache_gate_singleflights_only_the_cold_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        centralized_judge_module,
+        "_CACHE_GATE_ROOT",
+        tmp_path / "cache-gates",
+    )
+    first_entered = threading.Event()
+    release_first = threading.Event()
+    entries: list[str] = []
+
+    def enter_first() -> None:
+        with centralized_judge_module._PromptCacheGate(
+            model="gpt-5.6-luna",
+            prompt_cache_key="same-prefix",
+            api_key="same-account",
+            ttl_seconds=60,
+        ) as gate:
+            entries.append("first")
+            first_entered.set()
+            assert release_first.wait(timeout=2)
+            gate.mark_success()
+
+    def enter_second() -> None:
+        assert first_entered.wait(timeout=2)
+        with centralized_judge_module._PromptCacheGate(
+            model="gpt-5.6-luna",
+            prompt_cache_key="same-prefix",
+            api_key="same-account",
+            ttl_seconds=60,
+        ) as gate:
+            entries.append("second")
+            gate.mark_success()
+
+    first = threading.Thread(target=enter_first)
+    second = threading.Thread(target=enter_second)
+    first.start()
+    assert first_entered.wait(timeout=2)
+    second.start()
+    time.sleep(0.05)
+    assert entries == ["first"]
+    release_first.set()
+    first.join(timeout=2)
+    second.join(timeout=2)
+
+    assert not first.is_alive()
+    assert not second.is_alive()
+    assert entries == ["first", "second"]
 
 
 def test_runner_pins_implementation_attestations_at_construction(
@@ -214,22 +274,24 @@ def test_centralized_openai_judge_uses_responses_api(
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
 
     response = centralized_judge_module.generate_response(
-        "gpt-5.6-luna", "judge prompt", ("criterion_1",)
+        "gpt-5.6-luna", _judge_request(), ("criterion_1",)
     )
 
-    assert response == '{"criteria": {}}'
+    assert response.text == '{"criteria": {}}'
     assert observed["api_key"] == "openai-secret"
     assert observed["model"] == "gpt-5.6-luna"
-    assert observed["input"] == "judge prompt"
+    assert observed["input"] == _judge_request().openai_input()
+    assert observed["prompt_cache_options"] == {"mode": "explicit", "ttl": "30m"}
+    assert observed["prompt_cache_key"] == _judge_request().prompt_cache_key()
     assert observed["max_output_tokens"] == 4_096
     assert observed["timeout"] == 300.0
     assert observed["max_retries"] == 0
-    assert observed["reasoning"] == {"effort": "low"}
+    assert observed["reasoning"] == {"effort": "none"}
     assert observed["text"]["verbosity"] == "low"  # type: ignore[index]
     assert observed["text"]["format"]["type"] == "json_schema"  # type: ignore[index]
 
 
-def test_centralized_openai_judge_escalates_incomplete_token_budget(
+def test_centralized_openai_judge_does_not_repeat_incomplete_token_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     budgets: list[int] = []
@@ -257,12 +319,12 @@ def test_centralized_openai_judge_escalates_incomplete_token_budget(
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
 
-    response = centralized_judge_module.generate_response(
-        "gpt-5.6-luna", "judge prompt", ("criterion_1",)
-    )
+    with pytest.raises(RuntimeError, match="max_output_tokens=4096"):
+        centralized_judge_module.generate_response(
+            "gpt-5.6-luna", _judge_request(), ("criterion_1",)
+        )
 
-    assert budgets == [4_096, 16_384]
-    assert response.endswith('"ok"}')
+    assert budgets == [4_096]
 
 
 def test_centralized_openai_judge_reports_incomplete_reason(
@@ -285,7 +347,7 @@ def test_centralized_openai_judge_reports_incomplete_reason(
 
     with pytest.raises(RuntimeError, match="reason=content_filter"):
         centralized_judge_module.generate_response(
-            "gpt-5.6-luna", "prompt", ("criterion_1",)
+            "gpt-5.6-luna", _judge_request(), ("criterion_1",)
         )
 
 
@@ -313,25 +375,36 @@ def test_centralized_gemini_judge_keeps_client_alive(
             return types.SimpleNamespace(text='{"criteria": {}}')
 
     class FakeClient:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, *, api_key: str, http_options: object) -> None:
             observed["api_key"] = api_key
+            observed["http_options"] = http_options
             self.models = FakeModels(self)
 
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-secret")
-    monkeypatch.setitem(
-        sys.modules,
-        "google",
-        types.SimpleNamespace(genai=types.SimpleNamespace(Client=FakeClient)),
+    fake_types = types.SimpleNamespace(
+        GenerateContentConfig=lambda **kwargs: kwargs,
+        ThinkingConfig=lambda **kwargs: kwargs,
+        HttpRetryOptions=lambda **kwargs: kwargs,
+        HttpOptions=lambda **kwargs: kwargs,
     )
+    monkeypatch.setitem(sys.modules, "google", types.SimpleNamespace(
+        genai=types.SimpleNamespace(Client=FakeClient)
+    ))
+    monkeypatch.setitem(sys.modules, "google.genai", types.SimpleNamespace(
+        types=fake_types
+    ))
 
     response = centralized_judge_module.generate_response(
-        "gemini-3.1-pro-preview", "judge prompt"
+        "gemini-3.1-pro-preview", _judge_request()
     )
 
-    assert response == '{"criteria": {}}'
+    assert response.text == '{"criteria": {}}'
     assert observed["api_key"] == "gemini-secret"
     assert observed["model"] == "gemini-3.1-pro-preview"
-    assert observed["contents"] == "judge prompt"
+    assert observed["contents"] == _judge_request().flat_prompt()
+    assert observed["http_options"] == {
+        "retry_options": {"attempts": 0}
+    }
     assert isinstance(observed["client"], FakeClient)
 
 
@@ -353,8 +426,12 @@ def test_centralized_anthropic_judge_extracts_text_from_multiple_blocks(
             )
 
     class FakeAnthropic:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(
+            self, *, api_key: str, timeout: float, max_retries: int
+        ) -> None:
             observed["api_key"] = api_key
+            observed["timeout"] = timeout
+            observed["max_retries"] = max_retries
             self.messages = FakeMessages()
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret")
@@ -365,13 +442,24 @@ def test_centralized_anthropic_judge_extracts_text_from_multiple_blocks(
     )
 
     response = centralized_judge_module.generate_response(
-        "claude-fable-5", "judge prompt"
+        "claude-fable-5", _judge_request()
     )
 
-    assert response == '{"criteria":\n {}}'
+    assert response.text == '{"criteria":\n {}}'
     assert observed["api_key"] == "anthropic-secret"
     assert observed["model"] == "claude-fable-5"
-    assert observed["max_tokens"] == 16384
+    assert observed["max_tokens"] == 4096
+    assert observed["system"] == [{
+        "type": "text",
+        "text": "judge instructions",
+        "cache_control": {"type": "ephemeral"},
+    }]
+    assert observed["messages"] == [{
+        "role": "user", "content": "judge evidence"
+    }]
+    assert observed["output_config"] == {"effort": "low"}
+    assert observed["timeout"] == 300.0
+    assert observed["max_retries"] == 0
 
 
 def test_centralized_anthropic_judge_reports_empty_response(
@@ -382,7 +470,7 @@ def test_centralized_anthropic_judge_reports_empty_response(
             return types.SimpleNamespace(content=[], stop_reason="refusal")
 
     class FakeAnthropic:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, **kwargs: object) -> None:
             self.messages = FakeMessages()
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret")
@@ -393,7 +481,9 @@ def test_centralized_anthropic_judge_reports_empty_response(
     )
 
     with pytest.raises(RuntimeError, match="stop_reason='refusal'"):
-        centralized_judge_module.generate_response("claude-fable-5", "prompt")
+        centralized_judge_module.generate_response(
+            "claude-fable-5", _judge_request()
+        )
 
 
 def rewriter_provenance_for(
@@ -1661,6 +1751,15 @@ def write_judge_artifacts(
         ),
         encoding="utf-8",
     )
+    (logs / "usage.json").write_text(json.dumps({
+        "schema_version": 1,
+        "provider": "openai",
+        "requested_model": "judge-model",
+        "effective_model": "judge-model",
+        "response_id": "response-test",
+        "request_parameters": {},
+        "usage": {"input_tokens": 10, "output_tokens": 2},
+    }), encoding="utf-8")
 
 
 def test_authoritative_score_and_hash_attestation(
@@ -1696,7 +1795,7 @@ def test_authoritative_score_and_hash_attestation(
     assert result["judge_exit_code"] == 0
     assert result["score"] == 100
     assert validation == {
-        "schema_version": 1,
+        "schema_version": 2,
         "scorer_version": "rubric-scoring-v1",
         "score": 100,
         "raw_score": 100,
@@ -1712,6 +1811,7 @@ def test_authoritative_score_and_hash_attestation(
         "manifest_sha256": None,
         "reward_sha256": sha256_file(output_dir / "reward.json"),
         "evaluation_sha256": sha256_file(output_dir / "evaluation.json"),
+        "usage_sha256": sha256_file(output_dir / "usage.json"),
         "review_input_sha256": hashlib.sha256(b"trace").hexdigest(),
         "answer_input_sha256": hashlib.sha256(b"answer").hexdigest(),
         "judge_source_sha256": sha256_file(target.task_dir / "tests" / "llm_judge.py"),
@@ -1737,11 +1837,21 @@ def test_score_validation_hashes_the_exact_parsed_reward_and_evaluation_bytes(
     output_dir.mkdir(parents=True)
     reward_path = output_dir / "reward.json"
     evaluation_path = output_dir / "evaluation.json"
+    usage_path = output_dir / "usage.json"
     reward_path.write_text('{"score":100}', encoding="utf-8")
     evaluation_path.write_text(
         '{"criteria":{"criterion_1":{"level":"A"}}}',
         encoding="utf-8",
     )
+    usage_path.write_text(json.dumps({
+        "schema_version": 1,
+        "provider": "openai",
+        "requested_model": "judge-model-a",
+        "effective_model": "judge-model-a",
+        "response_id": "response-test",
+        "request_parameters": {},
+        "usage": {"input_tokens": 10, "output_tokens": 2},
+    }))
     reward_sha256 = sha256_file(reward_path)
     evaluation_sha256 = sha256_file(evaluation_path)
     original_load_json = runner.load_json
@@ -1764,6 +1874,7 @@ def test_score_validation_hashes_the_exact_parsed_reward_and_evaluation_bytes(
         resolved,
         reward_path,
         evaluation_path,
+        usage_path,
         attestation,
     )
 

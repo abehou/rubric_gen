@@ -110,38 +110,40 @@ class BatchRunPaths:
 
 @dataclass(frozen=True)
 class AgentRunConfig:
-    provider: str = "gemini"
+    provider: str = "codex"
     model: str | None = None
     raw: bool = False
     quiet: bool = False
-    skip_trust: bool = False
-    allow_web: bool = False
-    allow_network: bool = False
-    approval_mode: str | None = None
-    sandbox: bool = False
     executable: str | None = None
-    extra_args: tuple[str, ...] = field(default_factory=tuple)
+    reasoning_effort: str | None = None
+    service_tier: str | None = None
     retries: int = 1
+    timeout_seconds: int = 7_200
 
     def __post_init__(self) -> None:
-        if self.allow_network and self.provider != "codex":
-            raise ValueError("--allow-network is supported only by the Codex provider")
+        if self.reasoning_effort is not None and self.provider != "codex":
+            raise ValueError("reasoning_effort is supported only by Codex")
+        if self.reasoning_effort not in {None, "minimal", "low", "medium", "high", "xhigh"}:
+            raise ValueError("reasoning_effort is invalid")
+        if self.service_tier is not None and self.provider != "codex":
+            raise ValueError("service_tier is supported only by Codex")
+        if type(self.retries) is not int or self.retries < 0:
+            raise ValueError("retries must be a non-negative integer")
+        if type(self.timeout_seconds) is not int or self.timeout_seconds < 1:
+            raise ValueError("timeout_seconds must be a positive integer")
 
     @classmethod
     def from_namespace(cls, args: argparse.Namespace) -> "AgentRunConfig":
         return cls(
-            provider=getattr(args, "provider", "gemini"),
+            provider=getattr(args, "provider", "codex"),
             model=getattr(args, "model", None),
             raw=getattr(args, "raw", False),
             quiet=getattr(args, "quiet", False),
-            skip_trust=getattr(args, "skip_trust", False),
-            allow_web=getattr(args, "allow_web", False),
-            allow_network=getattr(args, "allow_network", False),
-            approval_mode=getattr(args, "approval_mode", None),
-            sandbox=getattr(args, "sandbox", False),
             executable=getattr(args, "executable", None),
-            extra_args=tuple(getattr(args, "extra_agent_arg", None) or ()),
+            reasoning_effort=getattr(args, "reasoning_effort", None),
+            service_tier=getattr(args, "service_tier", None),
             retries=max(0, getattr(args, "retries", 1)),
+            timeout_seconds=getattr(args, "turn_timeout_seconds", 7_200),
         )
 
 
@@ -149,21 +151,18 @@ class AgentRunConfig:
 class BatchRunConfig:
     tasks_dir: Path
     runs_dir: Path
-    provider: str = "gemini"
+    provider: str = "codex"
     model: str | None = None
     raw: bool = False
-    skip_trust: bool = False
-    allow_web: bool = False
-    allow_network: bool = False
-    approval_mode: str | None = None
-    sandbox: bool = False
     executable: str | None = None
-    extra_args: tuple[str, ...] = field(default_factory=tuple)
+    reasoning_effort: str | None = None
+    service_tier: str | None = None
     limit: int | None = None
     force: bool = False
     continue_on_error: bool = False
     resume_run: Path | None = None
     retries: int = 1
+    timeout_seconds: int = 7_200
     max_concurrency: int = 1
 
     @classmethod
@@ -172,21 +171,18 @@ class BatchRunConfig:
         return cls(
             tasks_dir=resolve_project_path(getattr(args, "tasks_dir")),
             runs_dir=resolve_project_path(getattr(args, "runs_dir")),
-            provider=getattr(args, "provider", "gemini"),
+            provider=getattr(args, "provider", "codex"),
             model=getattr(args, "model", None),
             raw=getattr(args, "raw", False),
-            skip_trust=getattr(args, "skip_trust", False),
-            allow_web=getattr(args, "allow_web", False),
-            allow_network=getattr(args, "allow_network", False),
-            approval_mode=getattr(args, "approval_mode", None),
-            sandbox=getattr(args, "sandbox", False),
             executable=getattr(args, "executable", None),
-            extra_args=tuple(getattr(args, "extra_agent_arg", None) or ()),
+            reasoning_effort=getattr(args, "reasoning_effort", None),
+            service_tier=getattr(args, "service_tier", None),
             limit=getattr(args, "limit", None),
             force=getattr(args, "force", False),
             continue_on_error=getattr(args, "continue_on_error", False),
             resume_run=resolve_project_path(resume_run) if resume_run else None,
             retries=max(0, getattr(args, "retries", 1)),
+            timeout_seconds=getattr(args, "turn_timeout_seconds", 7_200),
             max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
         )
 
@@ -196,12 +192,9 @@ class BatchRunConfig:
             model=self.model,
             raw=self.raw,
             quiet=True,
-            skip_trust=self.skip_trust,
-            allow_web=self.allow_web,
-            allow_network=self.allow_network,
-            approval_mode=self.approval_mode,
-            sandbox=self.sandbox,
             executable=self.executable,
-            extra_args=self.extra_args,
+            reasoning_effort=self.reasoning_effort,
+            service_tier=self.service_tier,
             retries=self.retries,
+            timeout_seconds=self.timeout_seconds,
         )

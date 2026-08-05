@@ -8,15 +8,4 @@ __pycache__/
 .superpowers/
 data/
 runs/*
-!runs/biomnibench-judges/
-!runs/biomnibench-judges/**
-!runs/biomnibench-reports/
-!runs/biomnibench-reports/**
-!runs/malt-runs/
-runs/malt-runs/*
-!runs/malt-runs/biomni-rh/
-runs/malt-runs/biomni-rh/**
-!runs/malt-runs/biomni-rh/**/
-!runs/malt-runs/biomni-rh/**/detection-rates.png
-!runs/malt-runs/biomni-rh/**/category-rates.png
 tmp/

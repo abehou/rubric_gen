@@ -8,6 +8,7 @@ import signal
 import shutil
 import stat
 import subprocess
+import threading
 import time
 import uuid
 from dataclasses import dataclass, replace
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Callable, Protocol, TextIO
 
 from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
+from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES, NO_WEB_POLICY
 
@@ -70,8 +72,6 @@ class CliSolverSessionDriver:
         registry: AgentAdapterRegistry | None = None,
     ) -> None:
         self.config = config or AgentRunConfig()
-        if self.config.extra_args:
-            raise ValueError("extra_args are not allowed for a persistent session")
         if not 0 <= self.config.retries <= MAX_TRANSIENT_RETRIES:
             raise ValueError(
                 "Persistent-session retries must be between 0 and "
@@ -302,8 +302,7 @@ class CliSolverSessionDriver:
             status_path=turn_dir / "status.json",
         )
         paths.prompt_path.write_text(prompt)
-        if self.adapter.name == "gemini":
-            self._ensure_gemini_policy(paths.policy_path)
+        self.adapter.prepare_run(paths, self.config, prompt)
         return paths
 
     @staticmethod
@@ -331,38 +330,13 @@ class CliSolverSessionDriver:
         provider = self.adapter.name
 
         if provider == "codex":
-            command = [self.adapter.executable(self.config), "exec"]
+            command = self.adapter.build_command(paths, self.config, prompt)
             if resume:
-                command.append("resume")
-            command.extend(
-                [
-                    "-c",
-                    f"approval_policy={json.dumps(self.config.approval_mode or 'never')}",
-                    "-c",
-                    'sandbox_mode="workspace-write"',
-                    "-c",
-                    (
-                        "sandbox_workspace_write.network_access=true"
-                        if self.config.allow_network
-                        else "sandbox_workspace_write.network_access=false"
-                    ),
-                    "-c",
-                    (
-                        'web_search="live"'
-                        if self.config.allow_web
-                        else 'web_search="disabled"'
-                    ),
-                    "--skip-git-repo-check",
-                    "--json",
-                ]
-            )
-            if self.config.model:
-                command.extend(["--model", self.config.model])
-            if self.config.skip_trust:
-                command.append("--dangerously-bypass-hook-trust")
-            if resume:
-                command.append(session_id)
-            command.append(prompt)
+                if command[-1] != prompt:
+                    raise RuntimeError("Codex adapter command has an invalid prompt")
+                exec_index = command.index("exec")
+                command.insert(exec_index + 1, "resume")
+                command[-1:] = [session_id, prompt]
             return command
 
         # Start from the ordinary adapter command so provider-native model,
@@ -392,8 +366,7 @@ class CliSolverSessionDriver:
         *,
         on_session_id: Callable[[str], None] | None = None,
     ) -> int:
-        env = os.environ.copy()
-        env.setdefault("NO_COLOR", "1")
+        env = self.adapter.build_environment(paths, self.config)
         workspace = paths.workspace_dir.resolve()
         env["PWD"] = str(workspace)
         env.pop("OLDPWD", None)
@@ -409,6 +382,21 @@ class CliSolverSessionDriver:
                 start_new_session=os.name == "posix",
             )
             completed = False
+            timed_out = threading.Event()
+
+            def terminate_on_timeout() -> None:
+                timed_out.set()
+                if os.name == "posix":
+                    self._terminate_posix_process_group(process.pid)
+                else:  # pragma: no cover
+                    try:
+                        process.kill()
+                    except OSError:
+                        pass
+
+            timer = threading.Timer(self.config.timeout_seconds, terminate_on_timeout)
+            timer.daemon = True
+            timer.start()
             try:
                 assert process.stdout is not None
                 self._tee_stream(
@@ -416,13 +404,14 @@ class CliSolverSessionDriver:
                     log,
                     on_session_id=on_session_id,
                 )
-                if os.name == "posix":
+                if os.name == "posix" and not timed_out.is_set():
                     os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
                     self._terminate_posix_process_group(process.pid)
                 exit_code = process.wait()
                 completed = True
-                return exit_code
+                return 124 if timed_out.is_set() else exit_code
             finally:
+                timer.cancel()
                 if not completed:
                     self._terminate_and_reap(process)
 
@@ -597,6 +586,7 @@ class CliSolverSessionDriver:
             "provider": self.adapter.name,
             "session_id": session_id,
             "model": model,
+            "service_tier": self.config.service_tier,
             "resumed": resumed,
             "exit_code": exit_code,
             "workspace": str(paths.workspace_dir.resolve()),
@@ -607,10 +597,18 @@ class CliSolverSessionDriver:
                 {
                     "attempt_count": len(attempts),
                     "max_retries": self.config.retries,
+                    "timeout_seconds": self.config.timeout_seconds,
                     "attempts": attempts,
                     "transport_exit_code": transport_exit_code,
                 }
             )
+        status.update(
+            RunCost.from_stream(
+                paths.stream_path,
+                model=model,
+                service_tier=self.config.service_tier,
+            ).fields()
+        )
         paths.status_path.write_text(
             json.dumps(status, indent=2, sort_keys=True) + "\n"
         )

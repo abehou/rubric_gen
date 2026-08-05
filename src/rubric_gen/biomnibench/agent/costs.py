@@ -7,21 +7,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from rubric_gen.biomnibench.pricing import (
+    GEMINI_TERMINAL_PRICES_PER_MILLION,
+    OPENAI_PRICES_PER_MILLION,
+    OPENAI_PRIORITY_MULTIPLIER,
+    PRICING_AS_OF,
+    PRICING_SOURCES,
+)
 
-GEMINI_API_PRICING_SOURCE = "https://ai.google.dev/gemini-api/docs/pricing"
+GEMINI_API_PRICING_SOURCE = PRICING_SOURCES["google"]
+GEMINI_PRICING_AS_OF = PRICING_AS_OF
 GEMINI_COST_SOURCE = "estimated_google_gemini_api_standard"
-GEMINI_STANDARD_PRICES_PER_MILLION = {
-    # Agent sessions quickly exceed the 200k-token pricing threshold, so use
-    # the published long-context tier for this model.
-    "gemini-3.1-pro-preview": {"input": 4.00, "output": 18.00, "cached": 0.40},
-    "gemini-3.1-pro-preview-customtools": {
-        "input": 4.00, "output": 18.00, "cached": 0.40,
-    },
-    "gemini-3.5-flash": {"input": 1.50, "output": 9.00, "cached": 0.15},
-    "gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50, "cached": 0.025},
-    "gemini-3-flash-preview": {"input": 0.50, "output": 3.00, "cached": 0.05},
-    "gemini-3-flash": {"input": 0.50, "output": 3.00, "cached": 0.05},
-}
+OPENAI_COST_SOURCE = "estimated_openai_api_lower_bound"
+OPENAI_FAST_MODE_MULTIPLIER = OPENAI_PRIORITY_MULTIPLIER
+OPENAI_STANDARD_PRICES_PER_MILLION = OPENAI_PRICES_PER_MILLION
+GEMINI_STANDARD_PRICES_PER_MILLION = GEMINI_TERMINAL_PRICES_PER_MILLION
 
 
 @dataclass(frozen=True)
@@ -31,9 +31,19 @@ class RunCost:
     source: str | None = None
 
     @classmethod
-    def from_stream(cls, stream_path: Path) -> "RunCost":
-        cost_usd: float | None = None
-        estimated_cost_usd: float | None = None
+    def from_stream(
+        cls,
+        stream_path: Path,
+        *,
+        model: str | None = None,
+        service_tier: str | None = None,
+    ) -> "RunCost":
+        terminal_reported: dict[str, float] = {}
+        terminal_estimated: dict[str, float] = {}
+        fallback_reported: list[float] = []
+        fallback_estimated: list[float] = []
+        session_key = "stream"
+        anonymous_session_index = 0
         if not stream_path.is_file():
             return cls()
         with stream_path.open() as stream:
@@ -42,14 +52,54 @@ class RunCost:
                     event = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                event_cost = cls.from_event(event)
+                detected_session = _session_identity(event)
+                if detected_session is not None:
+                    if detected_session == "anonymous-session":
+                        anonymous_session_index += 1
+                        session_key = f"anonymous-session:{anonymous_session_index}"
+                    else:
+                        # Codex reports cumulative usage for a persistent thread.
+                        # The same thread.started record can occur once per resumed
+                        # CLI invocation, so key by the provider identity and retain
+                        # only its largest terminal total.
+                        session_key = detected_session
+                event_cost = cls.from_event(
+                    event,
+                    model=model,
+                    service_tier=service_tier,
+                )
                 if event_cost.cost_usd is not None:
-                    cost_usd = event_cost.cost_usd
+                    fallback_reported.append(event_cost.cost_usd)
                 if event_cost.estimated_cost_usd is not None:
-                    estimated_cost_usd = event_cost.estimated_cost_usd
+                    fallback_estimated.append(event_cost.estimated_cost_usd)
+                if _is_terminal_usage_event(event):
+                    if event_cost.cost_usd is not None:
+                        terminal_reported[session_key] = max(
+                            terminal_reported.get(session_key, 0.0),
+                            event_cost.cost_usd,
+                        )
+                    if event_cost.estimated_cost_usd is not None:
+                        terminal_estimated[session_key] = max(
+                            terminal_estimated.get(session_key, 0.0),
+                            event_cost.estimated_cost_usd,
+                        )
+        cost_usd = (
+            round(sum(terminal_reported.values()), 6)
+            if terminal_reported
+            else max(fallback_reported, default=None)
+        )
+        estimated_cost_usd = (
+            round(sum(terminal_estimated.values()), 6)
+            if terminal_estimated
+            else max(fallback_estimated, default=None)
+        )
         source = "reported" if cost_usd is not None else None
         if source is None and estimated_cost_usd is not None:
-            source = GEMINI_COST_SOURCE
+            source = (
+                OPENAI_COST_SOURCE
+                if model in OPENAI_STANDARD_PRICES_PER_MILLION
+                else GEMINI_COST_SOURCE
+            )
         return cls(cost_usd, estimated_cost_usd, source)
 
     @classmethod
@@ -69,15 +119,46 @@ class RunCost:
         status_cost = cls.from_status(run_dir / "status.json")
         if status_cost.cost_usd is not None or status_cost.estimated_cost_usd is not None:
             return status_cost
-        return cls.from_stream(run_dir / "trajectory.stream.jsonl")
+        model = None
+        try:
+            status = json.loads((run_dir / "status.json").read_text())
+        except (OSError, json.JSONDecodeError):
+            status = {}
+        if isinstance(status, dict):
+            value = status.get("model") or status.get("requested_model")
+            model = value if isinstance(value, str) else None
+        service_tier = (
+            status.get("service_tier")
+            if isinstance(status.get("service_tier"), str)
+            else None
+        )
+        return cls.from_stream(
+            run_dir / "trajectory.stream.jsonl",
+            model=model,
+            service_tier=service_tier,
+        )
 
     @classmethod
-    def from_event(cls, event: Any) -> "RunCost":
+    def from_event(
+        cls,
+        event: Any,
+        *,
+        model: str | None = None,
+        service_tier: str | None = None,
+    ) -> "RunCost":
         cost_usd = _find_cost_usd(event)
-        estimated_cost_usd = _estimate_gemini_event_cost(event)
+        estimated_cost_usd = (
+            _estimate_openai_event_cost(event, model, service_tier=service_tier)
+            if model in OPENAI_STANDARD_PRICES_PER_MILLION
+            else _estimate_gemini_event_cost(event)
+        )
         source = "reported" if cost_usd is not None else None
         if source is None and estimated_cost_usd is not None:
-            source = GEMINI_COST_SOURCE
+            source = (
+                OPENAI_COST_SOURCE
+                if model in OPENAI_STANDARD_PRICES_PER_MILLION
+                else GEMINI_COST_SOURCE
+            )
         return cls(cost_usd, estimated_cost_usd, source)
 
     def fields(self) -> dict[str, float | str | None]:
@@ -104,6 +185,27 @@ def _find_cost_usd(value: Any) -> float | None:
             if cost is not None:
                 return cost
     return None
+
+
+def _is_terminal_usage_event(event: Any) -> bool:
+    if not isinstance(event, dict):
+        return False
+    event_type = event.get("type")
+    if event_type in {"result", "turn.completed", "session.completed"}:
+        return True
+    return event_type == "assistant" and event.get("subtype") == "result"
+
+
+def _session_identity(event: Any) -> str | None:
+    if not isinstance(event, dict) or event.get("type") not in {
+        "thread.started", "session.started", "conversation.started",
+    }:
+        return None
+    for key in ("thread_id", "session_id", "conversation_id"):
+        value = event.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return "anonymous-session"
 
 
 def _is_usd_cost_key(key: str) -> bool:
@@ -153,6 +255,40 @@ def _estimate_gemini_event_cost(event: Any) -> float | None:
             + output_tokens * prices["output"]
         ) / 1_000_000
     return round(total, 6) if matched else None
+
+
+def _estimate_openai_event_cost(
+    event: Any,
+    model: str | None,
+    *,
+    service_tier: str | None,
+) -> float | None:
+    if not isinstance(event, dict) or model not in OPENAI_STANDARD_PRICES_PER_MILLION:
+        return None
+    usage = event.get("usage")
+    if not isinstance(usage, dict):
+        return None
+    total_input = _parse_token_count(usage.get("input_tokens"))
+    output = _parse_token_count(usage.get("output_tokens"))
+    if total_input is None or output is None:
+        return None
+    cached = _parse_token_count(usage.get("cached_input_tokens")) or 0
+    cache_write = _parse_token_count(usage.get("cache_write_input_tokens")) or 0
+    if cached + cache_write > total_input:
+        return None
+    uncached = total_input - cached - cache_write
+    prices = OPENAI_STANDARD_PRICES_PER_MILLION[model]
+    multiplier = OPENAI_FAST_MODE_MULTIPLIER if service_tier == "priority" else 1.0
+    return round(
+        (
+            uncached * prices["input"]
+            + cached * prices["cached"]
+            + cache_write * prices["cache_write"]
+            + output * prices["output"]
+        )
+        * multiplier / 1_000_000,
+        6,
+    )
 
 
 def _parse_token_count(value: Any) -> int | None:

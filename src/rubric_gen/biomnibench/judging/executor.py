@@ -98,11 +98,13 @@ class JudgeExecutor:
         output_dir = output.path
         reward_path = output_dir / "reward.json"
         evaluation_path = output_dir / "evaluation.json"
+        usage_path = output_dir / "usage.json"
         score_validation_path = output_dir / "score_validation.json"
         stdout_path = output_dir / "stdout.txt"
         for stale_name in (
             "reward.json",
             "evaluation.json",
+            "usage.json",
             "score_validation.json",
             "stdout.txt",
         ):
@@ -151,7 +153,7 @@ class JudgeExecutor:
                     ),
                 )
             self.artifacts.write_output_text(output, "stdout.txt", proc.stdout)
-            for filename in ("reward.json", "evaluation.json"):
+            for filename in ("reward.json", "evaluation.json", "usage.json"):
                 source = logs_dir / filename
                 if source.is_file():
                     artifact_snapshots[filename] = source.read_bytes()
@@ -166,6 +168,7 @@ class JudgeExecutor:
             "score": None,
             "reward": str(reward_path),
             "evaluation": str(evaluation_path),
+            "usage": str(usage_path),
             "stdout": str(stdout_path),
             "score_validation": str(score_validation_path),
         }
@@ -177,10 +180,13 @@ class JudgeExecutor:
                 raise JudgeScoreValidationError("judge did not produce reward.json")
             if "evaluation.json" not in artifact_snapshots:
                 raise JudgeScoreValidationError("judge did not produce evaluation.json")
+            if "usage.json" not in artifact_snapshots:
+                raise JudgeScoreValidationError("judge did not produce usage.json")
             validation = self.build_score_validation_from_bytes(
                 rubric,
                 artifact_snapshots["reward.json"],
                 artifact_snapshots["evaluation.json"],
+                artifact_snapshots["usage.json"],
                 score_input_attestation,
             )
         except (OSError, UnicodeError, ValueError, JudgeScoreValidationError) as exc:
@@ -202,12 +208,14 @@ class JudgeExecutor:
         rubric: ResolvedRubric,
         reward_path: Path,
         evaluation_path: Path,
+        usage_path: Path,
         score_input_attestation: dict[str, Any],
     ) -> dict[str, Any]:
         return self.build_score_validation_from_bytes(
             rubric,
             reward_path.read_bytes(),
             evaluation_path.read_bytes(),
+            usage_path.read_bytes(),
             score_input_attestation,
         )
 
@@ -216,6 +224,7 @@ class JudgeExecutor:
         rubric: ResolvedRubric,
         reward_raw: bytes,
         evaluation_raw: bytes,
+        usage_raw: bytes,
         score_input_attestation: dict[str, Any],
     ) -> dict[str, Any]:
         if (
@@ -225,6 +234,16 @@ class JudgeExecutor:
             raise JudgeScoreValidationError("score input attestation is not exact")
         reward = load_json_strict(reward_raw.decode("utf-8"))
         evaluation = load_json_strict(evaluation_raw.decode("utf-8"))
+        usage = load_json_strict(usage_raw.decode("utf-8"))
+        if (
+            type(usage) is not dict
+            or set(usage) != {
+                "schema_version", "provider", "requested_model",
+                "effective_model", "response_id", "request_parameters", "usage",
+            }
+            or usage.get("schema_version") != 1
+        ):
+            raise JudgeScoreValidationError("judge usage record is invalid")
         validated = validate_judge_score(
             rubric_levels=parse_rubric_levels_strict(rubric.text),
             evaluation=evaluation,
@@ -246,6 +265,7 @@ class JudgeExecutor:
             "manifest_sha256": rubric.manifest_sha256,
             "reward_sha256": hashlib.sha256(reward_raw).hexdigest(),
             "evaluation_sha256": hashlib.sha256(evaluation_raw).hexdigest(),
+            "usage_sha256": hashlib.sha256(usage_raw).hexdigest(),
         }
 
     def valid_score_validation(
@@ -267,6 +287,7 @@ class JudgeExecutor:
                 rubric,
                 self.artifacts.read_output_bytes(output, "reward.json"),
                 self.artifacts.read_output_bytes(output, "evaluation.json"),
+                self.artifacts.read_output_bytes(output, "usage.json"),
                 score_input_attestation,
             )
             if canonical_json(validation) != canonical_json(expected_validation):

@@ -56,11 +56,18 @@ class GeminiClient:
         prompt: str,
         *,
         response_schema: dict[str, Any] | None = None,
+        thinking_level: str | None = None,
+        max_output_tokens: int | None = None,
     ) -> GeminiGenerateContentResponse:
         """Generate text while retaining the provider's response identity."""
 
         return self.response_with_metadata(
-            self._generate_content_payload(prompt, response_schema=response_schema)
+            self._generate_content_payload(
+                prompt,
+                response_schema=response_schema,
+                thinking_level=thinking_level,
+                max_output_tokens=max_output_tokens,
+            )
         )
 
     def _generate_content_payload(
@@ -68,12 +75,19 @@ class GeminiClient:
         prompt: str,
         *,
         response_schema: dict[str, Any] | None = None,
+        thinking_level: str | None = None,
+        max_output_tokens: int | None = None,
     ) -> dict[str, Any]:
         api_key = self.api_key()
         request = urllib.request.Request(
             self.generate_content_url(api_key),
             data=json.dumps(
-                self.request_body(prompt, response_schema=response_schema)
+                self.request_body(
+                    prompt,
+                    response_schema=response_schema,
+                    thinking_level=thinking_level,
+                    max_output_tokens=max_output_tokens,
+                )
             ).encode(),
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -99,8 +113,20 @@ class GeminiClient:
         prompt: str,
         *,
         response_schema: dict[str, Any] | None = None,
+        thinking_level: str | None = None,
+        max_output_tokens: int | None = None,
     ) -> dict[str, Any]:
         generation_config: dict[str, Any] = {"temperature": 0.2}
+        if thinking_level is not None:
+            if thinking_level not in {"minimal", "low", "medium", "high"}:
+                raise ValueError("Gemini thinking_level is invalid")
+            generation_config["thinkingConfig"] = {
+                "thinkingLevel": thinking_level
+            }
+        if max_output_tokens is not None:
+            if type(max_output_tokens) is not int or max_output_tokens < 1:
+                raise ValueError("Gemini max_output_tokens must be positive")
+            generation_config["maxOutputTokens"] = max_output_tokens
         if response_schema is not None:
             generation_config.update({
                 "responseMimeType": "application/json",

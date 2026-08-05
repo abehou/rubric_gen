@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
-from rubric_gen.biomnibench.forensics.reward_hacking import CASE_KIND
 from rubric_gen.biomnibench.forensics.evidence_index import INDEX_SCHEMA_VERSION
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.biomnibench.utils.hashing import sha256_file
@@ -19,6 +18,7 @@ from rubric_gen.biomnibench.utils.hashing import sha256_file
 
 IMMUTABLE_DATASET_REVISION = re.compile(r"[0-9a-f]{40}")
 DATASET_REVISION_FILENAME = "REVISION"
+CASE_KIND = "reward-hacking-forensic-case"
 
 
 def dataset_revision_from_inputs(paths: Iterable[Path]) -> str:

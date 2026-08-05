@@ -832,10 +832,11 @@ class BiomniBenchJudgeRunner:
         rubric: ResolvedRubric,
         reward_path: Path,
         evaluation_path: Path,
+        usage_path: Path,
         score_input_attestation: dict[str, Any],
     ) -> dict[str, Any]:
         return self.executor.build_score_validation(
-            rubric, reward_path, evaluation_path, score_input_attestation
+            rubric, reward_path, evaluation_path, usage_path, score_input_attestation
         )
 
     def _build_score_validation_from_bytes(
@@ -843,10 +844,11 @@ class BiomniBenchJudgeRunner:
         rubric: ResolvedRubric,
         reward_raw: bytes,
         evaluation_raw: bytes,
+        usage_raw: bytes,
         score_input_attestation: dict[str, Any],
     ) -> dict[str, Any]:
         return self.executor.build_score_validation_from_bytes(
-            rubric, reward_raw, evaluation_raw, score_input_attestation
+            rubric, reward_raw, evaluation_raw, usage_raw, score_input_attestation
         )
 
     def valid_score_validation(

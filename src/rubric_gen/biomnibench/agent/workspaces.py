@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import stat
 from pathlib import Path
 
 
@@ -21,16 +23,44 @@ class TaskWorkspace:
         return self.task_dir / "environment" / "data"
 
     def validate(self) -> None:
-        if not self.instruction_path.is_file():
+        try:
+            instruction_stat = os.lstat(self.instruction_path)
+        except OSError:
             raise SystemExit(f"Missing instruction.md in {self.task_dir}")
-        if not self.data_dir.is_dir():
+        if not stat.S_ISREG(instruction_stat.st_mode):
+            raise SystemExit(f"instruction.md is not a regular file in {self.task_dir}")
+        try:
+            data_stat = os.lstat(self.data_dir)
+        except OSError:
             raise SystemExit(f"Missing environment/data in {self.task_dir}")
+        if not stat.S_ISDIR(data_stat.st_mode):
+            raise SystemExit(f"environment/data is not a regular directory in {self.task_dir}")
+        for path in self.data_dir.rglob("*"):
+            mode = os.lstat(path).st_mode
+            if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode)):
+                raise SystemExit(f"Task data contains a non-regular entry: {path}")
 
-    def prepare(self) -> None:
+    def create(self) -> None:
         self.validate()
-        (self.workspace_dir / "data").mkdir(parents=True, exist_ok=True)
+        if os.path.lexists(self.workspace_dir):
+            raise FileExistsError(f"workspace already exists: {self.workspace_dir}")
+        self.workspace_dir.mkdir(parents=True)
         shutil.copy2(self.instruction_path, self.workspace_dir / "instruction.md")
-        shutil.copytree(self.data_dir, self.workspace_dir / "data", dirs_exist_ok=True)
+        shutil.copytree(self.data_dir, self.workspace_dir / "data")
+
+    def restore_inputs(self) -> None:
+        """Restore canonical inputs into an existing solution-only workspace."""
+        self.validate()
+        if self.workspace_dir.is_symlink() or not self.workspace_dir.is_dir():
+            raise RuntimeError(f"invalid restore workspace: {self.workspace_dir}")
+        for destination in (
+            self.workspace_dir / "instruction.md",
+            self.workspace_dir / "data",
+        ):
+            if os.path.lexists(destination):
+                raise RuntimeError(f"restore input already exists: {destination}")
+        shutil.copy2(self.instruction_path, self.workspace_dir / "instruction.md")
+        shutil.copytree(self.data_dir, self.workspace_dir / "data")
 
 
 class TaskCatalog:
@@ -43,9 +73,12 @@ class TaskCatalog:
         return sorted(
             task_dir
             for task_dir in self.tasks_dir.iterdir()
-            if task_dir.is_dir()
+            if not task_dir.is_symlink()
+            and task_dir.is_dir()
             and task_dir.name.startswith("da-")
+            and not (task_dir / "instruction.md").is_symlink()
             and (task_dir / "instruction.md").is_file()
+            and not (task_dir / "environment" / "data").is_symlink()
             and (task_dir / "environment" / "data").is_dir()
         )
 

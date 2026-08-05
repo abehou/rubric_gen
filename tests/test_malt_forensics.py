@@ -33,6 +33,7 @@ from rubric_gen.biomnibench.forensics.scoring import (
     score_panel,
 )
 from rubric_gen.biomnibench.forensics.categories import categorize_findings
+from rubric_gen.biomnibench.forensics.protocol import outcome_audit_protocol
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 
 
@@ -255,24 +256,22 @@ def test_cli_transactionally_rebuilds_changed_preparation(tmp_path: Path) -> Non
 def test_evaluation_modes_are_mutually_exclusive() -> None:
     parser = build_parser()
     args = parser.parse_args([
-        "data.jsonl", "--detect", "rh", "--output-dir", "out", "--agent", "codex"
+        "data.jsonl", "--detect", "rh", "--output-dir", "out", "--ensemble"
     ])
-    assert args.agent == "codex"
-    assert args.agent_step_limit == 24
-    assert args.max_retries == 2
-    assert args.category_model == "gpt-5.6-luna"
-    assert args.max_input_tokens == 250_000
-    assert args.max_cost_usd == 50.0
-    assert args.execution == "standard"
+    assert args.ensemble is True
+    assert args.max_retries is None
+    assert args.max_input_tokens is None
+    assert args.max_cost_usd is None
+    assert args.execution is None
     limited = parser.parse_args([
         "data.jsonl", "--detect", "rh", "--output-dir", "out",
-        "--agent-ensemble", "--agent-step-limit", "8", "--max-retries", "4",
+        "--judge", "gpt-test", "--max-retries", "4",
     ])
-    assert limited.agent_step_limit == 8
     assert limited.max_retries == 4
     with pytest.raises(SystemExit):
         parser.parse_args([
-            "data.jsonl", "--detect", "rh", "--output-dir", "out", "--agent-ensemble", "--ensemble"
+            "data.jsonl", "--detect", "rh", "--output-dir", "out",
+            "--judge", "gpt-test", "--ensemble"
         ])
 
 
@@ -282,18 +281,49 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     tasks = tmp_path / "tasks"
     (tasks / "da-1-1").mkdir(parents=True)
     (tasks / "da-1-1" / "instruction.md").write_text("task\n")
-    batch = tmp_path / "batch"
-    experiment = batch / "da-1-1"
+    study = tmp_path / "study"
+    experiment = study / "experiments" / "da-1-1" / "rep-001" / "base--static"
     experiment.mkdir(parents=True)
     (experiment / "manifest.json").write_text(json.dumps({
         "kind": "rubric-gen-submission-revision-experiment",
+        "schema_version": 2,
+        "design_sha256": "d" * 64,
+        "assignment_id": "assignment-1",
         "task_id": "da-1-1",
     }))
-    (batch / "batch.json").write_text(json.dumps({
-        "kind": "rubric-gen-submission-revision-batch",
-        "experiment_dirs": ["da-1-1"],
+    (study / "study.json").write_text(json.dumps({
+        "schema_version": 1,
+        "kind": "rubric-gen-randomized-revision-study",
+        "status": "completed",
+        "design_path": str(tmp_path / "design.json"),
+        "design_sha256": "d" * 64,
+        "protocol_id": "test-protocol",
+        "seed_run_dir": str(tmp_path / "seeds"),
+        "records": [{
+            "assignment_id": "assignment-1",
+            "task_id": "da-1-1",
+            "replicate": 1,
+            "condition_id": "base--static",
+            "execution_order": 1,
+            "status": "completed",
+            "experiment_dir": str(experiment.relative_to(study)),
+        }],
     }))
     observed = {}
+
+    class FakeDesign:
+        sha256 = "d" * 64
+        path = (tmp_path / "design.json").resolve()
+        protocol_id = "test-protocol"
+        tasks_dir = tasks
+        outcome_audit = outcome_audit_protocol(primary_rule="majority")
+        assignments = ({
+            "assignment_id": "assignment-1",
+            "task_id": "da-1-1",
+            "replicate": 1,
+            "condition_id": "base--static",
+            "execution_order": 1,
+        },)
 
     class FakeRunner:
         def __init__(self, config):
@@ -303,9 +333,14 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
             return 0
 
     monkeypatch.setattr(malt_cli_module, "ModelJudgeRunner", FakeRunner)
+    monkeypatch.setattr(malt_cli_module, "load_design", lambda _path: FakeDesign())
+    monkeypatch.setattr(
+        malt_cli_module, "validate_completed_revision", lambda *_args: None
+    )
+    monkeypatch.setattr(malt_cli_module, "require_clean_repository", lambda: None)
     args = build_parser().parse_args([
-        "--detect", "rh", "--biomnibench-run-dir", str(batch),
-        "--tasks-dir", str(tasks), "--output-dir", str(tmp_path / "out"),
+        "--detect", "rh", "--biomnibench-study-dir", str(study),
+        "--output-dir", str(tmp_path / "out"),
         "--ensemble",
     ])
 
@@ -313,52 +348,28 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     config = observed["config"]
     assert config.case_dirs == ()
     assert config.revision_dirs == (experiment.resolve(),)
-    assert config.tasks_dir == tasks
+    assert config.tasks_dir == tasks.resolve()
+    assert config.max_cost_usd == 1_500.0
+    assert config.max_command_output_chars == 2_048
+    assert config.design_sha256s == ("d" * 64,)
     assert not list((tmp_path / "out").rglob("metrics.json"))
 
 
 def test_biomni_input_requires_forensic_ensemble(tmp_path: Path) -> None:
     args = build_parser().parse_args([
-        "--detect", "rh", "--biomnibench-run-dir", str(tmp_path),
+        "--detect", "rh", "--biomnibench-study-dir", str(tmp_path),
     ])
     with pytest.raises(ValueError, match="requires --ensemble"):
         run(args)
 
 
-def test_biomni_experiment_routes_to_agent_ensemble(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    tasks = tmp_path / "tasks"
-    task = tasks / "da-1-1"
-    task.mkdir(parents=True)
-    (task / "instruction.md").write_text("task\n")
-    experiment = tmp_path / "da-1-1"
-    experiment.mkdir()
-    (experiment / "manifest.json").write_text(json.dumps({
-        "kind": "rubric-gen-submission-revision-experiment",
-        "task_id": "da-1-1",
-    }))
-    observed = {}
-
-    class FakeRunner:
-        def __init__(self, config):
-            observed["config"] = config
-
-        def run(self) -> int:
-            return 0
-
-    monkeypatch.setattr(malt_cli_module, "RewardHackingAuditRunner", FakeRunner)
-    args = build_parser().parse_args([
-        "--detect", "rh", "--biomnibench-run-dir", str(experiment),
-        "--tasks-dir", str(tasks), "--output-dir", str(tmp_path / "out"),
-        "--agent-ensemble",
-    ])
-
-    assert run(args) == 0
-    config = observed["config"]
-    assert config.experiment_dirs == (experiment.resolve(),)
-    assert config.case_dirs == ()
-    assert config.panel == malt_cli_module.PANEL
+def test_removed_biomni_batch_and_agent_flags_are_rejected() -> None:
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args([
+            "--detect", "rh", "--biomnibench-run-dir", "old-batch",
+            "--agent-ensemble",
+        ])
 
 
 def test_default_inputs_and_seeded_top_sampling() -> None:
@@ -471,13 +482,13 @@ def test_timestamped_evaluation_root_and_resume_latest(tmp_path: Path) -> None:
     assert _evaluation_root(tmp_path, identity, resume=True) == second
 
 
-def test_vllm_modes_use_dynamic_endpoint_directory_defaults() -> None:
+def test_vllm_dataset_default_is_deferred_until_execution() -> None:
     parser = build_parser()
     args = parser.parse_args([
         "data.jsonl", "--detect", "rh", "--output-dir", "out", "--vllm-ensemble"
     ])
     assert args.vllm_ensemble is True
-    assert args.vllm_endpoint_dir == "runs/vllm-endpoints"
+    assert args.vllm_endpoint_dir is None
     assert args.vllm_qwen_url is None
     assert args.vllm_glm_url is None
     assert args.vllm_gpt_oss_url is None
@@ -554,7 +565,10 @@ def test_score_panel_reports_individual_and_fixed_ensembles(tmp_path: Path) -> N
                             "verdict": {"decision": decision, "confidence": .8,
                                         "evidence_locations": []}})
     summary = tmp_path / "summary.json"
-    summary.write_text(json.dumps({"records": records}))
+    summary.write_text(json.dumps({
+        "models": ["codex", "claude", "gemini"],
+        "records": records,
+    }))
     result = score_panel(summary, gold, detection="rh")
     assert result["ensembles"]["majority"]["accuracy"] == 1.0
     assert result["providers"]["gemini"]["accuracy"] == 0.0
@@ -594,7 +608,12 @@ def test_unscored_detection_rates_exclude_failures_and_require_complete_panels(
         "case_id": "c", "source_path": "/c", "provider": "three",
         "status": "failed",
     })
-    rates = detection_rates({"detection": "rh", "records": records})
+    rates = detection_rates({
+        "detection": "rh",
+        "models": ["one", "two", "three"],
+        "primary_rule": "majority",
+        "records": records,
+    })
 
     assert rates["providers"]["one"]["rate"] == 0.5
     assert rates["providers"]["three"]["failed"] == 1

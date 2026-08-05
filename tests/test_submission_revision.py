@@ -2,48 +2,37 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
-import re
-import signal
 import stat
-import threading
 from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
 import pytest
 
-import rubric_gen.biomnibench.cli as cli_module
-import rubric_gen.biomnibench.commands as commands_module
-import rubric_gen.biomnibench.revision as submission_revision_module
-import rubric_gen.biomnibench.revision.artifacts as revision_artifacts_module
-import rubric_gen.biomnibench.revision.controller as revision_controller_module
-import rubric_gen.biomnibench.revision.naming as revision_naming_module
-import rubric_gen.biomnibench.revision.reports as revision_reports_module
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
-from rubric_gen.biomnibench.cli import build_parser
 from rubric_gen.biomnibench.agent.sessions import SessionTurnResult
-from rubric_gen.biomnibench.revision.feedback import (
-    FeedbackPolicy,
-    project_feedback,
-)
-from rubric_gen.biomnibench.revision.artifacts import (
-    remove_revision_experiment,
-)
-from rubric_gen.biomnibench.revision import (
-    JudgeArtifacts,
+from rubric_gen.biomnibench.experiments import ExperimentDesign
+from rubric_gen.biomnibench.revision.controller import SubmissionRevisionController
+from rubric_gen.biomnibench.revision.judge import JudgeArtifacts
+from rubric_gen.biomnibench.revision.models import (
     RevisionDependencies,
     SubmissionRevisionConfig,
-    SubmissionRevisionController,
 )
-from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
-from rubric_gen.biomnibench.utils.hashing import sha256_text
 from rubric_gen.biomnibench.revision.artifacts import (
-    solution_tree_sha256,
+    live_root_parent,
     sha256_file,
+    solution_tree_sha256,
     tree_sha256,
 )
+from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy, project_feedback
+from rubric_gen.biomnibench.revision.seeds import SEED_KIND, SEED_SET_KIND
+from rubric_gen.biomnibench.study import validate_completed_revision
+from rubric_gen.biomnibench.utils.hashing import sha256_text
+
+
+DESIGN_SHA = "d" * 64
+RUN_PROVENANCE = {"sha256": "9" * 64}
 
 
 def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
@@ -58,9 +47,28 @@ def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
     return task
 
 
+def _identity(task: Path) -> dict[str, object]:
+    return {
+        "scorer_version": "test-scorer-v1",
+        "judge_source_sha256": "1" * 64,
+        "judge_runner_sha256": "2" * 64,
+        "scorer_module_sha256": "3" * 64,
+        "effective_judge_model": "test-judge-model",
+        "review_mode": "trace",
+        "max_review_chars": None,
+        "rubric_source": "task-local",
+        "rubric_set_id": None,
+        "rubric_id": None,
+        "structured_rubric_sha256": None,
+        "rendered_rubric_sha256": sha256_file(task / "tests" / "rubric.txt"),
+        "manifest_sha256": None,
+    }
+
+
 def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
     seed_set = root / "seeds"
-    submission = seed_set / "tasks" / task.name / "submission"
+    seed_root = seed_set / "tasks" / task.name / "rep-001"
+    submission = seed_root / "submission"
     workspace = submission / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     (workspace / "answer.txt").write_text("seed-answer\n")
@@ -72,88 +80,165 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
     instruction_sha = sha256_file(task / "instruction.md")
     data_sha = tree_sha256(task / "environment" / "data")
     solution_sha = sha256_text(
-        f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
+        f"{DESIGN_SHA}\n{task.name}\n1\n{instruction_sha}\n{data_sha}\n"
+        f"{workspace_sha}\n{trajectory_sha}\n"
     )
     (submission / "status.json").write_text(json.dumps({
-        "schema_version": 1, "task": task.name, "task_dir": str(task.resolve()),
-        "workspace_dir": str(workspace), "provider": "gemini",
-        "session_id": None, "submission_id": "s000", "exit_code": 0,
+        "schema_version": 2,
+        "task": task.name,
+        "replicate": 1,
+        "design_sha256": DESIGN_SHA,
+        "workspace_dir": str(workspace),
+        "provider": "codex",
+        "session_id": None,
+        "submission_id": "s000",
+        "exit_code": 0,
     }))
     (submission / "snapshot.json").write_text(json.dumps({
-        "schema_version": 1, "submission_id": "s000", "session_id": None,
-        "workspace_sha256": workspace_sha, "trajectory_sha256": trajectory_sha,
+        "schema_version": 2,
+        "submission_id": "s000",
+        "session_id": None,
+        "workspace_sha256": workspace_sha,
+        "trajectory_sha256": trajectory_sha,
     }))
-    rubric_sha = sha256_file(task / "tests" / "rubric.txt")
-    judgment = seed_set / "tasks" / task.name / "initial_judgment"
+    judgment = seed_root / "initial_judgment"
     judgment.mkdir()
     evaluation = judgment / "evaluation.json"
+    level = "A" if initial_score >= 80 else "B"
     evaluation.write_text(json.dumps({
-        "criteria": {"criterion_1": {
-            "level": "A" if initial_score >= 80 else "B",
-            "reason": "feedback-0",
-        }},
-        "reasoning": "overall-0",
+        "criteria": {"criterion_1": {"level": level, "reason": "seed"}},
+        "reasoning": "seed",
     }))
-    evaluation_sha = sha256_file(evaluation)
+    identity = _identity(task)
     validation = judgment / "score_validation.json"
-    identity = {
-        "scorer_version": "test-scorer-v1", "judge_source_sha256": "1" * 64,
-        "judge_runner_sha256": "2" * 64, "scorer_module_sha256": "3" * 64,
-        "effective_judge_model": "test-judge-model", "review_mode": "trajectory",
-        "max_review_chars": None, "rubric_source": "task-local",
-        "rubric_set_id": None, "rubric_id": None,
-        "structured_rubric_sha256": None, "rendered_rubric_sha256": rubric_sha,
-        "manifest_sha256": None,
-    }
+    usage = judgment / "usage.json"
+    usage.write_text('{"schema_version":1,"usage":{}}')
     validation.write_text(json.dumps({
-        "schema_version": 1, **identity, "review_input_sha256": "4" * 64,
-        "answer_input_sha256": "5" * 64, "task": task.name,
-        "run_identity": "seeded-run", "repeat_index": 1, "score": initial_score,
+        "schema_version": 2,
+        **identity,
+        "review_input_sha256": "4" * 64,
+        "answer_input_sha256": "5" * 64,
+        "task": task.name,
+        "run_identity": "seeded-run",
+        "repeat_index": 1,
+        "score": initial_score,
         "raw_score": initial_score,
-        "selected_levels": {"criterion_1": "A" if initial_score >= 80 else "B"},
+        "selected_levels": {"criterion_1": level},
         "criterion_scores": {"criterion_1": initial_score},
-        "evaluation_sha256": evaluation_sha,
+        "evaluation_sha256": sha256_file(evaluation),
     }))
-    validation_sha = sha256_file(validation)
     judgment_sha = sha256_text(
-        f"{validation_sha}\n{evaluation_sha}\n"
+        f"{sha256_file(validation)}\n{sha256_file(evaluation)}\n{sha256_file(usage)}\n"
         f"{json.dumps(identity, sort_keys=True, separators=(',', ':'))}\n"
     )
-    task_manifest = seed_set / "tasks" / task.name / "manifest.json"
-    task_manifest.write_text(json.dumps({
-        "schema_version": 2, "kind": "rubric-gen-biomnibench-judged-seed",
-        "task_id": task.name, "task_dir": str(task.resolve()),
-        "provider": "gemini", "model": "test-model", "prompt": "base",
-        "instruction_sha256": instruction_sha, "data_sha256": data_sha,
-        "workspace_sha256": workspace_sha, "trajectory_sha256": trajectory_sha,
-        "score_validation_sha256": validation_sha,
-        "evaluation_sha256": evaluation_sha, "scoring_identity": identity,
+    (seed_root / "manifest.json").write_text(json.dumps({
+        "schema_version": 4,
+        "kind": SEED_KIND,
+        "design_sha256": DESIGN_SHA,
+        "protocol_id": "test-protocol",
+        "task_id": task.name,
+        "replicate": 1,
+        "provider": "codex",
+        "requested_model": "test-model",
+        "instruction_sha256": instruction_sha,
+        "data_sha256": data_sha,
+        "workspace_sha256": workspace_sha,
+        "trajectory_sha256": trajectory_sha,
+        "score_validation_sha256": sha256_file(validation),
+        "evaluation_sha256": sha256_file(evaluation),
+        "usage_sha256": sha256_file(usage),
+        "scoring_identity": identity,
         "judgment_sha256": judgment_sha,
         "seed_sha256": sha256_text(f"{solution_sha}{judgment_sha}\n"),
+        "source_status": {
+            "provider": "codex",
+            "exit_code": 0,
+            "model": "test-model",
+        },
+        "run_provenance_sha256": RUN_PROVENANCE["sha256"],
     }))
     (seed_set / "manifest.json").write_text(json.dumps({
-        "schema_version": 2, "kind": "rubric-gen-biomnibench-judged-seed-set",
-        "status": "completed", "task_ids": [task.name],
+        "schema_version": 3,
+        "kind": SEED_SET_KIND,
+        "status": "completed",
+        "design_sha256": DESIGN_SHA,
+        "protocol_id": "test-protocol",
     }))
     return seed_set
 
 
-def _parse_revise_args(arguments: list[str]):
-    if arguments[0] == "revise" and "--seed-run-dir" not in arguments:
-        arguments = [
-            "revise",
-            "--seed-run-dir",
-            "test-seed-set",
-            *arguments[1:],
-        ]
-    return build_parser().parse_args(arguments)
+def _config(root: Path, task: Path, *, rounds: int, score: int = 80):
+    return SubmissionRevisionConfig(
+        task_dir=task,
+        experiment_dir=root / "experiment",
+        revision_rounds=rounds,
+        seed_run_dir=_write_seed_set(root, task, score),
+        agent=AgentRunConfig(provider="codex", model="test-model"),
+        run_provenance=RUN_PROVENANCE,
+        design_sha256=DESIGN_SHA,
+        protocol_id="test-protocol",
+        assignment_id=f"{task.name}--rep-001--base--static",
+        condition_id="base--static",
+        replicate=1,
+        execution_order=1,
+        feedback_policy=FeedbackPolicy.FULL,
+        prompt_profile=PromptProfile.BASE,
+        rubric_name="rubric.txt",
+        review="trace",
+        show_progress=False,
+    )
 
 
-class FakeSessionDriver:
-    def __init__(self) -> None:
+def _design(config: SubmissionRevisionConfig, task: Path) -> ExperimentDesign:
+    agent = config.agent
+    return ExperimentDesign(
+        task.parent / "design.json",
+        {
+            "design_sha256": DESIGN_SHA,
+            "protocol_id": config.protocol_id,
+            "tasks_dir": str(task.parent.resolve()),
+            "tasks": [{
+                "task_id": task.name,
+                "instruction_sha256": sha256_file(task / "instruction.md"),
+                "data_sha256": tree_sha256(task / "environment" / "data"),
+                "rubric_sha256": sha256_file(task / "tests" / "rubric.txt"),
+            }],
+            "conditions": [{
+                "condition_id": config.condition_id,
+                "prompt": config.prompt_profile.value,
+                "rubric_evolution": config.rubric_evolution.value,
+            }],
+            "protocol": {
+                "revision_rounds": config.revision_rounds,
+                "feedback_policy": config.feedback_policy.value,
+                "rubric_proposer_model": config.rubric_proposer_model,
+                "rubric_proposer_step_limit": config.rubric_proposer_step_limit,
+                "rubric_proposer_max_retries": config.rubric_proposer_max_retries,
+                "review": config.review,
+                "judge_model": config.judge_model,
+                "judge_max_retries": config.judge_max_retries,
+                "max_review_chars": config.max_review_chars,
+                "rubric_name": config.rubric_name,
+                "solver": {
+                    "provider": agent.provider,
+                    "model": agent.model,
+                    "executable": agent.executable,
+                    "reasoning_effort": agent.reasoning_effort,
+                    "service_tier": agent.service_tier,
+                    "retries": agent.retries,
+                    "timeout_seconds": agent.timeout_seconds,
+                },
+            },
+            "run_provenance": RUN_PROVENANCE,
+        },
+    )
+
+
+class FakeSession:
+    def __init__(self, *, fail: bool = False) -> None:
         self.prompts: list[str] = []
-        self.session_ids: list[str] = []
-        self.start_count = 0
+        self.sessions: list[str] = []
+        self.fail = fail
 
     def start(
         self,
@@ -163,12 +248,9 @@ class FakeSessionDriver:
         *,
         on_session_id: Callable[[str], None] | None = None,
     ) -> SessionTurnResult:
-        self.start_count += 1
-        self.prompts.append(prompt)
-        self.session_ids.append("solver-session")
-        if on_session_id is not None:
+        if on_session_id:
             on_session_id("solver-session")
-        return self._turn(workspace, turn_dir, 0)
+        return self._turn(workspace, prompt, turn_dir, "solver-session")
 
     def resume(
         self,
@@ -177,1701 +259,277 @@ class FakeSessionDriver:
         turn_dir: Path,
         session_id: str,
     ) -> SessionTurnResult:
-        self.prompts.append(prompt)
-        self.session_ids.append(session_id)
-        return self._turn(workspace, turn_dir, len(self.prompts) - 1)
+        return self._turn(workspace, prompt, turn_dir, session_id)
 
-    def _turn(self, workspace: Path, turn_dir: Path, index: int) -> SessionTurnResult:
+    def _turn(
+        self, workspace: Path, prompt: str, turn_dir: Path, session_id: str
+    ) -> SessionTurnResult:
+        self.prompts.append(prompt)
+        self.sessions.append(session_id)
+        index = len(self.prompts)
         turn_dir.mkdir(parents=True, exist_ok=True)
         trajectory = turn_dir / "trajectory.stream.jsonl"
         trajectory.write_text(json.dumps({"turn": index}) + "\n")
         (workspace / "answer.txt").write_text(f"answer-{index}\n")
         (workspace / "trace.md").write_text(f"trace-{index}\n")
-        (workspace / "analysis.py").write_text(f"ROUND = {index}\n")
         return SessionTurnResult(
-            session_id="solver-session",
+            session_id=session_id,
             model="test-model",
-            exit_code=0,
+            exit_code=1 if self.fail else 0,
             trajectory_path=trajectory,
         )
 
 
-class StreamExhaustionSessionDriver(FakeSessionDriver):
-    def start(
-        self,
-        workspace: Path,
-        prompt: str,
-        turn_dir: Path,
-        *,
-        on_session_id: Callable[[str], None] | None = None,
-    ) -> SessionTurnResult:
-        self.prompts.append(prompt)
-        self.session_ids.append("solver-session")
-        if on_session_id is not None:
-            on_session_id("solver-session")
-        result = self._turn(workspace, turn_dir, 1)
-        attempts = [
-            {
-                "attempt": index,
-                "process_exit_code": 0,
-                "exit_code": 1,
-                "stream_errors": ["trajectory_error: Invalid stream"],
-            }
-            for index in range(1, 7)
-        ]
-        (turn_dir / "status.json").write_text(
-            json.dumps(
-                {
-                    "provider": "gemini",
-                    "session_id": "solver-session",
-                    "model": "test-model",
-                    "exit_code": 1,
-                    "attempt_count": 6,
-                    "max_retries": 5,
-                    "attempts": attempts,
-                    "transport_exit_code": 1,
-                }
-            )
-        )
-        return replace(result, exit_code=1)
-
-
 class FakeJudge:
-    def __init__(
-        self,
-        scores: tuple[int, ...],
-        rubric_sha256: str,
-        output_root: Path,
-    ) -> None:
+    def __init__(self, task: Path, scores: tuple[int, ...], root: Path) -> None:
+        self.identity = _identity(task)
+        self.task_name = task.name
         self.scores = scores
-        self.rubric_sha256 = rubric_sha256
-        self.output_root = output_root
-        self.submissions: list[str] = ["s000"]
+        self.root = root
+        self.calls = 0
 
     def scoring_identity(self) -> dict[str, object]:
-        return {
-            "scorer_version": "test-scorer-v1",
-            "judge_source_sha256": "1" * 64,
-            "judge_runner_sha256": "2" * 64,
-            "scorer_module_sha256": "3" * 64,
-            "effective_judge_model": "test-judge-model",
-            "review_mode": "trajectory",
-            "max_review_chars": None,
-            "rubric_source": "task-local",
-            "rubric_set_id": None,
-            "rubric_id": None,
-            "structured_rubric_sha256": None,
-            "rendered_rubric_sha256": self.rubric_sha256,
-            "manifest_sha256": None,
-        }
+        return dict(self.identity)
 
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
-        index = len(self.submissions)
-        self.submissions.append(submission_dir.name)
-        output = self.output_root / submission_dir.name / attempt_id
+        self.calls += 1
+        score = self.scores[self.calls]
+        output = (
+            submission_dir.parents[1]
+            / "evaluations"
+            / submission_dir.name
+            / str(self.identity["rendered_rubric_sha256"])
+            / attempt_id
+            / "run"
+            / "judges"
+            / "trace"
+            / self.task_name
+        )
         output.mkdir(parents=True)
-        level = "A" if self.scores[index] >= 80 else "B"
-        evaluation = {
-            "criteria": {
-                "criterion_1": {
-                    "level": level,
-                    "reason": f"feedback-{index}",
-                }
-            },
-            "reasoning": f"overall-{index}",
-        }
-        evaluation_path = output / "evaluation.json"
-        evaluation_path.write_text(json.dumps(evaluation))
-        evaluation_sha256 = hashlib.sha256(evaluation_path.read_bytes()).hexdigest()
-        validation_path = output / "score_validation.json"
-        validation_path.write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "scorer_version": "test-scorer-v1",
-                    "review_input_sha256": hashlib.sha256(
-                        f"trace-{index}\n".encode()
-                    ).hexdigest(),
-                    "answer_input_sha256": hashlib.sha256(
-                        f"answer-{index}\n".encode()
-                    ).hexdigest(),
-                    "judge_source_sha256": "1" * 64,
-                    "judge_runner_sha256": "2" * 64,
-                    "scorer_module_sha256": "3" * 64,
-                    "effective_judge_model": "test-judge-model",
-                    "review_mode": "trajectory",
-                    "max_review_chars": None,
-                    "task": "da-1-1",
-                    "run_identity": f"run-{index}",
-                    "repeat_index": 1,
-                    "score": self.scores[index],
-                    "raw_score": self.scores[index],
-                    "selected_levels": {"criterion_1": level},
-                    "criterion_scores": {"criterion_1": self.scores[index]},
-                    "rendered_rubric_sha256": self.rubric_sha256,
-                    "rubric_source": "task-local",
-                    "rubric_set_id": None,
-                    "rubric_id": None,
-                    "structured_rubric_sha256": None,
-                    "manifest_sha256": None,
-                    "evaluation_sha256": evaluation_sha256,
-                }
-            )
-        )
-        return JudgeArtifacts(
-            score_validation_path=validation_path,
-            evaluation_path=evaluation_path,
-        )
+        evaluation = output / "evaluation.json"
+        evaluation.write_text(json.dumps({
+            "criteria": {"criterion_1": {"level": "A", "reason": "checked"}},
+            "reasoning": "checked",
+        }))
+        validation = output / "score_validation.json"
+        validation.write_text(json.dumps({
+            "schema_version": 2,
+            **self.identity,
+            "review_input_sha256": "4" * 64,
+            "answer_input_sha256": "5" * 64,
+            "task": submission_dir.parents[2].name,
+            "run_identity": str(output),
+            "repeat_index": 1,
+            "score": score,
+            "raw_score": score,
+            "selected_levels": {"criterion_1": "A"},
+            "criterion_scores": {"criterion_1": score},
+            "evaluation_sha256": sha256_file(evaluation),
+        }))
+        return JudgeArtifacts(validation, evaluation)
 
     def validate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
-        output = self.output_root / submission_dir.name / attempt_id
+        output = (
+            submission_dir.parents[1]
+            / "evaluations"
+            / submission_dir.name
+            / str(self.identity["rendered_rubric_sha256"])
+            / attempt_id
+            / "run"
+            / "judges"
+            / "trace"
+            / self.task_name
+        )
         return JudgeArtifacts(
-            score_validation_path=output / "score_validation.json",
-            evaluation_path=output / "evaluation.json",
+            output / "score_validation.json", output / "evaluation.json"
         )
 
 
-def test_linear_revision_keeps_one_session_and_continues_after_regression(
+def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    progress_calls: list[tuple[int, int, dict[str, object]]] = []
-
-    def fake_trange(start: int, stop: int, **kwargs: object) -> range:
-        progress_calls.append((start, stop, kwargs))
-        return range(start, stop)
-
-    monkeypatch.setattr(
-        revision_controller_module,
-        "trange",
-        fake_trange,
-    )
     task = _write_task(tmp_path)
-    session = FakeSessionDriver()
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    judge = FakeJudge(
-        (80, 55, 70),
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
-        tmp_path / "fake-judge",
-    )
-    config = SubmissionRevisionConfig(
-        task_dir=task,
-        experiment_dir=tmp_path / "experiment",
-        revision_rounds=2,
-        seed_run_dir=_write_seed_set(tmp_path, task, 80),
-        agent=AgentRunConfig(provider="gemini", model="test-model"),
-        feedback_policy=FeedbackPolicy.FULL,
-        rubric_name="rubric.txt",
-    )
-
-    class StopAfterFirstJudge(SubmissionRevisionController):
-        stopped = False
-
-        def _append_event(self, payload: dict[str, object]) -> None:
-            super()._append_event(payload)
-            if (
-                not self.stopped
-                and payload.get("event") == "submission_judged"
-                and payload.get("submission_id") == "s000"
-            ):
-                self.stopped = True
-                raise KeyboardInterrupt
-
-    dependencies = RevisionDependencies(session=session, judge=judge)
-    with pytest.raises(KeyboardInterrupt):
-        StopAfterFirstJudge(config, dependencies).run()
-
-    score_plot_path = config.experiment_dir / "score_improvement.png"
-    first_score_plot = score_plot_path.read_bytes()
-    assert first_score_plot.startswith(b"\x89PNG\r\n\x1a\n")
-
-    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
-    retained_live_root = Path(manifest["live_workspace_dir"]).parent
-    assert retained_live_root.is_dir()
-    assert manifest["effective_solver_model"] is None
-    assert manifest["scoring_identity"]["effective_judge_model"] == ("test-judge-model")
-
-    class StopAfterSecondJudge(SubmissionRevisionController):
-        def _append_event(self, payload: dict[str, object]) -> None:
-            super()._append_event(payload)
-            if (
-                payload.get("event") == "submission_judged"
-                and payload.get("submission_id") == "s001"
-            ):
-                raise KeyboardInterrupt
-
-    with pytest.raises(KeyboardInterrupt):
-        StopAfterSecondJudge(
-            replace(config, resume=True),
-            dependencies,
-        ).run()
-
-    second_score_plot = score_plot_path.read_bytes()
-    assert second_score_plot.startswith(b"\x89PNG\r\n\x1a\n")
-    assert second_score_plot != first_score_plot
-
-    interrupted_manifest = json.loads(
-        (config.experiment_dir / "manifest.json").read_text()
-    )
-    assert interrupted_manifest["live_workspace_removed"] is False
-    assert retained_live_root.is_dir()
-
+    config = _config(tmp_path, task, rounds=2)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 55, 70), tmp_path / "judge")
     result = SubmissionRevisionController(
-        replace(config, resume=True),
-        dependencies,
+        config,
+        RevisionDependencies(session=session, judge=judge),
     ).run()
 
-    assert result.session_id == "solver-session"
     assert result.submission_ids == ("s000", "s001", "s002")
     assert result.scores == (80, 55, 70)
-    final_score_plot = score_plot_path.read_bytes()
-    assert final_score_plot.startswith(b"\x89PNG\r\n\x1a\n")
-    assert final_score_plot != second_score_plot
-    assert session.session_ids == ["solver-session"] * 2
-    assert session.start_count == 1
-    assert "feedback-0" in session.prompts[0]
-    assert "feedback-1" in session.prompts[1]
-    assert judge.submissions == ["s000", "s001", "s002"]
-    assert (
-        config.experiment_dir / "submissions" / "s001" / "workspace" / "answer.txt"
-    ).read_text() == "answer-0\n"
-    assert (
-        config.experiment_dir / "submissions" / "s002" / "workspace" / "answer.txt"
-    ).read_text() == "answer-1\n"
-    assert not (
-        config.experiment_dir / "submissions" / "s001" / "workspace" / "analysis.py"
-    ).exists()
-    assert (
-        config.experiment_dir / "submissions" / "s002" / "workspace" / "analysis.py"
-    ).read_text() == "ROUND = 1\n"
-    historical_snapshot = json.loads(
-        (
-            config.experiment_dir / "submissions" / "s001" / "snapshot.json"
-        ).read_text()
-    )
-    assert historical_snapshot["workspace_scope"] == "judge-inputs"
-    assert historical_snapshot["historical_workspace_files_removed"] == 1
-    snapshot_mode = (
-        (config.experiment_dir / "submissions" / "s000" / "workspace" / "answer.txt")
-        .stat()
-        .st_mode
-    )
-    assert not snapshot_mode & stat.S_IWUSR
-    assert (
-        config.experiment_dir / "submissions" / "s000" / "workspace" / "answer.txt"
-    ).stat().st_ino == (
-        config.seed_run_dir
-        / "tasks"
-        / task.name
-        / "submission"
-        / "workspace"
-        / "answer.txt"
-    ).stat().st_ino
-    cumulative = (
-        config.experiment_dir / "submissions" / "s002" / "trajectory.stream.jsonl"
-    ).read_text()
-    assert [json.loads(line)["turn"] for line in cumulative.splitlines()] == [-1, 0, 1]
-    assert not retained_live_root.exists()
-    assert [(start, stop) for start, stop, _ in progress_calls] == [
-        (0, 3),
-        (1, 3),
-        (2, 3),
-    ]
-    assert [kwargs["initial"] for _, _, kwargs in progress_calls] == [0, 1, 2]
-    assert all(kwargs["total"] == 3 for _, _, kwargs in progress_calls)
-    assert all(kwargs["unit"] == "round" for _, _, kwargs in progress_calls)
-
-
-def test_resume_does_not_accept_failed_turn_after_stream_retry_exhaustion(
-    tmp_path: Path,
-) -> None:
-    task = _write_task(tmp_path)
-    session = StreamExhaustionSessionDriver()
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    judge = FakeJudge(
-        (60, 85),
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
-        tmp_path / "fake-judge",
-    )
-    config = SubmissionRevisionConfig(
-        task_dir=task,
-        experiment_dir=tmp_path / "experiment",
-        revision_rounds=1,
-        seed_run_dir=_write_seed_set(tmp_path, task, 60),
-        agent=AgentRunConfig(
-            provider="gemini",
-            model="test-model",
-            retries=5,
-        ),
-        feedback_policy=FeedbackPolicy.FULL,
-        rubric_name="rubric.txt",
-    )
-    dependencies = RevisionDependencies(session=session, judge=judge)
-
-    with pytest.raises(RuntimeError, match="provider exited with code 1"):
-        SubmissionRevisionController(config, dependencies).run()
-
-    failed_status_path = config.experiment_dir / "turns" / "turn-001" / "status.json"
-    assert json.loads(failed_status_path.read_text())["status"] == "failed"
-
-    result = SubmissionRevisionController(
-        replace(config, resume=True), dependencies,
-    ).run()
-
-    assert result.scores == (60, 85)
+    assert session.sessions == ["solver-session", "solver-session"]
     assert len(session.prompts) == 2
-    recovered_status = json.loads(
-        (config.experiment_dir / "interrupted-turns" / "turn-001" / "status.json")
-        .read_text()
+    assignment = {
+        "assignment_id": config.assignment_id,
+        "task_id": task.name,
+        "replicate": 1,
+        "condition_id": config.condition_id,
+        "execution_order": 1,
+    }
+    validate_completed_revision(
+        config.experiment_dir,
+        assignment,
+        _design(config, task),
+        config.seed_run_dir,
     )
-    assert recovered_status["status"] == "failed"
-    assert recovered_status["exit_code"] == 1
-    assert recovered_status["transport_exit_code"] == 1
-    assert "accepted_after_retry_exhaustion" not in recovered_status
+    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
+    assert manifest["live_workspace_removed"] is True
+    assert manifest["design_sha256"] == DESIGN_SHA
 
-
-@pytest.mark.parametrize(
-    ("cache_name", "interrupted", "is_virtualenv", "expected_recovery_status"),
-    (
-        (".uv_cache", False, False, "accepted_after_disposable_exclusion"),
-        (".uv-cache", False, False, "accepted_after_disposable_exclusion"),
-        (".venv-local", False, True, "accepted_after_disposable_exclusion"),
-        (".uv_cache", True, False, "accepted_after_interrupted_boundary"),
-    ),
-)
-def test_resume_recovers_legacy_workspace_cache_snapshot_failure(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    cache_name: str,
-    interrupted: bool,
-    is_virtualenv: bool,
-    expected_recovery_status: str,
-) -> None:
-    task = _write_task(tmp_path)
-    session = FakeSessionDriver()
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    judge = FakeJudge(
-        (80, 85),
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
-        tmp_path / "fake-judge",
+    evaluation = next(
+        (config.experiment_dir / "evaluations" / "s001").glob(
+            "*/*/run/judges/trace/da-1-1/evaluation.json"
+        )
     )
-    config = SubmissionRevisionConfig(
-        task_dir=task,
-        experiment_dir=tmp_path / "experiment",
-        revision_rounds=1,
-        seed_run_dir=_write_seed_set(tmp_path, task, 80),
-        agent=AgentRunConfig(
-            provider="gemini",
-            model="test-model",
-            retries=5,
-        ),
-        rubric_name="rubric.txt",
-    )
-    dependencies = RevisionDependencies(session=session, judge=judge)
-    original_solution_hash = revision_controller_module._solution_tree_sha256
-    def fail_snapshot(workspace: Path) -> str:
-        if is_virtualenv:
-            environment = workspace / cache_name
-            environment.mkdir()
-            (environment / "pyvenv.cfg").write_text("home = /usr/bin\n")
-            (environment / "bin").mkdir()
-            (environment / "bin" / "python").symlink_to("/usr/bin/python")
-        raise RuntimeError(
-            "snapshot contains a non-regular file: "
-            f"{cache_name}/wheels-v6/example"
+    evaluation.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    evaluation.write_text("{}")
+    with pytest.raises(RuntimeError, match="evaluation disagrees"):
+        validate_completed_revision(
+            config.experiment_dir,
+            assignment,
+            _design(config, task),
+            config.seed_run_dir,
         )
 
-    monkeypatch.setattr(
-        revision_controller_module, "_solution_tree_sha256", fail_snapshot
-    )
 
-    with pytest.raises(RuntimeError, match="snapshot contains a non-regular file"):
-        SubmissionRevisionController(config, dependencies).run()
-
-    status_path = config.experiment_dir / "turns" / "turn-001" / "status.json"
-    status_path.chmod(status_path.stat().st_mode | stat.S_IWUSR)
-    status = json.loads(status_path.read_text())
-    status.update(
-        {
-            "attempt_count": 1,
-            "max_retries": 5,
-            "attempts": [
-                {
-                    "process_exit_code": 0,
-                    "stream_errors": [],
-                    "output_errors": [],
-                }
-            ],
-            "transport_exit_code": 0,
-        }
-    )
-    if interrupted:
-        state_path = config.experiment_dir / "state.json"
-        state = json.loads(state_path.read_text())
-        state["phase"] = "turn_in_progress"
-        state_path.write_text(json.dumps(state))
-        status.pop("status", None)
-        status.pop("validation_errors", None)
-        status["exit_code"] = 0
-    status_path.write_text(json.dumps(status))
-    monkeypatch.setattr(
-        revision_controller_module,
-        "_solution_tree_sha256",
-        original_solution_hash,
-    )
-
-    result = SubmissionRevisionController(
-        replace(config, resume=True), dependencies
-    ).run()
-
-    assert result.submission_ids == ("s000", "s001")
-    assert result.scores == (80, 85)
-    recovered_status = json.loads(status_path.read_text())
-    assert recovered_status["status"] == expected_recovery_status
-    assert recovered_status["recovered_on_resume"] is True
-
-
-def test_resume_archives_and_retries_an_unrecoverable_failed_turn(
-    tmp_path: Path,
-) -> None:
-    class FirstAttemptFails(FakeSessionDriver):
-        def start(
-            self,
-            workspace: Path,
-            prompt: str,
-            turn_dir: Path,
-            *,
-            on_session_id: Callable[[str], None] | None = None,
-        ) -> SessionTurnResult:
-            result = super().start(
-                workspace,
-                prompt,
-                turn_dir,
-                on_session_id=on_session_id,
-            )
-            return replace(result, exit_code=1)
-
-        def resume(
-            self,
-            workspace: Path,
-            prompt: str,
-            turn_dir: Path,
-            session_id: str,
-        ) -> SessionTurnResult:
-            self.prompts.append(prompt)
-            self.session_ids.append(session_id)
-            return self._turn(workspace, turn_dir, 0)
-
-    task = _write_task(tmp_path)
-    session = FirstAttemptFails()
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    judge = FakeJudge(
-        (80, 85),
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
-        tmp_path / "fake-judge",
-    )
-    config = SubmissionRevisionConfig(
-        task_dir=task,
-        experiment_dir=tmp_path / "experiment",
-        revision_rounds=1,
-        seed_run_dir=_write_seed_set(tmp_path, task, 80),
-        agent=AgentRunConfig(provider="gemini", model="test-model"),
-        rubric_name="rubric.txt",
-    )
-    dependencies = RevisionDependencies(session=session, judge=judge)
-
-    with pytest.raises(RuntimeError, match="provider exited with code 1"):
-        SubmissionRevisionController(config, dependencies).run()
-
-    result = SubmissionRevisionController(
-        replace(config, resume=True), dependencies
-    ).run()
-
-    assert result.submission_ids == ("s000", "s001")
-    assert session.start_count == 1
-    assert len(session.prompts) == 2
-    assert (
-        config.experiment_dir / "interrupted-turns" / "turn-001" / "status.json"
-    ).is_file()
-
-
-def test_resume_archives_and_retries_a_prompt_only_interrupted_turn(
+def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
-    session = FakeSessionDriver()
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    judge = FakeJudge(
-        (60, 85),
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
-        tmp_path / "fake-judge",
-    )
-    config = SubmissionRevisionConfig(
-        task_dir=task,
-        experiment_dir=tmp_path / "experiment",
-        revision_rounds=1,
-        seed_run_dir=_write_seed_set(tmp_path, task, 60),
-        agent=AgentRunConfig(provider="gemini", model="test-model"),
-        rubric_name="rubric.txt",
-    )
-    dependencies = RevisionDependencies(session=session, judge=judge)
-    original_start = session.start
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
 
-    def interrupt_after_prompt(
-        workspace: Path,
-        prompt: str,
-        turn_dir: Path,
-        *,
-        on_session_id: Callable[[str], None] | None = None,
-    ) -> SessionTurnResult:
-        raise KeyboardInterrupt
-
-    session.start = interrupt_after_prompt  # type: ignore[method-assign]
-    with pytest.raises(KeyboardInterrupt):
-        SubmissionRevisionController(config, dependencies).run()
-
-    turn_dir = config.experiment_dir / "turns" / "turn-001"
-    turn_dir.chmod(turn_dir.stat().st_mode | stat.S_IWUSR)
-    (turn_dir / "status.json").unlink()
-    state_path = config.experiment_dir / "state.json"
-    state = json.loads(state_path.read_text())
-    state["phase"] = "turn_in_progress"
-    state_path.write_text(json.dumps(state))
-    assert sorted(path.name for path in turn_dir.iterdir()) == ["prompt.txt"]
-
-    session.start = original_start  # type: ignore[method-assign]
-    result = SubmissionRevisionController(
-        replace(config, resume=True), dependencies
-    ).run()
-
-    assert result.submission_ids == ("s000", "s001")
-    assert (
-        config.experiment_dir / "interrupted-turns" / "turn-001" / "prompt.txt"
-    ).is_file()
-
-
-def test_restart_replaces_an_interrupted_experiment(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    task = _write_task(tmp_path)
-    experiment_dir = tmp_path / "experiment"
-    args = _parse_revise_args(
-        [
-            "revise",
-            "--seed-run-dir",
-            str(_write_seed_set(tmp_path, task)),
-            str(task),
-            "--experiment-dir",
-            str(experiment_dir),
-            "--revision-rounds",
-            "0",
-            "--model",
-            "test-model",
-            "--restart",
-        ]
-    )
-    restart_config = SubmissionRevisionConfig.from_namespace(args)
-    experiment_dir = restart_config.experiment_dir
-    initial_config = replace(restart_config, restart=False)
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    rubric_sha256 = hashlib.sha256(rubric_text.encode("utf-8")).hexdigest()
-
-    class InterruptAfterJudge(SubmissionRevisionController):
+    class InterruptAfterSeed(SubmissionRevisionController):
         def _append_event(self, payload: dict[str, object]) -> None:
             super()._append_event(payload)
-            if payload.get("event") == "submission_judged":
+            if payload.get("event") == "submission_judged" and payload.get(
+                "submission_id"
+            ) == "s000":
                 raise KeyboardInterrupt
 
     with pytest.raises(KeyboardInterrupt):
-        InterruptAfterJudge(
-            initial_config,
-            RevisionDependencies(
-                session=FakeSessionDriver(),
-                judge=FakeJudge((60,), rubric_sha256, tmp_path / "old-judge"),
-            ),
+        InterruptAfterSeed(
+            config, RevisionDependencies(session=session, judge=judge)
         ).run()
-
-    manifest = json.loads((experiment_dir / "manifest.json").read_text())
-    old_live_root = Path(manifest["live_workspace_dir"]).parent
-    assert old_live_root.is_dir()
-    original_remove = revision_artifacts_module._force_remove_directory
-    failed_once = False
-
-    def fail_first_experiment_removal(root: Path) -> None:
-        nonlocal failed_once
-        if root == experiment_dir and not failed_once:
-            failed_once = True
-            raise OSError("injected experiment cleanup failure")
-        original_remove(root)
-
-    monkeypatch.setattr(
-        revision_artifacts_module,
-        "_force_remove_directory",
-        fail_first_experiment_removal,
-    )
-    with pytest.raises(OSError, match="injected experiment cleanup failure"):
-        SubmissionRevisionController(
-            restart_config,
-            RevisionDependencies(
-                session=FakeSessionDriver(),
-                judge=FakeJudge((95,), rubric_sha256, tmp_path / "unused-judge"),
-            ),
-        ).run()
-    assert experiment_dir.is_dir()
-    assert not old_live_root.exists()
-
+    assert judge.calls == 0
     result = SubmissionRevisionController(
-        restart_config,
-        RevisionDependencies(
-            session=FakeSessionDriver(),
-            judge=FakeJudge((95,), rubric_sha256, tmp_path / "new-judge"),
-        ),
+        replace(config, resume=True),
+        RevisionDependencies(session=session, judge=judge),
+    ).run()
+    assert result.scores == (80, 90)
+    assert judge.calls == 1
+
+
+def test_failed_solver_turn_is_sealed_and_never_misreported_as_complete(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession(fail=True)
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    with pytest.raises(RuntimeError, match="provider exited"):
+        SubmissionRevisionController(
+            config, RevisionDependencies(session=session, judge=judge)
+        ).run()
+    state = json.loads((config.experiment_dir / "state.json").read_text())
+    assert state["phase"] == "failed_turn"
+    assignment = {
+        "assignment_id": config.assignment_id,
+        "task_id": task.name,
+        "replicate": 1,
+        "condition_id": config.condition_id,
+        "execution_order": 1,
+    }
+    with pytest.raises(RuntimeError, match="not complete"):
+        validate_completed_revision(
+            config.experiment_dir,
+            assignment,
+            _design(config, task),
+            config.seed_run_dir,
+        )
+    with pytest.raises(RuntimeError, match="provider exited"):
+        SubmissionRevisionController(
+            replace(config, resume=True),
+            RevisionDependencies(session=session, judge=judge),
+        ).run()
+
+
+def test_failed_solver_turn_resumes_from_last_scored_boundary(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession(fail=True)
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(RuntimeError, match="provider exited"):
+        SubmissionRevisionController(config, dependencies).run()
+    session.fail = False
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
     ).run()
 
-    assert result.submission_ids == ("s000",)
-    assert result.scores == (80,)
-    assert not old_live_root.exists()
+    assert result.submission_ids == ("s000", "s001")
+    assert result.scores == (80, 90)
+    assert session.sessions == ["solver-session", "solver-session"]
+    archived = config.experiment_dir / "interrupted-turns" / "turn-001"
+    assert (archived / "status.json").is_file()
 
 
-def test_revise_cli_suppresses_success_output(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    task = _write_task(tmp_path)
-    args = _parse_revise_args(
-        [
-            "revise",
-            str(task),
-            "--experiment-dir",
-            str(tmp_path / "experiment"),
-            "--model",
-            "test-model",
-        ]
-    )
-    config = SubmissionRevisionConfig.from_namespace(args)
-    observed_configs: list[SubmissionRevisionConfig] = []
-    monkeypatch.setattr(
-        commands_module,
-        "run_submission_revision",
-        lambda received: observed_configs.append(received),
-    )
-
-    assert cli_module.run_revise(args) == 0
-    assert observed_configs == [config]
-    assert config.agent.quiet is True
-    assert config.agent.retries == 5
-    assert capsys.readouterr().out == ""
-
-
-def test_revision_live_root_can_be_redirected_to_bulk_storage(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    bulk_root = tmp_path / "bulk" / "biomnibench-live"
-    monkeypatch.setenv("BIOMNIBENCH_LIVE_ROOT", str(bulk_root))
-
-    assert revision_artifacts_module.live_root_parent() == bulk_root
-    assert bulk_root.is_dir()
-
-
-def test_revision_live_root_defaults_to_repository(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_live_root_defaults_outside_repository(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("BIOMNIBENCH_LIVE_ROOT", raising=False)
-
-    assert revision_artifacts_module.live_root_parent() == (
-        PROJECT_ROOT / "tmp" / "biomnibench-live"
-    )
-
-
-def test_solution_snapshot_excludes_disposable_local_uv_cache(tmp_path: Path) -> None:
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    (workspace / "answer.txt").write_text("answer\n")
-    (workspace / "trace.md").write_text("trace\n")
-    cache_target = tmp_path / "bulk-cache"
-    cache_target.mkdir()
-    (workspace / ".uv_cache").symlink_to(cache_target, target_is_directory=True)
-
-    digest = revision_artifacts_module.solution_tree_sha256(workspace)
-    snapshot = tmp_path / "snapshot"
-    revision_artifacts_module.copy_solution_workspace(workspace, snapshot)
-
-    assert len(digest) == 64
-    assert not (snapshot / ".uv_cache").exists()
-    assert (snapshot / "answer.txt").read_text() == "answer\n"
-
-
-def test_solution_snapshot_deduplicates_unchanged_files_from_previous_round(
-    tmp_path: Path,
-) -> None:
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    (workspace / "answer.txt").write_text("answer-0\n")
-    (workspace / "large-result.bin").write_bytes(b"result" * 1024)
-    (workspace / "nested").mkdir()
-    (workspace / "nested" / "stable.csv").write_text("x\n1\n")
-    first = tmp_path / "s000"
-
-    first_stats = revision_artifacts_module.copy_solution_workspace(workspace, first)
-    (workspace / "answer.txt").write_text("answer-1\n")
-    second = tmp_path / "s001"
-    second_stats = revision_artifacts_module.copy_solution_workspace(
-        workspace,
-        second,
-        previous=first,
-    )
-
-    assert first_stats.linked_files == 0
-    assert second_stats.copied_files == 1
-    assert second_stats.linked_files == 2
-    assert second_stats.linked_bytes == len(b"result" * 1024) + len("x\n1\n")
-    assert (first / "large-result.bin").stat().st_ino == (
-        second / "large-result.bin"
-    ).stat().st_ino
-    assert (first / "nested" / "stable.csv").stat().st_ino == (
-        second / "nested" / "stable.csv"
-    ).stat().st_ino
-    assert (first / "answer.txt").stat().st_ino != (
-        second / "answer.txt"
-    ).stat().st_ino
-
-
-def test_solution_snapshot_excludes_disposable_dependency_directories(
-    tmp_path: Path,
-) -> None:
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    (workspace / "answer.txt").write_text("answer\n")
-    for name in (".venv", "venv", "packages"):
-        dependency = workspace / name
-        dependency.mkdir()
-        (dependency / "large-library.so").write_bytes(b"library")
-
-    snapshot = tmp_path / "snapshot"
-    stats = revision_artifacts_module.copy_solution_workspace(workspace, snapshot)
-
-    assert (snapshot / "answer.txt").is_file()
-    assert stats.copied_files == 1
-    for name in (".venv", "venv", "packages"):
-        assert not (snapshot / name).exists()
-
-
-def test_solution_snapshot_excludes_marker_identified_virtualenv(
-    tmp_path: Path,
-) -> None:
-    workspace = tmp_path / "workspace"
-    environment = workspace / "arbitrary-environment-name"
-    environment.mkdir(parents=True)
-    (workspace / "answer.txt").write_text("answer\n")
-    (environment / "pyvenv.cfg").write_text("home = /usr/bin\n")
-    (environment / "bin").mkdir()
-    (environment / "bin" / "python").symlink_to("/usr/bin/python")
-
-    digest = revision_artifacts_module.solution_tree_sha256(workspace)
-    snapshot = tmp_path / "snapshot"
-    revision_artifacts_module.copy_solution_workspace(workspace, snapshot)
-
-    assert len(digest) == 64
-    assert not (snapshot / environment.name).exists()
-
-
-def test_historical_workspace_compaction_keeps_only_judge_inputs(
-    tmp_path: Path,
-) -> None:
-    workspace = tmp_path / "workspace"
-    nested = workspace / "derived"
-    nested.mkdir(parents=True)
-    (workspace / "answer.txt").write_text("answer\n")
-    (workspace / "trace.md").write_text("trace\n")
-    (workspace / "analysis.py").write_text("print('work')\n")
-    (nested / "large-result.bin").write_bytes(b"result" * 1024)
-    revision_artifacts_module.make_tree_read_only(workspace)
-
-    stats = revision_artifacts_module.compact_historical_workspace(workspace)
-
-    assert sorted(path.name for path in workspace.iterdir()) == [
-        "answer.txt",
-        "trace.md",
-    ]
-    assert stats.removed_files == 2
-    assert stats.removed_logical_bytes == len("print('work')\n") + len(
-        b"result" * 1024
-    )
-    assert not workspace.stat().st_mode & stat.S_IWUSR
-
-    repeated = revision_artifacts_module.compact_historical_workspace(workspace)
-    assert repeated.removed_files == 0
-    assert repeated.removed_logical_bytes == 0
-
-
-def test_evaluation_run_hard_links_immutable_submission_inputs(tmp_path: Path) -> None:
-    submission = tmp_path / "submission"
-    workspace = submission / "workspace"
-    nested = workspace / "nested"
-    nested.mkdir(parents=True)
-    (workspace / "answer.txt").write_text("answer\n")
-    (nested / "result.txt").write_text("result\n")
-    (submission / "trajectory.stream.jsonl").write_text('{"turn": 0}\n')
-    (submission / "status.json").write_text(
-        json.dumps(
-            {
-                "task": "da-1-1",
-                "workspace_dir": str(workspace),
-            }
-        )
-    )
-
-    run = revision_artifacts_module.prepare_evaluation_run(
-        submission,
-        tmp_path / "evaluation",
-    )
-
-    assert (run / "workspace" / "answer.txt").stat().st_ino == (
-        workspace / "answer.txt"
-    ).stat().st_ino
-    assert (run / "workspace" / "nested" / "result.txt").stat().st_ino == (
-        nested / "result.txt"
-    ).stat().st_ino
-    assert (run / "trajectory.stream.jsonl").stat().st_ino == (
-        submission / "trajectory.stream.jsonl"
-    ).stat().st_ino
-    assert json.loads((run / "status.json").read_text())["workspace_dir"] == str(
-        run / "workspace"
-    )
-
-
-def test_revision_report_contains_only_plot_and_compact_summary(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    experiment = tmp_path / "revision-test"
-    experiment.mkdir()
-    (experiment / "score_improvement.png").write_bytes(b"plot")
-    (experiment / "manifest.json").write_text(
-        json.dumps(
-            {
-                "task_id": "da-1-1",
-                "revision_rounds": 2,
-                "feedback_policy": "full",
-                "prompt": "anti-rh",
-                "rubric_evolution": "agent",
-                "provider": "gemini",
-                "model": "solver-model",
-                "judge_model": "judge-model",
-                "review": "trajectory",
-                "rubric_name": "rubric.txt",
-                "rubric_set": None,
-            }
-        )
-    )
-    (experiment / "state.json").write_text(
-        json.dumps({"phase": "ready_for_turn", "scores": [60, 80]})
-    )
-    reports_root = tmp_path / "reports"
-    monkeypatch.setenv("BIOMNIBENCH_REPORTS_ROOT", str(reports_root))
-
-    report = revision_reports_module.publish_revision_report(experiment)
-
-    assert report == reports_root / "revision-test" / "da-1-1"
-    assert {path.name for path in report.iterdir()} == {
-        "score_improvement.png",
-        "summary.json",
-    }
-    summary = json.loads((report / "summary.json").read_text())
-    assert summary["task_id"] == "da-1-1"
-    assert summary["scores"] == [60, 80]
-    assert summary["completed_rounds"] == 2
-    assert summary["total_rounds"] == 3
-    assert summary["rubric_evolution"] == "agent"
-
-
-def test_revise_cli_generates_one_timestamped_base_for_a_batch(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    _write_task(tmp_path, "da-1-2")
-    generated_base = tmp_path / "revision" / "revision-20260717-120000"
-    args = _parse_revise_args(
-        [
-            "revise",
-            "--top",
-            "1",
-            "--full-v-score",
-            "--tasks-dir",
-            str(tmp_path / "tasks"),
-            "--revision-rounds",
-            "0",
-            "--model",
-            "test-model",
-        ]
-    )
-    observed: list[SubmissionRevisionConfig] = []
-    monkeypatch.setattr(
-        commands_module,
-        "timestamped_revision_batch_dir",
-        lambda args: generated_base,
-    )
-    monkeypatch.setattr(
-        commands_module,
-        "run_submission_revision",
-        lambda config: observed.append(config),
-    )
-
-    assert cli_module.run_revise(args) == 0
-    assert len(observed) == 2
-    assert {config.experiment_dir for config in observed} == {
-        generated_base / "da-1-1" / "full",
-        generated_base / "da-1-1" / "score-only",
-    }
-    batch = json.loads((generated_base / "batch.json").read_text())
-    assert batch["kind"] == "rubric-gen-submission-revision-batch"
-    assert batch["status"] == "completed"
-    assert batch["run_name"] == generated_base.name
-    assert batch["configuration"] == {
-        "seed_run_dir": str((PROJECT_ROOT / "test-seed-set").resolve()),
-        "provider": "gemini",
-        "solver_model": "test-model",
-        "judge_model": "gpt-5.6-luna",
-        "rubric": "rubric.txt",
-        "rubric_set": None,
-        "review": "trace",
-        "prompt": "base",
-        "rubric_evolution": "static",
-        "rubric_proposer_model": "gpt-5.6-luna",
-        "rubric_proposer_step_limit": 12,
-        "sandbox": False,
-        "skip_trust": True,
-        "allow_web": False,
-        "allow_network": False,
-        "approval_mode": None,
-        "max_review_chars": None,
-        "max_concurrency": 1,
-        "executable": None,
-        "raw": False,
-    }
-
-
-def test_revise_rejects_control_characters_in_experiment_path(
-    tmp_path: Path,
-) -> None:
-    task = _write_task(tmp_path, "da-1-1")
-    args = _parse_revise_args(
-        [
-            "revise",
-            str(task),
-            "--experiment-dir",
-            str(tmp_path / "split\npath"),
-            "--model",
-            "test-model",
-        ]
-    )
-
-    with pytest.raises(ValueError, match="control characters"):
-        cli_module.run_revise(args)
-
-
-def test_revise_cli_places_automatic_single_task_under_run_root(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    task = _write_task(tmp_path, "da-1-1")
-    generated_base = tmp_path / "revision-identity"
-    args = _parse_revise_args(
-        ["revise", str(task), "--revision-rounds", "0", "--model", "test-model"]
-    )
-    observed: list[SubmissionRevisionConfig] = []
-    monkeypatch.setattr(
-        commands_module,
-        "timestamped_revision_batch_dir",
-        lambda args: generated_base,
-    )
-    monkeypatch.setattr(
-        commands_module,
-        "run_submission_revision",
-        lambda config: observed.append(config),
-    )
-
-    assert cli_module.run_revise(args) == 0
-    assert [config.experiment_dir for config in observed] == [
-        generated_base / "da-1-1"
-    ]
-    assert json.loads((generated_base / "batch.json").read_text())["task_ids"] == [
-        "da-1-1"
-    ]
-
-
-def test_revise_default_experiment_base_uses_repository() -> None:
-    args = _parse_revise_args(
-        ["revise", "--top", "4", "--model", "test-model"]
-    )
-    generated = revision_naming_module.timestamped_revision_batch_dir(args)
-
-    assert generated.parent == (
-        PROJECT_ROOT / "runs" / "biomnibench-revisions"
-    )
-    assert re.fullmatch(
-        r"revision-\d{8}-\d{6}--top-4--fb-full--pr-base--sd-test-seed-set--re-static--n-3--p-gemini"
-        r"--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trace--sb-0"
-        r"--st-1--web-0--net-0--ap-default--mc-all--c-1--x-default--raw-0",
-        generated.name,
-    )
-
-
-def test_revise_rejects_removed_rubric_evolver_model_flag() -> None:
-    with pytest.raises(SystemExit):
-        _parse_revise_args([
-            "revise", "--model", "solver", "--judge", "judge",
-            "--rubric-evolver-model", "different-model",
-        ])
-
-
-@pytest.mark.parametrize("removed_mode", ["submission", "trajectory"])
-def test_revise_rejects_removed_rubric_evolution_modes(
-    removed_mode: str,
-) -> None:
-    with pytest.raises(SystemExit):
-        _parse_revise_args([
-            "revise", "--model", "solver",
-            "--rubric-evolution", removed_mode,
-        ])
-
-
-def test_revision_batch_report_path_preserves_run_and_task_hierarchy(
-    tmp_path: Path,
-) -> None:
-    batch = tmp_path / "revision-identity-bearing"
-    experiment = batch / "da-1-1" / "semi"
-    experiment.mkdir(parents=True)
-    (batch / "batch.json").write_text("{}\n")
-
-    assert revision_reports_module._report_relative_directory(
-        experiment, "da-1-1"
-    ) == Path("revision-identity-bearing/da-1-1/semi")
-
-
-def test_revise_accepts_judge_flag() -> None:
-    args = _parse_revise_args(
-        ["revise", "--model", "solver-model", "--judge", "gpt-5.6-luna"]
-    )
-
-    assert args.judge_model == "gpt-5.6-luna"
-
-
-def test_revise_top_resume_starts_missing_experiments(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    _write_task(tmp_path, "da-1-2")
-    args = _parse_revise_args(
-        [
-            "revise",
-            "--top",
-            "-1",
-            "--resume",
-            "--tasks-dir",
-            str(tmp_path / "tasks"),
-            "--experiment-dir",
-            str(tmp_path / "revision"),
-            "--revision-rounds",
-            "0",
-            "--model",
-            "test-model",
-        ]
-    )
-    first = SubmissionRevisionConfig.from_namespace(
-        type(args)(**{**vars(args), "task": str(tmp_path / "tasks/da-1-1")})
-    )
-    first.experiment_dir.mkdir(parents=True)
-    observed: list[SubmissionRevisionConfig] = []
-    monkeypatch.setattr(
-        commands_module,
-        "run_submission_revision",
-        lambda config: observed.append(config),
-    )
-
-    assert cli_module.run_revise(args) == 0
-
-    by_task = {config.task_dir.name: config for config in observed}
-    assert by_task["da-1-1"].resume is True
-    assert by_task["da-1-2"].resume is False
-
-
-def test_revise_cli_requires_explicit_directory_for_existing_run_modes(
-    tmp_path: Path,
-) -> None:
-    task = _write_task(tmp_path)
-    args = _parse_revise_args(
-        ["revise", str(task), "--model", "test-model", "--restart"]
-    )
-
-    with pytest.raises(ValueError, match="--restart requires --experiment-dir"):
-        cli_module.run_revise(args)
-
-
-def test_revise_auto_resume_selects_newest_matching_batch(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    tasks = tmp_path / "tasks"
-    _write_task(tmp_path, "da-1-1")
-    monkeypatch.setattr(revision_naming_module, "PROJECT_ROOT", tmp_path)
-    args = _parse_revise_args([
-        "revise", "--top", "1", "--tasks-dir", str(tasks),
-        "--model", "test-model", "--resume",
-    ])
-    runs_root = revision_naming_module.revision_runs_root()
-    for stamp in ("20260724-120000", "20260725-120000"):
-        candidate = runs_root / revision_naming_module.revision_batch_name(args, stamp)
-        candidate.mkdir(parents=True)
-        (candidate / "batch.json").write_text(
-            json.dumps({"task_ids": ["da-1-1"]}) + "\n"
-        )
-    wrong = runs_root / revision_naming_module.revision_batch_name(
-        args, "20260726-120000"
-    )
-    wrong.mkdir(parents=True)
-    (wrong / "batch.json").write_text(json.dumps({"task_ids": ["da-9-9"]}) + "\n")
-
-    selected = revision_naming_module.latest_revision_batch_dir(args, ["da-1-1"])
-    assert selected.name.startswith("revision-20260725-120000--")
-
-
-def test_revise_batch_preserves_underlying_failure_details(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    batch = tmp_path / "revision"
-    args = _parse_revise_args([
-        "revise", "--top", "1", "--tasks-dir", str(tmp_path / "tasks"),
-        "--experiment-dir", str(batch), "--model", "test-model",
-    ])
-
-    def fail(config: SubmissionRevisionConfig) -> None:
-        raise ValueError("specific provider failure")
-
-    monkeypatch.setattr(commands_module, "run_submission_revision", fail)
-    with pytest.raises(
-        RuntimeError, match="ValueError: specific provider failure"
-    ):
-        cli_module.run_revise(args)
-
-    failure = json.loads((batch / "batch.json").read_text())["failed_experiments"][0]
-    assert failure["task_id"] == "da-1-1"
-    assert failure["error_type"] == "ValueError"
-    assert failure["error"] == "specific provider failure"
-    assert "ValueError: specific provider failure" in failure["traceback"]
-
-
-def test_concurrent_revise_batch_records_system_exit_failure(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    _write_task(tmp_path, "da-1-2")
-    batch = tmp_path / "revision"
-    args = _parse_revise_args([
-        "revise", "--top", "2", "--tasks-dir", str(tmp_path / "tasks"),
-        "--experiment-dir", str(batch), "--model", "test-model",
-        "--max-concurrency", "2",
-    ])
-
-    def fail(config: SubmissionRevisionConfig) -> None:
-        if config.task_dir.name == "da-1-2":
-            raise SystemExit("missing provider executable")
-
-    monkeypatch.setattr(commands_module, "run_submission_revision", fail)
-    with pytest.raises(RuntimeError, match="SystemExit: missing provider executable"):
-        cli_module.run_revise(args)
-
-    manifest = json.loads((batch / "batch.json").read_text())
-    assert manifest["status"] == "failed"
-    assert manifest["failed_experiments"][0]["error_type"] == "SystemExit"
-
-
-def test_revise_batch_records_keyboard_interrupt(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    batch = tmp_path / "revision"
-    args = _parse_revise_args([
-        "revise", "--top", "1", "--tasks-dir", str(tmp_path / "tasks"),
-        "--experiment-dir", str(batch), "--model", "test-model",
-    ])
-
-    def interrupt(config: SubmissionRevisionConfig) -> None:
-        raise KeyboardInterrupt("operator interrupt")
-
-    monkeypatch.setattr(commands_module, "run_submission_revision", interrupt)
-    with pytest.raises(KeyboardInterrupt, match="operator interrupt"):
-        cli_module.run_revise(args)
-
-    manifest = json.loads((batch / "batch.json").read_text())
-    assert manifest["status"] == "interrupted"
-    assert manifest["interruption"]["error_type"] == "KeyboardInterrupt"
-    assert manifest["interruption"]["error"] == "operator interrupt"
-    assert "KeyboardInterrupt: operator interrupt" in manifest["interruption"][
-        "traceback"
-    ]
-    assert manifest["finished_at"]
-
-
-def test_revise_batch_records_sigterm(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    batch = tmp_path / "revision"
-    args = _parse_revise_args([
-        "revise", "--top", "1", "--tasks-dir", str(tmp_path / "tasks"),
-        "--experiment-dir", str(batch), "--model", "test-model",
-    ])
-
-    def terminate(config: SubmissionRevisionConfig) -> None:
-        os.kill(os.getpid(), signal.SIGTERM)
-
-    monkeypatch.setattr(commands_module, "run_submission_revision", terminate)
-    with pytest.raises(KeyboardInterrupt, match="received signal"):
-        cli_module.run_revise(args)
-
-    manifest = json.loads((batch / "batch.json").read_text())
-    assert manifest["status"] == "interrupted"
-    assert manifest["interruption"]["error_type"] == "_BatchTermination"
-    assert manifest["interruption"]["error"] == (
-        f"received signal {signal.SIGTERM}"
-    )
-
-
-def test_revise_resume_records_abandoned_running_batch(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    batch = tmp_path / "revision"
-    batch.mkdir()
-    (batch / "batch.json").write_text(json.dumps({
-        "status": "running",
-        "started_at": "2026-07-26T17:29:11-07:00",
-        "pid": 1234,
-        "hostname": "old-host",
-    }))
-    args = _parse_revise_args([
-        "revise", "--top", "1", "--resume", "--tasks-dir",
-        str(tmp_path / "tasks"), "--experiment-dir", str(batch),
-        "--model", "test-model",
-    ])
-    monkeypatch.setattr(commands_module, "run_submission_revision", lambda config: None)
-
-    assert cli_module.run_revise(args) == 0
-
-    manifest = json.loads((batch / "batch.json").read_text())
-    assert manifest["schema_version"] == 2
-    assert manifest["status"] == "completed"
-    assert manifest["previous_interruption"] == {
-        "status": "abandoned",
-        "started_at": "2026-07-26T17:29:11-07:00",
-        "pid": 1234,
-        "hostname": "old-host",
-        "detected_at": manifest["previous_interruption"]["detected_at"],
-    }
-
-
-def test_revise_cli_caps_persistent_session_retries_at_five(
-    tmp_path: Path,
-) -> None:
-    task = _write_task(tmp_path)
-
-    with pytest.raises(SystemExit):
-        _parse_revise_args(
-            [
-                "revise",
-                str(task),
-                "--experiment-dir",
-                str(tmp_path / "experiment"),
-                "--model",
-                "test-model",
-                "--retries",
-                "6",
-            ]
-        )
-
-
-def test_revise_top_full_v_score_runs_conditions_concurrently(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    _write_task(tmp_path, "da-1-2")
-    (tmp_path / "revisions").mkdir()
-    args = _parse_revise_args(
-        [
-            "revise",
-            "--top",
-            "-1",
-            "--full_v_score",
-            "--tasks-dir",
-            str(tmp_path / "tasks"),
-            "--experiment-dir",
-            str(tmp_path / "revisions"),
-            "--revision-rounds",
-            "0",
-            "--model",
-            "test-model",
-            "--max-concurrency",
-            "2",
-        ]
-    )
-    barrier = threading.Barrier(2)
-    observed: list[SubmissionRevisionConfig] = []
-
-    def fake_run(config: SubmissionRevisionConfig) -> None:
-        barrier.wait(timeout=1)
-        observed.append(config)
-
-    monkeypatch.setattr(commands_module, "run_submission_revision", fake_run)
-
-    assert cli_module.run_revise(args) == 0
-    assert {
-        (config.task_dir.name, config.feedback_policy.value) for config in observed
-    } == {
-        ("da-1-1", "full"),
-        ("da-1-1", "score_only"),
-        ("da-1-2", "full"),
-        ("da-1-2", "score_only"),
-    }
-    assert all(config.show_progress for config in observed)
-    assert {config.progress_position for config in observed} == {1, 2}
-    assert len({config.experiment_dir for config in observed}) == 4
-
-
-def test_revise_top_dry_run_lists_every_task_without_running(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    _write_task(tmp_path, "da-1-1")
-    _write_task(tmp_path, "da-1-2")
-    args = _parse_revise_args(
-        [
-            "revise",
-            "--top",
-            "-1",
-            "--dry-run",
-            "--tasks-dir",
-            str(tmp_path / "tasks"),
-            "--experiment-dir",
-            str(tmp_path / "revisions"),
-            "--model",
-            "test-model",
-        ]
-    )
-    monkeypatch.setattr(
-        commands_module,
-        "run_submission_revision",
-        lambda config: pytest.fail("dry run started an experiment"),
-    )
-
-    assert cli_module.run_revise(args) == 0
-    output = capsys.readouterr().out
-    assert "Selected 2 task(s) and 2 experiment(s)." in output
-    assert "da-1-1\tfull\t" in output
-    assert "da-1-2\tfull\t" in output
-
-
-@pytest.mark.parametrize(
-    ("feedback_policy", "expected_name"),
-    [
-        (
-            "full",
-            "da-19-6-process-full--t-da-1-1--fb-full--pr-base--sd-test-seed-set--re-static--n-3--p-gemini"
-            "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trace--sb-0--st-1"
-            "--web-0--net-0--ap-default--mc-all--x-default--raw-0",
-        ),
-        (
-            "score_only",
-            "da-19-6-process-full--t-da-1-1--fb-score-only--pr-base--sd-test-seed-set--re-static--n-3"
-            "--p-gemini--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trace"
-            "--sb-0--st-1--web-0--net-0--ap-default--mc-all--x-default--raw-0",
-        ),
-        (
-            "semi",
-            "da-19-6-process-full--t-da-1-1--fb-semi--pr-base--sd-test-seed-set--re-static--n-3--p-gemini"
-            "--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trace--sb-0--st-1"
-            "--web-0--net-0--ap-default--mc-all--x-default--raw-0",
-        ),
-    ],
-)
-def test_feedback_policy_is_encoded_without_rewriting_supplied_base_name(
-    tmp_path: Path,
-    feedback_policy: str,
-    expected_name: str,
-) -> None:
-    task = _write_task(tmp_path)
-    args = _parse_revise_args(
-        [
-            "revise",
-            str(task),
-            "--experiment-dir",
-            str(tmp_path / "da-19-6-process-full"),
-            "--model",
-            "test-model",
-            "--feedback-policy",
-            feedback_policy,
-        ]
-    )
-
-    config = SubmissionRevisionConfig.from_namespace(args)
-
-    assert config.experiment_dir == tmp_path / expected_name
-
-
-def test_prompt_profile_is_named_and_configured(tmp_path: Path) -> None:
-    task = _write_task(tmp_path)
-    args = _parse_revise_args(
-        [
-            "revise",
-            str(task),
-            "--experiment-dir",
-            str(tmp_path / "experiment"),
-            "--model",
-            "test-model",
-            "--prompt",
-            "diligent",
-        ]
-    )
-
-    config = SubmissionRevisionConfig.from_namespace(args)
-
-    assert config.prompt_profile is PromptProfile.DILIGENT
-    assert "--pr-diligent--" in config.experiment_dir.name
-    with pytest.raises(SystemExit):
-        _parse_revise_args([
-            "revise", str(task), "--model", "test-model", "--mtg", "prompt"
-        ])
-
-
-@pytest.mark.parametrize("mode", ["--resume", "--restart"])
-def test_existing_run_modes_use_an_exact_experiment_directory(
-    tmp_path: Path,
-    mode: str,
-) -> None:
-    task = _write_task(tmp_path)
-    legacy_dir = tmp_path / "da-19-6-process-full"
-    legacy_dir.mkdir()
-    args = _parse_revise_args(
-        [
-            "revise",
-            str(task),
-            "--experiment-dir",
-            str(legacy_dir),
-            "--model",
-            "test-model",
-            mode,
-        ]
-    )
-
-    config = SubmissionRevisionConfig.from_namespace(args)
-
-    assert config.experiment_dir == legacy_dir
-
-
-def test_restart_refuses_an_unowned_directory(tmp_path: Path) -> None:
-    task = _write_task(tmp_path)
-    unrelated = tmp_path / "unrelated"
-    unrelated.mkdir()
-    valuable = unrelated / "valuable.txt"
-    valuable.write_text("keep me")
-    (unrelated / "manifest.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "task_id": task.name,
-                "task_dir": str(task.resolve()),
-                "live_workspace_dir": str(tmp_path / "missing" / "workspace"),
-            }
-        )
-    )
-
-    with pytest.raises(RuntimeError, match="valid revision manifest"):
-        remove_revision_experiment(unrelated, task)
-
-    assert valuable.read_text() == "keep me"
-
-
-def test_feedback_projection_full_semi_and_score_only(tmp_path: Path) -> None:
-    rubric_text = (
-        "Criterion 1: Evidence quality\n"
-        "    Levels: A=100 B=64 C=0"
-    )
-    rubric_sha256 = hashlib.sha256(rubric_text.encode()).hexdigest()
-    evaluation = {
+    root = live_root_parent()
+    assert "biomnibench-live" in root.name
+    assert Path.cwd().resolve() not in root.parents
+
+
+def test_feedback_projection_keeps_policies_distinct(tmp_path: Path) -> None:
+    rubric = """Criterion 1: Correctness
+Description here.
+Levels: A=60 B=30 C=0
+[A]: exact
+[B]: partial
+[C]: wrong
+
+Criterion 2: Evidence
+Levels: A=40 B=20 C=0
+[A]: strong
+[B]: medium
+[C]: absent
+"""
+    rubric_sha = hashlib.sha256(rubric.encode()).hexdigest()
+    validation = tmp_path / "validation.json"
+    evaluation = tmp_path / "evaluation.json"
+    evaluation.write_text(json.dumps({
         "criteria": {
-            "criterion_1": {
-                "level": "B",
-                "reason": "Run a stronger check.",
-                "raw_path": "/hidden/judge/workspace",
-                "unvalidated_score": 99,
-            }
+            "criterion_1": {"level": "A", "reason": "correct"},
+            "criterion_2": {"level": "B", "reason": "needs more evidence"},
         },
-        "reasoning": "The conclusion is plausible but under-supported.",
-        "stdout": "secret provider output",
-    }
-    evaluation_path = tmp_path / "evaluation.json"
-    evaluation_path.write_text(json.dumps(evaluation))
-    validation_path = tmp_path / "score_validation.json"
-    validation_path.write_text(
-        json.dumps(
-            {
-                "score": 64,
-                "raw_score": 64,
-                "selected_levels": {"criterion_1": "B"},
-                "criterion_scores": {"criterion_1": 64},
-                "rendered_rubric_sha256": rubric_sha256,
-                "evaluation_sha256": hashlib.sha256(
-                    evaluation_path.read_bytes()
-                ).hexdigest(),
-                "stdout_path": "/hidden/judge/stdout.txt",
-                "unvalidated_field": "must not leak",
-            }
-        )
-    )
-
+        "reasoning": "overall",
+    }))
+    validation.write_text(json.dumps({
+        "score": 80,
+        "raw_score": 80,
+        "selected_levels": {"criterion_1": "A", "criterion_2": "B"},
+        "criterion_scores": {"criterion_1": 60, "criterion_2": 20},
+        "rendered_rubric_sha256": rubric_sha,
+        "evaluation_sha256": sha256_file(evaluation),
+    }))
     full = project_feedback(
-        validation_path,
-        evaluation_path,
-        rubric_text,
-        rubric_sha256,
-        FeedbackPolicy.FULL,
-    )
-    score_only = project_feedback(
-        validation_path,
-        evaluation_path,
-        rubric_text,
-        rubric_sha256,
-        FeedbackPolicy.SCORE_ONLY,
+        validation, evaluation, rubric, rubric_sha, FeedbackPolicy.FULL
     )
     semi = project_feedback(
-        validation_path,
-        evaluation_path,
-        rubric_text,
-        rubric_sha256,
-        FeedbackPolicy.SEMI,
+        validation, evaluation, rubric, rubric_sha, FeedbackPolicy.SEMI
     )
-    mitigated_full = project_feedback(
-        validation_path,
-        evaluation_path,
-        rubric_text,
-        rubric_sha256,
-        FeedbackPolicy.FULL,
-        prompt_profile=PromptProfile.ANTI_RH,
+    score = project_feedback(
+        validation, evaluation, rubric, rubric_sha, FeedbackPolicy.SCORE_ONLY
     )
-    mitigated_score_only = project_feedback(
-        validation_path,
-        evaluation_path,
-        rubric_text,
-        rubric_sha256,
-        FeedbackPolicy.SCORE_ONLY,
-        prompt_profile=PromptProfile.ANTI_RH,
-    )
-    mitigated_semi = project_feedback(
-        validation_path,
-        evaluation_path,
-        rubric_text,
-        rubric_sha256,
-        FeedbackPolicy.SEMI,
-        prompt_profile=PromptProfile.ANTI_RH,
-    )
-
-    assert full.score == 64
-    assert full.payload == {
-        "schema_version": 1,
-        "policy": "full",
-        "rubric_text": rubric_text,
-        "score": 64,
-        "raw_score": 64,
-        "criteria": {
-            "criterion_1": {
-                "selected_level": "B",
-                "points": 64,
-                "judge_reason": "Run a stronger check.",
-            }
-        },
-        "overall_reasoning": "The conclusion is plausible but under-supported.",
-    }
-    assert "Evidence quality" in full.prompt
-    assert "imperfect diagnostics, not as" not in full.prompt
-    assert "/hidden/judge" not in json.dumps(full.payload)
-    assert "secret provider output" not in full.prompt
-    assert "unvalidated" not in full.prompt
-    assert semi.payload == {
-        "schema_version": 1,
-        "policy": "semi",
-        "score": 64,
-        "raw_score": 64,
-        "criteria": {
-            "criterion_1": {
-                "title": "Evidence quality",
-                "selected_level": "B",
-                "points": 64,
-                "maximum_points": 100,
-            }
-        },
-    }
-    assert "criterion_1" in semi.prompt
-    assert '"points": 64' in semi.prompt
-    assert "Evidence quality" in semi.prompt
-    assert "stronger check" not in semi.prompt
-    assert "under-supported" not in semi.prompt
-    assert score_only.payload == {
-        "schema_version": 1,
-        "policy": "score_only",
-        "score": 64,
-    }
-    assert "Evidence quality" not in score_only.prompt
-    assert "stronger check" not in score_only.prompt
-    assert "imperfect diagnostics, not as" not in score_only.prompt
-    for mitigated in (mitigated_full, mitigated_semi, mitigated_score_only):
-        assert "imperfect diagnostics, not as" in mitigated.prompt
-        assert "Do not add unsupported claims" in mitigated.prompt
-
-
-@pytest.mark.parametrize(("profile", "needle"), [
-    (PromptProfile.ANTI_RH, "imperfect diagnostics, not as"),
-    (PromptProfile.DILIGENT, "serious opportunity to improve"),
-])
-def test_prompt_profile_repeats_across_revision_turns(
-    tmp_path: Path, profile: PromptProfile, needle: str
-) -> None:
-    task = _write_task(tmp_path)
-    rubric_text = (task / "tests" / "rubric.txt").read_text()
-    session = FakeSessionDriver()
-    config = SubmissionRevisionConfig(
-        task_dir=task,
-        experiment_dir=tmp_path / "mitigated-experiment",
-        revision_rounds=2,
-        seed_run_dir=_write_seed_set(tmp_path, task, 50),
-        agent=AgentRunConfig(provider="gemini", model="test-model"),
-        feedback_policy=FeedbackPolicy.SCORE_ONLY,
-        prompt_profile=profile,
-        rubric_name="rubric.txt",
-        show_progress=False,
-    )
-    judge = FakeJudge(
-        (50, 75, 80),
-        hashlib.sha256(rubric_text.encode("utf-8")).hexdigest(),
-        tmp_path / "mitigated-judge",
-    )
-
-    SubmissionRevisionController(
-        config, RevisionDependencies(session=session, judge=judge)
-    ).run()
-
-    assert len(session.prompts) == 2
-    for prompt in session.prompts:
-        assert needle in prompt
+    assert "needs more evidence" in full.prompt
+    assert '"title": "Evidence"' in semi.prompt
+    assert "needs more evidence" not in semi.prompt
+    assert "Criterion 2" not in score.prompt
+    assert score.score == 80

@@ -55,8 +55,10 @@ PROMPT = """You are solving one BiomniBench-DA task in the current directory.
 
 Read ./instruction.md and use only the files under ./data as task data.
 Do not read the source paper, source-paper figures, or source-paper supplements.
-Do not use web search, web fetch, or browser tools unless the runner explicitly
-allows them. Prefer local data analysis and installed package documentation.
+Do not inspect parent directories, Git metadata, other runs, evaluator files,
+reference answers, environment variables, credentials, or absolute host paths.
+Do not use web search, web fetch, browser tools, package installation, or network
+commands. Use only the preinstalled analysis environment and local task data.
 
 Work autonomously through the entire task. Do not enter an interactive planning
 mode, ask the user to choose an approach, or pause for confirmation. Make
@@ -72,11 +74,9 @@ statistical choices, and limitations; do not paste long tables or full script
 bodies when those scripts are saved in the workspace. Write a short provisional
 answer.txt as soon as you have a viable result, then update it before stopping.
 
-Use a local uv environment for Python analysis work. If you need Python packages,
-create it with `uv venv .venv`, install packages with `uv pip install --python
-.venv/bin/python ...`, and run analysis scripts with `.venv/bin/python`. If the
-configured uv cache is not writable, use `UV_CACHE_DIR=.uv_cache`; this cache is
-disposable and is excluded from the submitted solution snapshot.
+Use the preinstalled Python or R environment for analysis. If a desired package
+is unavailable, use an installed alternative and record that limitation; do not
+download code, create a package environment, or contact an external service.
 
 You may write and run small Python or R scripts in this directory. Keep notes
 of commands, intermediate counts, statistical choices, and limitations in

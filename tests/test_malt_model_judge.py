@@ -16,6 +16,8 @@ from rubric_gen.malt.model_judge import (
     ModelJudgeRunner,
     request_provenance,
 )
+from rubric_gen.biomnibench.revision.artifacts import tree_sha256
+from rubric_gen.biomnibench.utils.hashing import sha256_file
 
 
 DATASET_PROVENANCE = {
@@ -45,6 +47,94 @@ def _request() -> ModelRequest:
         evidence="prompt",
         schema_name="test_schema",
         schema={"type": "object", "additionalProperties": False},
+    )
+
+
+def test_revision_cache_groups_serialize_only_identical_model_prefixes(
+    tmp_path: Path,
+) -> None:
+    first = _request()
+    second = ModelRequest(
+        instructions=first.instructions,
+        evidence="different evidence",
+        schema_name=first.schema_name,
+        schema=first.schema,
+    )
+    jobs = [
+        model_judge.PreparedJob(
+            case=tmp_path / name,
+            model=model,
+            source_kind=source_kind,
+            requests=(request,),
+            input_tokens=(100,),
+            compact_stats={},
+        )
+        for name, model, source_kind, request in (
+            ("revision-a", "gpt-5.6-sol", "revision", first),
+            ("revision-b", "gpt-5.6-sol", "revision", second),
+            ("revision-c", "claude-opus-4-8", "revision", second),
+            ("case-a", "gpt-5.6-sol", "case", first),
+            ("case-b", "gpt-5.6-sol", "case", second),
+        )
+    ]
+
+    groups = [ModelJudgeRunner._standard_cache_group(job) for job in jobs]
+    assert groups[0] == groups[1]
+    assert groups[0] != groups[2]
+    assert groups[3] != groups[4]
+
+
+def test_anthropic_preflight_uses_provider_token_counter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    class Messages:
+        def count_tokens(self, **kwargs: object) -> object:
+            observed.update(kwargs)
+            return types.SimpleNamespace(input_tokens=321)
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-test")
+    monkeypatch.setattr(
+        model_judge,
+        "_token_counter_client",
+        lambda provider, key: types.SimpleNamespace(messages=Messages()),
+    )
+
+    assert model_judge.count_input_tokens("claude-opus-4-8", _request()) == 321
+    assert observed["model"] == "claude-opus-4-8"
+    assert observed["output_config"] == {
+        "effort": "low",
+        "format": {"type": "json_schema", "schema": _request().schema},
+    }
+
+
+def test_gemini_preflight_reserves_uncounted_schema_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Models:
+        def count_tokens(self, **kwargs: object) -> object:
+            assert kwargs["model"] == "gemini-3.1-pro-preview"
+            assert kwargs["contents"] == _request().flat_prompt()
+            return types.SimpleNamespace(total_tokens=100)
+
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-test")
+    monkeypatch.setattr(
+        model_judge,
+        "_token_counter_client",
+        lambda provider, key: types.SimpleNamespace(models=Models()),
+    )
+    schema_bytes = len(
+        json.dumps(
+            _request().schema,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    )
+
+    assert (
+        model_judge.count_input_tokens("gemini-3.1-pro-preview", _request())
+        == 100 + schema_bytes
     )
 
 
@@ -90,8 +180,7 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     assert "No reward-directed divergence" in summary["records"][0]["verdict"]["analysis"]
     assert (output / "detection-rates.json").is_file()
     assert (output / "detection-rates.png").is_file()
-    assert (output / "category-rates.json").is_file()
-    assert (output / "category-rates.png").is_file()
+    assert not (output / "category-rates.json").exists()
     generation = json.loads(
         (output / "cases/case-a/gpt-test/generations.json").read_text()
     )[0]["generation"]
@@ -134,18 +223,15 @@ def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
     assert not (output / "cases/case-a/gpt-test.failed-001").exists()
 
 
-def test_category_failure_does_not_discard_completed_detection(
+def test_direct_runner_does_not_make_posthoc_category_calls(
     tmp_path: Path,
 ) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
-    category_calls = 0
+    calls = 0
 
     def generate(model: str, request: ModelRequest) -> ModelGeneration:
-        prompt = request.flat_prompt()
-        nonlocal category_calls
-        if "<finding_inventory_json>" in prompt:
-            category_calls += 1
-            return _generation(model, '{"categories": []}')
+        nonlocal calls
+        calls += 1
         return _generation(model, json.dumps({
             "decision": "reward_hacking_detected",
             "confidence": 0.8,
@@ -171,10 +257,10 @@ def test_category_failure_does_not_discard_completed_detection(
     )
 
     assert runner.run() == 0
-    assert category_calls == 2
+    assert calls == 1
     assert (output / "summary.json").is_file()
     assert (output / "detection-rates.json").is_file()
-    assert (output / "category-error.json").is_file()
+    assert not (output / "category-error.json").exists()
     assert not (output / "category-rates.json").exists()
 
 
@@ -182,27 +268,114 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     tasks = tmp_path / "tasks"
     task = tasks / "da-1-1"
     task.mkdir(parents=True)
-    (task / "instruction.md").write_text("Compute the real result.\n")
+    (task / "instruction.md").write_text(
+        "Compute the real result for DA-1-1 under BASE--STATIC.\n"
+    )
     revision = tmp_path / "revision" / "da-1-1"
-    submission = revision / "submissions" / "s001"
-    workspace = submission / "workspace"
-    workspace.mkdir(parents=True)
-    (revision / "feedback").mkdir()
+    submissions = revision / "submissions"
+    for index in range(2):
+        submission = submissions / f"s{index:03d}"
+        workspace = submission / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "answer.txt").write_text(
+            f"claimed result {index} for da-1-1\n"
+        )
+        (workspace / "trace.md").write_text(
+            f"analysis trace {index} in base--static\n"
+        )
+        trajectory_events: list[dict[str, object]] = [
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": f"changed {index}",
+            },
+            {
+                "type": "tool_use",
+                "parameters": {"command": "python solve.py"},
+            },
+        ]
+        if index == 1:
+            trajectory_events.extend([
+                {
+                    "type": "item.started",
+                    "item": {
+                        "id": "call-1",
+                        "type": "command_execution",
+                        "command": "python huge.py",
+                    },
+                },
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "id": "call-1",
+                        "type": "command_execution",
+                        "command": "python huge.py",
+                        "aggregated_output": (
+                            "HEAD_MARKER" + "x" * 80_000 + "TAIL_MARKER"
+                        ),
+                        "status": "completed",
+                    },
+                },
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "id": "call-2",
+                        "type": "command_execution",
+                        "command": "python huge.py",
+                        "aggregated_output": (
+                            "HEAD_MARKER" + "x" * 80_000 + "TAIL_MARKER"
+                        ),
+                        "status": "completed",
+                    },
+                },
+                {
+                    "type": "turn.completed",
+                    "usage": {"input_tokens": 999_999},
+                },
+            ])
+        (submission / "trajectory.stream.jsonl").write_text(
+            "\n".join(json.dumps(event) for event in trajectory_events) + "\n"
+        )
+        (submission / "status.json").write_text(json.dumps({"exit_code": 0}))
+        (submission / "snapshot.json").write_text(json.dumps({
+            "schema_version": 2,
+            "submission_id": f"s{index:03d}",
+            "workspace_sha256": tree_sha256(workspace),
+            "trajectory_sha256": sha256_file(
+                submission / "trajectory.stream.jsonl"
+            ),
+        }))
     (revision / "manifest.json").write_text(json.dumps({
+        "schema_version": 2,
         "kind": "rubric-gen-submission-revision-experiment",
+        "design_sha256": "d" * 64,
+        "assignment_id": "da-1-1--rep-001--base--static",
+        "condition_id": "base--static",
         "task_id": "da-1-1",
+        "submission_count": 2,
     }))
-    (revision / "state.json").write_text(json.dumps({"scores": [20, 100]}))
-    (revision / "feedback" / "s000.json").write_text(
-        json.dumps({"score": 20})
-    )
-    (submission / "trajectory.stream.jsonl").write_text(
-        json.dumps({"type": "message", "role": "assistant", "content": "changed"})
-        + "\n"
-        + json.dumps({"type": "tool_use", "parameters": {"command": "python solve.py"}})
-        + "\n"
-    )
-    (workspace / "answer.txt").write_text("claimed result\n")
+    (revision / "state.json").write_text(json.dumps({
+        "phase": "completed",
+        "submission_ids": ["s000", "s001"],
+        "scores": [20, 100],
+        "next_turn_index": 2,
+    }))
+    feedback = revision / "feedback"
+    feedback.mkdir()
+    (feedback / "s000.json").write_text(json.dumps({
+        "schema_version": 1,
+        "policy": "semi",
+        "score": 20,
+        "raw_score": 20,
+        "criteria": {
+            "criterion_1": {
+                "title": "Use the real data",
+                "selected_level": "C",
+                "points": 0,
+                "maximum_points": 80,
+            }
+        },
+    }))
     observed: dict[str, str] = {}
 
     def generate(model: str, request: ModelRequest) -> ModelGeneration:
@@ -220,6 +393,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
         ModelJudgeConfig(
             case_dirs=(),
             revision_dirs=(revision,),
+            design_sha256s=("d" * 64,),
             tasks_dir=tasks,
             models=("gpt-test",),
             output_dir=output,
@@ -230,11 +404,53 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     assert runner.run() == 0
     assert "Compute the real result" in observed["prompt"]
     assert "python solve.py" in observed["prompt"]
-    assert "feedback/s000.json" in observed["prompt"]
+    assert "da-1-1" not in observed["prompt"].lower()
+    assert "base--static" not in observed["prompt"].lower()
+    assert "[TASK_ID]" in observed["prompt"]
+    assert "[CONDITION]" in observed["prompt"]
+    assert "solver_feedback:s000" in observed["prompt"]
+    assert "Use the real data" in observed["prompt"]
+    assert '"scores"' not in observed["prompt"]
+    assert observed["prompt"].count("python huge.py") == 1
+    assert '"record_type":"bounded_text"' in observed["prompt"]
+    assert '"value_reference":{"same_as_event_id":' in observed["prompt"]
+    assert "HEAD_MARKER" in observed["prompt"]
+    assert "TAIL_MARKER" in observed["prompt"]
+    assert '"input_tokens":999999' not in observed["prompt"]
     record = json.loads((output / "summary.json").read_text())["records"][0]
-    assert record["case_id"] == "da-1-1"
+    assert record["case_id"].startswith("revision-")
     assert record["source_kind"] == "revision"
     assert record["source_path"] == str(revision)
+    compact = record["compact_evidence"]
+    assert compact["solver_feedback_records"] == 1
+    assert compact["superseded_started_events"] == 1
+    assert compact["max_command_output_chars"] == 2_048
+    assert compact["truncated_text_fields"] == 2
+    assert compact["exact_duplicate_records"] == 1
+    assert compact["exact_duplicate_chars_saved"] > 2_000
+    assert compact["truncated_chars"] > 0
+
+
+def test_chunking_materializes_exact_value_references() -> None:
+    first = {
+        "event_id": 1,
+        "source": "trajectory:1",
+        "value": {"content": "same evidence"},
+    }
+    second = {
+        "event_id": 2,
+        "source": "trajectory:2",
+        "value_reference": {"same_as_event_id": 1},
+    }
+    evidence = "\n".join(json.dumps(value) for value in (first, second))
+
+    materialized = model_judge._materialize_exact_value_references(evidence)
+    records = [json.loads(line) for line in materialized.splitlines()]
+
+    assert records[0]["value"] == records[1]["value"]
+    assert records[1]["event_id"] == 2
+    assert records[1]["source"] == "trajectory:2"
+    assert "value_reference" not in records[1]
 
 
 def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None:
@@ -452,6 +668,50 @@ def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
         ).run()
 
 
+def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
+    case = _case(tmp_path / "case-a", {"samples": []})
+    output = tmp_path / "out"
+    calls = 0
+
+    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+        nonlocal calls
+        calls += 1
+        generation = _generation(model, json.dumps({
+            "decision": "no_reward_hacking_detected",
+            "confidence": 0.8,
+            "evidence_locations": [],
+            "findings": [],
+            "analysis": "No divergence.",
+        }))
+        return ModelGeneration(
+            **{
+                **generation.__dict__,
+                "provider_metadata": {
+                    "usage": {"input_tokens": 1_000, "output_tokens": 100}
+                },
+            }
+        )
+
+    base = dict(
+        case_dirs=(case,),
+        models=("gpt-5.6-luna",),
+        output_dir=output,
+        dataset_provenance=DATASET_PROVENANCE,
+    )
+    assert ModelJudgeRunner(
+        ModelJudgeConfig(**base), generate_response=generate
+    ).run() == 0
+    first = json.loads((output / "summary.json").read_text())["cost"]
+    assert first["observed_api_usd"] > 0
+
+    assert ModelJudgeRunner(
+        ModelJudgeConfig(**base, resume=True), generate_response=generate
+    ).run() == 0
+    resumed = json.loads((output / "summary.json").read_text())["cost"]
+    assert resumed["observed_api_usd"] == first["observed_api_usd"]
+    assert calls == 1
+
+
 def test_malt_gemini_uses_only_canonical_gemini_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -462,11 +722,18 @@ def test_malt_gemini_uses_only_canonical_gemini_key(
             observed["model"] = model
 
         def generate_content_response(
-            self, prompt: str, *, response_schema: dict[str, object]
+            self,
+            prompt: str,
+            *,
+            response_schema: dict[str, object],
+            thinking_level: str,
+            max_output_tokens: int,
         ) -> object:
             observed["prompt"] = prompt
             observed["schema"] = str(response_schema)
             observed["key"] = model_judge.os.environ["GEMINI_API_KEY"]
+            observed["thinking_level"] = thinking_level
+            observed["max_output_tokens"] = str(max_output_tokens)
             return types.SimpleNamespace(
                 text="response",
                 model_version="gemini-test-served",
@@ -486,10 +753,12 @@ def test_malt_gemini_uses_only_canonical_gemini_key(
         "prompt": "instructions\n\nprompt",
         "schema": "{'type': 'object', 'additionalProperties': False}",
         "key": "canonical-key",
+        "thinking_level": "low",
+        "max_output_tokens": "4096",
     }
 
 
-def test_malt_openai_judge_uses_medium_reasoning_effort(
+def test_malt_openai_judge_uses_no_reasoning_effort(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     observed: dict[str, object] = {}
@@ -507,8 +776,12 @@ def test_malt_openai_judge_uses_medium_reasoning_effort(
             )
 
     class FakeOpenAI:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(
+            self, *, api_key: str, timeout: float, max_retries: int
+        ) -> None:
             observed["api_key"] = api_key
+            observed["timeout"] = timeout
+            observed["max_retries"] = max_retries
             self.responses = FakeResponses()
 
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
@@ -525,11 +798,66 @@ def test_malt_openai_judge_uses_medium_reasoning_effort(
     }
     assert observed["input"][1]["content"] == "prompt"  # type: ignore[index]
     assert observed["max_output_tokens"] == 4_096
-    assert observed["reasoning"] == {"effort": "medium"}
+    assert observed["reasoning"] == {"effort": "none"}
     assert observed["text"]["verbosity"] == "low"  # type: ignore[index]
     assert observed["text"]["format"]["type"] == "json_schema"  # type: ignore[index]
     assert observed["prompt_cache_options"] == {"mode": "explicit", "ttl": "30m"}
     assert observed["truncation"] == "disabled"
+    assert observed["timeout"] == 600.0
+    assert observed["max_retries"] == 0
+
+
+def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    class FakeMessages:
+        def create(self, **kwargs: object) -> object:
+            observed.update(kwargs)
+            return types.SimpleNamespace(
+                content=[types.SimpleNamespace(type="text", text="response")],
+                model="claude-opus-4-8-served",
+                id="anthropic-response",
+                stop_reason="end_turn",
+                usage={"input_tokens": 10, "output_tokens": 2},
+            )
+
+    class FakeAnthropic:
+        def __init__(
+            self, *, api_key: str, timeout: float, max_retries: int
+        ) -> None:
+            observed["api_key"] = api_key
+            observed["timeout"] = timeout
+            observed["max_retries"] = max_retries
+            self.messages = FakeMessages()
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret")
+    monkeypatch.setitem(
+        sys.modules,
+        "anthropic",
+        types.SimpleNamespace(Anthropic=FakeAnthropic),
+    )
+
+    generation = model_judge.generate("claude-opus-4-8", _request())
+
+    assert generation.text == "response"
+    assert observed["api_key"] == "anthropic-secret"
+    assert observed["timeout"] == 600.0
+    assert observed["max_retries"] == 0
+    assert observed["max_tokens"] == 4096
+    assert observed["output_config"] == {
+        "effort": "low",
+        "format": {
+            "type": "json_schema",
+            "schema": {"type": "object", "additionalProperties": False},
+        },
+    }
+    assert observed["system"] == [{
+        "type": "text",
+        "text": "instructions",
+        "cache_control": {"type": "ephemeral"},
+    }]
 
 
 def test_oversized_evidence_is_chunked_then_synthesized(tmp_path: Path) -> None:
@@ -594,6 +922,83 @@ def test_cost_preflight_stops_before_generation(tmp_path: Path) -> None:
     with pytest.raises(CostBudgetExceeded, match="exceeds --max-cost-usd"):
         runner.run()
     assert calls == 0
+    preflight = json.loads((tmp_path / "output/cost-preflight.json").read_text())
+    assert preflight["schema_version"] == 4
+    assert preflight["max_attempts_per_request"] == 2
+    assert preflight["worst_case_reserved_api_cost_usd"] == pytest.approx(
+        2 * preflight["max_output_single_attempt_api_cost_usd"]
+    )
+    assert (
+        preflight["expected_api_cost_usd"]
+        < preflight["worst_case_reserved_api_cost_usd"]
+    )
+
+
+def test_preflight_only_never_generates(tmp_path: Path) -> None:
+    case = _case(tmp_path / "case-a", {"samples": []})
+    calls = 0
+
+    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+        nonlocal calls
+        calls += 1
+        raise AssertionError("generation must not start")
+
+    output = tmp_path / "output"
+    runner = ModelJudgeRunner(
+        ModelJudgeConfig(
+            case_dirs=(case,),
+            models=("gpt-5.6-luna",),
+            output_dir=output,
+            dataset_provenance=DATASET_PROVENANCE,
+            max_cost_usd=10.0,
+            preflight_only=True,
+        ),
+        generate_response=generate,
+        count_tokens=lambda _model, _request: 100_000,
+    )
+
+    assert runner.run() == 0
+    assert calls == 0
+    assert (output / "cost-preflight.json").is_file()
+    assert not (output / "summary.json").exists()
+
+
+def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
+    # Luna: 300k uncached input at 2x $0.20/MTok plus 100k output at
+    # 1.5x $1.20/MTok.
+    assert ModelJudgeRunner._request_cost(
+        "gpt-5.6-luna", 300_000, 100_000
+    ) == pytest.approx(0.3)
+    # At the threshold the ordinary tier still applies.
+    assert ModelJudgeRunner._request_cost(
+        "gpt-5.6-luna", 272_000, 100_000
+    ) == pytest.approx(0.1744)
+    # Gemini switches above 200k to $4 input and $18 output per MTok.
+    assert ModelJudgeRunner._request_cost(
+        "gemini-3.1-pro-preview", 300_000, 100_000
+    ) == pytest.approx(3.0)
+    # Claude's full context uses the standard Opus 4.8 tier.
+    assert ModelJudgeRunner._request_cost(
+        "claude-opus-4-8", 300_000, 100_000
+    ) == pytest.approx(4.0)
+
+
+def test_cost_reservation_marks_only_the_stable_prefix_as_a_cache_write() -> None:
+    request = ModelRequest(
+        instructions="stable " * 2_000,
+        evidence="changing " * 40_000,
+        schema_name="test_schema",
+        schema={"type": "object", "additionalProperties": False},
+    )
+    total = model_judge._estimated_tokens(request)
+    reserved = ModelJudgeRunner._cache_write_reservation_tokens(
+        "gpt-5.6-sol", request, total
+    )
+
+    assert 0 < reserved < total
+    assert ModelJudgeRunner._cache_write_reservation_tokens(
+        "gemini-3.1-pro-preview", request, total
+    ) == 0
 
 
 def test_quota_error_opens_circuit_without_retries(tmp_path: Path) -> None:
@@ -673,7 +1078,7 @@ def test_openai_batch_submits_and_resume_collects(
             )
 
     class FakeOpenAI:
-        def __init__(self, *, api_key: str) -> None:
+        def __init__(self, **kwargs: object) -> None:
             self.files = FakeFiles()
             self.batches = FakeBatches()
 
@@ -702,3 +1107,32 @@ def test_openai_batch_submits_and_resume_collects(
         "no_reward_hacking_detected"
     )
     assert (tmp_path / "output/cases/case-a/gpt-5.6-luna/generations.json").is_file()
+
+
+def test_openai_batch_prices_a_paid_response_before_parse_retry(
+    tmp_path: Path,
+) -> None:
+    runner = ModelJudgeRunner(
+        ModelJudgeConfig(
+            case_dirs=(),
+            models=("gpt-5.6-luna",),
+            output_dir=tmp_path,
+            execution="batch",
+        ),
+        count_tokens=lambda _model, _request: 1_000,
+    )
+    body = {
+        "id": "resp-invalid",
+        "model": "gpt-5.6-luna",
+        "output": [{
+            "type": "message",
+            "content": [{"type": "output_text", "text": "{}"}],
+        }],
+        "usage": {"input_tokens": 1_000, "output_tokens": 100},
+    }
+
+    with pytest.raises(ValueError) as error:
+        runner._batch_result("job-invalid", body)
+
+    assert getattr(error.value, "batch_cost_accounted") is True
+    assert runner._spent_usd == pytest.approx(0.00016)

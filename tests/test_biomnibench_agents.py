@@ -47,14 +47,14 @@ class BiomniBenchAgentTests(unittest.TestCase):
     def test_console_command_target_imports(self):
         core = self.import_core()
         self.assertTrue(callable(core.main))
-        self.assertIn("uv venv", core.PROMPT)
+        self.assertIn("preinstalled analysis environment", core.PROMPT)
 
-    def test_prompt_instructs_agent_to_use_uv_env(self):
+    def test_prompt_forbids_environment_and_network_mutation(self):
         core = self.import_core()
         prompt = core.PROMPT
-        self.assertIn("uv venv", prompt)
-        self.assertIn(".venv", prompt)
-        self.assertIn("Do not use web search, web fetch, or browser tools", prompt)
+        self.assertIn("package installation", prompt)
+        self.assertIn("Do not use web search, web fetch, browser tools", prompt)
+        self.assertIn("Do not inspect parent directories", prompt)
         self.assertIn("Keep trace.md concise", prompt)
         self.assertNotIn("imperfect diagnostics, not as", prompt)
 
@@ -116,6 +116,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 + "\n"
             )
 
+            # Terminal events report cumulative session cost. Summing them
+            # double-counts earlier turns, so retain the largest terminal value.
             self.assertEqual(core.RunCost.from_stream(stream).cost_usd, 0.0456)
 
     def test_missing_cost_stream_returns_none(self):
@@ -126,6 +128,54 @@ class BiomniBenchAgentTests(unittest.TestCase):
             stream.write_text('{"type": "result", "stats": {"total_tokens": 10}}\n')
 
             self.assertIsNone(core.RunCost.from_stream(stream).cost_usd)
+
+    def test_openai_cost_uses_current_luna_and_priority_prices(self):
+        core = self.import_core()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            stream = Path(tmp) / "trajectory.stream.jsonl"
+            stream.write_text(
+                json.dumps({
+                    "type": "turn.completed",
+                    "usage": {
+                        "input_tokens": 2_000_000,
+                        "cached_input_tokens": 1_000_000,
+                        "output_tokens": 1_000_000,
+                    },
+                }) + "\n"
+            )
+
+            standard = core.RunCost.from_stream(
+                stream, model="gpt-5.6-luna"
+            )
+            priority = core.RunCost.from_stream(
+                stream,
+                model="gpt-5.6-luna",
+                service_tier="priority",
+            )
+            self.assertEqual(standard.estimated_cost_usd, 1.42)
+            self.assertEqual(priority.estimated_cost_usd, 2.84)
+
+    def test_cost_uses_maximum_cumulative_total_per_provider_session(self):
+        core = self.import_core()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            stream = Path(tmp) / "trajectory.stream.jsonl"
+            stream.write_text(
+                "\n".join(
+                    [
+                        '{"type":"thread.started","thread_id":"thread-a"}',
+                        '{"type":"turn.completed","total_cost_usd":0.10}',
+                        '{"type":"thread.started","thread_id":"thread-a"}',
+                        '{"type":"turn.completed","total_cost_usd":0.25}',
+                        '{"type":"thread.started","thread_id":"thread-b"}',
+                        '{"type":"turn.completed","total_cost_usd":0.40}',
+                    ]
+                )
+                + "\n"
+            )
+
+            self.assertEqual(core.RunCost.from_stream(stream).cost_usd, 0.65)
 
     def test_gemini_cost_is_estimated_from_token_stats(self):
         core = self.import_core()
@@ -171,12 +221,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             argparse.Namespace(
                 provider="gemini",
                 model=None,
-                skip_trust=True,
-                allow_web=False,
-                approval_mode=None,
-                sandbox=False,
                 executable=None,
-                extra_agent_arg=[],
             )
         )
         paths = core.RunPaths.for_task(
@@ -194,7 +239,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
     def test_task_runner_builds_default_command(self):
         core = self.import_core()
         runner = core.AgentRunner(
-            config=core.AgentRunConfig(provider="gemini", skip_trust=True),
+            config=core.AgentRunConfig(provider="gemini"),
         )
         paths = core.RunPaths.for_task(
             task_dir=Path("/tmp/da-1-1"),
@@ -206,12 +251,11 @@ class BiomniBenchAgentTests(unittest.TestCase):
 
         self.assertIn("--approval-mode", cmd)
         self.assertIn("yolo", cmd)
-        self.assertIn("--skip-trust", cmd)
-        self.assertIn("--sandbox=false", cmd)
+        self.assertIn("--sandbox=true", cmd)
         self.assertIn("--policy", cmd)
         self.assertIn(str(paths.policy_path), cmd)
 
-    def test_allow_web_command_omits_no_web_policy(self):
+    def test_gemini_command_cannot_omit_no_web_policy(self):
         core = self.import_core()
         paths = core.RunPaths.for_task(
             task_dir=Path("/tmp/da-1-1"),
@@ -220,11 +264,11 @@ class BiomniBenchAgentTests(unittest.TestCase):
             stamp="20260101-000000",
         )
         cmd = core.AgentRunner(
-            config=core.AgentRunConfig(provider="gemini", allow_web=True),
+            config=core.AgentRunConfig(provider="gemini"),
         ).build_command(paths)
-        self.assertNotIn("--policy", cmd)
+        self.assertIn("--policy", cmd)
 
-    def test_sandbox_flag_is_forwarded(self):
+    def test_gemini_sandbox_is_mandatory(self):
         core = self.import_core()
         paths = core.RunPaths.for_task(
             task_dir=Path("/tmp/da-1-1"),
@@ -233,7 +277,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             stamp="20260101-000000",
         )
         cmd = core.AgentRunner(
-            config=core.AgentRunConfig(provider="gemini", sandbox=True),
+            config=core.AgentRunConfig(provider="gemini"),
         ).build_command(paths)
         self.assertIn("--sandbox=true", cmd)
 
@@ -254,7 +298,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
         self.assertIn("--verbose", cmd)
         self.assertIn("stream-json", cmd)
         self.assertIn("--permission-mode", cmd)
-        self.assertIn("bypassPermissions", cmd)
+        self.assertIn("dontAsk", cmd)
         self.assertIn("--model", cmd)
         self.assertIn("sonnet", cmd)
         self.assertIn("--disallowed-tools=WebSearch,WebFetch", cmd)
@@ -272,16 +316,16 @@ class BiomniBenchAgentTests(unittest.TestCase):
             config=core.AgentRunConfig(provider="codex", model="gpt-5.1-codex"),
         ).build_command(paths)
 
-        self.assertEqual(cmd[:2], ["codex", "exec"])
+        self.assertEqual(cmd[:2], ["codex", "--cd"])
+        self.assertIn("exec", cmd)
         self.assertIn("--json", cmd)
-        self.assertNotIn("--ask-for-approval", cmd)
-        self.assertIn('approval_policy="never"', cmd)
-        self.assertIn("--sandbox", cmd)
-        self.assertIn("workspace-write", cmd)
+        self.assertIn("--strict-config", cmd)
+        self.assertIn("--ignore-rules", cmd)
+        self.assertNotIn("--search", cmd)
         self.assertIn("--model", cmd)
         self.assertIn("gpt-5.1-codex", cmd)
 
-    def test_codex_command_can_enable_shell_network_without_web_search(self):
+    def test_codex_configuration_has_no_network_escape_hatch(self):
         core = self.import_core()
         paths = core.RunPaths.for_task(
             task_dir=Path("/tmp/da-1-1"),
@@ -290,18 +334,17 @@ class BiomniBenchAgentTests(unittest.TestCase):
             stamp="20260101-000000",
         )
         cmd = core.AgentRunner(
-            config=core.AgentRunConfig(
-                provider="codex", model="gpt-5.6-luna", allow_network=True
-            ),
+            config=core.AgentRunConfig(provider="codex", model="gpt-5.6-luna"),
         ).build_command(paths)
 
-        self.assertIn("sandbox_workspace_write.network_access=true", cmd)
         self.assertNotIn("--search", cmd)
+        self.assertFalse(hasattr(core.AgentRunConfig(), "allow_network"))
 
-    def test_allow_network_rejects_non_codex_provider(self):
+    def test_agent_config_has_no_web_or_network_overrides(self):
         core = self.import_core()
-        with self.assertRaisesRegex(ValueError, "only by the Codex provider"):
-            core.AgentRunConfig(provider="gemini", allow_network=True)
+        config = core.AgentRunConfig(provider="gemini")
+        self.assertFalse(hasattr(config, "allow_network"))
+        self.assertFalse(hasattr(config, "allow_web"))
 
     def test_prepare_workspace_hides_runner_metadata(self):
         core = self.import_core()
@@ -316,7 +359,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
             (data_dir / "input.txt").write_text("data")
             workspace_dir = root / "run" / "workspace"
 
-            core.TaskWorkspace(task_dir, workspace_dir).prepare()
+            core.TaskWorkspace(task_dir, workspace_dir).create()
 
             self.assertTrue((workspace_dir / "instruction.md").is_file())
             self.assertTrue((workspace_dir / "data" / "input.txt").is_file())
@@ -524,12 +567,7 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 provider="gemini",
                 model=None,
                 raw=False,
-                skip_trust=False,
-                allow_web=False,
-                approval_mode=None,
-                sandbox=False,
                 executable=None,
-                extra_agent_arg=[],
             )
         )
 
@@ -690,6 +728,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 "all",
                 "--provider",
                 "gemini",
+                "--model",
+                "gemini-test",
                 "--resume-run",
                 "runs/biomnibench-agents/all-gemini-old",
             ]
@@ -706,6 +746,8 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 "all",
                 "--provider",
                 "gemini",
+                "--model",
+                "gemini-test",
                 "--tasks-dir",
                 "data/biomnibench-da",
                 "--max-concurrency",
@@ -755,16 +797,16 @@ class BiomniBenchAgentTests(unittest.TestCase):
         core = self.import_core()
 
         parser = core.build_parser()
-        with self.assertRaises(SystemExit):
-            parser.parse_args(
-                [
-                    "judge",
-                    "--run-dir",
-                    "runs/biomnibench-agents/all-gemini-old",
-                    "--jobs",
-                    "4",
-                ]
-            )
+        for removed in (("--jobs", "4"), ("--ensemble",)):
+            with self.assertRaises(SystemExit):
+                parser.parse_args(
+                    [
+                        "judge",
+                        "--run-dir",
+                        "runs/biomnibench-agents/all-gemini-old",
+                        *removed,
+                    ]
+                )
 
     def test_cli_exposes_llm_perturb_command(self):
         core = self.import_core()
@@ -1857,6 +1899,15 @@ class BiomniBenchAgentTests(unittest.TestCase):
                 (logs / "evaluation.json").write_text(
                     json.dumps({"criteria": {"criterion_1": {"level": "A"}}})
                 )
+                (logs / "usage.json").write_text(json.dumps({
+                    "schema_version": 1,
+                    "provider": "openai",
+                    "requested_model": "gpt-5.6-sol",
+                    "effective_model": "gpt-5.6-sol",
+                    "response_id": "test-response",
+                    "request_parameters": {},
+                    "usage": {"input_tokens": 10, "output_tokens": 2},
+                }))
                 return subprocess.CompletedProcess(cmd, 0, stdout="ok\n")
 
             runner = core.BiomniBenchJudgeRunner(

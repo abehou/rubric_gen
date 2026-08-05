@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable
 
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
+from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.runners import AgentRunner
 from rubric_gen.biomnibench.forensics.evidence_index import (
     build_evidence_index,
@@ -28,7 +29,7 @@ from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
 class RubricEvolution(StrEnum):
     STATIC = "static"
-    AGENT = "agent"
+    PROSPECTIVE = "prospective"
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,7 @@ class ProposerOutput:
     trace: str
     query_count: int
     retrieved_event_ids: tuple[int, ...]
+    cost: dict[str, float | str | None]
 
 
 _EVIDENCE_REFERENCE = re.compile(r"\btrajectory:event-(\d+)\b")
@@ -91,28 +93,44 @@ class RubricEvolver:
         trajectory_path: Path,
         evaluation: dict[str, object],
         version: int,
+        source_submission_id: str,
         output_dir: Path,
     ) -> EvolvedRubric:
         rubric_path = output_dir / f"r{version:04d}.txt"
         proposal_path = output_dir / f"r{version:04d}.proposal.json"
         trace_path = output_dir / f"r{version:04d}.proposer.trace.md"
         available_events = indexable_event_count(trajectory_path)
+        source_hashes = {
+            "source_answer_sha256": sha256_text(answer),
+            "source_trace_sha256": sha256_text(trace),
+            "source_trajectory_sha256": sha256_text(
+                trajectory_path.read_text(encoding="utf-8", errors="replace")
+            ),
+            "source_evaluation_sha256": sha256_text(
+                json.dumps(evaluation, sort_keys=True, separators=(",", ":"))
+            ),
+        }
         if rubric_path.exists() or proposal_path.exists() or trace_path.exists():
             return self._load_existing(
                 rubric_path,
                 proposal_path,
                 trace_path,
                 version,
+                source_submission_id,
                 current_rubric,
                 available_events,
+                source_hashes,
             )
 
         last_error: Exception | None = None
         proposal: dict[str, object] | None = None
         text = ""
         proposer_output: ProposerOutput | None = None
+        proposer_attempt_costs: list[dict[str, float | str | None]] = []
         attempt = 0
         for attempt in range(1, self.max_retries + 2):
+            proposer_output = None
+            cost_recorded = False
             try:
                 proposer_output = self.run_proposer(
                     instruction=instruction,
@@ -123,6 +141,12 @@ class RubricEvolver:
                     evaluation=evaluation,
                     repair_error=str(last_error) if last_error else None,
                 )
+                if set(proposer_output.cost) != {
+                    "cost_usd", "estimated_cost_usd", "cost_source"
+                }:
+                    raise ValueError("rubric proposer returned invalid cost metadata")
+                proposer_attempt_costs.append(dict(proposer_output.cost))
+                cost_recorded = True
                 if (
                     not proposer_output.trace.strip()
                     or type(proposer_output.query_count) is not int
@@ -145,6 +169,12 @@ class RubricEvolver:
                 parse_rubric_levels_strict(text)
                 break
             except Exception as exc:
+                if not cost_recorded:
+                    proposer_attempt_costs.append({
+                        "cost_usd": None,
+                        "estimated_cost_usd": None,
+                        "cost_source": "unavailable_due_to_exception",
+                    })
                 last_error = exc
         else:
             raise RuntimeError(
@@ -163,14 +193,17 @@ class RubricEvolver:
             if os.path.lexists(temporary):
                 temporary.unlink()
         write_json_atomic(proposal_path, {
-            "schema_version": 4,
+            "schema_version": 6,
             "kind": "optimizer-process-rubric-patch",
             "version": version,
-            "mode": RubricEvolution.AGENT.value,
+            "mode": RubricEvolution.PROSPECTIVE.value,
+            "source_submission_id": source_submission_id,
+            **source_hashes,
             "provider": "codex",
             "model": self.model,
             "query_limit": self.query_limit,
             "attempt_count": attempt,
+            "proposer_attempt_costs": proposer_attempt_costs,
             "trajectory_query_count": proposer_output.query_count,
             "proposer_trace_sha256": sha256_text(proposer_output.trace),
             "rubric_sha256": sha256_text(text),
@@ -192,8 +225,10 @@ class RubricEvolver:
         proposal_path: Path,
         trace_path: Path,
         version: int,
+        source_submission_id: str,
         current_rubric: str,
         available_events: int,
+        source_hashes: dict[str, str],
     ) -> EvolvedRubric:
         if (
             not rubric_path.is_file()
@@ -206,13 +241,24 @@ class RubricEvolver:
         proposer_trace = trace_path.read_text(encoding="utf-8")
         if (
             not isinstance(stored, dict)
-            or stored.get("schema_version") != 4
+            or stored.get("schema_version") != 6
             or stored.get("kind") != "optimizer-process-rubric-patch"
             or stored.get("version") != version
-            or stored.get("mode") != RubricEvolution.AGENT.value
+            or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
+            or stored.get("source_submission_id") != source_submission_id
+            or any(stored.get(key) != value for key, value in source_hashes.items())
             or stored.get("provider") != "codex"
             or stored.get("model") != self.model
             or stored.get("query_limit") != self.query_limit
+            or not isinstance(stored.get("proposer_attempt_costs"), list)
+            or len(stored["proposer_attempt_costs"]) != stored.get("attempt_count")
+            or any(
+                not isinstance(cost, dict)
+                or set(cost) != {
+                    "cost_usd", "estimated_cost_usd", "cost_source"
+                }
+                for cost in stored["proposer_attempt_costs"]
+            )
             or stored.get("rubric_sha256") != sha256_text(text)
             or stored.get("available_trajectory_events") != available_events
             or not isinstance(stored.get("retrieved_trajectory_events"), list)
@@ -315,9 +361,6 @@ class RubricEvolver:
             config = replace(
                 self.agent,
                 quiet=True,
-                allow_web=False,
-                allow_network=False,
-                extra_args=("--ephemeral", "--ignore-user-config"),
             )
             exit_code, _ = AgentRunner(config).run(task, paths=paths)
             if exit_code != 0:
@@ -337,11 +380,17 @@ class RubricEvolver:
                 for event in record.get("event_ids", [])
                 if type(event) is int
             })
+            cost = RunCost.from_stream(
+                paths.stream_path,
+                model=self.model,
+                service_tier=self.agent.service_tier,
+            ).fields()
             return ProposerOutput(
                 answer=(workspace / "answer.txt").read_text(encoding="utf-8"),
                 trace=(workspace / "trace.md").read_text(encoding="utf-8"),
                 query_count=query_count,
                 retrieved_event_ids=tuple(retrieved),
+                cost=cost,
             )
         finally:
             shutil.rmtree(temporary, ignore_errors=True)

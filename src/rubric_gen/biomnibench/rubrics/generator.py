@@ -74,11 +74,9 @@ class RubricGenerationConfig:
     harness: str = "gemini-cli"
     model: str | None = None
     executable: str | None = None
-    allow_web: bool = False
-    sandbox: bool = False
-    skip_trust: bool = True
-    approval_mode: str | None = None
-    extra_args: tuple[str, ...] = ()
+    reasoning_effort: str | None = None
+    service_tier: str | None = None
+    timeout_seconds: int = 7_200
     max_concurrency: int = 1
     resume: bool = False
     raw: bool = False
@@ -122,11 +120,9 @@ class RubricGenerationConfig:
             harness=args.harness,
             model=args.model,
             executable=args.executable,
-            allow_web=args.allow_web,
-            sandbox=args.sandbox,
-            skip_trust=args.skip_trust,
-            approval_mode=args.approval_mode,
-            extra_args=tuple(args.extra_agent_arg),
+            reasoning_effort=args.reasoning_effort,
+            service_tier=args.service_tier,
+            timeout_seconds=args.turn_timeout_seconds,
             max_concurrency=args.max_concurrency,
             resume=args.resume,
             raw=args.raw,
@@ -148,13 +144,11 @@ class RubricGenerationRunner:
             model=config.effective_model,
             raw=config.raw,
             quiet=True,
-            skip_trust=config.skip_trust,
-            allow_web=config.allow_web,
-            approval_mode=config.approval_mode,
-            sandbox=config.sandbox,
             executable=config.executable,
-            extra_args=config.extra_args,
+            reasoning_effort=config.reasoning_effort,
+            service_tier=config.service_tier,
             retries=0,
+            timeout_seconds=config.timeout_seconds,
         )
         self.adapter = self.registry.get(provider)
 

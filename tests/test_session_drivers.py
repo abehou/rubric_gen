@@ -81,14 +81,12 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
         return 9 if outcome == "process_error" else 0
 
 
-def test_codex_persistent_session_enables_command_network_without_web_search(
+def test_codex_persistent_session_has_no_network_or_web_override(
     tmp_path: Path,
 ) -> None:
     driver = CliSolverSessionDriver(AgentRunConfig(
         provider="codex",
         model="gpt-5.6-luna",
-        allow_network=True,
-        allow_web=False,
     ))
     paths = RunPaths.for_task(
         task_dir=tmp_path / "task",
@@ -100,8 +98,10 @@ def test_codex_persistent_session_enables_command_network_without_web_search(
         paths, "prompt", session_id="session-id", resume=False
     )
 
-    assert "sandbox_workspace_write.network_access=true" in command
-    assert 'web_search="disabled"' in command
+    assert "--strict-config" in command
+    assert "--ignore-rules" in command
+    assert "--search" not in command
+    assert not hasattr(driver.config, "allow_network")
 
 
 def test_persistent_session_retries_in_same_session_and_preserves_all_streams(

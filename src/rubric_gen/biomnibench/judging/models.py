@@ -12,7 +12,7 @@ from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_pat
 
 
 DEFAULT_JUDGE_MODEL = "gpt-5.6-luna"
-SCORE_VALIDATION_SCHEMA_VERSION = 1
+SCORE_VALIDATION_SCHEMA_VERSION = 2
 SCORE_INPUT_ATTESTATION_KEYS = {
     "schema_version",
     "scorer_version",
@@ -43,6 +43,7 @@ SCORE_VALIDATION_KEYS = {
     "manifest_sha256",
     "reward_sha256",
     "evaluation_sha256",
+    "usage_sha256",
 } | SCORE_INPUT_ATTESTATION_KEYS
 
 _SAFE_BASENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
@@ -95,9 +96,7 @@ class JudgeRunConfig:
     resume: bool = False
     force: bool = False
     max_concurrency: int = 1
-    max_retries: int = 2
     repeats: int = 1
-    ensemble: bool = False
     save_input_copies: bool = True
     artifacts_dir: Path | None = None
 
@@ -106,18 +105,10 @@ class JudgeRunConfig:
             self.rubric_name, self.rubric_set, self.rubric_path
         )) > 1:
             raise ValueError("rubric_name, rubric_set, and rubric_path are mutually exclusive")
-        if self.ensemble and self.model is not None:
-            raise ValueError("--ensemble and --model are mutually exclusive")
-        if self.ensemble and self.repeats != 1:
-            raise ValueError("--ensemble does not support --repeats")
-        if self.ensemble and self.dry_run:
-            raise ValueError("--ensemble does not support --dry-run")
         if self.judge_name is not None:
             safe_basename(self.judge_name, "judge_name")
         if self.rubric_name is not None:
             safe_basename(self.rubric_name, "rubric_name")
-        if self.max_retries < 0:
-            raise ValueError("max_retries must be non-negative")
 
     @classmethod
     def from_namespace(cls, args: Any) -> "JudgeRunConfig":
@@ -163,9 +154,7 @@ class JudgeRunConfig:
             resume=getattr(args, "resume", False),
             force=getattr(args, "force", False),
             max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
-            max_retries=max(0, getattr(args, "max_retries", 2)),
             repeats=max(1, getattr(args, "repeats", 1)),
-            ensemble=bool(getattr(args, "ensemble", False)),
             artifacts_dir=resolved_artifacts_dir,
         )
 

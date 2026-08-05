@@ -1,28 +1,5 @@
-"""Persistent same-session submission revision."""
+"""Persistent same-session submission revision implementation.
 
-from .controller import SubmissionRevisionController, run_submission_revision
-from .feedback import FeedbackPolicy, ProjectedFeedback, project_feedback
-from .judge import JudgeArtifacts
-from .models import (
-    RevisionDependencies,
-    RevisionPhase,
-    RevisionState,
-    SubmissionRevisionConfig,
-    SubmissionRevisionResult,
-)
-from .naming import revision_experiment_dir
-
-__all__ = [
-    "FeedbackPolicy",
-    "JudgeArtifacts",
-    "ProjectedFeedback",
-    "RevisionDependencies",
-    "RevisionPhase",
-    "RevisionState",
-    "SubmissionRevisionConfig",
-    "SubmissionRevisionController",
-    "SubmissionRevisionResult",
-    "project_feedback",
-    "revision_experiment_dir",
-    "run_submission_revision",
-]
+Import interfaces from their defining modules. Keeping this initializer free of
+imports prevents the experiment-design and seed modules from forming a cycle.
+"""

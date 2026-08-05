@@ -5,8 +5,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
 import shutil
+import stat
 import subprocess
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -101,8 +104,7 @@ class AgentRunner:
     def stream(self, paths: RunPaths) -> int:
         self.adapter.prepare_run(paths, self.config)
         command = self.build_command(paths)
-        env = os.environ.copy()
-        env.setdefault("NO_COLOR", "1")
+        env = self.adapter.build_environment(paths, self.config)
 
         if not self.config.quiet:
             print(f"Provider: {self.provider}")
@@ -120,10 +122,47 @@ class AgentRunner:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,
+                start_new_session=os.name == "posix",
             )
-            assert proc.stdout is not None
-            self._tee_stream(proc.stdout, log)
-            return proc.wait()
+            timed_out = threading.Event()
+
+            def terminate_on_timeout() -> None:
+                timed_out.set()
+                self._terminate_process(proc)
+
+            timer = threading.Timer(self.config.timeout_seconds, terminate_on_timeout)
+            timer.daemon = True
+            timer.start()
+            try:
+                assert proc.stdout is not None
+                self._tee_stream(proc.stdout, log)
+                exit_code = proc.wait()
+                return 124 if timed_out.is_set() else exit_code
+            finally:
+                timer.cancel()
+                if proc.poll() is None:
+                    self._terminate_process(proc)
+
+    @staticmethod
+    def _terminate_process(process: subprocess.Popen[str]) -> None:
+        try:
+            if os.name == "posix":
+                os.killpg(process.pid, signal.SIGTERM)
+            else:  # pragma: no cover
+                process.terminate()
+            process.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired):
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:  # pragma: no cover
+                    process.kill()
+            except OSError:
+                pass
+            try:
+                process.wait(timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
 
     def _tee_stream(self, stdout: TextIO, log: TextIO) -> None:
         for line in stdout:
@@ -136,7 +175,12 @@ class AgentRunner:
         errors = []
         for filename in ("trace.md", "answer.txt"):
             output_path = paths.workspace_dir / filename
-            if not output_path.is_file() or output_path.stat().st_size == 0:
+            try:
+                output_stat = os.lstat(output_path)
+            except OSError:
+                errors.append(f"missing_or_empty: {filename}")
+                continue
+            if not stat.S_ISREG(output_stat.st_mode) or output_stat.st_size == 0:
                 errors.append(f"missing_or_empty: {filename}")
 
         errors.extend(self.trajectory_errors(paths.stream_path))
@@ -232,7 +276,7 @@ class AgentRunner:
                 raise ValueError("runs_dir is required when paths is not provided")
             paths = RunPaths.for_task(task_dir, runs_dir, provider=self.provider)
         paths.run_dir.mkdir(parents=True, exist_ok=True)
-        TaskWorkspace(task_dir, paths.workspace_dir).prepare()
+        TaskWorkspace(task_dir, paths.workspace_dir).create()
 
         attempts = []
         max_attempts = self.config.retries + 1
@@ -252,8 +296,13 @@ class AgentRunner:
             ):
                 break
             self.archive_attempt(paths, attempt, attempt_record)
+            self._recreate_workspace(task_dir, paths.workspace_dir)
 
-        cost = RunCost.from_stream(paths.stream_path)
+        cost = RunCost.from_stream(
+            paths.stream_path,
+            model=self.config.model,
+            service_tier=self.config.service_tier,
+        )
         status = {
             "provider": self.provider,
             "task": task_dir.name,
@@ -261,6 +310,8 @@ class AgentRunner:
             "workspace_dir": str(paths.workspace_dir),
             "attempt_count": len(attempts),
             "max_retries": self.config.retries,
+            "timeout_seconds": self.config.timeout_seconds,
+            "service_tier": self.config.service_tier,
             "attempts": attempts,
             "process_exit_code": process_exit_code,
             "exit_code": exit_code,
@@ -269,6 +320,13 @@ class AgentRunner:
         }
         paths.status_path.write_text(json.dumps(status, indent=2) + "\n")
         return exit_code, paths
+
+    @staticmethod
+    def _recreate_workspace(task_dir: Path, workspace: Path) -> None:
+        if workspace.is_symlink() or not workspace.is_dir():
+            raise RuntimeError(f"retry workspace is invalid: {workspace}")
+        shutil.rmtree(workspace)
+        TaskWorkspace(task_dir, workspace).create()
 
     def should_retry(
         self,
@@ -349,7 +407,7 @@ class BiomniBenchBatchRunner:
         paths: RunPaths,
         validation: RunValidation | None = None,
     ) -> dict[str, str | int]:
-        cost = RunCost.from_stream(paths.stream_path)
+        cost = RunCost.from_stream(paths.stream_path, model=self.config.model)
         status = self.read_status(paths.status_path)
         validation = validation or RunValidation.from_status(paths.status_path)
         validation = validation or self.agent_runner.validate_outputs(paths)

@@ -92,15 +92,17 @@ _MODULE_EXPORTS = {
         "ProjectedFeedback",
         "project_feedback",
     ),
-    ".revision": (
-        "RevisionDependencies",
-        "SubmissionRevisionConfig",
+    ".revision.controller": (
         "SubmissionRevisionController",
-        "SubmissionRevisionResult",
         "run_submission_revision",
     ),
-    ".revision.models": ("RevisionPhase", "RevisionState"),
-    ".revision.naming": ("revision_experiment_dir",),
+    ".revision.models": (
+        "RevisionDependencies",
+        "RevisionPhase",
+        "RevisionState",
+        "SubmissionRevisionConfig",
+        "SubmissionRevisionResult",
+    ),
     ".utils.hashing": ("sha256_bytes", "sha256_file"),
     ".rubrics.compiler": (
         "GeminiTaskRubricRewriter",
@@ -134,13 +136,6 @@ _MODULE_EXPORTS = {
         "JudgeComparisonPlotter",
         "TaskJudgeComparison",
     ),
-    ".forensics.reward_hacking": (
-        "EvidenceCase",
-        "RewardHackingAuditConfig",
-        "RewardHackingAuditRunner",
-        "evidence_case_prompt",
-        "forensic_audit_prompt",
-    ),
     ".commands": (
         "run_all",
         "run_compare_judges",
@@ -148,7 +143,13 @@ _MODULE_EXPORTS = {
         "run_one",
         "run_perturb",
         "run_process_rubrics",
-        "run_revise",
+        "run_design",
+        "run_seed",
+        "run_study",
+        "run_status",
+        "run_analyze",
+        "run_cross_score",
+        "run_blind_export",
         "run_task_process_rubrics",
     ),
     ".cli": (

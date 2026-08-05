@@ -1227,7 +1227,9 @@ def test_schema_budget_drops_examples_then_columns_then_files(tmp_path: Path) ->
 
 
 @pytest.mark.skipif(
-    not REAL_DA_19_1.is_dir(), reason="real da-19-1 data is not checked in"
+    not REAL_DA_19_1.is_dir()
+    or any(path.is_symlink() for path in (REAL_DA_19_1, *REAL_DA_19_1.parents)),
+    reason="real da-19-1 data is absent or has a symlinked path component",
 )
 def test_real_da_19_1_snapshot_has_three_bounded_tables() -> None:
     snapshot = build_task_snapshot(REAL_DA_19_1)

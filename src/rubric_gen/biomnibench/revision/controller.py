@@ -42,7 +42,6 @@ from rubric_gen.biomnibench.revision.artifacts import (
     make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
     remove_created_live_tree as _remove_created_live_tree,
-    remove_revision_experiment as _remove_revision_experiment,
     remove_live_tree as _remove_tree,
     sha256_file as _sha256_file,
     solution_tree_sha256 as _solution_tree_sha256,
@@ -93,7 +92,16 @@ class SubmissionRevisionController:
         self.rubric = _resolve_optimizer_rubric(judge_config)
         self.instruction_sha256 = _sha256_file(self.task_dir / "instruction.md")
         self.data_sha256 = _tree_sha256(self.task_dir / "environment" / "data")
-        self.seed: ResolvedSeed = resolve_seed(config.seed_run_dir, self.task_dir)
+        self.seed: ResolvedSeed = resolve_seed(
+            config.seed_run_dir,
+            self.task_dir,
+            config.replicate,
+            design_sha256=config.design_sha256,
+            protocol_id=config.protocol_id,
+            provider=config.agent.provider,
+            requested_model=config.agent.model,
+            run_provenance_sha256=str(config.run_provenance["sha256"]),
+        )
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent),
             judge=BiomniSubmissionJudge(judge_config, self.rubric),
@@ -104,11 +112,13 @@ class SubmissionRevisionController:
                         provider="codex",
                         model=config.rubric_proposer_model,
                         quiet=True,
-                        skip_trust=config.agent.skip_trust,
+                        reasoning_effort=config.agent.reasoning_effort,
+                        service_tier=config.agent.service_tier,
                         retries=0,
+                        timeout_seconds=config.agent.timeout_seconds,
                     ),
                     query_limit=config.rubric_proposer_step_limit,
-                    max_retries=config.agent.retries,
+                    max_retries=config.rubric_proposer_max_retries,
                 )
             ),
         )
@@ -144,22 +154,31 @@ class SubmissionRevisionController:
 
     def _experiment_identity(self) -> dict[str, object]:
         return {
+            "design_sha256": self.config.design_sha256,
+            "protocol_id": self.config.protocol_id,
+            "assignment_id": self.config.assignment_id,
+            "condition_id": self.config.condition_id,
+            "replicate": self.config.replicate,
+            "execution_order": self.config.execution_order,
             "task_id": self.task_dir.name,
             "task_dir": str(self.task_dir),
             "revision_rounds": self.config.revision_rounds,
             "provider": self.config.agent.provider,
             "model": self.config.agent.model,
             "executable": self.config.agent.executable,
-            "sandbox_requested": self.config.agent.sandbox,
-            "allow_web": self.config.agent.allow_web,
-            "allow_network": self.config.agent.allow_network,
-            "approval_mode": self.config.agent.approval_mode,
-            "skip_trust": self.config.agent.skip_trust,
+            "isolation": "codex-custom-permission-profile",
+            "command_network_access": False,
+            "web_search": False,
+            "reasoning_effort": self.config.agent.reasoning_effort,
+            "service_tier": self.config.agent.service_tier,
+            "turn_timeout_seconds": self.config.agent.timeout_seconds,
+            "judge_max_retries": self.config.judge_max_retries,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
             "rubric_evolution": RubricEvolution(self.config.rubric_evolution).value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_step_limit": self.config.rubric_proposer_step_limit,
+            "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
             "review": self.config.review,
             "judge_model": self.config.judge_model,
             "max_review_chars": self.config.max_review_chars,
@@ -174,13 +193,12 @@ class SubmissionRevisionController:
             "data_sha256": self.data_sha256,
             "seed_run_dir": str(self.seed.root),
             "seed_sha256": self.seed.sha256,
+            "run_provenance": self.config.run_provenance,
         }
 
     def run(self) -> SubmissionRevisionResult:
         initialized = False
         completed = False
-        if self.config.restart and os.path.lexists(self.experiment_dir):
-            _remove_revision_experiment(self.experiment_dir, self.task_dir)
         if self.config.resume:
             state, live_root, workspace = self._load_resume()
             initialized = True
@@ -292,7 +310,7 @@ class SubmissionRevisionController:
         state: _RevisionState,
     ) -> None:
         self.experiment_dir.mkdir(parents=True)
-        TaskWorkspace(self.task_dir, workspace).prepare()
+        TaskWorkspace(self.task_dir, workspace).create()
         self._materialize_seed(workspace)
         self._link_seed_snapshot()
         _make_read_only(workspace / "instruction.md")
@@ -300,7 +318,7 @@ class SubmissionRevisionController:
         _write_json(
             self.experiment_dir / "manifest.json",
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "kind": _REVISION_EXPERIMENT_KIND,
                 **self._experiment_identity(),
                 "submission_count": self.config.revision_rounds + 1,
@@ -344,7 +362,7 @@ class SubmissionRevisionController:
             self.experiment_dir / "manifest.json",
             "revision manifest",
         )
-        if manifest.get("schema_version") != 1:
+        if manifest.get("schema_version") != 2:
             raise RuntimeError("revision manifest has an unsupported schema")
         for key, value in self._experiment_identity().items():
             if manifest.get(key) != value:
@@ -612,7 +630,7 @@ class SubmissionRevisionController:
             restored.chmod(
                 stat.S_IMODE(os.lstat(restored).st_mode) | stat.S_IRWXU
             )
-            TaskWorkspace(self.task_dir, restored).prepare()
+            TaskWorkspace(self.task_dir, restored).restore_inputs()
             for path in [restored, *restored.rglob("*")]:
                 if not path.is_symlink():
                     path.chmod(
@@ -622,8 +640,7 @@ class SubmissionRevisionController:
                         | (stat.S_IXUSR if path.is_dir() else 0)
                     )
         else:
-            restored.mkdir()
-            TaskWorkspace(self.task_dir, restored).prepare()
+            TaskWorkspace(self.task_dir, restored).create()
         for path in [workspace, *workspace.rglob("*")]:
             if not path.is_symlink():
                 path.chmod(
@@ -865,40 +882,12 @@ class SubmissionRevisionController:
         rubric = self.rubric
         judge = self.dependencies.judge
         if self.config.rubric_evolution is not RubricEvolution.STATIC:
-            current_version = max(turn_index - 1, 0)
-            rubric = self._rubric_version(current_version)
-            judge = self._judge_for_rubric(rubric, current_version)
+            rubric = self._rubric_version(turn_index)
+            judge = self._judge_for_rubric(rubric, turn_index)
         if turn_index == 0:
             validation_path, evaluation_path, _ = self.seed.judgment
             artifacts = JudgeArtifacts(validation_path, evaluation_path)
         else:
-            artifacts = judge.evaluate(submission_dir, attempt_id)
-        if (
-            turn_index > 0
-            and self.config.rubric_evolution is not RubricEvolution.STATIC
-        ):
-            assert self.dependencies.evolver is not None
-            workspace = submission_dir / "workspace"
-            evolved = self.dependencies.evolver.evolve(
-                instruction=(self.task_dir / "instruction.md").read_text(),
-                current_rubric=rubric.text,
-                answer=(workspace / "answer.txt").read_text(),
-                trace=(workspace / "trace.md").read_text(),
-                trajectory_path=submission_dir / "trajectory.stream.jsonl",
-                evaluation=json.loads(artifacts.evaluation_path.read_text()),
-                version=turn_index,
-                output_dir=self.experiment_dir / "rubric",
-            )
-            rubric = FrozenRubric(
-                text=evolved.text,
-                sha256=evolved.sha256,
-                source="evolved",
-                rubric_set_id=None,
-                rubric_id=None,
-                structured_rubric_sha256=None,
-                manifest_sha256=None,
-            )
-            judge = self._judge_for_rubric(rubric, turn_index)
             artifacts = judge.evaluate(submission_dir, attempt_id)
         self._verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
@@ -923,6 +912,29 @@ class SubmissionRevisionController:
         else:
             _write_json_atomic(feedback_path, feedback.payload)
             _make_read_only(feedback_path)
+        next_rubric: dict[str, object] | None = None
+        if (
+            self.config.rubric_evolution is not RubricEvolution.STATIC
+            and turn_index < self.config.revision_rounds
+        ):
+            assert self.dependencies.evolver is not None
+            workspace = submission_dir / "workspace"
+            evolved = self.dependencies.evolver.evolve(
+                instruction=(self.task_dir / "instruction.md").read_text(),
+                current_rubric=rubric.text,
+                answer=(workspace / "answer.txt").read_text(),
+                trace=(workspace / "trace.md").read_text(),
+                trajectory_path=submission_dir / "trajectory.stream.jsonl",
+                evaluation=json.loads(artifacts.evaluation_path.read_text()),
+                version=turn_index + 1,
+                source_submission_id=submission_id,
+                output_dir=self.experiment_dir / "rubric",
+            )
+            next_rubric = {
+                "version": turn_index + 1,
+                "sha256": evolved.sha256,
+                "source_submission_id": submission_id,
+            }
         state.scores.append(feedback.score)
         state.next_prompt = feedback.prompt
         state.phase = _RevisionPhase.READY_FOR_TURN
@@ -942,6 +954,7 @@ class SubmissionRevisionController:
                     else turn_index
                 ),
                 "rubric_sha256": rubric.sha256,
+                "next_rubric": next_rubric,
             }
         )
 
@@ -1075,11 +1088,17 @@ class SubmissionRevisionController:
             submission_removed_logical_bytes = 0
             submission_dir = self.experiment_dir / "submissions" / submission_id
             attempt_id = state.judge_attempts[submission_id]
+            submission_index = int(submission_id[1:])
+            scoring_rubric = (
+                self.rubric
+                if self.config.rubric_evolution is RubricEvolution.STATIC
+                else self._rubric_version(submission_index)
+            )
             evaluation_workspace = (
                 self.experiment_dir
                 / "evaluations"
                 / submission_id
-                / self.rubric.sha256
+                / scoring_rubric.sha256
                 / attempt_id
                 / "run"
                 / "workspace"
@@ -1264,7 +1283,7 @@ class SubmissionRevisionController:
         _write_json(
             status_path,
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "task": self.task_dir.name,
                 "task_dir": str(self.task_dir),
                 "workspace_dir": str(snapshot_workspace),
@@ -1280,7 +1299,7 @@ class SubmissionRevisionController:
         _write_json(
             snapshot_path,
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "submission_id": submission_id,
                 "session_id": session_id,
                 "workspace_sha256": workspace_sha256,

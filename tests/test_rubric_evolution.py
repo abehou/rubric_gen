@@ -43,6 +43,11 @@ def _output(answer: str | None = None, *, queries: int = 2) -> ProposerOutput:
         trace="Investigated trajectory:event-1 and generalized the failure.\n",
         query_count=queries,
         retrieved_event_ids=(1,),
+        cost={
+            "cost_usd": None,
+            "estimated_cost_usd": 0.01,
+            "cost_source": "test-estimate",
+        },
     )
 
 
@@ -61,6 +66,7 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
         "trajectory_path": trajectory,
         "evaluation": {"score": 1},
         "version": 1,
+        "source_submission_id": "s000",
         "output_dir": tmp_path / "rubrics",
     }
 
@@ -82,8 +88,10 @@ def test_evolver_runs_separate_codex_proposer_and_seals_version(tmp_path: Path) 
     assert isinstance(output_dir, Path)
     assert not (output_dir / "r0001.txt").stat().st_mode & 0o222
     proposal = json.loads((output_dir / "r0001.proposal.json").read_text())
-    assert proposal["mode"] == "agent"
-    assert proposal["schema_version"] == 4
+    assert proposal["mode"] == "prospective"
+    assert proposal["schema_version"] == 6
+    assert proposal["proposer_attempt_costs"][0]["estimated_cost_usd"] == 0.01
+    assert proposal["source_submission_id"] == "s000"
     assert proposal["kind"] == "optimizer-process-rubric-patch"
     assert proposal["action"] == "add_process_criterion"
     assert proposal["provider"] == "codex"

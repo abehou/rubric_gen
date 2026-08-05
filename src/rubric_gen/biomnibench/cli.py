@@ -13,8 +13,15 @@ from rubric_gen.biomnibench.perturbation.models import (
     DEFAULT_PERTURBATION_LEVELS,
     DEFAULT_PERTURBER_MODEL,
 )
-from rubric_gen.biomnibench.revision import FeedbackPolicy
-from rubric_gen.biomnibench.revision.evolution import RubricEvolution
+from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
+from rubric_gen.biomnibench.forensics.protocol import (
+    DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
+    DEFAULT_RH_MAX_COST_USD,
+    DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
+    DEFAULT_RH_MAX_INPUT_TOKENS,
+    DEFAULT_RH_MAX_OUTPUT_TOKENS,
+    DEFAULT_RH_MAX_RETRIES,
+)
 
 
 def add_agent_args(
@@ -26,7 +33,7 @@ def add_agent_args(
     parser.add_argument(
         "--provider",
         choices=provider_names,
-        default="gemini",
+        default="codex",
         help="Agent CLI provider to run.",
     )
     parser.add_argument(
@@ -36,45 +43,29 @@ def add_agent_args(
     )
     parser.add_argument(
         "--model",
-        required=persistent_session,
-        default=None,
-        help=(
-            "Provider-native model name (required for persistent sessions)."
-            if persistent_session
-            else "Optional provider-native model name."
-        ),
+        required=True,
+        help="Exact provider-native model name. Required for reproducibility.",
     )
     parser.add_argument(
         "--raw", action="store_true", help="Print raw trajectory lines."
     )
     parser.add_argument(
-        "--skip-trust",
-        action="store_true",
-        default=True,
-        help="Forward provider trust bypass when supported.",
-    )
-    parser.add_argument(
-        "--allow-web",
-        action="store_true",
-        help="Allow provider web tools when supported. Disabled by prompt/policy by default.",
-    )
-    parser.add_argument(
-        "--allow-network",
-        action="store_true",
-        help=(
-            "Allow outbound network access for commands inside the Codex "
-            "workspace-write sandbox. This is separate from provider web tools."
-        ),
-    )
-    parser.add_argument(
-        "--approval-mode",
+        "--reasoning-effort",
+        choices=("minimal", "low", "medium", "high", "xhigh"),
         default=None,
-        help="Provider-native approval/permission mode. Defaults are provider-specific.",
+        help="Codex reasoning effort. Recorded exactly in run provenance.",
     )
     parser.add_argument(
-        "--sandbox",
-        action="store_true",
-        help="Ask the provider to use its sandbox option when supported.",
+        "--service-tier",
+        choices=("priority",),
+        default=None,
+        help="Optional Codex service tier. Omit for provider default.",
+    )
+    parser.add_argument(
+        "--turn-timeout-seconds",
+        type=int,
+        default=7_200,
+        help="Hard wall-clock timeout for each agent invocation.",
     )
     if persistent_session:
         parser.add_argument(
@@ -88,12 +79,6 @@ def add_agent_args(
             ),
         )
     else:
-        parser.add_argument(
-            "--extra-agent-arg",
-            action="append",
-            default=[],
-            help="Append one raw argument to the provider command. Repeat for multiple args.",
-        )
         parser.add_argument(
             "--retries",
             type=int,
@@ -163,182 +148,219 @@ def _add_generate_parser(
         help="Harness-native model ID. Defaults to the strongest configured model for the harness.",
     )
     generate.add_argument("--executable", default=None)
-    generate.add_argument("--allow-web", action="store_true")
-    generate.add_argument("--sandbox", action="store_true")
-    generate.add_argument("--skip-trust", action="store_true", default=True)
-    generate.add_argument("--approval-mode", default=None)
-    generate.add_argument("--extra-agent-arg", action="append", default=[])
+    generate.add_argument(
+        "--reasoning-effort",
+        choices=("minimal", "low", "medium", "high", "xhigh"),
+        default=None,
+    )
+    generate.add_argument("--service-tier", choices=("priority",), default=None)
+    generate.add_argument("--turn-timeout-seconds", type=int, default=7_200)
     generate.add_argument("--max-concurrency", type=int, default=1)
     generate.add_argument("--resume", action="store_true")
     generate.add_argument("--raw", action="store_true")
 
 
-def _add_revise_parser(
-    subparsers: argparse._SubParsersAction,
-) -> None:
-    revise = subparsers.add_parser(
-        "revise",
-        help="Run one persistent-session submission revision experiment.",
+def _add_design_parser(subparsers: argparse._SubParsersAction) -> None:
+    design = subparsers.add_parser(
+        "design",
+        help="Create an immutable randomized 2x2 revision-study design.",
     )
-    revise.add_argument(
-        "task",
-        nargs="?",
-        default=None,
-        help="BiomniBench task directory, e.g. data/biomnibench-da/da-24-3.",
-    )
-    revise.add_argument(
-        "--seed-run-dir",
+    design.add_argument("--tasks-dir", default="data/biomnibench-da")
+    design.add_argument("--output", required=True)
+    design.add_argument("--protocol-id", required=True)
+    design.add_argument(
+        "--dataset-revision",
         required=True,
-        help="Completed immutable seed set that supplies the shared s000.",
+        help="Pinned dataset commit/revision or independently verified snapshot ID.",
     )
-    revise.add_argument(
-        "--experiment-dir",
-        default=None,
-        help=(
-            "Base directory name; defaults to a timestamped directory under "
-            "runs/biomnibench-revisions in the repository."
-        ),
-    )
-    revise.add_argument(
-        "--top",
+    design.add_argument("--random-seed", type=int, default=42)
+    design.add_argument(
+        "--sample-size",
         type=int,
         default=None,
-        help="Run the first N discovered tasks; -1 runs every task.",
+        help="Randomly sample this many tasks; omit to randomize every task.",
     )
-    revise.add_argument(
-        "--tasks-dir",
-        default="data/biomnibench-da",
-        help="Directory containing tasks used by --top.",
-    )
-    revise.add_argument(
-        "--full_v_score",
-        "--full-v-score",
-        dest="full_v_score",
-        action="store_true",
-        help="Run both full-feedback and score-only conditions for each selected task.",
-    )
-    revise.add_argument(
-        "--max-concurrency",
-        type=int,
-        default=1,
-        help="Maximum number of independent revision experiments to run at once.",
-    )
-    revise.add_argument(
-        "--dry-run",
-        action="store_true",
-        help=(
-            "List the selected revision experiments without starting solver or "
-            "judge processes."
-        ),
-    )
-    experiment_mode = revise.add_mutually_exclusive_group()
-    experiment_mode.add_argument(
-        "--resume",
-        action="store_true",
-        help=("Resume from recorded safe boundaries. Without --experiment-dir, "
-              "select the newest batch matching the current arguments and tasks."),
-    )
-    experiment_mode.add_argument(
-        "--restart",
-        action="store_true",
-        help="Delete a matching existing revision experiment and restart from s000.",
-    )
-    revise.add_argument(
-        "--revision-rounds",
-        type=int,
-        default=3,
-        help="Number of same-session revisions after the initial submission. Defaults to 3.",
-    )
-    revise.add_argument(
+    design.add_argument("--replicates", type=int, default=3)
+    design.add_argument("--revision-rounds", type=int, default=10)
+    design.add_argument(
         "--feedback-policy",
         choices=tuple(policy.value for policy in FeedbackPolicy),
-        default=FeedbackPolicy.FULL.value,
-        help="Feedback returned to the solver. Defaults to full.",
+        default=FeedbackPolicy.SEMI.value,
     )
-    revise.add_argument(
-        "--prompt",
-        choices=tuple(profile.value for profile in PromptProfile),
-        default=PromptProfile.BASE.value,
+    design.add_argument(
+        "--treatment-prompt",
+        choices=(PromptProfile.ANTI_RH.value, PromptProfile.DILIGENT.value),
+        default=PromptProfile.ANTI_RH.value,
+        help="Prompt compared with base. Use anti-rh for an RH-mitigation study.",
+    )
+    design.add_argument(
+        "--stage", choices=("development", "validation", "confirmatory"),
+        default="development",
+    )
+    design.add_argument(
+        "--validated-design",
+        default=None,
         help=(
-            "Solver prompt profile: base, anti-rh for anti-gaming guidance, or "
-            "diligent for more substantive revision effort. Defaults to base."
+            "Path to the actual validation-stage design. Required only for a "
+            "confirmatory design; its tasks are excluded from sampling."
         ),
     )
-    revise.add_argument(
-        "--rubric-evolution",
-        choices=tuple(mode.value for mode in RubricEvolution),
-        default=RubricEvolution.STATIC.value,
+    design.add_argument("--minimum-detectable-effect", type=float, default=0.30)
+    design.add_argument("--anticipated-discordance", type=float, default=0.30)
+    design.add_argument("--alpha", type=float, default=0.05)
+    design.add_argument("--target-power", type=float, default=0.80)
+    design.add_argument("--judge", dest="judge_model", default=DEFAULT_JUDGE_MODEL)
+    design.add_argument(
+        "--judge-max-retries",
+        type=int,
+        choices=range(MAX_TRANSIENT_RETRIES + 1),
+        default=1,
+        help="Retry transient optimizer-judge failures this many times.",
+    )
+    design.add_argument("--rubric", default="rubric.txt")
+    design.add_argument("--review", choices=("trace", "trajectory"), default="trace")
+    design.add_argument("--max-review-chars", type=int, default=None)
+    design.add_argument("--rubric-proposer-model", default="gpt-5.6-luna")
+    design.add_argument("--rubric-proposer-step-limit", type=int, default=12)
+    design.add_argument(
+        "--rubric-proposer-max-retries",
+        type=int,
+        choices=range(MAX_TRANSIENT_RETRIES + 1),
+        default=1,
+        help="Retry failed prospective rubric proposals this many times.",
+    )
+    design.add_argument(
+        "--primary-rh-rule",
+        choices=("majority", "any_detects", "unanimous_detects"),
+        default="majority",
+    )
+    design.add_argument(
+        "--audit-max-input-tokens",
+        type=int,
+        default=DEFAULT_RH_MAX_INPUT_TOKENS,
+    )
+    design.add_argument(
+        "--audit-max-output-tokens",
+        type=int,
+        default=DEFAULT_RH_MAX_OUTPUT_TOKENS,
+    )
+    design.add_argument(
+        "--audit-max-event-text-chars",
+        type=int,
+        default=DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
+        help="Per-event text cap after deterministic head/tail evidence compaction.",
+    )
+    design.add_argument(
+        "--audit-max-command-output-chars",
+        type=int,
+        default=DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
         help=(
-            "Optimizer rubric policy: static, or agent for a trajectory-grounded "
-            "additive process-penalty proposal after each preliminary score. "
-            "The stable task rubric is never rewritten. Defaults to static."
+            "Per-command-output cap after deterministic head/tail evidence "
+            "compaction."
         ),
     )
-    revise.add_argument(
-        "--rubric-proposer-model",
-        default="gpt-5.6-luna",
-        help="Codex model used only for agent rubric proposals.",
+    design.add_argument(
+        "--audit-max-retries", type=int, default=DEFAULT_RH_MAX_RETRIES
     )
-    revise.add_argument(
-        "--rubric-proposer-step-limit",
+    design.add_argument(
+        "--audit-max-cost-usd",
+        type=float,
+        default=DEFAULT_RH_MAX_COST_USD,
+        help="Hard total API budget for the prespecified three-provider audit.",
+    )
+    design.add_argument("--executable", default=None)
+    design.add_argument(
+        "--model", required=True, help="Exact Codex solver model name."
+    )
+    design.add_argument(
+        "--reasoning-effort",
+        choices=("minimal", "low", "medium", "high", "xhigh"),
+        default="minimal",
+    )
+    design.add_argument("--service-tier", choices=("priority",), default=None)
+    design.add_argument("--turn-timeout-seconds", type=int, default=7_200)
+    design.add_argument(
+        "--retries",
         type=int,
-        default=12,
-        help="Maximum bounded trajectory queries per rubric proposal.",
+        choices=range(MAX_TRANSIENT_RETRIES + 1),
+        default=1,
+        help="Resume a solver session after transient failures this many times.",
     )
-    revise.add_argument(
-        "--review",
-        choices=("trace", "trajectory"),
-        default="trace",
-        help="Judge trace.md or the cumulative raw trajectory. Defaults to trace.",
-    )
-    revise.add_argument(
-        "--judge",
-        dest="judge_model",
-        default=None,
-        help=f"Judge model. Defaults to {DEFAULT_JUDGE_MODEL}.",
-    )
-    rubric_source = revise.add_mutually_exclusive_group()
-    rubric_source.add_argument(
-        "--rubric",
-        default=None,
-        help="Rubric filename under the task's tests directory. Defaults to rubric.txt.",
-    )
-    rubric_source.add_argument(
-        "--rubric-set",
-        default=None,
-        help="Sealed external rubric-set directory, resolved by target task ID.",
-    )
-    revise.add_argument(
-        "--max-review-chars",
-        type=int,
-        default=None,
-        help="Optionally truncate the trace or trajectory before judging.",
-    )
-    add_agent_args(revise, persistent_session=True)
-    revise.set_defaults(quiet=True)
+    design.set_defaults(provider="codex", raw=False, quiet=True)
 
 
 def _add_seed_parser(subparsers: argparse._SubParsersAction) -> None:
     seed = subparsers.add_parser(
-        "seed", help="Generate sealed, judged initial submissions for paired revisions."
+        "seed",
+        help="Generate one sealed s000 for every task/replicate block in a design.",
     )
-    seed.add_argument("--tasks-dir", default="data/biomnibench-da")
-    seed.add_argument("--top", type=int, default=4)
+    seed.add_argument("--design", required=True)
     seed.add_argument("--output-dir", required=True)
     seed.add_argument("--max-concurrency", type=int, default=1)
-    seed.add_argument("--review", choices=("trace", "trajectory"), default="trace")
-    seed.add_argument("--judge", dest="judge_model", default=None)
-    rubric_source = seed.add_mutually_exclusive_group()
-    rubric_source.add_argument("--rubric", default=None)
-    rubric_source.add_argument("--rubric-set", default=None)
-    seed.add_argument("--max-review-chars", type=int, default=None)
-    seed.add_argument(
-        "--resume",
-        action="store_true",
-        help="Reuse integrity-checked judged seeds and generate missing tasks.",
+    seed.add_argument("--resume", action="store_true")
+
+
+def _add_run_design_parser(subparsers: argparse._SubParsersAction) -> None:
+    run_design = subparsers.add_parser(
+        "run-design",
+        help="Execute every randomized assignment in a locked design.",
     )
-    add_agent_args(seed, persistent_session=True)
-    seed.set_defaults(quiet=True)
+    run_design.add_argument("--design", required=True)
+    run_design.add_argument("--seed-run-dir", required=True)
+    run_design.add_argument("--output-dir", required=True)
+    run_design.add_argument("--max-concurrency", type=int, default=1)
+    run_design.add_argument("--resume", action="store_true")
+    run_design.add_argument("--dry-run", action="store_true")
+
+
+def _add_status_parser(subparsers: argparse._SubParsersAction) -> None:
+    status = subparsers.add_parser(
+        "status", help="Integrity-check completion and health of a randomized study."
+    )
+    status.add_argument("--design", required=True)
+    status.add_argument("--run-dir", required=True)
+
+
+def _add_cost_parser(subparsers: argparse._SubParsersAction) -> None:
+    cost = subparsers.add_parser(
+        "cost", help="Report measured API cost and missing coverage by study stage."
+    )
+    cost.add_argument("--design", required=True)
+    cost.add_argument("--seed-run-dir", default=None)
+    cost.add_argument("--run-dir", default=None)
+    cost.add_argument("--audit-summary", default=None)
+    cost.add_argument("--output", default=None)
+
+
+def _add_analyze_parser(subparsers: argparse._SubParsersAction) -> None:
+    analyze = subparsers.add_parser(
+        "analyze", help="Run the prespecified clustered 2x2 RH analysis."
+    )
+    analyze.add_argument("--design", required=True)
+    analyze.add_argument("--run-dir", required=True)
+    analyze.add_argument("--audit-summary", required=True)
+    analyze.add_argument("--output", required=True)
+
+
+def _add_cross_score_parser(subparsers: argparse._SubParsersAction) -> None:
+    cross_score = subparsers.add_parser(
+        "cross-score",
+        help="Post-hoc score every checkpoint under every realized rubric version.",
+    )
+    cross_score.add_argument("--design", required=True)
+    cross_score.add_argument("--run-dir", required=True)
+    cross_score.add_argument("--max-concurrency", type=int, default=1)
+    cross_score.add_argument("--resume", action="store_true")
+
+
+def _add_blind_export_parser(subparsers: argparse._SubParsersAction) -> None:
+    blind = subparsers.add_parser(
+        "blind-export", help="Export blinded A/B human-review packets."
+    )
+    blind.add_argument("--design", required=True)
+    blind.add_argument("--run-dir", required=True)
+    blind.add_argument("--output-dir", required=True)
+    blind.add_argument("--key-output", required=True)
 
 
 def _add_all_parser(
@@ -393,21 +415,12 @@ def _add_judge_parser(
     judge = subparsers.add_parser(
         "judge", help="Run task-local LLM judges over saved runs."
     )
-    judge_inputs = judge.add_mutually_exclusive_group(required=True)
-    judge_inputs.add_argument(
+    judge.add_argument(
         "--run-dir",
         action="append",
         nargs="+",
+        required=True,
         help="Single task run dir or all-run batch dir to judge. Accepts one or more paths; repeat if desired.",
-    )
-    judge_inputs.add_argument(
-        "--case-dir",
-        action="append",
-        nargs="+",
-        help=(
-            "Blinded forensic evidence case directories. Valid only with "
-            "--agent-ensemble; accepts one or more paths and may be repeated."
-        ),
     )
     judge.add_argument(
         "--tasks-dir",
@@ -424,23 +437,6 @@ def _add_judge_parser(
         "--model",
         default=None,
         help=f"Judge model. Defaults to {DEFAULT_JUDGE_MODEL}.",
-    )
-    ensemble_mode = judge.add_mutually_exclusive_group()
-    ensemble_mode.add_argument(
-        "--ensemble",
-        action="store_true",
-        help=(
-            "Judge every submission in a revision experiment with the strong "
-            "cross-provider panel and calculate exploitation statistics."
-        ),
-    )
-    ensemble_mode.add_argument(
-        "--agent-ensemble",
-        action="store_true",
-        help=(
-            "Forensically audit revision experiments with independent Codex, "
-            "Claude Code, and Gemini CLI agents instead of rubric-scoring judges."
-        ),
     )
     judge.add_argument(
         "--output",
@@ -498,29 +494,6 @@ def _add_judge_parser(
         type=int,
         default=1,
         help="Run up to this many judge subprocesses concurrently.",
-    )
-    judge.add_argument(
-        "--agent-step-limit",
-        type=int,
-        default=24,
-        help=(
-            "Maximum completed investigative tool actions per --agent-ensemble "
-            "member. Defaults to 24."
-        ),
-    )
-    judge.add_argument(
-        "--max-retries",
-        type=int,
-        default=2,
-        help=(
-            "Retry each failed ensemble member this many times. Defaults to 2 "
-            "retries (3 total attempts)."
-        ),
-    )
-    judge.add_argument(
-        "--category-model",
-        default="gpt-5.6-luna",
-        help="Model used only to induce post-hoc finding categories.",
     )
     judge.add_argument(
         "--repeats",
@@ -793,8 +766,14 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     _add_one_parser(subparsers)
     _add_generate_parser(subparsers)
+    _add_design_parser(subparsers)
     _add_seed_parser(subparsers)
-    _add_revise_parser(subparsers)
+    _add_run_design_parser(subparsers)
+    _add_status_parser(subparsers)
+    _add_cost_parser(subparsers)
+    _add_analyze_parser(subparsers)
+    _add_cross_score_parser(subparsers)
+    _add_blind_export_parser(subparsers)
     _add_all_parser(subparsers)
     _add_judge_parser(subparsers)
     _add_compare_judges_parser(subparsers)
@@ -807,14 +786,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 from rubric_gen.biomnibench.commands import (
     run_all,
+    run_analyze,
+    run_blind_export,
     run_compare_judges,
+    run_cost,
+    run_cross_score,
+    run_design,
     run_generate,
     run_judge,
     run_one,
     run_perturb,
     run_process_rubrics,
-    run_revise,
     run_seed,
+    run_status,
+    run_study,
     run_rubric_free,
     run_task_process_rubrics,
 )
@@ -827,10 +812,22 @@ def main(argv: list[str] | None = None) -> int:
         return run_one(args)
     if args.command == "generate":
         return run_generate(args)
+    if args.command == "design":
+        return run_design(args)
     if args.command == "seed":
         return run_seed(args)
-    if args.command == "revise":
-        return run_revise(args)
+    if args.command == "run-design":
+        return run_study(args)
+    if args.command == "status":
+        return run_status(args)
+    if args.command == "cost":
+        return run_cost(args)
+    if args.command == "analyze":
+        return run_analyze(args)
+    if args.command == "cross-score":
+        return run_cross_score(args)
+    if args.command == "blind-export":
+        return run_blind_export(args)
     if args.command == "all":
         return run_all(args)
     if args.command == "judge":

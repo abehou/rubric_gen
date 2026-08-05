@@ -529,8 +529,9 @@ def test_compiler_request_is_runtime_blind(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    not REAL_DA_19_1.is_dir(),
-    reason="real da-19-1 data is not checked in",
+    not REAL_DA_19_1.is_dir()
+    or any(path.is_symlink() for path in (REAL_DA_19_1, *REAL_DA_19_1.parents)),
+    reason="real da-19-1 data is absent or has a symlinked path component",
 )
 def test_real_da_19_1_snapshot_keeps_only_data_schema_in_budget() -> None:
     snapshot = build_task_snapshot(REAL_DA_19_1)

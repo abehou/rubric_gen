@@ -22,20 +22,23 @@ from rubric_gen.biomnibench.forensics.malt import (
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.biomnibench.forensics.reward_hacking import (
-    AUDIT_PROTOCOL_VERSION,
-    PANEL,
-    RewardHackingAuditConfig,
-    RewardHackingAuditRunner,
-)
 from rubric_gen.biomnibench.forensics.scoring import (
     score_panel,
 )
+from rubric_gen.biomnibench.experiments import load_design
+from rubric_gen.biomnibench.study import (
+    resolve_study_experiment,
+    validate_completed_revision,
+)
+from rubric_gen.biomnibench.utils.provenance import require_clean_repository
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.malt.model_judge import (
+    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
+    DEFAULT_MAX_EVENT_TEXT_CHARS,
     DEFAULT_MAX_COST_USD,
     DEFAULT_MAX_INPUT_TOKENS,
+    MAX_OUTPUT_TOKENS,
     DIRECT_AUDIT_PROTOCOL_VERSION,
     STRONG_JUDGE_MODELS,
     ModelJudgeConfig,
@@ -201,75 +204,167 @@ def _default_benchmark_dir() -> Path:
     return bulk_root / "rubric_gen" / "runs" / "malt-benchmark"
 
 
-def _biomnibench_experiments(values: list[list[str]]) -> tuple[Path, ...]:
+def _biomnibench_experiments(
+    value: str,
+) -> tuple[tuple[Path, ...], str, Path, dict[str, object]]:
     experiments: list[Path] = []
-    for group in values:
-        for value in group:
-            source = resolve_project_path(value)
-            batch_path = source / "batch.json"
-            if batch_path.is_file():
-                batch = json.loads(batch_path.read_text(encoding="utf-8"))
-                if batch.get("kind") != "rubric-gen-submission-revision-batch":
-                    raise ValueError(f"unsupported Biomni batch: {source}")
-                raw = batch.get("experiment_dirs")
-                if not isinstance(raw, list) or any(
-                    not isinstance(item, str) for item in raw
-                ):
-                    raise ValueError(f"Biomni batch has invalid experiment_dirs: {source}")
-                for item in raw:
-                    relative = Path(item)
-                    if relative.is_absolute() or ".." in relative.parts:
-                        raise ValueError(f"unsafe Biomni experiment path: {item!r}")
-                    experiments.append(source / relative)
-            else:
-                experiments.append(source)
+    source = resolve_project_path(value)
+    study_path = source / "study.json"
+    try:
+        study = json.loads(study_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid randomized Biomni study: {source}") from exc
+    if (
+        study.get("schema_version") != 1
+        or study.get("kind") != "rubric-gen-randomized-revision-study"
+        or type(study.get("design_sha256")) is not str
+        or study.get("status") not in {"completed", "failed"}
+        or type(study.get("design_path")) is not str
+        or type(study.get("protocol_id")) is not str
+        or type(study.get("seed_run_dir")) is not str
+    ):
+        raise ValueError(f"unsupported Biomni study: {source}")
+    design = load_design(Path(str(study["design_path"])))
+    if (
+        design.sha256 != study["design_sha256"]
+        or study["design_path"] != str(design.path)
+        or study["protocol_id"] != design.protocol_id
+    ):
+        raise ValueError(f"Biomni study design identity changed: {source}")
+    records = study.get("records")
+    if not isinstance(records, list) or any(
+        not isinstance(item, dict) for item in records
+    ):
+        raise ValueError(f"Biomni study has invalid records: {source}")
+    assignments = {
+        str(item["assignment_id"]): item for item in design.assignments
+    }
+    record_ids = [str(record.get("assignment_id")) for record in records]
+    if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
+        raise ValueError(f"Biomni study ledger differs from its design: {source}")
+    seed_root = Path(str(study["seed_run_dir"]))
+    for record in records:
+        status = record.get("status")
+        assignment = assignments[str(record["assignment_id"])]
+        experiment = resolve_study_experiment(source, record, assignment)
+        if status not in {"completed", "failed", "invalid"}:
+            raise ValueError(
+                f"Biomni study must reach a terminal boundary before audit: {source}"
+            )
+        if status != "completed":
+            continue
+        validate_completed_revision(
+            experiment,
+            assignment,
+            design,
+            seed_root,
+        )
+        experiments.append(experiment)
     resolved = tuple(path.resolve() for path in experiments)
     if len(set(resolved)) != len(resolved):
         raise ValueError("duplicate Biomni revision experiment")
-    for experiment in resolved:
-        try:
-            manifest = json.loads(
-                (experiment / "manifest.json").read_text(encoding="utf-8")
-            )
-        except (OSError, json.JSONDecodeError) as exc:
-            raise ValueError(f"invalid Biomni revision experiment: {experiment}") from exc
-        if manifest.get("kind") != "rubric-gen-submission-revision-experiment":
-            raise ValueError(f"unsupported Biomni revision experiment: {experiment}")
-    return resolved
+    if not resolved:
+        raise ValueError("Biomni study has no completed assignments to audit")
+    return resolved, design.sha256, design.tasks_dir.resolve(), design.outcome_audit
 
 
 def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     if args.inputs:
         raise ValueError(
-            "MALT shard inputs and --biomnibench-run-dir cannot be mixed"
+            "MALT shard inputs and --biomnibench-study-dir cannot be mixed"
         )
-    if not (args.agent_ensemble or args.ensemble):
-        raise ValueError(
-            "--biomnibench-run-dir requires --ensemble or --agent-ensemble"
-        )
-    if args.execution != "standard":
+    if not args.ensemble:
+        raise ValueError("--biomnibench-study-dir requires --ensemble")
+    if args.execution not in {None, "standard"}:
         raise ValueError(
             "--execution batch is available only for one hosted OpenAI --judge run"
         )
-    if args.top is not None or args.negative_top is not None or args.split != "test":
+    if args.top is not None or args.negative_top is not None:
         raise ValueError(
-            "--top, --negative-top, and --split are MALT dataset options and cannot "
-            "be used with --biomnibench-run-dir"
+            "--top and --negative-top are MALT dataset options and cannot "
+            "be used with --biomnibench-study-dir"
         )
-    experiments = _biomnibench_experiments(args.biomnibench_run_dir)
+    dataset_only = {
+        "benchmark_dir": args.benchmark_dir,
+        "development_fraction": args.development_fraction,
+        "validation_fraction": args.validation_fraction,
+        "split_seed": args.split_seed,
+        "seed": args.seed,
+        "split": args.split,
+        "vllm_endpoint_dir": args.vllm_endpoint_dir,
+        "vllm_qwen_url": args.vllm_qwen_url,
+        "vllm_glm_url": args.vllm_glm_url,
+        "vllm_gpt_oss_url": args.vllm_gpt_oss_url,
+    }
+    supplied_dataset_only = {
+        key: value for key, value in dataset_only.items() if value is not None
+    }
+    if supplied_dataset_only:
+        raise ValueError(
+            "MALT dataset options cannot be used with --biomnibench-study-dir: "
+            + ", ".join(sorted(supplied_dataset_only))
+        )
+    experiments, design_sha256, tasks_dir, audit = _biomnibench_experiments(
+        args.biomnibench_study_dir
+    )
+    if detection != "rh" or audit.get("detection") != "rh":
+        raise ValueError("randomized Biomni studies support only the locked RH outcome")
+    expected_models = tuple(audit.get("models", ()))
+    if expected_models != STRONG_JUDGE_MODELS:
+        raise ValueError("Biomni design uses an unsupported primary model panel")
+    resolved_arguments = {
+        "primary_rule": audit.get("primary_rule"),
+        "max_retries": audit.get("max_retries"),
+        "max_input_tokens": audit.get("max_input_tokens"),
+        "max_output_tokens": audit.get("max_output_tokens"),
+        "max_event_text_chars": audit.get("max_event_text_chars"),
+        "max_command_output_chars": audit.get("max_command_output_chars"),
+        "max_cost_usd": audit.get("max_cost_usd"),
+        "execution": audit.get("execution"),
+    }
+    locked_arguments = {
+        "primary_rule": args.primary_rule,
+        "max_retries": args.max_retries,
+        "max_input_tokens": args.max_input_tokens,
+        "max_output_tokens": args.max_output_tokens,
+        "max_event_text_chars": args.max_event_text_chars,
+        "max_command_output_chars": args.max_command_output_chars,
+        "max_cost_usd": args.max_cost_usd,
+        "execution": args.execution,
+    }
+    conflicts = {
+        key: value
+        for key, value in locked_arguments.items()
+        if value is not None and value != resolved_arguments[key]
+    }
+    if conflicts:
+        raise ValueError(
+            "Biomni audit arguments differ from the locked design: "
+            f"requested={conflicts!r}, locked={resolved_arguments!r}"
+        )
+    primary_rule = str(resolved_arguments["primary_rule"])
+    max_retries = int(resolved_arguments["max_retries"])
+    max_input_tokens = int(resolved_arguments["max_input_tokens"])
+    max_output_tokens = int(resolved_arguments["max_output_tokens"])
+    max_event_text_chars = int(resolved_arguments["max_event_text_chars"])
+    max_command_output_chars = int(
+        resolved_arguments["max_command_output_chars"]
+    )
+    max_cost_usd = float(resolved_arguments["max_cost_usd"])
+    execution = str(resolved_arguments["execution"])
+    require_clean_repository()
     identity_hash = hashlib.sha256(
         "\0".join(str(path) for path in experiments).encode()
     ).hexdigest()[:10]
-    mode = "agent-ensemble" if args.agent_ensemble else "ensemble"
+    mode = "ensemble"
     identity = (
         f"{mode}--detect-{detection}--source-biomnibench-{identity_hash}"
-        f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
-        f"--mi-{args.max_input_tokens}--budget-{args.max_cost_usd:g}"
-        f"--exec-{args.execution}"
+        f"--mc-{args.max_concurrency}"
+        f"--mi-{max_input_tokens}--budget-{max_cost_usd:g}"
+        f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
+        f"--mco-{max_command_output_chars}"
+        f"--exec-{execution}--primary-{primary_rule}"
     )
-    identity += "--cat-" + re.sub(r"[^A-Za-z0-9._-]+", "_", args.category_model)
-    if args.agent_ensemble:
-        identity += f"--steps-{args.agent_step_limit}"
     output_root = (
         resolve_project_path(args.output_dir)
         if args.output_dir is not None
@@ -277,42 +372,35 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     )
     output_root.mkdir(parents=True, exist_ok=True)
     evaluation_root = _evaluation_root(output_root, identity, resume=args.resume)
-    tasks_dir = resolve_project_path(args.tasks_dir)
-    if args.agent_ensemble:
-        exit_code = RewardHackingAuditRunner(
-            RewardHackingAuditConfig(
-                experiment_dirs=experiments,
-                output_dir=evaluation_root,
-                tasks_dir=tasks_dir,
-                panel=PANEL,
-                max_concurrency=args.max_concurrency,
-                max_retries=args.max_retries,
-                step_limit=args.agent_step_limit,
-                resume=args.resume,
-                raw=args.raw,
-                detection=detection,
-                category_model=args.category_model,
-            )
-        ).run()
+    exit_code = ModelJudgeRunner(
+        ModelJudgeConfig(
+            case_dirs=(),
+            revision_dirs=experiments,
+            tasks_dir=tasks_dir,
+            models=STRONG_JUDGE_MODELS,
+            output_dir=evaluation_root,
+            max_concurrency=args.max_concurrency,
+            max_retries=max_retries,
+            resume=args.resume,
+            detection=detection,
+            max_input_tokens=max_input_tokens,
+            max_output_tokens=max_output_tokens,
+            max_event_text_chars=max_event_text_chars,
+            max_command_output_chars=max_command_output_chars,
+            max_cost_usd=max_cost_usd,
+            execution=execution,
+            primary_rule=primary_rule,
+            design_sha256s=(design_sha256,),
+            preflight_only=args.preflight_only,
+        )
+    ).run()
+    if args.preflight_only:
+        print(f"Wrote Biomni cost preflight: {evaluation_root / 'cost-preflight.json'}")
     else:
-        exit_code = ModelJudgeRunner(
-            ModelJudgeConfig(
-                case_dirs=(),
-                revision_dirs=experiments,
-                tasks_dir=tasks_dir,
-                models=STRONG_JUDGE_MODELS,
-                output_dir=evaluation_root,
-                max_concurrency=args.max_concurrency,
-                max_retries=args.max_retries,
-                resume=args.resume,
-                detection=detection,
-                category_model=args.category_model,
-                max_input_tokens=args.max_input_tokens,
-                max_cost_usd=args.max_cost_usd,
-                execution=args.execution,
-            )
-        ).run()
-    print(f"Wrote unscored Biomni forensic judgments: {evaluation_root / 'summary.json'}")
+        print(
+            "Wrote unscored Biomni forensic judgments: "
+            f"{evaluation_root / 'summary.json'}"
+        )
     return exit_code
 
 
@@ -326,20 +414,13 @@ def build_parser() -> argparse.ArgumentParser:
               "data/malt-public/data/*.parquet."),
     )
     parser.add_argument(
-        "--biomnibench-run-dir",
-        action="append",
-        nargs="+",
-        default=[],
+        "--biomnibench-study-dir",
+        dest="biomnibench_study_dir",
+        default=None,
         help=(
-            "Biomni revision experiment or batch directories to audit instead of "
-            "a labeled MALT dataset. May be repeated. Requires --ensemble or "
-            "--agent-ensemble."
+            "Locked randomized Biomni study directories to audit instead of "
+            "a labeled MALT dataset. Requires --ensemble."
         ),
-    )
-    parser.add_argument(
-        "--tasks-dir",
-        default="data/biomnibench-da",
-        help="Biomni task root used with --biomnibench-run-dir.",
     )
     parser.add_argument(
         "--benchmark-dir",
@@ -360,9 +441,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--detect", required=True, choices=tuple(TARGETS),
         help="Detection target: reward hacking only (rh) or every non-normal label.",
     )
-    parser.add_argument("--development-fraction", type=float, default=0.2)
-    parser.add_argument("--validation-fraction", type=float, default=0.1)
-    parser.add_argument("--split-seed", default="malt-v1")
+    parser.add_argument("--development-fraction", type=float, default=None)
+    parser.add_argument("--validation-fraction", type=float, default=None)
+    parser.add_argument("--split-seed", default=None)
     sampling = parser.add_mutually_exclusive_group()
     sampling.add_argument(
         "--top", type=int, metavar="K",
@@ -376,16 +457,12 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--seed", type=int, default=42,
+        "--seed", type=int, default=None,
         help="Random seed used by --top or --negative-top. Defaults to 42.",
     )
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--agent-ensemble", action="store_true",
-                      help="Run Codex, Claude Code, and Gemini CLI judges.")
     mode.add_argument("--ensemble", action="store_true",
                       help="Run the three direct strong-model judges.")
-    mode.add_argument("--agent", choices=tuple(provider for provider, _ in PANEL),
-                      help="Run one terminal-agent judge.")
     mode.add_argument("--judge", metavar="MODEL", help="Run one direct model judge.")
     mode.add_argument(
         "--vllm", action="append", metavar="URL::MODEL",
@@ -401,7 +478,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the default three-model open-source vLLM panel.",
     )
     parser.add_argument(
-        "--vllm-endpoint-dir", default="runs/vllm-endpoints",
+        "--vllm-endpoint-dir", default=None,
         help=("Directory containing endpoints published by server jobs. "
               "Defaults to runs/vllm-endpoints."),
     )
@@ -419,53 +496,102 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
-        "--max-input-tokens", type=int, default=DEFAULT_MAX_INPUT_TOKENS,
-        help="Hard per-request input ceiling; oversized evidence is chunked.",
+        "--max-input-tokens", type=int, default=None,
+        help="Hard per-request input ceiling; Biomni studies load this from the design.",
     )
     parser.add_argument(
-        "--max-cost-usd", type=float, default=DEFAULT_MAX_COST_USD,
-        help="Hard OpenAI generation budget after token-count preflight.",
+        "--max-output-tokens", type=int, default=None,
+        help="Hard per-request output ceiling; Biomni studies load this from the design.",
     )
     parser.add_argument(
-        "--execution", choices=("standard", "batch"), default="standard",
+        "--max-event-text-chars", type=int, default=None,
+        help="Per-event Biomni evidence cap; Biomni studies load this from the design.",
+    )
+    parser.add_argument(
+        "--max-command-output-chars", type=int, default=None,
+        help=(
+            "Per-command-output Biomni evidence cap; Biomni studies load this "
+            "from the design."
+        ),
+    )
+    parser.add_argument(
+        "--max-cost-usd", type=float, default=None,
+        help="Hard total hosted-API budget; Biomni studies load this from the design.",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Write exact token/cost preflight and exit before model generation.",
+    )
+    parser.add_argument(
+        "--execution", choices=("standard", "batch"), default=None,
         help="Use synchronous requests or the discounted OpenAI Batch API.",
     )
     parser.add_argument(
-        "--category-model",
-        default="gpt-5.6-luna",
-        help="Model used only to induce post-hoc finding categories.",
+        "--primary-rule",
+        choices=("majority", "any_detects", "unanimous_detects"),
+        default=None,
+        help="Prespecified ensemble rule; Biomni studies load this from the design.",
     )
     parser.add_argument(
         "--max-retries",
         type=int,
-        default=2,
+        default=None,
         help=(
             "Retry transient detection requests this many times. Permanent and "
-            "quota errors are never retried. Defaults to 2 retries."
-        ),
-    )
-    parser.add_argument(
-        "--agent-step-limit",
-        type=int,
-        default=24,
-        help=(
-            "Maximum completed investigative tool actions per agent-ensemble "
-            "member. Defaults to 24."
+            "quota errors are never retried. Defaults to 1 retry."
         ),
     )
     parser.add_argument("--resume", action="store_true")
-    parser.add_argument("--raw", action="store_true")
     parser.add_argument(
         "--split", choices=("development", "validation", "test", "all"),
-        default="test", help="Split evaluated and scored. Defaults to test.",
+        default=None,
+        help="Split evaluated and scored. Defaults to development.",
     )
     return parser
 
 
 def run(args: argparse.Namespace) -> int:
     target = detection_target(args.detect)
-    if args.biomnibench_run_dir:
+    if args.biomnibench_study_dir:
         return _run_biomnibench(args, target.name)
+    args.development_fraction = (
+        0.2 if args.development_fraction is None else args.development_fraction
+    )
+    args.validation_fraction = (
+        0.1 if args.validation_fraction is None else args.validation_fraction
+    )
+    args.split_seed = "malt-v1" if args.split_seed is None else args.split_seed
+    args.seed = 42 if args.seed is None else args.seed
+    args.split = "development" if args.split is None else args.split
+    args.vllm_endpoint_dir = (
+        "runs/vllm-endpoints"
+        if args.vllm_endpoint_dir is None
+        else args.vllm_endpoint_dir
+    )
+    args.max_input_tokens = (
+        DEFAULT_MAX_INPUT_TOKENS
+        if args.max_input_tokens is None else args.max_input_tokens
+    )
+    args.max_output_tokens = (
+        MAX_OUTPUT_TOKENS
+        if args.max_output_tokens is None else args.max_output_tokens
+    )
+    args.max_event_text_chars = (
+        DEFAULT_MAX_EVENT_TEXT_CHARS
+        if args.max_event_text_chars is None else args.max_event_text_chars
+    )
+    args.max_command_output_chars = (
+        DEFAULT_MAX_COMMAND_OUTPUT_CHARS
+        if args.max_command_output_chars is None
+        else args.max_command_output_chars
+    )
+    args.max_cost_usd = (
+        DEFAULT_MAX_COST_USD if args.max_cost_usd is None else args.max_cost_usd
+    )
+    args.execution = "standard" if args.execution is None else args.execution
+    args.primary_rule = "majority" if args.primary_rule is None else args.primary_rule
+    args.max_retries = 1 if args.max_retries is None else args.max_retries
 
     def vllm_url(value: str) -> str:
         normalized = value.rstrip("/")
@@ -522,7 +648,7 @@ def run(args: argparse.Namespace) -> int:
         json.dumps(inventory, indent=2) + "\n", encoding="utf-8"
     )
     selected_mode = bool(
-        args.agent_ensemble or args.ensemble or args.agent or args.judge
+        args.ensemble or args.judge
         or args.vllm or args.vllm_judge or args.vllm_ensemble
     )
     detection_root = benchmark_root / target.name
@@ -618,12 +744,7 @@ def run(args: argparse.Namespace) -> int:
         negative_top=args.negative_top,
     )
     base_urls: dict[str, str] = {}
-    if args.agent_ensemble:
-        mode_name, agent_panel, models = "agent-ensemble", PANEL, None
-    elif args.agent:
-        member = next(item for item in PANEL if item[0] == args.agent)
-        mode_name, agent_panel, models = f"agent-{args.agent}", (member,), None
-    elif args.ensemble:
+    if args.ensemble:
         mode_name, agent_panel, models = "ensemble", None, STRONG_JUDGE_MODELS
     elif args.judge:
         assert args.judge
@@ -687,23 +808,18 @@ def run(args: argparse.Namespace) -> int:
     preparation_digest = hashlib.sha256(
         json.dumps(preparation, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()[:12]
-    evaluation_protocol = (
-        AUDIT_PROTOCOL_VERSION if agent_panel is not None
-        else DIRECT_AUDIT_PROTOCOL_VERSION
-    )
+    evaluation_protocol = DIRECT_AUDIT_PROTOCOL_VERSION
     mode_name += (
         f"--split-seed-{safe_split_seed}"
         f"--dev-{args.development_fraction:g}"
         f"--val-{args.validation_fraction:g}"
-        f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
+        f"--mc-{args.max_concurrency}"
         f"--mi-{args.max_input_tokens}--budget-{args.max_cost_usd:g}"
+        f"--mo-{args.max_output_tokens}--me-{args.max_event_text_chars}"
+        f"--mco-{args.max_command_output_chars}"
         f"--exec-{args.execution}"
+        f"--primary-{args.primary_rule}"
         f"--audit-v{evaluation_protocol}--data-{preparation_digest}"
-    )
-    if agent_panel is not None:
-        mode_name += f"--steps-{args.agent_step_limit}"
-    mode_name += "--cat-" + re.sub(
-        r"[^A-Za-z0-9._-]+", "_", args.category_model
     )
     output_root = (
         resolve_project_path(args.output_dir)
@@ -712,33 +828,31 @@ def run(args: argparse.Namespace) -> int:
     )
     output_root.mkdir(parents=True, exist_ok=True)
     evaluation_root = _evaluation_root(output_root, mode_name, resume=args.resume)
-    if agent_panel is not None:
-        exit_code = RewardHackingAuditRunner(RewardHackingAuditConfig(
-            experiment_dirs=(), case_dirs=case_dirs, output_dir=evaluation_root,
-            tasks_dir=resolve_project_path("data/biomnibench-da"), panel=agent_panel,
-            max_concurrency=args.max_concurrency, resume=args.resume, raw=args.raw,
-            max_retries=args.max_retries,
-            step_limit=args.agent_step_limit,
-            detection=target.name,
-            category_model=args.category_model,
-        )).run()
-    else:
-        assert models is not None
-        exit_code = ModelJudgeRunner(ModelJudgeConfig(
-            case_dirs=case_dirs, models=models, output_dir=evaluation_root,
-            max_concurrency=args.max_concurrency, resume=args.resume,
-            max_retries=args.max_retries,
-            base_urls=base_urls,
-            detection=target.name,
-            category_model=args.category_model,
-            dataset_provenance=preparation,
-            max_input_tokens=args.max_input_tokens,
-            max_cost_usd=args.max_cost_usd,
-            execution=args.execution,
-        )).run()
+    assert models is not None
+    exit_code = ModelJudgeRunner(ModelJudgeConfig(
+        case_dirs=case_dirs, models=models, output_dir=evaluation_root,
+        max_concurrency=args.max_concurrency, resume=args.resume,
+        max_retries=args.max_retries,
+        base_urls=base_urls,
+        detection=target.name,
+        dataset_provenance=preparation,
+        max_input_tokens=args.max_input_tokens,
+        max_output_tokens=args.max_output_tokens,
+        max_event_text_chars=args.max_event_text_chars,
+        max_command_output_chars=args.max_command_output_chars,
+        max_cost_usd=args.max_cost_usd,
+        execution=args.execution,
+        primary_rule=args.primary_rule,
+        preflight_only=args.preflight_only,
+    )).run()
     summary_path = evaluation_root / "summary.json"
     if not summary_path.is_file():
-        print(f"Batch state written under: {evaluation_root}")
+        artifact = (
+            evaluation_root / "cost-preflight.json"
+            if args.preflight_only
+            else evaluation_root
+        )
+        print(f"Wrote pre-generation state: {artifact}")
         return exit_code
     metrics = score_panel(
         summary_path, gold_path,
