@@ -54,16 +54,27 @@ class GeminiClient:
     def generate_content_response(
         self,
         prompt: str,
+        *,
+        response_schema: dict[str, Any] | None = None,
     ) -> GeminiGenerateContentResponse:
         """Generate text while retaining the provider's response identity."""
 
-        return self.response_with_metadata(self._generate_content_payload(prompt))
+        return self.response_with_metadata(
+            self._generate_content_payload(prompt, response_schema=response_schema)
+        )
 
-    def _generate_content_payload(self, prompt: str) -> dict[str, Any]:
+    def _generate_content_payload(
+        self,
+        prompt: str,
+        *,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         api_key = self.api_key()
         request = urllib.request.Request(
             self.generate_content_url(api_key),
-            data=json.dumps(self.request_body(prompt)).encode(),
+            data=json.dumps(
+                self.request_body(prompt, response_schema=response_schema)
+            ).encode(),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
@@ -83,7 +94,18 @@ class GeminiClient:
             raise RuntimeError("Gemini API response must be a JSON object")
         return response_payload
 
-    def request_body(self, prompt: str) -> dict[str, Any]:
+    def request_body(
+        self,
+        prompt: str,
+        *,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        generation_config: dict[str, Any] = {"temperature": 0.2}
+        if response_schema is not None:
+            generation_config.update({
+                "responseMimeType": "application/json",
+                "responseJsonSchema": response_schema,
+            })
         return {
             "contents": [
                 {
@@ -92,9 +114,7 @@ class GeminiClient:
                     ],
                 }
             ],
-            "generationConfig": {
-                "temperature": 0.2,
-            },
+            "generationConfig": generation_config,
         }
 
     def api_key(self) -> str:

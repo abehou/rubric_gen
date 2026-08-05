@@ -1,6 +1,6 @@
 {
   "completed_rounds": 1,
-  "experiment_dir": "/juice2/scr2/abehou/.cache/tmp/pytest-of-abehou/pytest-310/test_restart_replaces_an_inter0/experiment--t-da-1-1--fb-full--pr-base--sd-seeds--re-static--n-0--p-gemini--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trace--sb-0--st-1--web-0--net-0--ap-default--mc-all--x-default--raw-0",
+  "experiment_dir": "/juice2/scr2/abehou/.cache/tmp/pytest-of-abehou/pytest-383/test_restart_replaces_an_inter0/experiment--t-da-1-1--fb-full--pr-base--sd-seeds--re-static--n-0--p-gemini--m-test-model--j-gpt-5.6-luna--rb-rubric.txt--v-trace--sb-0--st-1--web-0--net-0--ap-default--mc-all--x-default--raw-0",
   "feedback_policy": "full",
   "judge_model": null,
   "phase": "completed",

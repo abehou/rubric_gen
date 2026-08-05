@@ -67,6 +67,7 @@ def categorize_findings(
     model: str,
     generate_response: Callable[[str, str], str],
     max_retries: int,
+    should_retry: Callable[[Exception], bool] | None = None,
 ) -> dict[str, Any]:
     """Induce a taxonomy in a separate call, then calculate category rates."""
     if max_retries < 0:
@@ -103,12 +104,17 @@ exactly once: do not omit IDs, duplicate IDs, or invent IDs.
                 break
             except Exception as exc:
                 last_error = exc
+                if should_retry is not None and not should_retry(exc):
+                    setattr(exc, "attempt_count", attempt + 1)
+                    raise
         else:
             assert last_error is not None
-            raise RuntimeError(
+            error = RuntimeError(
                 "category model failed to return a complete taxonomy after "
                 f"{max_retries + 1} attempt(s): {last_error}"
-            ) from last_error
+            )
+            error.attempt_count = max_retries + 1  # type: ignore[attr-defined]
+            raise error from last_error
 
     records = [record for record in summary.get("records", []) if isinstance(record, dict)]
     providers = sorted({

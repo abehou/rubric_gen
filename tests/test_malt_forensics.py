@@ -8,6 +8,7 @@ import pytest
 import rubric_gen.malt.cli as malt_cli_module
 
 from rubric_gen.malt.cli import (
+    _annotate_negative_sample_metrics,
     _default_benchmark_dir,
     _default_output_dir,
     _evaluation_root,
@@ -260,6 +261,9 @@ def test_evaluation_modes_are_mutually_exclusive() -> None:
     assert args.agent_step_limit == 24
     assert args.max_retries == 2
     assert args.category_model == "gpt-5.6-luna"
+    assert args.max_input_tokens == 250_000
+    assert args.max_cost_usd == 50.0
+    assert args.execution == "standard"
     limited = parser.parse_args([
         "data.jsonl", "--detect", "rh", "--output-dir", "out",
         "--agent-ensemble", "--agent-step-limit", "8", "--max-retries", "4",
@@ -372,31 +376,55 @@ def test_default_inputs_and_seeded_top_sampling() -> None:
         _sample_case_dirs(cases, 5, 17, "test")
 
 
-def test_balanced_sampling_draws_equal_classes_deterministically() -> None:
+def test_negative_sampling_keeps_every_positive_deterministically() -> None:
     cases = tuple(Path(name) for name in ("p1", "p2", "p3", "n1", "n2", "n3"))
     labels = {path.name: path.name.startswith("p") for path in cases}
 
     selected = _sample_case_dirs(
-        cases, 4, 17, "test", gold_labels=labels, balanced=True
+        cases, None, 17, "test", gold_labels=labels, negative_top=2
     )
 
     assert selected == _sample_case_dirs(
-        cases, 4, 17, "test", gold_labels=labels, balanced=True
+        cases, None, 17, "test", gold_labels=labels, negative_top=2
     )
-    assert sum(labels[path.name] for path in selected) == 2
+    assert sum(labels[path.name] for path in selected) == 3
     assert sum(not labels[path.name] for path in selected) == 2
 
 
-def test_balanced_sampling_rejects_invalid_or_unavailable_counts() -> None:
+def test_negative_sampling_rejects_invalid_or_unavailable_counts() -> None:
     cases = tuple(Path(name) for name in ("p1", "n1", "n2", "n3"))
     labels = {path.name: path.name.startswith("p") for path in cases}
 
-    with pytest.raises(ValueError, match="requires --top"):
-        _sample_case_dirs(cases, None, 42, "test", gold_labels=labels, balanced=True)
-    with pytest.raises(ValueError, match="even"):
-        _sample_case_dirs(cases, 3, 42, "test", gold_labels=labels, balanced=True)
-    with pytest.raises(ValueError, match="only 1 positive"):
-        _sample_case_dirs(cases, 4, 42, "test", gold_labels=labels, balanced=True)
+    with pytest.raises(ValueError, match="positive integer"):
+        _sample_case_dirs(cases, None, 42, "test", gold_labels=labels, negative_top=0)
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        _sample_case_dirs(cases, 3, 42, "test", gold_labels=labels, negative_top=2)
+    with pytest.raises(ValueError, match="available test negatives"):
+        _sample_case_dirs(cases, None, 42, "test", gold_labels=labels, negative_top=4)
+
+
+def test_negative_sample_metrics_adjust_for_population_prevalence() -> None:
+    metrics: dict[str, object] = {
+        "schema_version": 2,
+        "providers": {
+            "judge": {"recall": 0.8, "specificity": 0.9, "precision": 0.8}
+        },
+        "ensembles": {},
+    }
+    labels = {"p1": True, **{f"n{index}": False for index in range(1, 10)}}
+
+    _annotate_negative_sample_metrics(
+        metrics,
+        population_labels=labels,
+        sampled_case_ids={"p1", "n1"},
+    )
+
+    sampling = metrics["sampling"]
+    assert sampling["population_prevalence"] == 0.1
+    adjusted = metrics["providers"]["judge"]["prevalence_adjusted"]
+    assert adjusted["accuracy"] == pytest.approx(0.89)
+    assert adjusted["precision"] == pytest.approx(0.4705882353)
+    assert metrics["providers"]["judge"]["precision"] == 0.8
 
 
 def test_default_output_uses_repository() -> None:

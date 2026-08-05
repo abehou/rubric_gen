@@ -34,6 +34,8 @@ from rubric_gen.biomnibench.forensics.scoring import (
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.malt.model_judge import (
+    DEFAULT_MAX_COST_USD,
+    DEFAULT_MAX_INPUT_TOKENS,
     DIRECT_AUDIT_PROTOCOL_VERSION,
     STRONG_JUDGE_MODELS,
     ModelJudgeConfig,
@@ -49,10 +51,30 @@ def _sample_case_dirs(
     split: str,
     *,
     gold_labels: dict[str, bool] | None = None,
-    balanced: bool = False,
+    negative_top: int | None = None,
 ) -> tuple[Path, ...]:
-    if balanced and top is None:
-        raise ValueError("--balanced requires --top")
+    if top is not None and negative_top is not None:
+        raise ValueError("--top and --negative-top are mutually exclusive")
+    if negative_top is not None:
+        if negative_top <= 0:
+            raise ValueError("--negative-top must be a positive integer")
+        if gold_labels is None:
+            raise ValueError("--negative-top requires gold labels")
+        missing = sorted(path.name for path in case_dirs if path.name not in gold_labels)
+        if missing:
+            raise ValueError(
+                "class-aware sampling has cases without gold labels: "
+                + ", ".join(missing)
+            )
+        positives = tuple(path for path in case_dirs if gold_labels[path.name])
+        negatives = tuple(path for path in case_dirs if not gold_labels[path.name])
+        if negative_top > len(negatives):
+            raise ValueError(
+                f"--negative-top {negative_top} exceeds the {len(negatives)} "
+                f"available {split} negatives"
+            )
+        rng = random.Random(seed)
+        return tuple(sorted((*positives, *rng.sample(negatives, negative_top))))
     if top is None:
         return case_dirs
     if top <= 0:
@@ -62,31 +84,7 @@ def _sample_case_dirs(
             f"--top {top} exceeds the {len(case_dirs)} available {split} cases"
         )
     rng = random.Random(seed)
-    if not balanced:
-        return tuple(sorted(rng.sample(case_dirs, top)))
-    if top % 2:
-        raise ValueError("--balanced requires an even --top value")
-    if gold_labels is None:
-        raise ValueError("balanced sampling requires gold labels")
-    missing = sorted(path.name for path in case_dirs if path.name not in gold_labels)
-    if missing:
-        raise ValueError(
-            "balanced sampling has cases without gold labels: " + ", ".join(missing)
-        )
-    positives = tuple(path for path in case_dirs if gold_labels[path.name])
-    negatives = tuple(path for path in case_dirs if not gold_labels[path.name])
-    per_class = top // 2
-    if len(positives) < per_class or len(negatives) < per_class:
-        raise ValueError(
-            f"--balanced --top {top} requires {per_class} positive and "
-            f"{per_class} negative {split} cases, but only {len(positives)} "
-            f"positive and {len(negatives)} negative cases are available"
-        )
-    return tuple(
-        sorted(
-            (*rng.sample(positives, per_class), *rng.sample(negatives, per_class))
-        )
-    )
+    return tuple(sorted(rng.sample(case_dirs, top)))
 
 
 def _evaluation_root(
@@ -100,6 +98,74 @@ def _evaluation_root(
         return candidates[-1]
     generated_at = timestamp or datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     return evaluations_root / f"{generated_at}--{identity}"
+
+
+def _annotate_negative_sample_metrics(
+    metrics: dict[str, object],
+    *,
+    population_labels: dict[str, bool],
+    sampled_case_ids: set[str],
+) -> None:
+    population_positives = sum(population_labels.values())
+    population_negatives = len(population_labels) - population_positives
+    sample_positives = sum(
+        population_labels[case_id] for case_id in sampled_case_ids
+    )
+    sample_negatives = len(sampled_case_ids) - sample_positives
+    prevalence = population_positives / len(population_labels)
+    metrics["schema_version"] = 3
+    metrics["sampling"] = {
+        "strategy": "all_positives_seeded_negatives",
+        "population_positives": population_positives,
+        "population_negatives": population_negatives,
+        "sample_positives": sample_positives,
+        "sample_negatives": sample_negatives,
+        "population_prevalence": prevalence,
+        "note": (
+            "Raw precision and accuracy use the sampled class mix. Use "
+            "prevalence_adjusted for population-comparable values; recall and "
+            "specificity are class-conditional and remain directly interpretable."
+        ),
+    }
+    for group_name in ("providers", "ensembles"):
+        group = metrics.get(group_name)
+        if not isinstance(group, dict):
+            continue
+        for values in group.values():
+            if not isinstance(values, dict):
+                continue
+            recall, specificity = values.get("recall"), values.get("specificity")
+            if not isinstance(recall, (int, float)) or not isinstance(
+                specificity, (int, float)
+            ):
+                values["prevalence_adjusted"] = None
+                continue
+            true_positive = prevalence * recall
+            false_negative = prevalence * (1 - recall)
+            true_negative = (1 - prevalence) * specificity
+            false_positive = (1 - prevalence) * (1 - specificity)
+            precision_denominator = true_positive + false_positive
+            precision = (
+                true_positive / precision_denominator
+                if precision_denominator else None
+            )
+            f1 = (
+                2 * precision * recall / (precision + recall)
+                if precision is not None and precision + recall else None
+            )
+            values["prevalence_adjusted"] = {
+                "accuracy": true_positive + true_negative,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "specificity": specificity,
+                "normalized_confusion": {
+                    "tp": true_positive,
+                    "fp": false_positive,
+                    "tn": true_negative,
+                    "fn": false_negative,
+                },
+            }
 
 
 @contextmanager
@@ -181,9 +247,13 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         raise ValueError(
             "--biomnibench-run-dir requires --ensemble or --agent-ensemble"
         )
-    if args.top is not None or args.balanced or args.split != "test":
+    if args.execution != "standard":
         raise ValueError(
-            "--top, --balanced, and --split are MALT dataset options and cannot "
+            "--execution batch is available only for one hosted OpenAI --judge run"
+        )
+    if args.top is not None or args.negative_top is not None or args.split != "test":
+        raise ValueError(
+            "--top, --negative-top, and --split are MALT dataset options and cannot "
             "be used with --biomnibench-run-dir"
         )
     experiments = _biomnibench_experiments(args.biomnibench_run_dir)
@@ -194,6 +264,8 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     identity = (
         f"{mode}--detect-{detection}--source-biomnibench-{identity_hash}"
         f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
+        f"--mi-{args.max_input_tokens}--budget-{args.max_cost_usd:g}"
+        f"--exec-{args.execution}"
     )
     identity += "--cat-" + re.sub(r"[^A-Za-z0-9._-]+", "_", args.category_model)
     if args.agent_ensemble:
@@ -235,6 +307,9 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
                 resume=args.resume,
                 detection=detection,
                 category_model=args.category_model,
+                max_input_tokens=args.max_input_tokens,
+                max_cost_usd=args.max_cost_usd,
+                execution=args.execution,
             )
         ).run()
     print(f"Wrote unscored Biomni forensic judgments: {evaluation_root / 'summary.json'}")
@@ -288,21 +363,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--development-fraction", type=float, default=0.2)
     parser.add_argument("--validation-fraction", type=float, default=0.1)
     parser.add_argument("--split-seed", default="malt-v1")
-    parser.add_argument(
+    sampling = parser.add_mutually_exclusive_group()
+    sampling.add_argument(
         "--top", type=int, metavar="K",
         help="Randomly sample exactly K cases after selecting the split.",
     )
-    parser.add_argument(
-        "--seed", type=int, default=42,
-        help="Random seed used by --top. Defaults to 42.",
+    sampling.add_argument(
+        "--negative-top", type=int, metavar="K",
+        help=(
+            "Evaluate every positive plus exactly K seeded negatives. Preserves "
+            "the full recall denominator without pretending the sample is balanced."
+        ),
     )
     parser.add_argument(
-        "--balanced",
-        action="store_true",
-        help=(
-            "Draw equal positive and negative classes. Requires an even --top; "
-            "for example, --balanced --top 100 draws 50 of each."
-        ),
+        "--seed", type=int, default=42,
+        help="Random seed used by --top or --negative-top. Defaults to 42.",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--agent-ensemble", action="store_true",
@@ -344,6 +419,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
+        "--max-input-tokens", type=int, default=DEFAULT_MAX_INPUT_TOKENS,
+        help="Hard per-request input ceiling; oversized evidence is chunked.",
+    )
+    parser.add_argument(
+        "--max-cost-usd", type=float, default=DEFAULT_MAX_COST_USD,
+        help="Hard OpenAI generation budget after token-count preflight.",
+    )
+    parser.add_argument(
+        "--execution", choices=("standard", "batch"), default="standard",
+        help="Use synchronous requests or the discounted OpenAI Batch API.",
+    )
+    parser.add_argument(
         "--category-model",
         default="gpt-5.6-luna",
         help="Model used only to induce post-hoc finding categories.",
@@ -353,8 +440,8 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=2,
         help=(
-            "Retry each failed detection member this many times. Defaults to 2 "
-            "retries (3 total attempts)."
+            "Retry transient detection requests this many times. Permanent and "
+            "quota errors are never retried. Defaults to 2 retries."
         ),
     )
     parser.add_argument(
@@ -528,7 +615,7 @@ def run(args: argparse.Namespace) -> int:
         args.seed,
         args.split,
         gold_labels=selected_gold,
-        balanced=args.balanced,
+        negative_top=args.negative_top,
     )
     base_urls: dict[str, str] = {}
     if args.agent_ensemble:
@@ -579,13 +666,23 @@ def run(args: argparse.Namespace) -> int:
         identity = "-".join(re.sub(r"[^A-Za-z0-9._-]+", "_", model) for _, model in parsed)
         mode_name = ("vllm-judge-" if len(parsed) == 1 else "vllm-ensemble-") + identity
         agent_panel, models = None, tuple(model for _, model in parsed)
+    if args.execution == "batch" and (
+        agent_panel is not None
+        or models is None
+        or len(models) != 1
+        or not models[0].startswith("gpt-5.6-")
+        or models[0] in base_urls
+    ):
+        raise ValueError(
+            "--execution batch requires one hosted GPT-5.6 model selected with --judge"
+        )
     mode_name += f"--detect-{target.name}--split-{args.split}"
-    if args.top is not None:
+    if args.negative_top is not None:
+        mode_name += f"--all-positives--negative-top-{args.negative_top}--seed-{args.seed}"
+    elif args.top is not None:
         mode_name += f"--top-{args.top}--seed-{args.seed}"
     else:
         mode_name += "--top-all"
-    if args.balanced:
-        mode_name += "--balanced"
     safe_split_seed = re.sub(r"[^A-Za-z0-9._-]+", "_", args.split_seed)
     preparation_digest = hashlib.sha256(
         json.dumps(preparation, sort_keys=True, separators=(",", ":")).encode()
@@ -599,6 +696,8 @@ def run(args: argparse.Namespace) -> int:
         f"--dev-{args.development_fraction:g}"
         f"--val-{args.validation_fraction:g}"
         f"--mc-{args.max_concurrency}--raw-{int(args.raw)}"
+        f"--mi-{args.max_input_tokens}--budget-{args.max_cost_usd:g}"
+        f"--exec-{args.execution}"
         f"--audit-v{evaluation_protocol}--data-{preparation_digest}"
     )
     if agent_panel is not None:
@@ -633,12 +732,25 @@ def run(args: argparse.Namespace) -> int:
             detection=target.name,
             category_model=args.category_model,
             dataset_provenance=preparation,
+            max_input_tokens=args.max_input_tokens,
+            max_cost_usd=args.max_cost_usd,
+            execution=args.execution,
         )).run()
+    summary_path = evaluation_root / "summary.json"
+    if not summary_path.is_file():
+        print(f"Batch state written under: {evaluation_root}")
+        return exit_code
     metrics = score_panel(
-        evaluation_root / "summary.json", gold_path,
+        summary_path, gold_path,
         split=None if args.split == "all" else args.split,
         detection=target.name,
     )
+    if args.negative_top is not None:
+        _annotate_negative_sample_metrics(
+            metrics,
+            population_labels=selected_gold,
+            sampled_case_ids={path.name for path in case_dirs},
+        )
     write_json_atomic(evaluation_root / "metrics.json", metrics)
     print(f"Wrote benchmark metrics: {evaluation_root / 'metrics.json'}")
     return exit_code

@@ -901,12 +901,16 @@ denyMessage = "Investigation is over. Write the required output files now."
         rates = detection_rates(payload)
         write_json_atomic(self.config.output_dir / "detection-rates.json", rates)
         plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
-        from rubric_gen.malt.model_judge import generate
+        from rubric_gen.malt.model_judge import (
+            category_request,
+            generate,
+            should_retry_category,
+        )
         category_error = self.config.output_dir / "category-error.json"
         category_generations: list[dict[str, object]] = []
 
         def generate_category_text(model: str, prompt: str) -> str:
-            generation = generate(model, prompt)
+            generation = generate(model, category_request(prompt))
             category_generations.append(generation.provenance())
             return generation.text
 
@@ -916,13 +920,14 @@ denyMessage = "Investigation is over. Write the required output files now."
                 model=self.config.category_model,
                 generate_response=generate_category_text,
                 max_retries=self.config.max_retries,
+                should_retry=should_retry_category,
             )
         except Exception as exc:
             write_json_atomic(category_error, {
                 "schema_version": 1,
                 "kind": "post-hoc-finding-categorization-error",
                 "categorization_model": self.config.category_model,
-                "attempt_count": self.config.max_retries + 1,
+                "attempt_count": getattr(exc, "attempt_count", 1),
                 "error_type": type(exc).__name__,
                 "error": str(exc),
             })

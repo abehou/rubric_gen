@@ -454,10 +454,12 @@ With no positional inputs, `malt` reads
 `data/malt-public/data/*.parquet`. Pass shard paths explicitly
 only to use a different configuration. `--top K` draws exactly K cases after split selection
 using `--seed` (default `42`), so every judge mode can evaluate the same
-reproducible sample. Add `--balanced` with an even `--top` to draw equal class
-counts; for example, `--balanced --top 100` draws 50 reviewed positives and 50
-reviewed negatives. The command fails instead of silently returning an
-imbalanced sample when the selected split lacks enough cases in either class.
+reproducible sample. `--negative-top K` instead keeps every reviewed positive
+and draws exactly K seeded negatives. This preserves the full recall denominator
+without manufacturing a balanced class distribution. `--top` and
+`--negative-top` are mutually exclusive. Metrics from this sampling mode retain
+the raw sample confusion matrix and add population-prevalence-adjusted accuracy,
+precision, and F1; recall and specificity remain class-conditional.
 
 Prepare the shared blinded cases without running judges:
 
@@ -487,8 +489,7 @@ uv run malt \
   --detect rh \
   --agent-ensemble \
   --split test \
-  --top 100 \
-  --balanced \
+  --negative-top 100 \
   --seed 42 \
   --max-concurrency 6
 ```
@@ -529,12 +530,64 @@ uv run malt \
 Direct judges also receive a content-preserving compact JSONL transcript rather
 than the repeated raw MALT payload. Exact duplicate complete message values are
 represented once, followed by every ordered serialized-source reference. Each
-judge still makes exactly one independent model call per case. Inputs above the
-safe compact-input ceiling fail locally before making a paid request. A resumed
+request is token-counted before dispatch. Evidence that would exceed
+`--max-input-tokens` (default `250000`) is split into bounded, content-preserving
+chunks and the independent chunk judgments are reconciled by one structured
+synthesis request. Every OpenAI and Anthropic verdict uses a strict JSON schema;
+Gemini requests JSON-schema output as well. A resumed
 evaluation is accepted only when its prompt, dataset hashes, requested model,
 request parameters, audit protocol, and source-tree hash match exactly.
 Detection metadata records the requested and effective served model, provider
 response ID, usage when available, and the fixed medium OpenAI reasoning effort.
+
+OpenAI requests use explicit prompt caching with a breakpoint after the reusable
+instruction prefix, so unique transcript evidence is not written to cache.
+`cost-preflight.json` records per-case token counts and the current public-price
+upper bound before generation. `--max-cost-usd` defaults to `$50`; a run whose
+known OpenAI cost can exceed the budget stops before generation. The budget does
+not claim to price Anthropic, Google, or self-hosted vLLM calls. Permanent 4xx,
+context, authentication, and quota failures are not retried. An exhausted quota
+opens a provider circuit for the rest of the run; only transient transport,
+rate-limit, and server errors are retried.
+
+For the cost-efficient default benchmark, retain all positives and sample fixed
+negatives with Luna:
+
+```bash
+uv run malt \
+  --detect rh \
+  --judge gpt-5.6-luna \
+  --split test \
+  --negative-top 100 \
+  --seed 42 \
+  --max-cost-usd 30
+```
+
+Offline single-OpenAI-model runs can use the discounted Batch API. The first
+command submits a batch and exits. Rerun the identical command with `--resume`
+until `summary.json` is produced; an oversized run can require a second batch
+for synthesis.
+
+```bash
+uv run malt \
+  --detect rh \
+  --judge gpt-5.6-luna \
+  --split test \
+  --negative-top 100 \
+  --seed 42 \
+  --execution batch \
+  --max-cost-usd 30
+
+uv run malt \
+  --detect rh \
+  --judge gpt-5.6-luna \
+  --split test \
+  --negative-top 100 \
+  --seed 42 \
+  --execution batch \
+  --max-cost-usd 30 \
+  --resume
+```
 
 Open-source models served by vLLM use the same direct-judge path. The default
 single judge is `Qwen/Qwen3.6-27B`; the default panel adds

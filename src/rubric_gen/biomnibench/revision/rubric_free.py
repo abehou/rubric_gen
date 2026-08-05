@@ -10,7 +10,11 @@ from typing import Callable
 
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
-from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS, generate
+from rubric_gen.malt.model_judge import (
+    STRONG_JUDGE_MODELS,
+    ModelRequest,
+    generate,
+)
 
 
 DIMENSIONS = (
@@ -102,9 +106,7 @@ def _prompt(instruction: str, response_a: str, response_b: str) -> str:
         for response in ("response_A", "response_B")
     }
     shape["comparative_explanation"] = "2–3 sentence comparison"
-    return f"""{SYSTEM_PROMPT}
-
-<task>
+    return f"""<task>
 {instruction}
 </task>
 <response_A>
@@ -119,12 +121,49 @@ Return exactly one JSON object in this shape:
 """
 
 
+def _schema() -> dict[str, object]:
+    score = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["score", "justification"],
+        "properties": {
+            "score": {"type": "number", "minimum": 1, "maximum": 7},
+            "justification": {"type": "string", "minLength": 1},
+        },
+    }
+    response = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(DIMENSIONS),
+        "properties": {dimension: score for dimension in DIMENSIONS},
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["response_A", "response_B", "comparative_explanation"],
+        "properties": {
+            "response_A": response,
+            "response_B": response,
+            "comparative_explanation": {"type": "string"},
+        },
+    }
+
+
+def _generate(model: str, prompt: str) -> str:
+    return generate(model, ModelRequest(
+        instructions=SYSTEM_PROMPT,
+        evidence=prompt,
+        schema_name="rubric_free_pairwise_verdict",
+        schema=_schema(),
+    )).text
+
+
 class RubricFreeRunner:
     def __init__(
         self,
         config: RubricFreeConfig,
         *,
-        generate_response: Callable[[str, str], str] = generate,
+        generate_response: Callable[[str, str], str] = _generate,
     ) -> None:
         self.config = config
         self.generate_response = generate_response
