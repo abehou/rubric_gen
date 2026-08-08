@@ -8,6 +8,21 @@ import stat
 from pathlib import Path
 
 
+def ensure_artifacts_dir(workspace_dir: Path) -> Path:
+    """Create the persistent destination for solver-produced artifacts."""
+
+    artifacts_dir = workspace_dir / "artifacts"
+    if os.path.lexists(artifacts_dir):
+        artifacts_stat = os.lstat(artifacts_dir)
+        if not stat.S_ISDIR(artifacts_stat.st_mode):
+            raise RuntimeError(
+                f"workspace artifacts path is not a directory: {artifacts_dir}"
+            )
+        return artifacts_dir
+    artifacts_dir.mkdir()
+    return artifacts_dir
+
+
 class TaskWorkspace:
     def __init__(self, task_dir: Path, workspace_dir: Path) -> None:
         self.task_dir = task_dir

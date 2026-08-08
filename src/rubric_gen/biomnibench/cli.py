@@ -6,28 +6,29 @@ import argparse
 
 from rubric_gen.biomnibench.commands import (
     run_detect,
+    run_dag,
     run_judge_quality,
     run_revise,
     run_seed,
 )
+from rubric_gen.biomnibench.vllm import add_vllm_argument
 
 
 def _add_seed(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("seed", help="Seed submission work.")
-    parser.add_argument("--design", required=True)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--experiment", required=True)
     parser.add_argument("--max-concurrency", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
+    add_vllm_argument(parser)
     parser.set_defaults(handler=run_seed)
 
 
 def _add_revise(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("revise", help="Revise submissions over rounds.")
-    parser.add_argument("--design", required=True)
-    parser.add_argument("--seed-dir", required=True)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--experiment", required=True)
     parser.add_argument("--max-concurrency", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
+    add_vllm_argument(parser)
     parser.set_defaults(handler=run_revise)
 
 
@@ -39,6 +40,7 @@ def _add_detect(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument("--resume", action="store_true")
+    add_vllm_argument(parser)
     parser.set_defaults(handler=run_detect)
 
 
@@ -48,16 +50,27 @@ def _add_judge(subparsers: argparse._SubParsersAction) -> None:
     )
     parser.add_argument("--run-dir", action="append", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument(
+    model_source = parser.add_mutually_exclusive_group()
+    model_source.add_argument(
         "--models",
-        nargs=3,
-        default=("gpt-5.6-sol", "claude-opus-4-8", "gemini-3.1-pro-preview"),
-        metavar=("OPENAI", "CLAUDE", "GEMINI"),
+        nargs="+",
+        default=None,
+        metavar="MODEL",
     )
+    add_vllm_argument(model_source)  # type: ignore[arg-type]
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--resume", action="store_true")
     parser.set_defaults(handler=run_judge_quality)
+
+
+def _add_run(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("run", help="Run the experiment DAG.")
+    parser.add_argument("--experiment", required=True)
+    parser.add_argument("--max-concurrency", type=int, default=1)
+    parser.add_argument("--resume", action="store_true")
+    add_vllm_argument(parser)
+    parser.set_defaults(handler=run_dag)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,6 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_revise(subparsers)
     _add_detect(subparsers)
     _add_judge(subparsers)
+    _add_run(subparsers)
     return parser
 
 

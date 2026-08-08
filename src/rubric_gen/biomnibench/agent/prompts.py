@@ -54,6 +54,8 @@ def revision_guidance(profile: PromptProfile | str) -> str | None:
 PROMPT = """You are solving one BiomniBench-DA task in the current directory.
 
 Read ./instruction.md and use only the files under ./data as task data.
+Keep source inputs under ./data separate from generated work. Write derived
+datasets, tables, plots, logs, and other supporting outputs under ./artifacts.
 Do not read the source paper, source-paper figures, or source-paper supplements.
 Do not inspect parent directories, Git metadata, other runs, evaluator files,
 reference answers, environment variables, credentials, or absolute host paths.
@@ -65,9 +67,10 @@ mode, ask the user to choose an approach, or pause for confirmation. Make
 reasonable methodological choices yourself, document them in trace.md, and
 finish the analysis in this invocation.
 
-Produce exactly these local files:
+Required deliverables:
 - ./trace.md: the full analysis trace requested by the instruction.
 - ./answer.txt: the final plain-text answer requested by the instruction.
+- ./artifacts/: supporting files that should persist across revision rounds.
 
 Keep trace.md concise: summarize key commands, scripts, data shapes, metrics,
 statistical choices, and limitations; do not paste long tables or full script
@@ -92,8 +95,8 @@ def solver_prompt(profile: PromptProfile | str = PromptProfile.BASE) -> str:
     if guidance is None:
         return PROMPT
     return PROMPT.replace(
-        "\nProduce exactly these local files:",
-        f"\n{guidance}\n\nProduce exactly these local files:",
+        "\nRequired deliverables:",
+        f"\n{guidance}\n\nRequired deliverables:",
     )
 
 NO_WEB_POLICY = """

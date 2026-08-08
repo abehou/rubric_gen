@@ -13,7 +13,6 @@ import shutil
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse
 
 from rubric_gen.biomnibench.forensics.malt import (
     MaltPrepareConfig,
@@ -25,14 +24,17 @@ from rubric_gen.biomnibench.forensics.malt import (
 from rubric_gen.biomnibench.forensics.scoring import (
     score_panel,
 )
-from rubric_gen.biomnibench.experiments import load_design
+from rubric_gen.biomnibench.experiment import load_experiment
 from rubric_gen.biomnibench.study import (
     resolve_study_experiment,
     validate_completed_revision,
 )
-from rubric_gen.biomnibench.utils.provenance import require_clean_repository
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
+from rubric_gen.biomnibench.vllm import (
+    add_vllm_argument,
+    parse_vllm_endpoints,
+)
 from rubric_gen.malt.model_judge import (
     DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
     DEFAULT_MAX_EVENT_TEXT_CHARS,
@@ -96,9 +98,8 @@ def _evaluation_root(
     evaluations_root = root / "evaluations"
     if resume:
         candidates = sorted(evaluations_root.glob(f"*--{identity}"))
-        if not candidates:
-            raise FileNotFoundError(f"no previous matching run to resume: {identity}")
-        return candidates[-1]
+        if candidates:
+            return candidates[-1]
     generated_at = timestamp or datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     return evaluations_root / f"{generated_at}--{identity}"
 
@@ -206,6 +207,8 @@ def _default_benchmark_dir() -> Path:
 
 def _biomnibench_experiments(
     value: str,
+    *,
+    vllm_endpoints: dict[str, str] | None = None,
 ) -> tuple[tuple[Path, ...], str, Path, dict[str, object]]:
     experiments: list[Path] = []
     source = resolve_project_path(value)
@@ -217,31 +220,26 @@ def _biomnibench_experiments(
     if (
         study.get("schema_version") != 1
         or study.get("kind") != "rubric-gen-randomized-revision-study"
-        or type(study.get("design_sha256")) is not str
         or study.get("status") not in {"completed", "failed"}
-        or type(study.get("design_path")) is not str
-        or type(study.get("protocol_id")) is not str
+        or type(study.get("experiment_path")) is not str
+        or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
     ):
         raise ValueError(f"unsupported Biomni study: {source}")
-    design = load_design(Path(str(study["design_path"])))
-    if (
-        design.sha256 != study["design_sha256"]
-        or study["design_path"] != str(design.path)
-        or study["protocol_id"] != design.protocol_id
-    ):
-        raise ValueError(f"Biomni study design identity changed: {source}")
+    experiment_spec = load_experiment(Path(str(study["experiment_path"])))
+    if study["experiment_id"] != experiment_spec.experiment_id:
+        raise ValueError(f"Biomni study experiment ID changed: {source}")
     records = study.get("records")
     if not isinstance(records, list) or any(
         not isinstance(item, dict) for item in records
     ):
         raise ValueError(f"Biomni study has invalid records: {source}")
     assignments = {
-        str(item["assignment_id"]): item for item in design.assignments
+        str(item["assignment_id"]): item for item in experiment_spec.assignments
     }
     record_ids = [str(record.get("assignment_id")) for record in records]
     if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
-        raise ValueError(f"Biomni study ledger differs from its design: {source}")
+        raise ValueError(f"Biomni study ledger differs from its experiment: {source}")
     seed_root = Path(str(study["seed_run_dir"]))
     for record in records:
         status = record.get("status")
@@ -256,8 +254,9 @@ def _biomnibench_experiments(
         validate_completed_revision(
             experiment,
             assignment,
-            design,
+            experiment_spec,
             seed_root,
+            vllm_endpoints=vllm_endpoints,
         )
         experiments.append(experiment)
     resolved = tuple(path.resolve() for path in experiments)
@@ -265,7 +264,10 @@ def _biomnibench_experiments(
         raise ValueError("duplicate Biomni revision experiment")
     if not resolved:
         raise ValueError("Biomni study has no completed assignments to audit")
-    return resolved, design.sha256, design.tasks_dir.resolve(), design.outcome_audit
+    return (
+        resolved, experiment_spec.experiment_id,
+        experiment_spec.tasks_dir.resolve(), experiment_spec.outcome_audit,
+    )
 
 
 def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
@@ -273,8 +275,10 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         raise ValueError(
             "MALT shard inputs and --biomnibench-study-dir cannot be mixed"
         )
-    if not args.ensemble:
-        raise ValueError("--biomnibench-study-dir requires --ensemble")
+    if not args.ensemble and not args.vllm:
+        raise ValueError(
+            "--biomnibench-study-dir requires --ensemble or at least one --vllm"
+        )
     if args.execution not in {None, "standard"}:
         raise ValueError(
             "--execution batch is available only for one hosted OpenAI --judge run"
@@ -291,10 +295,6 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         "split_seed": args.split_seed,
         "seed": args.seed,
         "split": args.split,
-        "vllm_endpoint_dir": args.vllm_endpoint_dir,
-        "vllm_qwen_url": args.vllm_qwen_url,
-        "vllm_glm_url": args.vllm_glm_url,
-        "vllm_gpt_oss_url": args.vllm_gpt_oss_url,
     }
     supplied_dataset_only = {
         key: value for key, value in dataset_only.items() if value is not None
@@ -304,14 +304,20 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
             "MALT dataset options cannot be used with --biomnibench-study-dir: "
             + ", ".join(sorted(supplied_dataset_only))
         )
-    experiments, design_sha256, tasks_dir, audit = _biomnibench_experiments(
-        args.biomnibench_study_dir
+    base_urls = parse_vllm_endpoints(args.vllm or [])
+    experiments, experiment_id, tasks_dir, audit = _biomnibench_experiments(
+        args.biomnibench_study_dir,
+        vllm_endpoints=base_urls,
     )
     if detection != "rh" or audit.get("detection") != "rh":
-        raise ValueError("randomized Biomni studies support only the locked RH outcome")
+        raise ValueError("randomized Biomni experiments support only the configured RH outcome")
     expected_models = tuple(audit.get("models", ()))
-    if expected_models != STRONG_JUDGE_MODELS:
-        raise ValueError("Biomni design uses an unsupported primary model panel")
+    models = tuple(base_urls) if base_urls else STRONG_JUDGE_MODELS
+    if models != expected_models:
+        raise ValueError(
+            "selected detector models differ from experiment.yaml: "
+            f"selected={models!r}, expected={expected_models!r}"
+        )
     resolved_arguments = {
         "primary_rule": audit.get("primary_rule"),
         "max_retries": audit.get("max_retries"),
@@ -339,7 +345,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     }
     if conflicts:
         raise ValueError(
-            "Biomni audit arguments differ from the locked design: "
+            "Biomni audit arguments differ from experiment.yaml: "
             f"requested={conflicts!r}, locked={resolved_arguments!r}"
         )
     primary_rule = str(resolved_arguments["primary_rule"])
@@ -352,13 +358,9 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     )
     max_cost_usd = float(resolved_arguments["max_cost_usd"])
     execution = str(resolved_arguments["execution"])
-    require_clean_repository()
-    identity_hash = hashlib.sha256(
-        "\0".join(str(path) for path in experiments).encode()
-    ).hexdigest()[:10]
-    mode = "ensemble"
+    mode = "vllm" if base_urls else "ensemble"
     identity = (
-        f"{mode}--detect-{detection}--source-biomnibench-{identity_hash}"
+        f"{mode}--detect-{detection}--source-{experiment_id}"
         f"--mc-{args.max_concurrency}"
         f"--mi-{max_input_tokens}--budget-{max_cost_usd:g}"
         f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
@@ -372,16 +374,18 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     )
     output_root.mkdir(parents=True, exist_ok=True)
     evaluation_root = _evaluation_root(output_root, identity, resume=args.resume)
+    resume_evaluation = bool(args.resume and evaluation_root.is_dir())
     exit_code = ModelJudgeRunner(
         ModelJudgeConfig(
             case_dirs=(),
             revision_dirs=experiments,
             tasks_dir=tasks_dir,
-            models=STRONG_JUDGE_MODELS,
+            models=models,
+            base_urls=base_urls,
             output_dir=evaluation_root,
             max_concurrency=args.max_concurrency,
             max_retries=max_retries,
-            resume=args.resume,
+            resume=resume_evaluation,
             detection=detection,
             max_input_tokens=max_input_tokens,
             max_output_tokens=max_output_tokens,
@@ -390,7 +394,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
             max_cost_usd=max_cost_usd,
             execution=execution,
             primary_rule=primary_rule,
-            design_sha256s=(design_sha256,),
+            experiment_ids=(experiment_id,),
         )
     ).run()
     print(
@@ -414,8 +418,8 @@ def build_parser() -> argparse.ArgumentParser:
         dest="biomnibench_study_dir",
         default=None,
         help=(
-            "Locked randomized Biomni study directories to audit instead of "
-            "a labeled MALT dataset. Requires --ensemble."
+            "Randomized Biomni study directories to audit instead of "
+            "a labeled MALT dataset. Requires --ensemble or --vllm."
         ),
     )
     parser.add_argument(
@@ -460,59 +464,30 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--ensemble", action="store_true",
                       help="Run the three direct strong-model judges.")
     mode.add_argument("--judge", metavar="MODEL", help="Run one direct model judge.")
-    mode.add_argument(
-        "--vllm", action="append", metavar="URL::MODEL",
-        help=("Run an open-source judge through a vLLM OpenAI-compatible server. "
-              "Repeat for a vLLM panel."),
-    )
-    mode.add_argument(
-        "--vllm-judge", action="store_true",
-        help="Run the default Qwen open-source judge on its default local vLLM URL.",
-    )
-    mode.add_argument(
-        "--vllm-ensemble", action="store_true",
-        help="Run the default three-model open-source vLLM panel.",
-    )
-    parser.add_argument(
-        "--vllm-endpoint-dir", default=None,
-        help=("Directory containing endpoints published by server jobs. "
-              "Defaults to runs/vllm-endpoints."),
-    )
-    parser.add_argument(
-        "--vllm-qwen-url", default=None,
-        help="Override the dynamically discovered Qwen3.6 endpoint.",
-    )
-    parser.add_argument(
-        "--vllm-glm-url", default=None,
-        help="Override the dynamically discovered GLM-4.7-Flash endpoint.",
-    )
-    parser.add_argument(
-        "--vllm-gpt-oss-url", default=None,
-        help="Override the dynamically discovered gpt-oss-120b endpoint.",
-    )
+    add_vllm_argument(mode)  # type: ignore[arg-type]
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
         "--max-input-tokens", type=int, default=None,
-        help="Hard per-request input ceiling; Biomni studies load this from the design.",
+        help="Hard per-request input ceiling; Biomni studies load this from experiment.yaml.",
     )
     parser.add_argument(
         "--max-output-tokens", type=int, default=None,
-        help="Hard per-request output ceiling; Biomni studies load this from the design.",
+        help="Hard per-request output ceiling; Biomni studies load this from experiment.yaml.",
     )
     parser.add_argument(
         "--max-event-text-chars", type=int, default=None,
-        help="Per-event Biomni evidence cap; Biomni studies load this from the design.",
+        help="Per-event Biomni evidence cap; Biomni studies load this from experiment.yaml.",
     )
     parser.add_argument(
         "--max-command-output-chars", type=int, default=None,
         help=(
             "Per-command-output Biomni evidence cap; Biomni studies load this "
-            "from the design."
+            "from experiment.yaml."
         ),
     )
     parser.add_argument(
         "--max-cost-usd", type=float, default=None,
-        help="Hard total hosted-API budget; Biomni studies load this from the design.",
+        help="Hard total hosted-API budget; Biomni studies load this from experiment.yaml.",
     )
     parser.add_argument(
         "--execution", choices=("standard", "batch"), default=None,
@@ -522,7 +497,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--primary-rule",
         choices=("majority", "any_detects", "unanimous_detects"),
         default=None,
-        help="Prespecified ensemble rule; Biomni studies load this from the design.",
+        help="Configured ensemble rule; Biomni studies load this from experiment.yaml.",
     )
     parser.add_argument(
         "--max-retries",
@@ -555,11 +530,6 @@ def run(args: argparse.Namespace) -> int:
     args.split_seed = "malt-v1" if args.split_seed is None else args.split_seed
     args.seed = 42 if args.seed is None else args.seed
     args.split = "development" if args.split is None else args.split
-    args.vllm_endpoint_dir = (
-        "runs/vllm-endpoints"
-        if args.vllm_endpoint_dir is None
-        else args.vllm_endpoint_dir
-    )
     args.max_input_tokens = (
         DEFAULT_MAX_INPUT_TOKENS
         if args.max_input_tokens is None else args.max_input_tokens
@@ -583,30 +553,6 @@ def run(args: argparse.Namespace) -> int:
     args.execution = "standard" if args.execution is None else args.execution
     args.primary_rule = "majority" if args.primary_rule is None else args.primary_rule
     args.max_retries = 1 if args.max_retries is None else args.max_retries
-
-    def vllm_url(value: str) -> str:
-        normalized = value.rstrip("/")
-        return normalized if normalized.endswith("/v1") else normalized + "/v1"
-
-    def discovered_vllm_url(filename: str, override: str | None, model: str) -> str:
-        if override is not None:
-            return vllm_url(override)
-        endpoint_path = resolve_project_path(args.vllm_endpoint_dir) / filename
-        try:
-            specification = endpoint_path.read_text(encoding="utf-8").strip()
-        except OSError as exc:
-            raise FileNotFoundError(
-                f"missing ready vLLM endpoint for {model}: {endpoint_path}; "
-                "start the server jobs first or pass the corresponding URL override"
-            ) from exc
-        if "::" not in specification:
-            raise ValueError(f"malformed vLLM endpoint file: {endpoint_path}")
-        url, published_model = specification.rsplit("::", 1)
-        if published_model != model:
-            raise ValueError(
-                f"vLLM endpoint model mismatch in {endpoint_path}: {published_model!r}"
-            )
-        return vllm_url(url)
 
     inputs = (
         tuple(resolve_project_path(value) for value in args.inputs)
@@ -639,8 +585,7 @@ def run(args: argparse.Namespace) -> int:
         json.dumps(inventory, indent=2) + "\n", encoding="utf-8"
     )
     selected_mode = bool(
-        args.ensemble or args.judge
-        or args.vllm or args.vllm_judge or args.vllm_ensemble
+        args.ensemble or args.judge or args.vllm
     )
     detection_root = benchmark_root / target.name
     cases_dir = detection_root / "cases"
@@ -741,43 +686,15 @@ def run(args: argparse.Namespace) -> int:
         assert args.judge
         safe_model = re.sub(r"[^A-Za-z0-9._-]+", "_", args.judge)
         mode_name, agent_panel, models = f"judge-{safe_model}", None, (args.judge,)
-    elif args.vllm_judge:
-        model = "Qwen/Qwen3.6-27B"
-        mode_name, agent_panel, models = "vllm-judge-qwen3.6-27b", None, (model,)
-        base_urls[model] = discovered_vllm_url(
-            "qwen.endpoint", args.vllm_qwen_url, model
-        )
-    elif args.vllm_ensemble:
-        defaults = (
-            ("Qwen/Qwen3.6-27B", "qwen.endpoint", args.vllm_qwen_url),
-            ("zai-org/GLM-4.7-Flash", "glm.endpoint", args.vllm_glm_url),
-            ("openai/gpt-oss-120b", "gpt-oss.endpoint", args.vllm_gpt_oss_url),
-        )
-        mode_name, agent_panel, models = (
-            "vllm-ensemble-default", None, tuple(model for model, _, _ in defaults)
-        )
-        base_urls.update(
-            (model, discovered_vllm_url(filename, override, model))
-            for model, filename, override in defaults
-        )
     else:
         assert args.vllm
-        parsed: list[tuple[str, str]] = []
-        for specification in args.vllm:
-            if "::" not in specification:
-                raise ValueError("--vllm must use URL::MODEL")
-            url, model = specification.rsplit("::", 1)
-            if urlparse(url).scheme not in {"http", "https"} or not model:
-                raise ValueError(f"invalid --vllm specification: {specification!r}")
-            if model in base_urls:
-                raise ValueError(f"duplicate vLLM model name: {model}")
-            base_urls[model] = vllm_url(url)
-            parsed.append((url, model))
-        if len(parsed) not in {1, 3}:
-            raise ValueError("--vllm requires exactly one server or a three-server panel")
-        identity = "-".join(re.sub(r"[^A-Za-z0-9._-]+", "_", model) for _, model in parsed)
-        mode_name = ("vllm-judge-" if len(parsed) == 1 else "vllm-ensemble-") + identity
-        agent_panel, models = None, tuple(model for _, model in parsed)
+        base_urls = parse_vllm_endpoints(args.vllm)
+        models = tuple(base_urls)
+        identity = "-".join(
+            re.sub(r"[^A-Za-z0-9._-]+", "_", model) for model in models
+        )
+        mode_name = "vllm-" + identity
+        agent_panel = None
     if args.execution == "batch" and (
         agent_panel is not None
         or models is None
@@ -819,10 +736,11 @@ def run(args: argparse.Namespace) -> int:
     )
     output_root.mkdir(parents=True, exist_ok=True)
     evaluation_root = _evaluation_root(output_root, mode_name, resume=args.resume)
+    resume_evaluation = bool(args.resume and evaluation_root.is_dir())
     assert models is not None
     exit_code = ModelJudgeRunner(ModelJudgeConfig(
         case_dirs=case_dirs, models=models, output_dir=evaluation_root,
-        max_concurrency=args.max_concurrency, resume=args.resume,
+        max_concurrency=args.max_concurrency, resume=resume_evaluation,
         max_retries=args.max_retries,
         base_urls=base_urls,
         detection=target.name,

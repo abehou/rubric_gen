@@ -2,10 +2,10 @@
 set -euo pipefail
 
 mode="${1:-submit}"
-environment="${2:-vllm}"
+venv="${2:-.vllm-venv}"
 runner="${3:-nlprun}"
 if [[ "$mode" != "submit" && "$mode" != "test" ]]; then
-  echo "usage: $0 [submit|test] [conda-environment]" >&2
+  echo "usage: $0 [submit|test] [vllm-virtual-environment] [nlprun-command]" >&2
   exit 2
 fi
 
@@ -15,14 +15,10 @@ mkdir -p runs/vllm-endpoints
 dry_run=()
 [[ "$mode" == "test" ]] && dry_run=(test)
 
-"$runner" -q sphinx -g 1 -r 120G -t 1-0 -p low \
-  -n malt-qwen36 -o logs/vllm/qwen36.out \
-  "bash scripts/serve_vllm.sh Qwen/Qwen3.6-27B 43117 '$environment' 1 runs/vllm-endpoints/qwen.endpoint" "${dry_run[@]}"
+"$runner" -q sphinx -d h100 -g 8 -c 16 -r 256G -t 1-0 -p low \
+  -n qwen36-27b -o logs/vllm/qwen36-27b.out \
+  "bash scripts/serve_vllm.sh Qwen/Qwen3.6-27B 43117 $venv 8 runs/vllm-endpoints/qwen36-27b.endpoint" "${dry_run[@]}"
 
-"$runner" -q sphinx -g 1 -r 120G -t 1-0 -p low \
-  -n malt-glm47 -o logs/vllm/glm47.out \
-  "bash scripts/serve_vllm.sh zai-org/GLM-4.7-Flash 44783 '$environment' 1 runs/vllm-endpoints/glm.endpoint" "${dry_run[@]}"
-
-"$runner" -q sphinx -g 1 -r 120G -t 1-0 -p low \
-  -n malt-gpt-oss -o logs/vllm/gpt-oss.out \
-  "bash scripts/serve_vllm.sh openai/gpt-oss-120b 45991 '$environment' 1 runs/vllm-endpoints/gpt-oss.endpoint" "${dry_run[@]}"
+"$runner" -q sphinx -d h200 -g 8 -c 16 -r 256G -t 1-0 -p low \
+  -n qwen36-35b-a3b -o logs/vllm/qwen36-35b-a3b.out \
+  "bash scripts/serve_vllm.sh Qwen/Qwen3.6-35B-A3B 43583 $venv 8 runs/vllm-endpoints/qwen36-35b-a3b.endpoint" "${dry_run[@]}"

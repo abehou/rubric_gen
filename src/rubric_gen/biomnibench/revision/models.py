@@ -26,9 +26,7 @@ class SubmissionRevisionConfig:
     revision_rounds: int
     seed_run_dir: Path
     agent: AgentRunConfig
-    run_provenance: dict[str, object]
-    design_sha256: str
-    protocol_id: str
+    experiment_id: str
     assignment_id: str
     condition_id: str
     replicate: int
@@ -39,9 +37,11 @@ class SubmissionRevisionConfig:
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_evolution: RubricEvolution = RubricEvolution.STATIC
     rubric_proposer_model: str = "gpt-5.6-luna"
+    rubric_proposer_base_url: str | None = None
     rubric_proposer_step_limit: int = 12
     review: str = "trace"
     judge_model: str | None = None
+    judge_base_url: str | None = None
     rubric_name: str | None = None
     rubric_set: Path | None = None
     max_review_chars: int | None = None
@@ -67,14 +67,8 @@ class SubmissionRevisionConfig:
             raise ValueError("publish_report must be a boolean")
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
-        if (
-            not isinstance(self.run_provenance, dict)
-            or type(self.run_provenance.get("sha256")) is not str
-        ):
-            raise ValueError("submission revision requires sealed run provenance")
         for name, value in (
-            ("design_sha256", self.design_sha256),
-            ("protocol_id", self.protocol_id),
+            ("experiment_id", self.experiment_id),
             ("assignment_id", self.assignment_id),
             ("condition_id", self.condition_id),
         ):
@@ -107,6 +101,7 @@ class SubmissionRevisionConfig:
             experiment_dir=self.experiment_dir,
             review=self.review,
             judge_model=self.judge_model,
+            base_url=self.judge_base_url,
             rubric_name=self.rubric_name,
             rubric_set=self.rubric_set,
             max_review_chars=self.max_review_chars,

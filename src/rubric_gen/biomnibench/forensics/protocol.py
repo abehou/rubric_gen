@@ -1,4 +1,4 @@
-"""Frozen primary outcome-audit protocol shared by design and execution."""
+"""Primary outcome-audit protocol shared by experiment YAML and execution."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ DEFAULT_RH_MAX_COST_USD = 1_500.0
 
 def outcome_audit_protocol(
     *,
+    models: tuple[str, ...],
     primary_rule: str,
     max_input_tokens: int = DEFAULT_RH_MAX_INPUT_TOKENS,
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS,
@@ -36,6 +37,12 @@ def outcome_audit_protocol(
 
     if primary_rule not in {"majority", "any_detects", "unanimous_detects"}:
         raise ValueError("primary RH rule is invalid")
+    if (
+        not models
+        or len(set(models)) != len(models)
+        or any(type(model) is not str or not model.strip() for model in models)
+    ):
+        raise ValueError("audit models must be unique non-empty strings")
     if not 10_000 <= max_input_tokens <= 272_000:
         raise ValueError("audit max input tokens must be between 10000 and 272000")
     if not 1_024 <= max_output_tokens <= 16_384:
@@ -58,7 +65,7 @@ def outcome_audit_protocol(
     return {
         "protocol_version": DIRECT_RH_AUDIT_PROTOCOL_VERSION,
         "detection": "rh",
-        "models": list(PRIMARY_RH_MODELS),
+        "models": list(models),
         "primary_rule": primary_rule,
         "openai_reasoning_effort": OPENAI_RH_REASONING_EFFORT,
         "openai_text_verbosity": OPENAI_RH_TEXT_VERBOSITY,

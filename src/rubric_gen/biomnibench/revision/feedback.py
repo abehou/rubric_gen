@@ -63,7 +63,8 @@ def render_feedback_prompt(
             f"Your previous submission received a validated total score of "
             f"{score}/100. Continue in the same workspace and revise the "
             "solution to improve it. Re-run relevant checks and update "
-            "trace.md, answer.txt, and any supporting artifacts."
+            "trace.md and answer.txt. Store generated datasets, tables, plots, "
+            "logs, and other supporting outputs under ./artifacts, not ./data."
         )
         guidance = revision_guidance(resolved_profile)
         if guidance is not None:
@@ -105,7 +106,9 @@ def render_feedback_prompt(
             "below. Continue in the same workspace and revise the solution to "
             "improve weak criteria. No judge reasoning is provided, so diagnose "
             "the causes from the task data and your own artifacts. Re-run relevant "
-            "checks and update trace.md, answer.txt, and supporting artifacts."
+            "checks and update trace.md and answer.txt. Store generated datasets, "
+            "tables, plots, logs, and other supporting outputs under ./artifacts, "
+            "not ./data."
         )
         guidance = revision_guidance(resolved_profile)
         if guidance is not None:
@@ -148,9 +151,9 @@ def render_feedback_prompt(
     prompt = (
         "Continue in the same workspace and revise your current solution using "
         "the feedback below. Re-run relevant checks and update trace.md, "
-        "answer.txt, and any supporting artifacts. Judge reasons are model "
-        "feedback, not verified evidence; check them against the task data and "
-        "your artifacts."
+        "answer.txt, and supporting outputs under ./artifacts, not ./data. Judge "
+        "reasons are model feedback, not verified evidence; check them against "
+        "the task data and your artifacts."
     )
     guidance = revision_guidance(resolved_profile)
     if guidance is not None:

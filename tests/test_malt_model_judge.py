@@ -105,7 +105,24 @@ def test_anthropic_preflight_uses_provider_token_counter(
     assert observed["model"] == "claude-opus-4-8"
     assert observed["output_config"] == {
         "effort": "low",
-        "format": {"type": "json_schema", "schema": _request().schema},
+        "format": {
+            "type": "json_schema",
+            "schema": model_judge._anthropic_schema(_request().schema),
+        },
+    }
+
+
+def test_anthropic_schema_removes_unsupported_numeric_bounds() -> None:
+    original = model_judge._verdict_schema("rh")
+    rendered = model_judge._anthropic_schema(original)
+
+    assert isinstance(rendered, dict)
+    confidence = rendered["properties"]["confidence"]  # type: ignore[index]
+    assert confidence == {"type": "number"}
+    assert original["properties"]["confidence"] == {  # type: ignore[index]
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
     }
 
 
@@ -186,7 +203,9 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     )[0]["generation"]
     assert generation["requested_model"] == "gpt-test"
     assert generation["effective_model"] == "gpt-test-served"
-    assert (output / "run-provenance.json").is_file()
+    provenance = json.loads((output / "run-provenance.json").read_text())
+    assert provenance["schema_version"] == 3
+    assert "implementation" not in provenance
 
 
 def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
@@ -348,7 +367,8 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     (revision / "manifest.json").write_text(json.dumps({
         "schema_version": 2,
         "kind": "rubric-gen-submission-revision-experiment",
-        "design_sha256": "d" * 64,
+        "experiment_id": "test-experiment",
+        "execution_order": 1,
         "assignment_id": "da-1-1--rep-001--base--static",
         "condition_id": "base--static",
         "task_id": "da-1-1",
@@ -393,7 +413,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
         ModelJudgeConfig(
             case_dirs=(),
             revision_dirs=(revision,),
-            design_sha256s=("d" * 64,),
+            experiment_ids=("test-experiment",),
             tasks_dir=tasks,
             models=("gpt-test",),
             output_dir=output,
@@ -523,6 +543,17 @@ def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:
     )
     assert runner.run() == 0
     assert observed == {"model": "Qwen/Test", "url": "http://node:8000/v1"}
+
+
+def test_model_judge_rejects_unselected_vllm_endpoint(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="match selected"):
+        ModelJudgeConfig(
+            case_dirs=(tmp_path / "case",),
+            models=("Qwen/Selected",),
+            output_dir=tmp_path / "out",
+            base_urls={"Qwen/Other": "http://node:8000/v1"},
+            dataset_provenance=DATASET_PROVENANCE,
+        )
 
 
 def test_direct_prompt_deduplicates_replayed_conversation_prefixes(
@@ -850,7 +881,7 @@ def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
         "effort": "low",
         "format": {
             "type": "json_schema",
-            "schema": {"type": "object", "additionalProperties": False},
+            "schema": model_judge._anthropic_schema(_request().schema),
         },
     }
     assert observed["system"] == [{
@@ -895,11 +926,10 @@ def test_oversized_evidence_is_chunked_then_synthesized(tmp_path: Path) -> None:
     assert record["compact_evidence"]["chunked"] == 1
     assert schemas.count("malt_forensic_chunk_verdict") > 1
     assert schemas.count("malt_forensic_synthesis_verdict") == 1
-    preflight = json.loads((output / "cost-preflight.json").read_text())
-    assert max(preflight["jobs"][0]["input_tokens"]) <= 10_000
+    assert not (output / "cost-preflight.json").exists()
 
 
-def test_cost_preflight_stops_before_generation(tmp_path: Path) -> None:
+def test_runtime_budget_stops_before_generation(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     calls = 0
 
@@ -919,19 +949,14 @@ def test_cost_preflight_stops_before_generation(tmp_path: Path) -> None:
         count_tokens=lambda _model, _request: 100_000,
     )
 
-    with pytest.raises(CostBudgetExceeded, match="exceeds --max-cost-usd"):
-        runner.run()
+    assert runner.run() == 1
     assert calls == 0
-    preflight = json.loads((tmp_path / "output/cost-preflight.json").read_text())
-    assert preflight["schema_version"] == 4
-    assert preflight["max_attempts_per_request"] == 2
-    assert preflight["worst_case_reserved_api_cost_usd"] == pytest.approx(
-        2 * preflight["max_output_single_attempt_api_cost_usd"]
-    )
-    assert (
-        preflight["expected_api_cost_usd"]
-        < preflight["worst_case_reserved_api_cost_usd"]
-    )
+    assert not (tmp_path / "output/cost-preflight.json").exists()
+    record = json.loads(
+        (tmp_path / "output/summary.json").read_text()
+    )["records"][0]
+    assert record["status"] == "failed"
+    assert record["error_type"] == "CostBudgetExceeded"
 
 
 def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:

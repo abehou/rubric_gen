@@ -30,8 +30,9 @@ def test_rubric_free_runner_position_flips_and_aggregates(tmp_path: Path) -> Non
     experiment = _experiment(tmp_path)
     calls = []
 
-    def generate(model: str, prompt: str) -> str:
+    def generate(model: str, prompt: str, base_url: str | None) -> str:
         calls.append((model, prompt))
+        assert base_url is None
         final_is_a = prompt.index("FINAL") < prompt.index("INITIAL")
 
         def response(score: int) -> dict[str, object]:
@@ -70,15 +71,54 @@ def test_rubric_free_runner_position_flips_and_aggregates(tmp_path: Path) -> Non
             experiment_dirs=(experiment,), output_dir=output,
             models=("one", "two", "three"), max_concurrency=2, resume=True,
         ),
-        generate_response=lambda model, prompt: resumed_calls.append((model, prompt)),
+        generate_response=(
+            lambda model, prompt, base_url:
+            resumed_calls.append((model, prompt, base_url))
+        ),
     )
     assert resumed.run() == 0
     assert resumed_calls == []
 
 
-def test_rubric_free_cli_requires_three_models() -> None:
+def test_rubric_free_cli_accepts_an_explicit_model_panel() -> None:
     args = build_parser().parse_args([
         "judge", "--run-dir", "revision", "--output-dir", "out",
         "--models", "a", "b", "c"
     ])
     assert args.models == ["a", "b", "c"]
+
+
+def test_rubric_free_routes_two_vllm_judges(tmp_path: Path) -> None:
+    experiment = _experiment(tmp_path)
+    urls = {
+        "Qwen/Qwen3.6-27B": "http://qwen27:43117/v1",
+        "Qwen/Qwen3.6-35B-A3B": "http://qwen35:43583/v1",
+    }
+    observed: list[tuple[str, str | None]] = []
+
+    def generate(model: str, prompt: str, base_url: str | None) -> str:
+        observed.append((model, base_url))
+        score = {
+            dimension: {"score": 4, "justification": "Equivalent."}
+            for dimension in DIMENSIONS
+        }
+        return json.dumps({
+            "response_A": score,
+            "response_B": score,
+            "comparative_explanation": "Equivalent responses.",
+        })
+
+    runner = RubricFreeRunner(
+        RubricFreeConfig(
+            experiment_dirs=(experiment,),
+            output_dir=tmp_path / "out-vllm",
+            models=tuple(urls),
+            base_urls=urls,
+        ),
+        generate_response=generate,
+    )
+
+    assert runner.run() == 0
+    assert sorted(observed) == sorted([
+        (model, url) for model, url in urls.items() for _ in range(2)
+    ])

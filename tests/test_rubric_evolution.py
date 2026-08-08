@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import errno
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
+from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
+from rubric_gen.biomnibench.forensics.evidence_index import (
+    build_evidence_index,
+    write_query_tool,
+)
+import rubric_gen.biomnibench.revision.evolution as evolution_module
 from rubric_gen.biomnibench.revision.evolution import ProposerOutput, RubricEvolver
 
 
@@ -37,12 +46,17 @@ def _agent(*, retries: int = 1) -> AgentRunConfig:
     return AgentRunConfig(provider="codex", model="proposer-model", retries=retries)
 
 
-def _output(answer: str | None = None, *, queries: int = 2) -> ProposerOutput:
+def _output(
+    answer: str | None = None,
+    *,
+    queries: int = 2,
+    events: tuple[int, ...] = (1,),
+) -> ProposerOutput:
     return ProposerOutput(
         answer=answer or _response(),
         trace="Investigated trajectory:event-1 and generalized the failure.\n",
         query_count=queries,
-        retrieved_event_ids=(1,),
+        retrieved_event_ids=events,
         cost={
             "cost_usd": None,
             "estimated_cost_usd": 0.01,
@@ -69,6 +83,141 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
         "source_submission_id": "s000",
         "output_dir": tmp_path / "rubrics",
     }
+
+
+def test_trajectory_staging_copies_across_filesystems(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source.jsonl"
+    destination = tmp_path / "destination.jsonl"
+    source.write_text('{"event":1}\n')
+
+    def cross_device_link(_source: Path, _destination: Path) -> None:
+        raise OSError(errno.EXDEV, "cross-device link")
+
+    monkeypatch.setattr(evolution_module.os, "link", cross_device_link)
+    evolution_module._link_or_copy(source, destination)
+
+    assert destination.read_bytes() == source.read_bytes()
+
+
+def test_trajectory_query_tool_is_self_contained(tmp_path: Path) -> None:
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / "trajectory.jsonl").write_text(
+        '{"type":"message","content":"evidence"}\n'
+    )
+    (evidence / "manifest.json").write_text(json.dumps({
+        "evidence_files": ["trajectory.jsonl"],
+    }))
+    database = tmp_path / "data" / "trajectory.sqlite"
+    build_evidence_index(evidence, database)
+    query_tool = database.parent / "trajectory_query.py"
+    state_directory = tmp_path / "artifacts"
+    write_query_tool(
+        query_tool,
+        database,
+        max_queries=3,
+        state_directory=state_directory,
+    )
+
+    source = query_tool.read_text()
+    assert "rubric_gen" not in source
+    assert str(tmp_path) not in source
+    relocated = tmp_path / "relocated"
+    relocated_data = relocated / "data"
+    relocated_data.mkdir(parents=True)
+    for artifact in (query_tool, database):
+        (relocated_data / artifact.name).write_bytes(artifact.read_bytes())
+    result = subprocess.run(
+        [sys.executable, str(relocated_data / query_tool.name), "timeline"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=True,
+        env={"PATH": "/usr/bin:/bin"},
+    )
+
+    assert "event:1" in result.stdout
+    counter = relocated / "artifacts" / "query-count.txt"
+    audit = relocated / "artifacts" / "query-audit.jsonl"
+    assert counter.read_text() == "1"
+    assert json.loads(audit.read_text())["event_ids"] == [1]
+    assert not (relocated_data / counter.name).exists()
+    assert not (relocated_data / audit.name).exists()
+
+
+def test_codex_proposer_leaves_workspace_creation_to_agent_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    trajectory = tmp_path / "trajectory.stream.jsonl"
+    trajectory.write_text('{"type":"message","content":"evidence"}\n')
+
+    def fake_run(self, task_dir, runs_dir=None, *, paths=None):
+        assert paths is not None
+        assert not paths.workspace_dir.exists()
+        TaskWorkspace(task_dir, paths.workspace_dir).create()
+        assert paths.output_schema_path == (
+            paths.workspace_dir / "data" / "proposal.schema.json"
+        )
+        assert paths.output_last_message_path == paths.workspace_dir / "answer.txt"
+        schema = json.loads(paths.output_schema_path.read_text())
+        assert schema["properties"]["action"]["enum"] == [
+            "add_process_criterion",
+            "no_patch",
+        ]
+        artifacts = paths.workspace_dir / "artifacts"
+        artifacts.mkdir()
+        (artifacts / "query-count.txt").write_text("1")
+        (artifacts / "query-audit.jsonl").write_text('{"event_ids":[1]}\n')
+        (paths.workspace_dir / "answer.txt").write_text(_response())
+        (paths.workspace_dir / "trace.md").write_text("checked event 1\n")
+        paths.stream_path.parent.mkdir(parents=True, exist_ok=True)
+        paths.stream_path.write_text("")
+        return 0, paths
+
+    monkeypatch.setattr(evolution_module.AgentRunner, "run", fake_run)
+    output = RubricEvolver(agent=_agent(), query_limit=3)._run_codex_proposer(
+        instruction="TASK",
+        current_rubric="RUBRIC",
+        answer="ANSWER",
+        trace="TRACE",
+        trajectory_path=trajectory,
+        evaluation={"score": 0},
+        repair_error=None,
+    )
+
+    assert output.query_count == 1
+    assert output.retrieved_event_ids == (1,)
+
+
+def test_codex_proposer_rejects_missing_query_audit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    trajectory = tmp_path / "trajectory.stream.jsonl"
+    trajectory.write_text('{"type":"message","content":"evidence"}\n')
+
+    def fake_run(self, task_dir, runs_dir=None, *, paths=None):
+        assert paths is not None
+        TaskWorkspace(task_dir, paths.workspace_dir).create()
+        (paths.workspace_dir / "artifacts").mkdir()
+        (paths.workspace_dir / "answer.txt").write_text(_response())
+        (paths.workspace_dir / "trace.md").write_text("claimed query\n")
+        paths.stream_path.parent.mkdir(parents=True, exist_ok=True)
+        paths.stream_path.write_text("")
+        return 0, paths
+
+    monkeypatch.setattr(evolution_module.AgentRunner, "run", fake_run)
+    with pytest.raises(RuntimeError, match="trajectory query audit is missing"):
+        RubricEvolver(agent=_agent(), query_limit=3)._run_codex_proposer(
+            instruction="TASK",
+            current_rubric="RUBRIC",
+            answer="ANSWER",
+            trace="TRACE",
+            trajectory_path=trajectory,
+            evaluation={"score": 0},
+            repair_error=None,
+        )
 
 
 def test_evolver_runs_separate_codex_proposer_and_seals_version(tmp_path: Path) -> None:
@@ -108,12 +257,25 @@ def test_evolver_runs_separate_codex_proposer_and_seals_version(tmp_path: Path) 
     assert len(calls) == 1
 
 
-def test_evolver_rejects_non_codex_proposer() -> None:
-    with pytest.raises(ValueError, match="Codex agent"):
+def test_evolver_rejects_unsupported_proposer() -> None:
+    with pytest.raises(ValueError, match="Codex or vLLM"):
         RubricEvolver(
             agent=AgentRunConfig(provider="gemini", model="gemini-model"),
             query_limit=2,
         )
+
+
+def test_evolver_accepts_vllm_proposer() -> None:
+    evolver = RubricEvolver(
+        agent=AgentRunConfig(
+            provider="vllm",
+            model="Qwen/Qwen3.6-27B",
+            base_url="http://qwen27:43117/v1",
+        ),
+        query_limit=2,
+        run_proposer=lambda **_: _output(),
+    )
+    assert evolver.agent.provider == "vllm"
 
 
 def test_evolver_retries_strict_format_failure(tmp_path: Path) -> None:
@@ -139,6 +301,12 @@ def test_evolver_retries_strict_format_failure(tmp_path: Path) -> None:
         (tmp_path / "rubrics" / "r0001.proposal.json").read_text()
     )
     assert stored["attempt_count"] == 2
+    failure_dir = tmp_path / "rubrics" / "r0001.proposer-failures"
+    failure = json.loads((failure_dir / "attempt-0001.json").read_text())
+    assert failure["evolve_attempt"] == 1
+    assert "must contain exactly one Levels line" in failure["error"]
+    assert (failure_dir / "attempt-0001.answer.txt").is_file()
+    assert (failure_dir / "attempt-0001.trace.md").is_file()
 
 
 def test_resume_rejects_different_proposer_identity(tmp_path: Path) -> None:
@@ -172,6 +340,34 @@ def test_evolver_accepts_grounded_no_patch(tmp_path: Path) -> None:
 
     assert result.text == arguments["current_rubric"]
     assert result.proposal["action"] == "no_patch"
+
+
+def test_evolver_retries_no_patch_without_trajectory_evidence(tmp_path: Path) -> None:
+    no_patch = json.dumps({
+        "action": "no_patch",
+        "criterion_text": "",
+        "change_summary": "No new generalizable process failure was established.",
+        "failure_evidence": [],
+        "generalization_rationale": "The existing rubric already covers the evidence.",
+        "validation_plan": "Retain the current rubric unchanged.",
+    })
+    outputs = iter((
+        _output(no_patch, queries=0, events=()),
+        _output(no_patch),
+    ))
+    calls: list[dict[str, object]] = []
+    arguments = _arguments(tmp_path)
+    result = RubricEvolver(
+        agent=_agent(),
+        query_limit=3,
+        run_proposer=lambda **kwargs: calls.append(kwargs) or next(outputs),
+    ).evolve(**arguments)
+
+    assert result.proposal["action"] == "no_patch"
+    assert len(calls) == 2
+    assert "must retrieve at least one trajectory event" in str(
+        calls[1]["repair_error"]
+    )
 
 
 def test_evolver_rejects_unavailable_trajectory_reference(tmp_path: Path) -> None:

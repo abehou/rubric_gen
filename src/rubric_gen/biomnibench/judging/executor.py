@@ -83,6 +83,10 @@ class JudgeExecutor:
         judge_source = judge_path.read_bytes()
         env = os.environ.copy()
         effective_judge_model = self.judge_model(env)
+        if self.config.base_url is not None:
+            env["VLLM_BASE_URL"] = self.config.base_url
+        else:
+            env.pop("VLLM_BASE_URL", None)
         # Gemini judges use GEMINI_API_KEY exclusively. The Google Gen AI SDK
         # otherwise accepts GOOGLE_API_KEY implicitly, which can select the
         # wrong account or hide a missing canonical credential.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import sqlite3
 from collections import Counter
@@ -213,17 +214,56 @@ def write_query_tool(
     database: Path,
     *,
     max_queries: int | None = None,
-    counter_path: Path | None = None,
-    audit_path: Path | None = None,
+    state_directory: Path | None = None,
 ) -> None:
-    source = f'''#!{__import__("sys").executable}
+    tool_dir = path.parent.resolve()
+
+    def sibling_name(candidate: Path, label: str) -> str:
+        resolved = candidate.resolve()
+        if resolved.parent != tool_dir:
+            raise ValueError(f"{label} must be stored beside the query tool")
+        return resolved.name
+
+    database_name = sibling_name(database, "database")
+    if (max_queries is None) != (state_directory is None):
+        raise ValueError(
+            "bounded query tools require a state directory and unbounded tools do not"
+        )
+    state_name = None
+    if state_directory is not None:
+        resolved_state = state_directory.resolve()
+        if resolved_state.parent != tool_dir.parent:
+            raise ValueError(
+                "query state directory must be a sibling of the query tool directory"
+            )
+        state_name = resolved_state.name
+    state_setup = ""
+    counter_expression = "None"
+    audit_expression = "None"
+    if state_name is not None:
+        state_setup = f'''_STATE_DIR = _TOOL_DIR.parent / {state_name!r}
+_STATE_DIR.mkdir(parents=True, exist_ok=True)
+'''
+        counter_expression = "_STATE_DIR / 'query-count.txt'"
+        audit_expression = "_STATE_DIR / 'query-audit.jsonl'"
+    source = f'''#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
 from pathlib import Path
-from rubric_gen.biomnibench.forensics.evidence_index import query_main
-raise SystemExit(query_main(
-    Path({str(database)!r}),
+
+{inspect.getsource(_bounded)}
+
+{inspect.getsource(query_main)}
+
+_TOOL_DIR = Path(__file__).resolve().parent
+{state_setup}raise SystemExit(query_main(
+    _TOOL_DIR / {database_name!r},
     max_queries={max_queries!r},
-    counter_path={f"Path({str(counter_path)!r})" if counter_path else "None"},
-    audit_path={f"Path({str(audit_path)!r})" if audit_path else "None"},
+    counter_path={counter_expression},
+    audit_path={audit_expression},
 ))
 '''
     path.write_text(source, encoding="utf-8")

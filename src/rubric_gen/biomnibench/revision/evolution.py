@@ -1,7 +1,8 @@
-"""Codex-agent optimizer-rubric evolution with bounded trajectory retrieval."""
+"""Codex-harness optimizer-rubric evolution with bounded trajectory retrieval."""
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import re
@@ -60,6 +61,27 @@ _PROPOSER_CONTRACT_TERMS = (
     "generalization_rationale",
     "validation_plan",
 )
+_PROPOSAL_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "action",
+        "criterion_text",
+        "change_summary",
+        "failure_evidence",
+        "generalization_rationale",
+        "validation_plan",
+    ],
+    "properties": {
+        "action": {"type": "string", "enum": ["add_process_criterion", "no_patch"]},
+        "criterion_text": {"type": "string"},
+        "change_summary": {"type": "string"},
+        "failure_evidence": {"type": "array", "items": {"type": "string"}},
+        "generalization_rationale": {"type": "string"},
+        "validation_plan": {"type": "string"},
+    },
+}
 
 
 class RubricEvolver:
@@ -71,8 +93,8 @@ class RubricEvolver:
         max_retries: int = 2,
         run_proposer: Callable[..., ProposerOutput] | None = None,
     ) -> None:
-        if agent.provider != "codex" or not agent.model:
-            raise ValueError("rubric proposer must be a Codex agent with a model")
+        if agent.provider not in {"codex", "vllm"} or not agent.model:
+            raise ValueError("rubric proposer must be a Codex or vLLM agent with a model")
         if type(query_limit) is not int or query_limit < 1:
             raise ValueError("rubric proposer query limit must be positive")
         if type(max_retries) is not int or max_retries < 0:
@@ -96,6 +118,7 @@ class RubricEvolver:
         source_submission_id: str,
         output_dir: Path,
     ) -> EvolvedRubric:
+        output_dir.mkdir(parents=True, exist_ok=True)
         rubric_path = output_dir / f"r{version:04d}.txt"
         proposal_path = output_dir / f"r{version:04d}.proposal.json"
         trace_path = output_dir / f"r{version:04d}.proposer.trace.md"
@@ -160,6 +183,13 @@ class RubricEvolver:
                     )
                 ):
                     raise ValueError("rubric proposer returned invalid trace metadata")
+                if (
+                    proposer_output.query_count == 0
+                    or not proposer_output.retrieved_event_ids
+                ):
+                    raise ValueError(
+                        "rubric proposer must retrieve at least one trajectory event"
+                    )
                 proposal, text = _parse_proposal(
                     proposer_output.answer,
                     current_rubric=current_rubric,
@@ -169,6 +199,14 @@ class RubricEvolver:
                 parse_rubric_levels_strict(text)
                 break
             except Exception as exc:
+                if proposer_output is not None:
+                    self._archive_failed_attempt(
+                        output_dir,
+                        version,
+                        attempt,
+                        proposer_output,
+                        exc,
+                    )
                 if not cost_recorded:
                     proposer_attempt_costs.append({
                         "cost_usd": None,
@@ -184,7 +222,6 @@ class RubricEvolver:
 
         assert proposal is not None
         assert proposer_output is not None
-        output_dir.mkdir(parents=True, exist_ok=True)
         temporary = output_dir / f".r{version:04d}.{secrets.token_hex(8)}.tmp"
         try:
             temporary.write_text(text, encoding="utf-8")
@@ -199,7 +236,7 @@ class RubricEvolver:
             "mode": RubricEvolution.PROSPECTIVE.value,
             "source_submission_id": source_submission_id,
             **source_hashes,
-            "provider": "codex",
+            "provider": self.agent.provider,
             "model": self.model,
             "query_limit": self.query_limit,
             "attempt_count": attempt,
@@ -218,6 +255,39 @@ class RubricEvolver:
         make_read_only(proposal_path)
         make_read_only(trace_path)
         return EvolvedRubric(text, sha256_text(text), proposal)
+
+    @staticmethod
+    def _archive_failed_attempt(
+        output_dir: Path,
+        version: int,
+        evolve_attempt: int,
+        proposer_output: ProposerOutput,
+        error: Exception,
+    ) -> None:
+        failure_dir = output_dir / f"r{version:04d}.proposer-failures"
+        failure_dir.mkdir(exist_ok=True)
+        sequence = len(list(failure_dir.glob("attempt-*.json"))) + 1
+        stem = f"attempt-{sequence:04d}"
+        (failure_dir / f"{stem}.answer.txt").write_text(
+            proposer_output.answer,
+            encoding="utf-8",
+        )
+        (failure_dir / f"{stem}.trace.md").write_text(
+            proposer_output.trace,
+            encoding="utf-8",
+        )
+        write_json_atomic(
+            failure_dir / f"{stem}.json",
+            {
+                "schema_version": 1,
+                "evolve_attempt": evolve_attempt,
+                "error_type": type(error).__name__,
+                "error": str(error) or type(error).__name__,
+                "query_count": proposer_output.query_count,
+                "retrieved_event_ids": list(proposer_output.retrieved_event_ids),
+                "cost": proposer_output.cost,
+            },
+        )
 
     def _load_existing(
         self,
@@ -247,7 +317,7 @@ class RubricEvolver:
             or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
             or stored.get("source_submission_id") != source_submission_id
             or any(stored.get(key) != value for key, value in source_hashes.items())
-            or stored.get("provider") != "codex"
+            or stored.get("provider") != self.agent.provider
             or stored.get("model") != self.model
             or stored.get("query_limit") != self.query_limit
             or not isinstance(stored.get("proposer_attempt_costs"), list)
@@ -262,13 +332,14 @@ class RubricEvolver:
             or stored.get("rubric_sha256") != sha256_text(text)
             or stored.get("available_trajectory_events") != available_events
             or not isinstance(stored.get("retrieved_trajectory_events"), list)
+            or not stored.get("retrieved_trajectory_events")
             or any(
                 type(event) is not int or event < 1 or event > available_events
                 for event in stored.get("retrieved_trajectory_events", [])
             )
             or stored.get("proposer_trace_sha256") != sha256_text(proposer_trace)
             or type(stored.get("trajectory_query_count")) is not int
-            or not 0 <= stored["trajectory_query_count"] <= self.query_limit
+            or not 1 <= stored["trajectory_query_count"] <= self.query_limit
         ):
             raise RuntimeError(f"invalid evolved rubric version r{version:04d}")
         parse_rubric_levels_strict(text)
@@ -315,27 +386,26 @@ class RubricEvolver:
             data = task / "environment" / "data"
             data.mkdir(parents=True)
             workspace = temporary / "workspace"
-            workspace_data = workspace / "data"
-            workspace_data.mkdir(parents=True)
             evidence = temporary / "evidence"
             evidence.mkdir()
             linked_trajectory = evidence / "trajectory.stream.jsonl"
-            os.link(trajectory_path, linked_trajectory)
+            _link_or_copy(trajectory_path, linked_trajectory)
             write_json_atomic(evidence / "manifest.json", {
                 "schema_version": 1,
                 "kind": "rubric-proposer-evidence",
                 "evidence_files": [linked_trajectory.name],
             })
-            database = workspace_data / "trajectory.sqlite"
+            database = data / "trajectory.sqlite"
             inventory = build_evidence_index(evidence, database)
-            query_tool = workspace_data / "trajectory_query.py"
+            query_tool = data / "trajectory_query.py"
             write_query_tool(
                 query_tool,
                 database,
                 max_queries=self.query_limit,
-                counter_path=workspace_data / "query-count.txt",
-                audit_path=workspace_data / "query-audit.jsonl",
+                state_directory=data.parent / "artifacts",
             )
+            schema_path = data / "proposal.schema.json"
+            write_json_atomic(schema_path, _PROPOSAL_SCHEMA)
             prompt = _proposer_prompt(
                 instruction=instruction,
                 current_rubric=current_rubric,
@@ -350,13 +420,15 @@ class RubricEvolver:
             (task / "instruction.md").write_text(prompt, encoding="utf-8")
             run = temporary / "run"
             paths = RunPaths(
-                provider="codex",
+                provider=self.agent.provider,
                 run_dir=run,
                 workspace_dir=workspace,
                 prompt_path=run / "prompt.txt",
                 policy_path=run / "no-web-policy.toml",
                 stream_path=run / "trajectory.stream.jsonl",
                 status_path=run / "status.json",
+                output_schema_path=workspace / "data" / schema_path.name,
+                output_last_message_path=workspace / "answer.txt",
             )
             config = replace(
                 self.agent,
@@ -364,14 +436,19 @@ class RubricEvolver:
             )
             exit_code, _ = AgentRunner(config).run(task, paths=paths)
             if exit_code != 0:
-                raise RuntimeError(f"Codex rubric proposer exited with code {exit_code}")
-            counter = workspace_data / "query-count.txt"
-            query_count = int(counter.read_text()) if counter.exists() else 0
-            audit = workspace_data / "query-audit.jsonl"
+                raise RuntimeError(
+                    f"{self.agent.provider} rubric proposer exited with code {exit_code}"
+                )
+            query_state = workspace / "artifacts"
+            counter = query_state / "query-count.txt"
+            audit = query_state / "query-audit.jsonl"
+            if not counter.is_file() or not audit.is_file():
+                raise RuntimeError("trajectory query audit is missing")
+            query_count = int(counter.read_text())
             audit_records = [
                 json.loads(line)
                 for line in audit.read_text(encoding="utf-8").splitlines()
-            ] if audit.exists() else []
+            ]
             if len(audit_records) != query_count:
                 raise RuntimeError("trajectory query audit disagrees with query count")
             retrieved = sorted({
@@ -426,9 +503,11 @@ Use trace.md as a navigation summary, then retrieve only evidence needed to test
 
 The stable task rubric must not be rewritten. Return either one additive process-penalty criterion or no patch. An additive criterion begins with `Criterion 1: Title`, contains exactly `Levels: A=0 B=-5 C=-10`, and uses `[A]:`, `[B]:`, and `[C]:`. It must evaluate evidence/provenance rather than answer wording, exact values, filenames, or proposer output formatting. The runner will renumber it. Do not mention the proposer JSON keys inside the criterion.
 
-The trajectory index contains {available_events} events. For `add_process_criterion`, failure_evidence must be nonempty and every entry must cite at least one retrieved `trajectory:event-N`. If evidence is unavailable or no generalizable process failure is supported, use `no_patch` rather than speculating.
+The trajectory index contains {available_events} events. You must retrieve at least one trajectory event before either decision. For `add_process_criterion`, failure_evidence must be nonempty and every entry must cite at least one retrieved `trajectory:event-N`. If no generalizable process failure is supported after inspection, use `no_patch` rather than speculating.
 
-Write trace.md explaining your investigation. Write answer.txt containing exactly one JSON object with keys action, criterion_text, change_summary, failure_evidence, generalization_rationale, and validation_plan. action is `add_process_criterion` or `no_patch`. For no_patch, criterion_text and failure_evidence are empty. validation_plan explains how to test the check against valid and perturbed submissions.{repair}
+The query tool writes harness-managed `query-count.txt` and `query-audit.jsonl` files directly under `./artifacts`. Do not move, edit, replace, or delete those files.
+
+Write trace.md explaining your investigation. Write answer.txt and return a final response containing exactly the same single JSON object with keys action, criterion_text, change_summary, failure_evidence, generalization_rationale, and validation_plan. action is `add_process_criterion` or `no_patch`. For no_patch, criterion_text and failure_evidence are empty. validation_plan explains how to test the check against valid and perturbed submissions.{repair}
 
 <task>
 {instruction}
@@ -446,6 +525,15 @@ Write trace.md explaining your investigation. Write answer.txt containing exactl
 {json.dumps(evaluation, ensure_ascii=False)}
 </preliminary_evaluation_json>
 """
+
+
+def _link_or_copy(source: Path, destination: Path) -> None:
+    try:
+        os.link(source, destination)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        shutil.copyfile(source, destination)
 
 
 def _parse_proposal(

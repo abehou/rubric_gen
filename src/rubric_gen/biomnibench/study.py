@@ -1,19 +1,22 @@
-"""Execute and validate a locked randomized revision-study design."""
+"""Execute and validate a randomized YAML experiment."""
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import socket
+import stat
 import threading
 import traceback
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
-from rubric_gen.biomnibench.experiments import ExperimentDesign, verify_runtime_provenance
+from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.controller import run_submission_revision
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy, project_feedback
 from rubric_gen.biomnibench.revision.models import SubmissionRevisionConfig
@@ -21,6 +24,7 @@ from rubric_gen.biomnibench.revision.artifacts import (
     REVISION_MANIFEST_KEYS,
     read_json_object,
     sha256_file,
+    tree_sha256,
     verify_submission_snapshot,
 )
 from rubric_gen.biomnibench.revision.evolution import RubricEvolution
@@ -31,15 +35,17 @@ from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
 STUDY_RUN_SCHEMA_VERSION = 1
 STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
+_STUDY_LEASE_NAME = ".study.lock"
 
 
 @dataclass(frozen=True)
 class StudyRunConfig:
-    design: ExperimentDesign
+    experiment: Experiment
     seed_run_dir: Path
     output_dir: Path
     max_concurrency: int
     resume: bool = False
+    vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
@@ -49,15 +55,14 @@ class StudyRunConfig:
 class StudyRunner:
     def __init__(self, config: StudyRunConfig) -> None:
         self.config = config
-        self.design = config.design
+        self.experiment = config.experiment
         self.root = config.output_dir.resolve()
         self.seed_root = config.seed_run_dir.resolve()
         self._manifest_lock = threading.Lock()
 
     def run(self) -> int:
-        verify_runtime_provenance(self.design)
         assignments = sorted(
-            self.design.assignments,
+            self.experiment.assignments,
             key=lambda item: int(item["execution_order"]),
         )
         existed = os.path.lexists(self.root)
@@ -67,11 +72,21 @@ class StudyRunner:
             raise RuntimeError(f"study output is not a regular directory: {self.root}")
         if not existed:
             self.root.mkdir(parents=True)
+        with _exclusive_study_lease(self.root):
+            return self._run_locked(assignments, existed)
+
+    def _run_locked(
+        self,
+        assignments: list[dict[str, object]],
+        existed: bool,
+    ) -> int:
+        if not existed:
             manifest = self._new_manifest(assignments)
             self._write_manifest(manifest)
         else:
             manifest = self._load_manifest()
             self._validate_manifest_identity(manifest, assignments)
+            _reclaim_interrupted_records(manifest)
         pending: list[dict[str, object]] = []
         for assignment in assignments:
             assignment_id = str(assignment["assignment_id"])
@@ -82,8 +97,9 @@ class StudyRunner:
                     validate_completed_revision(
                         experiment,
                         assignment,
-                        self.design,
+                        self.experiment,
                         self.seed_root,
+                        vllm_endpoints=self.config.vllm_endpoints,
                     )
                 except Exception as exc:
                     record.update({
@@ -147,8 +163,9 @@ class StudyRunner:
                 validate_completed_revision(
                     experiment,
                     assignment,
-                    self.design,
+                    self.experiment,
                     self.seed_root,
+                    vllm_endpoints=self.config.vllm_endpoints,
                 )
                 with self._manifest_lock:
                     latest = self._load_manifest()
@@ -199,17 +216,18 @@ class StudyRunner:
         *,
         resume: bool,
     ) -> SubmissionRevisionConfig:
-        protocol = self.design.protocol
-        condition = self.design.condition(str(assignment["condition_id"]))
+        protocol = self.experiment.protocol
+        condition = self.experiment.condition(str(assignment["condition_id"]))
         return SubmissionRevisionConfig(
-            task_dir=self.design.task_dir(str(assignment["task_id"])),
+            task_dir=self.experiment.task_dir(str(assignment["task_id"])),
             experiment_dir=self._experiment_dir(assignment),
             revision_rounds=int(protocol["revision_rounds"]),
             seed_run_dir=self.seed_root,
-            agent=self.design.agent_config(),
-            run_provenance=self.design.run_provenance,
-            design_sha256=self.design.sha256,
-            protocol_id=self.design.protocol_id,
+            agent=self.experiment.agent_config(
+                quiet=True,
+                vllm_endpoints=self.config.vllm_endpoints
+            ),
+            experiment_id=self.experiment.experiment_id,
             assignment_id=str(assignment["assignment_id"]),
             condition_id=str(assignment["condition_id"]),
             replicate=int(assignment["replicate"]),
@@ -222,9 +240,15 @@ class StudyRunner:
             prompt_profile=PromptProfile(str(condition["prompt"])),
             rubric_evolution=RubricEvolution(str(condition["rubric_evolution"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
+            rubric_proposer_base_url=self.config.vllm_endpoints.get(
+                str(protocol["rubric_proposer_model"])
+            ),
             rubric_proposer_step_limit=int(protocol["rubric_proposer_step_limit"]),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
+            judge_base_url=self.config.vllm_endpoints.get(
+                str(protocol["judge_model"])
+            ),
             rubric_name=str(protocol["rubric_name"]),
             max_review_chars=protocol["max_review_chars"],  # type: ignore[arg-type]
             resume=resume,
@@ -242,9 +266,8 @@ class StudyRunner:
             "schema_version": STUDY_RUN_SCHEMA_VERSION,
             "kind": STUDY_RUN_KIND,
             "status": "pending",
-            "design_path": str(self.design.path),
-            "design_sha256": self.design.sha256,
-            "protocol_id": self.design.protocol_id,
+            "experiment_path": str(self.experiment.path),
+            "experiment_id": self.experiment.experiment_id,
             "seed_run_dir": str(self.seed_root),
             "started_at": _now(),
             "finished_at": None,
@@ -280,17 +303,16 @@ class StudyRunner:
         if (
             manifest.get("schema_version") != STUDY_RUN_SCHEMA_VERSION
             or manifest.get("kind") != STUDY_RUN_KIND
-            or manifest.get("design_path") != str(self.design.path)
-            or manifest.get("design_sha256") != self.design.sha256
-            or manifest.get("protocol_id") != self.design.protocol_id
+            or manifest.get("experiment_path") != str(self.experiment.path)
+            or manifest.get("experiment_id") != self.experiment.experiment_id
             or manifest.get("seed_run_dir") != str(self.seed_root)
         ):
-            raise RuntimeError("study resume identity differs from the locked design")
+            raise RuntimeError("study resume identity differs from the experiment")
         records = _records(manifest)
         if [record.get("assignment_id") for record in records] != [
             item["assignment_id"] for item in assignments
         ]:
-            raise RuntimeError("study assignment ledger differs from the design")
+            raise RuntimeError("study assignment ledger differs from the experiment")
         for record, assignment in zip(records, assignments, strict=True):
             resolve_study_experiment(self.root, record, assignment)
 
@@ -309,7 +331,7 @@ def study_experiment_relative_path(assignment: dict[str, object]) -> Path:
         or not condition_id
         or Path(condition_id).name != condition_id
     ):
-        raise RuntimeError("design assignment has an unsafe experiment identity")
+        raise RuntimeError("assignment has an unsafe experiment identity")
     return (
         Path("experiments")
         / task_id
@@ -333,7 +355,7 @@ def resolve_study_experiment(
         "experiment_dir": expected_relative.as_posix(),
     }
     if any(record.get(key) != value for key, value in expected_identity.items()):
-        raise RuntimeError("study record identity differs from its design assignment")
+        raise RuntimeError("study record identity differs from its assignment")
     current = study_root
     for component in expected_relative.parts:
         current = current / component
@@ -345,35 +367,28 @@ def resolve_study_experiment(
 def validate_completed_revision(
     experiment_dir: Path,
     assignment: dict[str, object],
-    design: ExperimentDesign,
+    experiment: Experiment,
     seed_run_dir: Path,
+    *,
+    vllm_endpoints: dict[str, str] | None = None,
 ) -> None:
     if experiment_dir.is_symlink() or not experiment_dir.is_dir():
         raise RuntimeError(f"revision is not a regular directory: {experiment_dir}")
     manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
     state = read_json_object(experiment_dir / "state.json", "revision state")
-    protocol = design.protocol
-    condition_spec = design.condition(str(assignment["condition_id"]))
-    agent = design.agent_config()
-    task_dir = design.task_dir(str(assignment["task_id"])).resolve()
+    protocol = experiment.protocol
+    condition_spec = experiment.condition(str(assignment["condition_id"]))
+    endpoints = vllm_endpoints or {}
+    agent = experiment.agent_config(vllm_endpoints=endpoints)
+    task_dir = experiment.task_dir(str(assignment["task_id"])).resolve()
     seed = resolve_seed(
         seed_run_dir,
         task_dir,
         int(assignment["replicate"]),
-        design_sha256=design.sha256,
-        protocol_id=design.protocol_id,
+        experiment_id=experiment.experiment_id,
         provider=agent.provider,
         requested_model=agent.model,
-        run_provenance_sha256=str(design.run_provenance["sha256"]),
     )
-    task_records = [
-        item
-        for item in design.payload["tasks"]  # type: ignore[union-attr]
-        if isinstance(item, dict) and item.get("task_id") == assignment["task_id"]
-    ]
-    if len(task_records) != 1:
-        raise RuntimeError("revision task is not uniquely present in the design")
-    task_record = task_records[0]
     scoring_identity = seed.manifest.get("scoring_identity")
     if not isinstance(scoring_identity, dict):
         raise RuntimeError("revision seed has invalid scoring identity")
@@ -383,8 +398,7 @@ def validate_completed_revision(
     manifest_expectations = {
         "schema_version": 2,
         "kind": "rubric-gen-submission-revision-experiment",
-        "design_sha256": design.sha256,
-        "protocol_id": design.protocol_id,
+        "experiment_id": experiment.experiment_id,
         "assignment_id": assignment.get("assignment_id"),
         "condition_id": assignment.get("condition_id"),
         "task_id": assignment.get("task_id"),
@@ -405,20 +419,23 @@ def validate_completed_revision(
         "prompt": condition_spec["prompt"],
         "rubric_evolution": condition_spec["rubric_evolution"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
+        "rubric_proposer_base_url": endpoints.get(
+            str(protocol["rubric_proposer_model"])
+        ),
         "rubric_proposer_step_limit": protocol["rubric_proposer_step_limit"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
+        "judge_base_url": endpoints.get(str(protocol["judge_model"])),
         "judge_max_retries": protocol["judge_max_retries"],
         "max_review_chars": protocol["max_review_chars"],
         "rubric_name": protocol["rubric_name"],
         "rubric_set": None,
-        "rubric_sha256": task_record["rubric_sha256"],
-        "instruction_sha256": task_record["instruction_sha256"],
-        "data_sha256": task_record["data_sha256"],
+        "rubric_sha256": sha256_file(task_dir / "tests" / str(protocol["rubric_name"])),
+        "instruction_sha256": sha256_file(task_dir / "instruction.md"),
+        "data_sha256": tree_sha256(task_dir / "environment" / "data"),
         "seed_run_dir": str(seed.root),
         "seed_sha256": seed.sha256,
-        "run_provenance": design.run_provenance,
         "submission_count": expected_count,
         "live_workspace_removed": True,
         "scoring_identity": scoring_identity,
@@ -478,7 +495,6 @@ def validate_completed_revision(
         raise RuntimeError("revision feedback set is incomplete")
     policy = FeedbackPolicy(str(protocol["feedback_policy"]))
     prompt_profile = PromptProfile(str(condition_spec["prompt"]))
-    final_prompt: str | None = None
     for submission_id in expected_ids:
         submission = submissions / submission_id
         verify_submission_snapshot(submission)
@@ -549,19 +565,86 @@ def validate_completed_revision(
             raise RuntimeError(
                 f"feedback disagrees with scoring artifacts: {submission_id}"
             )
-        final_prompt = projected.prompt
-    if state.get("next_prompt") != final_prompt:
-        raise RuntimeError("completed revision next prompt disagrees with feedback")
-    condition_id = str(assignment["condition_id"])
-    if condition_id.endswith("--prospective"):
-        expected_rubrics = [f"r{index:04d}.txt" for index in range(expected_count)]
-    else:
-        expected_rubrics = ["r0000.txt"]
+    expected_rubrics = _expected_rubric_names(condition_spec, expected_count)
     observed_rubrics = sorted(
         path.name for path in (experiment_dir / "rubric").glob("r*.txt")
     )
     if observed_rubrics != expected_rubrics:
         raise RuntimeError("revision rubric version set is incomplete")
+
+
+def _expected_rubric_names(
+    condition_spec: dict[str, object], submission_count: int
+) -> list[str]:
+    evolution = RubricEvolution(str(condition_spec["rubric_evolution"]))
+    if evolution is RubricEvolution.PROSPECTIVE:
+        return [f"r{index:04d}.txt" for index in range(submission_count)]
+    return ["r0000.txt"]
+
+
+@contextmanager
+def _exclusive_study_lease(root: Path):
+    """Hold the one-writer lease for a study invocation."""
+
+    lock_path = root / _STUDY_LEASE_NAME
+    flags = os.O_CREAT | os.O_RDWR | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(lock_path, flags, 0o664)
+    locked = False
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise RuntimeError(f"study lease is not a regular file: {lock_path}")
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            locked = True
+        except BlockingIOError:
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            owner = os.read(descriptor, 4096).decode("utf-8", errors="replace").strip()
+            detail = f": {owner}" if owner else ""
+            raise RuntimeError(f"study already has an active invocation{detail}") from None
+        owner = json.dumps(
+            {
+                "hostname": socket.gethostname(),
+                "pid": os.getpid(),
+                "started_at": _now(),
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+        os.ftruncate(descriptor, 0)
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        os.write(descriptor, owner + b"\n")
+        os.fsync(descriptor)
+        yield
+    finally:
+        if locked:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+
+def _reclaim_interrupted_records(manifest: dict[str, object]) -> int:
+    """Make records abandoned by the previous leased invocation retryable."""
+
+    reclaimed = 0
+    for record in _records(manifest):
+        if record.get("status") != "running":
+            continue
+        owner_hostname = record.get("hostname")
+        owner_pid = record.get("pid")
+        record.update(
+            {
+                "status": "failed",
+                "finished_at": _now(),
+                "error_type": "InterruptedStudyInvocation",
+                "error": (
+                    "reclaimed assignment from interrupted study invocation "
+                    f"on {owner_hostname} pid {owner_pid}"
+                ),
+            }
+        )
+        record.pop("traceback", None)
+        reclaimed += 1
+    return reclaimed
 
 
 def _records(manifest: dict[str, object]) -> list[dict[str, object]]:

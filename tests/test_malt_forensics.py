@@ -33,7 +33,10 @@ from rubric_gen.biomnibench.forensics.scoring import (
     score_panel,
 )
 from rubric_gen.biomnibench.forensics.categories import categorize_findings
-from rubric_gen.biomnibench.forensics.protocol import outcome_audit_protocol
+from rubric_gen.biomnibench.forensics.protocol import (
+    PRIMARY_RH_MODELS,
+    outcome_audit_protocol,
+)
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 
 
@@ -287,7 +290,8 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     (experiment / "manifest.json").write_text(json.dumps({
         "kind": "rubric-gen-submission-revision-experiment",
         "schema_version": 2,
-        "design_sha256": "d" * 64,
+        "experiment_id": "test-experiment",
+        "execution_order": 1,
         "assignment_id": "assignment-1",
         "task_id": "da-1-1",
     }))
@@ -295,9 +299,8 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         "schema_version": 1,
         "kind": "rubric-gen-randomized-revision-study",
         "status": "completed",
-        "design_path": str(tmp_path / "design.json"),
-        "design_sha256": "d" * 64,
-        "protocol_id": "test-protocol",
+        "experiment_path": str(tmp_path / "experiment.yaml"),
+        "experiment_id": "test-experiment",
         "seed_run_dir": str(tmp_path / "seeds"),
         "records": [{
             "assignment_id": "assignment-1",
@@ -311,12 +314,14 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     }))
     observed = {}
 
-    class FakeDesign:
-        sha256 = "d" * 64
-        path = (tmp_path / "design.json").resolve()
-        protocol_id = "test-protocol"
+    class FakeExperiment:
+        experiment_id = "test-experiment"
+        path = (tmp_path / "experiment.yaml").resolve()
         tasks_dir = tasks
-        outcome_audit = outcome_audit_protocol(primary_rule="majority")
+        outcome_audit = outcome_audit_protocol(
+            models=PRIMARY_RH_MODELS,
+            primary_rule="majority",
+        )
         assignments = ({
             "assignment_id": "assignment-1",
             "task_id": "da-1-1",
@@ -333,15 +338,18 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
             return 0
 
     monkeypatch.setattr(malt_cli_module, "ModelJudgeRunner", FakeRunner)
-    monkeypatch.setattr(malt_cli_module, "load_design", lambda _path: FakeDesign())
     monkeypatch.setattr(
-        malt_cli_module, "validate_completed_revision", lambda *_args: None
+        malt_cli_module, "load_experiment", lambda _path: FakeExperiment()
     )
-    monkeypatch.setattr(malt_cli_module, "require_clean_repository", lambda: None)
+    monkeypatch.setattr(
+        malt_cli_module,
+        "validate_completed_revision",
+        lambda *_args, **_kwargs: None,
+    )
     args = build_parser().parse_args([
         "--detect", "rh", "--biomnibench-study-dir", str(study),
         "--output-dir", str(tmp_path / "out"),
-        "--ensemble",
+        "--ensemble", "--resume",
     ])
 
     assert run(args) == 0
@@ -351,7 +359,8 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     assert config.tasks_dir == tasks.resolve()
     assert config.max_cost_usd == 1_500.0
     assert config.max_command_output_chars == 2_048
-    assert config.design_sha256s == ("d" * 64,)
+    assert config.experiment_ids == ("test-experiment",)
+    assert config.resume is False
     assert not list((tmp_path / "out").rglob("metrics.json"))
 
 
@@ -480,18 +489,25 @@ def test_timestamped_evaluation_root_and_resume_latest(tmp_path: Path) -> None:
     first.mkdir(parents=True)
     second.mkdir(parents=True)
     assert _evaluation_root(tmp_path, identity, resume=True) == second
+    assert _evaluation_root(
+        tmp_path,
+        "new-identity",
+        resume=True,
+        timestamp="20260725-140000-000001",
+    ) == (
+        tmp_path
+        / "evaluations"
+        / "20260725-140000-000001--new-identity"
+    )
 
 
 def test_vllm_dataset_default_is_deferred_until_execution() -> None:
     parser = build_parser()
     args = parser.parse_args([
-        "data.jsonl", "--detect", "rh", "--output-dir", "out", "--vllm-ensemble"
+        "data.jsonl", "--detect", "rh", "--output-dir", "out",
+        "--vllm", "http://node:8000/v1::Qwen/Qwen3.6-27B",
     ])
-    assert args.vllm_ensemble is True
-    assert args.vllm_endpoint_dir is None
-    assert args.vllm_qwen_url is None
-    assert args.vllm_glm_url is None
-    assert args.vllm_gpt_oss_url is None
+    assert args.vllm == ["http://node:8000/v1::Qwen/Qwen3.6-27B"]
 
 
 def test_prepare_rejects_duplicate_runs(tmp_path: Path) -> None:

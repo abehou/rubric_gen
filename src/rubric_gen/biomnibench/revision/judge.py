@@ -69,6 +69,7 @@ class SubmissionJudgeConfig:
     rubric_name: str | None
     rubric_set: Path | None
     max_review_chars: int | None
+    base_url: str | None = None
     max_retries: int = MAX_TRANSIENT_RETRIES
     rubric_path: Path | None = None
 
@@ -268,6 +269,7 @@ class BiomniSubmissionJudge:
                 tasks_dir=self.task_dir.parent,
                 review=self.config.review,
                 model=self.config.judge_model,
+                base_url=self.config.base_url,
                 rubric_name=self.config.rubric_name,
                 rubric_set=self.rubric_set,
                 rubric_path=self.config.rubric_path,

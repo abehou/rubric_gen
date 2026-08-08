@@ -202,7 +202,9 @@ class JudgeGeneration:
         }
 
 
-def provider_for_model(model: str) -> str:
+def provider_for_model(model: str, *, base_url: str | None = None) -> str:
+    if base_url is not None:
+        return "vllm"
     if model.startswith("gemini"):
         return "gemini"
     if model.startswith("claude"):
@@ -220,7 +222,53 @@ def generate_response(
     prompt: JudgePrompt,
     criterion_ids: tuple[str, ...] = (),
 ) -> JudgeGeneration:
-    provider = provider_for_model(model)
+    base_url = os.getenv("VLLM_BASE_URL")
+    provider = provider_for_model(model, base_url=base_url)
+    if provider == "vllm":
+        from openai import OpenAI
+
+        assert base_url is not None
+        response = OpenAI(
+            base_url=base_url.rstrip("/") + "/",
+            api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
+            timeout=_OPENAI_TIMEOUT_SECONDS,
+            max_retries=0,
+        ).chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": prompt.instructions},
+                {"role": "user", "content": prompt.evidence},
+            ],
+            max_tokens=_MAX_OUTPUT_TOKENS,
+            temperature=0,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "biomnibench_judge_evaluation",
+                    "strict": True,
+                    "schema": _openai_text_format(criterion_ids)["schema"],
+                },
+            },
+        )
+        text = response.choices[0].message.content or ""
+        if not text:
+            raise RuntimeError("vLLM returned an empty judge response")
+        return JudgeGeneration(
+            text=text,
+            provider="vllm",
+            requested_model=model,
+            effective_model=str(getattr(response, "model", model)),
+            response_id=getattr(response, "id", None),
+            request_parameters={
+                "base_url": base_url.rstrip("/") + "/",
+                "max_tokens": _MAX_OUTPUT_TOKENS,
+                "temperature": 0,
+                "client_timeout_seconds": _OPENAI_TIMEOUT_SECONDS,
+                "client_max_retries": 0,
+                "response_format": "json_schema",
+            },
+            usage=getattr(response, "usage", None),
+        )
     if provider == "gemini":
         from google import genai
 

@@ -85,6 +85,7 @@ class JudgeRunConfig:
     extra_run_dirs: tuple[Path, ...] = ()
     review: str = "trace"
     model: str | None = None
+    base_url: str | None = None
     output_path: Path | None = None
     judge_name: str | None = None
     rubric_name: str | None = None

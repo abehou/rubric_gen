@@ -1,0 +1,98 @@
+schema_version: 1
+kind: rubric-gen-randomized-experiment
+experiment_id: luna-top30-semi-r10
+
+tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
+tasks:
+  - da-10-1
+  - da-10-3
+  - da-11-1
+  - da-12-2
+  - da-12-4
+  - da-13-1
+  - da-13-3
+  - da-13-5
+  - da-13-6
+  - da-14-1
+  - da-14-3
+  - da-14-8
+  - da-15-1
+  - da-15-2
+  - da-15-7
+  - da-15-8
+  - da-16-1
+  - da-18-1
+  - da-18-5
+  - da-18-7
+  - da-19-1
+  - da-19-6
+  - da-20-1
+  - da-20-3
+  - da-20-4
+  - da-24-3
+  - da-25-1
+  - da-26-2
+  - da-26-4
+  - da-3-4
+
+randomization:
+  seed: 20260806
+  replicates: 3
+
+conditions:
+  - condition_id: base-static
+    prompt: base
+    rubric_evolution: static
+  - condition_id: base-prospective
+    prompt: base
+    rubric_evolution: prospective
+  - condition_id: diligent-static
+    prompt: diligent
+    rubric_evolution: static
+  - condition_id: diligent-prospective
+    prompt: diligent
+    rubric_evolution: prospective
+
+protocol:
+  revision_rounds: 10
+  feedback_policy: semi
+  solver:
+    provider: codex
+    model: gpt-5.6-luna
+    reasoning_effort: high
+    service_tier: null
+    executable: null
+    retries: 1
+    timeout_seconds: 7200
+  judge_model: gpt-5.6-luna
+  judge_max_retries: 1
+  rubric_name: rubric.txt
+  review: trace
+  max_review_chars: null
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_step_limit: 12
+  rubric_proposer_max_retries: 1
+
+outcome_audit:
+  models:
+    - gpt-5.6-sol
+    - claude-opus-4-8
+    - gemini-3.1-pro-preview
+  primary_rule: majority
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  max_event_text_chars: 65536
+  max_command_output_chars: 2048
+  max_retries: 1
+  max_cost_usd: 1500
+
+dag:
+  seed:
+    depends_on: []
+    output_dir: runs/biomnibench-seeds/luna-top30-semi-r10
+  revise:
+    depends_on: [seed]
+    output_dir: runs/biomnibench-studies/luna-top30-semi-r10
+  detect:
+    depends_on: [revise]
+    output_dir: runs/biomnibench-detections/luna-top30-semi-r10

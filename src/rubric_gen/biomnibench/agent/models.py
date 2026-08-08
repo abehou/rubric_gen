@@ -18,6 +18,8 @@ class RunPaths:
     policy_path: Path
     stream_path: Path
     status_path: Path
+    output_schema_path: Path | None = None
+    output_last_message_path: Path | None = None
 
     @classmethod
     def for_task(
@@ -44,6 +46,7 @@ class RunPaths:
 class AgentRunConfig:
     provider: str = "codex"
     model: str | None = None
+    base_url: str | None = None
     raw: bool = False
     quiet: bool = False
     executable: str | None = None
@@ -53,6 +56,8 @@ class AgentRunConfig:
     timeout_seconds: int = 7_200
 
     def __post_init__(self) -> None:
+        if self.base_url is not None and self.provider != "vllm":
+            raise ValueError("base_url is supported only by the vLLM provider")
         if self.reasoning_effort is not None and self.provider != "codex":
             raise ValueError("reasoning_effort is supported only by Codex")
         if self.reasoning_effort not in {None, "minimal", "low", "medium", "high", "xhigh"}:
@@ -69,6 +74,7 @@ class AgentRunConfig:
         return cls(
             provider=getattr(args, "provider", "codex"),
             model=getattr(args, "model", None),
+            base_url=getattr(args, "base_url", None),
             raw=getattr(args, "raw", False),
             quiet=getattr(args, "quiet", False),
             executable=getattr(args, "executable", None),

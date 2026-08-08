@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import json
 import secrets
@@ -16,7 +17,10 @@ from tqdm.auto import trange
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile, solver_prompt
 from rubric_gen.biomnibench.agent.sessions import CliSolverSessionDriver
-from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
+from rubric_gen.biomnibench.agent.workspaces import (
+    TaskWorkspace,
+    ensure_artifacts_dir,
+)
 from rubric_gen.biomnibench.judging.models import DEFAULT_JUDGE_MODEL
 from rubric_gen.biomnibench.utils.progress import PROGRESS_BAR_FORMAT
 from rubric_gen.biomnibench.revision.feedback import (
@@ -96,11 +100,9 @@ class SubmissionRevisionController:
             config.seed_run_dir,
             self.task_dir,
             config.replicate,
-            design_sha256=config.design_sha256,
-            protocol_id=config.protocol_id,
+            experiment_id=config.experiment_id,
             provider=config.agent.provider,
             requested_model=config.agent.model,
-            run_provenance_sha256=str(config.run_provenance["sha256"]),
         )
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent),
@@ -109,11 +111,20 @@ class SubmissionRevisionController:
                 None if config.rubric_evolution is RubricEvolution.STATIC
                 else RubricEvolver(
                     agent=AgentRunConfig(
-                        provider="codex",
+                        provider=(
+                            "vllm" if config.rubric_proposer_base_url else "codex"
+                        ),
                         model=config.rubric_proposer_model,
+                        base_url=config.rubric_proposer_base_url,
                         quiet=True,
-                        reasoning_effort=config.agent.reasoning_effort,
-                        service_tier=config.agent.service_tier,
+                        reasoning_effort=(
+                            config.agent.reasoning_effort
+                            if config.rubric_proposer_base_url is None else None
+                        ),
+                        service_tier=(
+                            config.agent.service_tier
+                            if config.rubric_proposer_base_url is None else None
+                        ),
                         retries=0,
                         timeout_seconds=config.agent.timeout_seconds,
                     ),
@@ -154,8 +165,7 @@ class SubmissionRevisionController:
 
     def _experiment_identity(self) -> dict[str, object]:
         return {
-            "design_sha256": self.config.design_sha256,
-            "protocol_id": self.config.protocol_id,
+            "experiment_id": self.config.experiment_id,
             "assignment_id": self.config.assignment_id,
             "condition_id": self.config.condition_id,
             "replicate": self.config.replicate,
@@ -177,10 +187,12 @@ class SubmissionRevisionController:
             "prompt": PromptProfile(self.config.prompt_profile).value,
             "rubric_evolution": RubricEvolution(self.config.rubric_evolution).value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
+            "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
             "rubric_proposer_step_limit": self.config.rubric_proposer_step_limit,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
             "review": self.config.review,
             "judge_model": self.config.judge_model,
+            "judge_base_url": self.config.judge_base_url,
             "max_review_chars": self.config.max_review_chars,
             "rubric_name": self.config.rubric_name,
             "rubric_set": (
@@ -193,7 +205,6 @@ class SubmissionRevisionController:
             "data_sha256": self.data_sha256,
             "seed_run_dir": str(self.seed.root),
             "seed_sha256": self.seed.sha256,
-            "run_provenance": self.config.run_provenance,
         }
 
     def run(self) -> SubmissionRevisionResult:
@@ -314,7 +325,6 @@ class SubmissionRevisionController:
         self._materialize_seed(workspace)
         self._link_seed_snapshot()
         _make_read_only(workspace / "instruction.md")
-        _make_tree_read_only(workspace / "data")
         _write_json(
             self.experiment_dir / "manifest.json",
             {
@@ -419,8 +429,14 @@ class SubmissionRevisionController:
             ):
                 self._validate_resume_state(state, None, manifest)
                 return state, live_root, workspace
-            raise RuntimeError(f"live revision workspace is unavailable: {workspace}")
-        self._verify_live_task_inputs(workspace)
+            if workspace.is_symlink():
+                raise RuntimeError(
+                    f"live revision workspace is an invalid symlink: {workspace}"
+                )
+            live_root, workspace = self._rebuild_live_workspace(
+                state, live_root, manifest
+            )
+        self._verify_live_instruction(workspace)
         if state.phase in {
             _RevisionPhase.FAILED_TURN,
             _RevisionPhase.TURN_IN_PROGRESS,
@@ -429,13 +445,74 @@ class SubmissionRevisionController:
         self._validate_resume_state(state, workspace, manifest)
         return state, live_root, workspace
 
+    def _rebuild_live_workspace(
+        self,
+        state: _RevisionState,
+        old_live_root: Path,
+        manifest: dict[str, object],
+    ) -> tuple[Path, Path]:
+        if os.path.lexists(old_live_root):
+            _validate_live_root(old_live_root, self.experiment_dir)
+            _remove_tree(old_live_root, self.experiment_dir)
+        live_root = Path(
+            tempfile.mkdtemp(prefix=_LIVE_ROOT_PREFIX, dir=_live_root_parent())
+        )
+        try:
+            _write_live_root_sentinel(live_root, self.experiment_dir)
+            workspace = live_root / "workspace"
+            workspace.mkdir()
+            self._restore_last_scored_workspace(state, workspace)
+            self._verify_live_instruction(workspace)
+            manifest["live_workspace_dir"] = str(workspace)
+            manifest["live_workspace_removed"] = False
+            self._discard_solver_session(
+                state,
+                manifest,
+                reason="live workspace was rebuilt from a sealed submission",
+            )
+        except BaseException:
+            _remove_created_live_tree(live_root)
+            raise
+        self._append_event(
+            {
+                "event": "live_workspace_rebuilt",
+                "submission_id": (
+                    state.submission_ids[-1] if state.submission_ids else None
+                ),
+            }
+        )
+        return live_root, workspace
+
+    def _discard_solver_session(
+        self,
+        state: _RevisionState,
+        manifest: dict[str, object],
+        *,
+        reason: str,
+    ) -> None:
+        previous_session_id = state.session_id
+        state.session_id = None
+        state.effective_solver_model = None
+        manifest["session_id"] = None
+        manifest["effective_solver_model"] = None
+        _write_json_atomic(self.experiment_dir / "manifest.json", manifest)
+        self._write_state(state)
+        if previous_session_id is not None:
+            self._append_event(
+                {
+                    "event": "solver_session_discarded",
+                    "session_id": previous_session_id,
+                    "reason": reason,
+                }
+            )
+
     def _recover_failed_solver_boundary(
         self,
         state: _RevisionState,
         workspace: Path,
         manifest: dict[str, object],
     ) -> None:
-        """Promote a safely completed legacy solver failure to judging."""
+        """Recover a solver interruption from the last sealed boundary."""
         turn_index = state.next_turn_index
         if not 0 <= turn_index < self.config.revision_rounds + 1:
             raise RuntimeError("failed revision state has an invalid turn index")
@@ -446,10 +523,7 @@ class SubmissionRevisionController:
             or set(state.judge_attempts) != set(state.submission_ids)
         ):
             raise RuntimeError("failed revision state boundary counts are inconsistent")
-        if state.next_prompt != self._validate_scored_boundaries(state):
-            raise RuntimeError(
-                "failed revision state next prompt disagrees with feedback"
-            )
+        self._validate_scored_boundaries(state)
 
         turn_dir = self.experiment_dir / "turns" / f"turn-{turn_index:03d}"
         expected_turns = [
@@ -458,6 +532,15 @@ class SubmissionRevisionController:
         ]
         if sorted((self.experiment_dir / "turns").glob("turn-*")) != expected_turns:
             raise RuntimeError("experiment contains an uncertain failed solver turn")
+        prompt_path = turn_dir / "prompt.txt"
+        if (
+            prompt_path.is_symlink()
+            or not prompt_path.is_file()
+            or prompt_path.read_text() != state.next_prompt
+        ):
+            raise RuntimeError(
+                "failed revision state prompt disagrees with the executed turn"
+            )
         status_path = turn_dir / "status.json"
         trajectory_path = turn_dir / "trajectory.stream.jsonl"
         if (
@@ -467,31 +550,64 @@ class SubmissionRevisionController:
             and not os.path.lexists(trajectory_path)
             and not turn_dir.is_symlink()
             and turn_dir.is_dir()
-            and sorted(path.name for path in turn_dir.iterdir()) == ["prompt.txt"]
-            and (turn_dir / "prompt.txt").is_file()
-            and not (turn_dir / "prompt.txt").is_symlink()
-            and (turn_dir / "prompt.txt").read_text() == state.next_prompt
-        ):
-            snapshot = _read_json_object(
-                self.experiment_dir
-                / "submissions"
-                / state.submission_ids[-1]
-                / "snapshot.json",
-                "submission snapshot",
-            )
-            if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
-                raise RuntimeError(
-                    "live workspace changed during an interrupted solver turn"
+            and set(path.name for path in turn_dir.iterdir())
+            in ({"prompt.txt"}, {"attempts", "prompt.txt"})
+            and (
+                not os.path.lexists(turn_dir / "attempts")
+                or (
+                    not (turn_dir / "attempts").is_symlink()
+                    and (turn_dir / "attempts").is_dir()
                 )
+            )
+        ):
+            if (
+                manifest.get("session_id") != state.session_id
+                or manifest.get("effective_solver_model")
+                != state.effective_solver_model
+            ):
+                raise RuntimeError(
+                    "interrupted revision state has inconsistent solver identity"
+                )
+            self._restore_last_scored_workspace(state, workspace)
+            self._discard_solver_session(
+                state,
+                manifest,
+                reason="solver interrupted before finalizing turn artifacts",
+            )
             self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
             return
         if (
-            not state.session_id
-            or not state.effective_solver_model
+            (state.session_id is None) != (state.effective_solver_model is None)
             or manifest.get("session_id") != state.session_id
             or manifest.get("effective_solver_model") != state.effective_solver_model
         ):
             raise RuntimeError("failed revision state has inconsistent solver identity")
+        if (
+            state.phase is _RevisionPhase.FAILED_TURN
+            and not os.path.lexists(trajectory_path)
+            and not turn_dir.is_symlink()
+            and turn_dir.is_dir()
+            and not status_path.is_symlink()
+            and status_path.is_file()
+        ):
+            status = _read_json_object(status_path, "failed solver turn status")
+            if (
+                status.get("status") == "failed"
+                and status.get("exit_code") == 1
+                and tuple(status.get("validation_errors") or ())
+                in {
+                    ("controlled Codex configuration changed",),
+                    ("codex did not report a session ID during resume",),
+                }
+            ):
+                self._restore_last_scored_workspace(state, workspace)
+                self._discard_solver_session(
+                    state,
+                    manifest,
+                    reason=status["validation_errors"][0],
+                )
+                self._reset_uncertain_solver_turn(state, turn_dir, turn_index)
+                return
         if (
             turn_dir.is_symlink()
             or not turn_dir.is_dir()
@@ -552,8 +668,7 @@ class SubmissionRevisionController:
         self._validate_submission_outputs(workspace)
         _solution_tree_sha256(workspace)
         submission_id = f"s{turn_index:03d}"
-        if os.path.lexists(self.experiment_dir / "submissions" / submission_id):
-            raise RuntimeError("failed solver turn already has a submission snapshot")
+        submission_dir = self.experiment_dir / "submissions" / submission_id
         trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
             self.experiment_dir
             / "turns"
@@ -561,12 +676,20 @@ class SubmissionRevisionController:
             / "trajectory.stream.jsonl"
             for index in range(1, turn_index + 1)
         ]
-        self._snapshot_submission(
-            submission_id,
-            workspace,
-            trajectories,
-            state.session_id,
-        )
+        if os.path.lexists(submission_dir):
+            self._verify_recovered_submission_snapshot(
+                submission_dir,
+                workspace,
+                trajectories,
+                state.session_id,
+            )
+        else:
+            self._snapshot_submission(
+                submission_id,
+                workspace,
+                trajectories,
+                state.session_id,
+            )
 
         turn_dir.chmod(stat.S_IMODE(os.lstat(turn_dir).st_mode) | stat.S_IRWXU)
         status_path.chmod(
@@ -733,10 +856,8 @@ class SubmissionRevisionController:
             for attempt_id in state.judge_attempts.values()
         ):
             raise RuntimeError("revision state has invalid judge attempt identities")
-        if state.next_turn_index > 1 and (
-            not state.session_id or not state.effective_solver_model
-        ):
-            raise RuntimeError("revision state is missing solver identity")
+        if (state.session_id is None) != (state.effective_solver_model is None):
+            raise RuntimeError("revision state has partial solver identity")
         if manifest.get("session_id") != state.session_id:
             raise RuntimeError("manifest and revision state disagree on session ID")
         if manifest.get("effective_solver_model") != state.effective_solver_model:
@@ -762,13 +883,12 @@ class SubmissionRevisionController:
             )
             if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
                 raise RuntimeError("live workspace changed after the last boundary")
-        expected_prompt = self._validate_scored_boundaries(state)
-        if state.next_prompt != expected_prompt:
-            raise RuntimeError("revision state next prompt disagrees with feedback")
+        self._validate_scored_boundaries(state)
         if manifest.get("scoring_identity") != self.scoring_identity:
             raise RuntimeError("revision manifest has the wrong scoring identity")
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
+        ensure_artifacts_dir(workspace)
         turn_index = state.next_turn_index
         state.phase = _RevisionPhase.TURN_IN_PROGRESS
         self._write_state(state)
@@ -833,7 +953,7 @@ class SubmissionRevisionController:
                 f"provider exited with code {turn.exit_code}", turn.exit_code
             )
         try:
-            self._verify_live_task_inputs(workspace)
+            self._verify_live_instruction(workspace)
             self._validate_submission_outputs(workspace)
             _solution_tree_sha256(workspace)
         except (OSError, RuntimeError) as exc:
@@ -1030,8 +1150,7 @@ class SubmissionRevisionController:
         if identity["rendered_rubric_sha256"] != rubric.sha256:
             raise RuntimeError("round score attests a different rubric")
 
-    def _validate_scored_boundaries(self, state: _RevisionState) -> str:
-        expected_prompt = solver_prompt(self.config.prompt_profile)
+    def _validate_scored_boundaries(self, state: _RevisionState) -> None:
         for index, score in enumerate(state.scores):
             submission_id = f"s{index:03d}"
             submission_dir = self.experiment_dir / "submissions" / submission_id
@@ -1068,8 +1187,48 @@ class SubmissionRevisionController:
                 raise RuntimeError(
                     "stored feedback disagrees with validated judge artifacts"
                 )
-            expected_prompt = projected.prompt
-        return expected_prompt
+
+    def _verify_recovered_submission_snapshot(
+        self,
+        submission_dir: Path,
+        workspace: Path,
+        trajectories: list[Path],
+        session_id: str,
+    ) -> None:
+        """Validate a snapshot sealed before an interrupted state update."""
+
+        _verify_submission_snapshot(submission_dir)
+        snapshot = _read_json_object(
+            submission_dir / "snapshot.json", "recovered submission snapshot"
+        )
+        status = _read_json_object(
+            submission_dir / "status.json", "recovered submission status"
+        )
+        if (
+            snapshot.get("session_id") != session_id
+            or snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace)
+            or status.get("schema_version") != 2
+            or status.get("task") != self.task_dir.name
+            or status.get("task_dir") != str(self.task_dir)
+            or status.get("workspace_dir") != str(submission_dir / "workspace")
+            or status.get("provider") != self.config.agent.provider
+            or status.get("session_id") != session_id
+            or status.get("submission_id") != submission_dir.name
+            or status.get("exit_code") != 0
+        ):
+            raise RuntimeError(
+                "existing recovered submission snapshot disagrees with the solver turn"
+            )
+        expected_trajectory = hashlib.sha256()
+        for trajectory in trajectories:
+            raw = trajectory.read_bytes()
+            expected_trajectory.update(raw)
+            if raw and not raw.endswith(b"\n"):
+                expected_trajectory.update(b"\n")
+        if snapshot.get("trajectory_sha256") != expected_trajectory.hexdigest():
+            raise RuntimeError(
+                "existing recovered submission trajectory disagrees with the solver turn"
+            )
 
     def _compact_historical_submissions(
         self, state: _RevisionState
@@ -1233,11 +1392,9 @@ class SubmissionRevisionController:
                 + ", ".join(invalid)
             )
 
-    def _verify_live_task_inputs(self, workspace: Path) -> None:
+    def _verify_live_instruction(self, workspace: Path) -> None:
         if _sha256_file(workspace / "instruction.md") != self.instruction_sha256:
             raise RuntimeError("solver modified the task instruction")
-        if _tree_sha256(workspace / "data") != self.data_sha256:
-            raise RuntimeError("solver modified the canonical task data")
 
     def _verify_canonical_task_inputs(self) -> None:
         if _sha256_file(self.task_dir / "instruction.md") != self.instruction_sha256:

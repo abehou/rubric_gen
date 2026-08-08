@@ -9,7 +9,7 @@ import pytest
 
 import rubric_gen.biomnibench.revision.seeds as seeds_module
 from rubric_gen.biomnibench.cli import build_parser
-from rubric_gen.biomnibench.experiments import ExperimentDesign
+from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.judge import JudgeArtifacts
 from rubric_gen.biomnibench.revision.seeds import (
     SeedSetConfig,
@@ -18,7 +18,7 @@ from rubric_gen.biomnibench.revision.seeds import (
 )
 
 
-DESIGN_SHA = "d" * 64
+EXPERIMENT_ID = "test-experiment"
 
 
 def _task(root: Path) -> Path:
@@ -33,7 +33,7 @@ def _task(root: Path) -> Path:
     return task
 
 
-def _design(root: Path, task: Path) -> ExperimentDesign:
+def _design(root: Path, task: Path) -> Experiment:
     conditions = [
         {"condition_id": f"{prompt}--{rubric}", "prompt": prompt,
          "rubric_evolution": rubric}
@@ -55,11 +55,10 @@ def _design(root: Path, task: Path) -> ExperimentDesign:
                 "execution_order": execution,
             })
     payload = {
-        "design_sha256": DESIGN_SHA,
-        "protocol_id": "test-protocol",
+        "experiment_id": EXPERIMENT_ID,
         "tasks_dir": str(task.parent.resolve()),
-        "tasks": [{"task_id": task.name}],
-        "replicates": 3,
+        "tasks": [task.name],
+        "randomization": {"seed": 42, "replicates": 3},
         "conditions": conditions,
         "assignments": assignments,
         "protocol": {
@@ -87,11 +86,12 @@ def _design(root: Path, task: Path) -> ExperimentDesign:
             "rubric_proposer_step_limit": 2,
             "rubric_proposer_max_retries": 1,
         },
-        "run_provenance": {"sha256": "9" * 64},
+        "outcome_audit": {},
+        "dag": {},
     }
-    path = (root / "design.json").resolve()
+    path = (root / "experiment.yaml").resolve()
     path.write_text("{}")
-    return ExperimentDesign(path, payload)
+    return Experiment(path, payload)
 
 
 class FakeAgentRunner:
@@ -155,11 +155,9 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
             output,
             task,
             replicate,
-            design_sha256=DESIGN_SHA,
-            protocol_id=design.protocol_id,
+            experiment_id=EXPERIMENT_ID,
             provider="codex",
             requested_model="test-model",
-            run_provenance_sha256="9" * 64,
         )
         for replicate in range(1, 4)
     ]
@@ -191,15 +189,13 @@ def test_seed_resume_reuses_only_integrity_checked_complete_blocks(
             output,
             task,
             2,
-            design_sha256=DESIGN_SHA,
-            protocol_id=design.protocol_id,
+            experiment_id=EXPERIMENT_ID,
             provider="codex",
             requested_model="test-model",
-            run_provenance_sha256="9" * 64,
         )
 
 
-def test_seed_refuses_overwrite_and_design_mismatch(
+def test_seed_refuses_overwrite_and_experiment_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
@@ -210,16 +206,14 @@ def test_seed_refuses_overwrite_and_design_mismatch(
     SeedSetRunner(SeedSetConfig(design, output, 1)).run()
     with pytest.raises(FileExistsError):
         SeedSetRunner(SeedSetConfig(design, output, 1)).run()
-    with pytest.raises(RuntimeError, match="completed design"):
+    with pytest.raises(RuntimeError, match="match the experiment"):
         resolve_seed(
             output,
             task,
             1,
-            design_sha256="a" * 64,
-            protocol_id=design.protocol_id,
+            experiment_id="other-experiment",
             provider="codex",
             requested_model="test-model",
-            run_provenance_sha256="9" * 64,
         )
 
 
@@ -243,19 +237,17 @@ def test_seed_rejects_provenance_metadata_tampering(
             output,
             task,
             1,
-            design_sha256=DESIGN_SHA,
-            protocol_id=design.protocol_id,
+            experiment_id=EXPERIMENT_ID,
             provider="codex",
             requested_model="test-model",
-            run_provenance_sha256="9" * 64,
         )
 
 
-def test_seed_cli_is_design_only() -> None:
+def test_seed_cli_is_experiment_only() -> None:
     args = build_parser().parse_args([
-        "seed", "--design", "design.json", "--output-dir", "seeds", "--resume"
+        "seed", "--experiment", "experiment.yaml", "--resume"
     ])
-    assert args.design == "design.json"
+    assert args.experiment == "experiment.yaml"
     assert args.resume is True
     with pytest.raises(SystemExit):
         build_parser().parse_args([

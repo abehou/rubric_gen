@@ -10,10 +10,14 @@ source /juice2/u/abehou/anaconda3/etc/profile.d/conda.sh
 conda activate "$environment"
 cd /nlp/scr/abehou/rubric_gen
 
+read -r qwen27_endpoint < runs/vllm-endpoints/qwen36-27b.endpoint
+read -r qwen35_endpoint < runs/vllm-endpoints/qwen36-35b-a3b.endpoint
+
 uv run malt \
   --detect "$detection" \
   --output-dir "$output_dir" \
-  --vllm-ensemble \
+  --vllm "$qwen27_endpoint" \
+  --vllm "$qwen35_endpoint" \
   --top "$top" \
   --seed 42 \
   --max-concurrency 30

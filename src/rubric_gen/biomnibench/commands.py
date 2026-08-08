@@ -1,34 +1,39 @@
-"""Handlers for the four BiomniBench workflow commands."""
+"""Handlers for the BiomniBench experiment DAG."""
 
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
-from rubric_gen.biomnibench.experiments import load_design, verify_runtime_provenance
+from rubric_gen.biomnibench.experiment import load_experiment
 from rubric_gen.biomnibench.revision.seeds import SeedSetConfig, SeedSetRunner
 from rubric_gen.biomnibench.study import StudyRunConfig, StudyRunner
 from rubric_gen.biomnibench.utils.paths import resolve_project_path
+from rubric_gen.biomnibench.vllm import parse_vllm_endpoints
 
 
 def run_seed(args: argparse.Namespace) -> int:
-    design = load_design(resolve_project_path(args.design))
-    verify_runtime_provenance(design)
+    experiment = load_experiment(resolve_project_path(args.experiment))
+    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
     return SeedSetRunner(SeedSetConfig(
-        design=design,
-        output_dir=resolve_project_path(args.output_dir),
+        experiment=experiment,
+        output_dir=Path(str(experiment.dag["seed"]["output_dir"])),
         max_concurrency=args.max_concurrency,
         resume=args.resume,
+        vllm_endpoints=endpoints,
     )).run()
 
 
 def run_revise(args: argparse.Namespace) -> int:
-    design = load_design(resolve_project_path(args.design))
+    experiment = load_experiment(resolve_project_path(args.experiment))
+    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
     return StudyRunner(StudyRunConfig(
-        design=design,
-        seed_run_dir=resolve_project_path(args.seed_dir),
-        output_dir=resolve_project_path(args.output_dir),
+        experiment=experiment,
+        seed_run_dir=Path(str(experiment.dag["seed"]["output_dir"])),
+        output_dir=Path(str(experiment.dag["revise"]["output_dir"])),
         max_concurrency=args.max_concurrency,
         resume=args.resume,
+        vllm_endpoints=endpoints,
     )).run()
 
 
@@ -38,13 +43,40 @@ def run_detect(args: argparse.Namespace) -> int:
     argv = [
         "--detect", "rh",
         "--biomnibench-study-dir", args.run_dir,
-        "--ensemble",
         "--output-dir", args.output_dir,
         "--max-concurrency", str(args.max_concurrency),
     ]
+    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
+    if endpoints:
+        for model, url in endpoints.items():
+            argv.extend(["--vllm", f"{url}::{model}"])
+    else:
+        argv.append("--ensemble")
     if args.resume:
         argv.append("--resume")
     return malt_main(argv)
+
+
+def run_dag(args: argparse.Namespace) -> int:
+    experiment = load_experiment(resolve_project_path(args.experiment))
+    common = argparse.Namespace(
+        experiment=str(experiment.path),
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+        vllm=getattr(args, "vllm", []),
+    )
+    if run_seed(common):
+        return 1
+    if run_revise(common):
+        return 1
+    detect = argparse.Namespace(
+        run_dir=str(experiment.dag["revise"]["output_dir"]),
+        output_dir=str(experiment.dag["detect"]["output_dir"]),
+        max_concurrency=min(args.max_concurrency, 3),
+        resume=args.resume,
+        vllm=getattr(args, "vllm", []),
+    )
+    return run_detect(detect)
 
 
 def run_judge_quality(args: argparse.Namespace) -> int:
@@ -53,10 +85,19 @@ def run_judge_quality(args: argparse.Namespace) -> int:
         RubricFreeRunner,
     )
 
+    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
+    models = (
+        tuple(endpoints)
+        if endpoints else tuple(
+            args.models
+            or ("gpt-5.6-sol", "claude-opus-4-8", "gemini-3.1-pro-preview")
+        )
+    )
     return RubricFreeRunner(RubricFreeConfig(
         experiment_dirs=tuple(resolve_project_path(path) for path in args.run_dir),
         output_dir=resolve_project_path(args.output_dir),
-        models=tuple(args.models),
+        models=models,
+        base_urls=endpoints,
         max_concurrency=args.max_concurrency,
         max_retries=args.max_retries,
         resume=args.resume,

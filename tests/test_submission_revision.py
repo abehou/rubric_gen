@@ -10,9 +10,9 @@ from typing import Callable
 import pytest
 
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
-from rubric_gen.biomnibench.agent.prompts import PromptProfile
+from rubric_gen.biomnibench.agent.prompts import PromptProfile, solver_prompt
 from rubric_gen.biomnibench.agent.sessions import SessionTurnResult
-from rubric_gen.biomnibench.experiments import ExperimentDesign
+from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.controller import SubmissionRevisionController
 from rubric_gen.biomnibench.revision.judge import JudgeArtifacts
 from rubric_gen.biomnibench.revision.models import (
@@ -21,18 +21,21 @@ from rubric_gen.biomnibench.revision.models import (
 )
 from rubric_gen.biomnibench.revision.artifacts import (
     live_root_parent,
+    remove_live_tree,
     sha256_file,
     solution_tree_sha256,
     tree_sha256,
 )
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy, project_feedback
 from rubric_gen.biomnibench.revision.seeds import SEED_KIND, SEED_SET_KIND
-from rubric_gen.biomnibench.study import validate_completed_revision
+from rubric_gen.biomnibench.study import (
+    _expected_rubric_names,
+    validate_completed_revision,
+)
 from rubric_gen.biomnibench.utils.hashing import sha256_text
 
 
-DESIGN_SHA = "d" * 64
-RUN_PROVENANCE = {"sha256": "9" * 64}
+EXPERIMENT_ID = "test-experiment"
 
 
 def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
@@ -80,14 +83,14 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
     instruction_sha = sha256_file(task / "instruction.md")
     data_sha = tree_sha256(task / "environment" / "data")
     solution_sha = sha256_text(
-        f"{DESIGN_SHA}\n{task.name}\n1\n{instruction_sha}\n{data_sha}\n"
+        f"{EXPERIMENT_ID}\n{task.name}\n1\n{instruction_sha}\n{data_sha}\n"
         f"{workspace_sha}\n{trajectory_sha}\n"
     )
     (submission / "status.json").write_text(json.dumps({
         "schema_version": 2,
         "task": task.name,
         "replicate": 1,
-        "design_sha256": DESIGN_SHA,
+        "experiment_id": EXPERIMENT_ID,
         "workspace_dir": str(workspace),
         "provider": "codex",
         "session_id": None,
@@ -134,8 +137,7 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
     (seed_root / "manifest.json").write_text(json.dumps({
         "schema_version": 4,
         "kind": SEED_KIND,
-        "design_sha256": DESIGN_SHA,
-        "protocol_id": "test-protocol",
+        "experiment_id": EXPERIMENT_ID,
         "task_id": task.name,
         "replicate": 1,
         "provider": "codex",
@@ -155,14 +157,12 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
             "exit_code": 0,
             "model": "test-model",
         },
-        "run_provenance_sha256": RUN_PROVENANCE["sha256"],
     }))
     (seed_set / "manifest.json").write_text(json.dumps({
         "schema_version": 3,
         "kind": SEED_SET_KIND,
         "status": "completed",
-        "design_sha256": DESIGN_SHA,
-        "protocol_id": "test-protocol",
+        "experiment_id": EXPERIMENT_ID,
     }))
     return seed_set
 
@@ -174,11 +174,9 @@ def _config(root: Path, task: Path, *, rounds: int, score: int = 80):
         revision_rounds=rounds,
         seed_run_dir=_write_seed_set(root, task, score),
         agent=AgentRunConfig(provider="codex", model="test-model"),
-        run_provenance=RUN_PROVENANCE,
-        design_sha256=DESIGN_SHA,
-        protocol_id="test-protocol",
-        assignment_id=f"{task.name}--rep-001--base--static",
-        condition_id="base--static",
+        experiment_id=EXPERIMENT_ID,
+        assignment_id=f"{task.name}--rep-001--base-static",
+        condition_id="base-static",
         replicate=1,
         execution_order=1,
         feedback_policy=FeedbackPolicy.FULL,
@@ -189,20 +187,15 @@ def _config(root: Path, task: Path, *, rounds: int, score: int = 80):
     )
 
 
-def _design(config: SubmissionRevisionConfig, task: Path) -> ExperimentDesign:
+def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
     agent = config.agent
-    return ExperimentDesign(
-        task.parent / "design.json",
+    return Experiment(
+        task.parent / "experiment.yaml",
         {
-            "design_sha256": DESIGN_SHA,
-            "protocol_id": config.protocol_id,
+            "experiment_id": config.experiment_id,
             "tasks_dir": str(task.parent.resolve()),
-            "tasks": [{
-                "task_id": task.name,
-                "instruction_sha256": sha256_file(task / "instruction.md"),
-                "data_sha256": tree_sha256(task / "environment" / "data"),
-                "rubric_sha256": sha256_file(task / "tests" / "rubric.txt"),
-            }],
+            "tasks": [task.name],
+            "randomization": {"seed": 1, "replicates": 1},
             "conditions": [{
                 "condition_id": config.condition_id,
                 "prompt": config.prompt_profile.value,
@@ -229,9 +222,21 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> ExperimentDesign:
                     "timeout_seconds": agent.timeout_seconds,
                 },
             },
-            "run_provenance": RUN_PROVENANCE,
+            "outcome_audit": {},
+            "dag": {},
         },
     )
+
+
+def test_expected_rubric_versions_use_condition_metadata() -> None:
+    assert _expected_rubric_names(
+        {"condition_id": "arbitrary-name", "rubric_evolution": "prospective"},
+        3,
+    ) == ["r0000.txt", "r0001.txt", "r0002.txt"]
+    assert _expected_rubric_names(
+        {"condition_id": "misleading-prospective", "rubric_evolution": "static"},
+        3,
+    ) == ["r0000.txt"]
 
 
 class FakeSession:
@@ -374,9 +379,21 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
         _design(config, task),
         config.seed_run_dir,
     )
+    state_path = config.experiment_dir / "state.json"
+    state = json.loads(state_path.read_text())
+    state["next_prompt"] = "persisted historical prompt\n"
+    state_path.write_text(json.dumps(state))
+    validate_completed_revision(
+        config.experiment_dir,
+        assignment,
+        _design(config, task),
+        config.seed_run_dir,
+    )
     manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
     assert manifest["live_workspace_removed"] is True
-    assert manifest["design_sha256"] == DESIGN_SHA
+    assert manifest["experiment_id"] == EXPERIMENT_ID
+    assert manifest["judge_base_url"] is None
+    assert manifest["rubric_proposer_base_url"] is None
 
     evaluation = next(
         (config.experiment_dir / "evaluations" / "s001").glob(
@@ -392,6 +409,116 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
             _design(config, task),
             config.seed_run_dir,
         )
+
+
+def test_solver_workspace_data_is_disposable_and_artifacts_are_persisted(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+
+    class WorkspaceMutationSession(FakeSession):
+        def _turn(
+            self,
+            workspace: Path,
+            prompt: str,
+            turn_dir: Path,
+            session_id: str,
+        ) -> SessionTurnResult:
+            assert (workspace / "artifacts").is_dir()
+            (workspace / "data" / "derived.tsv").write_text("derived\n")
+            (workspace / "artifacts" / "derived.tsv").write_text("persisted\n")
+            return super()._turn(workspace, prompt, turn_dir, session_id)
+
+    result = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=WorkspaceMutationSession(),
+            judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+        ),
+    ).run()
+
+    assert result.scores == (80, 90)
+    assert (task / "environment" / "data" / "values.csv").read_text() == "x\n1\n"
+    snapshot = config.experiment_dir / "submissions" / "s001" / "workspace"
+    assert (snapshot / "artifacts" / "derived.tsv").read_text() == "persisted\n"
+    assert not (snapshot / "data").exists()
+
+
+def test_canonical_source_data_mutation_is_still_rejected(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+
+    class SourceMutationSession(FakeSession):
+        def _turn(
+            self,
+            workspace: Path,
+            prompt: str,
+            turn_dir: Path,
+            session_id: str,
+        ) -> SessionTurnResult:
+            result = super()._turn(workspace, prompt, turn_dir, session_id)
+            (task / "environment" / "data" / "values.csv").write_text("changed\n")
+            return result
+
+    with pytest.raises(RuntimeError, match="canonical task data changed"):
+        SubmissionRevisionController(
+            config,
+            RevisionDependencies(
+                session=SourceMutationSession(),
+                judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+            ),
+        ).run()
+
+
+def test_solver_prompt_routes_generated_outputs_to_artifacts() -> None:
+    prompt = solver_prompt(PromptProfile.DILIGENT)
+
+    assert "under ./artifacts" in prompt
+    assert "./artifacts/: supporting files" in prompt
+    assert "Required deliverables:" in prompt
+    assert "Produce exactly these local files:" not in prompt
+
+
+def test_completed_revision_validates_model_endpoint_manifest_fields(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = replace(
+        _config(tmp_path, task, rounds=1),
+        judge_model="judge-model",
+        judge_base_url="http://judge:8000/v1",
+        rubric_proposer_model="proposer-model",
+        rubric_proposer_base_url="http://proposer:8000/v1",
+    )
+    SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+        ),
+    ).run()
+    assignment = {
+        "assignment_id": config.assignment_id,
+        "task_id": task.name,
+        "replicate": 1,
+        "condition_id": config.condition_id,
+        "execution_order": 1,
+    }
+
+    validate_completed_revision(
+        config.experiment_dir,
+        assignment,
+        _design(config, task),
+        config.seed_run_dir,
+        vllm_endpoints={
+            "judge-model": "http://judge:8000/v1",
+            "proposer-model": "http://proposer:8000/v1",
+        },
+    )
+    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
+    assert manifest["judge_base_url"] == "http://judge:8000/v1"
+    assert manifest["rubric_proposer_base_url"] == "http://proposer:8000/v1"
 
 
 def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
@@ -421,6 +548,78 @@ def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
     ).run()
     assert result.scores == (80, 90)
     assert judge.calls == 1
+
+
+def test_judge_resume_accepts_the_persisted_historical_prompt(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+
+    class InterruptDuringSeedJudge(SubmissionRevisionController):
+        interrupted = False
+
+        def _write_state(self, state) -> None:
+            super()._write_state(state)
+            if state.phase.value == "judge_in_progress" and not self.interrupted:
+                self.interrupted = True
+                raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        InterruptDuringSeedJudge(
+            config,
+            RevisionDependencies(session=session, judge=judge),
+        ).run()
+    state_path = config.experiment_dir / "state.json"
+    state = json.loads(state_path.read_text())
+    assert state["phase"] == "judge_in_progress"
+    state["next_prompt"] = "historical initial prompt\n"
+    state_path.write_text(json.dumps(state))
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True),
+        RevisionDependencies(session=session, judge=judge),
+    ).run()
+
+    assert result.scores == (80, 90)
+    assert session.prompts[0] != "historical initial prompt\n"
+
+
+def test_resume_rebuilds_missing_live_workspace_from_sealed_submission(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+
+    class InterruptAfterSeed(SubmissionRevisionController):
+        def _append_event(self, payload: dict[str, object]) -> None:
+            super()._append_event(payload)
+            if payload.get("event") == "submission_judged" and payload.get(
+                "submission_id"
+            ) == "s000":
+                raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        InterruptAfterSeed(
+            config, RevisionDependencies(session=session, judge=judge)
+        ).run()
+    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
+    old_live_root = Path(manifest["live_workspace_dir"]).parent
+    remove_live_tree(old_live_root, config.experiment_dir)
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True),
+        RevisionDependencies(session=session, judge=judge),
+    ).run()
+
+    assert result.scores == (80, 90)
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(event["event"] == "live_workspace_rebuilt" for event in events)
 
 
 def test_failed_solver_turn_is_sealed_and_never_misreported_as_complete(
@@ -480,6 +679,192 @@ def test_failed_solver_turn_resumes_from_last_scored_boundary(
     assert (archived / "status.json").is_file()
 
 
+def test_failed_solver_turn_rejects_a_prompt_that_differs_from_executed_turn(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession(fail=True)
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(RuntimeError, match="provider exited"):
+        SubmissionRevisionController(config, dependencies).run()
+    state_path = config.experiment_dir / "state.json"
+    state = json.loads(state_path.read_text())
+    state["next_prompt"] = "different prompt\n"
+    state_path.write_text(json.dumps(state))
+
+    with pytest.raises(RuntimeError, match="executed turn"):
+        SubmissionRevisionController(
+            replace(config, resume=True), dependencies
+        ).run()
+
+
+def test_resume_promotes_an_existing_valid_submission_snapshot(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    class InterruptAfterSnapshot(SubmissionRevisionController):
+        interrupted = False
+
+        def _snapshot_submission(self, submission_id, workspace, trajectories, session_id):
+            result = super()._snapshot_submission(
+                submission_id, workspace, trajectories, session_id
+            )
+            if submission_id == "s001" and not self.interrupted:
+                self.interrupted = True
+                raise KeyboardInterrupt
+            return result
+
+    with pytest.raises(KeyboardInterrupt):
+        InterruptAfterSnapshot(config, dependencies).run()
+    state_path = config.experiment_dir / "state.json"
+    state = json.loads(state_path.read_text())
+    state["phase"] = "turn_in_progress"
+    state_path.write_text(json.dumps(state))
+    turn = config.experiment_dir / "turns" / "turn-001"
+    status_path = turn / "status.json"
+    turn.chmod(turn.stat().st_mode | stat.S_IWUSR | stat.S_IXUSR)
+    status_path.chmod(status_path.stat().st_mode | stat.S_IWUSR)
+    status = json.loads(status_path.read_text())
+    status.update({
+        "status": "failed",
+        "exit_code": 0,
+        "max_retries": config.agent.retries,
+        "attempt_count": 1,
+        "attempts": [{
+            "process_exit_code": 0,
+            "stream_errors": [],
+            "output_errors": [],
+        }],
+    })
+    status_path.write_text(json.dumps(status))
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90)
+    assert len(session.prompts) == 1
+    recovered_status = json.loads(status_path.read_text())
+    assert recovered_status["recovered_on_resume"] is True
+    assert recovered_status["status"] == "accepted_after_interrupted_boundary"
+
+
+@pytest.mark.parametrize(
+    "failure_reason",
+    [
+        "controlled Codex configuration changed",
+        "codex did not report a session ID during resume",
+    ],
+)
+def test_prelaunch_session_failure_resumes_without_trajectory(
+    tmp_path: Path,
+    failure_reason: str,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=2)
+
+    class ConfigFailureSession(FakeSession):
+        fail_once = True
+
+        def resume(
+            self,
+            workspace: Path,
+            prompt: str,
+            turn_dir: Path,
+            session_id: str,
+        ) -> SessionTurnResult:
+            if self.fail_once:
+                self.fail_once = False
+                raise RuntimeError(failure_reason)
+            return super().resume(workspace, prompt, turn_dir, session_id)
+
+    session = ConfigFailureSession()
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(RuntimeError, match=failure_reason):
+        SubmissionRevisionController(config, dependencies).run()
+    failed_turn = config.experiment_dir / "turns" / "turn-002"
+    assert not (failed_turn / "trajectory.stream.jsonl").exists()
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90, 95)
+    assert len(session.sessions) == 2
+    assert (
+        config.experiment_dir
+        / "interrupted-turns"
+        / "turn-002"
+        / "status.json"
+    ).is_file()
+
+
+def test_interrupted_attempt_artifacts_restore_boundary_and_restart_session(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=2)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    class InterruptAfterFirstRevision(SubmissionRevisionController):
+        def _append_event(self, payload: dict[str, object]) -> None:
+            super()._append_event(payload)
+            if payload.get("event") == "submission_judged" and payload.get(
+                "submission_id"
+            ) == "s001":
+                raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        InterruptAfterFirstRevision(config, dependencies).run()
+
+    state_path = config.experiment_dir / "state.json"
+    manifest_path = config.experiment_dir / "manifest.json"
+    state = json.loads(state_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    state["phase"] = "turn_in_progress"
+    state["effective_solver_model"] = None
+    manifest["effective_solver_model"] = None
+    state_path.write_text(json.dumps(state))
+    manifest_path.write_text(json.dumps(manifest))
+
+    turn = config.experiment_dir / "turns" / "turn-002"
+    attempts = turn / "attempts"
+    attempts.mkdir(parents=True)
+    (turn / "prompt.txt").write_text(state["next_prompt"])
+    (attempts / "attempt-001.prompt.txt").write_text(state["next_prompt"])
+    (attempts / "attempt-001.trajectory.stream.jsonl").write_text(
+        '{"type":"item.completed"}\n'
+    )
+    workspace = Path(manifest["live_workspace_dir"])
+    (workspace / "answer.txt").write_text("uncertain interrupted output\n")
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90, 95)
+    assert session.sessions == ["solver-session", "solver-session"]
+    archived = config.experiment_dir / "interrupted-turns" / "turn-002"
+    assert (archived / "attempts" / "attempt-001.trajectory.stream.jsonl").is_file()
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(event["event"] == "solver_session_discarded" for event in events)
+
+
 def test_live_root_defaults_outside_repository(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("BIOMNIBENCH_LIVE_ROOT", raising=False)
     root = live_root_parent()
@@ -532,4 +917,5 @@ Levels: A=40 B=20 C=0
     assert '"title": "Evidence"' in semi.prompt
     assert "needs more evidence" not in semi.prompt
     assert "Criterion 2" not in score.prompt
+    assert all("under ./artifacts, not ./data" in item.prompt for item in (full, semi, score))
     assert score.score == 80

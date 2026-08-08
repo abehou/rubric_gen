@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 from typing import Callable
 
+import rubric_gen.biomnibench.agent.adapters as adapters_module
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
+from rubric_gen.biomnibench.agent.adapters import CodexAdapter, VllmAdapter
 from rubric_gen.biomnibench.agent.sessions import (
     OUTPUT_RECOVERY_PROMPT,
     RECOVERY_PROMPT,
@@ -102,6 +105,143 @@ def test_codex_persistent_session_has_no_network_or_web_override(
     assert "--ignore-rules" in command
     assert "--search" not in command
     assert not hasattr(driver.config, "allow_network")
+
+
+def test_codex_adapter_restores_controlled_config_between_turns(tmp_path: Path) -> None:
+    paths = RunPaths(
+        provider="codex",
+        run_dir=tmp_path / "turn",
+        workspace_dir=tmp_path / "workspace",
+        prompt_path=tmp_path / "turn" / "prompt.txt",
+        policy_path=tmp_path / "turn" / "policy.toml",
+        stream_path=tmp_path / "turn" / "stream.jsonl",
+        status_path=tmp_path / "turn" / "status.json",
+    )
+    config = AgentRunConfig(provider="codex", model="gpt-5.6-luna")
+    adapter = CodexAdapter()
+    adapter.prepare_run(paths, config, "first")
+    controlled = tmp_path / ".agent-state" / "codex" / "config.toml"
+    expected = controlled.read_text()
+    controlled.write_text(expected + "\n# normalized by CLI\n")
+
+    adapter.prepare_run(paths, config, "second")
+
+    assert controlled.read_text() == expected
+
+
+def test_codex_adapter_mounts_its_sandbox_helpers_read_only(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    package_root = tmp_path / "npm" / "@openai" / "codex"
+    launcher = package_root / "bin" / "codex.js"
+    native = (
+        package_root
+        / "node_modules"
+        / "@openai"
+        / "codex-linux-x64"
+        / "vendor"
+        / "x86_64-unknown-linux-musl"
+        / "bin"
+        / "codex"
+    )
+    bundled_rg = native.parent.parent / "codex-path" / "rg"
+    for path in (launcher, native, bundled_rg):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("executable")
+        path.chmod(0o755)
+    monkeypatch.setattr(adapters_module.shutil, "which", lambda _: str(launcher))
+
+    paths = RunPaths(
+        provider="codex",
+        run_dir=tmp_path / "turn",
+        workspace_dir=tmp_path / "workspace",
+        prompt_path=tmp_path / "turn" / "prompt.txt",
+        policy_path=tmp_path / "turn" / "policy.toml",
+        stream_path=tmp_path / "turn" / "stream.jsonl",
+        status_path=tmp_path / "turn" / "status.json",
+    )
+    CodexAdapter().prepare_run(
+        paths, AgentRunConfig(provider="codex", model="gpt-5.6-luna")
+    )
+
+    controlled = tmp_path / ".agent-state" / "codex" / "config.toml"
+    filesystem = tomllib.loads(controlled.read_text())["permissions"][
+        "biomnibench-task"
+    ]["filesystem"]
+    assert filesystem[str(native)] == "read"
+    assert filesystem[str(bundled_rg)] == "read"
+    assert filesystem[":minimal"] == "read"
+    assert filesystem[":workspace_roots"] == {".": "write"}
+
+
+def test_codex_adapter_requests_schema_constrained_final_output(tmp_path: Path) -> None:
+    paths = RunPaths(
+        provider="codex",
+        run_dir=tmp_path / "turn",
+        workspace_dir=tmp_path / "workspace",
+        prompt_path=tmp_path / "turn" / "prompt.txt",
+        policy_path=tmp_path / "turn" / "policy.toml",
+        stream_path=tmp_path / "turn" / "stream.jsonl",
+        status_path=tmp_path / "turn" / "status.json",
+        output_schema_path=tmp_path / "workspace" / "data" / "schema.json",
+        output_last_message_path=tmp_path / "workspace" / "answer.txt",
+    )
+
+    command = CodexAdapter().build_command(
+        paths,
+        AgentRunConfig(provider="codex", model="gpt-5.6-luna"),
+        "propose",
+    )
+
+    assert command[command.index("--output-schema") + 1] == str(
+        paths.output_schema_path.resolve()
+    )
+    assert command[command.index("--output-last-message") + 1] == str(
+        paths.output_last_message_path.resolve()
+    )
+    assert command[-1] == "propose"
+
+
+def test_vllm_adapter_uses_codex_responses_without_hosted_credentials(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("CODEX_API_KEY", "must-not-leak")
+    monkeypatch.setenv("OPENAI_API_KEY", "must-not-leak")
+    paths = RunPaths(
+        provider="vllm",
+        run_dir=tmp_path / "turn",
+        workspace_dir=tmp_path / "workspace",
+        prompt_path=tmp_path / "turn" / "prompt.txt",
+        policy_path=tmp_path / "turn" / "policy.toml",
+        stream_path=tmp_path / "turn" / "stream.jsonl",
+        status_path=tmp_path / "turn" / "status.json",
+    )
+    config = AgentRunConfig(
+        provider="vllm",
+        model="Qwen/Qwen3.6-27B",
+        base_url="http://qwen27:43117/v1",
+        timeout_seconds=123,
+    )
+    adapter = VllmAdapter()
+
+    adapter.prepare_run(paths, config, "solve")
+
+    controlled = (
+        tmp_path / ".agent-state" / "vllm-codex" / "config.toml"
+    ).read_text()
+    assert 'model_provider = "vllm"' in controlled
+    assert "model_context_window = 262144" in controlled
+    assert 'base_url = "http://qwen27:43117/v1"' in controlled
+    assert 'wire_api = "responses"' in controlled
+    assert "stream_idle_timeout_ms = 123000" in controlled
+    command = adapter.build_command(paths, config, "solve")
+    assert command[command.index("--model") + 1] == "Qwen/Qwen3.6-27B"
+    environment = adapter.build_environment(paths, config)
+    assert "CODEX_API_KEY" not in environment
+    assert "OPENAI_API_KEY" not in environment
+    assert environment["CODEX_HOME"].endswith("/.agent-state/vllm-codex")
 
 
 def test_persistent_session_retries_in_same_session_and_preserves_all_streams(

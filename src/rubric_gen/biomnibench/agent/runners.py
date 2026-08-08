@@ -17,7 +17,10 @@ from typing import Any, TextIO
 from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
-from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
+from rubric_gen.biomnibench.agent.workspaces import (
+    TaskWorkspace,
+    ensure_artifacts_dir,
+)
 
 
 @dataclass(frozen=True)
@@ -266,6 +269,7 @@ class AgentRunner:
             paths = RunPaths.for_task(task_dir, runs_dir, provider=self.provider)
         paths.run_dir.mkdir(parents=True, exist_ok=True)
         TaskWorkspace(task_dir, paths.workspace_dir).create()
+        ensure_artifacts_dir(paths.workspace_dir)
 
         attempts = []
         max_attempts = self.config.retries + 1
@@ -294,6 +298,8 @@ class AgentRunner:
         )
         status = {
             "provider": self.provider,
+            "requested_model": self.config.model,
+            "base_url": self.config.base_url,
             "task": task_dir.name,
             "task_dir": str(task_dir),
             "workspace_dir": str(paths.workspace_dir),
@@ -316,6 +322,7 @@ class AgentRunner:
             raise RuntimeError(f"retry workspace is invalid: {workspace}")
         shutil.rmtree(workspace)
         TaskWorkspace(task_dir, workspace).create()
+        ensure_artifacts_dir(workspace)
 
     def should_retry(
         self,

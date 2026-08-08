@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
@@ -14,6 +14,7 @@ from rubric_gen.malt.model_judge import (
     STRONG_JUDGE_MODELS,
     ModelRequest,
     generate,
+    generate_vllm,
 )
 
 
@@ -54,6 +55,7 @@ class RubricFreeConfig:
     experiment_dirs: tuple[Path, ...]
     output_dir: Path
     models: tuple[str, ...] = STRONG_JUDGE_MODELS
+    base_urls: dict[str, str] = field(default_factory=dict)
     max_concurrency: int = 3
     max_retries: int = 2
     resume: bool = False
@@ -61,8 +63,10 @@ class RubricFreeConfig:
     def __post_init__(self) -> None:
         if not self.experiment_dirs:
             raise ValueError("rubric-free evaluation requires experiments")
-        if len(self.models) != 3:
-            raise ValueError("rubric-free evaluation requires exactly three judges")
+        if not self.models or len(set(self.models)) != len(self.models):
+            raise ValueError("rubric-free evaluation requires unique judges")
+        if not set(self.base_urls) <= set(self.models):
+            raise ValueError("rubric-free vLLM endpoints must match selected judges")
         if self.max_concurrency < 1 or self.max_retries < 0:
             raise ValueError("invalid rubric-free concurrency or retry count")
 
@@ -149,13 +153,18 @@ def _schema() -> dict[str, object]:
     }
 
 
-def _generate(model: str, prompt: str) -> str:
-    return generate(model, ModelRequest(
+def _generate(model: str, prompt: str, base_url: str | None) -> str:
+    request = ModelRequest(
         instructions=SYSTEM_PROMPT,
         evidence=prompt,
         schema_name="rubric_free_pairwise_verdict",
         schema=_schema(),
-    )).text
+    )
+    generation = (
+        generate_vllm(model, request, base_url)
+        if base_url is not None else generate(model, request)
+    )
+    return generation.text
 
 
 class RubricFreeRunner:
@@ -163,7 +172,7 @@ class RubricFreeRunner:
         self,
         config: RubricFreeConfig,
         *,
-        generate_response: Callable[[str, str], str] = _generate,
+        generate_response: Callable[[str, str, str | None], str] = _generate,
     ) -> None:
         self.config = config
         self.generate_response = generate_response
@@ -229,6 +238,7 @@ class RubricFreeRunner:
             not isinstance(summary, dict)
             or summary.get("kind") != "rubric-free-pairwise-final-evaluation"
             or summary.get("protocol", {}).get("models") != list(self.config.models)
+            or summary.get("protocol", {}).get("base_urls") != self.config.base_urls
             or not isinstance(summary.get("records"), list)
         ):
             raise RuntimeError("rubric-free resume summary has incompatible identity")
@@ -263,7 +273,11 @@ class RubricFreeRunner:
         last_error: Exception | None = None
         for attempt in range(1, self.config.max_retries + 2):
             try:
-                verdict = _parse(self.generate_response(model, _prompt(instruction, left, right)))
+                verdict = _parse(self.generate_response(
+                    model,
+                    _prompt(instruction, left, right),
+                    self.config.base_urls.get(model),
+                ))
                 return {
                     "experiment": str(experiment), "task_id": manifest["task_id"],
                     "model": model, "flipped": flipped, "status": "completed",
@@ -303,10 +317,10 @@ class RubricFreeRunner:
                 }
             votes = [j["winner"] for j in judges.values() if j.get("status") == "completed"]
             majority = (
-                "final" if votes.count("final") >= 2 else
-                "initial" if votes.count("initial") >= 2 else "tie"
+                "final" if votes.count("final") > len(votes) / 2 else
+                "initial" if votes.count("initial") > len(votes) / 2 else "tie"
             )
-            consensus = votes[0] if len(votes) == 3 and len(set(votes)) == 1 else None
+            consensus = votes[0] if votes and len(set(votes)) == 1 else None
             experiments[str(experiment)] = {
                 "judges": judges, "majority_winner": majority,
                 "consensus_winner": consensus,
@@ -321,6 +335,7 @@ class RubricFreeRunner:
                 "dimensions": list(DIMENSIONS),
                 "domain_adaptation": "medical safety replaced by scientific validity/reproducibility",
                 "models": list(self.config.models),
+                "base_urls": self.config.base_urls,
             },
             "records": records,
             "experiments": experiments,

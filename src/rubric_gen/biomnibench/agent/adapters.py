@@ -188,6 +188,16 @@ class CodexAdapter(AgentAdapter):
                 "--config",
                 f'service_tier="{config.service_tier}"',
             ])
+        if paths.output_schema_path is not None:
+            command.extend([
+                "--output-schema",
+                str(paths.output_schema_path.resolve()),
+            ])
+        if paths.output_last_message_path is not None:
+            command.extend([
+                "--output-last-message",
+                str(paths.output_last_message_path.resolve()),
+            ])
         command.append(prompt)
         return command
 
@@ -199,13 +209,12 @@ class CodexAdapter(AgentAdapter):
         codex_home.mkdir(parents=True, exist_ok=True, mode=0o700)
         codex_home.chmod(0o700)
         config_path = codex_home / "config.toml"
-        controlled = _CODEX_SCIENTIFIC_CONFIG
+        controlled = _codex_scientific_config(config)
         if config_path.exists():
-            if config_path.is_symlink() or config_path.read_text() != controlled:
-                raise RuntimeError("controlled Codex configuration changed")
-        else:
-            config_path.write_text(controlled)
-            config_path.chmod(0o600)
+            if config_path.is_symlink() or not config_path.is_file():
+                raise RuntimeError("controlled Codex configuration path is invalid")
+        config_path.write_text(controlled)
+        config_path.chmod(0o600)
         self._copy_codex_auth(codex_home)
 
     def build_environment(
@@ -242,7 +251,95 @@ class CodexAdapter(AgentAdapter):
         destination.chmod(0o600)
 
 
-_CODEX_SCIENTIFIC_CONFIG = """\
+class VllmAdapter(CodexAdapter):
+    """Use Codex's tool harness with a vLLM Responses API server."""
+
+    name = "vllm"
+
+    def prepare_run(
+        self, paths: RunPaths, config: AgentRunConfig, prompt: str = PROMPT
+    ) -> None:
+        AgentAdapter.prepare_run(self, paths, config, prompt)
+        if config.base_url is None:
+            raise ValueError("the vLLM solver requires a base URL")
+        codex_home = self._codex_home(paths)
+        codex_home.mkdir(parents=True, exist_ok=True, mode=0o700)
+        codex_home.chmod(0o700)
+        controlled = (
+            'model_provider = "vllm"\n'
+            "model_context_window = 262144\n"
+            + _codex_scientific_config(config)
+            + "\n[model_providers.vllm]\n"
+            + 'name = "vLLM"\n'
+            + f"base_url = {json.dumps(config.base_url)}\n"
+            + 'wire_api = "responses"\n'
+            + "request_max_retries = 0\n"
+            + "stream_max_retries = 0\n"
+            + f"stream_idle_timeout_ms = {config.timeout_seconds * 1000}\n"
+        )
+        config_path = codex_home / "config.toml"
+        if config_path.exists():
+            if config_path.is_symlink() or config_path.read_text() != controlled:
+                raise RuntimeError("controlled vLLM Codex configuration changed")
+        else:
+            config_path.write_text(controlled)
+            config_path.chmod(0o600)
+
+    def build_environment(
+        self, paths: RunPaths, config: AgentRunConfig
+    ) -> dict[str, str]:
+        environment = AgentAdapter.build_environment(self, paths, config)
+        environment["CODEX_HOME"] = str(self._codex_home(paths))
+        return environment
+
+    @staticmethod
+    def _codex_home(paths: RunPaths) -> Path:
+        return paths.workspace_dir.parent / ".agent-state" / "vllm-codex"
+
+
+def _codex_sandbox_support_paths(config: AgentRunConfig) -> tuple[Path, ...]:
+    executable = config.executable or "codex"
+    located = shutil.which(executable)
+    if located is None:
+        raise RuntimeError(f"Codex executable not found: {executable}")
+    resolved = Path(located).resolve(strict=True)
+
+    if resolved.name == "codex.js":
+        package_root = resolved.parent.parent
+        candidates = sorted(
+            path.resolve()
+            for path in package_root.glob(
+                "node_modules/@openai/codex-linux-*/vendor/*/bin/codex"
+            )
+            if path.is_file()
+        )
+        if len(candidates) != 1:
+            raise RuntimeError(
+                "Codex npm installation must contain exactly one Linux native "
+                f"sandbox helper; found {len(candidates)} under {package_root}"
+            )
+        native = candidates[0]
+    else:
+        native = resolved
+
+    paths = [native]
+    bundled_rg = native.parent.parent / "codex-path" / "rg"
+    if bundled_rg.is_file():
+        paths.append(bundled_rg.resolve())
+    return tuple(paths)
+
+
+def _codex_scientific_config(config: AgentRunConfig) -> str:
+    support_mounts = "".join(
+        f"{json.dumps(str(path))} = \"read\"\n"
+        for path in _codex_sandbox_support_paths(config)
+    )
+    return _CODEX_SCIENTIFIC_CONFIG_TEMPLATE.replace(
+        "{sandbox_support_mounts}", support_mounts
+    )
+
+
+_CODEX_SCIENTIFIC_CONFIG_TEMPLATE = """\
 approval_policy = "never"
 web_search = "disabled"
 allow_login_shell = false
@@ -253,6 +350,7 @@ description = "BiomniBench task workspace only; no command network access."
 
 [permissions.biomnibench-task.filesystem]
 ":minimal" = "read"
+{sandbox_support_mounts}
 
 [permissions.biomnibench-task.filesystem.":workspace_roots"]
 "." = "write"
@@ -285,6 +383,7 @@ class AgentAdapterRegistry:
                     GeminiAdapter(),
                     ClaudeAdapter(),
                     CodexAdapter(),
+                    VllmAdapter(),
                 )
             )
         }

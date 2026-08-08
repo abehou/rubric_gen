@@ -20,7 +20,6 @@ from rubric_gen.biomnibench.forensics.evidence_index import (
     render_compact_evidence,
 )
 from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
-from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
 from rubric_gen.biomnibench.pricing import (
     ANTHROPIC_PRICES_PER_MILLION,
     GEMINI_PRICES_PER_MILLION,
@@ -66,7 +65,6 @@ DEFAULT_MAX_EVENT_TEXT_CHARS = DEFAULT_RH_MAX_EVENT_TEXT_CHARS
 DEFAULT_MAX_COMMAND_OUTPUT_CHARS = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
 DEFAULT_MAX_COST_USD = 50.0
 CHUNK_TARGET_INPUT_TOKENS = 220_000
-EXPECTED_OUTPUT_TOKENS = 1_024
 HOSTED_REQUEST_TIMEOUT_SECONDS = 600.0
 TOKEN_COUNT_TIMEOUT_SECONDS = 120.0
 _TOKEN_COUNTER_CLIENTS: dict[tuple[str, str], object] = {}
@@ -106,6 +104,19 @@ def _verdict_schema(detection: str) -> dict[str, object]:
             "analysis": {"type": "string"},
         },
     }
+
+
+def _anthropic_schema(value: object) -> object:
+    """Render the supported Anthropic structured-output schema subset."""
+    if isinstance(value, dict):
+        return {
+            key: _anthropic_schema(child)
+            for key, child in value.items()
+            if key not in {"minimum", "maximum"}
+        }
+    if isinstance(value, list):
+        return [_anthropic_schema(child) for child in value]
+    return value
 
 
 @dataclass(frozen=True)
@@ -661,20 +672,17 @@ def _revision_case_id(
     value = manifest
     if value is None:
         value = json.loads((revision_dir / "manifest.json").read_text())
-    design_sha256 = value.get("design_sha256")
-    assignment_id = value.get("assignment_id")
+    experiment_id = value.get("experiment_id")
+    execution_order = value.get("execution_order")
     if (
         value.get("schema_version") != 2
-        or type(design_sha256) is not str
-        or len(design_sha256) != 64
-        or type(assignment_id) is not str
-        or not assignment_id
+        or type(experiment_id) is not str
+        or not experiment_id
+        or type(execution_order) is not int
+        or execution_order < 1
     ):
-        raise ValueError(f"revision lacks randomized-design identity: {revision_dir}")
-    digest = hashlib.sha256(
-        f"{design_sha256}\0{assignment_id}".encode()
-    ).hexdigest()[:20]
-    return f"revision-{digest}"
+        raise ValueError(f"revision lacks randomized experiment identity: {revision_dir}")
+    return f"revision-{execution_order:06d}"
 
 
 def _job_case_id(job: PreparedJob) -> str:
@@ -794,7 +802,10 @@ def count_input_tokens(model: str, request: ModelRequest) -> int:
             messages=[{"role": "user", "content": request.evidence}],
             output_config={
                 "effort": ANTHROPIC_RH_EFFORT,
-                "format": {"type": "json_schema", "schema": request.schema},
+                "format": {
+                    "type": "json_schema",
+                    "schema": _anthropic_schema(request.schema),
+                },
             },
         )
         value = getattr(response, "input_tokens", None)
@@ -1090,7 +1101,10 @@ def generate(model: str, request_value: ModelRequest) -> ModelGeneration:
             messages=[{"role": "user", "content": request_value.evidence}],
             output_config={
                 "effort": ANTHROPIC_RH_EFFORT,
-                "format": {"type": "json_schema", "schema": request_value.schema},
+                "format": {
+                    "type": "json_schema",
+                    "schema": _anthropic_schema(request_value.schema),
+                },
             },
         )
         text = "\n".join(
@@ -1204,60 +1218,6 @@ def generate_vllm(
     )
 
 
-def _source_tree_sha256() -> str:
-    digest = hashlib.sha256()
-    source_root = PROJECT_ROOT / "src" / "rubric_gen"
-    for path in sorted(source_root.rglob("*")):
-        if (
-            not path.is_file()
-            or "__pycache__" in path.parts
-            or path.suffix in {".pyc", ".pyo"}
-        ):
-            continue
-        relative = path.relative_to(PROJECT_ROOT).as_posix().encode()
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        with path.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(65_536), b""):
-                digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _git_commit() -> str | None:
-    git = PROJECT_ROOT / ".git"
-    if git.is_file():
-        line = git.read_text(encoding="utf-8").strip()
-        if line.startswith("gitdir: "):
-            git = (PROJECT_ROOT / line.removeprefix("gitdir: ")).resolve()
-    try:
-        head = (git / "HEAD").read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    if not head.startswith("ref: "):
-        return head if len(head) == 40 else None
-    reference = head.removeprefix("ref: ")
-    try:
-        return (git / reference).read_text(encoding="utf-8").strip()
-    except OSError:
-        try:
-            packed = (git / "packed-refs").read_text(encoding="utf-8")
-        except OSError:
-            return None
-        for line in packed.splitlines():
-            if line and not line.startswith(("#", "^")):
-                commit, name = line.split(" ", 1)
-                if name == reference:
-                    return commit
-    return None
-
-
-def implementation_provenance() -> dict[str, object]:
-    return {
-        "git_commit": _git_commit(),
-        "source_tree_sha256": _source_tree_sha256(),
-    }
-
-
 def _validate_dataset_provenance(value: dict[str, object]) -> None:
     revision = value.get("dataset_revision")
     inputs = value.get("inputs")
@@ -1306,10 +1266,18 @@ class ModelJudgeConfig:
     max_cost_usd: float = DEFAULT_MAX_COST_USD
     execution: str = "standard"
     primary_rule: str = "majority"
-    design_sha256s: tuple[str, ...] = ()
+    experiment_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         detection_target(self.detection)
+        if (
+            not self.models
+            or len(set(self.models)) != len(self.models)
+            or any(type(model) is not str or not model.strip() for model in self.models)
+        ):
+            raise ValueError("judge models must be unique non-empty strings")
+        if not set(self.base_urls) <= set(self.models):
+            raise ValueError("vLLM endpoints must match selected judge models")
         if self.max_concurrency < 1:
             raise ValueError("max_concurrency must be at least 1")
         if self.max_retries < 0:
@@ -1348,17 +1316,13 @@ class ModelJudgeConfig:
         if self.revision_dirs and self.tasks_dir is None:
             raise ValueError("Biomni revisions require tasks_dir")
         if self.revision_dirs and (
-            not self.design_sha256s
-            or len(set(self.design_sha256s)) != len(self.design_sha256s)
-            or any(
-                len(value) != 64
-                or any(character not in "0123456789abcdef" for character in value)
-                for value in self.design_sha256s
-            )
+            not self.experiment_ids
+            or len(set(self.experiment_ids)) != len(self.experiment_ids)
+            or any(not value.strip() for value in self.experiment_ids)
         ):
-            raise ValueError("Biomni revisions require locked design SHA-256 values")
-        if not self.revision_dirs and self.design_sha256s:
-            raise ValueError("design SHA-256 values apply only to Biomni revisions")
+            raise ValueError("Biomni revisions require experiment IDs")
+        if not self.revision_dirs and self.experiment_ids:
+            raise ValueError("experiment IDs apply only to Biomni revisions")
 
 
 class ModelJudgeRunner:
@@ -1389,7 +1353,7 @@ class ModelJudgeRunner:
         self._reserved_usd = 0.0
         self._circuit_open: dict[str, str] = {}
         self.run_provenance = {
-            "schema_version": 2,
+            "schema_version": 3,
             "audit_protocol_version": DIRECT_AUDIT_PROTOCOL_VERSION,
             "evidence_schema_version": INDEX_SCHEMA_VERSION,
             "detection": config.detection,
@@ -1403,7 +1367,7 @@ class ModelJudgeRunner:
             "max_cost_usd": config.max_cost_usd,
             "execution": config.execution,
             "primary_rule": config.primary_rule,
-            "design_sha256s": list(config.design_sha256s),
+            "experiment_ids": list(config.experiment_ids),
             "openai_reasoning_effort": OPENAI_REASONING_EFFORT,
             "openai_text_verbosity": OPENAI_TEXT_VERBOSITY,
             "anthropic_effort": ANTHROPIC_RH_EFFORT,
@@ -1417,7 +1381,6 @@ class ModelJudgeRunner:
                 )
                 for model in config.models
             },
-            "implementation": implementation_provenance(),
             "dataset": config.dataset_provenance,
             "pricing": {
                 "sources": PRICING_SOURCES,
@@ -1552,8 +1515,8 @@ class ModelJudgeRunner:
     def _payload(self, case: Path, source_kind: str) -> EvidencePrompt:
         if source_kind == "revision":
             manifest = json.loads((case / "manifest.json").read_text())
-            if manifest.get("design_sha256") not in self.config.design_sha256s:
-                raise ValueError(f"Biomni revision is outside the locked designs: {case}")
+            if manifest.get("experiment_id") not in self.config.experiment_ids:
+                raise ValueError(f"Biomni revision is outside the experiment: {case}")
             return _revision_prompt(
                 case,
                 self.config.tasks_dir or Path(),
@@ -1688,67 +1651,7 @@ class ModelJudgeRunner:
             + output_tokens * output_price
         ) / 1_000_000
 
-    def _job_projected_cost(
-        self,
-        job: PreparedJob,
-        *,
-        output_tokens: int,
-    ) -> float | None:
-        if job.model not in HOSTED_PRICES_PER_MILLION:
-            return None
-        costs = [
-            self._request_cost(
-                job.model,
-                input_tokens,
-                output_tokens,
-                cache_write_input_tokens=self._cache_write_reservation_tokens(
-                    job.model,
-                    request,
-                    input_tokens,
-                ),
-            )
-            or 0.0
-            for request, input_tokens in zip(
-                job.requests, job.input_tokens, strict=True
-            )
-        ]
-        if job.chunked:
-            synthesis_input = (
-                len(job.requests) * output_tokens + 2_000
-            )
-            costs.append(
-                self._request_cost(
-                    job.model,
-                    synthesis_input,
-                    output_tokens,
-                    cache_write_input_tokens=(
-                        min(2_000, synthesis_input)
-                        if job.model in {
-                            *OPENAI_PRICES_PER_MILLION,
-                            *ANTHROPIC_PRICES_PER_MILLION,
-                        }
-                        else 0
-                    ),
-                )
-                or 0.0
-            )
-        cost = sum(costs)
-        return cost * 0.5 if self.config.execution == "batch" else cost
-
-    def _job_retry_reserved_cost(self, job: PreparedJob) -> float | None:
-        """Reserve every configured attempt at the maximum output ceiling."""
-
-        one_attempt = self._job_projected_cost(
-            job,
-            output_tokens=self.config.max_output_tokens,
-        )
-        return (
-            None
-            if one_attempt is None
-            else one_attempt * (self.config.max_retries + 1)
-        )
-
-    def _preflight(self) -> tuple[PreparedJob, ...]:
+    def _prepare_jobs(self) -> tuple[PreparedJob, ...]:
         revision_sources = sorted(
             self.config.revision_dirs,
             key=self._revision_cache_order,
@@ -1762,131 +1665,10 @@ class ModelJudgeRunner:
             for case in sources
             for model in self.config.models
         )
-        prepared: list[PreparedJob] = []
-        with TerminalProgress(
-            total=len(specifications),
-            description="MALT token/cost preflight",
-            unit="judgment",
-        ) as progress:
-            for case, model, source_kind in specifications:
-                prepared.append(self._prepare_job(case, model, source_kind))
-                progress.update()
-        jobs = tuple(prepared)
-        expected_costs = [
-            value
-            for job in jobs
-            if (
-                value := self._job_projected_cost(
-                    job, output_tokens=EXPECTED_OUTPUT_TOKENS
-                )
-            ) is not None
-        ]
-        single_attempt_costs = [
-            value
-            for job in jobs
-            if (
-                value := self._job_projected_cost(
-                    job, output_tokens=self.config.max_output_tokens
-                )
-            ) is not None
-        ]
-        reservation_costs = [
-            value
-            for job in jobs
-            if (value := self._job_retry_reserved_cost(job)) is not None
-        ]
-        expected_cost = sum(expected_costs)
-        single_attempt_cost = sum(single_attempt_costs)
-        reservation_cost = sum(reservation_costs)
-        expected_by_model = {
-            model: sum(
-                self._job_projected_cost(
-                    job, output_tokens=EXPECTED_OUTPUT_TOKENS
-                ) or 0.0
-                for job in jobs
-                if job.model == model
-            )
-            for model in sorted(set(self.config.models))
-        }
-        reservation_by_model = {
-            model: sum(
-                self._job_retry_reserved_cost(job) or 0.0
-                for job in jobs
-                if job.model == model
-            )
-            for model in sorted(set(self.config.models))
-        }
-        single_attempt_by_model = {
-            model: sum(
-                self._job_projected_cost(
-                    job, output_tokens=self.config.max_output_tokens
-                ) or 0.0
-                for job in jobs
-                if job.model == model
-            )
-            for model in sorted(set(self.config.models))
-        }
-        payload = {
-            "schema_version": 4,
-            "kind": "malt-cost-preflight",
-            "pricing_sources": PRICING_SOURCES,
-            "pricing_as_of": PRICING_AS_OF,
-            "max_cost_usd": self.config.max_cost_usd,
-            "expected_output_tokens_per_request": EXPECTED_OUTPUT_TOKENS,
-            "max_output_tokens_per_request": self.config.max_output_tokens,
-            "max_attempts_per_request": self.config.max_retries + 1,
-            "expected_api_cost_usd": expected_cost,
-            "expected_by_model_usd": expected_by_model,
-            "max_output_single_attempt_api_cost_usd": single_attempt_cost,
-            "max_output_single_attempt_by_model_usd": single_attempt_by_model,
-            "worst_case_reserved_api_cost_usd": reservation_cost,
-            "worst_case_reserved_by_model_usd": reservation_by_model,
-            "unpriced_models": sorted({
-                job.model for job in jobs
-                if job.model not in HOSTED_PRICES_PER_MILLION
-            }),
-            "jobs": [{
-                "case_id": job.case.name,
-                "model": job.model,
-                "source_kind": job.source_kind,
-                "input_tokens": list(job.input_tokens),
-                "cache_write_reservation_tokens": [
-                    self._cache_write_reservation_tokens(
-                        job.model, request, input_tokens
-                    )
-                    for request, input_tokens in zip(
-                        job.requests, job.input_tokens, strict=True
-                    )
-                ],
-                "planned_calls": job.compact_stats["planned_calls"],
-                "chunked": bool(job.compact_stats["chunked"]),
-                "expected_api_cost_usd": self._job_projected_cost(
-                    job, output_tokens=EXPECTED_OUTPUT_TOKENS
-                ),
-                "max_output_single_attempt_api_cost_usd": (
-                    self._job_projected_cost(
-                        job, output_tokens=self.config.max_output_tokens
-                    )
-                ),
-                "worst_case_reserved_api_cost_usd": (
-                    self._job_retry_reserved_cost(job)
-                ),
-            } for job in jobs],
-        }
-        write_json_atomic(self.config.output_dir / "cost-preflight.json", payload)
-        print(
-            "MALT cost preflight: "
-            f"expected API ${expected_cost:.2f}; "
-            f"worst-case reservation ${reservation_cost:.2f} / "
-            f"budget ${self.config.max_cost_usd:.2f}; "
-            f"{sum(job.chunked for job in jobs)} chunked jobs"
+        return tuple(
+            self._prepare_job(case, model, source_kind)
+            for case, model, source_kind in specifications
         )
-        if reservation_cost > self.config.max_cost_usd:
-            raise CostBudgetExceeded(
-                f"worst-case API reservation ${reservation_cost:.2f} exceeds "
-                f"--max-cost-usd ${self.config.max_cost_usd:.2f}"
-            )
-        return jobs
 
     @staticmethod
     def _revision_cache_order(path: Path) -> tuple[str, str]:
@@ -2008,7 +1790,7 @@ class ModelJudgeRunner:
         self._write_or_validate_run_provenance()
         if self.config.execution == "standard":
             self._initialize_cost_state()
-        jobs = self._preflight()
+        jobs = self._prepare_jobs()
         if self.config.execution == "batch":
             return self._run_batch(jobs)
         records: list[dict[str, object]] = []
@@ -2072,19 +1854,10 @@ class ModelJudgeRunner:
                    "max_retries": self.config.max_retries,
                    "detection": self.config.detection,
                    "primary_rule": self.config.primary_rule,
-                   "design_sha256s": list(self.config.design_sha256s),
+                   "experiment_ids": list(self.config.experiment_ids),
                    "run_provenance_sha256": self.run_provenance_sha256,
                    "run_provenance": self.run_provenance,
                    "cost": {
-                       "expected_preflight_usd": sum(
-                           self._job_projected_cost(
-                               job, output_tokens=EXPECTED_OUTPUT_TOKENS
-                           ) or 0.0 for job in jobs
-                       ),
-                       "worst_case_reserved_preflight_usd": sum(
-                           self._job_retry_reserved_cost(job) or 0.0
-                           for job in jobs
-                       ),
                        "observed_api_usd": self._spent_usd,
                        "observed_by_model_usd": dict(
                            sorted(self._spent_by_model.items())

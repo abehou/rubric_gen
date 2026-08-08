@@ -10,13 +10,13 @@ import shutil
 import stat
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
 from rubric_gen.biomnibench.agent.models import RunPaths
 from rubric_gen.biomnibench.agent.runners import AgentRunner
-from rubric_gen.biomnibench.experiments import ExperimentDesign
+from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.artifacts import (
     copy_solution_workspace,
     make_tree_read_only,
@@ -42,10 +42,11 @@ SEED_KIND = "rubric-gen-biomnibench-randomized-seed"
 
 @dataclass(frozen=True)
 class SeedSetConfig:
-    design: ExperimentDesign
+    experiment: Experiment
     output_dir: Path
     max_concurrency: int
     resume: bool = False
+    vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
@@ -82,9 +83,12 @@ class ResolvedSeed:
 class SeedSetRunner:
     def __init__(self, config: SeedSetConfig) -> None:
         self.config = config
-        self.design = config.design
-        self.protocol = self.design.protocol
-        self.agent = self.design.agent_config()
+        self.experiment = config.experiment
+        self.protocol = self.experiment.protocol
+        self.agent = self.experiment.agent_config(
+            quiet=True,
+            vllm_endpoints=config.vllm_endpoints
+        )
 
     def run(self) -> int:
         root = self.config.output_dir.resolve()
@@ -163,12 +167,12 @@ class SeedSetRunner:
 
     def _jobs(self) -> list[tuple[Path, int]]:
         earliest: dict[tuple[str, int], int] = {}
-        for assignment in self.design.assignments:
+        for assignment in self.experiment.assignments:
             key = (str(assignment["task_id"]), int(assignment["replicate"]))
             order = int(assignment["execution_order"])
             earliest[key] = min(order, earliest.get(key, order))
         return [
-            (self.design.task_dir(task_id), replicate)
+            (self.experiment.task_dir(task_id), replicate)
             for task_id, replicate in sorted(earliest, key=earliest.__getitem__)
         ]
 
@@ -183,9 +187,8 @@ class SeedSetRunner:
             "schema_version": SEED_SET_SCHEMA_VERSION,
             "kind": SEED_SET_KIND,
             "status": status,
-            "design_path": str(self.design.path),
-            "design_sha256": self.design.sha256,
-            "protocol_id": self.design.protocol_id,
+            "experiment_path": str(self.experiment.path),
+            "experiment_id": self.experiment.experiment_id,
             "blocks": [
                 {"task_id": task.name, "replicate": replicate}
                 for task, replicate in jobs
@@ -213,9 +216,8 @@ class SeedSetRunner:
         expected = {
             "schema_version": SEED_SET_SCHEMA_VERSION,
             "kind": SEED_SET_KIND,
-            "design_path": str(self.design.path),
-            "design_sha256": self.design.sha256,
-            "protocol_id": self.design.protocol_id,
+            "experiment_path": str(self.experiment.path),
+            "experiment_id": self.experiment.experiment_id,
             "blocks": [
                 {"task_id": task.name, "replicate": replicate}
                 for task, replicate in jobs
@@ -252,13 +254,9 @@ class SeedSetRunner:
                 root,
                 task,
                 replicate,
-                design_sha256=self.design.sha256,
-                protocol_id=self.design.protocol_id,
+                experiment_id=self.experiment.experiment_id,
                 provider=self.agent.provider,
                 requested_model=self.agent.model,
-                run_provenance_sha256=str(
-                    self.design.run_provenance["sha256"]
-                ),
             )
             completed.append((task, replicate))
         return completed, pending
@@ -303,14 +301,14 @@ class SeedSetRunner:
             instruction_sha = sha256_file(task_dir / "instruction.md")
             data_sha = tree_sha256(task_dir / "environment" / "data")
             seed_sha = sha256_text(
-                f"{self.design.sha256}\n{task_dir.name}\n{replicate}\n"
+                f"{self.experiment.experiment_id}\n{task_dir.name}\n{replicate}\n"
                 f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
             )
             write_json_atomic(submission / "status.json", {
                 "schema_version": 2,
                 "task": task_dir.name,
                 "replicate": replicate,
-                "design_sha256": self.design.sha256,
+                "experiment_id": self.experiment.experiment_id,
                 "workspace_dir": str(workspace),
                 "provider": self.agent.provider,
                 "session_id": None,
@@ -350,8 +348,7 @@ class SeedSetRunner:
             write_json_atomic(destination / "manifest.json", {
                 "schema_version": SEED_SCHEMA_VERSION,
                 "kind": SEED_KIND,
-                "design_sha256": self.design.sha256,
-                "protocol_id": self.design.protocol_id,
+                "experiment_id": self.experiment.experiment_id,
                 "task_id": task_dir.name,
                 "replicate": replicate,
                 "provider": self.agent.provider,
@@ -367,7 +364,6 @@ class SeedSetRunner:
                 "judgment_sha256": judgment_sha,
                 "seed_sha256": sha256_text(f"{seed_sha}{judgment_sha}\n"),
                 "source_status": source_status,
-                "run_provenance_sha256": self.design.run_provenance["sha256"],
             })
             make_tree_read_only(destination)
         finally:
@@ -384,6 +380,9 @@ class SeedSetRunner:
             experiment_dir=experiment_dir,
             review=str(self.protocol["review"]),
             judge_model=str(self.protocol["judge_model"]),
+            base_url=self.config.vllm_endpoints.get(
+                str(self.protocol["judge_model"])
+            ),
             rubric_name=str(self.protocol["rubric_name"]),
             rubric_set=None,
             max_review_chars=self.protocol["max_review_chars"],  # type: ignore[arg-type]
@@ -402,11 +401,9 @@ def resolve_seed(
     task_dir: Path,
     replicate: int,
     *,
-    design_sha256: str,
-    protocol_id: str,
+    experiment_id: str,
     provider: str,
     requested_model: str,
-    run_provenance_sha256: str,
 ) -> ResolvedSeed:
     root = seed_set.resolve()
     if seed_set.is_symlink() or not (root / "manifest.json").is_file():
@@ -416,19 +413,16 @@ def resolve_seed(
         root_manifest.get("schema_version") != SEED_SET_SCHEMA_VERSION
         or root_manifest.get("kind") != SEED_SET_KIND
         or root_manifest.get("status") != "completed"
-        or root_manifest.get("design_sha256") != design_sha256
-        or root_manifest.get("protocol_id") != protocol_id
+        or root_manifest.get("experiment_id") != experiment_id
     ):
-        raise RuntimeError("seed set does not match the completed design")
+        raise RuntimeError("seed set does not match the experiment")
     return _resolve_task_seed(
         root,
         task_dir,
         replicate,
-        design_sha256=design_sha256,
-        protocol_id=protocol_id,
+        experiment_id=experiment_id,
         provider=provider,
         requested_model=requested_model,
-        run_provenance_sha256=run_provenance_sha256,
     )
 
 
@@ -437,11 +431,9 @@ def _resolve_task_seed(
     task_dir: Path,
     replicate: int,
     *,
-    design_sha256: str,
-    protocol_id: str,
+    experiment_id: str,
     provider: str,
     requested_model: str,
-    run_provenance_sha256: str,
 ) -> ResolvedSeed:
     if type(replicate) is not int or replicate < 1:
         raise ValueError("replicate must be a positive integer")
@@ -452,24 +444,20 @@ def _resolve_task_seed(
     manifest = json.loads(manifest_path.read_text())
     if (
         set(manifest) != {
-            "schema_version", "kind", "design_sha256", "protocol_id", "task_id",
+            "schema_version", "kind", "experiment_id", "task_id",
             "replicate", "provider", "requested_model", "instruction_sha256",
             "data_sha256", "workspace_sha256", "trajectory_sha256",
             "score_validation_sha256", "evaluation_sha256", "scoring_identity",
             "usage_sha256",
             "judgment_sha256", "seed_sha256", "source_status",
-            "run_provenance_sha256",
         }
         or manifest.get("schema_version") != SEED_SCHEMA_VERSION
         or manifest.get("kind") != SEED_KIND
-        or manifest.get("design_sha256") != design_sha256
-        or manifest.get("protocol_id") != protocol_id
+        or manifest.get("experiment_id") != experiment_id
         or manifest.get("task_id") != task_dir.name
         or manifest.get("replicate") != replicate
         or manifest.get("provider") != provider
         or manifest.get("requested_model") != requested_model
-        or manifest.get("run_provenance_sha256")
-        != run_provenance_sha256
         or not isinstance(manifest.get("source_status"), dict)
         or manifest["source_status"].get("exit_code") != 0  # type: ignore[union-attr]
         or manifest["source_status"].get("provider") != provider  # type: ignore[union-attr]
@@ -492,7 +480,7 @@ def _resolve_task_seed(
         f"{json.dumps(identity, sort_keys=True, separators=(',', ':'))}\n"
     )
     solution_sha = sha256_text(
-        f"{design_sha256}\n{task_dir.name}\n{replicate}\n"
+        f"{experiment_id}\n{task_dir.name}\n{replicate}\n"
         f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
     )
     if (
