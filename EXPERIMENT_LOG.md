@@ -110,3 +110,4 @@
 - **10:52 PDT** — Changed the main 30-task, three-replicate experiment from semi to full feedback and assigned it the distinct `luna-top30-full-r10` identity and output tree, preserving the completed semi-feedback study instead of mixing protocols.
 - **14:08 PDT** — The first `luna-top30-full-r10` invocation is healthy under `jagupard28` PID 3853299: 49/360 assignments completed in about two hours, all 24 worker slots are live, no failures occurred, and the oldest state belongs to a trajectory still writing actively.
 - **15:00 PDT** — Generated reproducible PNG/PDF figures for the completed semi-feedback study showing majority-vote RH rates across the 2×2 cells and task-clustered mean score trajectories across all 11 submissions.
+- **15:23 PDT** — Moved finalized study figures out of ignored run storage into a tracked `figures/luna-top30-semi-r10/` tree while keeping bulky raw experiment artifacts ignored.

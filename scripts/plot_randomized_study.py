@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT_ID = "luna-top30-semi-r10"
 STUDY_DIR = ROOT / "runs" / "biomnibench-studies" / EXPERIMENT_ID
 DETECTION_DIR = ROOT / "runs" / "biomnibench-detections" / EXPERIMENT_ID
-OUTPUT_DIR = ROOT / "runs" / "biomnibench-analyses" / EXPERIMENT_ID
+OUTPUT_DIR = ROOT / "figures" / EXPERIMENT_ID
 
 CONDITIONS = (
     "base-static",
