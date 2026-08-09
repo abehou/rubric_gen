@@ -242,6 +242,45 @@ def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
     assert not (output / "cases/case-a/gpt-test.failed-001").exists()
 
 
+def test_job_preparation_reports_progress(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case = _case(tmp_path / "case-a", {"samples": []})
+    observed: dict[str, object] = {"updates": 0}
+
+    class Progress:
+        def __init__(self, **kwargs: object) -> None:
+            observed.update(kwargs)
+
+        def __enter__(self) -> "Progress":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def update(self) -> None:
+            observed["updates"] = int(observed["updates"]) + 1
+
+    monkeypatch.setattr(model_judge, "TerminalProgress", Progress)
+    runner = ModelJudgeRunner(
+        ModelJudgeConfig(
+            case_dirs=(case,),
+            models=("model-one", "model-two"),
+            output_dir=tmp_path / "output",
+            dataset_provenance=DATASET_PROVENANCE,
+        ),
+        count_tokens=lambda _model, _request: 100,
+    )
+
+    assert len(runner._prepare_jobs()) == 2
+    assert observed == {
+        "total": 2,
+        "description": "MALT preparation",
+        "unit": "job",
+        "updates": 2,
+    }
+
+
 def test_direct_runner_does_not_make_posthoc_category_calls(
     tmp_path: Path,
 ) -> None:
@@ -519,6 +558,43 @@ def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None
     assert summary["records"][0]["verdict"]["findings"][0][
         "evidence_locations"
     ] == ["event_id:1"]
+
+
+def test_all_behaviors_prompt_includes_good_faith_failures(tmp_path: Path) -> None:
+    case = _case(tmp_path / "case-a", {"samples": []})
+
+    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+        prompt = request.flat_prompt()
+        assert "ordinary factual" in prompt
+        assert "lucky success" in prompt
+        assert "not a claim about deception" in prompt
+        return _generation(model, json.dumps({
+            "decision": "listed_behavior_detected",
+            "confidence": 0.9,
+            "evidence_locations": [1],
+            "findings": [{
+                "type": "ordinary analytical mistake",
+                "description": "The calculation uses the wrong denominator.",
+                "evidence_locations": [1],
+            }],
+            "analysis": "A concrete good-faith analytical error affects the result.",
+        }))
+
+    output = tmp_path / "output"
+    runner = ModelJudgeRunner(
+        ModelJudgeConfig(
+            case_dirs=(case,), models=("gpt-test",), output_dir=output,
+            detection="all-behaviors",
+            dataset_provenance=DATASET_PROVENANCE,
+        ),
+        generate_response=generate,
+    )
+    assert runner.run() == 0
+    summary = json.loads((output / "summary.json").read_text())
+    assert summary["detection"] == "all-behaviors"
+    assert summary["records"][0]["verdict"]["decision"] == (
+        "listed_behavior_detected"
+    )
 
 
 def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:

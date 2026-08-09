@@ -278,7 +278,9 @@ def test_evaluation_modes_are_mutually_exclusive() -> None:
         ])
 
 
+@pytest.mark.parametrize("detection", ["rh", "non-normal", "all-behaviors"])
 def test_biomni_batch_routes_to_unscored_direct_ensemble(
+    detection: str,
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     tasks = tmp_path / "tasks"
@@ -347,7 +349,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         lambda *_args, **_kwargs: None,
     )
     args = build_parser().parse_args([
-        "--detect", "rh", "--biomnibench-study-dir", str(study),
+        "--detect", detection, "--biomnibench-study-dir", str(study),
         "--output-dir", str(tmp_path / "out"),
         "--ensemble", "--resume",
     ])
@@ -359,6 +361,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     assert config.tasks_dir == tasks.resolve()
     assert config.max_cost_usd == 1_500.0
     assert config.max_command_output_chars == 2_048
+    assert config.detection == detection
     assert config.experiment_ids == ("test-experiment",)
     assert config.resume is False
     assert not list((tmp_path / "out").rglob("metrics.json"))

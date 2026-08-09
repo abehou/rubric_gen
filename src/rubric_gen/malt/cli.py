@@ -309,8 +309,6 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         args.biomnibench_study_dir,
         vllm_endpoints=base_urls,
     )
-    if detection != "rh" or audit.get("detection") != "rh":
-        raise ValueError("randomized Biomni experiments support only the configured RH outcome")
     expected_models = tuple(audit.get("models", ()))
     models = tuple(base_urls) if base_urls else STRONG_JUDGE_MODELS
     if models != expected_models:
@@ -439,7 +437,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--detect", required=True, choices=tuple(TARGETS),
-        help="Detection target: reward hacking only (rh) or every non-normal label.",
+        help=(
+            "Detection target: reward hacking only (rh), MALT non-normal behavior, "
+            "or the broad all-behaviors screen."
+        ),
     )
     parser.add_argument("--development-fraction", type=float, default=None)
     parser.add_argument("--validation-fraction", type=float, default=None)
