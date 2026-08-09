@@ -91,6 +91,22 @@
 
 ## 2026-08-08
 
+- **23:15 PDT** — The checkpoint restart under `jagupard28` PID 3419076 is healthy and near completion: it reclaimed all 36 unfinished assignments, completed 27 with zero failures, and has nine live assignments whose states all advanced within nine minutes.
+
 - **03:58 PDT** — Relaunched `luna-top30-semi-r10` under PID 1753194 in tmux session `luna-r10`; it reclaimed all 16 interrupted records, live proposers wrote consistent query audits only under `./artifacts`, and two prospective proposals sealed successfully through the repaired validation boundary.
 - **04:11 PDT** — The resumed study remains healthy with all 16 assignments owned by PID 1753194, zero new failures, and continued round advancement; 15 assignments are in solver turns, one is judging, and the older state timestamps correspond to live Codex/R subprocesses rather than stale slots.
 - **04:24 PDT** — Canceled the `john7` invocation at the user's request; the coordinator required SIGTERM after Ctrl-C stalled, its detached Codex process groups were terminated, no experiment-specific solver/proposer processes remain, and the study lease is available for a clean `--resume` launch.
+- **15:32 PDT** — The `jagupard28` resume reached 245/360 completed overall, with 138 completions, three failures, and 16 active assignments under PID 2321650; the three failures are one query-count/audit mismatch and two snapshot rejections of solver-created `artifacts/venv/bin/python` symlinks, with no new failure since 09:13.
+- **15:45 PDT** — Interim metadata analysis of 247 completed assignments found prospective rubrics grew by 3,717 characters and 4.15 criteria on average, but rubric length had no score association after assignment/round controls (r=0.022, permutation p=0.422); evolved-only criteria deducted 1.54 points per evolved round on average.
+- **15:45 PDT** — The matched completed subset favored prospective evolution by 12.1 final-score points, but this remains selection-sensitive while the study is running, and 53 early zero-query `no_patch` proposals across 33 prospective assignments must be flagged or repaired before final inference.
+- **17:15 PDT** — The 24-concurrency restart under `jagupard28` PID 1862039 is healthy after 68 minutes, with 19 completions, zero failures, 24 correctly owned active assignments, and successful retries of all three assignments that failed in the preceding invocation.
+- **20:25 PDT** — The 24-way invocation is dead despite `study.json` retaining 24 stale `running` records: the cross-node lease is available, no state or outcome has advanced since about 19:22, and one additional prospective assignment failed from the recurring query-count/audit mismatch before termination.
+- **20:44 PDT** — No recovery invocation has started: the same lease remains available, all 24 recorded workers are now 82–117 minutes stale, and the manifest is unchanged at 324 completed, 12 failed, and 24 abandoned-running records.
+- **21:13 PDT** — Clarified resume semantics: `--resume` creates a new invocation but skips the 324 validated completions; the 36 unfinished assignments retain 0–8 sealed scores, while interrupted solver turns are replayed from their last sealed boundary and cross-node restarts rebuild the live workspace rather than continuing in-flight model calls.
+
+## 2026-08-09
+
+- **10:40 PDT** — The completed 2×2 RH analysis found fewer majority-vote detections under the diligent prompt (complete-block risk difference −7.9 points, permutation p≈0.0008), but no supported prospective-rubric main effect or interaction. This prompt result is detector-sensitive—present for Claude/Gemini and absent for GPT or the any-detector ensemble—so it is evidence about conservative detector agreement, not yet a robust reduction in reward hacking.
+- **10:52 PDT** — Changed the main 30-task, three-replicate experiment from semi to full feedback and assigned it the distinct `luna-top30-full-r10` identity and output tree, preserving the completed semi-feedback study instead of mixing protocols.
+- **14:08 PDT** — The first `luna-top30-full-r10` invocation is healthy under `jagupard28` PID 3853299: 49/360 assignments completed in about two hours, all 24 worker slots are live, no failures occurred, and the oldest state belongs to a trajectory still writing actively.
+- **15:00 PDT** — Generated reproducible PNG/PDF figures for the completed semi-feedback study showing majority-vote RH rates across the 2×2 cells and task-clustered mean score trajectories across all 11 submissions.

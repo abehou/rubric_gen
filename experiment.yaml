@@ -1,6 +1,6 @@
 schema_version: 1
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-top30-semi-r10
+experiment_id: luna-top30-full-r10
 
 tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
 tasks:
@@ -55,7 +55,7 @@ conditions:
 
 protocol:
   revision_rounds: 10
-  feedback_policy: semi
+  feedback_policy: full
   solver:
     provider: codex
     model: gpt-5.6-luna
@@ -89,10 +89,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: runs/biomnibench-seeds/luna-top30-semi-r10
+    output_dir: runs/biomnibench-seeds/luna-top30-full-r10
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-top30-semi-r10
+    output_dir: runs/biomnibench-studies/luna-top30-full-r10
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-top30-semi-r10
+    output_dir: runs/biomnibench-detections/luna-top30-full-r10
