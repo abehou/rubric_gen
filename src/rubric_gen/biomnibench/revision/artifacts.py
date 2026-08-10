@@ -88,6 +88,14 @@ REVISION_MANIFEST_KEYS = frozenset(
 )
 
 
+def revision_manifest_keys(feedback_policy: str) -> frozenset[str]:
+    """Return the strict manifest shape for one feedback protocol."""
+
+    if feedback_policy == "simulated_user":
+        return REVISION_MANIFEST_KEYS | {"feedback_simulator"}
+    return REVISION_MANIFEST_KEYS
+
+
 @dataclass
 class SnapshotCopyStats:
     copied_files: int = 0

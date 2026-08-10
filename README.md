@@ -44,6 +44,31 @@ uv run biomnibench-agent judge \
 
 Workflow commands support `--resume` and `--max-concurrency`.
 
+## Feedback policies
+
+`protocol.feedback_policy` accepts `full`, `semi`, `score_only`, or
+`simulated_user`. The simulated-user policy makes an additional LLM call after
+each scored response. That model sees the task instruction, private rubric, and
+current answer, selects at most a configured number of rubric aspects, and
+writes a natural revision comment; it never receives the optimizer score or
+judge reasoning.
+
+```yaml
+protocol:
+  feedback_policy: simulated_user
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_aspects: 2
+    max_retries: 1
+```
+
+`feedback_simulator` is required only for `simulated_user`. Generated comments
+are sealed for exact resume under `feedback-generations/`; the solver-visible
+`feedback/` record contains only the comment, not its private criterion IDs or
+model provenance. A matching `--vllm URL::MODEL` mapping routes the simulator
+model through that endpoint just like the judge and rubric proposer.
+
 ## vLLM models
 
 `seed`, `revise`, `detect`, `judge`, and `run` accept a repeatable endpoint

@@ -15,6 +15,10 @@ from rubric_gen.biomnibench.revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
 )
+from rubric_gen.biomnibench.revision.user_simulator import (
+    SimulatedUserConfig,
+    SimulatedUserFeedback,
+)
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,7 @@ class SubmissionRevisionConfig:
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
+    feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_evolution: RubricEvolution = RubricEvolution.STATIC
     rubric_proposer_model: str = "gpt-5.6-luna"
@@ -84,7 +89,14 @@ class SubmissionRevisionConfig:
         ):
             if type(retries) is not int or retries < 0:
                 raise ValueError(f"{name} must be a non-negative integer")
-        FeedbackPolicy(self.feedback_policy)
+        feedback_policy = FeedbackPolicy(self.feedback_policy)
+        if (
+            feedback_policy is FeedbackPolicy.SIMULATED_USER
+        ) != (self.feedback_simulator is not None):
+            raise ValueError(
+                "feedback_simulator must be configured exactly when feedback_policy "
+                "is simulated_user"
+            )
         PromptProfile(self.prompt_profile)
         RubricEvolution(self.rubric_evolution)
         if not self.rubric_proposer_model.strip():
@@ -115,6 +127,7 @@ class RevisionDependencies:
     session: SolverSessionDriver
     judge: SubmissionJudge
     evolver: RubricEvolver | None = None
+    feedback_simulator: SimulatedUserFeedback | None = None
 
 
 @dataclass(frozen=True)

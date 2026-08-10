@@ -18,17 +18,22 @@ from pathlib import Path
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.controller import run_submission_revision
-from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy, project_feedback
+from rubric_gen.biomnibench.revision.feedback import (
+    FeedbackPolicy,
+    project_feedback,
+    project_simulated_user_feedback,
+)
 from rubric_gen.biomnibench.revision.models import SubmissionRevisionConfig
 from rubric_gen.biomnibench.revision.artifacts import (
-    REVISION_MANIFEST_KEYS,
     read_json_object,
+    revision_manifest_keys,
     sha256_file,
     tree_sha256,
     verify_submission_snapshot,
 )
 from rubric_gen.biomnibench.revision.evolution import RubricEvolution
 from rubric_gen.biomnibench.revision.seeds import resolve_seed
+from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 
@@ -237,6 +242,9 @@ class StudyRunner:
                 protocol["rubric_proposer_max_retries"]
             ),
             feedback_policy=FeedbackPolicy(str(protocol["feedback_policy"])),
+            feedback_simulator=self.experiment.feedback_simulator_config(
+                vllm_endpoints=self.config.vllm_endpoints
+            ),
             prompt_profile=PromptProfile(str(condition["prompt"])),
             rubric_evolution=RubricEvolution(str(condition["rubric_evolution"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
@@ -377,8 +385,17 @@ def validate_completed_revision(
     manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
     state = read_json_object(experiment_dir / "state.json", "revision state")
     protocol = experiment.protocol
+    policy = FeedbackPolicy(str(protocol["feedback_policy"]))
     condition_spec = experiment.condition(str(assignment["condition_id"]))
     endpoints = vllm_endpoints or {}
+    simulator_config = experiment.feedback_simulator_config(
+        vllm_endpoints=endpoints
+    )
+    simulator = (
+        SimulatedUserFeedback(simulator_config)
+        if simulator_config is not None
+        else None
+    )
     agent = experiment.agent_config(vllm_endpoints=endpoints)
     task_dir = experiment.task_dir(str(assignment["task_id"])).resolve()
     seed = resolve_seed(
@@ -440,8 +457,10 @@ def validate_completed_revision(
         "live_workspace_removed": True,
         "scoring_identity": scoring_identity,
     }
+    if simulator_config is not None:
+        manifest_expectations["feedback_simulator"] = simulator_config.identity()
     if (
-        set(manifest) != REVISION_MANIFEST_KEYS
+        set(manifest) != revision_manifest_keys(policy.value)
         or any(
             manifest.get(key) != value
             for key, value in manifest_expectations.items()
@@ -493,7 +512,22 @@ def validate_completed_revision(
         or sorted(path.name for path in feedback_root.iterdir()) != expected_feedback
     ):
         raise RuntimeError("revision feedback set is incomplete")
-    policy = FeedbackPolicy(str(protocol["feedback_policy"]))
+    generation_root = experiment_dir / "feedback-generations"
+    if policy is FeedbackPolicy.SIMULATED_USER:
+        expected_generations = [
+            f"{submission_id}.json" for submission_id in expected_ids
+        ]
+        if (
+            generation_root.is_symlink()
+            or not generation_root.is_dir()
+            or sorted(path.name for path in generation_root.iterdir())
+            != expected_generations
+        ):
+            raise RuntimeError("simulated-user generation set is incomplete")
+    elif os.path.lexists(generation_root):
+        raise RuntimeError(
+            "feedback-generations is only valid for simulated_user feedback"
+        )
     prompt_profile = PromptProfile(str(condition_spec["prompt"]))
     for submission_id in expected_ids:
         submission = submissions / submission_id
@@ -550,14 +584,41 @@ def validate_completed_revision(
             raise RuntimeError(
                 f"evaluation disagrees with score validation: {submission_id}"
             )
-        projected = project_feedback(
-            validation_path,
-            evaluation_path,
-            rubric_path.read_text(encoding="utf-8"),
-            sha256_file(rubric_path),
-            policy,
-            prompt_profile=prompt_profile,
-        )
+        rubric_text = rubric_path.read_text(encoding="utf-8")
+        if policy is FeedbackPolicy.SIMULATED_USER:
+            assert simulator is not None
+            generation_path = generation_root / f"{submission_id}.json"
+            if generation_path.is_symlink() or not generation_path.is_file():
+                raise RuntimeError(
+                    f"missing simulated-user generation for {submission_id}"
+                )
+            comment = simulator.validate(
+                read_json_object(
+                    generation_path,
+                    "simulated-user generation",
+                ),
+                experiment_id=experiment.experiment_id,
+                assignment_id=str(assignment["assignment_id"]),
+                submission_id=submission_id,
+                rubric_version=rubric_version,
+                rubric_text=rubric_text,
+            )
+            projected = project_simulated_user_feedback(
+                validation_path,
+                rubric_text,
+                sha256_file(rubric_path),
+                comment,
+                prompt_profile=prompt_profile,
+            )
+        else:
+            projected = project_feedback(
+                validation_path,
+                evaluation_path,
+                rubric_text,
+                sha256_file(rubric_path),
+                policy,
+                prompt_profile=prompt_profile,
+            )
         if (
             read_json_object(feedback, "revision feedback") != projected.payload
             or state["scores"][index] != projected.score

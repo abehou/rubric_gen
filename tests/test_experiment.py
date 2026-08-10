@@ -73,6 +73,31 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     assert {item["execution_order"] for item in first.assignments} == set(range(1, 13))
 
 
+def test_simulated_user_feedback_requires_and_loads_model_config(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"]["feedback_policy"] = "simulated_user"  # type: ignore[index]
+    payload["protocol"]["feedback_simulator"] = {  # type: ignore[index]
+        "model": "gpt-simulated-user",
+        "max_output_tokens": 1_024,
+        "max_aspects": 2,
+        "max_retries": 1,
+    }
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    experiment = load_experiment(path)
+    config = experiment.feedback_simulator_config()
+
+    assert config is not None
+    assert config.model == "gpt-simulated-user"
+    assert config.max_output_tokens == 1_024
+    assert config.max_aspects == 2
+
+
 def test_yaml_experiment_rejects_broken_dag(tmp_path: Path) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")

@@ -26,6 +26,7 @@ from rubric_gen.biomnibench.utils.progress import PROGRESS_BAR_FORMAT
 from rubric_gen.biomnibench.revision.feedback import (
     FeedbackPolicy,
     project_feedback,
+    project_simulated_user_feedback,
 )
 from rubric_gen.biomnibench.revision.models import (
     RevisionDependencies,
@@ -66,6 +67,7 @@ from rubric_gen.biomnibench.revision.judge import (
     resolve_optimizer_rubric as _resolve_optimizer_rubric,
 )
 from rubric_gen.biomnibench.revision.evolution import RubricEvolution, RubricEvolver
+from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.biomnibench.revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.biomnibench.revision.store import (
     RevisionStore,
@@ -132,12 +134,34 @@ class SubmissionRevisionController:
                     max_retries=config.rubric_proposer_max_retries,
                 )
             ),
+            feedback_simulator=(
+                SimulatedUserFeedback(config.feedback_simulator)
+                if config.feedback_simulator is not None
+                else None
+            ),
         )
         if (
             config.rubric_evolution is not RubricEvolution.STATIC
             and self.dependencies.evolver is None
         ):
             raise ValueError("non-static rubric evolution requires an evolver")
+        if FeedbackPolicy(config.feedback_policy) is FeedbackPolicy.SIMULATED_USER:
+            if self.dependencies.feedback_simulator is None:
+                raise ValueError(
+                    "simulated_user feedback requires a feedback simulator"
+                )
+            assert config.feedback_simulator is not None
+            if (
+                self.dependencies.feedback_simulator.identity()
+                != config.feedback_simulator.identity()
+            ):
+                raise ValueError(
+                    "feedback simulator identity differs from revision config"
+                )
+        elif self.dependencies.feedback_simulator is not None:
+            raise ValueError(
+                "feedback simulator dependency is only valid for simulated_user"
+            )
         reported_scoring_identity = self.dependencies.judge.scoring_identity()
         if set(reported_scoring_identity) != set(_SCORING_IDENTITY_KEYS):
             raise RuntimeError(
@@ -164,7 +188,7 @@ class SubmissionRevisionController:
         )
 
     def _experiment_identity(self) -> dict[str, object]:
-        return {
+        identity: dict[str, object] = {
             "experiment_id": self.config.experiment_id,
             "assignment_id": self.config.assignment_id,
             "condition_id": self.config.condition_id,
@@ -206,6 +230,9 @@ class SubmissionRevisionController:
             "seed_run_dir": str(self.seed.root),
             "seed_sha256": self.seed.sha256,
         }
+        if self.config.feedback_simulator is not None:
+            identity["feedback_simulator"] = self.config.feedback_simulator.identity()
+        return identity
 
     def run(self) -> SubmissionRevisionResult:
         initialized = False
@@ -1014,13 +1041,16 @@ class SubmissionRevisionController:
         self._verify_round_scoring_identity(
             artifacts.score_validation_path, rubric, judge
         )
-        feedback = project_feedback(
-            artifacts.score_validation_path,
-            artifacts.evaluation_path,
-            rubric.text,
-            rubric.sha256,
-            self.config.feedback_policy,
-            prompt_profile=self.config.prompt_profile,
+        feedback = self._project_boundary_feedback(
+            artifacts=artifacts,
+            rubric=rubric,
+            submission_id=submission_id,
+            rubric_version=(
+                0 if self.config.rubric_evolution is RubricEvolution.STATIC
+                else turn_index
+            ),
+            submission_dir=submission_dir,
+            allow_generation=True,
         )
         feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
         if feedback_path.exists():
@@ -1076,6 +1106,84 @@ class SubmissionRevisionController:
                 "rubric_sha256": rubric.sha256,
                 "next_rubric": next_rubric,
             }
+        )
+
+    def _project_boundary_feedback(
+        self,
+        *,
+        artifacts: JudgeArtifacts,
+        rubric: FrozenRubric,
+        submission_id: str,
+        rubric_version: int,
+        submission_dir: Path,
+        allow_generation: bool,
+    ):
+        policy = FeedbackPolicy(self.config.feedback_policy)
+        if policy is not FeedbackPolicy.SIMULATED_USER:
+            return project_feedback(
+                artifacts.score_validation_path,
+                artifacts.evaluation_path,
+                rubric.text,
+                rubric.sha256,
+                policy,
+                prompt_profile=self.config.prompt_profile,
+            )
+
+        simulator = self.dependencies.feedback_simulator
+        if simulator is None:
+            raise RuntimeError("simulated-user feedback generator is unavailable")
+        generation_path = (
+            self.experiment_dir
+            / "feedback-generations"
+            / f"{submission_id}.json"
+        )
+        if generation_path.is_symlink():
+            raise RuntimeError(
+                f"simulated-user generation is an invalid symlink: {generation_path}"
+            )
+        if generation_path.is_file():
+            generation = _read_json_object(
+                generation_path,
+                "simulated-user generation",
+            )
+        else:
+            if os.path.lexists(generation_path):
+                raise RuntimeError(
+                    "simulated-user generation is not a regular file: "
+                    f"{generation_path}"
+                )
+            if not allow_generation:
+                raise RuntimeError(
+                    f"missing simulated-user generation for {submission_id}"
+                )
+            workspace = submission_dir / "workspace"
+            generation = simulator.generate(
+                experiment_id=self.config.experiment_id,
+                assignment_id=self.config.assignment_id,
+                submission_id=submission_id,
+                rubric_version=rubric_version,
+                instruction=(self.task_dir / "instruction.md").read_text(
+                    encoding="utf-8"
+                ),
+                rubric_text=rubric.text,
+                answer=(workspace / "answer.txt").read_text(encoding="utf-8"),
+            )
+            _write_json_atomic(generation_path, generation)
+            _make_read_only(generation_path)
+        comment = simulator.validate(
+            generation,
+            experiment_id=self.config.experiment_id,
+            assignment_id=self.config.assignment_id,
+            submission_id=submission_id,
+            rubric_version=rubric_version,
+            rubric_text=rubric.text,
+        )
+        return project_simulated_user_feedback(
+            artifacts.score_validation_path,
+            rubric.text,
+            rubric.sha256,
+            comment,
+            prompt_profile=self.config.prompt_profile,
         )
 
     def _publish_progress_report(
@@ -1171,13 +1279,16 @@ class SubmissionRevisionController:
             self._verify_round_scoring_identity(
                 artifacts.score_validation_path, rubric, judge
             )
-            projected = project_feedback(
-                artifacts.score_validation_path,
-                artifacts.evaluation_path,
-                rubric.text,
-                rubric.sha256,
-                self.config.feedback_policy,
-                prompt_profile=self.config.prompt_profile,
+            projected = self._project_boundary_feedback(
+                artifacts=artifacts,
+                rubric=rubric,
+                submission_id=submission_id,
+                rubric_version=(
+                    0 if self.config.rubric_evolution is RubricEvolution.STATIC
+                    else index
+                ),
+                submission_dir=submission_dir,
+                allow_generation=False,
             )
             feedback = _read_json_object(
                 self.experiment_dir / "feedback" / f"{submission_id}.json",

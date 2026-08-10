@@ -26,8 +26,18 @@ from rubric_gen.biomnibench.revision.artifacts import (
     solution_tree_sha256,
     tree_sha256,
 )
-from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy, project_feedback
+from rubric_gen.biomnibench.revision.feedback import (
+    FeedbackPolicy,
+    project_feedback,
+    project_simulated_user_feedback,
+)
 from rubric_gen.biomnibench.revision.seeds import SEED_KIND, SEED_SET_KIND
+from rubric_gen.biomnibench.revision.user_simulator import (
+    SimulatedUserConfig,
+    SimulatedUserFeedback,
+    SimulatedUserGeneration,
+    SimulatedUserRequest,
+)
 from rubric_gen.biomnibench.study import (
     _expected_rubric_names,
     validate_completed_revision,
@@ -189,6 +199,34 @@ def _config(root: Path, task: Path, *, rounds: int, score: int = 80):
 
 def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
     agent = config.agent
+    protocol: dict[str, object] = {
+        "revision_rounds": config.revision_rounds,
+        "feedback_policy": config.feedback_policy.value,
+        "rubric_proposer_model": config.rubric_proposer_model,
+        "rubric_proposer_step_limit": config.rubric_proposer_step_limit,
+        "rubric_proposer_max_retries": config.rubric_proposer_max_retries,
+        "review": config.review,
+        "judge_model": config.judge_model,
+        "judge_max_retries": config.judge_max_retries,
+        "max_review_chars": config.max_review_chars,
+        "rubric_name": config.rubric_name,
+        "solver": {
+            "provider": agent.provider,
+            "model": agent.model,
+            "executable": agent.executable,
+            "reasoning_effort": agent.reasoning_effort,
+            "service_tier": agent.service_tier,
+            "retries": agent.retries,
+            "timeout_seconds": agent.timeout_seconds,
+        },
+    }
+    if config.feedback_simulator is not None:
+        protocol["feedback_simulator"] = {
+            "model": config.feedback_simulator.model,
+            "max_output_tokens": config.feedback_simulator.max_output_tokens,
+            "max_aspects": config.feedback_simulator.max_aspects,
+            "max_retries": config.feedback_simulator.max_retries,
+        }
     return Experiment(
         task.parent / "experiment.yaml",
         {
@@ -201,27 +239,7 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
                 "prompt": config.prompt_profile.value,
                 "rubric_evolution": config.rubric_evolution.value,
             }],
-            "protocol": {
-                "revision_rounds": config.revision_rounds,
-                "feedback_policy": config.feedback_policy.value,
-                "rubric_proposer_model": config.rubric_proposer_model,
-                "rubric_proposer_step_limit": config.rubric_proposer_step_limit,
-                "rubric_proposer_max_retries": config.rubric_proposer_max_retries,
-                "review": config.review,
-                "judge_model": config.judge_model,
-                "judge_max_retries": config.judge_max_retries,
-                "max_review_chars": config.max_review_chars,
-                "rubric_name": config.rubric_name,
-                "solver": {
-                    "provider": agent.provider,
-                    "model": agent.model,
-                    "executable": agent.executable,
-                    "reasoning_effort": agent.reasoning_effort,
-                    "service_tier": agent.service_tier,
-                    "retries": agent.retries,
-                    "timeout_seconds": agent.timeout_seconds,
-                },
-            },
+            "protocol": protocol,
             "outcome_audit": {},
             "dag": {},
         },
@@ -409,6 +427,154 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
             _design(config, task),
             config.seed_run_dir,
         )
+
+
+def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    simulator_config = SimulatedUserConfig(
+        model="gpt-simulated-user",
+        max_output_tokens=1_024,
+        max_aspects=2,
+        max_retries=1,
+    )
+    config = replace(
+        _config(tmp_path, task, rounds=1),
+        feedback_policy=FeedbackPolicy.SIMULATED_USER,
+        feedback_simulator=simulator_config,
+    )
+    requests: list[object] = []
+
+    def generate_user_feedback(
+        requested: SimulatedUserConfig,
+        request: SimulatedUserRequest,
+    ) -> SimulatedUserGeneration:
+        requests.append(request)
+        assert requested == simulator_config
+        assert "score" not in request.evidence
+        assert "judge" not in request.evidence
+        index = len(requests)
+        return SimulatedUserGeneration(
+            text=json.dumps({
+                "referenced_criteria": ["criterion_1"],
+                "comment": (
+                    f"The result in response {index} is not yet well supported. "
+                    "Please show the decisive check and explain why it justifies "
+                    "the conclusion."
+                ),
+            }),
+            provider="openai",
+            requested_model=simulator_config.model,
+            effective_model="gpt-simulated-user-served",
+            response_id=f"response-{index}",
+            request_parameters={"max_output_tokens": 1_024},
+            provider_metadata={"usage": {"output_tokens": 40}},
+        )
+
+    simulator = SimulatedUserFeedback(
+        simulator_config,
+        generator=generate_user_feedback,
+    )
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    result = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=session,
+            judge=judge,
+            feedback_simulator=simulator,
+        ),
+    ).run()
+
+    assert result.scores == (80, 90)
+    assert len(requests) == 2
+    assert "response 1 is not yet well supported" in session.prompts[0]
+    assert "80/100" not in session.prompts[0]
+    feedback = json.loads(
+        (config.experiment_dir / "feedback" / "s000.json").read_text()
+    )
+    assert set(feedback) == {"schema_version", "policy", "comment"}
+    generation = json.loads(
+        (
+            config.experiment_dir
+            / "feedback-generations"
+            / "s000.json"
+        ).read_text()
+    )
+    assert generation["output"]["referenced_criteria"] == ["criterion_1"]
+    assert generation["generation"]["response_id"] == "response-1"
+
+    assignment = {
+        "assignment_id": config.assignment_id,
+        "task_id": task.name,
+        "replicate": 1,
+        "condition_id": config.condition_id,
+        "execution_order": 1,
+    }
+    validate_completed_revision(
+        config.experiment_dir,
+        assignment,
+        _design(config, task),
+        config.seed_run_dir,
+    )
+
+
+def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
+    config = SimulatedUserConfig(
+        model="gpt-simulated-user",
+        max_output_tokens=512,
+        max_aspects=3,
+        max_retries=1,
+    )
+    calls = 0
+
+    def generate_user_feedback(
+        requested: SimulatedUserConfig,
+        request: SimulatedUserRequest,
+    ) -> SimulatedUserGeneration:
+        nonlocal calls
+        calls += 1
+        selected = (
+            ["criterion_1", "criterion_2", "criterion_3"]
+            if calls == 1
+            else ["criterion_1", "criterion_3"]
+        )
+        return SimulatedUserGeneration(
+            text=json.dumps({
+                "referenced_criteria": selected,
+                "comment": "Please strengthen the evidence and explain the conclusion.",
+            }),
+            provider="openai",
+            requested_model=requested.model,
+            effective_model="gpt-simulated-user-served",
+            response_id=f"response-{calls}",
+            request_parameters={
+                "max_output_tokens": request.max_output_tokens,
+            },
+        )
+
+    simulator = SimulatedUserFeedback(config, generator=generate_user_feedback)
+    record = simulator.generate(
+        experiment_id="experiment",
+        assignment_id="assignment",
+        submission_id="s000",
+        rubric_version=0,
+        instruction="Analyze the table.",
+        rubric_text=(
+            "Criterion 1: Result\nLevels: A=40 B=0\n"
+            "Criterion 2: Evidence\nLevels: A=30 B=0\n"
+            "Criterion 3: Explanation\nLevels: A=30 B=0\n"
+        ),
+        answer="The result is positive.",
+    )
+
+    assert calls == 2
+    assert record["attempt_count"] == 2
+    assert record["output"]["referenced_criteria"] == [  # type: ignore[index]
+        "criterion_1",
+        "criterion_3",
+    ]
 
 
 def test_solver_workspace_data_is_disposable_and_artifacts_are_persisted(
@@ -913,9 +1079,24 @@ Levels: A=40 B=20 C=0
     score = project_feedback(
         validation, evaluation, rubric, rubric_sha, FeedbackPolicy.SCORE_ONLY
     )
+    simulated = project_simulated_user_feedback(
+        validation,
+        rubric,
+        rubric_sha,
+        "The evidence is hard to verify from the response. Please explain the "
+        "key check and connect it to the conclusion.",
+    )
     assert "needs more evidence" in full.prompt
     assert '"title": "Evidence"' in semi.prompt
     assert "needs more evidence" not in semi.prompt
     assert "Criterion 2" not in score.prompt
-    assert all("under ./artifacts, not ./data" in item.prompt for item in (full, semi, score))
+    assert set(simulated.payload) == {"schema_version", "policy", "comment"}
+    assert "The evidence is hard to verify" in simulated.prompt
+    assert "80/100" not in simulated.prompt
+    assert "needs more evidence" not in simulated.prompt
+    assert '"selected_level"' not in simulated.prompt
+    assert all(
+        "under ./artifacts, not ./data" in item.prompt
+        for item in (full, semi, score, simulated)
+    )
     assert score.score == 80

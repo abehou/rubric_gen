@@ -20,6 +20,10 @@ class FeedbackPolicy(str, Enum):
     FULL = "full"
     SEMI = "semi"
     SCORE_ONLY = "score_only"
+    SIMULATED_USER = "simulated_user"
+
+
+MAX_SIMULATED_USER_COMMENT_CHARS = 6_000
 
 
 @dataclass(frozen=True)
@@ -51,9 +55,39 @@ def render_feedback_prompt(
 
     policy = FeedbackPolicy(payload.get("policy"))
     resolved_profile = PromptProfile(prompt_profile)
+    if payload.get("schema_version") != 1:
+        raise ValueError("feedback payload has invalid schema")
+
+    if policy is FeedbackPolicy.SIMULATED_USER:
+        if set(payload) != {"schema_version", "policy", "comment"}:
+            raise ValueError("simulated-user feedback contains unexpected fields")
+        comment = payload.get("comment")
+        if (
+            type(comment) is not str
+            or not comment.strip()
+            or comment != comment.strip()
+            or len(comment) > MAX_SIMULATED_USER_COMMENT_CHARS
+        ):
+            raise ValueError("simulated-user feedback contains an invalid comment")
+        prompt = (
+            "A user reviewed your previous submission and left this feedback:\n\n"
+            "<user_feedback>\n"
+            f"{comment}\n"
+            "</user_feedback>\n\n"
+            "Continue in the same workspace and revise the solution in response. "
+            "Re-run relevant checks and update trace.md and answer.txt. Store "
+            "generated datasets, tables, plots, logs, and other supporting "
+            "outputs under ./artifacts, not ./data. No score, rubric breakdown, "
+            "or judge reasoning is available."
+        )
+        guidance = revision_guidance(resolved_profile)
+        if guidance is not None:
+            prompt += "\n\n" + guidance
+        return prompt
+
     score = payload.get("score")
-    if payload.get("schema_version") != 1 or type(score) is not int:
-        raise ValueError("feedback payload has invalid schema or score")
+    if type(score) is not int:
+        raise ValueError("feedback payload has an invalid score")
     if not 0 <= score <= 100:
         raise ValueError("feedback score must be between 0 and 100")
     if policy is FeedbackPolicy.SCORE_ONLY:
@@ -186,6 +220,11 @@ def project_feedback(
     except ValueError as exc:
         raise ValueError(f"unsupported feedback policy: {policy}") from exc
 
+    if resolved_policy is FeedbackPolicy.SIMULATED_USER:
+        raise ValueError(
+            "simulated_user feedback must be projected from a persisted LLM comment"
+        )
+
     if resolved_policy is FeedbackPolicy.SCORE_ONLY:
         payload: dict[str, object] = {
             "schema_version": 1,
@@ -200,21 +239,12 @@ def project_feedback(
 
     if resolved_policy is FeedbackPolicy.SEMI:
         rubric_levels = parse_rubric_levels_strict(rubric_text)
-        summaries = _criterion_summaries(rubric_text, rubric_levels)
-        if set(summaries) != set(selected_levels) or set(rubric_levels) != set(
-            selected_levels
-        ):
-            raise ValueError(
-                "rubric criterion summaries do not match validated score criteria"
-            )
-        for criterion_id, selected_level in selected_levels.items():
-            if rubric_levels[criterion_id].get(selected_level) != criterion_scores[
-                criterion_id
-            ]:
-                raise ValueError(
-                    "validated criterion score does not match the frozen rubric: "
-                    f"{criterion_id}"
-                )
+        summaries = _validated_criterion_summaries(
+            rubric_text,
+            rubric_levels,
+            selected_levels,
+            criterion_scores,
+        )
         payload = {
             "schema_version": 1,
             "policy": resolved_policy.value,
@@ -252,6 +282,34 @@ def project_feedback(
     return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
 
 
+def project_simulated_user_feedback(
+    score_validation_path: Path,
+    rubric_text: str,
+    expected_rubric_sha256: str,
+    comment: str,
+    *,
+    prompt_profile: PromptProfile | str = PromptProfile.BASE,
+) -> ProjectedFeedback:
+    """Pair a sealed LLM user comment with its independently validated score."""
+
+    validation = _load_object(score_validation_path, "score validation")
+    score, _, _, _ = _validate_score_record(
+        validation,
+        rubric_text,
+        expected_rubric_sha256,
+    )
+    payload: dict[str, object] = {
+        "schema_version": 1,
+        "policy": FeedbackPolicy.SIMULATED_USER.value,
+        "comment": comment,
+    }
+    return ProjectedFeedback(
+        score=score,
+        payload=payload,
+        prompt=render_feedback_prompt(payload, prompt_profile),
+    )
+
+
 def _criterion_summaries(
     rubric_text: str,
     rubric_levels: dict[str, dict[str, int]],
@@ -273,6 +331,30 @@ def _criterion_summaries(
         raise ValueError(
             "rubric criteria lack parseable non-empty titles: " + ", ".join(missing)
         )
+    return summaries
+
+
+def _validated_criterion_summaries(
+    rubric_text: str,
+    rubric_levels: dict[str, dict[str, int]],
+    selected_levels: dict[str, str],
+    criterion_scores: dict[str, int],
+) -> dict[str, _CriterionSummary]:
+    summaries = _criterion_summaries(rubric_text, rubric_levels)
+    if set(summaries) != set(selected_levels) or set(rubric_levels) != set(
+        selected_levels
+    ):
+        raise ValueError(
+            "rubric criterion summaries do not match validated score criteria"
+        )
+    for criterion_id, selected_level in selected_levels.items():
+        if rubric_levels[criterion_id].get(selected_level) != criterion_scores[
+            criterion_id
+        ]:
+            raise ValueError(
+                "validated criterion score does not match the frozen rubric: "
+                f"{criterion_id}"
+            )
     return summaries
 
 

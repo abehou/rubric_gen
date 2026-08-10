@@ -15,6 +15,7 @@ from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.forensics.protocol import outcome_audit_protocol
 from rubric_gen.biomnibench.revision.evolution import RubricEvolution
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
+from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserConfig
 
 
 EXPERIMENT_SCHEMA_VERSION = 1
@@ -99,6 +100,26 @@ class Experiment:
             retries=int(value["retries"]),
             timeout_seconds=int(value["timeout_seconds"]),
             quiet=quiet,
+        )
+
+    def feedback_simulator_config(
+        self,
+        *,
+        vllm_endpoints: dict[str, str] | None = None,
+    ) -> SimulatedUserConfig | None:
+        if FeedbackPolicy(str(self.protocol["feedback_policy"])) is not (
+            FeedbackPolicy.SIMULATED_USER
+        ):
+            return None
+        value = self.protocol["feedback_simulator"]
+        assert isinstance(value, dict)
+        model = str(value["model"])
+        return SimulatedUserConfig(
+            model=model,
+            base_url=(vllm_endpoints or {}).get(model),
+            max_output_tokens=value["max_output_tokens"],
+            max_aspects=value["max_aspects"],
+            max_retries=value["max_retries"],
         )
 
 
@@ -198,17 +219,22 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
 
 
 def _validate_protocol(protocol: object) -> None:
-    required = {
+    base_keys = {
         "revision_rounds", "feedback_policy", "solver", "judge_model",
         "judge_max_retries", "rubric_name", "review", "max_review_chars",
         "rubric_proposer_model", "rubric_proposer_step_limit",
         "rubric_proposer_max_retries",
     }
-    if not isinstance(protocol, dict) or set(protocol) != required:
+    if not isinstance(protocol, dict):
+        raise ValueError("protocol must be a mapping")
+    feedback_policy = FeedbackPolicy(str(protocol.get("feedback_policy")))
+    required = set(base_keys)
+    if feedback_policy is FeedbackPolicy.SIMULATED_USER:
+        required.add("feedback_simulator")
+    if set(protocol) != required:
         raise ValueError(f"protocol keys must be exactly {sorted(required)}")
     if type(protocol["revision_rounds"]) is not int or protocol["revision_rounds"] < 1:
         raise ValueError("revision_rounds must be positive")
-    FeedbackPolicy(str(protocol["feedback_policy"]))
     if protocol["review"] not in {"trace", "trajectory"}:
         raise ValueError("review must be trace or trajectory")
     solver = protocol["solver"]
@@ -222,6 +248,25 @@ def _validate_protocol(protocol: object) -> None:
         retries=int(solver.get("retries", 1)),
         timeout_seconds=int(solver.get("timeout_seconds", 7_200)),
     )
+    if feedback_policy is FeedbackPolicy.SIMULATED_USER:
+        simulator = protocol["feedback_simulator"]
+        simulator_keys = {
+            "model",
+            "max_output_tokens",
+            "max_aspects",
+            "max_retries",
+        }
+        if not isinstance(simulator, dict) or set(simulator) != simulator_keys:
+            raise ValueError(
+                "feedback_simulator keys must be exactly "
+                f"{sorted(simulator_keys)}"
+            )
+        SimulatedUserConfig(
+            model=simulator["model"],
+            max_output_tokens=simulator["max_output_tokens"],
+            max_aspects=simulator["max_aspects"],
+            max_retries=simulator["max_retries"],
+        )
 
 
 def _randomized_assignments(payload: dict[str, Any]) -> list[dict[str, object]]:
