@@ -117,3 +117,7 @@
 - **16:22 PDT** — Replaced the deterministic partial-feedback draft with an LLM-based `simulated_user` policy that independently reviews the current answer against the private rubric and comments on a non-exhaustive subset without seeing scores or judge reasoning. Generated comments and provider provenance are sealed separately for exact resume, only the comment is exposed to the solver, and all 333 tests pass (1 skipped).
 - **19:05 PDT** — The `luna-top30-full-r10` invocation on `jagupard28` is dead at 162/360 completed: its lease is free, all 30 recorded workers have been stale for 68–90 minutes, and no assignment failure was captured, indicating coordinator termination rather than a workflow-reported error.
 - **22:17 PDT** — The resumed `luna-top30-full-r10` invocation on `jagupard28` is healthy at 257/360 completed, with a held lease, 30 advancing workers, and zero failures; the oldest state file belongs to a solver whose trajectory is actively writing.
+
+## 2026-08-10
+
+- **10:47 PDT** — Generated repository PNG/PDF figures comparing semi/full score trajectories and narrow RH detections, plus a separate semi-feedback broad listed-behavior plot; all three audits retain 352 complete panels and 82 complete randomized blocks. Cross-feedback comparisons are labeled descriptive because the separate studies began from sharply different mean scores (10.4 semi versus 59.7 full), while the broad 82–87% endpoint is explicitly not presented as an RH rate.
