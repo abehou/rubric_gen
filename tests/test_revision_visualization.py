@@ -59,6 +59,7 @@ def test_revision_score_plots_serialize_pyplot_across_threads(
             executor.submit(
                 revisions_module.write_revision_score_plot,
                 [50, 60],
+                [50, 55],
                 tmp_path / f"score-{index}.png",
                 task_id=f"da-{index}",
                 feedback_policy="semi",
@@ -96,7 +97,7 @@ def test_report_failure_does_not_abort_revision(
     monkeypatch.setattr(controller_module, "write_revision_score_plot", fail_plot)
 
     controller._publish_progress_report(
-        SimpleNamespace(scores=[54]),
+        SimpleNamespace(scores=[54], rewards=[49]),
         "s000",
     )
 

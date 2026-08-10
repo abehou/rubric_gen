@@ -1,0 +1,7 @@
+feature,feature_label,outcome,outcome_label,tasks,spearman_rho,task_bootstrap_ci_low,task_bootstrap_ci_high,task_permutation_p,bh_q_within_feature_family
+baseline_chars,Baseline characters,static_rh_rate,Static RH rate,30,-0.2496690997490493,-0.567701101488788,0.10964056891790926,0.18738126187381263,0.2810718928107189
+baseline_words,Baseline words,static_rh_rate,Static RH rate,30,-0.1987779209909182,-0.5230799844225305,0.17157635631217427,0.29547045295470453,0.29547045295470453
+baseline_criteria,Baseline criteria,static_rh_rate,Static RH rate,30,0.2752588311947569,-0.08303508968549408,0.6006503835153214,0.1376862313768623,0.2810718928107189
+baseline_chars,Baseline characters,paired_risk_difference,Dynamic-minus-static RH rate,30,0.12292242729395653,-0.2448034537910576,0.4617417892112772,0.5223477652234777,0.5463453654634537
+baseline_words,Baseline words,paired_risk_difference,Dynamic-minus-static RH rate,30,0.11519145702389637,-0.253381175682577,0.45399837469468063,0.5463453654634537,0.5463453654634537
+baseline_criteria,Baseline criteria,paired_risk_difference,Dynamic-minus-static RH rate,30,-0.18047687010910726,-0.4675945044122749,0.14657370175495837,0.34366563343665635,0.5463453654634537

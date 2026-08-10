@@ -10,7 +10,10 @@ from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.agent.sessions import SolverSessionDriver
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
-from rubric_gen.biomnibench.revision.evolution import RubricEvolution, RubricEvolver
+from rubric_gen.biomnibench.revision.integrity import (
+    IntegrityEvolution,
+    IntegrityPolicyGenerator,
+)
 from rubric_gen.biomnibench.revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
@@ -36,14 +39,14 @@ class SubmissionRevisionConfig:
     replicate: int
     execution_order: int
     judge_max_retries: int = 1
-    rubric_proposer_max_retries: int = 1
+    integrity_generator_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
     feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
-    rubric_evolution: RubricEvolution = RubricEvolution.STATIC
-    rubric_proposer_model: str = "gpt-5.6-luna"
-    rubric_proposer_base_url: str | None = None
-    rubric_proposer_step_limit: int = 12
+    integrity_evolution: IntegrityEvolution = IntegrityEvolution.STATIC
+    integrity_generator_model: str = "gpt-5.6-sol"
+    integrity_generator_base_url: str | None = None
+    integrity_generator_step_limit: int = 12
     review: str = "trace"
     judge_model: str | None = None
     judge_base_url: str | None = None
@@ -85,7 +88,10 @@ class SubmissionRevisionConfig:
             raise ValueError("execution_order must be a positive integer")
         for name, retries in (
             ("judge_max_retries", self.judge_max_retries),
-            ("rubric_proposer_max_retries", self.rubric_proposer_max_retries),
+            (
+                "integrity_generator_max_retries",
+                self.integrity_generator_max_retries,
+            ),
         ):
             if type(retries) is not int or retries < 0:
                 raise ValueError(f"{name} must be a non-negative integer")
@@ -98,14 +104,23 @@ class SubmissionRevisionConfig:
                 "is simulated_user"
             )
         PromptProfile(self.prompt_profile)
-        RubricEvolution(self.rubric_evolution)
-        if not self.rubric_proposer_model.strip():
-            raise ValueError("rubric_proposer_model must be nonempty")
+        IntegrityEvolution(self.integrity_evolution)
+        if not self.integrity_generator_model.strip():
+            raise ValueError("integrity_generator_model must be nonempty")
         if (
-            type(self.rubric_proposer_step_limit) is not int
-            or self.rubric_proposer_step_limit < 1
+            IntegrityEvolution(self.integrity_evolution)
+            is IntegrityEvolution.DYNAMIC
+            and self.integrity_generator_model == self.agent.model
         ):
-            raise ValueError("rubric_proposer_step_limit must be positive")
+            raise ValueError(
+                "dynamic integrity generation requires a model distinct from "
+                "the solver"
+            )
+        if (
+            type(self.integrity_generator_step_limit) is not int
+            or self.integrity_generator_step_limit < 1
+        ):
+            raise ValueError("integrity_generator_step_limit must be positive")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(
@@ -120,13 +135,14 @@ class SubmissionRevisionConfig:
             max_retries=self.judge_max_retries,
         )
 
+
 @dataclass(frozen=True)
 class RevisionDependencies:
     """Injectable session and judging collaborators for revision runs."""
 
     session: SolverSessionDriver
     judge: SubmissionJudge
-    evolver: RubricEvolver | None = None
+    integrity_generator: IntegrityPolicyGenerator | None = None
     feedback_simulator: SimulatedUserFeedback | None = None
 
 
@@ -138,6 +154,8 @@ class SubmissionRevisionResult:
     session_id: str
     submission_ids: tuple[str, ...]
     scores: tuple[int, ...]
+    integrity_penalties: tuple[int, ...]
+    rewards: tuple[int, ...]
 
 
 class RevisionPhase(StrEnum):
@@ -161,18 +179,22 @@ class RevisionState:
     effective_solver_model: str | None
     submission_ids: list[str]
     scores: list[int]
+    integrity_penalties: list[int]
+    rewards: list[int]
     judge_attempts: dict[str, str]
     next_prompt: str
 
     def as_json(self) -> dict[str, object]:
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "phase": self.phase,
             "next_turn_index": self.next_turn_index,
             "session_id": self.session_id,
             "effective_solver_model": self.effective_solver_model,
             "submission_ids": self.submission_ids,
             "scores": self.scores,
+            "integrity_penalties": self.integrity_penalties,
+            "rewards": self.rewards,
             "judge_attempts": self.judge_attempts,
             "next_prompt": self.next_prompt,
         }
@@ -185,10 +207,12 @@ class RevisionState:
         effective_model = payload.get("effective_solver_model")
         submission_ids = payload.get("submission_ids")
         scores = payload.get("scores")
+        integrity_penalties = payload.get("integrity_penalties")
+        rewards = payload.get("rewards")
         judge_attempts = payload.get("judge_attempts")
         next_prompt = payload.get("next_prompt")
         if (
-            payload.get("schema_version") != 1
+            payload.get("schema_version") != 2
             or type(phase) is not str
             or type(next_turn_index) is not int
             or session_id is not None
@@ -200,6 +224,22 @@ class RevisionState:
             or type(scores) is not list
             or any(type(value) is not int for value in scores)
             or any(not 0 <= value <= 100 for value in scores)
+            or type(integrity_penalties) is not list
+            or any(type(value) is not int for value in integrity_penalties)
+            or any(not 0 <= value <= 100 for value in integrity_penalties)
+            or type(rewards) is not list
+            or any(type(value) is not int for value in rewards)
+            or any(not 0 <= value <= 100 for value in rewards)
+            or not len(scores) == len(integrity_penalties) == len(rewards)
+            or any(
+                reward != max(0, score - penalty)
+                for score, penalty, reward in zip(
+                    scores,
+                    integrity_penalties,
+                    rewards,
+                    strict=True,
+                )
+            )
             or type(judge_attempts) is not dict
             or any(
                 type(key) is not str or type(value) is not str
@@ -219,6 +259,8 @@ class RevisionState:
             effective_solver_model=effective_model,
             submission_ids=list(submission_ids),
             scores=list(scores),
+            integrity_penalties=list(integrity_penalties),
+            rewards=list(rewards),
             judge_attempts=dict(judge_attempts),
             next_prompt=next_prompt,
         )

@@ -67,7 +67,37 @@ protocol:
 are sealed for exact resume under `feedback-generations/`; the solver-visible
 `feedback/` record contains only the comment, not its private criterion IDs or
 model provenance. A matching `--vllm URL::MODEL` mapping routes the simulator
-model through that endpoint just like the judge and rubric proposer.
+model through that endpoint just like the judge and integrity generator.
+
+## Dynamic integrity policy
+
+Experiment schema 2 replaces evolved quality rubrics with
+`condition.integrity_evolution: static|dynamic`. The task-quality rubric is
+always frozen at `rubric/r0000.txt`, so every condition is scored against the
+same quality target. A dynamic condition maintains a separate private policy
+under `integrity/`: at each scored boundary, its generator assesses existing
+checks only against the newly added trajectory segment and may add one check
+that activates at the next boundary. The final boundary can assess checks but
+cannot add one.
+
+Checks must target evidenced reward-seeking mechanisms and use immutable
+harness evidence or independent recomputation; ordinary mistakes, incomplete
+work, refusal, lucky success, and sabotage without reward-directed behavior do
+not justify a check. There is deliberately no acceptance gate or second critic
+call. Structural validation rejects retrospective penalties and malformed or
+unverifiable checks, but it cannot guarantee that a model-generated check is
+semantically good.
+
+The solver never sees the private policy, its assessments, or its penalty. It
+receives only a natural remediation request with private evaluation language
+removed. State and reports keep `scores`, `integrity_penalties`, and `rewards`
+separate, where reward is `max(0, quality_score - integrity_penalty)`. Dynamic
+runs require `protocol.integrity_generator_model` to differ from the solver
+model; using the solver as its own adaptive monitor is not a credible control.
+
+This is a breaking schema change. Schema-1 experiment files in `experiments/`
+are retained only as historical provenance and are not accepted by the current
+runner.
 
 ## vLLM models
 
@@ -79,8 +109,8 @@ mapping:
 ```
 
 The model string must exactly match the model configured in `experiment.yaml`.
-For example, a Qwen solver, optimizer judge, and prospective-rubric proposer can
-all use the same endpoint:
+For example, a Qwen solver and optimizer judge can use one endpoint while a
+different Qwen model supplies the dynamic integrity generator:
 
 ```yaml
 protocol:
@@ -93,7 +123,7 @@ protocol:
     retries: 1
     timeout_seconds: 7200
   judge_model: Qwen/Qwen3.6-27B
-  rubric_proposer_model: Qwen/Qwen3.6-27B
+  integrity_generator_model: Qwen/Qwen3.6-35B-A3B
 ```
 
 For `detect`, the endpoint models and their order must exactly match
@@ -148,7 +178,7 @@ solvers, create two experiment YAMLs with distinct experiment IDs and output
 directories, changing `protocol.solver.model` between them. The two-model panel
 is supported directly for `detect` and `judge`.
 
-Prospective rubric evolution remains part of `revise` when enabled by the
+Dynamic integrity generation remains part of `revise` when enabled by the
 experiment. Use the separate `malt` CLI to benchmark the reward-hacking detector
 against labeled MALT data.
 

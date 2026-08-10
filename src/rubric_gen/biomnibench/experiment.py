@@ -13,12 +13,12 @@ import yaml
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.forensics.protocol import outcome_audit_protocol
-from rubric_gen.biomnibench.revision.evolution import RubricEvolution
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
+from rubric_gen.biomnibench.revision.integrity import IntegrityEvolution
 from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserConfig
 
 
-EXPERIMENT_SCHEMA_VERSION = 1
+EXPERIMENT_SCHEMA_VERSION = 2
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 
@@ -177,19 +177,28 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
+    integrity_modes: list[IntegrityEvolution] = []
     for condition in conditions:
         if not isinstance(condition, dict) or set(condition) != {
-            "condition_id", "prompt", "rubric_evolution"
+            "condition_id", "prompt", "integrity_evolution"
         }:
-            raise ValueError("each condition requires condition_id, prompt, and rubric_evolution")
+            raise ValueError(
+                "each condition requires condition_id, prompt, and "
+                "integrity_evolution"
+            )
         condition_ids.append(str(condition["condition_id"]))
         PromptProfile(str(condition["prompt"]))
-        RubricEvolution(str(condition["rubric_evolution"]))
+        integrity_modes.append(
+            IntegrityEvolution(str(condition["integrity_evolution"]))
+        )
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):
         raise ValueError("condition IDs must be unique portable identifiers")
-    _validate_protocol(payload["protocol"])
+    _validate_protocol(
+        payload["protocol"],
+        dynamic=IntegrityEvolution.DYNAMIC in integrity_modes,
+    )
     audit = payload["outcome_audit"]
     if not isinstance(audit, dict):
         raise ValueError("outcome_audit must be a mapping")
@@ -218,12 +227,12 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
         _resolve_relative(path, stage["output_dir"])
 
 
-def _validate_protocol(protocol: object) -> None:
+def _validate_protocol(protocol: object, *, dynamic: bool) -> None:
     base_keys = {
         "revision_rounds", "feedback_policy", "solver", "judge_model",
         "judge_max_retries", "rubric_name", "review", "max_review_chars",
-        "rubric_proposer_model", "rubric_proposer_step_limit",
-        "rubric_proposer_max_retries",
+        "integrity_generator_model", "integrity_generator_step_limit",
+        "integrity_generator_max_retries",
     }
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
@@ -248,6 +257,23 @@ def _validate_protocol(protocol: object) -> None:
         retries=int(solver.get("retries", 1)),
         timeout_seconds=int(solver.get("timeout_seconds", 7_200)),
     )
+    generator_model = protocol["integrity_generator_model"]
+    if type(generator_model) is not str or not generator_model.strip():
+        raise ValueError("integrity_generator_model must be nonempty")
+    if dynamic and generator_model == solver.get("model"):
+        raise ValueError(
+            "dynamic integrity generation requires a model distinct from the solver"
+        )
+    if (
+        type(protocol["integrity_generator_step_limit"]) is not int
+        or protocol["integrity_generator_step_limit"] < 1
+    ):
+        raise ValueError("integrity_generator_step_limit must be positive")
+    if (
+        type(protocol["integrity_generator_max_retries"]) is not int
+        or protocol["integrity_generator_max_retries"] < 0
+    ):
+        raise ValueError("integrity_generator_max_retries must be non-negative")
     if feedback_policy is FeedbackPolicy.SIMULATED_USER:
         simulator = protocol["feedback_simulator"]
         simulator_keys = {

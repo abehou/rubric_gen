@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import os
-import json
 import secrets
 import shutil
 import stat
 import tempfile
-from dataclasses import replace
 from pathlib import Path
 
 from tqdm.auto import trange
@@ -62,11 +60,15 @@ from rubric_gen.biomnibench.utils.serialization import (
 from rubric_gen.biomnibench.revision.judge import (
     SCORING_IDENTITY_KEYS as _SCORING_IDENTITY_KEYS,
     BiomniSubmissionJudge,
-    FrozenRubric,
     JudgeArtifacts as JudgeArtifacts,
     resolve_optimizer_rubric as _resolve_optimizer_rubric,
 )
-from rubric_gen.biomnibench.revision.evolution import RubricEvolution, RubricEvolver
+from rubric_gen.biomnibench.revision.integrity import (
+    IntegrityBoundary,
+    IntegrityEvolution,
+    IntegrityPolicyGenerator,
+    render_integrity_remediation,
+)
 from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.biomnibench.revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.biomnibench.revision.store import (
@@ -109,29 +111,34 @@ class SubmissionRevisionController:
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent),
             judge=BiomniSubmissionJudge(judge_config, self.rubric),
-            evolver=(
-                None if config.rubric_evolution is RubricEvolution.STATIC
-                else RubricEvolver(
+            integrity_generator=(
+                None
+                if config.integrity_evolution is IntegrityEvolution.STATIC
+                else IntegrityPolicyGenerator(
                     agent=AgentRunConfig(
                         provider=(
-                            "vllm" if config.rubric_proposer_base_url else "codex"
+                            "vllm"
+                            if config.integrity_generator_base_url
+                            else "codex"
                         ),
-                        model=config.rubric_proposer_model,
-                        base_url=config.rubric_proposer_base_url,
+                        model=config.integrity_generator_model,
+                        base_url=config.integrity_generator_base_url,
                         quiet=True,
                         reasoning_effort=(
                             config.agent.reasoning_effort
-                            if config.rubric_proposer_base_url is None else None
+                            if config.integrity_generator_base_url is None
+                            else None
                         ),
                         service_tier=(
                             config.agent.service_tier
-                            if config.rubric_proposer_base_url is None else None
+                            if config.integrity_generator_base_url is None
+                            else None
                         ),
                         retries=0,
                         timeout_seconds=config.agent.timeout_seconds,
                     ),
-                    query_limit=config.rubric_proposer_step_limit,
-                    max_retries=config.rubric_proposer_max_retries,
+                    query_limit=config.integrity_generator_step_limit,
+                    max_retries=config.integrity_generator_max_retries,
                 )
             ),
             feedback_simulator=(
@@ -141,10 +148,12 @@ class SubmissionRevisionController:
             ),
         )
         if (
-            config.rubric_evolution is not RubricEvolution.STATIC
-            and self.dependencies.evolver is None
+            config.integrity_evolution is not IntegrityEvolution.STATIC
+            and self.dependencies.integrity_generator is None
         ):
-            raise ValueError("non-static rubric evolution requires an evolver")
+            raise ValueError(
+                "dynamic integrity evolution requires an integrity generator"
+            )
         if FeedbackPolicy(config.feedback_policy) is FeedbackPolicy.SIMULATED_USER:
             if self.dependencies.feedback_simulator is None:
                 raise ValueError(
@@ -209,11 +218,19 @@ class SubmissionRevisionController:
             "judge_max_retries": self.config.judge_max_retries,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
-            "rubric_evolution": RubricEvolution(self.config.rubric_evolution).value,
-            "rubric_proposer_model": self.config.rubric_proposer_model,
-            "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
-            "rubric_proposer_step_limit": self.config.rubric_proposer_step_limit,
-            "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
+            "integrity_evolution": IntegrityEvolution(
+                self.config.integrity_evolution
+            ).value,
+            "integrity_generator_model": self.config.integrity_generator_model,
+            "integrity_generator_base_url": (
+                self.config.integrity_generator_base_url
+            ),
+            "integrity_generator_step_limit": (
+                self.config.integrity_generator_step_limit
+            ),
+            "integrity_generator_max_retries": (
+                self.config.integrity_generator_max_retries
+            ),
             "review": self.config.review,
             "judge_model": self.config.judge_model,
             "judge_base_url": self.config.judge_base_url,
@@ -264,6 +281,8 @@ class SubmissionRevisionController:
                 effective_solver_model=None,
                 submission_ids=["s000"],
                 scores=[],
+                integrity_penalties=[],
+                rewards=[],
                 judge_attempts={},
                 next_prompt=solver_prompt(self.config.prompt_profile),
             )
@@ -323,6 +342,8 @@ class SubmissionRevisionController:
                     "session_id": state.session_id,
                     "submission_count": len(state.submission_ids),
                     "scores": state.scores,
+                    "integrity_penalties": state.integrity_penalties,
+                    "rewards": state.rewards,
                     "historical_workspace_files_removed": compaction[0],
                     "historical_workspace_logical_bytes_removed": compaction[1],
                 }
@@ -334,6 +355,8 @@ class SubmissionRevisionController:
                 session_id=state.session_id or "",
                 submission_ids=tuple(state.submission_ids),
                 scores=tuple(state.scores),
+                integrity_penalties=tuple(state.integrity_penalties),
+                rewards=tuple(state.rewards),
             )
         finally:
             if completed or not initialized:
@@ -355,7 +378,7 @@ class SubmissionRevisionController:
         _write_json(
             self.experiment_dir / "manifest.json",
             {
-                "schema_version": 2,
+                "schema_version": 3,
                 "kind": _REVISION_EXPERIMENT_KIND,
                 **self._experiment_identity(),
                 "submission_count": self.config.revision_rounds + 1,
@@ -399,7 +422,7 @@ class SubmissionRevisionController:
             self.experiment_dir / "manifest.json",
             "revision manifest",
         )
-        if manifest.get("schema_version") != 2:
+        if manifest.get("schema_version") != 3:
             raise RuntimeError("revision manifest has an unsupported schema")
         for key, value in self._experiment_identity().items():
             if manifest.get(key) != value:
@@ -1026,29 +1049,17 @@ class SubmissionRevisionController:
         submission_dir = self.experiment_dir / "submissions" / submission_id
         _verify_submission_snapshot(submission_dir)
         self._verify_canonical_task_inputs()
-        rubric = self.rubric
-        judge = self.dependencies.judge
-        if self.config.rubric_evolution is not RubricEvolution.STATIC:
-            rubric = self._rubric_version(turn_index)
-            judge = self._judge_for_rubric(rubric, turn_index)
         if turn_index == 0:
             validation_path, evaluation_path, _ = self.seed.judgment
             artifacts = JudgeArtifacts(validation_path, evaluation_path)
         else:
-            artifacts = judge.evaluate(submission_dir, attempt_id)
+            artifacts = self.dependencies.judge.evaluate(submission_dir, attempt_id)
         self._verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
-        self._verify_round_scoring_identity(
-            artifacts.score_validation_path, rubric, judge
-        )
+        self._pin_or_verify_scoring_identity(artifacts.score_validation_path)
         feedback = self._project_boundary_feedback(
             artifacts=artifacts,
-            rubric=rubric,
             submission_id=submission_id,
-            rubric_version=(
-                0 if self.config.rubric_evolution is RubricEvolution.STATIC
-                else turn_index
-            ),
             submission_dir=submission_dir,
             allow_generation=True,
         )
@@ -1062,31 +1073,27 @@ class SubmissionRevisionController:
         else:
             _write_json_atomic(feedback_path, feedback.payload)
             _make_read_only(feedback_path)
-        next_rubric: dict[str, object] | None = None
-        if (
-            self.config.rubric_evolution is not RubricEvolution.STATIC
-            and turn_index < self.config.revision_rounds
-        ):
-            assert self.dependencies.evolver is not None
-            workspace = submission_dir / "workspace"
-            evolved = self.dependencies.evolver.evolve(
-                instruction=(self.task_dir / "instruction.md").read_text(),
-                current_rubric=rubric.text,
-                answer=(workspace / "answer.txt").read_text(),
-                trace=(workspace / "trace.md").read_text(),
-                trajectory_path=submission_dir / "trajectory.stream.jsonl",
-                evaluation=json.loads(artifacts.evaluation_path.read_text()),
-                version=turn_index + 1,
-                source_submission_id=submission_id,
-                output_dir=self.experiment_dir / "rubric",
-            )
-            next_rubric = {
-                "version": turn_index + 1,
-                "sha256": evolved.sha256,
-                "source_submission_id": submission_id,
-            }
+        integrity = self._run_integrity_boundary(
+            artifacts=artifacts,
+            submission_dir=submission_dir,
+            submission_id=submission_id,
+            turn_index=turn_index,
+        )
+        penalty = integrity.penalty if integrity is not None else 0
+        reward = max(0, feedback.score - penalty)
         state.scores.append(feedback.score)
-        state.next_prompt = feedback.prompt
+        state.integrity_penalties.append(penalty)
+        state.rewards.append(reward)
+        remediation = (
+            render_integrity_remediation(integrity.remediation_comment)
+            if integrity is not None
+            else ""
+        )
+        state.next_prompt = (
+            feedback.prompt + "\n\n" + remediation
+            if remediation
+            else feedback.prompt
+        )
         state.phase = _RevisionPhase.READY_FOR_TURN
         self._write_state(state)
         self._publish_progress_report(state, submission_id)
@@ -1096,25 +1103,59 @@ class SubmissionRevisionController:
                 "submission_id": submission_id,
                 "turn": turn_index,
                 "judge_attempt_id": attempt_id,
-                "score": feedback.score,
+                "quality_score": feedback.score,
+                "integrity_penalty": penalty,
+                "reward": reward,
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
                 "feedback_sha256": _sha256_file(feedback_path),
-                "rubric_version": (
-                    0 if self.config.rubric_evolution is RubricEvolution.STATIC
-                    else turn_index
+                "quality_rubric_version": 0,
+                "quality_rubric_sha256": self.rubric.sha256,
+                "integrity_policy_version": (
+                    integrity.version if integrity is not None else None
                 ),
-                "rubric_sha256": rubric.sha256,
-                "next_rubric": next_rubric,
+                "active_integrity_checks": (
+                    len(integrity.active_checks) if integrity is not None else 0
+                ),
             }
+        )
+
+    def _run_integrity_boundary(
+        self,
+        *,
+        artifacts: JudgeArtifacts,
+        submission_dir: Path,
+        submission_id: str,
+        turn_index: int,
+    ) -> IntegrityBoundary | None:
+        if self.config.integrity_evolution is IntegrityEvolution.STATIC:
+            return None
+        generator = self.dependencies.integrity_generator
+        if generator is None:
+            raise RuntimeError("private integrity generator is unavailable")
+        workspace = submission_dir / "workspace"
+        return generator.generate(
+            instruction=(self.task_dir / "instruction.md").read_text(
+                encoding="utf-8"
+            ),
+            quality_rubric=self.rubric.text,
+            answer=(workspace / "answer.txt").read_text(encoding="utf-8"),
+            trace=(workspace / "trace.md").read_text(encoding="utf-8"),
+            trajectory_path=submission_dir / "trajectory.stream.jsonl",
+            quality_evaluation=_read_json_object(
+                artifacts.evaluation_path,
+                "quality evaluation",
+            ),
+            version=turn_index,
+            source_submission_id=submission_id,
+            output_dir=self.experiment_dir / "integrity",
+            allow_new_check=turn_index < self.config.revision_rounds,
         )
 
     def _project_boundary_feedback(
         self,
         *,
         artifacts: JudgeArtifacts,
-        rubric: FrozenRubric,
         submission_id: str,
-        rubric_version: int,
         submission_dir: Path,
         allow_generation: bool,
     ):
@@ -1123,8 +1164,8 @@ class SubmissionRevisionController:
             return project_feedback(
                 artifacts.score_validation_path,
                 artifacts.evaluation_path,
-                rubric.text,
-                rubric.sha256,
+                self.rubric.text,
+                self.rubric.sha256,
                 policy,
                 prompt_profile=self.config.prompt_profile,
             )
@@ -1161,11 +1202,11 @@ class SubmissionRevisionController:
                 experiment_id=self.config.experiment_id,
                 assignment_id=self.config.assignment_id,
                 submission_id=submission_id,
-                rubric_version=rubric_version,
+                rubric_version=0,
                 instruction=(self.task_dir / "instruction.md").read_text(
                     encoding="utf-8"
                 ),
-                rubric_text=rubric.text,
+                rubric_text=self.rubric.text,
                 answer=(workspace / "answer.txt").read_text(encoding="utf-8"),
             )
             _write_json_atomic(generation_path, generation)
@@ -1175,13 +1216,13 @@ class SubmissionRevisionController:
             experiment_id=self.config.experiment_id,
             assignment_id=self.config.assignment_id,
             submission_id=submission_id,
-            rubric_version=rubric_version,
-            rubric_text=rubric.text,
+            rubric_version=0,
+            rubric_text=self.rubric.text,
         )
         return project_simulated_user_feedback(
             artifacts.score_validation_path,
-            rubric.text,
-            rubric.sha256,
+            self.rubric.text,
+            self.rubric.sha256,
             comment,
             prompt_profile=self.config.prompt_profile,
         )
@@ -1195,6 +1236,7 @@ class SubmissionRevisionController:
         try:
             write_revision_score_plot(
                 state.scores,
+                state.rewards,
                 self.experiment_dir / "score_improvement.png",
                 task_id=self.task_dir.name,
                 feedback_policy=FeedbackPolicy(self.config.feedback_policy).value,
@@ -1211,54 +1253,13 @@ class SubmissionRevisionController:
                 }
             )
 
-    def _rubric_version(self, version: int) -> FrozenRubric:
-        path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"
-        if version == 0:
-            text = path.read_text(encoding="utf-8")
-            if text != self.rubric.text:
-                raise RuntimeError("base optimizer rubric changed")
-            return self.rubric
-        if path.is_symlink() or not path.is_file():
-            raise RuntimeError(f"evolved rubric version is missing: {path}")
-        text = path.read_text(encoding="utf-8")
-        return FrozenRubric(
-            text=text, sha256=_sha256_file(path), source="evolved",
-            rubric_set_id=None, rubric_id=None,
-            structured_rubric_sha256=None, manifest_sha256=None,
-        )
-
-    def _judge_for_rubric(
-        self, rubric: FrozenRubric, version: int
-    ) -> BiomniSubmissionJudge:
-        path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"
-        config = replace(
-            self.config.judge_config(),
-            rubric_name=None,
-            rubric_set=None,
-            rubric_path=path,
-        )
-        return BiomniSubmissionJudge(config, rubric)
-
-    def _verify_round_scoring_identity(
-        self,
-        validation_path: Path,
-        rubric: FrozenRubric,
-        judge: object,
-    ) -> None:
-        if self.config.rubric_evolution is RubricEvolution.STATIC:
-            self._pin_or_verify_scoring_identity(validation_path)
-            return
-        validation = _read_json_object(validation_path, "optimizer score validation")
-        identity = _extract_scoring_identity(
-            validation, context="optimizer score validation"
-        )
-        reported = judge.scoring_identity()  # type: ignore[attr-defined]
-        if identity != _extract_scoring_identity(reported, context="round judge"):
-            raise RuntimeError("round scoring identity does not match rubric judge")
-        if identity["rendered_rubric_sha256"] != rubric.sha256:
-            raise RuntimeError("round score attests a different rubric")
-
     def _validate_scored_boundaries(self, state: _RevisionState) -> None:
+        if not (
+            len(state.scores)
+            == len(state.integrity_penalties)
+            == len(state.rewards)
+        ):
+            raise RuntimeError("revision score and integrity counts disagree")
         for index, score in enumerate(state.scores):
             submission_id = f"s{index:03d}"
             submission_dir = self.experiment_dir / "submissions" / submission_id
@@ -1266,27 +1267,17 @@ class SubmissionRevisionController:
             attempt_id = state.judge_attempts.get(submission_id)
             if attempt_id is None:
                 raise RuntimeError("scored submission has no judge attempt identity")
-            rubric = self.rubric
-            judge = self.dependencies.judge
             if index == 0:
                 validation_path, evaluation_path, _ = self.seed.judgment
                 artifacts = JudgeArtifacts(validation_path, evaluation_path)
             else:
-                if self.config.rubric_evolution is not RubricEvolution.STATIC:
-                    rubric = self._rubric_version(index)
-                    judge = self._judge_for_rubric(rubric, index)
-                artifacts = judge.validate(submission_dir, attempt_id)
-            self._verify_round_scoring_identity(
-                artifacts.score_validation_path, rubric, judge
-            )
+                artifacts = self.dependencies.judge.validate(
+                    submission_dir, attempt_id
+                )
+            self._pin_or_verify_scoring_identity(artifacts.score_validation_path)
             projected = self._project_boundary_feedback(
                 artifacts=artifacts,
-                rubric=rubric,
                 submission_id=submission_id,
-                rubric_version=(
-                    0 if self.config.rubric_evolution is RubricEvolution.STATIC
-                    else index
-                ),
                 submission_dir=submission_dir,
                 allow_generation=False,
             )
@@ -1298,6 +1289,43 @@ class SubmissionRevisionController:
                 raise RuntimeError(
                     "stored feedback disagrees with validated judge artifacts"
                 )
+            integrity = self._validate_integrity_boundary(
+                submission_dir=submission_dir,
+                submission_id=submission_id,
+                turn_index=index,
+            )
+            penalty = integrity.penalty if integrity is not None else 0
+            if (
+                state.integrity_penalties[index] != penalty
+                or state.rewards[index] != max(0, score - penalty)
+            ):
+                raise RuntimeError(
+                    "stored reward disagrees with private integrity policy"
+                )
+
+    def _validate_integrity_boundary(
+        self,
+        *,
+        submission_dir: Path,
+        submission_id: str,
+        turn_index: int,
+    ) -> IntegrityBoundary | None:
+        if self.config.integrity_evolution is IntegrityEvolution.STATIC:
+            if os.path.lexists(self.experiment_dir / "integrity"):
+                raise RuntimeError(
+                    "static integrity condition contains a private policy"
+                )
+            return None
+        generator = self.dependencies.integrity_generator
+        if generator is None:
+            raise RuntimeError("private integrity generator is unavailable")
+        return generator.validate(
+            trajectory_path=submission_dir / "trajectory.stream.jsonl",
+            version=turn_index,
+            source_submission_id=submission_id,
+            output_dir=self.experiment_dir / "integrity",
+            allow_new_check=turn_index < self.config.revision_rounds,
+        )
 
     def _verify_recovered_submission_snapshot(
         self,
@@ -1358,17 +1386,11 @@ class SubmissionRevisionController:
             submission_removed_logical_bytes = 0
             submission_dir = self.experiment_dir / "submissions" / submission_id
             attempt_id = state.judge_attempts[submission_id]
-            submission_index = int(submission_id[1:])
-            scoring_rubric = (
-                self.rubric
-                if self.config.rubric_evolution is RubricEvolution.STATIC
-                else self._rubric_version(submission_index)
-            )
             evaluation_workspace = (
                 self.experiment_dir
                 / "evaluations"
                 / submission_id
-                / scoring_rubric.sha256
+                / self.rubric.sha256
                 / attempt_id
                 / "run"
                 / "workspace"

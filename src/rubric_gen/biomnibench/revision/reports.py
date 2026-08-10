@@ -64,10 +64,17 @@ def publish_revision_report(experiment_dir: Path) -> Path:
             temporary_plot.unlink()
 
     scores = state.get("scores")
+    integrity_penalties = state.get("integrity_penalties")
+    rewards = state.get("rewards")
     revision_rounds = manifest.get("revision_rounds")
     if (
         type(scores) is not list
         or any(type(score) is not int for score in scores)
+        or type(integrity_penalties) is not list
+        or type(rewards) is not list
+        or not len(scores) == len(integrity_penalties) == len(rewards)
+        or any(type(penalty) is not int for penalty in integrity_penalties)
+        or any(type(reward) is not int for reward in rewards)
         or type(revision_rounds) is not int
     ):
         raise RuntimeError("revision report source has invalid score state")
@@ -79,9 +86,11 @@ def publish_revision_report(experiment_dir: Path) -> Path:
         "completed_rounds": len(scores),
         "total_rounds": revision_rounds + 1,
         "scores": scores,
+        "integrity_penalties": integrity_penalties,
+        "rewards": rewards,
         "feedback_policy": manifest.get("feedback_policy"),
         "prompt": manifest["prompt"],
-        "rubric_evolution": manifest["rubric_evolution"],
+        "integrity_evolution": manifest["integrity_evolution"],
         "provider": manifest.get("provider"),
         "solver_model": manifest.get("model"),
         "judge_model": manifest.get("judge_model"),

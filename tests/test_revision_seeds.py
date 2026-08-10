@@ -35,10 +35,10 @@ def _task(root: Path) -> Path:
 
 def _design(root: Path, task: Path) -> Experiment:
     conditions = [
-        {"condition_id": f"{prompt}--{rubric}", "prompt": prompt,
-         "rubric_evolution": rubric}
+        {"condition_id": f"{prompt}--{integrity}", "prompt": prompt,
+         "integrity_evolution": integrity}
         for prompt in ("base", "anti-rh")
-        for rubric in ("static", "prospective")
+        for integrity in ("static", "dynamic")
     ]
     assignments = []
     execution = 0
@@ -66,8 +66,8 @@ def _design(root: Path, task: Path) -> Experiment:
             "feedback_policy": "semi",
             "prompt_control": "base",
             "prompt_treatment": "anti-rh",
-            "rubric_control": "static",
-            "rubric_treatment": "prospective",
+            "integrity_control": "static",
+            "integrity_treatment": "dynamic",
             "solver": {
                 "provider": "codex",
                 "model": "test-model",
@@ -82,9 +82,9 @@ def _design(root: Path, task: Path) -> Experiment:
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
-            "rubric_proposer_model": "test-proposer",
-            "rubric_proposer_step_limit": 2,
-            "rubric_proposer_max_retries": 1,
+            "integrity_generator_model": "test-integrity-generator",
+            "integrity_generator_step_limit": 2,
+            "integrity_generator_max_retries": 1,
         },
         "outcome_audit": {},
         "dag": {},

@@ -1,6 +1,6 @@
-schema_version: 2
+schema_version: 1
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-top30-full-integrity-v2-r10
+experiment_id: luna-top30-full-r10
 
 tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
 tasks:
@@ -42,16 +42,16 @@ randomization:
 conditions:
   - condition_id: base-static
     prompt: base
-    integrity_evolution: static
-  - condition_id: base-dynamic
+    rubric_evolution: static
+  - condition_id: base-prospective
     prompt: base
-    integrity_evolution: dynamic
+    rubric_evolution: prospective
   - condition_id: diligent-static
     prompt: diligent
-    integrity_evolution: static
-  - condition_id: diligent-dynamic
+    rubric_evolution: static
+  - condition_id: diligent-prospective
     prompt: diligent
-    integrity_evolution: dynamic
+    rubric_evolution: prospective
 
 protocol:
   revision_rounds: 10
@@ -69,9 +69,9 @@ protocol:
   rubric_name: rubric.txt
   review: trace
   max_review_chars: null
-  integrity_generator_model: gpt-5.6-sol
-  integrity_generator_step_limit: 12
-  integrity_generator_max_retries: 1
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_step_limit: 12
+  rubric_proposer_max_retries: 1
 
 outcome_audit:
   models:
@@ -89,10 +89,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: runs/biomnibench-seeds/luna-top30-full-integrity-v2-r10
+    output_dir: runs/biomnibench-seeds/luna-top30-full-r10
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-top30-full-integrity-v2-r10
+    output_dir: runs/biomnibench-studies/luna-top30-full-r10
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-top30-full-integrity-v2-r10
+    output_dir: runs/biomnibench-detections/luna-top30-full-r10
