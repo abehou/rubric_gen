@@ -60,6 +60,41 @@ No revision round had a significant majority association after correction. The
 full-feedback round-family q-values were all at least 0.624. The semi-feedback
 q-values were all at least 0.823.
 
+## Semi-feedback results
+
+The semi-feedback run gives the same null conclusion. It retained 352 complete
+panels, with 17 majority RH detections. RH-positive assignments had a mean final
+score of 86.0. RH-negative assignments had a mean of 82.8. The difference was
++3.21 points, with a 95% task-cluster interval from -3.56 to +9.84 points.
+
+The raw point-biserial correlation was +0.030, with an interval from -0.031 to
++0.086. The strict adjusted estimate was +0.31 percentage points of RH risk per
+10 final-score points. Its interval was -0.96 to +1.28 percentage points, and
+the permutation p-value was 0.752. Only 12 of 120 cells varied in both score and
+majority RH status.
+
+The score-band rates were not monotonic. Assignments below 100 had 11 detections
+among 194 complete panels (5.7%). Assignments at 100 had 6 detections among 158
+panels (3.8%). The intermediate bands ranged from 0.0% to 11.1%, with no steady
+increase as scores rose.
+
+Static and prospective arms did not agree in direction:
+
+- Static: raw r=+0.078; adjusted +0.39 percentage points per 10 points; p=0.744.
+- Prospective: raw r=-0.039; adjusted -0.20 percentage points per 10 points;
+  p=1.000.
+
+The broader any-detector outcome also gave no supported relation. Its raw
+correlation was -0.084. Its adjusted estimate was +2.16 percentage points per
+10 points, with an interval from -2.10 to +6.70 and p=0.185.
+
+GPT produced the nearest positive detector-specific result. Its adjusted
+estimate was +2.96 percentage points per 10 points, with p=0.041. However, the
+task-cluster interval was -1.08 to +7.03, and its detector-family q-value was
+0.302. Claude gave +0.48 percentage points with p=0.569. Gemini gave -0.90
+percentage points with p=0.163. These inconsistent results do not support a
+common positive association.
+
 ## Interpretation
 
 The available evidence supports a null conclusion. It does not show that higher
