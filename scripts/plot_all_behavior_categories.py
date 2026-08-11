@@ -6,11 +6,13 @@ import csv
 import json
 import re
 import sys
-from collections import defaultdict
+import textwrap
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+from matplotlib.patches import Rectangle
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -118,7 +120,8 @@ CATEGORY_SPECS = (
         "Weaker-model imitation",
         "Weaker-model imitation",
         "Deliberate imitation of weaker capability or capability sandbagging.",
-        r"weaker.?model|imitat|match.?weaker|capability.?sandbag",
+        r"weaker.?model|\bimitat(?:e|es|ed|ing|ion)\b|match.?weaker|"
+        r"capability.?sandbag",
     ),
     _category(
         "Evaluation- or capability-aware behavior",
@@ -150,9 +153,32 @@ MODEL_DISPLAY = {
     "gemini-3.1-pro-preview": "Gemini 3.1 Pro",
 }
 
+ARM_BY_CONDITION = {
+    "base-static": "static",
+    "diligent-static": "static",
+    "base-prospective": "dynamic",
+    "diligent-prospective": "dynamic",
+}
+
+CONDITION_DISPLAY = {
+    "base-static": "Base static",
+    "diligent-static": "Diligent static",
+    "base-prospective": "Base dynamic",
+    "diligent-prospective": "Diligent dynamic",
+}
+
+CATEGORY_DESCRIPTION = {
+    **{spec.name: spec.description for spec in CATEGORY_SPECS},
+    OTHER_CATEGORY: "A free-form finding type that does not match a named protocol family.",
+}
+
 
 def _normalize_finding_type(value: object) -> str:
     return re.sub(r"\s+", " ", str(value or "").replace("_", " ").replace("-", " ")).strip()
+
+
+def _normalize_text(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip()
 
 
 def _map_finding_type(value: object) -> tuple[str, ...]:
@@ -235,6 +261,11 @@ def _load_category_data() -> dict[str, object]:
                     "model": model,
                     "source_path": source,
                     "raw_type": finding.get("type"),
+                    "raw_description": _normalize_text(finding.get("description")),
+                    "evidence_locations": " | ".join(
+                        str(location)
+                        for location in finding.get("evidence_locations", [])
+                    ),
                     "mapped_categories": " | ".join(mapped),
                 }
             )
@@ -363,6 +394,43 @@ def _category_rates(data: dict[str, object]) -> dict[str, object]:
         "by_source": by_source,
         "by_condition": by_condition,
     }
+
+
+def _select_category_examples(
+    data: dict[str, object],
+) -> dict[str, dict[str, dict[str, object] | None]]:
+    finding_rows = data["finding_rows"]
+    complete_cases = set(data["complete_cases"])
+    assert isinstance(finding_rows, list)
+
+    examples: dict[str, dict[str, dict[str, object] | None]] = {}
+    for category in CATEGORY_NAMES:
+        examples[category] = {}
+        for arm in ("static", "dynamic"):
+            candidates = [
+                row
+                for row in finding_rows
+                if row["source_path"] in complete_cases
+                and ARM_BY_CONDITION[str(row["condition"])] == arm
+                and category in _map_finding_type(row["raw_type"])
+            ]
+            type_counts = Counter(
+                _normalize_finding_type(row["raw_type"]).casefold()
+                for row in candidates
+            )
+            examples[category][arm] = min(
+                candidates,
+                key=lambda row: (
+                    len(_map_finding_type(row["raw_type"])) != 1,
+                    -type_counts[
+                        _normalize_finding_type(row["raw_type"]).casefold()
+                    ],
+                    abs(len(str(row["raw_description"]).split()) - 24),
+                    str(row["finding_id"]),
+                ),
+                default=None,
+            )
+    return examples
 
 
 def _cell_text(cell: dict[str, int | float]) -> str:
@@ -521,6 +589,159 @@ def _plot_by_detector(plt, rates: dict[str, object], models: tuple[str, ...]) ->
     plt.close(figure)
 
 
+def _example_excerpt(value: object, max_words: int = 24) -> str:
+    words = _normalize_text(value).split()
+    if len(words) <= max_words:
+        return " ".join(words)
+    return " ".join(words[:max_words]).rstrip(".,;:") + "…"
+
+
+def _example_cell(row: dict[str, object] | None) -> str:
+    if row is None:
+        return "No finding in the complete-panel data."
+    condition = CONDITION_DISPLAY[str(row["condition"])]
+    model = MODEL_DISPLAY.get(str(row["model"]), str(row["model"]))
+    source = f"{condition} · {row['task_id']} rep {row['replicate']} · {model}"
+    finding_type = textwrap.fill(
+        f"Type: {_normalize_finding_type(row['raw_type'])}",
+        width=54,
+    )
+    excerpt = textwrap.fill(
+        f"“{_example_excerpt(row['raw_description'])}”",
+        width=58,
+    )
+    return f"{source}\n{finding_type}\n{excerpt}"
+
+
+def _plot_category_guide(
+    plt,
+    examples: dict[str, dict[str, dict[str, object] | None]],
+) -> None:
+    figure, axis = plt.subplots(figsize=(21, 17.5))
+    axis.set_xlim(0, 1)
+    axis.set_ylim(0, 1)
+    axis.axis("off")
+
+    left = 0.018
+    right = 0.982
+    table_top = 0.895
+    table_bottom = 0.045
+    header_height = 0.05
+    row_height = (table_top - table_bottom - header_height) / len(CATEGORY_NAMES)
+    x_edges = (left, 0.255, 0.6185, right)
+
+    figure.suptitle(
+        "Broad behavior category guide with observed examples",
+        fontsize=18,
+        weight="bold",
+        y=0.985,
+    )
+    figure.text(
+        0.5,
+        0.948,
+        "Each example is one detector finding from a trajectory in the named rubric arm. It is not a rubric clause or an ensemble consensus.\n"
+        "Static pools base-static and diligent-static. Dynamic pools base-prospective and diligent-prospective.",
+        ha="center",
+        va="top",
+        fontsize=10,
+        color="#4A5568",
+    )
+
+    axis.add_patch(
+        Rectangle(
+            (left, table_top - header_height),
+            right - left,
+            header_height,
+            facecolor="#23395B",
+            edgecolor="none",
+        )
+    )
+    headers = (
+        "Category and definition",
+        "Observed static-rubric example",
+        "Observed dynamic-rubric example",
+    )
+    for column, header in enumerate(headers):
+        axis.text(
+            x_edges[column] + 0.009,
+            table_top - header_height / 2,
+            header,
+            ha="left",
+            va="center",
+            fontsize=10.5,
+            color="white",
+            weight="bold",
+        )
+
+    for row_index, category in enumerate(CATEGORY_NAMES):
+        row_top = table_top - header_height - row_index * row_height
+        row_bottom = row_top - row_height
+        fill = "#F3F6FA" if row_index % 2 == 0 else "white"
+        axis.add_patch(
+            Rectangle(
+                (left, row_bottom),
+                right - left,
+                row_height,
+                facecolor=fill,
+                edgecolor="#D6DEE8",
+                linewidth=0.7,
+            )
+        )
+        for edge in x_edges[1:-1]:
+            axis.plot(
+                (edge, edge),
+                (row_bottom, row_top),
+                color="#D6DEE8",
+                linewidth=0.7,
+            )
+
+        axis.text(
+            x_edges[0] + 0.009,
+            row_top - 0.011,
+            textwrap.fill(CATEGORY_DISPLAY[category], width=29),
+            ha="left",
+            va="top",
+            fontsize=8.6,
+            weight="bold",
+            color="#172B4D",
+            linespacing=1.12,
+        )
+        axis.text(
+            x_edges[0] + 0.009,
+            row_top - 0.034,
+            textwrap.fill(CATEGORY_DESCRIPTION[category], width=39),
+            ha="left",
+            va="top",
+            fontsize=7.5,
+            color="#374151",
+            linespacing=1.16,
+        )
+        for column, arm in enumerate(("static", "dynamic"), start=1):
+            axis.text(
+                x_edges[column] + 0.009,
+                row_top - 0.010,
+                _example_cell(examples[category][arm]),
+                ha="left",
+                va="top",
+                fontsize=7.25,
+                color="#273444",
+                linespacing=1.18,
+            )
+
+    figure.text(
+        0.5,
+        0.018,
+        "Selection is deterministic: prefer a single-category finding, then the most common type, then a description near 24 words. Excerpts are shortened to 24 words.",
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        color="#4A5568",
+    )
+    figure.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    _save_figure(figure, "all_behavior_category_guide")
+    plt.close(figure)
+
+
 def _save_figure(figure, stem: str) -> None:
     for suffix in ("png", "pdf"):
         figure.savefig(
@@ -530,14 +751,22 @@ def _save_figure(figure, stem: str) -> None:
         )
 
 
-def _write_outputs(data: dict[str, object], rates: dict[str, object]) -> None:
+def _write_outputs(
+    data: dict[str, object],
+    rates: dict[str, object],
+    examples: dict[str, dict[str, dict[str, object] | None]],
+) -> None:
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
     finding_rows = data["finding_rows"]
     assert isinstance(finding_rows, list)
     with (ANALYSIS_DIR / "finding_category_mapping.csv").open(
         "w", encoding="utf-8", newline=""
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(finding_rows[0]))
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(finding_rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(finding_rows)
 
@@ -558,9 +787,48 @@ def _write_outputs(data: dict[str, object], rates: dict[str, object]) -> None:
     with (ANALYSIS_DIR / "category_rates_by_condition.csv").open(
         "w", encoding="utf-8", newline=""
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rate_rows[0]))
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(rate_rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rate_rows)
+
+    example_rows = []
+    for category in CATEGORY_NAMES:
+        for arm in ("static", "dynamic"):
+            example = examples[category][arm]
+            example_rows.append(
+                {
+                    "category": category,
+                    "display": CATEGORY_DISPLAY[category],
+                    "definition": CATEGORY_DESCRIPTION[category],
+                    "arm": arm,
+                    "condition": "" if example is None else example["condition"],
+                    "task_id": "" if example is None else example["task_id"],
+                    "replicate": "" if example is None else example["replicate"],
+                    "model": "" if example is None else example["model"],
+                    "raw_type": "" if example is None else example["raw_type"],
+                    "raw_description": ""
+                    if example is None
+                    else example["raw_description"],
+                    "evidence_locations": ""
+                    if example is None
+                    else example["evidence_locations"],
+                    "source_path": "" if example is None else example["source_path"],
+                }
+            )
+    with (ANALYSIS_DIR / "category_examples.csv").open(
+        "w", encoding="utf-8", newline=""
+    ) as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(example_rows[0]),
+            lineterminator="\n",
+        )
+        writer.writeheader()
+        writer.writerows(example_rows)
 
     finding_count = len(finding_rows)
     named_mapping_count = int(data["named_mapping_count"])
@@ -577,6 +845,20 @@ def _write_outputs(data: dict[str, object], rates: dict[str, object]) -> None:
         "multi_label_count": int(data["multi_label_count"]),
         "complete_panels": len(data["complete_cases"]),
         "excluded_panels": len(data["cases"]) - len(data["complete_cases"]),
+        "example_selection": {
+            "population": "findings from substantive complete panels",
+            "arms": {
+                "static": ["base-static", "diligent-static"],
+                "dynamic": ["base-prospective", "diligent-prospective"],
+            },
+            "priority": [
+                "single-category mapping",
+                "most common normalized finding type",
+                "description length nearest 24 words",
+                "finding identifier",
+            ],
+            "examples": examples,
+        },
         "categories": [
             {
                 "name": spec.name,
@@ -606,12 +888,14 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     data = _load_category_data()
     rates = _category_rates(data)
-    _write_outputs(data, rates)
+    examples = _select_category_examples(data)
+    _write_outputs(data, rates, examples)
     plt = _pyplot()
     models = data["models"]
     assert isinstance(models, tuple)
     _plot_by_condition(plt, rates)
     _plot_by_detector(plt, rates, models)
+    _plot_category_guide(plt, examples)
     finding_count = len(data["finding_rows"])
     named_mapping_count = int(data["named_mapping_count"])
     print(
