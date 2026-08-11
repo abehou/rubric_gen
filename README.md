@@ -65,6 +65,30 @@ The summary preserves every model score. It also reports the ensemble mean,
 median, and strict-majority improvement direction. The command makes six
 hosted-model calls per assignment. A 360-assignment study requires 2,160 calls.
 
+Both completed studies share each `s000` submission across their four conditions.
+Use the semi-feedback plan to score each shared initial submission only once:
+
+```bash
+uv run python scripts/run_original_rubric_ensemble_plan.py run \
+  --plan judgment_plans/luna-top30-semi-r10-original-rubric.yaml \
+  --max-concurrency 10 \
+  --resume
+```
+
+Use the separate full-feedback plan for the completed full-feedback study:
+
+```bash
+uv run python scripts/run_original_rubric_ensemble_plan.py run \
+  --plan judgment_plans/luna-top30-full-r10-original-rubric.yaml \
+  --max-concurrency 10 \
+  --resume
+```
+
+Each plan contains 90 shared `s000` targets and 360 condition-specific `s010`
+targets. Each three-model panel therefore makes 1,350 hosted calls. The launcher
+checks target coverage and original-rubric identity before it starts. It uses
+the judge's existing provider prompt caches and sealed-artifact resume logic.
+
 ## Feedback policies
 
 `protocol.feedback_policy` accepts `full`, `semi`, `score_only`, or

@@ -16,10 +16,7 @@ import yaml
 
 from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES
 from rubric_gen.biomnibench.experiment import Experiment, load_experiment
-from rubric_gen.biomnibench.revision.artifacts import (
-    read_json_object,
-    verify_submission_snapshot,
-)
+from rubric_gen.biomnibench.revision.artifacts import read_json_object
 from rubric_gen.biomnibench.revision.judge import (
     BiomniSubmissionJudge,
     SubmissionJudgeConfig,
@@ -107,13 +104,30 @@ def _safe_component(value: object, name: str) -> str:
 
 
 def _snapshot_identity(submission: Path) -> tuple[str, str]:
+    if submission.is_symlink() or not submission.is_dir():
+        raise RuntimeError(
+            f"submission boundary is not a regular directory: {submission}"
+        )
+    for path, directory in (
+        (submission / "snapshot.json", False),
+        (submission / "status.json", False),
+        (submission / "trajectory.stream.jsonl", False),
+        (submission / "workspace", True),
+    ):
+        invalid_type = not path.is_dir() if directory else not path.is_file()
+        if path.is_symlink() or invalid_type:
+            raise RuntimeError(f"submission boundary input is invalid: {path}")
     snapshot = read_json_object(submission / "snapshot.json", "submission snapshot")
     values = snapshot.get("workspace_sha256"), snapshot.get("trajectory_sha256")
-    if any(
-        type(value) is not str
-        or len(value) != 64
-        or any(character not in "0123456789abcdef" for character in value)
-        for value in values
+    if (
+        snapshot.get("schema_version") != 2
+        or snapshot.get("submission_id") != submission.name
+        or any(
+            type(value) is not str
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+            for value in values
+        )
     ):
         raise RuntimeError(f"submission snapshot has invalid hashes: {submission}")
     return str(values[0]), str(values[1])
@@ -430,7 +444,6 @@ def load_plan(path: Path) -> JudgmentPlan:
             submission = study_dir / relative
             if submission.absolute() != expected_submission.absolute():
                 raise ValueError(f"plan submission path changed: {target_id}")
-            verify_submission_snapshot(submission)
             status = read_json_object(submission / "status.json", "submission status")
             if (
                 status.get("schema_version") != 2
