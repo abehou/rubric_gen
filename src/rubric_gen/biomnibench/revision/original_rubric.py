@@ -11,7 +11,7 @@ from statistics import fmean, median
 from typing import Callable
 
 from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES
-from rubric_gen.biomnibench.experiment import load_experiment
+from rubric_gen.biomnibench.experiment import Experiment, load_experiment
 from rubric_gen.biomnibench.revision.artifacts import read_json_object
 from rubric_gen.biomnibench.revision.judge import (
     BiomniSubmissionJudge,
@@ -181,74 +181,96 @@ def _load_completed_study(source: Path) -> OriginalRubricStudy:
 
     seed_run_dir = Path(str(study["seed_run_dir"]))
     targets: list[OriginalRubricTarget] = []
-    for assignment in experiment.assignments:
-        assignment_id = str(assignment["assignment_id"])
-        experiment_dir = resolve_study_experiment(
-            source,
-            records[assignment_id],
-            assignment,
-        )
-        validate_completed_revision(
-            experiment_dir,
-            assignment,
-            experiment,
-            seed_run_dir,
-        )
-        manifest = read_json_object(
-            experiment_dir / "manifest.json",
-            "revision manifest",
-        )
-        state = read_json_object(experiment_dir / "state.json", "revision state")
-        rubric_name = manifest.get("rubric_name")
-        task_dir_value = manifest.get("task_dir")
-        submission_ids = state.get("submission_ids")
-        if (
-            type(rubric_name) is not str
-            or Path(rubric_name).name != rubric_name
-            or type(task_dir_value) is not str
-            or type(submission_ids) is not list
-            or len(submission_ids) < 2
-            or any(type(value) is not str for value in submission_ids)
-            or submission_ids[0] != "s000"
-        ):
-            raise RuntimeError(f"revision has invalid judge inputs: {experiment_dir}")
-        task_dir = Path(task_dir_value)
-        human_rubric = task_dir / "tests" / rubric_name
-        archived_original = experiment_dir / "rubric" / "r0000.txt"
-        rubric_sha256 = sha256_file(human_rubric)
-        if (
-            manifest.get("rubric_sha256") != rubric_sha256
-            or sha256_file(archived_original) != rubric_sha256
-        ):
-            raise RuntimeError(
-                f"archived original rubric differs from the human rubric: {experiment_dir}"
+    with TerminalProgress(
+        total=len(experiment.assignments),
+        description="validating original-rubric study",
+        unit="assignment",
+    ) as progress:
+        for assignment in experiment.assignments:
+            targets.append(
+                _load_completed_target(
+                    source,
+                    records,
+                    assignment,
+                    experiment,
+                    seed_run_dir,
+                )
             )
-        initial_submission = experiment_dir / "submissions" / str(submission_ids[0])
-        final_submission = experiment_dir / "submissions" / str(submission_ids[-1])
-        targets.append(
-            OriginalRubricTarget(
-                assignment_id=assignment_id,
-                task_id=str(assignment["task_id"]),
-                replicate=int(assignment["replicate"]),
-                condition_id=str(assignment["condition_id"]),
-                experiment_dir=experiment_dir.resolve(),
-                task_dir=task_dir.resolve(),
-                rubric_name=rubric_name,
-                rubric_sha256=rubric_sha256,
-                review=str(manifest["review"]),
-                max_review_chars=(
-                    int(manifest["max_review_chars"])
-                    if manifest["max_review_chars"] is not None
-                    else None
-                ),
-                initial_submission=initial_submission.resolve(),
-                final_submission=final_submission.resolve(),
-            )
-        )
+            progress.update()
     return OriginalRubricStudy(
         source=source.resolve(),
         experiment_id=experiment.experiment_id,
         targets=tuple(targets),
+    )
+
+
+def _load_completed_target(
+    source: Path,
+    records: dict[str, dict[str, object]],
+    assignment: dict[str, object],
+    experiment: Experiment,
+    seed_run_dir: Path,
+) -> OriginalRubricTarget:
+    assignment_id = str(assignment["assignment_id"])
+    experiment_dir = resolve_study_experiment(
+        source,
+        records[assignment_id],
+        assignment,
+    )
+    validate_completed_revision(
+        experiment_dir,
+        assignment,
+        experiment,
+        seed_run_dir,
+    )
+    manifest = read_json_object(
+        experiment_dir / "manifest.json",
+        "revision manifest",
+    )
+    state = read_json_object(experiment_dir / "state.json", "revision state")
+    rubric_name = manifest.get("rubric_name")
+    task_dir_value = manifest.get("task_dir")
+    submission_ids = state.get("submission_ids")
+    if (
+        type(rubric_name) is not str
+        or Path(rubric_name).name != rubric_name
+        or type(task_dir_value) is not str
+        or type(submission_ids) is not list
+        or len(submission_ids) < 2
+        or any(type(value) is not str for value in submission_ids)
+        or submission_ids[0] != "s000"
+    ):
+        raise RuntimeError(f"revision has invalid judge inputs: {experiment_dir}")
+    task_dir = Path(task_dir_value)
+    human_rubric = task_dir / "tests" / rubric_name
+    archived_original = experiment_dir / "rubric" / "r0000.txt"
+    rubric_sha256 = sha256_file(human_rubric)
+    if (
+        manifest.get("rubric_sha256") != rubric_sha256
+        or sha256_file(archived_original) != rubric_sha256
+    ):
+        raise RuntimeError(
+            f"archived original rubric differs from the human rubric: {experiment_dir}"
+        )
+    initial_submission = experiment_dir / "submissions" / str(submission_ids[0])
+    final_submission = experiment_dir / "submissions" / str(submission_ids[-1])
+    return OriginalRubricTarget(
+        assignment_id=assignment_id,
+        task_id=str(assignment["task_id"]),
+        replicate=int(assignment["replicate"]),
+        condition_id=str(assignment["condition_id"]),
+        experiment_dir=experiment_dir.resolve(),
+        task_dir=task_dir.resolve(),
+        rubric_name=rubric_name,
+        rubric_sha256=rubric_sha256,
+        review=str(manifest["review"]),
+        max_review_chars=(
+            int(manifest["max_review_chars"])
+            if manifest["max_review_chars"] is not None
+            else None
+        ),
+        initial_submission=initial_submission.resolve(),
+        final_submission=final_submission.resolve(),
     )
 
 
@@ -439,8 +461,12 @@ class OriginalRubricEnsembleRunner:
             for model in STRONG_JUDGE_MODELS
             for boundary in BOUNDARIES
         )
-        self._prepare_output()
-        retained = self._retained_records(study, jobs) if self.config.resume else []
+        has_summary = self._prepare_output()
+        retained = (
+            self._retained_records(study, jobs)
+            if self.config.resume and has_summary
+            else []
+        )
         retained_keys = {_record_key(record) for record in retained}
         pending = [job for job in jobs if job.key not in retained_keys]
         records = retained
@@ -475,7 +501,7 @@ class OriginalRubricEnsembleRunner:
         self._write_summary(study, records, final=True)
         return int(any(record["status"] == "failed" for record in records))
 
-    def _prepare_output(self) -> None:
+    def _prepare_output(self) -> bool:
         output = self.config.output_dir
         if output.is_symlink() or output.exists() and not output.is_dir():
             raise ValueError(f"judge output must be a regular directory: {output}")
@@ -488,6 +514,7 @@ class OriginalRubricEnsembleRunner:
             if entries and not (output / "summary.json").is_file():
                 raise RuntimeError("judge resume output has no summary.json")
         output.mkdir(parents=True, exist_ok=True)
+        return (output / "summary.json").is_file()
 
     def _protocol(self) -> dict[str, object]:
         return {
@@ -535,23 +562,38 @@ class OriginalRubricEnsembleRunner:
         jobs_by_key = {job.key: job for job in jobs}
         retained: list[dict[str, object]] = []
         seen: set[tuple[str, str, str]] = set()
-        for value in summary["records"]:
-            if type(value) is not dict:
-                raise RuntimeError("judge resume summary contains a non-object record")
-            key = _record_key(value)
-            if key in seen or key not in jobs_by_key:
-                raise RuntimeError("judge resume summary contains an invalid job identity")
-            seen.add(key)
-            status = value.get("status")
-            if status == "failed":
-                continue
-            if status != "completed":
-                raise RuntimeError("judge resume summary contains an invalid status")
-            validated = self.validate_job(self.config, jobs_by_key[key])
-            self._check_completed_record(validated, jobs_by_key[key])
-            if validated != value:
-                raise RuntimeError("judge resume record differs from its sealed artifacts")
-            retained.append(validated)
+        with TerminalProgress(
+            total=len(summary["records"]),
+            description="validating resumed judgments",
+            unit="judgment",
+        ) as progress:
+            for value in summary["records"]:
+                if type(value) is not dict:
+                    raise RuntimeError(
+                        "judge resume summary contains a non-object record"
+                    )
+                key = _record_key(value)
+                if key in seen or key not in jobs_by_key:
+                    raise RuntimeError(
+                        "judge resume summary contains an invalid job identity"
+                    )
+                seen.add(key)
+                status = value.get("status")
+                if status == "failed":
+                    progress.update()
+                    continue
+                if status != "completed":
+                    raise RuntimeError(
+                        "judge resume summary contains an invalid status"
+                    )
+                validated = self.validate_job(self.config, jobs_by_key[key])
+                self._check_completed_record(validated, jobs_by_key[key])
+                if validated != value:
+                    raise RuntimeError(
+                        "judge resume record differs from its sealed artifacts"
+                    )
+                retained.append(validated)
+                progress.update()
         return retained
 
     @staticmethod
@@ -629,8 +671,8 @@ class OriginalRubricEnsembleRunner:
         record_map = {_record_key(record): record for record in records}
         summaries: dict[str, object] = {}
         for target in study.targets:
-            judges: dict[str, object] = {}
-            complete_scores: list[tuple[str, float, float]] = []
+            judges: dict[str, dict[str, object]] = {}
+            complete_scores: list[tuple[float, float]] = []
             for model in STRONG_JUDGE_MODELS:
                 initial = record_map.get((target.assignment_id, model, "initial"))
                 final = record_map.get((target.assignment_id, model, "final"))
@@ -652,15 +694,15 @@ class OriginalRubricEnsembleRunner:
                     "delta": delta,
                     "winner": _winner(delta),
                 }
-                complete_scores.append((model, initial_score, final_score))
+                complete_scores.append((initial_score, final_score))
             ensemble: dict[str, object]
             if len(complete_scores) != len(STRONG_JUDGE_MODELS):
                 ensemble = {"status": "incomplete"}
             else:
-                initial_scores = [item[1] for item in complete_scores]
-                final_scores = [item[2] for item in complete_scores]
+                initial_scores = [item[0] for item in complete_scores]
+                final_scores = [item[1] for item in complete_scores]
                 votes = [
-                    str(judges[model]["winner"])  # type: ignore[index]
+                    str(judges[model]["winner"])
                     for model in STRONG_JUDGE_MODELS
                 ]
                 initial_mean = fmean(initial_scores)

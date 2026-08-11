@@ -64,7 +64,13 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("run", help="Run the experiment DAG.")
     parser.add_argument("--experiment", required=True)
     parser.add_argument("--max-concurrency", type=int, default=1)
-    parser.add_argument("--resume", action="store_true")
+    continuation = parser.add_mutually_exclusive_group()
+    continuation.add_argument("--resume", action="store_true")
+    continuation.add_argument(
+        "--restart",
+        action="store_true",
+        help="Reuse seeds and replace revision and detection outputs.",
+    )
     add_vllm_argument(parser)
     parser.set_defaults(handler=run_dag)
 

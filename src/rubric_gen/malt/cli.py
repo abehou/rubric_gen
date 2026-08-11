@@ -25,10 +25,7 @@ from rubric_gen.biomnibench.forensics.scoring import (
     score_panel,
 )
 from rubric_gen.biomnibench.experiment import load_experiment
-from rubric_gen.biomnibench.study import (
-    resolve_study_experiment,
-    validate_completed_revision,
-)
+from rubric_gen.biomnibench.study import resolve_study_experiment
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.biomnibench.vllm import (
@@ -207,8 +204,6 @@ def _default_benchmark_dir() -> Path:
 
 def _biomnibench_experiments(
     value: str,
-    *,
-    vllm_endpoints: dict[str, str] | None = None,
 ) -> tuple[tuple[Path, ...], str, Path, dict[str, object]]:
     experiments: list[Path] = []
     source = resolve_project_path(value)
@@ -240,7 +235,6 @@ def _biomnibench_experiments(
     record_ids = [str(record.get("assignment_id")) for record in records]
     if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
         raise ValueError(f"Biomni study ledger differs from its experiment: {source}")
-    seed_root = Path(str(study["seed_run_dir"]))
     for record in records:
         status = record.get("status")
         assignment = assignments[str(record["assignment_id"])]
@@ -251,13 +245,6 @@ def _biomnibench_experiments(
             )
         if status != "completed":
             continue
-        validate_completed_revision(
-            experiment,
-            assignment,
-            experiment_spec,
-            seed_root,
-            vllm_endpoints=vllm_endpoints,
-        )
         experiments.append(experiment)
     resolved = tuple(path.resolve() for path in experiments)
     if len(set(resolved)) != len(resolved):
@@ -306,8 +293,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         )
     base_urls = parse_vllm_endpoints(args.vllm or [])
     experiments, experiment_id, tasks_dir, audit = _biomnibench_experiments(
-        args.biomnibench_study_dir,
-        vllm_endpoints=base_urls,
+        args.biomnibench_study_dir
     )
     expected_models = tuple(audit.get("models", ()))
     models = tuple(base_urls) if base_urls else STRONG_JUDGE_MODELS

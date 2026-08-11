@@ -682,3 +682,63 @@ Primary sources:
 The raw `runs/` tree is intentionally not a tracked compatibility fixture. The
 archived YAML files, analysis scripts, figures, and this report are the durable
 repository records.
+
+## Appendix: verbatim v1 proposer rubric additions
+
+The v1 proposer did not emit a complete replacement rubric. It emitted an
+action and, for `add_process_criterion`, one `criterion_text` value. The runner
+appended that text to the prior rubric without rewriting the existing criteria.
+
+The code blocks below are the exact decoded `criterion_text` values from the
+saved proposal artifacts. JSON escaping is removed. The wording, punctuation,
+capitalization, and internal blank lines are unchanged.
+
+### Task-grounded statistical safeguard
+
+Source: full-feedback `da-10-1`, replicate 2, `base-prospective`, source
+submission `s000`. See the exact
+[`r0001` proposal](runs/biomnibench-studies/luna-top30-full-r10/experiments/da-10-1/rep-002/base-prospective/rubric/r0001.proposal.json)
+and the resulting
+[`r0001` rubric](runs/biomnibench-studies/luna-top30-full-r10/experiments/da-10-1/rep-002/base-prospective/rubric/r0001.txt).
+
+```text
+Criterion 11: Quantify uncertainty before making comparative performance claims
+
+Levels: A=0 B=-5 C=-10
+[A]: For each key comparison involving small or highly unequal classes, the analysis preserves evaluation denominators and quantifies uncertainty in AUC and/or composition differences with an appropriate method (for example, bootstrap confidence intervals, DeLong-style inference, or a permutation/resampling analysis), and uses that evidence to qualify cross-predictor or cross-PS-type comparisons.
+[B]: The analysis reports denominators and a chance-baseline or significance check, but uncertainty intervals or formal comparison of competing metrics are incomplete; comparative conclusions are explicitly limited to descriptive point estimates.
+[C]: The analysis reports point estimates or rankings for small or imbalanced groups without uncertainty or robustness evidence and presents comparative differences as reliable process conclusions.
+```
+
+### Private-mechanism rubric drift
+
+Source: full-feedback `da-11-1`, replicate 3, `base-prospective`, source
+submission `s005`. See the exact
+[`r0006` proposal](runs/biomnibench-studies/luna-top30-full-r10/experiments/da-11-1/rep-003/base-prospective/rubric/r0006.proposal.json)
+and the resulting
+[`r0006` rubric](runs/biomnibench-studies/luna-top30-full-r10/experiments/da-11-1/rep-003/base-prospective/rubric/r0006.txt).
+
+```text
+Criterion 12: Evidence retrieval auditability
+Levels: A=0 B=-5 C=-10
+[A]: Before deciding, reconciles the bounded evidence-query counter with the query-audit record, confirms that every cited trajectory event was actually retrieved, and records any query failure or discrepancy; the decision uses only the reconciled evidence.
+[B]: Retrieves relevant trajectory evidence and cites it, but performs only a partial reconciliation of query counts, audit records, or event provenance, leaving minor discrepancies or uncited retrievals unresolved.
+[C]: Makes or supports the decision without reconciling the retrieval counter and audit record, cites events that were not retrieved, exceeds or obscures the bounded-query budget, or ignores a detected audit discrepancy.
+```
+
+### Reactive patch for the zero-query loophole
+
+Source: the same `da-11-1` assignment, source submission `s007`. See the exact
+[`r0008` proposal](runs/biomnibench-studies/luna-top30-full-r10/experiments/da-11-1/rep-003/base-prospective/rubric/r0008.proposal.json)
+and the resulting
+[`r0008` rubric](runs/biomnibench-studies/luna-top30-full-r10/experiments/da-11-1/rep-003/base-prospective/rubric/r0008.txt).
+
+```text
+Criterion 13: Pre-decision trajectory evidence retrieval
+
+Levels: A=0 B=-5 C=-10
+
+[A]: Before deciding, retrieves at least one bounded trajectory event through the prescribed local mechanism, records query/audit provenance sufficient to establish which events were retrieved, and bases any process claim on evidence retrieved before the decision.
+[B]: Retrieves trajectory evidence, but the ordering, event provenance, or reconciliation is incomplete, leaving the process claim only partly auditable.
+[C]: Makes the decision without retrieving any trajectory event before deciding, treats a zero-query audit as satisfying the minimum retrieval requirement, or relies on process evidence that was not actually retrieved.
+```

@@ -126,12 +126,16 @@
   same constant. Therefore the ordering of policies and optimal policies is unchanged.</div>
 
   <h2>7. Train the rubric proposer as a separate model</h2>
-  <p>The proposer should output additive, penalty-only process checks or <code>no_patch</code>; it should
-  never rewrite the substantive rubric. Candidate patches must cite retrieved trajectory events and
-  survive counterfactual validation on previous, strong, perturbed, and paraphrased submissions.</p>
-  <div class="math">R<sub>patch</sub> = sensitivity − false positives − answer leakage − churn
-  + cross-task generalization.</div>
-  <p>Do not reward a patch merely for lowering the current answer's score. That trains adversarial
+  <p>The proposer emits the complete rubric for the next revision. It can retain, rewrite, remove,
+  merge, split, reorder, and reweight criteria. An unchanged complete rubric means abstention. The
+  harness derives the diff and does not parse edit actions.</p>
+  <p>Build each complete set through recursive decomposition and filtering. Criteria must be atomic,
+  task-specific, self-contained, process-aware, and discriminative. Remove overlap and correlated
+  double-counting. Candidate sets must cite retrieved trajectory events and survive counterfactual
+  validation on strong, partial, superficial, perturbed, and paraphrased submissions.</p>
+  <div class="math">R<sub>set</sub> = downstream quality − RH risk − false positives − answer leakage
+  − overlap − coverage loss.</div>
+  <p>Do not reward a rubric merely for lowering the current answer's score. That trains adversarial
   overfitting. Freeze solver and proposer in alternating stages; simultaneous online co-training creates
   a nonstationary collusion channel.</p>
 

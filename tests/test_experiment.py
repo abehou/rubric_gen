@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+import rubric_gen.biomnibench.commands as commands_module
 import rubric_gen.biomnibench.study as study_module
 from rubric_gen.biomnibench.experiment import load_experiment
 from rubric_gen.biomnibench.revision.seeds import SeedSetConfig, SeedSetRunner
@@ -157,6 +159,242 @@ def test_experiment_workflow_suppresses_solver_event_streams(tmp_path: Path) -> 
 
     assert seed.agent.quiet is True
     assert study._revision_config(assignment, resume=False).agent.quiet is True
+
+
+def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    experiment_id = str(payload["experiment_id"])
+    dag = payload["dag"]
+    assert isinstance(dag, dict)
+    for stage, parent in (
+        ("seed", "seeds"),
+        ("revise", "studies"),
+        ("detect", "detections"),
+    ):
+        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    roots = {
+        stage: Path(str(experiment.dag[stage]["output_dir"]))
+        for stage in ("seed", "revise", "detect")
+    }
+    for root in roots.values():
+        nested = root / "nested"
+        nested.mkdir(parents=True)
+        (nested / "artifact.txt").write_text("old\n")
+        nested.chmod(0o555)
+    (roots["seed"] / "manifest.json").write_text(json.dumps({
+        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "experiment_id": experiment_id,
+    }))
+    (roots["revise"] / "study.json").write_text(json.dumps({
+        "kind": "rubric-gen-randomized-revision-study",
+        "experiment_id": experiment_id,
+    }))
+    calls: list[str] = []
+
+    def validate_seeds(*_args, **_kwargs) -> None:
+        assert roots["seed"].is_dir()
+        calls.append("validate-seeds")
+
+    def stage(name: str):
+        def run(_args: argparse.Namespace) -> int:
+            assert roots["seed"].is_dir()
+            assert not roots["revise"].exists()
+            assert not roots["detect"].exists()
+            calls.append(name)
+            return 0
+
+        return run
+
+    monkeypatch.setattr(
+        commands_module,
+        "_validate_existing_seed_set",
+        validate_seeds,
+    )
+    monkeypatch.setattr(
+        commands_module,
+        "run_seed",
+        lambda _args: pytest.fail("restart must not run seed generation"),
+    )
+    monkeypatch.setattr(commands_module, "run_revise", stage("revise"))
+    monkeypatch.setattr(commands_module, "run_detect", stage("detect"))
+
+    result = commands_module.run_dag(argparse.Namespace(
+        experiment=str(path),
+        max_concurrency=4,
+        resume=False,
+        restart=True,
+        vllm=[],
+    ))
+
+    assert result == 0
+    assert calls == ["validate-seeds", "revise", "detect"]
+    assert roots["seed"].is_dir()
+
+
+def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    experiment_id = str(payload["experiment_id"])
+    dag = payload["dag"]
+    assert isinstance(dag, dict)
+    for stage, parent in (
+        ("seed", "seeds"),
+        ("revise", "studies"),
+        ("detect", "detections"),
+    ):
+        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    seed_root = Path(str(experiment.dag["seed"]["output_dir"]))
+    seed_root.mkdir(parents=True)
+    (seed_root / "manifest.json").write_text(json.dumps({
+        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "experiment_id": experiment_id,
+    }))
+    revise_root = Path(str(experiment.dag["revise"]["output_dir"]))
+    revise_root.parent.mkdir(parents=True)
+    revise_root.write_text("not a directory\n")
+
+    with pytest.raises(RuntimeError, match="not a regular directory"):
+        commands_module._restart_experiment_outputs(experiment)
+
+    assert seed_root.is_dir()
+    assert (seed_root / "manifest.json").is_file()
+
+
+def test_run_restart_rejects_an_active_study(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    experiment_id = str(payload["experiment_id"])
+    dag = payload["dag"]
+    assert isinstance(dag, dict)
+    for stage, parent in (
+        ("seed", "seeds"),
+        ("revise", "studies"),
+        ("detect", "detections"),
+    ):
+        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    roots = {
+        stage: Path(str(experiment.dag[stage]["output_dir"]))
+        for stage in ("seed", "revise", "detect")
+    }
+    for root in roots.values():
+        root.mkdir(parents=True)
+    (roots["seed"] / "manifest.json").write_text(json.dumps({
+        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "experiment_id": experiment_id,
+    }))
+    (roots["revise"] / "study.json").write_text(json.dumps({
+        "kind": "rubric-gen-randomized-revision-study",
+        "experiment_id": experiment_id,
+    }))
+
+    with _exclusive_study_lease(roots["revise"]):
+        with pytest.raises(RuntimeError, match="active invocation"):
+            commands_module._restart_experiment_outputs(experiment)
+
+    assert all(root.is_dir() for root in roots.values())
+
+
+def test_run_restart_requires_an_existing_complete_seed_set(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    experiment_id = str(payload["experiment_id"])
+    dag = payload["dag"]
+    assert isinstance(dag, dict)
+    for stage, parent in (
+        ("seed", "seeds"),
+        ("revise", "studies"),
+        ("detect", "detections"),
+    ):
+        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+
+    with pytest.raises(RuntimeError, match="completed seed set"):
+        commands_module._validate_existing_seed_set(
+            experiment,
+            vllm_endpoints={},
+        )
+
+
+def test_run_restart_detaches_outputs_before_best_effort_cleanup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    experiment_id = str(payload["experiment_id"])
+    dag = payload["dag"]
+    assert isinstance(dag, dict)
+    for stage, parent in (
+        ("seed", "seeds"),
+        ("revise", "studies"),
+        ("detect", "detections"),
+    ):
+        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    roots = {
+        stage: Path(str(experiment.dag[stage]["output_dir"]))
+        for stage in ("seed", "revise", "detect")
+    }
+    for root in roots.values():
+        root.mkdir(parents=True)
+    (roots["seed"] / "manifest.json").write_text(json.dumps({
+        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "experiment_id": experiment_id,
+    }))
+    (roots["revise"] / "study.json").write_text(json.dumps({
+        "kind": "rubric-gen-randomized-revision-study",
+        "experiment_id": experiment_id,
+    }))
+    unlocked_study_cleanup: list[bool] = []
+
+    def fail_cleanup(root: Path) -> None:
+        if (root / "study.json").is_file():
+            with _exclusive_study_lease(root):
+                unlocked_study_cleanup.append(True)
+        raise OSError(39, "Directory not empty")
+
+    monkeypatch.setattr(
+        commands_module,
+        "_force_remove_directory",
+        fail_cleanup,
+    )
+
+    commands_module._restart_experiment_outputs(experiment)
+
+    assert roots["seed"].is_dir()
+    assert not roots["revise"].exists()
+    assert not roots["detect"].exists()
+    assert len(list(roots["revise"].parent.glob(
+        f".{experiment_id}.restart-*"
+    ))) == 1
+    assert len(list(roots["detect"].parent.glob(
+        f".{experiment_id}.restart-*"
+    ))) == 1
+    assert unlocked_study_cleanup == [True]
+    assert "detached restart output remains" in capsys.readouterr().err
 
 
 def test_study_resume_reclaims_interrupted_running_records(

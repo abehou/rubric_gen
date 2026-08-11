@@ -1,7 +1,8 @@
-"""Codex-harness optimizer-rubric evolution with bounded trajectory retrieval."""
+"""Complete optimizer-rubric generation with bounded trajectory retrieval."""
 
 from __future__ import annotations
 
+import difflib
 import errno
 import json
 import os
@@ -37,12 +38,13 @@ class RubricEvolution(StrEnum):
 class EvolvedRubric:
     text: str
     sha256: str
-    proposal: dict[str, object]
+    changed: bool
+    metadata: dict[str, object]
 
 
 @dataclass(frozen=True)
 class ProposerOutput:
-    answer: str
+    rubric_text: str
     trace: str
     query_count: int
     retrieved_event_ids: tuple[int, ...]
@@ -50,38 +52,41 @@ class ProposerOutput:
 
 
 _EVIDENCE_REFERENCE = re.compile(r"\btrajectory:event-(\d+)\b")
-_CRITERION_HEADER = re.compile(r"^Criterion\s+(\d+)\s*:", re.MULTILINE)
+_CRITERION_HEADER = re.compile(r"^[ \t]*Criterion[ \t]+(\d+)[ \t]*:", re.MULTILINE)
 _CRITERION_TITLE = re.compile(
-    r"^Criterion\s+\d+\s*:\s*(.+?)\s*$", re.MULTILINE
+    r"^[ \t]*Criterion[ \t]+\d+[ \t]*:[ \t]*(\S.*?)[ \t]*$",
+    re.MULTILINE,
 )
-_PROPOSER_CONTRACT_TERMS = (
-    "rubric_text",
-    "change_summary",
-    "failure_evidence",
-    "generalization_rationale",
-    "validation_plan",
-)
-_PROPOSAL_SCHEMA = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "additionalProperties": False,
-    "required": [
-        "action",
-        "criterion_text",
-        "change_summary",
-        "failure_evidence",
-        "generalization_rationale",
-        "validation_plan",
-    ],
-    "properties": {
-        "action": {"type": "string", "enum": ["add_process_criterion", "no_patch"]},
-        "criterion_text": {"type": "string"},
-        "change_summary": {"type": "string"},
-        "failure_evidence": {"type": "array", "items": {"type": "string"}},
-        "generalization_rationale": {"type": "string"},
-        "validation_plan": {"type": "string"},
-    },
-}
+_LEVEL_DESCRIPTION = re.compile(r"^[ \t]*\[([A-Z])\]:[ \t]*\S", re.MULTILINE)
+_MAX_RUBRIC_CHARS = 100_000
+_PROPOSER_PROMPT_VERSION = "complete-rubric-rrd-v1"
+_METADATA_KEYS = frozenset({
+    "schema_version",
+    "kind",
+    "version",
+    "mode",
+    "source_submission_id",
+    "source_answer_sha256",
+    "source_trace_sha256",
+    "source_trajectory_sha256",
+    "source_evaluation_sha256",
+    "provider",
+    "model",
+    "prompt_version",
+    "query_limit",
+    "attempt_count",
+    "proposer_attempt_costs",
+    "trajectory_query_count",
+    "proposer_trace_sha256",
+    "parent_rubric_sha256",
+    "rubric_sha256",
+    "rubric_changed",
+    "rubric_diff_sha256",
+    "parent_criterion_count",
+    "criterion_count",
+    "available_trajectory_events",
+    "retrieved_trajectory_events",
+})
 
 
 class RubricEvolver:
@@ -120,8 +125,9 @@ class RubricEvolver:
     ) -> EvolvedRubric:
         output_dir.mkdir(parents=True, exist_ok=True)
         rubric_path = output_dir / f"r{version:04d}.txt"
-        proposal_path = output_dir / f"r{version:04d}.proposal.json"
+        metadata_path = output_dir / f"r{version:04d}.proposer.json"
         trace_path = output_dir / f"r{version:04d}.proposer.trace.md"
+        diff_path = output_dir / f"r{version:04d}.diff"
         available_events = indexable_event_count(trajectory_path)
         source_hashes = {
             "source_answer_sha256": sha256_text(answer),
@@ -133,11 +139,15 @@ class RubricEvolver:
                 json.dumps(evaluation, sort_keys=True, separators=(",", ":"))
             ),
         }
-        if rubric_path.exists() or proposal_path.exists() or trace_path.exists():
+        if any(
+            path.exists()
+            for path in (rubric_path, metadata_path, trace_path, diff_path)
+        ):
             return self._load_existing(
                 rubric_path,
-                proposal_path,
+                metadata_path,
                 trace_path,
+                diff_path,
                 version,
                 source_submission_id,
                 current_rubric,
@@ -146,7 +156,6 @@ class RubricEvolver:
             )
 
         last_error: Exception | None = None
-        proposal: dict[str, object] | None = None
         text = ""
         proposer_output: ProposerOutput | None = None
         proposer_attempt_costs: list[dict[str, float | str | None]] = []
@@ -190,13 +199,15 @@ class RubricEvolver:
                     raise ValueError(
                         "rubric proposer must retrieve at least one trajectory event"
                     )
-                proposal, text = _parse_proposal(
-                    proposer_output.answer,
-                    current_rubric=current_rubric,
+                _validate_trace_evidence(
+                    proposer_output.trace,
                     available_events=available_events,
                     retrieved_events=frozenset(proposer_output.retrieved_event_ids),
                 )
-                parse_rubric_levels_strict(text)
+                text = _validated_complete_rubric(
+                    proposer_output.rubric_text,
+                    current_rubric=current_rubric,
+                )
                 break
             except Exception as exc:
                 if proposer_output is not None:
@@ -220,8 +231,16 @@ class RubricEvolver:
                 f"{self.max_retries + 1} attempts: {last_error}"
             )
 
-        assert proposal is not None
         assert proposer_output is not None
+        rubric_sha256 = sha256_text(text)
+        parent_rubric_sha256 = sha256_text(current_rubric)
+        changed = rubric_sha256 != parent_rubric_sha256
+        rubric_diff = _rubric_diff(
+            current_rubric,
+            text,
+            previous_version=version - 1,
+            next_version=version,
+        )
         temporary = output_dir / f".r{version:04d}.{secrets.token_hex(8)}.tmp"
         try:
             temporary.write_text(text, encoding="utf-8")
@@ -229,32 +248,40 @@ class RubricEvolver:
         finally:
             if os.path.lexists(temporary):
                 temporary.unlink()
-        write_json_atomic(proposal_path, {
-            "schema_version": 6,
-            "kind": "optimizer-process-rubric-patch",
+        diff_path.write_text(rubric_diff, encoding="utf-8")
+        metadata: dict[str, object] = {
+            "schema_version": 1,
+            "kind": "complete-rubric-generation",
             "version": version,
             "mode": RubricEvolution.PROSPECTIVE.value,
             "source_submission_id": source_submission_id,
             **source_hashes,
             "provider": self.agent.provider,
             "model": self.model,
+            "prompt_version": _PROPOSER_PROMPT_VERSION,
             "query_limit": self.query_limit,
             "attempt_count": attempt,
             "proposer_attempt_costs": proposer_attempt_costs,
             "trajectory_query_count": proposer_output.query_count,
             "proposer_trace_sha256": sha256_text(proposer_output.trace),
-            "rubric_sha256": sha256_text(text),
+            "parent_rubric_sha256": parent_rubric_sha256,
+            "rubric_sha256": rubric_sha256,
+            "rubric_changed": changed,
+            "rubric_diff_sha256": sha256_text(rubric_diff),
+            "parent_criterion_count": len(parse_rubric_levels_strict(current_rubric)),
+            "criterion_count": len(parse_rubric_levels_strict(text)),
             "available_trajectory_events": available_events,
             "retrieved_trajectory_events": sorted(
                 set(proposer_output.retrieved_event_ids)
             ),
-            **proposal,
-        })
+        }
+        write_json_atomic(metadata_path, metadata)
         trace_path.write_text(proposer_output.trace, encoding="utf-8")
         make_read_only(rubric_path)
-        make_read_only(proposal_path)
+        make_read_only(metadata_path)
         make_read_only(trace_path)
-        return EvolvedRubric(text, sha256_text(text), proposal)
+        make_read_only(diff_path)
+        return EvolvedRubric(text, rubric_sha256, changed, metadata)
 
     @staticmethod
     def _archive_failed_attempt(
@@ -269,7 +296,7 @@ class RubricEvolver:
         sequence = len(list(failure_dir.glob("attempt-*.json"))) + 1
         stem = f"attempt-{sequence:04d}"
         (failure_dir / f"{stem}.answer.txt").write_text(
-            proposer_output.answer,
+            proposer_output.rubric_text,
             encoding="utf-8",
         )
         (failure_dir / f"{stem}.trace.md").write_text(
@@ -292,8 +319,9 @@ class RubricEvolver:
     def _load_existing(
         self,
         rubric_path: Path,
-        proposal_path: Path,
+        metadata_path: Path,
         trace_path: Path,
+        diff_path: Path,
         version: int,
         source_submission_id: str,
         current_rubric: str,
@@ -302,24 +330,56 @@ class RubricEvolver:
     ) -> EvolvedRubric:
         if (
             not rubric_path.is_file()
-            or not proposal_path.is_file()
+            or not metadata_path.is_file()
             or not trace_path.is_file()
+            or not diff_path.is_file()
         ):
             raise RuntimeError(f"incomplete evolved rubric version r{version:04d}")
-        text = rubric_path.read_text(encoding="utf-8")
-        stored = json.loads(proposal_path.read_text(encoding="utf-8"))
-        proposer_trace = trace_path.read_text(encoding="utf-8")
+        try:
+            text = rubric_path.read_text(encoding="utf-8")
+            stored = json.loads(metadata_path.read_text(encoding="utf-8"))
+            proposer_trace = trace_path.read_text(encoding="utf-8")
+            rubric_diff = diff_path.read_text(encoding="utf-8")
+            expected_text = _validated_complete_rubric(
+                text,
+                current_rubric=current_rubric,
+            )
+            parent_criterion_count = len(
+                parse_rubric_levels_strict(current_rubric)
+            )
+            criterion_count = len(parse_rubric_levels_strict(text))
+        except (
+            OSError,
+            UnicodeError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            raise RuntimeError(
+                f"invalid evolved rubric version r{version:04d}"
+            ) from exc
+        expected_diff = _rubric_diff(
+            current_rubric,
+            text,
+            previous_version=version - 1,
+            next_version=version,
+        )
+        changed = sha256_text(text) != sha256_text(current_rubric)
         if (
             not isinstance(stored, dict)
-            or stored.get("schema_version") != 6
-            or stored.get("kind") != "optimizer-process-rubric-patch"
+            or set(stored) != _METADATA_KEYS
+            or stored.get("schema_version") != 1
+            or stored.get("kind") != "complete-rubric-generation"
             or stored.get("version") != version
             or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
             or stored.get("source_submission_id") != source_submission_id
             or any(stored.get(key) != value for key, value in source_hashes.items())
             or stored.get("provider") != self.agent.provider
             or stored.get("model") != self.model
+            or stored.get("prompt_version") != _PROPOSER_PROMPT_VERSION
             or stored.get("query_limit") != self.query_limit
+            or type(stored.get("attempt_count")) is not int
+            or stored["attempt_count"] < 1
             or not isinstance(stored.get("proposer_attempt_costs"), list)
             or len(stored["proposer_attempt_costs"]) != stored.get("attempt_count")
             or any(
@@ -330,6 +390,12 @@ class RubricEvolver:
                 for cost in stored["proposer_attempt_costs"]
             )
             or stored.get("rubric_sha256") != sha256_text(text)
+            or stored.get("parent_rubric_sha256") != sha256_text(current_rubric)
+            or stored.get("rubric_changed") is not changed
+            or stored.get("rubric_diff_sha256") != sha256_text(rubric_diff)
+            or rubric_diff != expected_diff
+            or stored.get("parent_criterion_count") != parent_criterion_count
+            or stored.get("criterion_count") != criterion_count
             or stored.get("available_trajectory_events") != available_events
             or not isinstance(stored.get("retrieved_trajectory_events"), list)
             or not stored.get("retrieved_trajectory_events")
@@ -342,22 +408,9 @@ class RubricEvolver:
             or not 1 <= stored["trajectory_query_count"] <= self.query_limit
         ):
             raise RuntimeError(f"invalid evolved rubric version r{version:04d}")
-        parse_rubric_levels_strict(text)
-        proposal = {
-            key: stored[key]
-            for key in (
-                "action",
-                "criterion_text",
-                "change_summary",
-                "failure_evidence",
-                "generalization_rationale",
-                "validation_plan",
-            )
-        }
         try:
-            validated_proposal, expected_text = _parse_proposal(
-                json.dumps(proposal),
-                current_rubric=current_rubric,
+            _validate_trace_evidence(
+                proposer_trace,
                 available_events=available_events,
                 retrieved_events=frozenset(stored["retrieved_trajectory_events"]),
             )
@@ -365,9 +418,9 @@ class RubricEvolver:
             raise RuntimeError(
                 f"invalid evolved rubric version r{version:04d}"
             ) from exc
-        if validated_proposal != proposal or expected_text != text:
+        if expected_text != text:
             raise RuntimeError(f"invalid evolved rubric version r{version:04d}")
-        return EvolvedRubric(text, sha256_text(text), proposal)
+        return EvolvedRubric(text, sha256_text(text), changed, stored)
 
     def _run_codex_proposer(
         self,
@@ -404,8 +457,6 @@ class RubricEvolver:
                 max_queries=self.query_limit,
                 state_directory=data.parent / "artifacts",
             )
-            schema_path = data / "proposal.schema.json"
-            write_json_atomic(schema_path, _PROPOSAL_SCHEMA)
             prompt = _proposer_prompt(
                 instruction=instruction,
                 current_rubric=current_rubric,
@@ -427,7 +478,6 @@ class RubricEvolver:
                 policy_path=run / "no-web-policy.toml",
                 stream_path=run / "trajectory.stream.jsonl",
                 status_path=run / "status.json",
-                output_schema_path=workspace / "data" / schema_path.name,
                 output_last_message_path=workspace / "answer.txt",
             )
             config = replace(
@@ -463,7 +513,7 @@ class RubricEvolver:
                 service_tier=self.agent.service_tier,
             ).fields()
             return ProposerOutput(
-                answer=(workspace / "answer.txt").read_text(encoding="utf-8"),
+                rubric_text=(workspace / "answer.txt").read_text(encoding="utf-8"),
                 trace=(workspace / "trace.md").read_text(encoding="utf-8"),
                 query_count=query_count,
                 retrieved_event_ids=tuple(retrieved),
@@ -486,12 +536,14 @@ def _proposer_prompt(
     repair_error: str | None,
 ) -> str:
     repair = (
-        "\nThe previous proposal failed validation: " + repair_error
+        "\nThe previous complete rubric failed validation: " + repair_error
         if repair_error else ""
     )
-    return f"""Act as an independent rubric proposer for a scientific task.
+    return f"""Prompt contract: {_PROPOSER_PROMPT_VERSION}
 
-The scoring judge is separate from you. Investigate whether the current submission reveals one generalizable process failure that the stable rubric does not already cover. Never rewrite, merge, remove, or reweight the stable rubric.
+Act as an independent designer of the complete optimizer rubric for the next revision of a scientific task.
+
+The scoring judge is separate from you. Produce the full next rubric, not an edit, patch, action list, JSON object, or explanation. The current rubric is a starting point rather than an immutable template. You may retain, rewrite, remove, merge, split, reorder, or reweight any criterion. The current submission has already been scored, so your rubric applies only to the next submission.
 
 The full trajectory is deliberately absent. Selectively inspect it with at most {query_limit} bounded calls:
 `{query_tool} inventory`
@@ -499,15 +551,35 @@ The full trajectory is deliberately absent. Selectively inspect it with at most 
 `{query_tool} search QUERY --limit COUNT`
 `{query_tool} show EVENT_ID --start OFFSET --limit CHARS`
 
-Use trace.md as a navigation summary, then retrieve only evidence needed to test claims, provenance, execution, omissions, and contrary evidence. Cite retrieved evidence as `trajectory:event-N` in failure_evidence. Do not read the SQLite database directly.
+Use the supplied trace only as a navigation summary. Retrieve evidence needed to test execution, data lineage, intermediate decisions, omissions, robustness checks, final claims, and contrary evidence. The trajectory index contains {available_events} events. You must retrieve at least one event before returning either a changed or unchanged rubric. Cite each event used in trace.md as `trajectory:event-N`. Do not read the SQLite database directly.
 
-The stable task rubric must not be rewritten. Return either one additive process-penalty criterion or no patch. An additive criterion begins with `Criterion 1: Title`, contains exactly `Levels: A=0 B=-5 C=-10`, and uses `[A]:`, `[B]:`, and `[C]:`. It must evaluate evidence/provenance rather than answer wording, exact values, filenames, or proposer output formatting. The runner will renumber it. Do not mention the proposer JSON keys inside the criterion.
+Design the rubric through an internal recursive decompose-filter cycle:
+1. Map the task to the complete set of important outcome and analysis-process dimensions.
+2. Find current criteria that are too broad, stacked, vague, weakly discriminative, or missing an important dimension.
+3. Decompose a coarse criterion into atomic subcriteria only when the subcriteria distinguish materially different quality levels.
+4. Filter any criterion that is misaligned, conflicting, redundant, a near paraphrase, or a strict subset or superset of another criterion.
+5. Stop decomposing when further criteria would track incidental details of this submission instead of stable task quality.
+6. Allocate points across distinct dimensions. Do not double-count correlated evidence or let several similar criteria dominate the reward.
 
-The trajectory index contains {available_events} events. You must retrieve at least one trajectory event before either decision. For `add_process_criterion`, failure_evidence must be nonempty and every entry must cite at least one retrieved `trajectory:event-N`. If no generalizable process failure is supported after inspection, use `no_patch` rather than speculating.
+The final rubric set must be informative, comprehensive, and non-redundant. Apply these requirements:
+- Make every criterion task-specific, atomic, self-contained, and consistently judgeable across plausible future submissions.
+- Prefer objective and observable checks. Avoid vague terms such as good, appropriate, high-quality, thorough, or correct without an operational boundary.
+- Emphasize process evidence where process quality matters: executed analyses, justified data selection, valid transformations, provenance, robustness checks, uncertainty handling, artifact consistency, and reconciliation of contrary results.
+- Give credit for equivalent valid methods. Do not prescribe one exact command, filename, wording, numerical result, or analysis path unless the task requires it.
+- Do not reward documentation, a checklist, a PASS label, a manifest, file existence, or a solver claim that work occurred without independent supporting evidence.
+- Make the level descriptions meaningfully discriminative. A must describe complete supported performance, intermediate levels must describe specific partial evidence or defects, and the lowest level must describe missing, contradicted, invalid, or merely asserted work.
+- Keep preference direction positive: a higher level must always represent a genuinely better task result or process, not closer imitation of evaluator language.
+- Prevent one failure from losing points under several criteria. Cover all important dimensions without semantic overlap.
+- Use the current answer and trajectory as evidence about rubric weaknesses, not as an answer key. Do not make a criterion merely to fit or punish an incidental feature of this submission.
+- Privately test each criterion against three counterfactuals: a strong executed solution, a partial but honest solution, and a superficial compliance attempt. Keep only criteria that separate them for substantive reasons.
+
+The complete rubric must use contiguous `Criterion 1:` through `Criterion N:` sections. Each criterion must have three or more contiguous level labels starting at A, strictly descending integer points, exactly one zero-valued level, and one nonempty `[LABEL]:` description per level. The sum of all A-level points must equal 100. Criteria may include negative lower levels.
+
+If no supported revision improves the complete set, reproduce the current rubric unchanged. An unchanged complete rubric is the only abstention mechanism.
 
 The query tool writes harness-managed `query-count.txt` and `query-audit.jsonl` files directly under `./artifacts`. Do not move, edit, replace, or delete those files.
 
-Write trace.md explaining your investigation. Write answer.txt and return a final response containing exactly the same single JSON object with keys action, criterion_text, change_summary, failure_evidence, generalization_rationale, and validation_plan. action is `add_process_criterion` or `no_patch`. For no_patch, criterion_text and failure_evidence are empty. validation_plan explains how to test the check against valid and perturbed submissions.{repair}
+Write trace.md with the coverage audit, retrieved evidence, decomposition decisions, rejected overlaps or conflicts, cheap-compliance tests, and weight rationale. Write the complete next rubric to answer.txt. Return exactly the same complete rubric as the final response. Do not use JSON, XML, commentary, or Markdown code fences in answer.txt.{repair}
 
 <task>
 {instruction}
@@ -536,82 +608,97 @@ def _link_or_copy(source: Path, destination: Path) -> None:
         shutil.copyfile(source, destination)
 
 
-def _parse_proposal(
+def _normalize_rubric_text(value: str) -> str:
+    if type(value) is not str or not value.strip():
+        raise ValueError("rubric proposer returned an empty complete rubric")
+    if len(value) > _MAX_RUBRIC_CHARS:
+        raise ValueError("rubric proposer returned an oversized complete rubric")
+    if "```" in value:
+        raise ValueError("complete rubric must not contain Markdown code fences")
+    lines = [line.rstrip() for line in value.strip().splitlines()]
+    return "\n".join(lines) + "\n"
+
+
+def _validated_complete_rubric(
     response: str,
     *,
     current_rubric: str,
+) -> str:
+    text = _normalize_rubric_text(response)
+    levels_by_criterion = parse_rubric_levels_strict(text)
+    criterion_keys = list(levels_by_criterion)
+    expected_keys = [
+        f"criterion_{index}" for index in range(1, len(criterion_keys) + 1)
+    ]
+    if criterion_keys != expected_keys:
+        raise ValueError("complete rubric criterion numbers must be contiguous from 1")
+
+    headers = list(_CRITERION_HEADER.finditer(text))
+    titles = _CRITERION_TITLE.findall(text)
+    if len(titles) != len(headers):
+        raise ValueError("every complete rubric criterion must have a nonempty title")
+    normalized_titles = [" ".join(title.lower().split()) for title in titles]
+    if len(set(normalized_titles)) != len(normalized_titles):
+        raise ValueError("complete rubric contains duplicate criterion titles")
+
+    total_maximum = 0
+    for index, (criterion_key, levels) in enumerate(levels_by_criterion.items()):
+        labels = list(levels)
+        expected_labels = [chr(ord("A") + offset) for offset in range(len(labels))]
+        if len(labels) < 3 or labels != expected_labels:
+            raise ValueError(
+                f"{criterion_key} level labels must be contiguous from A with at least three levels"
+            )
+        points = list(levels.values())
+        if any(left <= right for left, right in zip(points, points[1:])):
+            raise ValueError(f"{criterion_key} level points must strictly descend")
+        if points.count(0) != 1:
+            raise ValueError(f"{criterion_key} must contain exactly one zero level")
+        total_maximum += points[0]
+
+        body_end = headers[index + 1].start() if index + 1 < len(headers) else len(text)
+        body = text[headers[index].end() : body_end]
+        descriptions = _LEVEL_DESCRIPTION.findall(body)
+        if descriptions != labels:
+            raise ValueError(
+                f"{criterion_key} must contain one nonempty description for each level"
+            )
+
+    if total_maximum != 100:
+        raise ValueError("complete rubric A-level points must sum to 100")
+
+    if text == _normalize_rubric_text(current_rubric):
+        return current_rubric
+    return text
+
+
+def _validate_trace_evidence(
+    trace: str,
+    *,
     available_events: int,
     retrieved_events: frozenset[int],
-) -> tuple[dict[str, object], str]:
-    start, end = response.find("{"), response.rfind("}")
-    if start < 0 or end < start:
-        raise ValueError("rubric proposer returned no JSON object")
-    proposal = json.loads(response[start:end + 1])
-    if (
-        not isinstance(proposal, dict)
-        or set(proposal) != {
-            "action", "criterion_text", "change_summary", "failure_evidence",
-            "generalization_rationale", "validation_plan",
-        }
-        or proposal["action"] not in {"add_process_criterion", "no_patch"}
-        or not isinstance(proposal["criterion_text"], str)
-        or not isinstance(proposal["change_summary"], str)
-        or not proposal["change_summary"].strip()
-        or not isinstance(proposal["generalization_rationale"], str)
-        or not proposal["generalization_rationale"].strip()
-        or not isinstance(proposal["validation_plan"], str)
-        or not proposal["validation_plan"].strip()
-        or not isinstance(proposal["failure_evidence"], list)
-        or not all(isinstance(item, str) and item for item in proposal["failure_evidence"])
-    ):
-        raise ValueError("rubric proposer returned an invalid proposal")
-    if proposal["action"] == "no_patch":
-        if proposal["criterion_text"].strip() or proposal["failure_evidence"]:
-            raise ValueError("no_patch must not contain a criterion or failure evidence")
-        return proposal, current_rubric
+) -> None:
+    references = [int(value) for value in _EVIDENCE_REFERENCE.findall(trace)]
+    if not references:
+        raise ValueError("rubric proposer trace lacks a trajectory:event-N reference")
+    if any(event < 1 or event > available_events for event in references):
+        raise ValueError("rubric proposer trace references an unavailable trajectory event")
+    if any(event not in retrieved_events for event in references):
+        raise ValueError("rubric proposer trace references an event that was not retrieved")
 
-    criterion = proposal["criterion_text"].strip()
-    if len(criterion) < 200:
-        raise ValueError("process criterion is too short")
-    lowered = criterion.lower()
-    if any(term in lowered for term in _PROPOSER_CONTRACT_TERMS):
-        raise ValueError("process criterion leaks the rubric proposer contract")
-    levels = parse_rubric_levels_strict(criterion)
-    if len(levels) != 1 or next(iter(levels.values())) != {"A": 0, "B": -5, "C": -10}:
-        raise ValueError("process criterion must use Levels: A=0 B=-5 C=-10")
-    headers = list(_CRITERION_HEADER.finditer(criterion))
-    if len(headers) != 1:
-        raise ValueError("process patch must contain exactly one criterion")
-    if not proposal["failure_evidence"]:
-        raise ValueError("process patch requires trajectory-grounded failure evidence")
-    for evidence in proposal["failure_evidence"]:
-        references = [int(value) for value in _EVIDENCE_REFERENCE.findall(evidence)]
-        if not references:
-            raise ValueError("failure evidence lacks a trajectory:event-N reference")
-        if any(event < 1 or event > available_events for event in references):
-            raise ValueError("failure evidence references an unavailable trajectory event")
-        if any(event not in retrieved_events for event in references):
-            raise ValueError("failure evidence references an event that was not retrieved")
-    proposed_title = _CRITERION_TITLE.search(criterion)
-    assert proposed_title is not None
-    normalized_title = " ".join(proposed_title.group(1).lower().split())
-    existing_titles = {
-        " ".join(title.lower().split())
-        for title in _CRITERION_TITLE.findall(current_rubric)
-    }
-    if normalized_title in existing_titles:
-        raise ValueError("process criterion duplicates an existing criterion title")
-    existing_numbers = [
-        int(value) for value in _CRITERION_HEADER.findall(current_rubric)
-    ]
-    if not existing_numbers:
-        raise ValueError("current rubric contains no numbered criteria")
-    next_number = max(existing_numbers) + 1
-    criterion = _CRITERION_HEADER.sub(
-        f"Criterion {next_number}:", criterion, count=1
+
+def _rubric_diff(
+    previous: str,
+    revised: str,
+    *,
+    previous_version: int,
+    next_version: int,
+) -> str:
+    return "".join(
+        difflib.unified_diff(
+            previous.splitlines(keepends=True),
+            revised.splitlines(keepends=True),
+            fromfile=f"r{previous_version:04d}.txt",
+            tofile=f"r{next_version:04d}.txt",
+        )
     )
-    if criterion in current_rubric:
-        raise ValueError("process criterion duplicates an existing criterion")
-    text = current_rubric.rstrip() + "\n\n" + criterion + "\n"
-    parse_rubric_levels_strict(text)
-    return {**proposal, "criterion_text": criterion}, text

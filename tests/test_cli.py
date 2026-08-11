@@ -34,6 +34,29 @@ def test_cli_requires_a_command() -> None:
         build_parser().parse_args([])
 
 
+def test_run_accepts_restart() -> None:
+    args = build_parser().parse_args([
+        "run",
+        "--experiment",
+        "experiment.yaml",
+        "--restart",
+    ])
+
+    assert args.restart is True
+    assert args.resume is False
+
+
+def test_run_rejects_restart_with_resume() -> None:
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "run",
+            "--experiment",
+            "experiment.yaml",
+            "--restart",
+            "--resume",
+        ])
+
+
 @pytest.mark.parametrize("command", ["seed", "revise", "run"])
 def test_experiment_commands_accept_repeatable_vllm_endpoints(command: str) -> None:
     args = build_parser().parse_args([

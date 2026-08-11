@@ -1083,6 +1083,7 @@ class SubmissionRevisionController:
             next_rubric = {
                 "version": turn_index + 1,
                 "sha256": evolved.sha256,
+                "changed": evolved.changed,
                 "source_submission_id": submission_id,
             }
         state.scores.append(feedback.score)

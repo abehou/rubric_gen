@@ -68,7 +68,39 @@ def _completed_record(
 
 def test_original_rubric_ensemble_scores_boundaries_and_resumes(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    phases: list[dict[str, object]] = []
+
+    class RecordingProgress:
+        def __init__(
+            self,
+            *,
+            total: int,
+            description: str,
+            unit: str,
+        ) -> None:
+            self.phase = {
+                "total": total,
+                "description": description,
+                "unit": unit,
+                "updates": 0,
+            }
+            phases.append(self.phase)
+
+        def __enter__(self) -> RecordingProgress:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def update(self) -> None:
+            self.phase["updates"] = int(self.phase["updates"]) + 1
+
+        def set_status(self, _status: str) -> None:
+            return None
+
+    monkeypatch.setattr(original_module, "TerminalProgress", RecordingProgress)
     target = _target(tmp_path)
     study = OriginalRubricStudy(
         source=(tmp_path / "study").resolve(),
@@ -80,6 +112,7 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         study_dir=study.source,
         output_dir=output,
         max_concurrency=2,
+        resume=True,
     )
     model_offsets = {
         model: index for index, model in enumerate(STRONG_JUDGE_MODELS)
@@ -128,6 +161,12 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         "consensus_winner": "final",
     }
     assert summary["conditions"]["base-static"]["mean_delta"] == 40.0
+    assert phases == [{
+        "total": 6,
+        "description": "original-rubric ensemble judging",
+        "unit": "judgment",
+        "updates": 6,
+    }]
 
     validated: list[tuple[str, str]] = []
 
@@ -154,6 +193,20 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
     )
     assert resumed.run() == 0
     assert len(validated) == 6
+    assert phases[1:] == [
+        {
+            "total": 6,
+            "description": "validating resumed judgments",
+            "unit": "judgment",
+            "updates": 6,
+        },
+        {
+            "total": 6,
+            "description": "original-rubric ensemble judging",
+            "unit": "judgment",
+            "updates": 6,
+        },
+    ]
 
 
 def test_original_rubric_judge_rejects_nonempty_output_without_resume(
