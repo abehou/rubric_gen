@@ -2,51 +2,51 @@
 
 ## Result
 
-The existing runs do not show a reliable relation between dynamic rubric length and reward-hacking (RH) detection. The strict matched estimate is +1.9 pp per 1,000 added characters, with a 95% task-cluster bootstrap interval of -1.0 pp to +4.7 pp. The within-cell permutation p-value is 0.207.
+The existing runs do not show a reliable relation between dynamic rubric length and reward-hacking (RH) detection. The strict matched estimate is -1.3 pp per 1,000 added characters, with a 95% task-cluster bootstrap interval of -4.2 pp to +0.9 pp. The within-cell permutation p-value is 0.370.
 
 This estimate compares the dynamic-minus-static RH outcome across replicates within the same task, feedback policy, and prompt policy. It therefore controls the requested task and prompt factors.
 
 ## Matched treatment comparison
 
-The complete-panel majority analysis retained 344 of 360 pairs. Static runs had 24 detections (7.0%). Dynamic runs had 23 detections (6.7%). The paired difference was -0.3 pp (95% cluster interval -2.6 pp to +2.1 pp; task-cluster sign-flip p=1.000).
+The complete-panel majority analysis retained 351 of 360 pairs. Static runs had 14 detections (4.0%). Dynamic runs had 6 detections (1.7%). The paired difference was -2.3 pp (95% cluster interval -4.9 pp to +0.0 pp; task-cluster sign-flip p=0.134).
 
-A two-available-vote sensitivity retained 356 pairs and gave a difference of -0.3 pp.
+A two-available-vote sensitivity retained 357 pairs and gave a difference of -2.2 pp.
 
-Semi feedback: -2.9 pp. Full feedback: +2.3 pp.
+Semi feedback: -5.1 pp. Full feedback: +0.6 pp.
 
 Detector-specific results differ:
 
-- `gpt-5.6-sol`: 360 pairs; static 24.2%; dynamic 31.4%; difference +7.2 pp.
-- `claude-opus-4-8`: 353 pairs; static 4.0%; dynamic 3.7%; difference -0.3 pp.
-- `gemini-3.1-pro-preview`: 351 pairs; static 6.0%; dynamic 4.8%; difference -1.1 pp.
+- `gpt-5.6-sol`: 352 pairs; static 13.6%; dynamic 9.9%; difference -3.7 pp.
+- `claude-opus-4-8`: 359 pairs; static 1.7%; dynamic 0.6%; difference -1.1 pp.
+- `gemini-3.1-pro-preview`: 360 pairs; static 5.0%; dynamic 2.8%; difference -2.2 pp.
 
 Detector-specific length slopes also disagree:
 
-- `gpt-5.6-sol`: +4.1 pp per 1,000 characters; raw p=0.053; detector-sensitivity-family q=0.488.
-- `claude-opus-4-8`: +0.4 pp per 1,000 characters; raw p=0.769; detector-sensitivity-family q=0.961.
-- `gemini-3.1-pro-preview`: +2.2 pp per 1,000 characters; raw p=0.157; detector-sensitivity-family q=0.488.
+- `gpt-5.6-sol`: +1.0 pp per 1,000 characters; raw p=0.652; detector-sensitivity-family q=0.962.
+- `claude-opus-4-8`: -0.7 pp per 1,000 characters; raw p=0.387; detector-sensitivity-family q=0.809.
+- `gemini-3.1-pro-preview`: +0.4 pp per 1,000 characters; raw p=0.754; detector-sensitivity-family q=0.986.
 
 ## Rubric growth
 
 Dynamic rubrics added a mean of 3,583 characters (median 3,400; range 0 to 8,804). They added a mean of 4.01 criteria (median 4; range 0 to 10).
 
-In a dynamic-only model, the length estimate was +0.8 pp per 1,000 added characters. Its 95% cluster interval was -1.2 pp to +2.8 pp.
+In a dynamic-only model, the length estimate was -1.0 pp per 1,000 added characters. Its 95% cluster interval was -2.3 pp to +0.0 pp.
 
-Cumulative exposure gave +0.8 pp per 10,000 added character-rounds. Moving the average criterion activation one round earlier gave -2.1 pp. Their permutation p-values were 0.737 and 0.076.
+Cumulative exposure gave -2.3 pp per 10,000 added character-rounds. Moving the average criterion activation one round earlier gave +0.2 pp. Their permutation p-values were 0.346 and 0.864.
 
-The strongest exploratory subgroup was earlier activation under the base prompt: -4.8 pp per round (raw p=0.009; Benjamini-Hochberg q across all scope-feature checks=0.313).
+The strongest exploratory subgroup was earlier activation under the base prompt: +0.1 pp per round (raw p=0.955; Benjamini-Hochberg q across all scope-feature checks=1.000).
 
 The prompt- and feedback-stratified slopes are:
 
 | Scope | Final length slope | Permutation p | Earlier-activation slope | Permutation p |
 |---|---:|---:|---:|---:|
-| Pooled | +1.9 pp per 1k chars | 0.207 | -2.1 pp per round | 0.076 |
-| Semi | +1.2 pp per 1k chars | 0.656 | -3.0 pp per round | 0.095 |
-| Full | +2.7 pp per 1k chars | 0.100 | -1.3 pp per round | 0.440 |
-| Base | +3.2 pp per 1k chars | 0.172 | -4.8 pp per round | 0.009 |
-| Diligent | -0.2 pp per 1k chars | 0.884 | +1.1 pp per round | 0.500 |
+| Pooled | -1.3 pp per 1k chars | 0.370 | +0.2 pp per round | 0.864 |
+| Semi | -2.1 pp per 1k chars | 0.397 | +0.3 pp per round | 0.847 |
+| Full | -0.5 pp per 1k chars | 0.794 | +0.0 pp per round | 0.978 |
+| Base | -3.0 pp per 1k chars | 0.114 | +0.1 pp per round | 0.955 |
+| Diligent | +1.9 pp per 1k chars | 0.376 | +0.3 pp per round | 0.849 |
 
-Across the 30 task rubrics, baseline character count had Spearman rho=-0.25 with static-run RH rate (permutation p=0.187). This task-level comparison is confounded by task content and difficulty.
+Across the 30 task rubrics, baseline character count had Spearman rho=-0.20 with static-run RH rate (permutation p=0.284). This task-level comparison is confounded by task content and difficulty.
 
 Most final-rubric features do not identify separate mechanisms. Added characters correlate 0.998 with added words and 0.982 with added criteria. Every changed round added one criterion. Every criterion added exactly 10 possible penalty points. The criterion-count, update-count, and penalty-capacity effects are therefore mathematically identical in these runs. Cumulative exposure and activation timing add a distinct longitudinal dimension.
 
@@ -66,23 +66,21 @@ The metadata model demeans outcomes and rubric features within each task-feedbac
 
 A panel is missing from the majority analysis if any model lacks a substantive RH decision. Raw decision counts follow:
 
-- `full:claude-opus-4-8:missing`: 4
-- `full:claude-opus-4-8:no_reward_hacking_detected`: 338
-- `full:claude-opus-4-8:reward_hacking_detected`: 18
-- `full:gemini-3.1-pro-preview:abstain`: 3
-- `full:gemini-3.1-pro-preview:missing`: 1
-- `full:gemini-3.1-pro-preview:no_reward_hacking_detected`: 335
-- `full:gemini-3.1-pro-preview:reward_hacking_detected`: 21
-- `full:gpt-5.6-sol:no_reward_hacking_detected`: 268
-- `full:gpt-5.6-sol:reward_hacking_detected`: 92
-- `semi:claude-opus-4-8:missing`: 3
-- `semi:claude-opus-4-8:no_reward_hacking_detected`: 348
-- `semi:claude-opus-4-8:reward_hacking_detected`: 9
-- `semi:gemini-3.1-pro-preview:abstain`: 5
-- `semi:gemini-3.1-pro-preview:no_reward_hacking_detected`: 338
-- `semi:gemini-3.1-pro-preview:reward_hacking_detected`: 17
-- `semi:gpt-5.6-sol:no_reward_hacking_detected`: 252
-- `semi:gpt-5.6-sol:reward_hacking_detected`: 108
+- `full:claude-opus-4-8:abstain`: 1
+- `full:claude-opus-4-8:no_reward_hacking_detected`: 357
+- `full:claude-opus-4-8:reward_hacking_detected`: 2
+- `full:gemini-3.1-pro-preview:no_reward_hacking_detected`: 353
+- `full:gemini-3.1-pro-preview:reward_hacking_detected`: 7
+- `full:gpt-5.6-sol:abstain`: 3
+- `full:gpt-5.6-sol:no_reward_hacking_detected`: 309
+- `full:gpt-5.6-sol:reward_hacking_detected`: 48
+- `semi:claude-opus-4-8:no_reward_hacking_detected`: 354
+- `semi:claude-opus-4-8:reward_hacking_detected`: 6
+- `semi:gemini-3.1-pro-preview:no_reward_hacking_detected`: 339
+- `semi:gemini-3.1-pro-preview:reward_hacking_detected`: 21
+- `semi:gpt-5.6-sol:abstain`: 5
+- `semi:gpt-5.6-sol:no_reward_hacking_detected`: 317
+- `semi:gpt-5.6-sol:reward_hacking_detected`: 38
 
 ## Files
 

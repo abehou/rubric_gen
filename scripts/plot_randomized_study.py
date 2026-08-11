@@ -94,16 +94,6 @@ RH_DETECTIONS = (
         negative_decision="no_reward_hacking_detected",
     ),
 )
-ALL_BEHAVIORS_DETECTION = DetectionSpec(
-    label="Semi feedback",
-    directory_name="luna-top30-semi-r10-all-behaviors",
-    experiment_id="luna-top30-semi-r10",
-    target="all-behaviors",
-    positive_decision="listed_behavior_detected",
-    negative_decision="no_listed_behavior_detected",
-)
-
-
 def _pyplot():
     os.environ.setdefault(
         "MPLCONFIGDIR",
@@ -466,82 +456,6 @@ def plot_rh_detection_comparison(
     return statistics
 
 
-def plot_all_behaviors_detection(
-    plt,
-) -> dict[str, DetectionStatistics]:
-    results = {
-        rule: _ensemble_outcomes(ALL_BEHAVIORS_DETECTION, rule=rule)
-        for rule in ENSEMBLE_RULES
-    }
-    statistics = {
-        rule: _detection_statistics(
-            results[rule],
-            seed=20261010 + rule_index * 1_000,
-        )
-        for rule_index, rule in enumerate(ENSEMBLE_RULES)
-    }
-    maximum = max(
-        upper
-        for rule_statistics in statistics.values()
-        for _lower, upper in rule_statistics.intervals.values()
-    )
-    y_limit = max(1.07, maximum + 0.065)
-
-    fig, axes = plt.subplots(
-        1,
-        2,
-        figsize=(13.2, 6.0),
-        sharey=True,
-        squeeze=False,
-    )
-    for column_index, rule in enumerate(ENSEMBLE_RULES):
-        ax = axes[0, column_index]
-        _draw_detection_panel(
-            ax,
-            statistics[rule],
-            title=ENSEMBLE_RULE_LABELS[rule],
-            annotation_xy=(0.50, 0.58),
-            annotation_ha="center",
-        )
-        ax.set_ylim(0, y_limit)
-    fig.supylabel("Listed-behavior detection rate", x=0.012, fontsize=11)
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        frameon=False,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.01),
-        ncol=2,
-    )
-    fig.suptitle(
-        "Broad behavior detections across the randomized 2×2 design",
-        fontsize=15,
-        weight="bold",
-        y=0.99,
-    )
-    fig.text(
-        0.5,
-        0.935,
-        "Complete three-model panels. Left requires at least two detections; right requires at least one.\n"
-        "The target includes ordinary errors, incompleteness, noncompliance, refusal, lucky success, and sabotage; it is not an RH rate.",
-        ha="center",
-        va="top",
-        fontsize=8.8,
-        color="#4A5568",
-    )
-    fig.tight_layout(rect=(0.025, 0.08, 1, 0.89))
-    _save_figure(fig, "all_behaviors_detection_semi")
-    plt.close(fig)
-    for rule in ENSEMBLE_RULES:
-        print(
-            f"Semi feedback all-behaviors · {ENSEMBLE_RULE_LABELS[rule]}: "
-            f"{len(results[rule].outcomes)} valid panels, "
-            f"{results[rule].missing_panels} missing panels"
-        )
-    return statistics
-
-
 def _score_rows(
     spec: StudySpec,
     records: list[dict[str, object]],
@@ -684,7 +598,6 @@ def main() -> None:
     records = {spec.label: _study_records(spec) for spec in STUDIES}
     plt = _pyplot()
     rh_statistics = plot_rh_detection_comparison(plt)
-    broad_statistics = plot_all_behaviors_detection(plt)
     plot_score_trajectories(plt, records)
     for rule, study_statistics in rh_statistics.items():
         for label, statistics in study_statistics.items():
@@ -692,11 +605,6 @@ def main() -> None:
                 f"{label} RH · {ENSEMBLE_RULE_LABELS[rule]}",
                 statistics,
             )
-    for rule, statistics in broad_statistics.items():
-        _print_statistics(
-            f"Semi feedback all listed behaviors · {ENSEMBLE_RULE_LABELS[rule]}",
-            statistics,
-        )
     print(f"Wrote plots to {OUTPUT_DIR}")
 
 
