@@ -107,14 +107,14 @@ def load_tournament(path: Path, feedback: str) -> list[Match]:
         or summary.get("kind") != SUMMARY_KIND
         or summary.get("status") != "completed"
         or type(totals) is not dict
-        or totals.get("jobs") != 3_240
-        or totals.get("completed") != 3_240
+        or totals.get("jobs") != 1_080
+        or totals.get("completed") != 1_080
         or totals.get("failed") != 0
         or totals.get("pending") != 0
         or type(matches) is not dict
-        or len(matches) != 540
+        or len(matches) != 180
     ):
-        raise ValueError(f"expected a completed 540-match tournament: {path}")
+        raise ValueError(f"expected a completed 180-match tournament: {path}")
     output = []
     for match_id, value in sorted(matches.items()):
         if type(match_id) is not str or type(value) is not dict:
@@ -141,11 +141,11 @@ def load_tournament(path: Path, feedback: str) -> list[Match]:
             winner=str(panel["majority_winner"]),
         ))
     blocks = {(row.task_id, row.replicate) for row in output}
-    if len(blocks) != 90 or any(
+    if len(blocks) != 30 or len({row.task_id for row in output}) != 30 or any(
         sum((row.task_id, row.replicate) == block for row in output) != 6
         for block in blocks
     ):
-        raise ValueError("tournament must contain 90 complete six-match blocks")
+        raise ValueError("tournament must contain one six-match block per task")
     return output
 
 
@@ -241,8 +241,8 @@ def summarize(rows: list[Match], *, draws: int) -> list[Rate]:
     output = []
     for feedback_index, feedback in enumerate(FEEDBACK):
         group = [row for row in rows if row.feedback == feedback]
-        if len(group) != 540:
-            raise ValueError(f"expected 540 matches for {feedback}")
+        if len(group) != 180:
+            raise ValueError(f"expected 180 matches for {feedback}")
         seed = 20260811 + feedback_index * 100
         for index, condition in enumerate(CONDITIONS):
             output.append(_rate(
@@ -377,12 +377,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--semi-summary",
         type=Path,
-        default=judgments / "luna-top30-semi-r10-rubric-free-tournament/summary.json",
+        default=(
+            judgments
+            / "luna-top30-semi-r10-rubric-free-tournament-with-trace/summary.json"
+        ),
     )
     parser.add_argument(
         "--full-summary",
         type=Path,
-        default=judgments / "luna-top30-full-r10-rubric-free-tournament/summary.json",
+        default=(
+            judgments
+            / "luna-top30-full-r10-rubric-free-tournament-with-trace/summary.json"
+        ),
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--bootstrap-draws", type=int, default=10_000)

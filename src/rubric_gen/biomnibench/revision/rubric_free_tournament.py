@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import itertools
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +38,7 @@ SUMMARY_KIND = "rubric-free-final-tournament"
 RUN_KIND = "rubric-free-final-tournament-run"
 ARTIFACT_KIND = "rubric-free-final-tournament-judgment"
 ORDERINGS = ("left-first", "right-first")
+SAMPLE_SEED = 20260811
 CONDITIONS = (
     "base-static",
     "base-prospective",
@@ -49,9 +51,15 @@ FACTORS = {
     "diligent-static": {"prompt": "diligent", "rubric": "static"},
     "diligent-prospective": {"prompt": "diligent", "rubric": "dynamic"},
 }
-PROTOCOL_SHA256 = sha256_text(
-    repr((SYSTEM_PROMPT, VERDICT_SCHEMA, ORDERINGS, CONDITIONS, "s010"))
-)
+PROTOCOL_SHA256 = sha256_text(repr((
+    SYSTEM_PROMPT,
+    VERDICT_SCHEMA,
+    ORDERINGS,
+    CONDITIONS,
+    "s010",
+    ("answer.txt", "trace.md"),
+    ("one-complete-replicate-per-task", SAMPLE_SEED),
+)))
 
 
 @dataclass(frozen=True)
@@ -60,6 +68,8 @@ class Finalist:
     condition_id: str
     answer: str
     answer_sha256: str
+    trace: str
+    trace_sha256: str
 
 
 @dataclass(frozen=True)
@@ -114,7 +124,10 @@ def _regular_text(path: Path, label: str) -> tuple[str, str]:
     return text, sha256_file(path)
 
 
-def _final_answer(experiment_dir: Path, task_id: str) -> tuple[str, str]:
+def _final_response(
+    experiment_dir: Path,
+    task_id: str,
+) -> tuple[str, str, str, str]:
     submission = experiment_dir / "submissions" / "s010"
     if submission.is_symlink() or not submission.is_dir():
         raise RuntimeError(f"submission is not a regular directory: {submission}")
@@ -126,7 +139,15 @@ def _final_answer(experiment_dir: Path, task_id: str) -> tuple[str, str]:
         or status.get("exit_code") != 0
     ):
         raise RuntimeError(f"final submission status is invalid: {submission}")
-    return _regular_text(submission / "workspace" / "answer.txt", "final answer")
+    answer, answer_hash = _regular_text(
+        submission / "workspace" / "answer.txt",
+        "final answer",
+    )
+    trace, trace_hash = _regular_text(
+        submission / "workspace" / "trace.md",
+        "final trace",
+    )
+    return answer, answer_hash, trace, trace_hash
 
 
 def load_completed_study(source: Path) -> TournamentStudy:
@@ -160,40 +181,79 @@ def load_completed_study(source: Path) -> TournamentStudy:
     ):
         raise ValueError("study ledger is incomplete or differs from its experiment")
 
+    assignment_blocks: dict[
+        tuple[str, int],
+        dict[str, tuple[str, dict[str, object]]],
+    ] = {}
+    for assignment_id, assignment in sorted(assignments.items()):
+        task_id = str(assignment["task_id"])
+        replicate = int(assignment["replicate"])
+        condition = str(assignment["condition_id"])
+        if condition not in FACTORS:
+            raise ValueError(f"unsupported tournament condition: {condition}")
+        block = assignment_blocks.setdefault((task_id, replicate), {})
+        if condition in block:
+            raise ValueError(f"duplicate condition in tournament block: {assignment_id}")
+        block[condition] = (assignment_id, assignment)
+    for (task_id, replicate), block in assignment_blocks.items():
+        if set(block) != set(CONDITIONS):
+            raise ValueError(
+                f"tournament block must contain all four conditions: "
+                f"{task_id} replicate {replicate}"
+            )
+
+    replicates_by_task: dict[str, list[int]] = {}
+    for task_id, replicate in assignment_blocks:
+        replicates_by_task.setdefault(task_id, []).append(replicate)
+    sampled_replicates = {
+        task_id: sorted(replicates)[
+            int.from_bytes(hashlib.sha256(
+                f"{SAMPLE_SEED}:{task_id}".encode()
+            ).digest()[:8]) % len(replicates)
+        ]
+        for task_id, replicates in sorted(replicates_by_task.items())
+    }
+
     grouped: dict[tuple[str, int], dict[str, Finalist]] = {}
     instructions: dict[str, tuple[str, str]] = {}
     with TerminalProgress(
-        total=len(assignments),
-        description="validating final tournament candidates",
+        total=len(sampled_replicates) * len(CONDITIONS),
+        description="loading sampled tournament candidates",
         unit="candidate",
     ) as progress:
-        for assignment_id, assignment in sorted(assignments.items()):
-            task_id = str(assignment["task_id"])
-            replicate = int(assignment["replicate"])
-            condition = str(assignment["condition_id"])
-            if condition not in FACTORS:
-                raise ValueError(f"unsupported tournament condition: {condition}")
-            experiment_dir = resolve_study_experiment(
-                source, records[assignment_id], assignment
-            ).resolve()
-            state = read_json_object(experiment_dir / "state.json", "revision state")
-            if state.get("submission_ids", [None])[-1] != "s010":
-                raise RuntimeError(f"final submission is not s010: {assignment_id}")
-            if task_id not in instructions:
-                instructions[task_id] = _regular_text(
-                    experiment.task_dir(task_id) / "instruction.md", "task instruction"
-                )
-            answer, answer_hash = _final_answer(experiment_dir, task_id)
-            block = grouped.setdefault((task_id, replicate), {})
-            if condition in block:
-                raise ValueError(f"duplicate condition in tournament block: {assignment_id}")
-            block[condition] = Finalist(
-                assignment_id=assignment_id,
-                condition_id=condition,
-                answer=answer,
-                answer_sha256=answer_hash,
+        for task_id, replicate in sorted(sampled_replicates.items()):
+            selected = assignment_blocks[(task_id, replicate)]
+            instructions[task_id] = _regular_text(
+                experiment.task_dir(task_id) / "instruction.md",
+                "task instruction",
             )
-            progress.update()
+            block = grouped.setdefault((task_id, replicate), {})
+            for condition in CONDITIONS:
+                assignment_id, assignment = selected[condition]
+                experiment_dir = resolve_study_experiment(
+                    source,
+                    records[assignment_id],
+                    assignment,
+                ).resolve()
+                state = read_json_object(
+                    experiment_dir / "state.json",
+                    "revision state",
+                )
+                if state.get("submission_ids", [None])[-1] != "s010":
+                    raise RuntimeError(f"final submission is not s010: {assignment_id}")
+                answer, answer_hash, trace, trace_hash = _final_response(
+                    experiment_dir,
+                    task_id,
+                )
+                block[condition] = Finalist(
+                    assignment_id=assignment_id,
+                    condition_id=condition,
+                    answer=answer,
+                    answer_sha256=answer_hash,
+                    trace=trace,
+                    trace_sha256=trace_hash,
+                )
+                progress.update()
 
     targets: list[MatchTarget] = []
     for (task_id, replicate), block in sorted(grouped.items()):
@@ -222,9 +282,11 @@ def load_completed_study(source: Path) -> TournamentStudy:
 
 def pair_prompt(target: MatchTarget, ordering: str) -> str:
     if ordering == "left-first":
-        response_a, response_b = target.left.answer, target.right.answer
+        answer_a, trace_a = target.left.answer, target.left.trace
+        answer_b, trace_b = target.right.answer, target.right.trace
     elif ordering == "right-first":
-        response_a, response_b = target.right.answer, target.left.answer
+        answer_a, trace_a = target.right.answer, target.right.trace
+        answer_b, trace_b = target.left.answer, target.left.trace
     else:
         raise ValueError(f"unsupported response ordering: {ordering}")
     shape = {
@@ -240,8 +302,6 @@ def pair_prompt(target: MatchTarget, ordering: str) -> str:
     shape["comparative_explanation"] = (
         "2-3 sentence explanation referencing @response_A and @response_B"
     )
-    import json
-
     return f"""User question:
 <user_question>
 {target.instruction}
@@ -249,13 +309,26 @@ def pair_prompt(target: MatchTarget, ordering: str) -> str:
 
 @response_A:
 <response_A>
-{response_a}
+<answer>
+{answer_a}
+</answer>
+<analysis_trace>
+{trace_a}
+</analysis_trace>
 </response_A>
 
 @response_B:
 <response_B>
-{response_b}
+<answer>
+{answer_b}
+</answer>
+<analysis_trace>
+{trace_b}
+</analysis_trace>
 </response_B>
+
+Treat each analysis trace as agent-authored supporting evidence. Evaluate its
+substance, but do not assume that an unsupported claim in the trace is true.
 
 Return exactly one JSON object with per-score-field scores and justifications:
 {json.dumps(shape, indent=2, ensure_ascii=False)}
@@ -393,6 +466,8 @@ class TournamentRunner:
             "instruction_sha256": target.instruction_sha256,
             "left_answer_sha256": target.left.answer_sha256,
             "right_answer_sha256": target.right.answer_sha256,
+            "left_trace_sha256": target.left.trace_sha256,
+            "right_trace_sha256": target.right.trace_sha256,
             "model": job.model,
             "ordering": job.ordering,
             "protocol_sha256": PROTOCOL_SHA256,
@@ -661,12 +736,22 @@ class TournamentRunner:
             },
             "protocol": {
                 "system_prompt": "exact Appendix I.1 prompt",
+                "method_relation": (
+                    "modified Appendix I.1 pairwise method with trace evidence"
+                ),
                 "models": list(self.config.models),
                 "submission_id": "s010",
                 "conditions": list(CONDITIONS),
                 "matches_per_block": 6,
+                "replicate_sampling": {
+                    "policy": "one complete replicate per task",
+                    "seed": SAMPLE_SEED,
+                },
                 "position_flipped": True,
+                "response_evidence": ["answer.txt", "trace.md"],
                 "rubric_visible_to_judges": False,
+                "answer_visible_to_judges": True,
+                "trace_visible_to_judges": True,
                 "trajectory_visible_to_judges": False,
                 "primary_outcome": "three-judge majority with ties retained",
                 "tie_policy": "half a win for each side",

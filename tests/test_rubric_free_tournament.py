@@ -28,11 +28,14 @@ RANKS = {
 
 def _finalist(condition: str) -> Finalist:
     answer = f"ANSWER {condition}"
+    trace = f"TRACE {condition}"
     return Finalist(
         assignment_id=f"assignment-{condition}",
         condition_id=condition,
         answer=answer,
         answer_sha256=sha256_text(answer),
+        trace=trace,
+        trace_sha256=sha256_text(trace),
     )
 
 
@@ -83,17 +86,21 @@ def _generation(model: str, request: ModelRequest) -> ModelGeneration:
     )
 
 
-def test_tournament_prompt_flips_only_positions(tmp_path: Path) -> None:
+def test_tournament_prompt_flips_answer_and_trace_together(tmp_path: Path) -> None:
     target = _study(tmp_path).targets[0]
     normal = pair_prompt(target, "left-first")
     flipped = pair_prompt(target, "right-first")
 
     assert normal.index(target.left.answer) < normal.index(target.right.answer)
     assert flipped.index(target.right.answer) < flipped.index(target.left.answer)
+    assert normal.index(target.left.trace) < normal.index(target.right.trace)
+    assert flipped.index(target.right.trace) < flipped.index(target.left.trace)
     for prompt in (normal, flipped):
         assert target.instruction in prompt
+        assert prompt.count("<analysis_trace>") == 2
+        assert prompt.count("<answer>") == 2
         assert "rubric" not in prompt.lower()
-        assert "trajectory" not in prompt.lower()
+        assert "trajectory.stream.jsonl" not in prompt
 
 
 def test_tournament_runs_six_matches_and_reports_controlled_rates(
@@ -130,6 +137,9 @@ def test_tournament_runs_six_matches_and_reports_controlled_rates(
         "pending": 0,
     }
     assert len(summary["matches"]) == 6
+    assert summary["protocol"]["answer_visible_to_judges"] is True
+    assert summary["protocol"]["trace_visible_to_judges"] is True
+    assert summary["protocol"]["trajectory_visible_to_judges"] is False
     factors = summary["factors"]
     assert factors["marginal"]["rubric.dynamic"]["comparisons"] == 6
     assert factors["controlled"]["dynamic_vs_static"] == {

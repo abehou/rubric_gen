@@ -36,17 +36,17 @@ def _revised_rubric() -> str:
         "Levels: A=75 B=35 C=0\n"
         "[A]: Executed transformations preserve the intended cohort and variables, "
         "with results traceable to source data.\n"
-        "[B]: The main transformation is executed, but one material choice is weakly "
-        "justified or incompletely traceable.\n"
-        "[C]: A central transformation is missing, contradicted, or only asserted.\n\n"
+        "[B]: The result is valid for a useful, clearly bounded subset, but a "
+        "material lineage gap prevents broader use.\n"
+        "[C]: The result is invalid, unusable, contradicted, or only asserted.\n\n"
         "Criterion 2: Independent result validation\n"
         "Levels: A=25 B=10 C=0\n"
         "[A]: An independent check reproduces the central result and any discrepancy "
         "is resolved in the conclusion.\n"
-        "[B]: A relevant check is executed but incomplete or leaves a material "
-        "discrepancy unresolved.\n"
-        "[C]: No relevant check is executed, or the claimed check lacks supporting "
-        "evidence.\n"
+        "[B]: The central result remains useful only within a stated boundary "
+        "because a material discrepancy is unresolved.\n"
+        "[C]: The central result lacks independent support or is contradicted by "
+        "available evidence.\n"
     )
 
 
@@ -56,8 +56,9 @@ def _replacement_rubric() -> str:
         "Levels: A=100 B=40 C=0\n"
         "[A]: The required analysis is executed and independently reproducible from "
         "the task data and persisted artifacts.\n"
-        "[B]: The central analysis is executed but has a material reproducibility gap.\n"
-        "[C]: The central analysis is missing, invalid, or supported only by prose.\n"
+        "[B]: The result is reproducible for a useful, clearly bounded subset but "
+        "not for the full required scope.\n"
+        "[C]: The result is invalid, unusable, or supported only by prose.\n"
     )
 
 
@@ -92,9 +93,7 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
         "instruction": "TASK",
         "current_rubric": _current_rubric(),
         "answer": "ANSWER",
-        "trace": "TRACE-EVIDENCE",
         "trajectory_path": trajectory,
-        "evaluation": {"score": 1},
         "version": 1,
         "source_submission_id": "s000",
         "output_dir": tmp_path / "rubrics",
@@ -174,11 +173,15 @@ def test_codex_proposer_uses_unstructured_complete_rubric_output(
         assert not paths.workspace_dir.exists()
         prompt = (task_dir / "instruction.md").read_text()
         assert "complete optimizer rubric" in prompt
-        assert "Prompt contract: complete-rubric-rrd-v1" in prompt
+        assert "Prompt contract: complete-rubric-outcome-audit-v2" in prompt
         assert "recursive decompose-filter cycle" in prompt
         assert "informative, comprehensive, and non-redundant" in prompt
-        assert "Emphasize process evidence" in prompt
-        assert "strong executed solution" in prompt
+        assert "audit record, not a list of accomplishments" in prompt
+        assert "Do not reward effort" in prompt
+        assert "independently useful but bounded outcome" in prompt
+        assert "longer or busier trajectory" in prompt
+        assert "<current_trace>" not in prompt
+        assert "<preliminary_evaluation_json>" not in prompt
         TaskWorkspace(task_dir, paths.workspace_dir).create()
         assert paths.output_schema_path is None
         assert paths.output_last_message_path == paths.workspace_dir / "answer.txt"
@@ -199,9 +202,7 @@ def test_codex_proposer_uses_unstructured_complete_rubric_output(
         instruction="TASK",
         current_rubric=_current_rubric(),
         answer="ANSWER",
-        trace="TRACE",
         trajectory_path=trajectory,
-        evaluation={"score": 0},
         repair_error=None,
     )
 
@@ -234,9 +235,7 @@ def test_codex_proposer_rejects_missing_query_audit(
             instruction="TASK",
             current_rubric=_current_rubric(),
             answer="ANSWER",
-            trace="TRACE",
             trajectory_path=trajectory,
-            evaluation={"score": 0},
             repair_error=None,
         )
 
@@ -254,6 +253,8 @@ def test_evolver_seals_complete_rubric_and_derived_diff(tmp_path: Path) -> None:
 
     assert len(calls) == 1
     assert calls[0]["trajectory_path"] == arguments["trajectory_path"]
+    assert "trace" not in calls[0]
+    assert "evaluation" not in calls[0]
     output_dir = arguments["output_dir"]
     assert isinstance(output_dir, Path)
     paths = (
@@ -266,13 +267,15 @@ def test_evolver_seals_complete_rubric_and_derived_diff(tmp_path: Path) -> None:
     assert not (output_dir / "r0001.proposal.json").exists()
     metadata = json.loads((output_dir / "r0001.proposer.json").read_text())
     assert metadata["mode"] == "prospective"
-    assert metadata["schema_version"] == 1
+    assert metadata["schema_version"] == 2
     assert metadata["kind"] == "complete-rubric-generation"
     assert metadata["proposer_attempt_costs"][0]["estimated_cost_usd"] == 0.01
     assert metadata["source_submission_id"] == "s000"
     assert metadata["provider"] == "codex"
     assert metadata["model"] == "proposer-model"
-    assert metadata["prompt_version"] == "complete-rubric-rrd-v1"
+    assert metadata["prompt_version"] == "complete-rubric-outcome-audit-v2"
+    assert "source_trace_sha256" not in metadata
+    assert "source_evaluation_sha256" not in metadata
     assert metadata["query_limit"] == 7
     assert metadata["trajectory_query_count"] == 2
     assert metadata["available_trajectory_events"] == 1
@@ -437,7 +440,10 @@ def test_evolver_rejects_unavailable_trajectory_reference(tmp_path: Path) -> Non
             "duplicate criterion titles",
         ),
         (
-            _revised_rubric().replace("[B]: A relevant check", "[D]: A relevant check"),
+            _revised_rubric().replace(
+                "[B]: The central result remains useful",
+                "[D]: The central result remains useful",
+            ),
             "one nonempty description for each level",
         ),
         (

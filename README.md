@@ -121,29 +121,31 @@ their separate revision-gain plots with:
 uv run python scripts/plot_rubric_free_quality_audit.py
 ```
 
-Run a separate round-robin tournament to compare experimental factors. Each
-task and replicate contributes four final `s010` submissions. The tournament
-judges all six pairs among Base–Static, Base–Dynamic, Diligent–Static, and
-Diligent–Dynamic:
+Run a separate round-robin tournament to compare experimental factors. It uses
+one reproducibly sampled replicate per task. Each task contributes four final
+`s010` submissions. The tournament judges all six pairs among Base–Static,
+Base–Dynamic, Diligent–Static, and Diligent–Dynamic:
 
 ```bash
 uv run python scripts/run_rubric_free_final_tournament.py \
   --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-rubric-free-tournament \
+  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-rubric-free-tournament-with-trace \
   --max-concurrency 10 \
   --resume
 
 uv run python scripts/run_rubric_free_final_tournament.py \
   --study-dir runs/biomnibench-studies/luna-top30-full-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-full-r10-rubric-free-tournament \
+  --output-dir runs/biomnibench-judgments/luna-top30-full-r10-rubric-free-tournament-with-trace \
   --max-concurrency 10 \
   --resume
 ```
 
-Each study contains 90 blocks and 540 matches. Three judges score both response
-orders, for 3,240 hosted calls per study. A tie gives each condition half a win.
+Each study contains 30 blocks and 180 matches. Three judges score both response
+orders, for 1,080 hosted calls per study. A tie gives each condition half a win.
 Marginal rates use all opponents. Controlled rates compare Dynamic with Static
 at a fixed prompt, or Diligent with Base at a fixed rubric.
+Each tournament response contains its final `answer.txt` and matching `trace.md`.
+Judges do not receive the rubric or raw trajectory.
 
 After both tournaments finish, generate the tournament plots with:
 
@@ -255,7 +257,10 @@ Prospective rubric evolution remains part of `revise` when enabled by the
 experiment. The proposer emits the complete next rubric. It can retain, rewrite,
 remove, merge, split, reorder, or reweight criteria. Repeating the current rubric
 means no change. The harness stores the rubric, proposer metadata, trace, and a
-derived diff. Runs with the obsolete additive-action artifacts cannot resume.
+derived diff. The proposer audits the raw trajectory but does not receive the
+solver-written trace or preliminary judge evaluation. It uses process evidence to
+verify outcome quality. It does not give separate credit for activity or incomplete
+work. Runs with obsolete proposer artifacts cannot resume.
 
 Use the separate `malt` CLI to benchmark the reward-hacking detector against
 labeled MALT data.

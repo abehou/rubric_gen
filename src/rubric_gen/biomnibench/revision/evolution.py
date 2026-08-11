@@ -59,7 +59,7 @@ _CRITERION_TITLE = re.compile(
 )
 _LEVEL_DESCRIPTION = re.compile(r"^[ \t]*\[([A-Z])\]:[ \t]*\S", re.MULTILINE)
 _MAX_RUBRIC_CHARS = 100_000
-_PROPOSER_PROMPT_VERSION = "complete-rubric-rrd-v1"
+_PROPOSER_PROMPT_VERSION = "complete-rubric-outcome-audit-v2"
 _METADATA_KEYS = frozenset({
     "schema_version",
     "kind",
@@ -67,9 +67,7 @@ _METADATA_KEYS = frozenset({
     "mode",
     "source_submission_id",
     "source_answer_sha256",
-    "source_trace_sha256",
     "source_trajectory_sha256",
-    "source_evaluation_sha256",
     "provider",
     "model",
     "prompt_version",
@@ -116,9 +114,7 @@ class RubricEvolver:
         instruction: str,
         current_rubric: str,
         answer: str,
-        trace: str,
         trajectory_path: Path,
-        evaluation: dict[str, object],
         version: int,
         source_submission_id: str,
         output_dir: Path,
@@ -131,12 +127,8 @@ class RubricEvolver:
         available_events = indexable_event_count(trajectory_path)
         source_hashes = {
             "source_answer_sha256": sha256_text(answer),
-            "source_trace_sha256": sha256_text(trace),
             "source_trajectory_sha256": sha256_text(
                 trajectory_path.read_text(encoding="utf-8", errors="replace")
-            ),
-            "source_evaluation_sha256": sha256_text(
-                json.dumps(evaluation, sort_keys=True, separators=(",", ":"))
             ),
         }
         if any(
@@ -168,9 +160,7 @@ class RubricEvolver:
                     instruction=instruction,
                     current_rubric=current_rubric,
                     answer=answer,
-                    trace=trace,
                     trajectory_path=trajectory_path,
-                    evaluation=evaluation,
                     repair_error=str(last_error) if last_error else None,
                 )
                 if set(proposer_output.cost) != {
@@ -250,7 +240,7 @@ class RubricEvolver:
                 temporary.unlink()
         diff_path.write_text(rubric_diff, encoding="utf-8")
         metadata: dict[str, object] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "kind": "complete-rubric-generation",
             "version": version,
             "mode": RubricEvolution.PROSPECTIVE.value,
@@ -368,7 +358,7 @@ class RubricEvolver:
         if (
             not isinstance(stored, dict)
             or set(stored) != _METADATA_KEYS
-            or stored.get("schema_version") != 1
+            or stored.get("schema_version") != 2
             or stored.get("kind") != "complete-rubric-generation"
             or stored.get("version") != version
             or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
@@ -428,9 +418,7 @@ class RubricEvolver:
         instruction: str,
         current_rubric: str,
         answer: str,
-        trace: str,
         trajectory_path: Path,
-        evaluation: dict[str, object],
         repair_error: str | None,
     ) -> ProposerOutput:
         temporary = Path(tempfile.mkdtemp(prefix="biomnibench-rubric-proposer-"))
@@ -461,8 +449,6 @@ class RubricEvolver:
                 instruction=instruction,
                 current_rubric=current_rubric,
                 answer=answer,
-                trace=trace,
-                evaluation=evaluation,
                 query_tool=Path("data/trajectory_query.py"),
                 query_limit=self.query_limit,
                 available_events=int(inventory["events"]),
@@ -528,8 +514,6 @@ def _proposer_prompt(
     instruction: str,
     current_rubric: str,
     answer: str,
-    trace: str,
-    evaluation: dict[str, object],
     query_tool: Path,
     query_limit: int,
     available_events: int,
@@ -551,10 +535,10 @@ The full trajectory is deliberately absent. Selectively inspect it with at most 
 `{query_tool} search QUERY --limit COUNT`
 `{query_tool} show EVENT_ID --start OFFSET --limit CHARS`
 
-Use the supplied trace only as a navigation summary. Retrieve evidence needed to test execution, data lineage, intermediate decisions, omissions, robustness checks, final claims, and contrary evidence. The trajectory index contains {available_events} events. You must retrieve at least one event before returning either a changed or unchanged rubric. Cite each event used in trace.md as `trajectory:event-N`. Do not read the SQLite database directly.
+Treat the trajectory as an audit record, not a list of accomplishments. Retrieve evidence needed to test whether task outcomes are valid, complete, supported, and usable. Use the record to trace data, reproduce claims, find contradictions, and identify unresolved failures. Do not infer quality from the amount of visible work. The trajectory index contains {available_events} events. You must retrieve at least one event before returning either a changed or unchanged rubric. Cite each event used in trace.md as `trajectory:event-N`. Do not read the SQLite database directly.
 
 Design the rubric through an internal recursive decompose-filter cycle:
-1. Map the task to the complete set of important outcome and analysis-process dimensions.
+1. Map the task to the complete set of important outcome dimensions and the evidence needed to establish them.
 2. Find current criteria that are too broad, stacked, vague, weakly discriminative, or missing an important dimension.
 3. Decompose a coarse criterion into atomic subcriteria only when the subcriteria distinguish materially different quality levels.
 4. Filter any criterion that is misaligned, conflicting, redundant, a near paraphrase, or a strict subset or superset of another criterion.
@@ -564,14 +548,17 @@ Design the rubric through an internal recursive decompose-filter cycle:
 The final rubric set must be informative, comprehensive, and non-redundant. Apply these requirements:
 - Make every criterion task-specific, atomic, self-contained, and consistently judgeable across plausible future submissions.
 - Prefer objective and observable checks. Avoid vague terms such as good, appropriate, high-quality, thorough, or correct without an operational boundary.
-- Emphasize process evidence where process quality matters: executed analyses, justified data selection, valid transformations, provenance, robustness checks, uncertainty handling, artifact consistency, and reconciliation of contrary results.
+- Anchor each criterion in a task outcome or a property needed to make that outcome valid, reliable, or usable.
+- Use process evidence to verify or falsify an outcome. Do not reward effort, tool use, attempted procedures, intermediate files, or the number of checks.
+- Phrase process-aware criteria as properties established by the work, not as activities performed. Process evidence can support an outcome score but earns no separate bonus.
 - Give credit for equivalent valid methods. Do not prescribe one exact command, filename, wording, numerical result, or analysis path unless the task requires it.
 - Do not reward documentation, a checklist, a PASS label, a manifest, file existence, or a solver claim that work occurred without independent supporting evidence.
-- Make the level descriptions meaningfully discriminative. A must describe complete supported performance, intermediate levels must describe specific partial evidence or defects, and the lowest level must describe missing, contradicted, invalid, or merely asserted work.
-- Keep preference direction positive: a higher level must always represent a genuinely better task result or process, not closer imitation of evaluator language.
+- Make the level descriptions meaningfully discriminative. A must describe a complete supported outcome. Intermediate levels must describe an independently useful but bounded outcome or a material outcome defect. They must not award partial execution toward an unusable result. The lowest level must describe a missing, contradicted, invalid, unusable, or merely asserted outcome.
+- Keep preference direction positive: a higher level must always represent a genuinely better task result, validity, reliability, or usability, not more visible activity or closer imitation of evaluator language.
 - Prevent one failure from losing points under several criteria. Cover all important dimensions without semantic overlap.
 - Use the current answer and trajectory as evidence about rubric weaknesses, not as an answer key. Do not make a criterion merely to fit or punish an incidental feature of this submission.
-- Privately test each criterion against three counterfactuals: a strong executed solution, a partial but honest solution, and a superficial compliance attempt. Keep only criteria that separate them for substantive reasons.
+- Privately test each criterion against three counterfactuals: a complete supported outcome, an independently useful but bounded outcome, and an unusable outcome accompanied by extensive activity. Keep only criteria whose scores track outcome quality instead of effort.
+- Apply an activity-invariance test. If two submissions establish the same outcome, do not prefer the one with a longer or busier trajectory. If removing an activity leaves the established outcome unchanged, that activity deserves no rubric weight.
 
 The complete rubric must use contiguous `Criterion 1:` through `Criterion N:` sections. Each criterion must have three or more contiguous level labels starting at A, strictly descending integer points, exactly one zero-valued level, and one nonempty `[LABEL]:` description per level. The sum of all A-level points must equal 100. Criteria may include negative lower levels.
 
@@ -579,7 +566,7 @@ If no supported revision improves the complete set, reproduce the current rubric
 
 The query tool writes harness-managed `query-count.txt` and `query-audit.jsonl` files directly under `./artifacts`. Do not move, edit, replace, or delete those files.
 
-Write trace.md with the coverage audit, retrieved evidence, decomposition decisions, rejected overlaps or conflicts, cheap-compliance tests, and weight rationale. Write the complete next rubric to answer.txt. Return exactly the same complete rubric as the final response. Do not use JSON, XML, commentary, or Markdown code fences in answer.txt.{repair}
+Write trace.md with the outcome coverage audit, retrieved evidence, decomposition decisions, rejected overlaps or conflicts, cheap-compliance tests, activity-invariance tests, and weight rationale. Write the complete next rubric to answer.txt. Return exactly the same complete rubric as the final response. Do not use JSON, XML, commentary, or Markdown code fences in answer.txt.{repair}
 
 <task>
 {instruction}
@@ -590,12 +577,6 @@ Write trace.md with the coverage audit, retrieved evidence, decomposition decisi
 <current_answer>
 {answer}
 </current_answer>
-<current_trace>
-{trace}
-</current_trace>
-<preliminary_evaluation_json>
-{json.dumps(evaluation, ensure_ascii=False)}
-</preliminary_evaluation_json>
 """
 
 
