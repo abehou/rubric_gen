@@ -653,12 +653,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--semi-quality",
         type=Path,
-        default=judgments / "luna-top30-semi-r10-rubric-free-final/summary.json",
+        default=(
+            judgments
+            / "luna-top30-semi-r10-rubric-free-final-with-trace/summary.json"
+        ),
     )
     parser.add_argument(
         "--full-quality",
         type=Path,
-        default=judgments / "luna-top30-full-r10-rubric-free-final/summary.json",
+        default=(
+            judgments
+            / "luna-top30-full-r10-rubric-free-final-with-trace/summary.json"
+        ),
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--bootstrap-draws", type=int, default=10_000)

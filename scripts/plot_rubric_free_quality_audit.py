@@ -480,7 +480,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=(
             ROOT / "runs/biomnibench-judgments/"
-            "luna-top30-semi-r10-rubric-free-final/summary.json"
+            "luna-top30-semi-r10-rubric-free-final-with-trace/summary.json"
         ),
     )
     parser.add_argument(
@@ -488,7 +488,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=(
             ROOT / "runs/biomnibench-judgments/"
-            "luna-top30-full-r10-rubric-free-final/summary.json"
+            "luna-top30-full-r10-rubric-free-final-with-trace/summary.json"
         ),
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)

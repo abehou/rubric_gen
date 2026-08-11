@@ -94,23 +94,65 @@ Run rubric-free pairwise judging on `s000` versus the final `s010` submission:
 ```bash
 uv run python scripts/run_rubric_free_pairwise_final.py \
   --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-rubric-free-final \
+  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-rubric-free-final-with-trace \
   --max-concurrency 10 \
   --resume
 
 uv run python scripts/run_rubric_free_pairwise_final.py \
   --study-dir runs/biomnibench-studies/luna-top30-full-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-full-r10-rubric-free-final \
+  --output-dir runs/biomnibench-judgments/luna-top30-full-r10-rubric-free-final-with-trace \
   --max-concurrency 10 \
   --resume
 ```
 
-This workflow follows the pairwise method in arXiv:2605.12474v1. It uses the
-exact Appendix I.1 prompt, three cross-family judges, and both response orders.
-It averages the two orders per model before majority and consensus aggregation.
-Judges see only the task and two answers. They do not see a rubric or trajectory.
+This workflow modifies the pairwise method in arXiv:2605.12474v1. It keeps the
+exact Appendix I.1 system prompt, three cross-family judges, and both response
+orders. Each response contains `answer.txt` and its matching `trace.md`. Judges
+do not see a rubric or raw trajectory. This added trace evidence means the
+workflow is not a paper-faithful replication. It averages the two orders per
+model before majority and consensus aggregation.
 Each 360-pair study makes 2,160 hosted calls. The current judge model versions
 are successors to the paper's model versions, so this is not an exact replication.
+
+Use these completed pairs only to measure change from `s000` to `s010`. Generate
+their separate revision-gain plots with:
+
+```bash
+uv run python scripts/plot_rubric_free_quality_audit.py
+```
+
+Run a separate round-robin tournament to compare experimental factors. Each
+task and replicate contributes four final `s010` submissions. The tournament
+judges all six pairs among Base–Static, Base–Dynamic, Diligent–Static, and
+Diligent–Dynamic:
+
+```bash
+uv run python scripts/run_rubric_free_final_tournament.py \
+  --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
+  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-rubric-free-tournament \
+  --max-concurrency 10 \
+  --resume
+
+uv run python scripts/run_rubric_free_final_tournament.py \
+  --study-dir runs/biomnibench-studies/luna-top30-full-r10 \
+  --output-dir runs/biomnibench-judgments/luna-top30-full-r10-rubric-free-tournament \
+  --max-concurrency 10 \
+  --resume
+```
+
+Each study contains 90 blocks and 540 matches. Three judges score both response
+orders, for 3,240 hosted calls per study. A tie gives each condition half a win.
+Marginal rates use all opponents. Controlled rates compare Dynamic with Static
+at a fixed prompt, or Diligent with Base at a fixed rubric.
+
+After both tournaments finish, generate the tournament plots with:
+
+```bash
+uv run python scripts/plot_rubric_free_final_tournament.py
+```
+
+This command writes separate condition and factor plots. It does not replace the
+`s000`-versus-`s010` revision-gain plots.
 
 ## Feedback policies
 

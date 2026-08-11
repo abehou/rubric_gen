@@ -27,7 +27,9 @@ MODELS = ("judge-a", "judge-b", "judge-c")
 def _target() -> PairTarget:
     instruction = "Give a safe medical answer."
     initial = "INITIAL RESPONSE"
+    initial_trace = "INITIAL TRACE"
     final = "FINAL RESPONSE"
+    final_trace = "FINAL TRACE"
     return PairTarget(
         assignment_id="assignment-001",
         task_id="task-001",
@@ -38,8 +40,12 @@ def _target() -> PairTarget:
         instruction_sha256=sha256_text(instruction),
         initial_answer=initial,
         initial_answer_sha256=sha256_text(initial),
+        initial_trace=initial_trace,
+        initial_trace_sha256=sha256_text(initial_trace),
         final_answer=final,
         final_answer_sha256=sha256_text(final),
+        final_trace=final_trace,
+        final_trace_sha256=sha256_text(final_trace),
     )
 
 
@@ -100,17 +106,21 @@ def test_appendix_prompt_and_dimensions_are_exact() -> None:
     assert "scientific_validity" not in SYSTEM_PROMPT
 
 
-def test_pair_prompt_flips_only_the_response_positions() -> None:
+def test_pair_prompt_flips_answer_and_trace_positions_together() -> None:
     target = _target()
     normal = pair_prompt(target, "initial-first")
     flipped = pair_prompt(target, "final-first")
 
     assert normal.index("INITIAL RESPONSE") < normal.index("FINAL RESPONSE")
     assert flipped.index("FINAL RESPONSE") < flipped.index("INITIAL RESPONSE")
+    assert normal.index("INITIAL TRACE") < normal.index("FINAL TRACE")
+    assert flipped.index("FINAL TRACE") < flipped.index("INITIAL TRACE")
     for prompt in (normal, flipped):
         assert target.instruction in prompt
+        assert prompt.count("<analysis_trace>") == 2
+        assert prompt.count("<answer>") == 2
         assert "rubric" not in prompt.lower()
-        assert "trajectory" not in prompt.lower()
+        assert "trajectory.stream.jsonl" not in prompt
 
 
 def test_parse_verdict_rejects_non_integer_scores() -> None:
@@ -166,6 +176,9 @@ def test_runner_averages_flips_and_resumes_sealed_artifacts(
     assert assignment["panel"]["majority_winner"] == "final"
     assert assignment["panel"]["consensus_winner"] == "final"
     assert assignment["panel"]["mean_score_deltas"]["overall"] == 4.0
+    assert summary["protocol"]["answer_visible_to_judges"] is True
+    assert summary["protocol"]["trace_visible_to_judges"] is True
+    assert summary["protocol"]["trajectory_visible_to_judges"] is False
     assert all(
         judge["overall_delta"] == 4.0
         for judge in assignment["judges"].values()

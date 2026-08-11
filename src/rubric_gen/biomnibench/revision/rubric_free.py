@@ -103,6 +103,7 @@ PROTOCOL_SHA256 = sha256_text(json.dumps(
         "orderings": list(ORDERINGS),
         "position_aggregation": "arithmetic-mean-per-model-per-score-field",
         "winner_field": "overall",
+        "response_evidence": ["answer.txt", "trace.md"],
     },
     ensure_ascii=False,
     sort_keys=True,
@@ -121,8 +122,12 @@ class PairTarget:
     instruction_sha256: str
     initial_answer: str
     initial_answer_sha256: str
+    initial_trace: str
+    initial_trace_sha256: str
     final_answer: str
     final_answer_sha256: str
+    final_trace: str
+    final_trace_sha256: str
 
 
 @dataclass(frozen=True)
@@ -169,11 +174,11 @@ def _regular_text(path: Path, label: str) -> tuple[str, str]:
     return text, sha256_file(path)
 
 
-def _submission_answer(
+def _submission_response(
     experiment_dir: Path,
     task_id: str,
     submission_id: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, str, str]:
     submission = experiment_dir / "submissions" / submission_id
     if submission.is_symlink() or not submission.is_dir():
         raise RuntimeError(f"submission is not a regular directory: {submission}")
@@ -185,7 +190,15 @@ def _submission_answer(
         or status.get("exit_code") != 0
     ):
         raise RuntimeError(f"submission status is invalid: {submission}")
-    return _regular_text(submission / "workspace" / "answer.txt", "answer")
+    answer, answer_hash = _regular_text(
+        submission / "workspace" / "answer.txt",
+        "answer",
+    )
+    trace, trace_hash = _regular_text(
+        submission / "workspace" / "trace.md",
+        "trace",
+    )
+    return answer, answer_hash, trace, trace_hash
 
 
 def load_completed_study(source: Path) -> RubricFreeStudy:
@@ -251,12 +264,22 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
                     "task instruction",
                 )
             instruction, instruction_hash = instruction_cache[task_id]
-            initial, initial_hash = _submission_answer(
+            (
+                initial,
+                initial_hash,
+                initial_trace,
+                initial_trace_hash,
+            ) = _submission_response(
                 experiment_dir,
                 task_id,
                 "s000",
             )
-            final, final_hash = _submission_answer(
+            (
+                final,
+                final_hash,
+                final_trace,
+                final_trace_hash,
+            ) = _submission_response(
                 experiment_dir,
                 task_id,
                 "s010",
@@ -271,8 +294,12 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
                 instruction_sha256=instruction_hash,
                 initial_answer=initial,
                 initial_answer_sha256=initial_hash,
+                initial_trace=initial_trace,
+                initial_trace_sha256=initial_trace_hash,
                 final_answer=final,
                 final_answer_sha256=final_hash,
+                final_trace=final_trace,
+                final_trace_sha256=final_trace_hash,
             ))
             progress.update()
     return RubricFreeStudy(
@@ -284,9 +311,11 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
 
 def pair_prompt(target: PairTarget, ordering: str) -> str:
     if ordering == "initial-first":
-        response_a, response_b = target.initial_answer, target.final_answer
+        answer_a, trace_a = target.initial_answer, target.initial_trace
+        answer_b, trace_b = target.final_answer, target.final_trace
     elif ordering == "final-first":
-        response_a, response_b = target.final_answer, target.initial_answer
+        answer_a, trace_a = target.final_answer, target.final_trace
+        answer_b, trace_b = target.initial_answer, target.initial_trace
     else:
         raise ValueError(f"unsupported response ordering: {ordering}")
     shape = {
@@ -309,13 +338,26 @@ def pair_prompt(target: PairTarget, ordering: str) -> str:
 
 @response_A:
 <response_A>
-{response_a}
+<answer>
+{answer_a}
+</answer>
+<analysis_trace>
+{trace_a}
+</analysis_trace>
 </response_A>
 
 @response_B:
 <response_B>
-{response_b}
+<answer>
+{answer_b}
+</answer>
+<analysis_trace>
+{trace_b}
+</analysis_trace>
 </response_B>
+
+Treat each analysis trace as agent-authored supporting evidence. Evaluate its
+substance, but do not assume that an unsupported claim in the trace is true.
 
 Return exactly one JSON object with per-score-field scores and justifications:
 {json.dumps(shape, indent=2, ensure_ascii=False)}
@@ -497,7 +539,9 @@ class RubricFreeRunner:
             "submission_ids": ["s000", "s010"],
             "instruction_sha256": target.instruction_sha256,
             "initial_answer_sha256": target.initial_answer_sha256,
+            "initial_trace_sha256": target.initial_trace_sha256,
             "final_answer_sha256": target.final_answer_sha256,
+            "final_trace_sha256": target.final_trace_sha256,
             "model": job.model,
             "ordering": job.ordering,
             "protocol_sha256": PROTOCOL_SHA256,
@@ -818,6 +862,9 @@ class RubricFreeRunner:
                 "protocol": {
                     "protocol_sha256": PROTOCOL_SHA256,
                     "system_prompt": "exact Appendix I.1 prompt",
+                    "method_relation": (
+                        "modified Appendix I.1 pairwise method with trace evidence"
+                    ),
                     "models": list(self.config.models),
                     "paper_models": [
                         "GPT-5.4",
@@ -826,6 +873,7 @@ class RubricFreeRunner:
                     ],
                     "model_policy": "current cross-family frontier successors",
                     "submission_ids": ["s000", "s010"],
+                    "response_evidence": ["answer.txt", "trace.md"],
                     "position_flipped": True,
                     "position_aggregation": (
                         "arithmetic-mean-per-model-per-score-field"
@@ -839,6 +887,8 @@ class RubricFreeRunner:
                         "ties_excluded_from_reported_win-rate_denominators": True,
                     },
                     "rubric_visible_to_judges": False,
+                    "answer_visible_to_judges": True,
+                    "trace_visible_to_judges": True,
                     "trajectory_visible_to_judges": False,
                     "max_retries": self.config.max_retries,
                 },
