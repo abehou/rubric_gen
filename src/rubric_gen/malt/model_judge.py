@@ -1335,6 +1335,7 @@ class ModelJudgeRunner:
         count_tokens: Callable[[str, ModelRequest], int] | None = None,
     ) -> None:
         self.config = config
+        target = detection_target(config.detection)
         self.generate_response = generate_response
         self.generate_vllm_response = generate_vllm_response
         self.count_tokens = (
@@ -1353,10 +1354,11 @@ class ModelJudgeRunner:
         self._reserved_usd = 0.0
         self._circuit_open: dict[str, str] = {}
         self.run_provenance = {
-            "schema_version": 3,
+            "schema_version": 4,
             "audit_protocol_version": DIRECT_AUDIT_PROTOCOL_VERSION,
             "evidence_schema_version": INDEX_SCHEMA_VERSION,
             "detection": config.detection,
+            "detection_target": target.provenance(),
             "models": list(config.models),
             "max_concurrency": config.max_concurrency,
             "max_retries": config.max_retries,
@@ -1854,11 +1856,14 @@ class ModelJudgeRunner:
         self, records: list[dict[str, object]], jobs: tuple[PreparedJob, ...]
     ) -> int:
         records.sort(key=lambda row: (str(row["case_id"]), str(row["model"])))
-        summary = {"schema_version": 7, "kind": "malt-model-judges",
+        summary = {"schema_version": 8, "kind": "malt-model-judges",
                    "models": list(self.config.models),
                    "base_urls": self.config.base_urls,
                    "max_retries": self.config.max_retries,
                    "detection": self.config.detection,
+                   "detection_target": detection_target(
+                       self.config.detection
+                   ).provenance(),
                    "primary_rule": self.config.primary_rule,
                    "experiment_ids": list(self.config.experiment_ids),
                    "run_provenance_sha256": self.run_provenance_sha256,

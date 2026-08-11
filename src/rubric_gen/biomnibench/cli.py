@@ -7,7 +7,7 @@ import argparse
 from rubric_gen.biomnibench.commands import (
     run_detect,
     run_dag,
-    run_judge_quality,
+    run_judge,
     run_revise,
     run_seed,
 )
@@ -46,22 +46,18 @@ def _add_detect(subparsers: argparse._SubParsersAction) -> None:
 
 def _add_judge(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
-        "judge", help="Judge final revision quality without a rubric."
+        "judge",
+        help=(
+            "Re-score initial and final submissions against the original rubric "
+            "with the strong ensemble."
+        ),
     )
-    parser.add_argument("--run-dir", action="append", required=True)
+    parser.add_argument("--study-dir", required=True)
     parser.add_argument("--output-dir", required=True)
-    model_source = parser.add_mutually_exclusive_group()
-    model_source.add_argument(
-        "--models",
-        nargs="+",
-        default=None,
-        metavar="MODEL",
-    )
-    add_vllm_argument(model_source)  # type: ignore[arg-type]
     parser.add_argument("--max-concurrency", type=int, default=3)
-    parser.add_argument("--max-retries", type=int, default=2)
+    parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
-    parser.set_defaults(handler=run_judge_quality)
+    parser.set_defaults(handler=run_judge)
 
 
 def _add_run(subparsers: argparse._SubParsersAction) -> None:

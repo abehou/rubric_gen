@@ -103,7 +103,7 @@ _MODULE_EXPORTS = {
     ),
     ".commands": (
         "run_detect",
-        "run_judge_quality",
+        "run_judge",
         "run_revise",
         "run_seed",
     ),

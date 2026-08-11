@@ -12,6 +12,8 @@ from pathlib import Path
 
 import numpy as np
 
+from rubric_gen.malt.detection import validate_detection_summary
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "figures" / "luna-top30-feedback-comparison"
@@ -150,6 +152,7 @@ def _latest_detection_summary(spec: DetectionSpec) -> dict[str, object]:
     if not candidates:
         raise FileNotFoundError(f"no detector summary under {spec.detection_dir}")
     summary = _load_json(max(candidates, key=lambda path: path.stat().st_mtime))
+    validate_detection_summary(summary, expected=spec.target)
     if (
         summary.get("detection") != spec.target
         or summary.get("primary_rule") != "majority"

@@ -79,25 +79,15 @@ def run_dag(args: argparse.Namespace) -> int:
     return run_detect(detect)
 
 
-def run_judge_quality(args: argparse.Namespace) -> int:
-    from rubric_gen.biomnibench.revision.rubric_free import (
-        RubricFreeConfig,
-        RubricFreeRunner,
+def run_judge(args: argparse.Namespace) -> int:
+    from rubric_gen.biomnibench.revision.original_rubric import (
+        OriginalRubricEnsembleConfig,
+        OriginalRubricEnsembleRunner,
     )
 
-    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
-    models = (
-        tuple(endpoints)
-        if endpoints else tuple(
-            args.models
-            or ("gpt-5.6-sol", "claude-opus-4-8", "gemini-3.1-pro-preview")
-        )
-    )
-    return RubricFreeRunner(RubricFreeConfig(
-        experiment_dirs=tuple(resolve_project_path(path) for path in args.run_dir),
+    return OriginalRubricEnsembleRunner(OriginalRubricEnsembleConfig(
+        study_dir=resolve_project_path(args.study_dir),
         output_dir=resolve_project_path(args.output_dir),
-        models=models,
-        base_urls=endpoints,
         max_concurrency=args.max_concurrency,
         max_retries=args.max_retries,
         resume=args.resume,

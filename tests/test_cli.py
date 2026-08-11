@@ -48,27 +48,47 @@ def test_experiment_commands_accept_repeatable_vllm_endpoints(command: str) -> N
     }
 
 
-def test_detect_and_judge_accept_vllm_endpoints() -> None:
+def test_detect_accepts_vllm_endpoints() -> None:
     detect = build_parser().parse_args([
         "detect", "--run-dir", "runs/study", "--output-dir", "runs/detect",
         "--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B",
     ])
-    judge = build_parser().parse_args([
-        "judge", "--run-dir", "runs/revision", "--output-dir", "runs/judge",
-        "--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B",
-        "--vllm", "http://qwen35:43583::Qwen/Qwen3.6-35B-A3B",
-    ])
     assert detect.vllm == ["http://qwen27:43117::Qwen/Qwen3.6-27B"]
-    assert len(judge.vllm) == 2
-    assert judge.models is None
 
 
-def test_judge_rejects_mixed_hosted_and_vllm_model_sources() -> None:
+def test_judge_accepts_only_the_strong_original_rubric_workflow() -> None:
+    judge = build_parser().parse_args([
+        "judge",
+        "--study-dir", "runs/study",
+        "--output-dir", "runs/judge",
+        "--max-concurrency", "2",
+        "--max-retries", "0",
+        "--resume",
+    ])
+    assert judge.study_dir == "runs/study"
+    assert judge.output_dir == "runs/judge"
+    assert judge.max_concurrency == 2
+    assert judge.max_retries == 0
+    assert judge.resume is True
+    assert not hasattr(judge, "models")
+    assert not hasattr(judge, "vllm")
+
+
+@pytest.mark.parametrize(
+    "legacy_args",
+    [
+        ["--run-dir", "runs/revision"],
+        ["--models", "gpt-5.6-sol"],
+        ["--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B"],
+    ],
+)
+def test_judge_rejects_removed_interfaces(legacy_args: list[str]) -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args([
-            "judge", "--run-dir", "r", "--output-dir", "o",
-            "--models", "gpt-5.6-sol",
-            "--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B",
+            "judge",
+            "--study-dir", "runs/study",
+            "--output-dir", "runs/judge",
+            *legacy_args,
         ])
 
 

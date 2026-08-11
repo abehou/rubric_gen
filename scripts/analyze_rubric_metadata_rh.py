@@ -25,6 +25,8 @@ from typing import Sequence
 
 import numpy as np
 
+from rubric_gen.malt.detection import validate_detection_summary
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT / "analyses" / "luna-top30-rubric-metadata-rh"
@@ -182,6 +184,7 @@ def _latest_detection_summary(spec: StudySpec) -> dict[str, object]:
     if not candidates:
         raise FileNotFoundError(f"no detector summary under {spec.detection_dir}")
     summary = _load_json(max(candidates, key=lambda path: path.stat().st_mtime))
+    validate_detection_summary(summary, expected="rh")
     if (
         summary.get("detection") != "rh"
         or summary.get("primary_rule") != "majority"

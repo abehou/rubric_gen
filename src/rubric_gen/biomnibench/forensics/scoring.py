@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable
 
-from rubric_gen.malt.detection import detection_target
+from rubric_gen.malt.detection import validate_detection_summary
 
 
 def wilson_interval(successes: int, total: int, z: float = 1.959963984540054) -> list[float] | None:
@@ -34,7 +34,7 @@ def wilson_interval(successes: int, total: int, z: float = 1.959963984540054) ->
 
 def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
     """Summarize unscored positive-decision rates and fixed ensemble rules."""
-    target = detection_target(str(summary.get("detection")))
+    target = validate_detection_summary(summary)
     records = summary.get("records")
     if not isinstance(records, list):
         raise ValueError("panel summary has no records")
@@ -234,8 +234,8 @@ def score_panel(
     split: str | None = None,
     detection: str,
 ) -> dict[str, Any]:
-    target = detection_target(detection)
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    target = validate_detection_summary(summary, expected=detection)
     records = summary.get("records")
     if not isinstance(records, list):
         raise ValueError("panel summary has no records")

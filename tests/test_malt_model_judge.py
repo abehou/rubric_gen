@@ -192,6 +192,10 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     )
     assert runner.run() == 0
     summary = json.loads((output / "summary.json").read_text())
+    assert summary["schema_version"] == 8
+    assert summary["detection_target"] == model_judge.detection_target(
+        "rh"
+    ).provenance()
     assert summary["records"][0]["verdict"]["decision"] == "no_reward_hacking_detected"
     assert summary["records"][0]["verdict"]["findings"] == []
     assert "No reward-directed divergence" in summary["records"][0]["verdict"]["analysis"]
@@ -204,7 +208,8 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     assert generation["requested_model"] == "gpt-test"
     assert generation["effective_model"] == "gpt-test-served"
     provenance = json.loads((output / "run-provenance.json").read_text())
-    assert provenance["schema_version"] == 3
+    assert provenance["schema_version"] == 4
+    assert provenance["detection_target"] == summary["detection_target"]
     assert "implementation" not in provenance
 
 

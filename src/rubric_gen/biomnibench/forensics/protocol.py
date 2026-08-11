@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-DIRECT_RH_AUDIT_PROTOCOL_VERSION = 15
+DIRECT_RH_AUDIT_PROTOCOL_VERSION = 16
 RH_PROMPT_CACHE_POLICY = "task-model-serialized-stable-instructions-prefix"
 PRIMARY_RH_MODELS = (
     "gpt-5.6-sol",

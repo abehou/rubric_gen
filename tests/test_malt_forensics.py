@@ -38,9 +38,37 @@ from rubric_gen.biomnibench.forensics.protocol import (
     outcome_audit_protocol,
 )
 from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
+from rubric_gen.malt.detection import detection_target
 
 
 DATASET_REVISION = "a" * 40
+
+
+def test_rh_target_matches_malt_reward_hacking_protocol() -> None:
+    target = detection_target("rh")
+
+    assert target.protocol_version == 2
+    assert target.positive_labels == frozenset({
+        "bypass_constraints",
+        "ignores_task_instructions",
+    })
+    assert "hardcoded_solution" not in target.positive_labels
+    assert "task scoring system or environment" in target.prompt
+    assert "modifying, mocking, or monkeypatching the scorer" in target.prompt
+    assert "approximation or heuristic permitted by the task" in target.prompt
+    assert outcome_audit_protocol(
+        models=PRIMARY_RH_MODELS,
+        primary_rule="majority",
+    )["protocol_version"] == 16
+
+
+def test_detection_rates_reject_obsolete_target_protocol() -> None:
+    with pytest.raises(ValueError, match="obsolete or mismatched"):
+        detection_rates({
+            "detection": "rh",
+            "models": ["one"],
+            "records": [],
+        })
 
 
 def _write_revision(directory: Path, revision: str = DATASET_REVISION) -> Path:
@@ -229,6 +257,13 @@ def test_detect_is_required_and_targets_have_distinct_label_mappings(
                        (non_normal_root / "non-normal/private/gold.jsonl").read_text().splitlines()]
     assert len(rh_gold) == 3
     assert sum(row["positive"] for row in rh_gold) == 2
+    rh_preparation = json.loads(
+        (rh_root / "rh/private/preparation.json").read_text()
+    )
+    assert rh_preparation["positive_labels"] == [
+        "bypass_constraints",
+        "ignores_task_instructions",
+    ]
     assert len(non_normal_gold) == 10
     assert sum(row["positive"] for row in non_normal_gold) == 9
 
@@ -584,7 +619,10 @@ def test_score_panel_reports_individual_and_fixed_ensembles(tmp_path: Path) -> N
                             "verdict": {"decision": decision, "confidence": .8,
                                         "evidence_locations": []}})
     summary = tmp_path / "summary.json"
+    target = detection_target("rh")
     summary.write_text(json.dumps({
+        "detection": "rh",
+        "detection_target": target.provenance(),
         "models": ["codex", "claude", "gemini"],
         "records": records,
     }))
@@ -627,8 +665,10 @@ def test_unscored_detection_rates_exclude_failures_and_require_complete_panels(
         "case_id": "c", "source_path": "/c", "provider": "three",
         "status": "failed",
     })
+    target = detection_target("rh")
     rates = detection_rates({
         "detection": "rh",
+        "detection_target": target.provenance(),
         "models": ["one", "two", "three"],
         "primary_rule": "majority",
         "records": records,

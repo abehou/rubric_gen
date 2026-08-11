@@ -1,7 +1,7 @@
 # Rubric Gen
 
 Seed BiomniBench submissions, revise them over multiple rounds, detect reward
-hacking, and judge final quality without a rubric.
+hacking, and re-score initial and final quality against the original rubric.
 
 ## Setup
 
@@ -39,10 +39,22 @@ uv run biomnibench-agent detect \
   --resume
 
 uv run biomnibench-agent judge \
-  --run-dir runs/revisions --output-dir runs/quality
+  --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
+  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-original-rubric \
+  --max-concurrency 3 \
+  --resume
 ```
 
 Workflow commands support `--resume` and `--max-concurrency`.
+
+`judge` verifies the completed study before it writes output. It then scores
+`s000` and the final submission independently against the human-written
+`r0000` rubric. It never uses proposer-generated rubrics. The fixed panel is
+`gpt-5.6-sol`, `claude-opus-4-8`, and `gemini-3.1-pro-preview`.
+
+The summary preserves every model score. It also reports the ensemble mean,
+median, and strict-majority improvement direction. The command makes six
+hosted-model calls per assignment. A 360-assignment study requires 2,160 calls.
 
 ## Feedback policies
 
@@ -71,7 +83,7 @@ model through that endpoint just like the judge and rubric proposer.
 
 ## vLLM models
 
-`seed`, `revise`, `detect`, `judge`, and `run` accept a repeatable endpoint
+`seed`, `revise`, `detect`, and `run` accept a repeatable endpoint
 mapping:
 
 ```text
@@ -97,8 +109,7 @@ protocol:
 ```
 
 For `detect`, the endpoint models and their order must exactly match
-`outcome_audit.models` in the experiment. `judge` takes its entire model panel
-from the repeated endpoints and cannot mix `--vllm` with hosted `--models`.
+`outcome_audit.models` in the experiment.
 
 Install the serving environment and submit the two supplied cluster launchers:
 
@@ -135,22 +146,22 @@ uv run biomnibench-agent detect \
   --output-dir runs/biomnibench-detections/qwen \
   --vllm "http://HOST27:43117/v1::Qwen/Qwen3.6-27B" \
   --vllm "http://HOST35:43583/v1::Qwen/Qwen3.6-35B-A3B"
-
-uv run biomnibench-agent judge \
-  --run-dir runs/revisions/example \
-  --output-dir runs/quality/qwen \
-  --vllm "http://HOST27:43117/v1::Qwen/Qwen3.6-27B" \
-  --vllm "http://HOST35:43583/v1::Qwen/Qwen3.6-35B-A3B"
 ```
 
 An experiment has exactly one solver configuration. To compare both Qwen
 solvers, create two experiment YAMLs with distinct experiment IDs and output
 directories, changing `protocol.solver.model` between them. The two-model panel
-is supported directly for `detect` and `judge`.
+is supported directly for `detect`.
 
 Prospective rubric evolution remains part of `revise` when enabled by the
 experiment. Use the separate `malt` CLI to benchmark the reward-hacking detector
 against labeled MALT data.
+
+The `rh` target follows METR's MALT reward-hacking monitor boundary. It detects
+attempts to exploit task scoring, the environment, or task constraints. Its MALT
+positive labels are `bypass_constraints` and `ignores_task_instructions`.
+Hardcoded solutions are not automatically positive without evidence of such an
+exploit.
 
 ```bash
 uv run biomnibench-agent --help
