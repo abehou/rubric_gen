@@ -39,6 +39,7 @@ RUN_KIND = "rubric-free-final-tournament-run"
 ARTIFACT_KIND = "rubric-free-final-tournament-judgment"
 ORDERINGS = ("left-first", "right-first")
 SAMPLE_SEED = 20260811
+FEEDBACKS = ("semi", "full")
 CONDITIONS = (
     "base-static",
     "base-prospective",
@@ -59,17 +60,23 @@ PROTOCOL_SHA256 = sha256_text(repr((
     "s010",
     ("answer.txt", "trace.md"),
     ("one-complete-replicate-per-task", SAMPLE_SEED),
+    FEEDBACKS,
 )))
 
 
 @dataclass(frozen=True)
 class Finalist:
+    feedback_id: str
     assignment_id: str
     condition_id: str
     answer: str
     answer_sha256: str
     trace: str
     trace_sha256: str
+
+    @property
+    def pool_id(self) -> str:
+        return f"{self.feedback_id}-{self.condition_id}"
 
 
 @dataclass(frozen=True)
@@ -85,14 +92,15 @@ class MatchTarget:
 
 @dataclass(frozen=True)
 class TournamentStudy:
-    source: Path
-    experiment_id: str
+    sources: tuple[Path, Path]
+    experiment_ids: tuple[str, str]
     targets: tuple[MatchTarget, ...]
 
 
 @dataclass(frozen=True)
 class TournamentConfig:
-    study_dir: Path
+    semi_study_dir: Path
+    full_study_dir: Path
     output_dir: Path
     models: tuple[str, ...] = STRONG_JUDGE_MODELS
     max_concurrency: int = 3
@@ -150,7 +158,14 @@ def _final_response(
     return answer, answer_hash, trace, trace_hash
 
 
-def load_completed_study(source: Path) -> TournamentStudy:
+def _load_study_candidates(
+    source: Path,
+    feedback_id: str,
+) -> tuple[
+    str,
+    dict[str, tuple[str, str]],
+    dict[tuple[str, int], dict[str, Finalist]],
+]:
     source = source.resolve()
     if source.is_symlink() or not source.is_dir():
         raise ValueError(f"study must be a regular directory: {source}")
@@ -246,6 +261,7 @@ def load_completed_study(source: Path) -> TournamentStudy:
                     task_id,
                 )
                 block[condition] = Finalist(
+                    feedback_id=feedback_id,
                     assignment_id=assignment_id,
                     condition_id=condition,
                     answer=answer,
@@ -254,19 +270,38 @@ def load_completed_study(source: Path) -> TournamentStudy:
                     trace_sha256=trace_hash,
                 )
                 progress.update()
+    return experiment.experiment_id, instructions, grouped
+
+
+def load_completed_studies(
+    semi_source: Path,
+    full_source: Path,
+) -> TournamentStudy:
+    semi_id, semi_instructions, semi_blocks = _load_study_candidates(
+        semi_source,
+        "semi",
+    )
+    full_id, full_instructions, full_blocks = _load_study_candidates(
+        full_source,
+        "full",
+    )
+    if set(semi_blocks) != set(full_blocks):
+        raise ValueError("semi and full studies selected different task blocks")
+    if semi_instructions != full_instructions:
+        raise ValueError("semi and full studies have different task instructions")
 
     targets: list[MatchTarget] = []
-    for (task_id, replicate), block in sorted(grouped.items()):
-        if set(block) != set(CONDITIONS):
-            raise ValueError(
-                f"tournament block must contain all four conditions: "
-                f"{task_id} replicate {replicate}"
-            )
-        instruction, instruction_hash = instructions[task_id]
-        for left_condition, right_condition in itertools.combinations(CONDITIONS, 2):
+    for (task_id, replicate), semi_block in sorted(semi_blocks.items()):
+        full_block = full_blocks[(task_id, replicate)]
+        finalists = [
+            *(semi_block[condition] for condition in CONDITIONS),
+            *(full_block[condition] for condition in CONDITIONS),
+        ]
+        instruction, instruction_hash = semi_instructions[task_id]
+        for left, right in itertools.combinations(finalists, 2):
             match_id = (
                 f"{task_id}--rep-{replicate:03d}--"
-                f"{left_condition}--vs--{right_condition}"
+                f"{left.pool_id}--vs--{right.pool_id}"
             )
             targets.append(MatchTarget(
                 match_id=match_id,
@@ -274,10 +309,14 @@ def load_completed_study(source: Path) -> TournamentStudy:
                 replicate=replicate,
                 instruction=instruction,
                 instruction_sha256=instruction_hash,
-                left=block[left_condition],
-                right=block[right_condition],
+                left=left,
+                right=right,
             ))
-    return TournamentStudy(source, experiment.experiment_id, tuple(targets))
+    return TournamentStudy(
+        sources=(semi_source.resolve(), full_source.resolve()),
+        experiment_ids=(semi_id, full_id),
+        targets=tuple(targets),
+    )
 
 
 def pair_prompt(target: MatchTarget, ordering: str) -> str:
@@ -350,7 +389,7 @@ class TournamentRunner:
         self,
         config: TournamentConfig,
         *,
-        load_study: Callable[[Path], TournamentStudy] = load_completed_study,
+        load_study: Callable[[Path, Path], TournamentStudy] = load_completed_studies,
         generate_response: GenerateResponse = generate,
     ) -> None:
         self.config = config
@@ -358,7 +397,10 @@ class TournamentRunner:
         self.generate_response = generate_response
 
     def run(self) -> int:
-        study = self.load_study(self.config.study_dir)
+        study = self.load_study(
+            self.config.semi_study_dir,
+            self.config.full_study_dir,
+        )
         self._prepare_output(study)
         jobs = tuple(
             MatchJob(target, model, ordering)
@@ -406,7 +448,7 @@ class TournamentRunner:
         return {
             "schema_version": 1,
             "kind": RUN_KIND,
-            "experiment_id": study.experiment_id,
+            "experiment_ids": list(study.experiment_ids),
             "protocol_sha256": PROTOCOL_SHA256,
             "models": list(self.config.models),
             "match_count": len(study.targets),
@@ -415,9 +457,11 @@ class TournamentRunner:
 
     def _prepare_output(self, study: TournamentStudy) -> None:
         output = self.config.output_dir.resolve()
-        source = study.source.resolve()
-        if source == output or source in output.parents or output in source.parents:
-            raise ValueError("tournament source and output must not contain each other")
+        for source in study.sources:
+            if source == output or source in output.parents or output in source.parents:
+                raise ValueError(
+                    "tournament sources and output must not contain each other"
+                )
         if output.is_symlink() or output.exists() and not output.is_dir():
             raise ValueError(f"output must be a regular directory: {output}")
         identity = self._run_identity(study)
@@ -460,6 +504,8 @@ class TournamentRunner:
             "replicate": target.replicate,
             "left_assignment_id": target.left.assignment_id,
             "right_assignment_id": target.right.assignment_id,
+            "left_feedback_id": target.left.feedback_id,
+            "right_feedback_id": target.right.feedback_id,
             "left_condition_id": target.left.condition_id,
             "right_condition_id": target.right.condition_id,
             "submission_id": "s010",
@@ -635,6 +681,8 @@ class TournamentRunner:
                 "submission_id": "s010",
                 "left_assignment_id": target.left.assignment_id,
                 "right_assignment_id": target.right.assignment_id,
+                "left_feedback_id": target.left.feedback_id,
+                "right_feedback_id": target.right.feedback_id,
                 "left_condition_id": target.left.condition_id,
                 "right_condition_id": target.right.condition_id,
                 "judges": judges,
@@ -663,6 +711,7 @@ class TournamentRunner:
         marginal: dict[str, list[float]] = {
             "rubric.static": [], "rubric.dynamic": [],
             "prompt.base": [], "prompt.diligent": [],
+            "feedback.semi": [], "feedback.full": [],
         }
         controlled: dict[str, list[float]] = {
             "dynamic_vs_static": [],
@@ -671,28 +720,44 @@ class TournamentRunner:
             "diligent_vs_base": [],
             "diligent_vs_base_given_static": [],
             "diligent_vs_base_given_dynamic": [],
+            "full_vs_semi": [],
         }
         for match in complete:
             left = str(match["left_condition_id"])
             right = str(match["right_condition_id"])
+            left_feedback = str(match["left_feedback_id"])
+            right_feedback = str(match["right_feedback_id"])
             winner = match["panel"]["majority_winner"]
             left_score = 1.0 if winner == "left" else 0.0 if winner == "right" else 0.5
             right_score = 1.0 - left_score
-            for condition, score in ((left, left_score), (right, right_score)):
+            for condition, feedback, score in (
+                (left, left_feedback, left_score),
+                (right, right_feedback, right_score),
+            ):
                 marginal[f"rubric.{FACTORS[condition]['rubric']}"].append(score)
                 marginal[f"prompt.{FACTORS[condition]['prompt']}"].append(score)
+                marginal[f"feedback.{feedback}"].append(score)
 
             left_factors, right_factors = FACTORS[left], FACTORS[right]
-            if left_factors["prompt"] == right_factors["prompt"]:
+            if (
+                left_feedback == right_feedback
+                and left_factors["prompt"] == right_factors["prompt"]
+            ):
                 dynamic_score = left_score if left_factors["rubric"] == "dynamic" else right_score
                 prompt = left_factors["prompt"]
                 controlled["dynamic_vs_static"].append(dynamic_score)
                 controlled[f"dynamic_vs_static_given_{prompt}"].append(dynamic_score)
-            if left_factors["rubric"] == right_factors["rubric"]:
+            if (
+                left_feedback == right_feedback
+                and left_factors["rubric"] == right_factors["rubric"]
+            ):
                 diligent_score = left_score if left_factors["prompt"] == "diligent" else right_score
                 rubric = left_factors["rubric"]
                 controlled["diligent_vs_base"].append(diligent_score)
                 controlled[f"diligent_vs_base_given_{rubric}"].append(diligent_score)
+            if left == right and left_feedback != right_feedback:
+                full_score = left_score if left_feedback == "full" else right_score
+                controlled["full_vs_semi"].append(full_score)
         return {
             "tie_policy": "a tie gives each side half a win",
             "marginal": {key: cls._outcome_counts(value) for key, value in marginal.items()},
@@ -729,9 +794,19 @@ class TournamentRunner:
             "status": "completed" if completed == total else "failed" if final else "running",
             "paper": {"citation": PAPER, "url": PAPER_URL},
             "source": {
-                "study_dir": str(study.source),
-                "experiment_id": study.experiment_id,
-                "block_count": len(study.targets) // 6,
+                "study_dirs": {
+                    feedback: str(source)
+                    for feedback, source in zip(FEEDBACKS, study.sources, strict=True)
+                },
+                "experiment_ids": {
+                    feedback: experiment_id
+                    for feedback, experiment_id in zip(
+                        FEEDBACKS,
+                        study.experiment_ids,
+                        strict=True,
+                    )
+                },
+                "block_count": len(study.targets) // 28,
                 "match_count": len(study.targets),
             },
             "protocol": {
@@ -741,8 +816,9 @@ class TournamentRunner:
                 ),
                 "models": list(self.config.models),
                 "submission_id": "s010",
-                "conditions": list(CONDITIONS),
-                "matches_per_block": 6,
+                "feedbacks": list(FEEDBACKS),
+                "conditions_per_block": 8,
+                "matches_per_block": 28,
                 "replicate_sampling": {
                     "policy": "one complete replicate per task",
                     "seed": SAMPLE_SEED,

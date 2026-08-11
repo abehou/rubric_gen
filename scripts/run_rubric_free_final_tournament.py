@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Judge every pair of final submissions within each task and replicate."""
+"""Judge the joint Semi and Full final-submission pool for each sampled task."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ from rubric_gen.biomnibench.utils.paths import resolve_project_path
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--study-dir", required=True)
+    parser.add_argument("--semi-study-dir", required=True)
+    parser.add_argument("--full-study-dir", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument("--max-retries", type=int, default=1)
@@ -25,7 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     return TournamentRunner(TournamentConfig(
-        study_dir=resolve_project_path(args.study_dir),
+        semi_study_dir=resolve_project_path(args.semi_study_dir),
+        full_study_dir=resolve_project_path(args.full_study_dir),
         output_dir=resolve_project_path(args.output_dir),
         max_concurrency=args.max_concurrency,
         max_retries=args.max_retries,

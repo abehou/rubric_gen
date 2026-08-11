@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import fmean
 
+from rubric_gen.biomnibench.experiment import load_experiment
+from rubric_gen.biomnibench.revision.artifacts import read_json_object
+from rubric_gen.biomnibench.study import resolve_study_experiment
 from rubric_gen.biomnibench.visualization.backend import pyplot
 
 
@@ -48,6 +51,8 @@ class EnsembleRow:
     initial_score: float
     final_score: float
     score_delta: float
+    revision_final_score: float
+    revision_minus_ensemble: float
 
 
 @dataclass(frozen=True)
@@ -67,6 +72,12 @@ class ConditionSummary:
     delta_ci_high: float
     final_score_100: int
     final_score_at_least_95: int
+    revision_final_mean: float
+    revision_final_ci_low: float
+    revision_final_ci_high: float
+    revision_minus_ensemble_mean: float
+    revision_minus_ensemble_ci_low: float
+    revision_minus_ensemble_ci_high: float
 
 
 def _load_json(path: Path) -> dict[str, object]:
@@ -76,7 +87,60 @@ def _load_json(path: Path) -> dict[str, object]:
     return value
 
 
-def load_ensemble(path: Path, feedback: str) -> list[EnsembleRow]:
+def load_revision_final_scores(path: Path) -> dict[str, float]:
+    path = path.resolve()
+    manifest = read_json_object(path / "study.json", "study manifest")
+    records = manifest.get("records")
+    if (
+        manifest.get("schema_version") != 1
+        or manifest.get("kind") != "rubric-gen-randomized-revision-study"
+        or manifest.get("status") != "completed"
+        or type(manifest.get("experiment_path")) is not str
+        or type(records) is not list
+        or len(records) != 360
+        or any(type(record) is not dict for record in records)
+    ):
+        raise ValueError(f"expected a completed 360-assignment study: {path}")
+    experiment = load_experiment(Path(str(manifest["experiment_path"])))
+    if (
+        experiment.experiment_id != manifest.get("experiment_id")
+        or experiment.protocol.get("judge_model") != "gpt-5.6-luna"
+    ):
+        raise ValueError(f"study does not use GPT-5.6-Luna judging: {path}")
+    assignments = {
+        str(assignment["assignment_id"]): assignment
+        for assignment in experiment.assignments
+    }
+    ledger = {str(record.get("assignment_id")): record for record in records}
+    if len(ledger) != 360 or set(ledger) != set(assignments):
+        raise ValueError(f"study ledger differs from experiment: {path}")
+    output = {}
+    for assignment_id, assignment in assignments.items():
+        experiment_dir = resolve_study_experiment(
+            path,
+            ledger[assignment_id],
+            assignment,
+        ).resolve()
+        state = read_json_object(experiment_dir / "state.json", "revision state")
+        submission_ids = state.get("submission_ids")
+        scores = state.get("scores")
+        if (
+            type(submission_ids) is not list
+            or submission_ids != [f"s{index:03d}" for index in range(11)]
+            or type(scores) is not list
+            or len(scores) != 11
+            or any(type(score) is not int or not 0 <= score <= 100 for score in scores)
+        ):
+            raise ValueError(f"invalid final revision score: {assignment_id}")
+        output[assignment_id] = float(scores[-1])
+    return output
+
+
+def load_ensemble(
+    path: Path,
+    feedback: str,
+    revision_scores: dict[str, float],
+) -> list[EnsembleRow]:
     summary = _load_json(path)
     totals = summary.get("totals")
     assignments = summary.get("assignments")
@@ -116,6 +180,7 @@ def load_ensemble(path: Path, feedback: str) -> list[EnsembleRow]:
         initial = float(ensemble["initial_mean"])
         final = float(ensemble["final_mean"])
         delta = float(ensemble["mean_delta"])
+        revision_final = revision_scores.get(assignment_id)
         if (
             not 0 <= initial <= 100
             or not 0 <= final <= 100
@@ -128,6 +193,7 @@ def load_ensemble(path: Path, feedback: str) -> list[EnsembleRow]:
                 final
                 - fmean(float(judge["final_score"]) for judge in judges.values())
             ) > 1e-9
+            or revision_final is None
         ):
             raise ValueError(f"ensemble score changed: {assignment_id}")
         rows.append(EnsembleRow(
@@ -139,6 +205,8 @@ def load_ensemble(path: Path, feedback: str) -> list[EnsembleRow]:
             initial_score=initial,
             final_score=final,
             score_delta=delta,
+            revision_final_score=revision_final,
+            revision_minus_ensemble=revision_final - final,
         ))
 
     keys = {(row.task_id, row.replicate, row.condition) for row in rows}
@@ -150,6 +218,8 @@ def load_ensemble(path: Path, feedback: str) -> list[EnsembleRow]:
         raise ValueError(f"expected 360 unique assignments: {path}")
     if counts != {condition: 90 for condition in CONDITIONS}:
         raise ValueError(f"expected 90 assignments per condition: {path}")
+    if {row.assignment_id for row in rows} != set(revision_scores):
+        raise ValueError(f"revision and ensemble assignments differ: {path}")
     return rows
 
 
@@ -215,6 +285,18 @@ def summarize(
                 draws=draws,
                 seed=seed + 2,
             )
+            revision_low, revision_high = _cluster_interval(
+                group,
+                "revision_final_score",
+                draws=draws,
+                seed=seed + 3,
+            )
+            gap_low, gap_high = _cluster_interval(
+                group,
+                "revision_minus_ensemble",
+                draws=draws,
+                seed=seed + 4,
+            )
             output.append(ConditionSummary(
                 feedback=feedback,
                 condition=condition,
@@ -231,6 +313,16 @@ def summarize(
                 delta_ci_high=delta_high,
                 final_score_100=sum(row.final_score == 100 for row in group),
                 final_score_at_least_95=sum(row.final_score >= 95 for row in group),
+                revision_final_mean=fmean(
+                    row.revision_final_score for row in group
+                ),
+                revision_final_ci_low=revision_low,
+                revision_final_ci_high=revision_high,
+                revision_minus_ensemble_mean=fmean(
+                    row.revision_minus_ensemble for row in group
+                ),
+                revision_minus_ensemble_ci_low=gap_low,
+                revision_minus_ensemble_ci_high=gap_high,
             ))
     return output
 
@@ -356,6 +448,76 @@ def plot_average_changes(
     plt.close(figure)
 
 
+def plot_revision_minus_ensemble(
+    summaries: list[ConditionSummary],
+    output: Path,
+) -> None:
+    plt = pyplot()
+    lookup = _lookup(summaries)
+    all_lows = [row.revision_minus_ensemble_ci_low for row in summaries]
+    all_highs = [row.revision_minus_ensemble_ci_high for row in summaries]
+    lower = min(0.0, min(all_lows)) - 8
+    upper = max(0.0, max(all_highs)) + 8
+    figure, axes = plt.subplots(1, 2, figsize=(14, 6.8), sharey=True)
+    positions = list(range(len(CONDITIONS)))
+    for axis, feedback in zip(axes, FEEDBACK, strict=True):
+        values = [lookup[(feedback, condition)] for condition in CONDITIONS]
+        means = [row.revision_minus_ensemble_mean for row in values]
+        errors = [
+            [
+                row.revision_minus_ensemble_mean
+                - row.revision_minus_ensemble_ci_low
+                for row in values
+            ],
+            [
+                row.revision_minus_ensemble_ci_high
+                - row.revision_minus_ensemble_mean
+                for row in values
+            ],
+        ]
+        bars = axis.bar(
+            positions,
+            means,
+            yerr=errors,
+            capsize=3,
+            color=[CONDITION_COLORS[condition] for condition in CONDITIONS],
+            edgecolor="white",
+        )
+        label_padding = 4 if all(value >= 0 for value in means) else 3
+        axis.bar_label(bars, fmt="%+.1f", padding=label_padding, fontsize=10)
+        axis.axhline(0, color="#555555", linewidth=1)
+        axis.set_xticks(positions)
+        axis.set_xticklabels([CONDITION_LABELS[value] for value in CONDITIONS])
+        axis.set_ylim(lower, upper)
+        axis.set_title(f"{feedback} feedback", fontsize=13, weight="bold")
+        axis.grid(axis="y", color="#DDDDDD", linewidth=0.7)
+        axis.set_axisbelow(True)
+    axes[0].set_ylabel(
+        "Average GPT-5.6-Luna final score − ensemble final score"
+    )
+    figure.suptitle(
+        "Final revision-judge over-credit proxy by condition\n"
+        "Positive values mean GPT-5.6-Luna scored higher than the ensemble",
+        fontsize=15,
+        weight="bold",
+    )
+    figure.text(
+        0.5,
+        0.89,
+        "This is judge/rubric disagreement, not an identified reward-hacking rate.",
+        ha="center",
+        fontsize=10,
+        color="#555555",
+    )
+    figure.tight_layout(rect=(0, 0, 1, 0.85))
+    for suffix in ("png", "pdf"):
+        figure.savefig(
+            output / f"revision_judge_minus_ensemble.{suffix}",
+            dpi=220,
+        )
+    plt.close(figure)
+
+
 def write_summary(summaries: list[ConditionSummary], output: Path) -> None:
     fields = tuple(ConditionSummary.__dataclass_fields__)
     with (output / "ensemble_score_summary.csv").open(
@@ -388,6 +550,20 @@ def build_parser() -> argparse.ArgumentParser:
             / "luna-top30-full-r10-original-rubric-deduplicated/summary.json"
         ),
     )
+    parser.add_argument(
+        "--semi-study",
+        type=Path,
+        default=(
+            ROOT / "runs/biomnibench-studies/luna-top30-semi-r10"
+        ),
+    )
+    parser.add_argument(
+        "--full-study",
+        type=Path,
+        default=(
+            ROOT / "runs/biomnibench-studies/luna-top30-full-r10"
+        ),
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--bootstrap-draws", type=int, default=10_000)
     return parser
@@ -397,15 +573,18 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.bootstrap_draws < 1_000:
         raise ValueError("bootstrap-draws must be at least 1,000")
+    semi_revision_scores = load_revision_final_scores(args.semi_study)
+    full_revision_scores = load_revision_final_scores(args.full_study)
     rows = [
-        *load_ensemble(args.semi_ensemble, "Semi"),
-        *load_ensemble(args.full_ensemble, "Full"),
+        *load_ensemble(args.semi_ensemble, "Semi", semi_revision_scores),
+        *load_ensemble(args.full_ensemble, "Full", full_revision_scores),
     ]
     summaries = summarize(rows, draws=args.bootstrap_draws)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     write_summary(summaries, args.output_dir)
     plot_average_scores(summaries, args.output_dir)
     plot_average_changes(summaries, args.output_dir)
+    plot_revision_minus_ensemble(summaries, args.output_dir)
     print(f"wrote ensemble bar plots to {args.output_dir}")
     return 0
 

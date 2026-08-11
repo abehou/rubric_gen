@@ -26,11 +26,12 @@ RANKS = {
 }
 
 
-def _finalist(condition: str) -> Finalist:
-    answer = f"ANSWER {condition}"
-    trace = f"TRACE {condition}"
+def _finalist(feedback: str, condition: str) -> Finalist:
+    answer = f"ANSWER {feedback} {condition}"
+    trace = f"TRACE {feedback} {condition}"
     return Finalist(
-        assignment_id=f"assignment-{condition}",
+        feedback_id=feedback,
+        assignment_id=f"assignment-{feedback}-{condition}",
         condition_id=condition,
         answer=answer,
         answer_sha256=sha256_text(answer),
@@ -41,22 +42,26 @@ def _finalist(condition: str) -> Finalist:
 
 def _study(tmp_path: Path) -> TournamentStudy:
     instruction = "Give a safe medical answer."
-    finalists = {condition: _finalist(condition) for condition in CONDITIONS}
+    finalists = [
+        _finalist(feedback, condition)
+        for feedback in ("semi", "full")
+        for condition in CONDITIONS
+    ]
     targets = []
-    for left_index, left in enumerate(CONDITIONS):
-        for right in CONDITIONS[left_index + 1:]:
+    for left_index, left in enumerate(finalists):
+        for right in finalists[left_index + 1:]:
             targets.append(MatchTarget(
-                match_id=f"task-001--rep-001--{left}--vs--{right}",
+                match_id=f"task-001--rep-001--{left.pool_id}--vs--{right.pool_id}",
                 task_id="task-001",
                 replicate=1,
                 instruction=instruction,
                 instruction_sha256=sha256_text(instruction),
-                left=finalists[left],
-                right=finalists[right],
+                left=left,
+                right=right,
             ))
     return TournamentStudy(
-        source=tmp_path / "study",
-        experiment_id="experiment-001",
+        sources=(tmp_path / "semi", tmp_path / "full"),
+        experiment_ids=("experiment-semi", "experiment-full"),
         targets=tuple(targets),
     )
 
@@ -103,7 +108,7 @@ def test_tournament_prompt_flips_answer_and_trace_together(tmp_path: Path) -> No
         assert "trajectory.stream.jsonl" not in prompt
 
 
-def test_tournament_runs_six_matches_and_reports_controlled_rates(
+def test_tournament_runs_joint_pool_and_reports_controlled_rates(
     tmp_path: Path,
 ) -> None:
     study = _study(tmp_path)
@@ -116,52 +121,61 @@ def test_tournament_runs_six_matches_and_reports_controlled_rates(
 
     runner = TournamentRunner(
         TournamentConfig(
-            study_dir=study.source,
+            semi_study_dir=study.sources[0],
+            full_study_dir=study.sources[1],
             output_dir=output,
             models=MODELS,
             max_concurrency=1,
             max_retries=0,
         ),
-        load_study=lambda _path: study,
+        load_study=lambda _semi, _full: study,
         generate_response=generate,
     )
     assert runner.run() == 0
-    assert len(calls) == 36
+    assert len(calls) == 168
     assert all(request.instructions == SYSTEM_PROMPT for _model, request in calls)
 
     summary = json.loads((output / "summary.json").read_text())
     assert summary["totals"] == {
-        "jobs": 36,
-        "completed": 36,
+        "jobs": 168,
+        "completed": 168,
         "failed": 0,
         "pending": 0,
     }
-    assert len(summary["matches"]) == 6
+    assert len(summary["matches"]) == 28
     assert summary["protocol"]["answer_visible_to_judges"] is True
     assert summary["protocol"]["trace_visible_to_judges"] is True
     assert summary["protocol"]["trajectory_visible_to_judges"] is False
     factors = summary["factors"]
-    assert factors["marginal"]["rubric.dynamic"]["comparisons"] == 6
+    assert factors["marginal"]["rubric.dynamic"]["comparisons"] == 28
     assert factors["controlled"]["dynamic_vs_static"] == {
-        "comparisons": 2,
-        "wins": 2,
+        "comparisons": 4,
+        "wins": 4,
         "ties": 0,
         "losses": 0,
         "half_win_rate": 1.0,
     }
     assert factors["controlled"]["diligent_vs_base"]["half_win_rate"] == 1.0
+    assert factors["controlled"]["full_vs_semi"] == {
+        "comparisons": 4,
+        "wins": 0,
+        "ties": 4,
+        "losses": 0,
+        "half_win_rate": 0.5,
+    }
 
     resumed_calls = []
     assert TournamentRunner(
         TournamentConfig(
-            study_dir=study.source,
+            semi_study_dir=study.sources[0],
+            full_study_dir=study.sources[1],
             output_dir=output,
             models=MODELS,
             max_concurrency=1,
             max_retries=0,
             resume=True,
         ),
-        load_study=lambda _path: study,
+        load_study=lambda _semi, _full: study,
         generate_response=lambda model, request: resumed_calls.append((model, request)),
     ).run() == 0
     assert resumed_calls == []
