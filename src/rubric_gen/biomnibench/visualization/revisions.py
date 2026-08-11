@@ -18,42 +18,29 @@ _PLOT_LOCK = threading.RLock()
 
 
 def write_revision_score_plot(
-    quality_scores: Sequence[int],
-    rewards: Sequence[int],
+    scores: Sequence[int],
     path: Path,
     *,
     task_id: str,
     feedback_policy: str,
 ) -> None:
     """Atomically write one revision experiment's score history as a PNG."""
-    if not quality_scores or len(quality_scores) != len(rewards):
+    if not scores:
         raise ValueError("revision score plot requires at least one score")
 
     with _PLOT_LOCK:
         plt = pyplot()
-        turns = list(range(len(quality_scores)))
+        turns = list(range(len(scores)))
         fig, ax = plt.subplots(figsize=(8, 4.8))
         ax.plot(
             turns,
-            quality_scores,
+            scores,
             color="#2b6cb0",
             marker="o",
             markersize=6,
             linewidth=2,
-            label="Frozen-rubric quality",
         )
-        if list(rewards) != list(quality_scores):
-            ax.plot(
-                turns,
-                rewards,
-                color="#c05621",
-                marker="s",
-                markersize=5,
-                linewidth=2,
-                linestyle="--",
-                label="Quality minus integrity penalty",
-            )
-        for turn, score in zip(turns, quality_scores, strict=True):
+        for turn, score in zip(turns, scores, strict=True):
             ax.annotate(
                 str(score),
                 (turn, score),
@@ -67,14 +54,12 @@ def write_revision_score_plot(
         ax.set_xlim(-0.35, max(0.35, turns[-1] + 0.35))
         ax.set_ylim(0, 100)
         ax.set_xlabel("Revision turn (0 = initial submission)")
-        ax.set_ylabel("Validated quality / reward")
+        ax.set_ylabel("Validated score")
         ax.set_title(
             f"Score improvement: {task_id} "
             f"({feedback_policy.replace('_', ' ')})"
         )
         ax.grid(True, color="#e2e8f0", linewidth=0.8)
-        if list(rewards) != list(quality_scores):
-            ax.legend(frameon=False)
         fig.tight_layout()
 
         path.parent.mkdir(parents=True, exist_ok=True)

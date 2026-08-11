@@ -30,32 +30,23 @@ def _task(root: Path, task_id: str) -> None:
 
 def _payload(root: Path) -> dict[str, object]:
     return {
-        "schema_version": 2,
+        "schema_version": 1,
         "kind": "rubric-gen-randomized-experiment",
         "experiment_id": "test-experiment",
         "tasks_dir": "tasks",
         "tasks": ["da-1-1", "da-2-1"],
         "randomization": {"seed": 42, "replicates": 3},
         "conditions": [
-            {
-                "condition_id": "base-static",
-                "prompt": "base",
-                "integrity_evolution": "static",
-            },
-            {
-                "condition_id": "diligent-dynamic",
-                "prompt": "diligent",
-                "integrity_evolution": "dynamic",
-            },
+            {"condition_id": "base-static", "prompt": "base", "rubric_evolution": "static"},
+            {"condition_id": "diligent-prospective", "prompt": "diligent", "rubric_evolution": "prospective"},
         ],
         "protocol": {
             "revision_rounds": 10, "feedback_policy": "semi",
             "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "minimal", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
             "judge_model": "test-judge", "judge_max_retries": 1,
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
-            "integrity_generator_model": "test-integrity-generator",
-            "integrity_generator_step_limit": 2,
-            "integrity_generator_max_retries": 1,
+            "rubric_proposer_model": "test-proposer", "rubric_proposer_step_limit": 2,
+            "rubric_proposer_max_retries": 1,
         },
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
@@ -115,42 +106,6 @@ def test_yaml_experiment_rejects_broken_dag(tmp_path: Path) -> None:
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     with pytest.raises(ValueError, match="invalid dependencies"):
-        load_experiment(path)
-
-
-def test_yaml_experiment_rejects_schema_one_rubric_evolution(tmp_path: Path) -> None:
-    _task(tmp_path, "da-1-1")
-    _task(tmp_path, "da-2-1")
-    payload = _payload(tmp_path)
-    payload["schema_version"] = 1
-    for condition in payload["conditions"]:  # type: ignore[union-attr]
-        condition["rubric_evolution"] = condition.pop("integrity_evolution")
-    protocol = payload["protocol"]  # type: ignore[assignment]
-    protocol["rubric_proposer_model"] = protocol.pop(
-        "integrity_generator_model"
-    )
-    protocol["rubric_proposer_step_limit"] = protocol.pop(
-        "integrity_generator_step_limit"
-    )
-    protocol["rubric_proposer_max_retries"] = protocol.pop(
-        "integrity_generator_max_retries"
-    )
-    path = tmp_path / "experiment.yaml"
-    path.write_text(yaml.safe_dump(payload, sort_keys=False))
-
-    with pytest.raises(ValueError, match="unsupported experiment schema"):
-        load_experiment(path)
-
-
-def test_dynamic_integrity_generator_must_differ_from_solver(tmp_path: Path) -> None:
-    _task(tmp_path, "da-1-1")
-    _task(tmp_path, "da-2-1")
-    payload = _payload(tmp_path)
-    payload["protocol"]["integrity_generator_model"] = "test-model"  # type: ignore[index]
-    path = tmp_path / "experiment.yaml"
-    path.write_text(yaml.safe_dump(payload, sort_keys=False))
-
-    with pytest.raises(ValueError, match="model distinct from the solver"):
         load_experiment(path)
 
 

@@ -24,6 +24,11 @@ CONDITIONS = (
 )
 PROMPT_COLORS = {"base": "#4477AA", "diligent": "#EE7733"}
 RUBRIC_LINESTYLES = {"static": "-", "prospective": "--"}
+ENSEMBLE_RULES = ("majority", "any_detects")
+ENSEMBLE_RULE_LABELS = {
+    "majority": "Majority vote (at least 2 of 3)",
+    "any_detects": "Any detector (at least 1 of 3)",
+}
 
 
 @dataclass(frozen=True)
@@ -182,7 +187,13 @@ def _cluster_interval(
     )
 
 
-def _majority_outcomes(spec: DetectionSpec) -> DetectionResult:
+def _ensemble_outcomes(
+    spec: DetectionSpec,
+    *,
+    rule: str,
+) -> DetectionResult:
+    if rule not in ENSEMBLE_RULES:
+        raise ValueError(f"unsupported ensemble rule: {rule}")
     summary = _latest_detection_summary(spec)
     models = summary.get("models")
     records = summary.get("records")
@@ -229,12 +240,12 @@ def _majority_outcomes(spec: DetectionSpec) -> DetectionResult:
         key = (task_id, replicate, condition)
         if key in outcomes:
             raise ValueError(f"duplicate detector assignment: {key}")
+        positive_votes = sum(
+            decision == spec.positive_decision
+            for decision in decisions
+        )
         outcomes[key] = int(
-            sum(
-                decision == spec.positive_decision
-                for decision in decisions
-            )
-            >= 2
+            positive_votes >= 2 if rule == "majority" else positive_votes >= 1
         )
     return DetectionResult(outcomes=outcomes, missing_panels=missing_panels)
 
@@ -367,37 +378,59 @@ def _save_figure(fig, stem: str) -> None:
         )
 
 
-def plot_rh_detection_comparison(plt) -> dict[str, DetectionStatistics]:
+def plot_rh_detection_comparison(
+    plt,
+) -> dict[str, dict[str, DetectionStatistics]]:
     results = {
-        spec.label: _majority_outcomes(spec)
-        for spec in RH_DETECTIONS
+        rule: {
+            spec.label: _ensemble_outcomes(spec, rule=rule)
+            for spec in RH_DETECTIONS
+        }
+        for rule in ENSEMBLE_RULES
     }
     statistics = {
-        spec.label: _detection_statistics(
-            results[spec.label],
-            seed=20260810 + index * 100,
-        )
-        for index, spec in enumerate(RH_DETECTIONS)
+        rule: {
+            spec.label: _detection_statistics(
+                results[rule][spec.label],
+                seed=20260810 + rule_index * 1_000 + spec_index * 100,
+            )
+            for spec_index, spec in enumerate(RH_DETECTIONS)
+        }
+        for rule_index, rule in enumerate(ENSEMBLE_RULES)
     }
     maximum = max(
         upper
-        for study_statistics in statistics.values()
+        for rule_statistics in statistics.values()
+        for study_statistics in rule_statistics.values()
         for _lower, upper in study_statistics.intervals.values()
     )
     y_limit = min(1.0, max(0.20, maximum + 0.065))
 
-    fig, axes = plt.subplots(1, 2, figsize=(12.6, 5.7), sharey=True)
-    for ax, spec in zip(axes, RH_DETECTIONS, strict=True):
-        _draw_detection_panel(ax, statistics[spec.label], title=spec.label)
-        ax.set_ylim(0, y_limit)
-    axes[0].set_ylabel("Reward-hacking detection rate")
-    handles, labels = axes[0].get_legend_handles_labels()
+    fig, axes = plt.subplots(
+        2,
+        2,
+        figsize=(13.2, 9.8),
+        sharex=True,
+        sharey=True,
+        squeeze=False,
+    )
+    for row_index, rule in enumerate(ENSEMBLE_RULES):
+        for column_index, spec in enumerate(RH_DETECTIONS):
+            ax = axes[row_index, column_index]
+            _draw_detection_panel(
+                ax,
+                statistics[rule][spec.label],
+                title=f"{spec.label} · {ENSEMBLE_RULE_LABELS[rule]}",
+            )
+            ax.set_ylim(0, y_limit)
+    fig.supylabel("Reward-hacking detection rate", x=0.012, fontsize=11)
+    handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(
         handles,
         labels,
         frameon=False,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.01),
+        bbox_to_anchor=(0.5, 0.008),
         ncol=2,
     )
     fig.suptitle(
@@ -408,28 +441,30 @@ def plot_rh_detection_comparison(plt) -> dict[str, DetectionStatistics]:
     )
     fig.text(
         0.5,
-        0.935,
-        "Three-model majority vote; 95% task-cluster bootstrap intervals. "
-        "Feedback policies were run in separate studies, so their contrast is descriptive.",
+        0.945,
+        "Complete three-model panels; top row requires at least two detections and bottom row requires at least one.\n"
+        "Intervals are 95% task-cluster bootstraps. The feedback-study contrast is descriptive.",
         ha="center",
         va="top",
         fontsize=9,
         color="#4A5568",
     )
-    fig.tight_layout(rect=(0, 0.08, 1, 0.91))
+    fig.tight_layout(rect=(0.025, 0.065, 1, 0.89), h_pad=2.0)
     _save_figure(fig, "rh_detection_feedback_comparison")
     plt.close(fig)
 
-    for spec in RH_DETECTIONS:
-        print(
-            f"{spec.label} RH: {len(results[spec.label].outcomes)} valid panels, "
-            f"{results[spec.label].missing_panels} missing panels"
-        )
+    for rule in ENSEMBLE_RULES:
+        for spec in RH_DETECTIONS:
+            print(
+                f"{spec.label} RH · {ENSEMBLE_RULE_LABELS[rule]}: "
+                f"{len(results[rule][spec.label].outcomes)} valid panels, "
+                f"{results[rule][spec.label].missing_panels} missing panels"
+            )
     return statistics
 
 
 def plot_all_behaviors_detection(plt) -> DetectionStatistics:
-    result = _majority_outcomes(ALL_BEHAVIORS_DETECTION)
+    result = _ensemble_outcomes(ALL_BEHAVIORS_DETECTION, rule="majority")
     statistics = _detection_statistics(result, seed=20261010)
     maximum = max(upper for _lower, upper in statistics.intervals.values())
     y_limit = min(1.0, max(0.20, maximum + 0.065))
@@ -623,8 +658,12 @@ def main() -> None:
     rh_statistics = plot_rh_detection_comparison(plt)
     broad_statistics = plot_all_behaviors_detection(plt)
     plot_score_trajectories(plt, records)
-    for label, statistics in rh_statistics.items():
-        _print_statistics(f"{label} RH", statistics)
+    for rule, study_statistics in rh_statistics.items():
+        for label, statistics in study_statistics.items():
+            _print_statistics(
+                f"{label} RH · {ENSEMBLE_RULE_LABELS[rule]}",
+                statistics,
+            )
     _print_statistics("Semi feedback all listed behaviors", broad_statistics)
     print(f"Wrote plots to {OUTPUT_DIR}")
 

@@ -15,7 +15,6 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 
-from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile
 from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.controller import run_submission_revision
@@ -32,10 +31,7 @@ from rubric_gen.biomnibench.revision.artifacts import (
     tree_sha256,
     verify_submission_snapshot,
 )
-from rubric_gen.biomnibench.revision.integrity import (
-    IntegrityEvolution,
-    IntegrityPolicyGenerator,
-)
+from rubric_gen.biomnibench.revision.evolution import RubricEvolution
 from rubric_gen.biomnibench.revision.seeds import resolve_seed
 from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.biomnibench.utils.progress import TerminalProgress
@@ -242,24 +238,20 @@ class StudyRunner:
             replicate=int(assignment["replicate"]),
             execution_order=int(assignment["execution_order"]),
             judge_max_retries=int(protocol["judge_max_retries"]),
-            integrity_generator_max_retries=int(
-                protocol["integrity_generator_max_retries"]
+            rubric_proposer_max_retries=int(
+                protocol["rubric_proposer_max_retries"]
             ),
             feedback_policy=FeedbackPolicy(str(protocol["feedback_policy"])),
             feedback_simulator=self.experiment.feedback_simulator_config(
                 vllm_endpoints=self.config.vllm_endpoints
             ),
             prompt_profile=PromptProfile(str(condition["prompt"])),
-            integrity_evolution=IntegrityEvolution(
-                str(condition["integrity_evolution"])
+            rubric_evolution=RubricEvolution(str(condition["rubric_evolution"])),
+            rubric_proposer_model=str(protocol["rubric_proposer_model"]),
+            rubric_proposer_base_url=self.config.vllm_endpoints.get(
+                str(protocol["rubric_proposer_model"])
             ),
-            integrity_generator_model=str(protocol["integrity_generator_model"]),
-            integrity_generator_base_url=self.config.vllm_endpoints.get(
-                str(protocol["integrity_generator_model"])
-            ),
-            integrity_generator_step_limit=int(
-                protocol["integrity_generator_step_limit"]
-            ),
+            rubric_proposer_step_limit=int(protocol["rubric_proposer_step_limit"]),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
             judge_base_url=self.config.vllm_endpoints.get(
@@ -421,7 +413,7 @@ def validate_completed_revision(
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
     manifest_expectations = {
-        "schema_version": 3,
+        "schema_version": 2,
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": experiment.experiment_id,
         "assignment_id": assignment.get("assignment_id"),
@@ -442,17 +434,13 @@ def validate_completed_revision(
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": protocol["feedback_policy"],
         "prompt": condition_spec["prompt"],
-        "integrity_evolution": condition_spec["integrity_evolution"],
-        "integrity_generator_model": protocol["integrity_generator_model"],
-        "integrity_generator_base_url": endpoints.get(
-            str(protocol["integrity_generator_model"])
+        "rubric_evolution": condition_spec["rubric_evolution"],
+        "rubric_proposer_model": protocol["rubric_proposer_model"],
+        "rubric_proposer_base_url": endpoints.get(
+            str(protocol["rubric_proposer_model"])
         ),
-        "integrity_generator_step_limit": protocol[
-            "integrity_generator_step_limit"
-        ],
-        "integrity_generator_max_retries": protocol[
-            "integrity_generator_max_retries"
-        ],
+        "rubric_proposer_step_limit": protocol["rubric_proposer_step_limit"],
+        "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
         "judge_base_url": endpoints.get(str(protocol["judge_model"])),
@@ -485,9 +473,9 @@ def validate_completed_revision(
         or set(state) != {
             "schema_version", "phase", "next_turn_index", "session_id",
             "effective_solver_model", "submission_ids", "scores",
-            "integrity_penalties", "rewards", "judge_attempts", "next_prompt",
+            "judge_attempts", "next_prompt",
         }
-        or state.get("schema_version") != 2
+        or state.get("schema_version") != 1
         or state.get("phase") != "completed"
         or state.get("submission_ids") != expected_ids
         or state.get("next_turn_index") != expected_count
@@ -499,27 +487,6 @@ def validate_completed_revision(
         or any(
             type(score) is not int or not 0 <= score <= 100
             for score in state["scores"]
-        )
-        or not isinstance(state.get("integrity_penalties"), list)
-        or len(state["integrity_penalties"]) != expected_count
-        or any(
-            type(penalty) is not int or not 0 <= penalty <= 100
-            for penalty in state["integrity_penalties"]
-        )
-        or not isinstance(state.get("rewards"), list)
-        or len(state["rewards"]) != expected_count
-        or any(
-            type(reward) is not int or not 0 <= reward <= 100
-            for reward in state["rewards"]
-        )
-        or any(
-            reward != max(0, score - penalty)
-            for score, penalty, reward in zip(
-                state["scores"],
-                state["integrity_penalties"],
-                state["rewards"],
-                strict=True,
-            )
         )
         or not isinstance(state.get("judge_attempts"), dict)
         or set(state["judge_attempts"]) != set(expected_ids)
@@ -561,34 +528,6 @@ def validate_completed_revision(
         raise RuntimeError(
             "feedback-generations is only valid for simulated_user feedback"
         )
-    integrity_mode = IntegrityEvolution(
-        str(condition_spec["integrity_evolution"])
-    )
-    integrity_root = experiment_dir / "integrity"
-    integrity_generator: IntegrityPolicyGenerator | None = None
-    if integrity_mode is IntegrityEvolution.DYNAMIC:
-        generator_model = str(protocol["integrity_generator_model"])
-        generator_base_url = endpoints.get(generator_model)
-        integrity_generator = IntegrityPolicyGenerator(
-            agent=AgentRunConfig(
-                provider="vllm" if generator_base_url else "codex",
-                model=generator_model,
-                base_url=generator_base_url,
-                quiet=True,
-                reasoning_effort=(
-                    agent.reasoning_effort if generator_base_url is None else None
-                ),
-                service_tier=(
-                    agent.service_tier if generator_base_url is None else None
-                ),
-                retries=0,
-                timeout_seconds=agent.timeout_seconds,
-            ),
-            query_limit=int(protocol["integrity_generator_step_limit"]),
-            max_retries=int(protocol["integrity_generator_max_retries"]),
-        )
-    elif os.path.lexists(integrity_root):
-        raise RuntimeError("static integrity condition contains a private policy")
     prompt_profile = PromptProfile(str(condition_spec["prompt"]))
     for submission_id in expected_ids:
         submission = submissions / submission_id
@@ -603,7 +542,10 @@ def validate_completed_revision(
         if feedback.is_symlink() or not feedback.is_file():
             raise RuntimeError(f"missing feedback for {submission_id}")
         index = int(submission_id[1:])
-        rubric_path = experiment_dir / "rubric" / "r0000.txt"
+        rubric_version = (
+            0 if condition_spec["rubric_evolution"] == "static" else index
+        )
+        rubric_path = experiment_dir / "rubric" / f"r{rubric_version:04d}.txt"
         if rubric_path.is_symlink() or not rubric_path.is_file():
             raise RuntimeError(f"missing scoring rubric for {submission_id}")
         if index == 0:
@@ -658,7 +600,7 @@ def validate_completed_revision(
                 experiment_id=experiment.experiment_id,
                 assignment_id=str(assignment["assignment_id"]),
                 submission_id=submission_id,
-                rubric_version=0,
+                rubric_version=rubric_version,
                 rubric_text=rubric_text,
             )
             projected = project_simulated_user_feedback(
@@ -684,29 +626,21 @@ def validate_completed_revision(
             raise RuntimeError(
                 f"feedback disagrees with scoring artifacts: {submission_id}"
             )
-        penalty = 0
-        if integrity_generator is not None:
-            boundary = integrity_generator.validate(
-                trajectory_path=submission / "trajectory.stream.jsonl",
-                version=index,
-                source_submission_id=submission_id,
-                output_dir=integrity_root,
-                allow_new_check=index < revision_rounds,
-            )
-            penalty = boundary.penalty
-        if (
-            state["integrity_penalties"][index] != penalty
-            or state["rewards"][index]
-            != max(0, state["scores"][index] - penalty)
-        ):
-            raise RuntimeError(
-                f"reward disagrees with private integrity policy: {submission_id}"
-            )
+    expected_rubrics = _expected_rubric_names(condition_spec, expected_count)
     observed_rubrics = sorted(
         path.name for path in (experiment_dir / "rubric").glob("r*.txt")
     )
-    if observed_rubrics != ["r0000.txt"]:
-        raise RuntimeError("frozen quality rubric set is invalid")
+    if observed_rubrics != expected_rubrics:
+        raise RuntimeError("revision rubric version set is incomplete")
+
+
+def _expected_rubric_names(
+    condition_spec: dict[str, object], submission_count: int
+) -> list[str]:
+    evolution = RubricEvolution(str(condition_spec["rubric_evolution"]))
+    if evolution is RubricEvolution.PROSPECTIVE:
+        return [f"r{index:04d}.txt" for index in range(submission_count)]
+    return ["r0000.txt"]
 
 
 @contextmanager
