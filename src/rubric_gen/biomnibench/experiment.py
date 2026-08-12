@@ -18,7 +18,7 @@ from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
 from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserConfig
 
 
-EXPERIMENT_SCHEMA_VERSION = 1
+EXPERIMENT_SCHEMA_VERSION = 2
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 
@@ -59,6 +59,13 @@ class Experiment:
     @property
     def dag(self) -> dict[str, dict[str, object]]:
         return self.payload["dag"]
+
+    @property
+    def seed_experiment_id(self) -> str:
+        """Experiment identity that owns the configured seed artifacts."""
+
+        seed_stage = self.dag.get("seed", {})
+        return str(seed_stage.get("source_experiment_id", self.experiment_id))
 
     def condition(self, condition_id: str) -> dict[str, object]:
         matches = [
@@ -211,10 +218,21 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     expected_dependencies = {"seed": [], "revise": ["seed"], "detect": ["revise"]}
     for name, dependencies in expected_dependencies.items():
         stage = dag[name]
-        if not isinstance(stage, dict) or set(stage) != {"depends_on", "output_dir"}:
+        expected_keys = {"depends_on", "output_dir"}
+        if name == "seed" and isinstance(stage, dict) and (
+            "source_experiment_id" in stage
+        ):
+            expected_keys.add("source_experiment_id")
+        if not isinstance(stage, dict) or set(stage) != expected_keys:
             raise ValueError(f"dag stage {name} requires depends_on and output_dir")
         if stage["depends_on"] != dependencies:
             raise ValueError(f"dag stage {name} has invalid dependencies")
+        if name == "seed" and "source_experiment_id" in stage:
+            source_experiment_id = stage["source_experiment_id"]
+            if not isinstance(source_experiment_id, str) or not _ID.fullmatch(
+                source_experiment_id
+            ):
+                raise ValueError("seed source_experiment_id is invalid")
         _resolve_relative(path, stage["output_dir"])
 
 
@@ -222,7 +240,8 @@ def _validate_protocol(protocol: object) -> None:
     base_keys = {
         "revision_rounds", "feedback_policy", "solver", "judge_model",
         "judge_max_retries", "rubric_name", "review", "max_review_chars",
-        "rubric_proposer_model", "rubric_proposer_step_limit",
+        "rubric_auditor_model", "rubric_auditor_query_limit",
+        "rubric_proposer_model",
         "rubric_proposer_max_retries",
     }
     if not isinstance(protocol, dict):
@@ -237,6 +256,19 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError("revision_rounds must be positive")
     if protocol["review"] not in {"trace", "trajectory"}:
         raise ValueError("review must be trace or trajectory")
+    for name in ("rubric_auditor_model", "rubric_proposer_model"):
+        if type(protocol[name]) is not str or not protocol[name].strip():
+            raise ValueError(f"{name} must be nonempty")
+    if (
+        type(protocol["rubric_auditor_query_limit"]) is not int
+        or protocol["rubric_auditor_query_limit"] < 1
+    ):
+        raise ValueError("rubric_auditor_query_limit must be positive")
+    if (
+        type(protocol["rubric_proposer_max_retries"]) is not int
+        or protocol["rubric_proposer_max_retries"] < 0
+    ):
+        raise ValueError("rubric_proposer_max_retries must be non-negative")
     solver = protocol["solver"]
     if not isinstance(solver, dict):
         raise ValueError("solver must be a mapping")

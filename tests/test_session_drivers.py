@@ -1,18 +1,96 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 from typing import Callable
 
 import rubric_gen.biomnibench.agent.adapters as adapters_module
+import rubric_gen.biomnibench.agent.runners as runners_module
+import rubric_gen.biomnibench.agent.sessions as sessions_module
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.agent.adapters import CodexAdapter, VllmAdapter
+from rubric_gen.biomnibench.agent.runners import AgentRunner
 from rubric_gen.biomnibench.agent.sessions import (
     OUTPUT_RECOVERY_PROMPT,
     RECOVERY_PROMPT,
     CliSolverSessionDriver,
 )
+
+
+def _run_paths(tmp_path: Path) -> RunPaths:
+    workspace = tmp_path / "workspace"
+    run_dir = tmp_path / "run"
+    workspace.mkdir()
+    run_dir.mkdir()
+    return RunPaths(
+        provider="codex",
+        run_dir=run_dir,
+        workspace_dir=workspace,
+        prompt_path=run_dir / "prompt.txt",
+        policy_path=run_dir / "policy.toml",
+        stream_path=run_dir / "stream.jsonl",
+        status_path=run_dir / "status.json",
+    )
+
+
+def test_one_shot_agent_subprocess_does_not_inherit_stdin(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    paths = _run_paths(tmp_path)
+    runner = AgentRunner(AgentRunConfig(
+        provider="codex",
+        model="test-model",
+        quiet=True,
+    ))
+    monkeypatch.setattr(runner.adapter, "prepare_run", lambda *args: None)
+    monkeypatch.setattr(
+        runner,
+        "build_command",
+        lambda _: [sys.executable, "-c", "print('done')"],
+    )
+    original_popen = runners_module.subprocess.Popen
+    popen_kwargs: list[dict[str, object]] = []
+
+    def recording_popen(*args, **kwargs):
+        popen_kwargs.append(kwargs)
+        return original_popen(*args, **kwargs)
+
+    monkeypatch.setattr(runners_module.subprocess, "Popen", recording_popen)
+
+    assert runner.stream(paths) == 0
+    assert popen_kwargs[0]["stdin"] == subprocess.DEVNULL
+    assert paths.stream_path.read_text() == "done\n"
+
+
+def test_persistent_agent_subprocess_does_not_inherit_stdin(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    paths = _run_paths(tmp_path)
+    driver = CliSolverSessionDriver(AgentRunConfig(
+        provider="codex",
+        model="test-model",
+        quiet=True,
+    ))
+    original_popen = sessions_module.subprocess.Popen
+    popen_kwargs: list[dict[str, object]] = []
+
+    def recording_popen(*args, **kwargs):
+        popen_kwargs.append(kwargs)
+        return original_popen(*args, **kwargs)
+
+    monkeypatch.setattr(sessions_module.subprocess, "Popen", recording_popen)
+
+    assert driver._stream(
+        [sys.executable, "-c", "print('done')"],
+        paths,
+    ) == 0
+    assert popen_kwargs[0]["stdin"] == subprocess.DEVNULL
+    assert paths.stream_path.read_text() == "done\n"
 
 
 class ScriptedSessionDriver(CliSolverSessionDriver):

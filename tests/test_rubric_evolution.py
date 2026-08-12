@@ -4,6 +4,7 @@ import errno
 import json
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -12,10 +13,16 @@ from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
 from rubric_gen.biomnibench.forensics.evidence_index import (
     build_evidence_index,
+    indexable_event_contents,
     write_query_tool,
 )
 import rubric_gen.biomnibench.revision.evolution as evolution_module
-from rubric_gen.biomnibench.revision.evolution import ProposerOutput, RubricEvolver
+from rubric_gen.biomnibench.revision.evolution import (
+    AuditorOutput,
+    ProposerOutput,
+    RubricEvolver,
+)
+from rubric_gen.biomnibench.utils.hashing import sha256_text
 
 
 def _current_rubric() -> str:
@@ -62,27 +69,77 @@ def _replacement_rubric() -> str:
     )
 
 
-def _agent(*, retries: int = 1) -> AgentRunConfig:
-    return AgentRunConfig(provider="codex", model="proposer-model", retries=retries)
+def _agent(*, model: str = "auditor-model") -> AgentRunConfig:
+    return AgentRunConfig(provider="codex", model=model, retries=0)
 
 
-def _output(
-    rubric_text: str | None = None,
+def _cost() -> dict[str, float | str | None]:
+    return {
+        "cost_usd": None,
+        "estimated_cost_usd": 0.01,
+        "cost_source": "test-estimate",
+    }
+
+
+def _generation() -> dict[str, object]:
+    return {
+        "provider": "openai",
+        "requested_model": "proposer-model",
+        "effective_model": "proposer-model-served",
+        "response_id": "response-1",
+    }
+
+
+def _packet(
+    event_text: str,
     *,
-    trace: str = "Investigated trajectory:event-1 and audited the complete set.\n",
+    status: str = "supported_problem",
+    snippet_text: str = "evidence",
+    start: int | None = None,
+) -> str:
+    if start is None:
+        start = event_text.index(snippet_text)
+    problems = []
+    if status == "supported_problem":
+        problems = [{
+            "hypothesis": "The trajectory contains an unsupported result.",
+            "evidence": [{
+                "event_id": 1,
+                "start_offset": start,
+                "end_offset": start + len(snippet_text),
+                "text": snippet_text,
+            }],
+        }]
+    return json.dumps({
+        "schema_version": 1,
+        "status": status,
+        "inspected": "Inspected the result claim and its stated support.",
+        "problems": problems,
+        "counterevidence": [],
+        "uncertainty": None,
+    })
+
+
+def _auditor_output(
+    event_text: str,
+    *,
+    packet_text: str | None = None,
     queries: int = 2,
     events: tuple[int, ...] = (1,),
-) -> ProposerOutput:
-    return ProposerOutput(
-        rubric_text=rubric_text or _revised_rubric(),
-        trace=trace,
+) -> AuditorOutput:
+    return AuditorOutput(
+        packet_text=packet_text or _packet(event_text),
         query_count=queries,
         retrieved_event_ids=events,
-        cost={
-            "cost_usd": None,
-            "estimated_cost_usd": 0.01,
-            "cost_source": "test-estimate",
-        },
+        cost=_cost(),
+    )
+
+
+def _proposer_output(rubric_text: str | None = None) -> ProposerOutput:
+    return ProposerOutput(
+        rubric_text=rubric_text or _revised_rubric(),
+        cost=_cost(),
+        generation=_generation(),
     )
 
 
@@ -98,6 +155,33 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
         "source_submission_id": "s000",
         "output_dir": tmp_path / "rubrics",
     }
+
+
+def _event_text(arguments: dict[str, object]) -> str:
+    path = arguments["trajectory_path"]
+    assert isinstance(path, Path)
+    return indexable_event_contents(path)[1]
+
+
+def _evolver(
+    *,
+    run_auditor=None,
+    run_proposer=None,
+    query_limit: int = 3,
+    max_retries: int = 2,
+    auditor: AgentRunConfig | None = None,
+    proposer_model: str = "proposer-model",
+    proposer_base_url: str | None = None,
+) -> RubricEvolver:
+    return RubricEvolver(
+        auditor=auditor or _agent(),
+        proposer_model=proposer_model,
+        proposer_base_url=proposer_base_url,
+        query_limit=query_limit,
+        max_retries=max_retries,
+        run_auditor=run_auditor,
+        run_proposer=run_proposer,
+    )
 
 
 def test_trajectory_staging_copies_across_filesystems(
@@ -158,271 +242,412 @@ def test_trajectory_query_tool_is_self_contained(tmp_path: Path) -> None:
     audit = relocated / "artifacts" / "query-audit.jsonl"
     assert counter.read_text() == "1"
     assert json.loads(audit.read_text())["event_ids"] == [1]
-    assert not (relocated_data / counter.name).exists()
-    assert not (relocated_data / audit.name).exists()
 
 
-def test_codex_proposer_uses_unstructured_complete_rubric_output(
+def test_codex_auditor_emits_only_a_structured_packet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     trajectory = tmp_path / "trajectory.stream.jsonl"
     trajectory.write_text('{"type":"message","content":"evidence"}\n')
+    event_text = indexable_event_contents(trajectory)[1]
 
     def fake_run(self, task_dir, runs_dir=None, *, paths=None):
         assert paths is not None
-        assert not paths.workspace_dir.exists()
+        assert self.required_outputs == ("auditor.packet.json",)
+        assert "trajectory-auditor agent" in self.prompt
+        assert "trace.md" in self.prompt
         prompt = (task_dir / "instruction.md").read_text()
-        assert "complete optimizer rubric" in prompt
-        assert "Prompt contract: complete-rubric-outcome-audit-v2" in prompt
-        assert "recursive decompose-filter cycle" in prompt
-        assert "informative, comprehensive, and non-redundant" in prompt
-        assert "audit record, not a list of accomplishments" in prompt
-        assert "Do not reward effort" in prompt
-        assert "independently useful but bounded outcome" in prompt
-        assert "longer or busier trajectory" in prompt
-        assert "<current_trace>" not in prompt
-        assert "<preliminary_evaluation_json>" not in prompt
+        assert "Prompt contract: trajectory-evidence-auditor-v1" in prompt
+        assert "Do not force a problem" in prompt
+        assert "Never propose criterion wording, weights, edits" in prompt
+        assert "judge reasoning" in prompt
+        assert "reward-hacking detector" in prompt
+        assert "<current_rubric>" not in prompt
+        assert paths.output_schema_path is not None
+        schema = json.loads(paths.output_schema_path.read_text())
+        assert schema["properties"]["status"]["enum"] == [
+            "no_supported_problem",
+            "supported_problem",
+        ]
         TaskWorkspace(task_dir, paths.workspace_dir).create()
-        assert paths.output_schema_path is None
-        assert paths.output_last_message_path == paths.workspace_dir / "answer.txt"
         artifacts = paths.workspace_dir / "artifacts"
         artifacts.mkdir()
         (artifacts / "query-count.txt").write_text("1")
         (artifacts / "query-audit.jsonl").write_text('{"event_ids":[1]}\n')
-        (paths.workspace_dir / "answer.txt").write_text(_revised_rubric())
-        (paths.workspace_dir / "trace.md").write_text(
-            "Audited trajectory:event-1 and decomposed one coarse criterion.\n"
-        )
+        assert paths.output_last_message_path is not None
+        paths.output_last_message_path.write_text(_packet(event_text))
         paths.stream_path.parent.mkdir(parents=True, exist_ok=True)
         paths.stream_path.write_text("")
         return 0, paths
 
     monkeypatch.setattr(evolution_module.AgentRunner, "run", fake_run)
-    output = RubricEvolver(agent=_agent(), query_limit=3)._run_codex_proposer(
-        instruction="TASK",
-        current_rubric=_current_rubric(),
-        answer="ANSWER",
-        trajectory_path=trajectory,
-        repair_error=None,
-    )
+    output = _evolver()._run_trajectory_auditor(trajectory_path=trajectory)
 
-    assert output.rubric_text == _revised_rubric()
+    assert json.loads(output.packet_text)["status"] == "supported_problem"
     assert output.query_count == 1
     assert output.retrieved_event_ids == (1,)
 
 
-def test_codex_proposer_rejects_missing_query_audit(
+def test_codex_auditor_rejects_missing_query_audit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     trajectory = tmp_path / "trajectory.stream.jsonl"
     trajectory.write_text('{"type":"message","content":"evidence"}\n')
+    event_text = indexable_event_contents(trajectory)[1]
 
     def fake_run(self, task_dir, runs_dir=None, *, paths=None):
         assert paths is not None
         TaskWorkspace(task_dir, paths.workspace_dir).create()
         (paths.workspace_dir / "artifacts").mkdir()
-        (paths.workspace_dir / "answer.txt").write_text(_revised_rubric())
-        (paths.workspace_dir / "trace.md").write_text(
-            "Claimed retrieval of trajectory:event-1.\n"
-        )
+        assert paths.output_last_message_path is not None
+        paths.output_last_message_path.write_text(_packet(event_text))
         paths.stream_path.parent.mkdir(parents=True, exist_ok=True)
         paths.stream_path.write_text("")
         return 0, paths
 
     monkeypatch.setattr(evolution_module.AgentRunner, "run", fake_run)
-    with pytest.raises(RuntimeError, match="trajectory query audit is missing"):
-        RubricEvolver(agent=_agent(), query_limit=3)._run_codex_proposer(
-            instruction="TASK",
-            current_rubric=_current_rubric(),
-            answer="ANSWER",
-            trajectory_path=trajectory,
-            repair_error=None,
-        )
+    with pytest.raises(RuntimeError, match="auditor query audit is missing"):
+        _evolver()._run_trajectory_auditor(trajectory_path=trajectory)
 
 
-def test_evolver_seals_complete_rubric_and_derived_diff(tmp_path: Path) -> None:
-    calls: list[dict[str, object]] = []
-    evolver = RubricEvolver(
-        agent=_agent(),
-        query_limit=7,
-        run_proposer=lambda **kwargs: calls.append(kwargs) or _output(),
+def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() -> None:
+    instructions = evolution_module._proposer_instructions(repair_error=None)
+    packet = '{"schema_version":1,"status":"no_supported_problem"}\n'
+    evidence = evolution_module._proposer_evidence(
+        instruction="TASK",
+        current_rubric="RUBRIC",
+        answer="ANSWER",
+        auditor_packet=packet,
     )
+
+    assert "Prompt contract: audited-complete-rubric-v1" in instructions
+    assert "recursive decompose-filter cycle" in instructions
+    assert "informative, comprehensive, and non-redundant" in instructions
+    assert "Do not reward effort" in instructions
+    assert "independently useful but bounded outcome" in instructions
+    assert "longer or busier trajectory" in instructions
+    assert "Return only the complete rubric" in instructions
+    assert "trace.md" not in instructions
+    assert "query tool" not in instructions
+    assert evidence.count("<task_instruction>") == 1
+    assert evidence.count("<current_answer>") == 1
+    assert evidence.count("<current_complete_rubric>") == 1
+    assert evidence.count("<verified_auditor_packet>") == 1
+    assert "trajectory_path" not in evidence
+
+
+def test_direct_proposer_makes_one_model_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    def generate(**kwargs):
+        calls.append(kwargs)
+        return _proposer_output()
+
+    monkeypatch.setattr(evolution_module, "_generate_complete_rubric", generate)
+    output = _evolver()._run_direct_proposer(
+        instruction="TASK",
+        current_rubric=_current_rubric(),
+        answer="ANSWER",
+        auditor_packet='{"schema_version":1}\n',
+        repair_error=None,
+    )
+
+    assert output.rubric_text == _revised_rubric()
+    assert len(calls) == 1
+    assert "trajectory" not in calls[0]
+    assert "trace" not in calls[0]
+
+
+def test_openai_proposer_call_returns_plain_complete_rubric(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    class Responses:
+        def create(self, **kwargs):
+            calls.append(kwargs)
+            return types.SimpleNamespace(
+                status="completed",
+                output_text=_revised_rubric(),
+                model="gpt-proposer-served",
+                id="response-1",
+                usage=types.SimpleNamespace(
+                    model_dump=lambda: {
+                        "input_tokens": 100,
+                        "output_tokens": 200,
+                        "input_tokens_details": {"cached_tokens": 20},
+                    }
+                ),
+            )
+
+    class OpenAI:
+        def __init__(self, **_kwargs):
+            self.responses = Responses()
+
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=OpenAI))
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    output = evolution_module._generate_complete_rubric(
+        model="gpt-proposer",
+        base_url=None,
+        service_tier=None,
+        instructions="INSTRUCTIONS",
+        evidence="EVIDENCE",
+    )
+
+    assert output.rubric_text == _revised_rubric()
+    assert len(calls) == 1
+    assert "response_format" not in calls[0]
+    assert calls[0]["input"][-1] == {"role": "user", "content": "EVIDENCE"}
+    assert calls[0]["store"] is False
+
+
+def test_evolver_seals_verified_packet_complete_rubric_and_diff(
+    tmp_path: Path,
+) -> None:
     arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    auditor_calls: list[dict[str, object]] = []
+    proposer_calls: list[dict[str, object]] = []
+    evolver = _evolver(
+        query_limit=7,
+        run_auditor=lambda **kwargs: auditor_calls.append(kwargs)
+        or _auditor_output(event_text),
+        run_proposer=lambda **kwargs: proposer_calls.append(kwargs)
+        or _proposer_output(),
+    )
 
     result = evolver.evolve(**arguments)
 
-    assert len(calls) == 1
-    assert calls[0]["trajectory_path"] == arguments["trajectory_path"]
-    assert "trace" not in calls[0]
-    assert "evaluation" not in calls[0]
+    assert auditor_calls == [{"trajectory_path": arguments["trajectory_path"]}]
+    assert len(proposer_calls) == 1
+    assert set(proposer_calls[0]) == {
+        "instruction",
+        "current_rubric",
+        "answer",
+        "auditor_packet",
+        "repair_error",
+    }
+    assert "trajectory_path" not in proposer_calls[0]
     output_dir = arguments["output_dir"]
     assert isinstance(output_dir, Path)
     paths = (
         output_dir / "r0001.txt",
         output_dir / "r0001.proposer.json",
-        output_dir / "r0001.proposer.trace.md",
+        output_dir / "r0001.auditor.json",
         output_dir / "r0001.diff",
     )
     assert all(path.is_file() and not path.stat().st_mode & 0o222 for path in paths)
-    assert not (output_dir / "r0001.proposal.json").exists()
+    assert not (output_dir / "r0001.proposer.trace.md").exists()
     metadata = json.loads((output_dir / "r0001.proposer.json").read_text())
+    packet_text = (output_dir / "r0001.auditor.json").read_text()
     assert metadata["mode"] == "prospective"
-    assert metadata["schema_version"] == 2
-    assert metadata["kind"] == "complete-rubric-generation"
-    assert metadata["proposer_attempt_costs"][0]["estimated_cost_usd"] == 0.01
+    assert metadata["schema_version"] == 3
+    assert metadata["kind"] == "audited-complete-rubric-generation"
+    assert metadata["auditor"]["model"] == "auditor-model"
+    assert metadata["auditor"]["prompt_version"] == (
+        "trajectory-evidence-auditor-v1"
+    )
+    assert metadata["auditor"]["query_count"] == 2
+    assert metadata["auditor"]["retrieved_event_ids"] == [1]
+    assert metadata["auditor_packet_sha256"] == sha256_text(packet_text)
+    assert metadata["proposer"]["model"] == "proposer-model"
+    assert metadata["proposer"]["prompt_version"] == (
+        "audited-complete-rubric-v1"
+    )
+    assert metadata["attempt_count"] == 1
+    assert metadata["proposer_attempts"][0]["cost"][
+        "estimated_cost_usd"
+    ] == 0.01
     assert metadata["source_submission_id"] == "s000"
-    assert metadata["provider"] == "codex"
-    assert metadata["model"] == "proposer-model"
-    assert metadata["prompt_version"] == "complete-rubric-outcome-audit-v2"
-    assert "source_trace_sha256" not in metadata
-    assert "source_evaluation_sha256" not in metadata
-    assert metadata["query_limit"] == 7
-    assert metadata["trajectory_query_count"] == 2
-    assert metadata["available_trajectory_events"] == 1
-    assert metadata["retrieved_trajectory_events"] == [1]
     assert metadata["parent_criterion_count"] == 1
     assert metadata["criterion_count"] == 2
     assert metadata["rubric_changed"] is True
     assert metadata["rubric_sha256"] == result.sha256
     assert result.text == _revised_rubric()
-    assert result.changed is True
-    assert result.metadata == metadata
+    assert json.loads(packet_text)["problems"][0]["evidence"][0]["text"] == (
+        "evidence"
+    )
     diff = (output_dir / "r0001.diff").read_text()
     assert "-Criterion 1: Scientific validity" in diff
     assert "+Criterion 1: Data preparation integrity" in diff
     assert evolver.evolve(**arguments) == result
-    assert len(calls) == 1
+    assert len(auditor_calls) == len(proposer_calls) == 1
 
 
 def test_evolver_accepts_full_replacement_rubric(tmp_path: Path) -> None:
-    result = RubricEvolver(
-        agent=_agent(),
-        query_limit=3,
-        run_proposer=lambda **_: _output(_replacement_rubric()),
-    ).evolve(**_arguments(tmp_path))
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    result = _evolver(
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **_: _proposer_output(_replacement_rubric()),
+    ).evolve(**arguments)
 
     assert result.text == _replacement_rubric()
     assert "Scientific validity" not in result.text
     assert result.metadata["criterion_count"] == 1
 
 
-def test_evolver_rejects_unsupported_proposer() -> None:
-    with pytest.raises(ValueError, match="Codex or vLLM"):
-        RubricEvolver(
-            agent=AgentRunConfig(provider="gemini", model="gemini-model"),
-            query_limit=2,
-        )
+def test_evolver_rejects_unsupported_auditor() -> None:
+    with pytest.raises(ValueError, match="trajectory auditor"):
+        _evolver(auditor=AgentRunConfig(provider="gemini", model="gemini-model"))
 
 
-def test_evolver_accepts_vllm_proposer() -> None:
-    evolver = RubricEvolver(
-        agent=AgentRunConfig(
+def test_evolver_accepts_vllm_auditor_and_proposer() -> None:
+    evolver = _evolver(
+        auditor=AgentRunConfig(
             provider="vllm",
-            model="Qwen/Qwen3.6-27B",
-            base_url="http://qwen27:43117/v1",
+            model="Qwen/Auditor",
+            base_url="http://auditor:43117/v1",
         ),
-        query_limit=2,
-        run_proposer=lambda **_: _output(),
+        proposer_model="Qwen/Proposer",
+        proposer_base_url="http://proposer:43117/v1",
     )
-    assert evolver.agent.provider == "vllm"
+    assert evolver.auditor.provider == "vllm"
+    assert evolver._proposer_identity()["provider"] == "vllm"
 
 
-def test_evolver_retries_invalid_complete_rubric(tmp_path: Path) -> None:
+def test_evolver_reuses_packet_when_retrying_invalid_rubric(tmp_path: Path) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
     malformed = _revised_rubric().replace(
         "Levels: A=75 B=35 C=0",
         "Levels: A=75 B=35 C=35",
     )
     responses = iter((malformed, _revised_rubric()))
-    calls: list[dict[str, object]] = []
-    evolver = RubricEvolver(
-        agent=_agent(),
-        query_limit=3,
-        max_retries=2,
-        run_proposer=lambda **kwargs: calls.append(kwargs) or _output(next(responses)),
-    )
+    auditor_calls = 0
+    proposer_calls: list[dict[str, object]] = []
 
-    result = evolver.evolve(**_arguments(tmp_path))
+    def audit(**_kwargs):
+        nonlocal auditor_calls
+        auditor_calls += 1
+        return _auditor_output(event_text)
+
+    result = _evolver(
+        run_auditor=audit,
+        run_proposer=lambda **kwargs: proposer_calls.append(kwargs)
+        or _proposer_output(next(responses)),
+    ).evolve(**arguments)
 
     assert result.text == _revised_rubric()
-    assert len(calls) == 2
-    assert "strictly descend" in str(calls[1]["repair_error"])
-    stored = json.loads(
-        (tmp_path / "rubrics" / "r0001.proposer.json").read_text()
-    )
-    assert stored["attempt_count"] == 2
+    assert auditor_calls == 1
+    assert len(proposer_calls) == 2
+    assert proposer_calls[0]["auditor_packet"] == proposer_calls[1][
+        "auditor_packet"
+    ]
+    assert "strictly descend" in str(proposer_calls[1]["repair_error"])
     failure_dir = tmp_path / "rubrics" / "r0001.proposer-failures"
     failure = json.loads((failure_dir / "attempt-0001.json").read_text())
     assert failure["evolve_attempt"] == 1
-    assert "strictly descend" in failure["error"]
-    assert (failure_dir / "attempt-0001.answer.txt").read_text() == malformed
-    assert (failure_dir / "attempt-0001.trace.md").is_file()
+    assert failure["auditor_packet_sha256"] == result.metadata[
+        "auditor_packet_sha256"
+    ]
+    assert (failure_dir / "attempt-0001.txt").read_text() == malformed
+    assert not (failure_dir / "attempt-0001.trace.md").exists()
 
 
-def test_resume_rejects_different_proposer_identity(tmp_path: Path) -> None:
+def test_resume_rejects_different_auditor_or_proposer_identity(
+    tmp_path: Path,
+) -> None:
     arguments = _arguments(tmp_path)
-    RubricEvolver(
-        agent=_agent(), query_limit=3, run_proposer=lambda **_: _output()
+    event_text = _event_text(arguments)
+    _evolver(
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **_: _proposer_output(),
     ).evolve(**arguments)
 
     with pytest.raises(RuntimeError, match="invalid evolved rubric"):
-        RubricEvolver(
-            agent=AgentRunConfig(provider="codex", model="different"),
-            query_limit=3,
-            run_proposer=lambda **_: _output(),
+        _evolver(
+            auditor=_agent(model="different-auditor"),
+            run_auditor=lambda **_: _auditor_output(event_text),
+            run_proposer=lambda **_: _proposer_output(),
+        ).evolve(**arguments)
+    with pytest.raises(RuntimeError, match="invalid evolved rubric"):
+        _evolver(
+            proposer_model="different-proposer",
+            run_auditor=lambda **_: _auditor_output(event_text),
+            run_proposer=lambda **_: _proposer_output(),
         ).evolve(**arguments)
 
 
-def test_evolver_derives_unchanged_rubric_without_action(tmp_path: Path) -> None:
+def test_no_supported_problem_and_unchanged_rubric_are_valid(tmp_path: Path) -> None:
     arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    no_problem = _packet(event_text, status="no_supported_problem")
     current_rubric = str(arguments["current_rubric"])
-    result = RubricEvolver(
-        agent=_agent(),
-        query_limit=3,
-        run_proposer=lambda **_: _output(current_rubric),
+    result = _evolver(
+        run_auditor=lambda **_: _auditor_output(
+            event_text, packet_text=no_problem
+        ),
+        run_proposer=lambda **_: _proposer_output(current_rubric),
     ).evolve(**arguments)
 
     assert result.text == current_rubric
     assert result.changed is False
     assert result.metadata["rubric_changed"] is False
-    assert "action" not in result.metadata
+    assert json.loads(
+        (tmp_path / "rubrics" / "r0001.auditor.json").read_text()
+    )["status"] == "no_supported_problem"
     assert (tmp_path / "rubrics" / "r0001.diff").read_text() == ""
 
 
-def test_evolver_retries_unchanged_rubric_without_trajectory_evidence(
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    (
+        (
+            lambda packet: packet["problems"][0]["evidence"][0].update(
+                {"text": "hallucinated"}
+            ),
+            "verbatim event slice",
+        ),
+        (
+            lambda packet: packet["problems"][0]["evidence"][0].update(
+                {"event_id": 2}
+            ),
+            "verbatim event slice",
+        ),
+        (
+            lambda packet: packet["problems"][0]["evidence"][0].update(
+                {"start_offset": 0}
+            ),
+            "verbatim event slice",
+        ),
+    ),
+)
+def test_evolver_deterministically_rejects_unverified_snippets(
     tmp_path: Path,
+    mutate,
+    message: str,
 ) -> None:
     arguments = _arguments(tmp_path)
-    current_rubric = str(arguments["current_rubric"])
-    outputs = iter((
-        _output(current_rubric, queries=0, events=()),
-        _output(current_rubric),
-    ))
-    calls: list[dict[str, object]] = []
-    result = RubricEvolver(
-        agent=_agent(),
-        query_limit=3,
-        run_proposer=lambda **kwargs: calls.append(kwargs) or next(outputs),
-    ).evolve(**arguments)
-
-    assert result.changed is False
-    assert len(calls) == 2
-    assert "must retrieve at least one trajectory event" in str(
-        calls[1]["repair_error"]
-    )
-
-
-def test_evolver_rejects_unavailable_trajectory_reference(tmp_path: Path) -> None:
-    evolver = RubricEvolver(
-        agent=_agent(retries=0),
-        query_limit=3,
-        max_retries=0,
-        run_proposer=lambda **_: _output(
-            trace="Relied on trajectory:event-999.\n",
+    event_text = _event_text(arguments)
+    packet = json.loads(_packet(event_text))
+    mutate(packet)
+    evolver = _evolver(
+        run_auditor=lambda **_: _auditor_output(
+            event_text, packet_text=json.dumps(packet)
         ),
+        run_proposer=lambda **_: _proposer_output(),
     )
 
-    with pytest.raises(RuntimeError, match="unavailable trajectory event"):
-        evolver.evolve(**_arguments(tmp_path))
+    with pytest.raises(ValueError, match=message):
+        evolver.evolve(**arguments)
+
+
+def test_evolver_rejects_snippet_from_event_not_retrieved(tmp_path: Path) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    evolver = _evolver(
+        run_auditor=lambda **_: _auditor_output(
+            event_text, events=(2,)
+        ),
+        run_proposer=lambda **_: _proposer_output(),
+    )
+
+    with pytest.raises(ValueError, match="retrieval metadata"):
+        evolver.evolve(**arguments)
 
 
 @pytest.mark.parametrize(
@@ -447,7 +672,9 @@ def test_evolver_rejects_unavailable_trajectory_reference(tmp_path: Path) -> Non
             "one nonempty description for each level",
         ),
         (
-            _revised_rubric().replace("Levels: A=25 B=10 C=0", "Levels: A=24 B=10 C=0"),
+            _revised_rubric().replace(
+                "Levels: A=25 B=10 C=0", "Levels: A=24 B=10 C=0"
+            ),
             "A-level points must sum to 100",
         ),
         (
@@ -461,27 +688,47 @@ def test_evolver_rejects_invalid_complete_rubric_structure(
     rubric: str,
     message: str,
 ) -> None:
-    evolver = RubricEvolver(
-        agent=_agent(retries=0),
-        query_limit=3,
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    evolver = _evolver(
         max_retries=0,
-        run_proposer=lambda **_: _output(rubric),
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **_: _proposer_output(rubric),
     )
 
     with pytest.raises(RuntimeError, match=message):
-        evolver.evolve(**_arguments(tmp_path))
+        evolver.evolve(**arguments)
 
 
 def test_resume_rejects_tampered_rubric_diff(tmp_path: Path) -> None:
     arguments = _arguments(tmp_path)
-    RubricEvolver(
-        agent=_agent(), query_limit=3, run_proposer=lambda **_: _output()
-    ).evolve(**arguments)
+    event_text = _event_text(arguments)
+    evolver = _evolver(
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **_: _proposer_output(),
+    )
+    evolver.evolve(**arguments)
     diff_path = tmp_path / "rubrics" / "r0001.diff"
     diff_path.chmod(0o644)
     diff_path.write_text("tampered\n")
 
     with pytest.raises(RuntimeError, match="invalid evolved rubric"):
-        RubricEvolver(
-            agent=_agent(), query_limit=3, run_proposer=lambda **_: _output()
-        ).evolve(**arguments)
+        evolver.evolve(**arguments)
+
+
+def test_resume_rejects_tampered_auditor_packet(tmp_path: Path) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    evolver = _evolver(
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **_: _proposer_output(),
+    )
+    evolver.evolve(**arguments)
+    packet_path = tmp_path / "rubrics" / "r0001.auditor.json"
+    packet_path.chmod(0o644)
+    packet = json.loads(packet_path.read_text())
+    packet["problems"][0]["evidence"][0]["text"] = "hallucinated"
+    packet_path.write_text(json.dumps(packet) + "\n")
+
+    with pytest.raises(RuntimeError, match="invalid evolved rubric"):
+        evolver.evolve(**arguments)

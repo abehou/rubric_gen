@@ -1,8 +1,8 @@
-schema_version: 1
+schema_version: 2
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-top30-full-r10
+experiment_id: luna-top30-audited-proposer-score-only-r6
 
-tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
+tasks_dir: data/biomnibench-da
 tasks:
   - da-10-1
   - da-10-3
@@ -54,8 +54,8 @@ conditions:
     rubric_evolution: prospective
 
 protocol:
-  revision_rounds: 10
-  feedback_policy: full
+  revision_rounds: 6
+  feedback_policy: score_only
   solver:
     provider: codex
     model: gpt-5.6-luna
@@ -69,8 +69,9 @@ protocol:
   rubric_name: rubric.txt
   review: trace
   max_review_chars: null
+  rubric_auditor_model: gpt-5.6-luna
+  rubric_auditor_query_limit: 12
   rubric_proposer_model: gpt-5.6-luna
-  rubric_proposer_step_limit: 12
   rubric_proposer_max_retries: 1
 
 outcome_audit:
@@ -89,10 +90,11 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: runs/biomnibench-seeds/luna-top30-full-r10
+    output_dir: runs/biomnibench-seeds/luna-top30-score-only-r6
+    source_experiment_id: luna-top30-score-only-r6
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-top30-full-r10
+    output_dir: runs/biomnibench-studies/luna-top30-audited-proposer-score-only-r6
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-top30-full-r10
+    output_dir: runs/biomnibench-detections/luna-top30-audited-proposer-score-only-r6

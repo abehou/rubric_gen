@@ -153,11 +153,13 @@ does not replace the `s000`-versus-`s010` revision-gain plots.
 ## Feedback policies
 
 `protocol.feedback_policy` accepts `full`, `semi`, `score_only`, or
-`simulated_user`. The simulated-user policy makes an additional LLM call after
-each scored response. That model sees the task instruction, private rubric, and
-current answer, selects at most a configured number of rubric aspects, and
-writes a natural revision comment; it never receives the optimizer score or
-judge reasoning.
+`simulated_user`. The simulated-user policy makes two LLM calls after each
+scored response. A private selector sees the task instruction, private rubric,
+and current answer. It can return only criterion IDs and fixed high-level
+concern categories. A separate user actor sees only the public task instruction,
+current answer, and selected categories, then writes a natural revision comment.
+Private rubric text, optimizer scores, and judge reasoning cannot enter the
+user-actor request.
 
 ```yaml
 protocol:
@@ -172,8 +174,25 @@ protocol:
 `feedback_simulator` is required only for `simulated_user`. Generated comments
 are sealed for exact resume under `feedback-generations/`; the solver-visible
 `feedback/` record contains only the comment, not its private criterion IDs or
-model provenance. A matching `--vllm URL::MODEL` mapping routes the simulator
-model through that endpoint just like the judge and rubric proposer.
+model provenance. Public requirements must be in the task instruction. Private
+rubric reference answers are not a public requirement source. A matching
+`--vllm URL::MODEL` mapping routes both simulator calls through that endpoint
+just like the judge and rubric proposer.
+
+To reuse an integrity-checked seed set from another experiment while keeping
+revision outputs separate, declare its owning experiment ID on the seed stage:
+
+```yaml
+dag:
+  seed:
+    depends_on: []
+    output_dir: runs/biomnibench-seeds/source-experiment
+    source_experiment_id: source-experiment
+```
+
+The `run` workflow validates every referenced seed block and skips seed
+generation. Solver provider/model, task inputs, judgments, and artifact hashes
+must still match exactly.
 
 ## vLLM models
 
@@ -214,10 +233,9 @@ bash scripts/start_vllm_servers.sh submit .vllm-venv
 
 The launchers use the native 262,144-token context and eight-way tensor
 parallelism. They request 8 H100 GPUs for `Qwen/Qwen3.6-27B` and 8 H200 GPUs for
-`Qwen/Qwen3.6-35B-A3B`. Model weights are cached under
-`/juice2/u/nlp/data/abe_models/huggingface`; the login-node default cache is too
-small for these repositories. Once each server is healthy, its complete
-`URL::MODEL` mapping is written to:
+`Qwen/Qwen3.6-35B-A3B`. Set `HF_HOME` to a sufficiently large cache location
+before launching; otherwise Hugging Face's standard cache is used. Once each
+server is healthy, its complete `URL::MODEL` mapping is written to:
 
 ```text
 runs/vllm-endpoints/qwen36-27b.endpoint
@@ -248,13 +266,19 @@ directories, changing `protocol.solver.model` between them. The two-model panel
 is supported directly for `detect`.
 
 Prospective rubric evolution remains part of `revise` when enabled by the
-experiment. The proposer emits the complete next rubric. It can retain, rewrite,
-remove, merge, split, reorder, or reweight criteria. Repeating the current rubric
-means no change. The harness stores the rubric, proposer metadata, trace, and a
-derived diff. The proposer audits the raw trajectory but does not receive the
-solver-written trace or preliminary judge evaluation. It uses process evidence to
-verify outcome quality. It does not give separate credit for activity or incomplete
-work. Runs with obsolete proposer artifacts cannot resume.
+experiment. A versioned trajectory-auditor agent first selects exact raw-event
+snippets. It can report a supported problem, counterevidence or uncertainty, or
+`no_supported_problem`. The harness verifies each event ID, character offset,
+verbatim slice, and size limit, then stores the canonical packet and its hash.
+
+The proposer then makes one direct model call with only the task instruction,
+current answer, current complete rubric, and verified packet. It emits only the
+complete next rubric; it does not use tools or write `trace.md`. The proposer can
+retain, rewrite, remove, merge, split, reorder, or reweight criteria. Repeating
+the current rubric means no change. The harness stores the rubric, packet,
+proposer metadata, and a derived diff. Neither component receives judge
+reasoning or reward-hacking detector results. Runs with obsolete proposer
+artifacts cannot resume.
 
 Use the separate `malt` CLI to benchmark the reward-hacking detector against
 labeled MALT data.

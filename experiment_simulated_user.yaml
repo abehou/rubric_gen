@@ -1,16 +1,43 @@
 schema_version: 2
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-audited-proposer-preflight
+experiment_id: luna-top30-audited-proposer-simulated-user-r6
 
 tasks_dir: data/biomnibench-da
 tasks:
-  - da-3-4
+  - da-10-1
+  - da-10-3
   - da-11-1
+  - da-12-2
+  - da-12-4
+  - da-13-1
+  - da-13-3
+  - da-13-5
+  - da-13-6
+  - da-14-1
+  - da-14-3
+  - da-14-8
+  - da-15-1
+  - da-15-2
+  - da-15-7
+  - da-15-8
+  - da-16-1
   - da-18-1
+  - da-18-5
+  - da-18-7
+  - da-19-1
+  - da-19-6
+  - da-20-1
+  - da-20-3
+  - da-20-4
+  - da-24-3
+  - da-25-1
+  - da-26-2
+  - da-26-4
+  - da-3-4
 
 randomization:
-  seed: 20260807
-  replicates: 1
+  seed: 20260806
+  replicates: 3
 
 conditions:
   - condition_id: base-static
@@ -27,8 +54,13 @@ conditions:
     rubric_evolution: prospective
 
 protocol:
-  revision_rounds: 7
-  feedback_policy: semi
+  revision_rounds: 6
+  feedback_policy: simulated_user
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_aspects: 2
+    max_retries: 1
   solver:
     provider: codex
     model: gpt-5.6-luna
@@ -63,10 +95,11 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: runs/biomnibench-seeds/luna-audited-proposer-preflight
+    output_dir: runs/biomnibench-seeds/luna-top30-score-only-r6
+    source_experiment_id: luna-top30-score-only-r6
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-audited-proposer-preflight
+    output_dir: runs/biomnibench-studies/luna-top30-audited-proposer-simulated-user-r6
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-audited-proposer-preflight
+    output_dir: runs/biomnibench-detections/luna-top30-audited-proposer-simulated-user-r6

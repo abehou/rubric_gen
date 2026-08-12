@@ -202,8 +202,9 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
     protocol: dict[str, object] = {
         "revision_rounds": config.revision_rounds,
         "feedback_policy": config.feedback_policy.value,
+        "rubric_auditor_model": config.rubric_auditor_model,
+        "rubric_auditor_query_limit": config.rubric_auditor_query_limit,
         "rubric_proposer_model": config.rubric_proposer_model,
-        "rubric_proposer_step_limit": config.rubric_proposer_step_limit,
         "rubric_proposer_max_retries": config.rubric_proposer_max_retries,
         "review": config.review,
         "judge_model": config.judge_model,
@@ -433,6 +434,11 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
+    private_value = "expected-private-value-37-of-200"
+    (task / "tests" / "rubric.txt").write_text(
+        "Criterion 1: Correct result\nLevels: A=100 B=50 C=0\n"
+        f"[A]: The private reference is {private_value}.\n"
+    )
     simulator_config = SimulatedUserConfig(
         model="gpt-simulated-user",
         max_output_tokens=1_024,
@@ -444,30 +450,48 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
         feedback_policy=FeedbackPolicy.SIMULATED_USER,
         feedback_simulator=simulator_config,
     )
-    requests: list[object] = []
+    requests: list[SimulatedUserRequest] = []
+    selection_count = 0
+    comment_count = 0
 
     def generate_user_feedback(
         requested: SimulatedUserConfig,
         request: SimulatedUserRequest,
     ) -> SimulatedUserGeneration:
+        nonlocal selection_count, comment_count
         requests.append(request)
         assert requested == simulator_config
         assert "score" not in request.evidence
         assert "judge" not in request.evidence
-        index = len(requests)
-        return SimulatedUserGeneration(
-            text=json.dumps({
+        required = request.schema["required"]
+        if required == ["referenced_criteria", "concern_categories"]:
+            selection_count += 1
+            assert private_value in request.evidence
+            assert "<private_rubric>" in request.evidence
+            text = json.dumps({
                 "referenced_criteria": ["criterion_1"],
+                "concern_categories": ["evidence_traceability"],
+            })
+            response_id = f"selection-{selection_count}"
+        else:
+            comment_count += 1
+            assert required == ["comment"]
+            assert private_value not in request.evidence
+            assert "<private_rubric>" not in request.evidence
+            text = json.dumps({
                 "comment": (
-                    f"The result in response {index} is not yet well supported. "
-                    "Please show the decisive check and explain why it justifies "
-                    "the conclusion."
+                    f"The result in response {comment_count} is not yet well "
+                    "supported. Please show the decisive check and explain why "
+                    "it justifies the conclusion."
                 ),
-            }),
+            })
+            response_id = f"comment-{comment_count}"
+        return SimulatedUserGeneration(
+            text=text,
             provider="openai",
             requested_model=simulator_config.model,
             effective_model="gpt-simulated-user-served",
-            response_id=f"response-{index}",
+            response_id=response_id,
             request_parameters={"max_output_tokens": 1_024},
             provider_metadata={"usage": {"output_tokens": 40}},
         )
@@ -488,7 +512,8 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
     ).run()
 
     assert result.scores == (80, 90)
-    assert len(requests) == 2
+    assert len(requests) == 4
+    assert selection_count == comment_count == 2
     assert "response 1 is not yet well supported" in session.prompts[0]
     assert "80/100" not in session.prompts[0]
     feedback = json.loads(
@@ -503,7 +528,11 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
         ).read_text()
     )
     assert generation["output"]["referenced_criteria"] == ["criterion_1"]
-    assert generation["generation"]["response_id"] == "response-1"
+    assert generation["output"]["concern_categories"] == [
+        "evidence_traceability"
+    ]
+    assert generation["selection_generation"]["response_id"] == "selection-1"
+    assert generation["comment_generation"]["response_id"] == "comment-1"
 
     assignment = {
         "assignment_id": config.assignment_id,
@@ -527,28 +556,43 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
         max_aspects=3,
         max_retries=1,
     )
-    calls = 0
+    selection_calls = 0
+    comment_calls = 0
 
     def generate_user_feedback(
         requested: SimulatedUserConfig,
         request: SimulatedUserRequest,
     ) -> SimulatedUserGeneration:
-        nonlocal calls
-        calls += 1
-        selected = (
-            ["criterion_1", "criterion_2", "criterion_3"]
-            if calls == 1
-            else ["criterion_1", "criterion_3"]
-        )
-        return SimulatedUserGeneration(
-            text=json.dumps({
+        nonlocal selection_calls, comment_calls
+        if request.schema["required"] == [
+            "referenced_criteria",
+            "concern_categories",
+        ]:
+            selection_calls += 1
+            selected = (
+                ["criterion_1", "criterion_2", "criterion_3"]
+                if selection_calls == 1
+                else ["criterion_1", "criterion_3"]
+            )
+            text = json.dumps({
                 "referenced_criteria": selected,
-                "comment": "Please strengthen the evidence and explain the conclusion.",
-            }),
+                "concern_categories": ["result_reporting", "source_support"],
+            })
+            response_id = f"selection-{selection_calls}"
+        else:
+            comment_calls += 1
+            text = json.dumps({
+                "comment": (
+                    "Please strengthen the evidence and explain the conclusion."
+                ),
+            })
+            response_id = f"comment-{comment_calls}"
+        return SimulatedUserGeneration(
+            text=text,
             provider="openai",
             requested_model=requested.model,
             effective_model="gpt-simulated-user-served",
-            response_id=f"response-{calls}",
+            response_id=response_id,
             request_parameters={
                 "max_output_tokens": request.max_output_tokens,
             },
@@ -569,7 +613,8 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
         answer="The result is positive.",
     )
 
-    assert calls == 2
+    assert selection_calls == 2
+    assert comment_calls == 1
     assert record["attempt_count"] == 2
     assert record["output"]["referenced_criteria"] == [  # type: ignore[index]
         "criterion_1",

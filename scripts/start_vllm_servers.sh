@@ -9,7 +9,8 @@ if [[ "$mode" != "submit" && "$mode" != "test" ]]; then
   exit 2
 fi
 
-cd /nlp/scr/abehou/rubric_gen
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
 mkdir -p logs/vllm
 mkdir -p runs/vllm-endpoints
 dry_run=()

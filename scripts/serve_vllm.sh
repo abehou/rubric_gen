@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-model="${1:?usage: serve_vllm.sh MODEL PORT VENV TENSOR_PARALLEL_SIZE ENDPOINT_PATH HF_HOME}"
+model="${1:?usage: serve_vllm.sh MODEL PORT VENV TENSOR_PARALLEL_SIZE ENDPOINT_PATH [HF_HOME]}"
 port="${2:-43117}"
 venv="${3:-.vllm-venv}"
 tensor_parallel_size="${4:-8}"
 endpoint_path="${5:-runs/vllm-endpoints/qwen36-27b.endpoint}"
-hf_home="${6:-/juice2/u/nlp/data/abe_models/huggingface}"
+hf_home="${6:-${HF_HOME:-}}"
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_root"
 mkdir -p "$(dirname "$endpoint_path")"
-mkdir -p "$hf_home"
-export HF_HOME="$hf_home"
+if [[ -n "$hf_home" ]]; then
+  mkdir -p "$hf_home"
+  export HF_HOME="$hf_home"
+fi
 if [[ -f "$endpoint_path" ]]; then
   mv "$endpoint_path" "$endpoint_path.stale-${SLURM_JOB_ID:-$$}"
 fi

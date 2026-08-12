@@ -82,8 +82,9 @@ def _design(root: Path, task: Path) -> Experiment:
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
+            "rubric_auditor_model": "test-auditor",
+            "rubric_auditor_query_limit": 2,
             "rubric_proposer_model": "test-proposer",
-            "rubric_proposer_step_limit": 2,
             "rubric_proposer_max_retries": 1,
         },
         "outcome_audit": {},
@@ -127,7 +128,7 @@ def _fake_judge(self, task_dir: Path, submission: Path, experiment_dir: Path):
     evaluation.write_text('{"criteria":{},"reasoning":"ok"}')
     validation.write_text('{"score":75}')
     usage.write_text(json.dumps({
-        "schema_version": 1,
+        "schema_version": 2,
         "provider": "openai",
         "requested_model": "test-judge",
         "effective_model": "test-judge",

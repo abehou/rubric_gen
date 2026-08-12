@@ -25,6 +25,7 @@ from rubric_gen.biomnibench.revision.feedback import (
 )
 from rubric_gen.biomnibench.revision.models import SubmissionRevisionConfig
 from rubric_gen.biomnibench.revision.artifacts import (
+    REVISION_MANIFEST_SCHEMA_VERSION,
     read_json_object,
     revision_manifest_keys,
     sha256_file,
@@ -233,6 +234,7 @@ class StudyRunner:
                 vllm_endpoints=self.config.vllm_endpoints
             ),
             experiment_id=self.experiment.experiment_id,
+            seed_experiment_id=self.experiment.seed_experiment_id,
             assignment_id=str(assignment["assignment_id"]),
             condition_id=str(assignment["condition_id"]),
             replicate=int(assignment["replicate"]),
@@ -247,11 +249,15 @@ class StudyRunner:
             ),
             prompt_profile=PromptProfile(str(condition["prompt"])),
             rubric_evolution=RubricEvolution(str(condition["rubric_evolution"])),
+            rubric_auditor_model=str(protocol["rubric_auditor_model"]),
+            rubric_auditor_base_url=self.config.vllm_endpoints.get(
+                str(protocol["rubric_auditor_model"])
+            ),
+            rubric_auditor_query_limit=int(protocol["rubric_auditor_query_limit"]),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             rubric_proposer_base_url=self.config.vllm_endpoints.get(
                 str(protocol["rubric_proposer_model"])
             ),
-            rubric_proposer_step_limit=int(protocol["rubric_proposer_step_limit"]),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
             judge_base_url=self.config.vllm_endpoints.get(
@@ -402,7 +408,7 @@ def validate_completed_revision(
         seed_run_dir,
         task_dir,
         int(assignment["replicate"]),
-        experiment_id=experiment.experiment_id,
+        experiment_id=experiment.seed_experiment_id,
         provider=agent.provider,
         requested_model=agent.model,
     )
@@ -413,7 +419,7 @@ def validate_completed_revision(
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
     manifest_expectations = {
-        "schema_version": 2,
+        "schema_version": REVISION_MANIFEST_SCHEMA_VERSION,
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": experiment.experiment_id,
         "assignment_id": assignment.get("assignment_id"),
@@ -435,11 +441,15 @@ def validate_completed_revision(
         "feedback_policy": protocol["feedback_policy"],
         "prompt": condition_spec["prompt"],
         "rubric_evolution": condition_spec["rubric_evolution"],
+        "rubric_auditor_model": protocol["rubric_auditor_model"],
+        "rubric_auditor_base_url": endpoints.get(
+            str(protocol["rubric_auditor_model"])
+        ),
+        "rubric_auditor_query_limit": protocol["rubric_auditor_query_limit"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_base_url": endpoints.get(
             str(protocol["rubric_proposer_model"])
         ),
-        "rubric_proposer_step_limit": protocol["rubric_proposer_step_limit"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],

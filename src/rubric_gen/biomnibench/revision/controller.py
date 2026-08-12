@@ -41,6 +41,7 @@ from rubric_gen.biomnibench.revision.artifacts import (
     is_excluded_solution_root as _is_excluded_solution_root,
     link_solution_workspace as _link_solution_workspace,
     REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
+    REVISION_MANIFEST_SCHEMA_VERSION as _REVISION_MANIFEST_SCHEMA_VERSION,
     compact_historical_workspace as _compact_historical_workspace,
     copy_solution_workspace as _copy_solution_workspace,
     make_read_only as _make_read_only,
@@ -102,7 +103,7 @@ class SubmissionRevisionController:
             config.seed_run_dir,
             self.task_dir,
             config.replicate,
-            experiment_id=config.experiment_id,
+            experiment_id=config.seed_experiment_id or config.experiment_id,
             provider=config.agent.provider,
             requested_model=config.agent.model,
         )
@@ -112,25 +113,30 @@ class SubmissionRevisionController:
             evolver=(
                 None if config.rubric_evolution is RubricEvolution.STATIC
                 else RubricEvolver(
-                    agent=AgentRunConfig(
+                    auditor=AgentRunConfig(
                         provider=(
-                            "vllm" if config.rubric_proposer_base_url else "codex"
+                            "vllm" if config.rubric_auditor_base_url else "codex"
                         ),
-                        model=config.rubric_proposer_model,
-                        base_url=config.rubric_proposer_base_url,
+                        model=config.rubric_auditor_model,
+                        base_url=config.rubric_auditor_base_url,
                         quiet=True,
                         reasoning_effort=(
-                            config.agent.reasoning_effort
-                            if config.rubric_proposer_base_url is None else None
+                            "high" if config.rubric_auditor_base_url is None else None
                         ),
                         service_tier=(
                             config.agent.service_tier
-                            if config.rubric_proposer_base_url is None else None
+                            if config.rubric_auditor_base_url is None else None
                         ),
                         retries=0,
                         timeout_seconds=config.agent.timeout_seconds,
                     ),
-                    query_limit=config.rubric_proposer_step_limit,
+                    proposer_model=config.rubric_proposer_model,
+                    proposer_base_url=config.rubric_proposer_base_url,
+                    proposer_service_tier=(
+                        config.agent.service_tier
+                        if config.rubric_proposer_base_url is None else None
+                    ),
+                    query_limit=config.rubric_auditor_query_limit,
                     max_retries=config.rubric_proposer_max_retries,
                 )
             ),
@@ -210,9 +216,11 @@ class SubmissionRevisionController:
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
             "rubric_evolution": RubricEvolution(self.config.rubric_evolution).value,
+            "rubric_auditor_model": self.config.rubric_auditor_model,
+            "rubric_auditor_base_url": self.config.rubric_auditor_base_url,
+            "rubric_auditor_query_limit": self.config.rubric_auditor_query_limit,
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
-            "rubric_proposer_step_limit": self.config.rubric_proposer_step_limit,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
             "review": self.config.review,
             "judge_model": self.config.judge_model,
@@ -355,7 +363,7 @@ class SubmissionRevisionController:
         _write_json(
             self.experiment_dir / "manifest.json",
             {
-                "schema_version": 2,
+                "schema_version": _REVISION_MANIFEST_SCHEMA_VERSION,
                 "kind": _REVISION_EXPERIMENT_KIND,
                 **self._experiment_identity(),
                 "submission_count": self.config.revision_rounds + 1,
@@ -399,7 +407,7 @@ class SubmissionRevisionController:
             self.experiment_dir / "manifest.json",
             "revision manifest",
         )
-        if manifest.get("schema_version") != 2:
+        if manifest.get("schema_version") != _REVISION_MANIFEST_SCHEMA_VERSION:
             raise RuntimeError("revision manifest has an unsupported schema")
         for key, value in self._experiment_identity().items():
             if manifest.get(key) != value:

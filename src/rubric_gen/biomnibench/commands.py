@@ -41,6 +41,27 @@ _RESTART_IDENTITY_FILES = {
 def run_seed(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
     endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
+    if experiment.seed_experiment_id != experiment.experiment_id:
+        agent = experiment.agent_config(vllm_endpoints=endpoints)
+        seed_root = Path(str(experiment.dag["seed"]["output_dir"]))
+        blocks = sorted({
+            (str(assignment["task_id"]), int(assignment["replicate"]))
+            for assignment in experiment.assignments
+        })
+        for task_id, replicate in blocks:
+            resolve_seed(
+                seed_root,
+                experiment.task_dir(task_id),
+                replicate,
+                experiment_id=experiment.seed_experiment_id,
+                provider=agent.provider,
+                requested_model=agent.model,
+            )
+        print(
+            f"Validated {len(blocks)} reused seed blocks from "
+            f"{experiment.seed_experiment_id}."
+        )
+        return 0
     return SeedSetRunner(SeedSetConfig(
         experiment=experiment,
         output_dir=Path(str(experiment.dag["seed"]["output_dir"])),
@@ -147,7 +168,7 @@ def _validate_existing_seed_set(
             seed_root,
             experiment.task_dir(task_id),
             replicate,
-            experiment_id=experiment.experiment_id,
+            experiment_id=experiment.seed_experiment_id,
             provider=agent.provider,
             requested_model=agent.model,
         )
@@ -168,10 +189,15 @@ def _validate_restart_roots(
     if len(set(values)) != len(values):
         raise RuntimeError("restart output directories must be distinct")
     for stage, root in roots.items():
-        if root in forbidden or root.name != experiment.experiment_id:
+        expected_experiment_id = (
+            experiment.seed_experiment_id
+            if stage == "seed"
+            else experiment.experiment_id
+        )
+        if root in forbidden or root.name != expected_experiment_id:
             raise RuntimeError(
                 f"unsafe {stage} restart output directory: {root}; "
-                "its final component must equal experiment_id"
+                f"its final component must equal {expected_experiment_id}"
             )
         if any(
             root != other and _contains(root, other)
@@ -213,7 +239,11 @@ def _validate_restart_identity(
     if (
         not isinstance(identity, dict)
         or identity.get("kind") != expected_kind
-        or identity.get("experiment_id") != experiment.experiment_id
+        or identity.get("experiment_id") != (
+            experiment.seed_experiment_id
+            if stage == "seed"
+            else experiment.experiment_id
+        )
     ):
         raise RuntimeError(
             f"restart output identity does not match the experiment: {root}"

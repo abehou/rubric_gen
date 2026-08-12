@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-detection="${1:?usage: run_malt_vllm.sh DETECTION [ENVIRONMENT] [OUTPUT_DIR] [TOP]}"
-environment="${2:-harness}"
-output_dir="${3:-runs/malt-runs}"
-top="${4:-100}"
+detection="${1:?usage: run_malt_vllm.sh DETECTION [OUTPUT_DIR] [TOP]}"
+output_dir="${2:-runs/malt-runs}"
+top="${3:-100}"
 
-source /juice2/u/abehou/anaconda3/etc/profile.d/conda.sh
-conda activate "$environment"
-cd /nlp/scr/abehou/rubric_gen
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
 
 read -r qwen27_endpoint < runs/vllm-endpoints/qwen36-27b.endpoint
 read -r qwen35_endpoint < runs/vllm-endpoints/qwen36-35b-a3b.endpoint

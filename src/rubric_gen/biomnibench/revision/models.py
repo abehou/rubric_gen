@@ -35,15 +35,18 @@ class SubmissionRevisionConfig:
     condition_id: str
     replicate: int
     execution_order: int
+    seed_experiment_id: str | None = None
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
     feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_evolution: RubricEvolution = RubricEvolution.STATIC
+    rubric_auditor_model: str = "gpt-5.6-luna"
+    rubric_auditor_base_url: str | None = None
+    rubric_auditor_query_limit: int = 12
     rubric_proposer_model: str = "gpt-5.6-luna"
     rubric_proposer_base_url: str | None = None
-    rubric_proposer_step_limit: int = 12
     review: str = "trace"
     judge_model: str | None = None
     judge_base_url: str | None = None
@@ -74,6 +77,7 @@ class SubmissionRevisionConfig:
             raise ValueError("submission revision requires an explicit solver model")
         for name, value in (
             ("experiment_id", self.experiment_id),
+            ("seed_experiment_id", self.seed_experiment_id or self.experiment_id),
             ("assignment_id", self.assignment_id),
             ("condition_id", self.condition_id),
         ):
@@ -99,13 +103,17 @@ class SubmissionRevisionConfig:
             )
         PromptProfile(self.prompt_profile)
         RubricEvolution(self.rubric_evolution)
-        if not self.rubric_proposer_model.strip():
-            raise ValueError("rubric_proposer_model must be nonempty")
-        if (
-            type(self.rubric_proposer_step_limit) is not int
-            or self.rubric_proposer_step_limit < 1
+        for name, model in (
+            ("rubric_auditor_model", self.rubric_auditor_model),
+            ("rubric_proposer_model", self.rubric_proposer_model),
         ):
-            raise ValueError("rubric_proposer_step_limit must be positive")
+            if type(model) is not str or not model.strip():
+                raise ValueError(f"{name} must be nonempty")
+        if (
+            type(self.rubric_auditor_query_limit) is not int
+            or self.rubric_auditor_query_limit < 1
+        ):
+            raise ValueError("rubric_auditor_query_limit must be positive")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(

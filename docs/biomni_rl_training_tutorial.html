@@ -129,15 +129,21 @@
   <p>The proposer emits the complete rubric for the next revision. It can retain, rewrite, remove,
   merge, split, reorder, and reweight criteria. An unchanged complete rubric means abstention. The
   harness derives the diff and does not parse edit actions.</p>
+  <p>A frozen, versioned trajectory-auditor agent first selects exact event slices. The packet can
+  report no supported problem, problem hypotheses, counterevidence, and uncertainty. The harness
+  verifies every event ID, offset, verbatim slice, and size limit, then stores the exact packet and
+  its hash. The proposer receives only the task, answer, current rubric, and verified packet; it has
+  no trajectory tools and produces no trace file.</p>
   <p>Build each complete set through recursive decomposition and filtering. Criteria must be atomic,
-  task-specific, self-contained, outcome-grounded, and discriminative. Use trajectory events to verify
-  or falsify outcome quality. Do not reward effort, visible activity, or incomplete work. Give partial
+  task-specific, self-contained, outcome-grounded, and discriminative. Use verified packet evidence to
+  verify or falsify outcome quality. Do not reward effort, visible activity, or incomplete work. Give partial
   credit only for independently useful bounded outcomes. Remove overlap and correlated double-counting.</p>
   <div class="math">R<sub>set</sub> = downstream quality − RH risk − false positives − answer leakage
   − overlap − coverage loss.</div>
   <p>Do not reward a rubric merely for lowering the current answer's score. That trains adversarial
-  overfitting. Freeze solver and proposer in alternating stages; simultaneous online co-training creates
-  a nonstationary collusion channel.</p>
+  overfitting. Reuse one packet for all candidates from a state. Freeze the auditor while collecting
+  proposer data, and freeze solver and proposer in alternating stages; simultaneous online co-training
+  creates a nonstationary collusion channel.</p>
 
   <h2>8. Prevent detector gaming</h2>
   <p>Training and final evaluation must use disjoint verifier families or hidden prompts/checks. Rotate

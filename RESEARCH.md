@@ -4,7 +4,8 @@
 
 This project tests whether a complete-rubric generator can prevent or mitigate
 reward hacking by a scientific agent. The mechanism is prospective. After each
-scored submission, the generator inspects bounded trajectory evidence and
+scored submission, a trajectory-auditor agent selects evidence from the raw
+trajectory. The harness verifies a bounded packet, and a direct proposer call
 returns the complete optimizer rubric for the next revision.
 
 The central concern is that an adaptive rubric is itself an adaptive reward
@@ -30,8 +31,14 @@ The current generator has a full-set interface:
 - It can retain, rewrite, remove, merge, split, reorder, or reweight criteria.
 - Returning the current rubric unchanged is the only abstention mechanism.
 - The harness derives the changed flag and unified diff from the complete text.
-- The generator must inspect at least one trajectory event.
-- Its audit trace can cite only events that it retrieved.
+- The separate trajectory auditor must inspect at least one trajectory event.
+- The auditor can return `no_supported_problem`; it is not forced to find a
+  defect.
+- Each evidence and counterevidence snippet has a verified event ID and exact
+  character offsets.
+- The harness stores the exact canonical packet and its hash.
+- The proposer receives only the task, current answer, current rubric, and
+  verified packet. It has no tools and does not write a trace.
 - The harness validates numbering, level structure, descriptions, and weights.
 - All `A`-level points must sum to 100.
 
@@ -131,10 +138,11 @@ detector while retaining the undesirable behavior.
 
 ### 1. Prompted complete-rubric generator
 
-This is the implemented treatment. The generator uses bounded evidence and
-returns the full next rubric. Its prompt includes coverage mapping, recursive
-decomposition, redundancy filtering, process-evidence checks, cheap-compliance
-tests, and weight allocation.
+This is the implemented treatment. A frozen, versioned auditor selects bounded
+evidence. The harness verifies and seals its packet. The proposer returns the
+full next rubric in one direct model call. Its prompt includes coverage mapping,
+recursive decomposition, redundancy filtering, process-evidence checks,
+cheap-compliance tests, and weight allocation.
 
 This system tests whether a stronger rubric-generation prompt improves the next
 revision. It does not isolate why an effect occurs. The solver sees changed

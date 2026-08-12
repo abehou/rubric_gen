@@ -2,8 +2,10 @@
 
 ## Decision
 
-The deployed generator receives one active submission and the current complete
-rubric. It returns the complete rubric for the next revision.
+The deployed system first converts the raw trajectory into a verified evidence
+packet. A direct proposer call then receives the task, current answer, current
+complete rubric, and that packet. It returns the complete rubric for the next
+revision.
 
 The output is the action. The generator does not emit edit commands, patches,
 or a special abstention token. An unchanged complete rubric means abstention.
@@ -26,28 +28,38 @@ human rubric or the literary quality of the generated criteria.
 
 ## Deployment contract
 
-For revision round `t`, define the generator state as:
+For revision round `t`, define the proposer input as:
 
 ```text
-state_t = {
+proposer_input_t = {
   task,
+  current answer,
   current complete rubric R_t,
-  current submission,
-  prior submission history,
-  current evaluation,
-  read-only sealed artifacts,
-  bounded trajectory evidence
+  verified auditor packet E_t
 }
 ```
 
 The generator action is:
 
 ```text
-R_(t+1) = generator(state_t)
+R_(t+1) = proposer(proposer_input_t)
 ```
 
 The harness validates the complete rubric. It does not infer or execute
 semantic edit actions.
+
+The trajectory-auditor agent receives the raw trajectory through bounded query
+tools. It does not receive the current rubric, judge reasoning, or
+reward-hacking detector output. It can report no supported problem, supported
+problem hypotheses with exact evidence, counterevidence or uncertainty, and a
+short inspection statement. It never proposes criterion text, weights, or
+edits.
+
+Evidence selection can be nondeterministic. Evidence verification is
+deterministic. The harness checks each snippet against its indexed event ID and
+zero-based, end-exclusive character offsets. It also enforces snippet, packet,
+and item limits. The exact canonical packet and its hash are stored and passed
+unchanged to the proposer.
 
 Every output rubric must:
 
@@ -95,8 +107,9 @@ at each starting state.
 
 ### 2. Generate candidate rubric sets
 
-For each state, sample `K` complete rubric sets. Always include the unchanged
-current rubric as a candidate.
+Run one frozen, versioned auditor for each state. For that state, reuse the same
+verified packet while sampling `K` complete rubric sets. Always include the
+unchanged current rubric as a candidate.
 
 Apply the same structural checks to every candidate. Keep the candidate text
 hidden from outcome evaluators.
@@ -149,6 +162,7 @@ fires.
 Store one immutable record for each candidate set. Each record must contain:
 
 - Starting-state and task identifiers and hashes.
+- Exact verified auditor packet, its hash, and the frozen auditor identity.
 - Current and candidate complete rubrics and hashes.
 - The derived rubric diff.
 - Generator model and sampling configuration.
@@ -165,7 +179,8 @@ Do not include evaluator reasoning in generator inputs.
 
 1. Keep complete rubric sets that beat the unchanged set on hidden quality.
 2. Remove sets that fail reward-hacking or adversarial checks.
-3. Fine-tune on `(state, winning complete rubric)` examples.
+3. Fine-tune on `(task, answer, current rubric, auditor packet) -> winning
+   complete rubric` examples.
 4. Include unchanged outputs when no candidate helps.
 
 Full-output training can be dominated by copied criteria. Retention is a real
@@ -180,8 +195,9 @@ Prefer the set with larger clean downstream utility. Normalize sequence-level
 objectives for rubric length so longer sets do not receive an accidental
 training advantage.
 
-Keep the optimizer judge and outcome evaluators frozen. Joint training can let
-the generator and judge create shared blind spots.
+Keep the trajectory auditor, optimizer judge, and outcome evaluators frozen
+while collecting proposer data. Joint training can create shared blind spots
+or let evidence selection drift between candidates from one state.
 
 ### Training limits
 
@@ -224,8 +240,9 @@ before untouched evaluation.
 
 ## Implementation sequence
 
-1. Deploy the complete-rubric inference contract.
-2. Validate version hashes, full structure, trace evidence, and derived diffs.
+1. Deploy the auditor-packet and direct complete-rubric inference contract.
+2. Validate version hashes, packet snippets, full rubric structure, and derived
+   diffs.
 3. Build a deterministic state-fork runner.
 4. Add the matched unchanged-rubric continuation.
 5. Add blinded quality and reward-hacking evaluation.

@@ -376,6 +376,7 @@ class CliSolverSessionDriver:
                 cwd=workspace,
                 env=env,
                 text=True,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,

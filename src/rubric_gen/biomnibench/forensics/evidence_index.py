@@ -83,10 +83,21 @@ def _evidence_records(path: Path) -> Iterator[tuple[str, str, str]]:
 def indexable_event_count(path: Path) -> int:
     """Return the distinct event count that an index would assign to one file."""
 
+    return len(indexable_event_contents(path))
+
+
+def indexable_event_contents(path: Path) -> dict[int, str]:
+    """Return the exact event text under the index's stable ID assignment."""
+
     seen: set[tuple[str, str]] = set()
+    contents: dict[int, str] = {}
     for _, role, content in _evidence_records(path):
-        seen.add((role, hashlib.sha256(content.encode()).hexdigest()))
-    return len(seen)
+        key = (role, hashlib.sha256(content.encode()).hexdigest())
+        if key in seen:
+            continue
+        seen.add(key)
+        contents[len(contents) + 1] = content
+    return contents
 
 
 def render_compact_evidence(evidence_dir: Path) -> tuple[str, dict[str, int]]:

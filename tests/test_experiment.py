@@ -32,7 +32,7 @@ def _task(root: Path, task_id: str) -> None:
 
 def _payload(root: Path) -> dict[str, object]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "rubric-gen-randomized-experiment",
         "experiment_id": "test-experiment",
         "tasks_dir": "tasks",
@@ -47,7 +47,9 @@ def _payload(root: Path) -> dict[str, object]:
             "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "minimal", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
             "judge_model": "test-judge", "judge_max_retries": 1,
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
-            "rubric_proposer_model": "test-proposer", "rubric_proposer_step_limit": 2,
+            "rubric_auditor_model": "test-auditor",
+            "rubric_auditor_query_limit": 2,
+            "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
         },
         "outcome_audit": {
@@ -73,6 +75,56 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     assert len(first.assignments) == 2 * 3 * 2
     assert all("design_sha256" not in item for item in first.assignments)
     assert {item["execution_order"] for item in first.assignments} == set(range(1, 13))
+
+
+def test_dag_validates_and_reuses_an_explicit_seed_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["dag"]["seed"]["source_experiment_id"] = "source-experiment"  # type: ignore[index]
+    payload["dag"]["seed"]["output_dir"] = "runs/seeds/source-experiment"  # type: ignore[index]
+    payload["dag"]["revise"]["output_dir"] = "runs/revisions/test-experiment"  # type: ignore[index]
+    payload["dag"]["detect"]["output_dir"] = "runs/detections/test-experiment"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    calls: list[tuple[str, int, str]] = []
+
+    def resolve(seed_root, task_dir, replicate, *, experiment_id, **_kwargs):
+        calls.append((task_dir.name, replicate, experiment_id))
+
+    monkeypatch.setattr(commands_module, "resolve_seed", resolve)
+    args = argparse.Namespace(
+        experiment=str(path), max_concurrency=2, resume=True, vllm=[]
+    )
+
+    experiment = load_experiment(path)
+    assert experiment.seed_experiment_id == "source-experiment"
+    assert commands_module.run_seed(args) == 0
+    assert calls == [
+        (task_id, replicate, "source-experiment")
+        for task_id in ("da-1-1", "da-2-1")
+        for replicate in range(1, 4)
+    ]
+    calls.clear()
+    commands_module._validate_existing_seed_set(
+        experiment,
+        vllm_endpoints={},
+    )
+    assert calls == [
+        (task_id, replicate, "source-experiment")
+        for task_id in ("da-1-1", "da-2-1")
+        for replicate in range(1, 4)
+    ]
+    commands_module._validate_restart_roots(
+        experiment,
+        {
+            stage: Path(str(experiment.dag[stage]["output_dir"])).resolve()
+            for stage in ("seed", "revise", "detect")
+        },
+    )
 
 
 def test_simulated_user_feedback_requires_and_loads_model_config(

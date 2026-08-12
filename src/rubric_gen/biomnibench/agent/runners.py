@@ -17,6 +17,7 @@ from typing import Any, TextIO
 from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
+from rubric_gen.biomnibench.agent.prompts import PROMPT
 from rubric_gen.biomnibench.agent.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
@@ -74,10 +75,20 @@ class AgentRunner:
         config: AgentRunConfig | None = None,
         *,
         registry: AgentAdapterRegistry | None = None,
+        prompt: str = PROMPT,
+        required_outputs: tuple[str, ...] = ("trace.md", "answer.txt"),
     ) -> None:
+        if not prompt.strip():
+            raise ValueError("agent prompt must not be empty")
+        if not required_outputs or any(
+            not name or Path(name).name != name for name in required_outputs
+        ):
+            raise ValueError("agent required outputs must be safe file names")
         self.config = config or AgentRunConfig()
         self.registry = registry or AgentAdapterRegistry()
         self.adapter = self.registry.get(self.config.provider)
+        self.prompt = prompt
+        self.required_outputs = required_outputs
 
     @property
     def provider(self) -> str:
@@ -91,10 +102,10 @@ class AgentRunner:
             )
 
     def build_command(self, paths: RunPaths) -> list[str]:
-        return self.adapter.build_command(paths, self.config)
+        return self.adapter.build_command(paths, self.config, self.prompt)
 
     def stream(self, paths: RunPaths) -> int:
-        self.adapter.prepare_run(paths, self.config)
+        self.adapter.prepare_run(paths, self.config, self.prompt)
         command = self.build_command(paths)
         env = self.adapter.build_environment(paths, self.config)
 
@@ -111,6 +122,7 @@ class AgentRunner:
                 cwd=paths.workspace_dir,
                 env=env,
                 text=True,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,
@@ -165,7 +177,7 @@ class AgentRunner:
 
     def validate_outputs(self, paths: RunPaths) -> RunValidation:
         errors = []
-        for filename in ("trace.md", "answer.txt"):
+        for filename in self.required_outputs:
             output_path = paths.workspace_dir / filename
             try:
                 output_stat = os.lstat(output_path)
