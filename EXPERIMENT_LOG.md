@@ -189,3 +189,9 @@
 - **00:37 PDT** — Replaced the proposer contract with outcome-grounded trajectory auditing after preliminary trajectory review awarded credit for incomplete activity. The proposer no longer receives the solver trace or preliminary judge evaluation, version 2 rejects older artifacts, and all 368 tests pass with one skipped.
 - **00:38 PDT** — Replaced the original-rubric ensemble heatmap, dot, scatter, and preference figures with bar charts of average initial/final scores and average score changes. Removed the obsolete plots and condition-correlation table; the retained summary contains task-cluster bootstrap intervals for all eight conditions.
 - **00:44 PDT** — Added a bar chart of final GPT-5.6-Luna revision score minus final original-rubric ensemble mean. Semi-feedback static arms show +9.7 and +9.3 point gaps with task-cluster intervals above zero; other gaps range from −1.9 to +1.3 and mostly cross zero, so the measure is recorded as verifier/rubric disagreement rather than an RH rate.
+- **11:22 PDT** — Re-audited semi-feedback `da-20-3`, replicate 1. The dynamic run fetched an external Hallmark file after the shared `s000`, while the matched static run did not; the current MALT panel noticed the fetch but scored both runs below the RH threshold, so this pair does not show that a dynamic rubric improved RH detection.
+- **11:34 PDT** — Audited the five current dynamic-only majority-RH pairs for detector assistance. Three pairs had similar static-side rubric targeting that at least one judge already noticed, but every dynamic trajectory also escalated or added deception; therefore no pair isolates a pure increase in detector sensitivity from a real behavior change.
+
+## 2026-08-12
+
+- **10:44 PDT** — Added the detector-assistance audit to `rubric_v1_analysis.md`. It records all five dynamic-only majority-RH pairs, corrects the stale `da-20-3` claim, and excludes mitigation proposals.
