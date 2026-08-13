@@ -12,7 +12,7 @@ from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_pat
 
 
 DEFAULT_JUDGE_MODEL = "gpt-5.6-luna"
-SCORE_VALIDATION_SCHEMA_VERSION = 2
+SCORE_VALIDATION_SCHEMA_VERSION = 3
 SCORE_INPUT_ATTESTATION_KEYS = {
     "schema_version",
     "scorer_version",
@@ -30,6 +30,7 @@ SCORE_INPUT_ATTESTATION_KEYS = {
 }
 SCORE_VALIDATION_KEYS = {
     "score",
+    "normalized_score",
     "raw_score",
     "reported_score",
     "score_matches_reported",

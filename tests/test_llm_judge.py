@@ -1,15 +1,36 @@
 from __future__ import annotations
 
+import os
 import types
+from pathlib import Path
 
 import openai
 import pytest
 
+from rubric_gen.biomnibench.judging.artifacts import JudgeArtifactStore
 from rubric_gen.biomnibench.judging.llm_judge import (
     JudgePrompt,
     generate_response,
     provider_for_model,
 )
+from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
+
+
+def test_judge_reads_a_stable_regular_review_artifact(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "answer.txt").write_text("answer\n")
+    runner = object.__new__(BiomniBenchJudgeRunner)
+    runner.config = types.SimpleNamespace(max_review_chars=None)
+    runner.artifacts = JudgeArtifactStore(runner.config)
+
+    workspace_fd = os.open(workspace, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        assert runner._read_review_artifact(
+            workspace, "answer.txt", root_fd=workspace_fd
+        ) == "answer\n"
+    finally:
+        os.close(workspace_fd)
 
 
 def test_vllm_judge_uses_openai_compatible_chat_completions(

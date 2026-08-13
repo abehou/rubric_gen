@@ -149,7 +149,7 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
     return {
         "instruction": "TASK",
         "current_rubric": _current_rubric(),
-        "answer": "ANSWER",
+        "current_submission": "SUBMISSION",
         "trajectory_path": trajectory,
         "version": 1,
         "source_submission_id": "s000",
@@ -311,16 +311,22 @@ def test_codex_auditor_rejects_missing_query_audit(
 
 
 def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() -> None:
-    instructions = evolution_module._proposer_instructions(repair_error=None)
+    instructions = evolution_module._proposer_instructions(
+        current_rubric=(
+            "Criterion 1: Result\nLevels: A=100 B=50 C=0\n"
+            "[A]: complete\n[B]: partial\n[C]: missing\n"
+        ),
+        repair_error=None,
+    )
     packet = '{"schema_version":1,"status":"no_supported_problem"}\n'
     evidence = evolution_module._proposer_evidence(
         instruction="TASK",
         current_rubric="RUBRIC",
-        answer="ANSWER",
+        current_submission="SUBMISSION",
         auditor_packet=packet,
     )
 
-    assert "Prompt contract: audited-complete-rubric-v1" in instructions
+    assert "Prompt contract: audited-complete-rubric-v2" in instructions
     assert "recursive decompose-filter cycle" in instructions
     assert "informative, comprehensive, and non-redundant" in instructions
     assert "Do not reward effort" in instructions
@@ -330,7 +336,7 @@ def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() ->
     assert "trace.md" not in instructions
     assert "query tool" not in instructions
     assert evidence.count("<task_instruction>") == 1
-    assert evidence.count("<current_answer>") == 1
+    assert evidence.count("<current_submission>") == 1
     assert evidence.count("<current_complete_rubric>") == 1
     assert evidence.count("<verified_auditor_packet>") == 1
     assert "trajectory_path" not in evidence
@@ -349,7 +355,7 @@ def test_direct_proposer_makes_one_model_call(
     output = _evolver()._run_direct_proposer(
         instruction="TASK",
         current_rubric=_current_rubric(),
-        answer="ANSWER",
+        current_submission="SUBMISSION",
         auditor_packet='{"schema_version":1}\n',
         repair_error=None,
     )
@@ -426,7 +432,7 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     assert set(proposer_calls[0]) == {
         "instruction",
         "current_rubric",
-        "answer",
+        "current_submission",
         "auditor_packet",
         "repair_error",
     }
@@ -444,7 +450,7 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     metadata = json.loads((output_dir / "r0001.proposer.json").read_text())
     packet_text = (output_dir / "r0001.auditor.json").read_text()
     assert metadata["mode"] == "prospective"
-    assert metadata["schema_version"] == 3
+    assert metadata["schema_version"] == 4
     assert metadata["kind"] == "audited-complete-rubric-generation"
     assert metadata["auditor"]["model"] == "auditor-model"
     assert metadata["auditor"]["prompt_version"] == (
@@ -455,7 +461,7 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     assert metadata["auditor_packet_sha256"] == sha256_text(packet_text)
     assert metadata["proposer"]["model"] == "proposer-model"
     assert metadata["proposer"]["prompt_version"] == (
-        "audited-complete-rubric-v1"
+        "audited-complete-rubric-v2"
     )
     assert metadata["attempt_count"] == 1
     assert metadata["proposer_attempts"][0]["cost"][
@@ -506,7 +512,9 @@ def test_evolver_accepts_vllm_auditor_and_proposer() -> None:
         proposer_base_url="http://proposer:43117/v1",
     )
     assert evolver.auditor.provider == "vllm"
-    assert evolver._proposer_identity()["provider"] == "vllm"
+    assert evolver._proposer_identity(
+        "Criterion 1: Result\nLevels: A=100 B=50 C=0\n"
+    )["provider"] == "vllm"
 
 
 def test_evolver_reuses_packet_when_retrying_invalid_rubric(tmp_path: Path) -> None:

@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+experiment_file="${1:-$project_root/experiments/harvey-harness-evolution.yaml}"
+harvey_repository="https://github.com/harveyai/harvey-labs.git"
+
+mapfile -t harvey_config < <(
+  uv run --project "$project_root" python -c '
+import sys
+from pathlib import Path
+
+from rubric_gen.harvey.config import load_experiment
+
+experiment = load_experiment(Path(sys.argv[1]))
+print(experiment.benchmark.checkout)
+print(experiment.benchmark.revision)
+' "$experiment_file"
+)
+
+if [[ ${#harvey_config[@]} -ne 2 ]]; then
+  echo "Could not read the Harvey checkout and revision from $experiment_file" >&2
+  exit 1
+fi
+
+harvey_checkout="${harvey_config[0]}"
+harvey_revision="${harvey_config[1]}"
+
+if [[ ! -e "$harvey_checkout" ]]; then
+  git clone "$harvey_repository" "$harvey_checkout"
+  observed_revision="$(git -C "$harvey_checkout" rev-parse HEAD)"
+  if [[ "$observed_revision" != "$harvey_revision" ]]; then
+    pin_branch="rubric-gen-${harvey_revision:0:12}"
+    git -C "$harvey_checkout" switch --create "$pin_branch" "$harvey_revision"
+  fi
+elif [[ ! -d "$harvey_checkout/.git" ]]; then
+  echo "Harvey checkout path exists but is not a Git checkout: $harvey_checkout" >&2
+  exit 1
+fi
+
+observed_revision="$(git -C "$harvey_checkout" rev-parse HEAD)"
+if [[ "$observed_revision" != "$harvey_revision" ]]; then
+  echo "Harvey checkout revision is $observed_revision; expected $harvey_revision" >&2
+  echo "Use a separate clean checkout at the revision in $experiment_file." >&2
+  exit 1
+fi
+
+if [[ -n "$(git -C "$harvey_checkout" status --porcelain --untracked-files=no)" ]]; then
+  echo "Harvey checkout has tracked changes: $harvey_checkout" >&2
+  exit 1
+fi
+
+echo "Harvey LAB checkout: $harvey_checkout"
+echo "Harvey LAB revision: $harvey_revision"
+exec "$harvey_checkout/scripts/setup.sh"

@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+# Run one uv command in renewable Slurm CPU allocations. Start this command on
+# a login node. Each allocation lasts four hours. The wrapped command receives
+# SIGINT after 3 hours 50 minutes so it can save a resumable boundary.
+
+slice_seconds="${RCPU_SLICE_SECONDS:-13800}"
+max_attempts="${RCPU_MAX_ATTEMPTS:-100}"
+cpus="${RCPU_CPUS:-16}"
+memory="${RCPU_MEMORY:-64G}"
+working_dir="$(pwd -P)"
+
+usage() {
+  printf '%s\n' \
+    "usage: rcpu COMMAND [ARG ...]" \
+    "" \
+    "Run 'uv run COMMAND [ARG ...]' in renewable four-hour CPU allocations." \
+    "The command must support safe restart if it lasts longer than one slice."
+}
+
+if (($# == 0)); then
+  usage >&2
+  exit 2
+fi
+if [[ -n "${SLURM_JOB_ID:-}" ]]; then
+  printf '%s\n' \
+    "rcpu: run this command on a login node, outside a Slurm allocation." >&2
+  exit 2
+fi
+if [[ ! "$slice_seconds" =~ ^[1-9][0-9]*$ ]] \
+  || [[ ! "$max_attempts" =~ ^[1-9][0-9]*$ ]] \
+  || [[ ! "$cpus" =~ ^[1-9][0-9]*$ ]] \
+  || [[ -z "$memory" ]]; then
+  printf '%s\n' \
+    "rcpu: RCPU_SLICE_SECONDS, RCPU_MAX_ATTEMPTS, and RCPU_CPUS must be positive integers; RCPU_MEMORY must be nonempty." >&2
+  exit 2
+fi
+if ! command -v srun >/dev/null 2>&1; then
+  printf '%s\n' "rcpu: srun is not available." >&2
+  exit 127
+fi
+if ! command -v uv >/dev/null 2>&1; then
+  printf '%s\n' "rcpu: uv is not available." >&2
+  exit 127
+fi
+
+started_at="$(date +%s)"
+for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+  attempt_started_at="$(date +%s)"
+  total_elapsed=$((attempt_started_at - started_at))
+  printf 'rcpu: allocation %d/%d; elapsed %02d:%02d:%02d.\n' \
+    "$attempt" "$max_attempts" \
+    "$((total_elapsed / 3600))" "$(((total_elapsed % 3600) / 60))" \
+    "$((total_elapsed % 60))"
+
+  srun \
+    --account=marlowe-m000058 \
+    --partition=preempt \
+    --nodes=1 \
+    --ntasks=1 \
+    --cpus-per-task="$cpus" \
+    --mem="$memory" \
+    --time=04:00:00 \
+    --job-name=rcpu \
+    --chdir="$working_dir" \
+    timeout --foreground --signal=INT --kill-after=120 \
+      "$slice_seconds" uv run "$@"
+  status=$?
+
+  attempt_finished_at="$(date +%s)"
+  total_elapsed=$((attempt_finished_at - started_at))
+
+  case "$status" in
+    0)
+      printf 'rcpu: command completed after %d allocation(s), total runtime %02d:%02d:%02d.\n' \
+        "$attempt" "$((total_elapsed / 3600))" \
+        "$(((total_elapsed % 3600) / 60))" "$((total_elapsed % 60))"
+      exit 0
+      ;;
+    124)
+      printf '%s\n' \
+        "rcpu: 3 hours 50 minutes elapsed; requesting a new allocation."
+      ;;
+    137|143)
+      printf 'rcpu: allocation ended by Slurm with status %d; requesting a new allocation.\n' \
+        "$status" >&2
+      ;;
+    130)
+      printf '%s\n' "rcpu: stopped by user." >&2
+      exit 130
+      ;;
+    *)
+      printf 'rcpu: command failed with status %d; it will not be restarted.\n' \
+        "$status" >&2
+      exit "$status"
+      ;;
+  esac
+done
+
+printf 'rcpu: command did not complete after %d allocations.\n' \
+  "$max_attempts" >&2
+exit 1

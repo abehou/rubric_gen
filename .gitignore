@@ -8,5 +8,6 @@ __pycache__/
 .superpowers/
 data/
 runs/*
+seeds/
 tmp/
 logs/vllm/*.out

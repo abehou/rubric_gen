@@ -1,4 +1,4 @@
-"""Seed, revise, and evaluate BiomniBench submissions."""
+"""Seed, revise, and evaluate supported benchmark submissions."""
 
 from __future__ import annotations
 

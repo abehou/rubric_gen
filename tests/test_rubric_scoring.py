@@ -32,6 +32,7 @@ def test_recomputation_applies_penalty_and_ignores_reported_criterion_scores() -
     )
 
     assert (result.raw_score, result.score) == (40, 40)
+    assert result.normalized_score == 0.4
     assert result.reported_score == 50
     assert not result.score_matches_reported
     assert result.selected_levels == {"criterion_1": "B", "criterion_2": "C"}

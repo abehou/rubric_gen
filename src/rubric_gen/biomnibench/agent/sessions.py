@@ -19,6 +19,8 @@ from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.agent.prompts import MAX_TRANSIENT_RETRIES, NO_WEB_POLICY
+from rubric_gen.biomnibench.agent.outputs import solver_output_errors
+from rubric_gen.benchmarks import Benchmark
 
 
 RECOVERY_PROMPT = (
@@ -32,6 +34,18 @@ OUTPUT_RECOVERY_PROMPT = (
     "the task autonomously without asking questions or waiting for confirmation. "
     "Complete the analysis, then verify that trace.md and answer.txt are regular, "
     "non-empty files before stopping."
+)
+
+PAPERBENCH_RECOVERY_PROMPT = (
+    "The previous response was interrupted by a provider stream error. Continue "
+    "the current task from where you left off. Finish the requested submission "
+    "repository and verify submission/README.md before stopping."
+)
+
+PAPERBENCH_OUTPUT_RECOVERY_PROMPT = (
+    "The previous response stopped before producing a valid PaperBench "
+    "submission. Continue autonomously. Complete the source repository under "
+    "submission, then verify that submission/README.md is regular and non-empty."
 )
 
 
@@ -70,8 +84,10 @@ class CliSolverSessionDriver:
         config: AgentRunConfig | None = None,
         *,
         registry: AgentAdapterRegistry | None = None,
+        benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
     ) -> None:
         self.config = config or AgentRunConfig()
+        self.benchmark = Benchmark(benchmark)
         if not 0 <= self.config.retries <= MAX_TRANSIENT_RETRIES:
             raise ValueError(
                 "Persistent-session retries must be between 0 and "
@@ -157,9 +173,17 @@ class CliSolverSessionDriver:
             if attempt_index == 1:
                 attempt_prompt = prompt
             elif attempt_records[-1].get("stream_errors"):
-                attempt_prompt = RECOVERY_PROMPT
+                attempt_prompt = (
+                    PAPERBENCH_RECOVERY_PROMPT
+                    if self.benchmark is Benchmark.PAPERBENCH_CODE_DEV
+                    else RECOVERY_PROMPT
+                )
             else:
-                attempt_prompt = OUTPUT_RECOVERY_PROMPT
+                attempt_prompt = (
+                    PAPERBENCH_OUTPUT_RECOVERY_PROMPT
+                    if self.benchmark is Benchmark.PAPERBENCH_CODE_DEV
+                    else OUTPUT_RECOVERY_PROMPT
+                )
             attempt_stream = (
                 attempts_dir / f"attempt-{attempt_index:03d}.trajectory.stream.jsonl"
             )
@@ -264,19 +288,8 @@ class CliSolverSessionDriver:
                 errors.append(f"trajectory_result_status: {status}")
         return errors
 
-    @staticmethod
-    def _submission_output_errors(workspace: Path) -> list[str]:
-        errors: list[str] = []
-        for name in ("trace.md", "answer.txt"):
-            path = workspace / name
-            try:
-                path_stat = os.lstat(path)
-            except OSError:
-                errors.append(f"missing_or_invalid: {name}")
-                continue
-            if not stat.S_ISREG(path_stat.st_mode) or path_stat.st_size == 0:
-                errors.append(f"missing_or_invalid: {name}")
-        return errors
+    def _submission_output_errors(self, workspace: Path) -> list[str]:
+        return solver_output_errors(workspace, self.benchmark)
 
     def _ensure_executable(self) -> None:
         executable = self.adapter.executable(self.config)

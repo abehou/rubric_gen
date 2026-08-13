@@ -64,8 +64,8 @@ class OriginalRubricTarget:
                 raise ValueError(f"{name} must be a safe non-empty basename")
         if type(self.replicate) is not int or self.replicate < 1:
             raise ValueError("replicate must be positive")
-        if self.review not in {"trace", "trajectory"}:
-            raise ValueError("review must be trace or trajectory")
+        if self.review not in {"trace", "trajectory", "workspace"}:
+            raise ValueError("review must be trace, trajectory, or workspace")
         if (
             type(self.rubric_sha256) is not str
             or len(self.rubric_sha256) != 64

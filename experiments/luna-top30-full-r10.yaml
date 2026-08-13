@@ -1,6 +1,7 @@
-schema_version: 1
+schema_version: 3
 kind: rubric-gen-randomized-experiment
 experiment_id: luna-top30-full-r10
+benchmark: biomnibench-da
 
 tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
 tasks:
@@ -89,7 +90,7 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: runs/biomnibench-seeds/luna-top30-full-r10
+    output_dir: seeds/luna-top30-full-r10
   revise:
     depends_on: [seed]
     output_dir: runs/biomnibench-studies/luna-top30-full-r10

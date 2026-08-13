@@ -1,17 +1,17 @@
 schema_version: 3
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-audited-proposer-preflight
-benchmark: biomnibench-da
+experiment_id: luna-paperbench-code-dev-audited-proposer-score-only-r6
+benchmark: paperbench-code-dev
 
-tasks_dir: data/biomnibench-da
+tasks_dir: /scratch/m000058/abehou/rubric_gen/data/paperbench-code-dev
 tasks:
-  - da-3-4
-  - da-11-1
-  - da-18-1
+  - semantic-self-consistency
+  - self-expansion
+  - self-composing-policies
 
 randomization:
-  seed: 20260807
-  replicates: 1
+  seed: 20260812
+  replicates: 3
 
 conditions:
   - condition_id: base-static
@@ -28,8 +28,8 @@ conditions:
     rubric_evolution: prospective
 
 protocol:
-  revision_rounds: 7
-  feedback_policy: semi
+  revision_rounds: 6
+  feedback_policy: score_only
   solver:
     provider: codex
     model: gpt-5.6-luna
@@ -41,7 +41,7 @@ protocol:
   judge_model: gpt-5.6-luna
   judge_max_retries: 1
   rubric_name: rubric.txt
-  review: trace
+  review: workspace
   max_review_chars: null
   rubric_auditor_model: gpt-5.6-luna
   rubric_auditor_query_limit: 12
@@ -64,12 +64,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: seeds/luna-audited-proposer-preflight
-    submission_source_dir: seeds/luna-top30-score-only-r6
-    submission_source_experiment_id: luna-top30-score-only-r6
+    output_dir: /scratch/m000058/abehou/rubric_gen/runs/paperbench-code-dev-seeds/luna-r6
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-audited-proposer-preflight
+    output_dir: /scratch/m000058/abehou/rubric_gen/runs/paperbench-code-dev-studies/luna-r6
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-audited-proposer-preflight
+    output_dir: /scratch/m000058/abehou/rubric_gen/runs/paperbench-code-dev-detections/luna-r6

@@ -409,7 +409,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         malt_cli_module, "load_experiment", lambda _path: FakeExperiment()
     )
     args = build_parser().parse_args([
-        "--detect", detection, "--biomnibench-study-dir", str(study),
+        "--detect", detection, "--study-dir", str(study),
         "--output-dir", str(tmp_path / "out"),
         "--ensemble", "--resume",
     ])
@@ -429,7 +429,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
 
 def test_biomni_input_requires_forensic_ensemble(tmp_path: Path) -> None:
     args = build_parser().parse_args([
-        "--detect", "rh", "--biomnibench-study-dir", str(tmp_path),
+        "--detect", "rh", "--study-dir", str(tmp_path),
     ])
     with pytest.raises(ValueError, match="requires --ensemble"):
         run(args)

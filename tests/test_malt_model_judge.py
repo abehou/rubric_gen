@@ -468,6 +468,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     (revision / "manifest.json").write_text(json.dumps({
         "schema_version": 2,
         "kind": "rubric-gen-submission-revision-experiment",
+        "benchmark": "biomnibench-da",
         "experiment_id": "test-experiment",
         "execution_order": 1,
         "assignment_id": "da-1-1--rep-001--base--static",

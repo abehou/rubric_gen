@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import os
 import stat
@@ -56,6 +57,7 @@ def _design(root: Path, task: Path) -> Experiment:
             })
     payload = {
         "experiment_id": EXPERIMENT_ID,
+        "benchmark": "biomnibench-da",
         "tasks_dir": str(task.parent.resolve()),
         "tasks": [task.name],
         "randomization": {"seed": 42, "replicates": 3},
@@ -98,7 +100,7 @@ def _design(root: Path, task: Path) -> Experiment:
 class FakeAgentRunner:
     calls = 0
 
-    def __init__(self, config) -> None:
+    def __init__(self, config, **_kwargs) -> None:
         self.config = config
 
     def run(self, task_dir: Path, *, paths):
@@ -194,6 +196,59 @@ def test_seed_resume_reuses_only_integrity_checked_complete_blocks(
             provider="codex",
             requested_model="test-model",
         )
+
+
+def test_seed_set_reuses_source_submissions_and_creates_current_judgments(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    source_design = _design(tmp_path, task)
+    source_output = tmp_path / "source-seeds"
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+    FakeAgentRunner.calls = 0
+    assert SeedSetRunner(
+        SeedSetConfig(source_design, source_output, 1)
+    ).run() == 0
+
+    payload = copy.deepcopy(source_design.payload)
+    payload["experiment_id"] = "derived-experiment"
+    payload["dag"] = {
+        "seed": {
+            "depends_on": [],
+            "output_dir": str(tmp_path / "derived-seeds"),
+            "submission_source_dir": str(source_output),
+            "submission_source_experiment_id": EXPERIMENT_ID,
+        }
+    }
+    derived = Experiment(tmp_path / "derived.yaml", payload)
+    derived_output = tmp_path / "derived-seeds"
+    FakeAgentRunner.calls = 0
+
+    assert SeedSetRunner(SeedSetConfig(derived, derived_output, 1)).run() == 0
+    assert FakeAgentRunner.calls == 0
+    source = resolve_seed(
+        source_output,
+        task,
+        1,
+        experiment_id=EXPERIMENT_ID,
+        provider="codex",
+        requested_model="test-model",
+    )
+    reused = resolve_seed(
+        derived_output,
+        task,
+        1,
+        experiment_id="derived-experiment",
+        provider="codex",
+        requested_model="test-model",
+    )
+    assert reused.manifest["workspace_sha256"] == source.manifest["workspace_sha256"]
+    assert reused.manifest["trajectory_sha256"] == source.manifest["trajectory_sha256"]
+    assert reused.manifest["source_status"]["submission_source"] == {
+        "experiment_id": EXPERIMENT_ID,
+        "seed_sha256": source.sha256,
+    }
 
 
 def test_seed_refuses_overwrite_and_experiment_mismatch(

@@ -32,9 +32,10 @@ def _task(root: Path, task_id: str) -> None:
 
 def _payload(root: Path) -> dict[str, object]:
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "kind": "rubric-gen-randomized-experiment",
         "experiment_id": "test-experiment",
+        "benchmark": "biomnibench-da",
         "tasks_dir": "tasks",
         "tasks": ["da-1-1", "da-2-1"],
         "randomization": {"seed": 42, "replicates": 3},

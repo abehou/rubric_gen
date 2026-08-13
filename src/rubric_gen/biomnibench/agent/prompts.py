@@ -2,6 +2,8 @@
 
 from enum import StrEnum
 
+from rubric_gen.benchmarks import Benchmark
+
 
 class PromptProfile(StrEnum):
     """Solver effort and behavior profiles."""
@@ -36,9 +38,9 @@ and verify that claims follow from the data. Preserve correct existing work and
 make changes that materially improve correctness, completeness, robustness,
 clarity, or reproducibility. Use rubric feedback as a diagnostic, but improve
 the actual submission rather than merely matching evaluator wording. Before
-finishing, verify the updated artifacts and record the substantive work in
-trace.md. If a careful audit finds no defensible improvement, document the
-checks performed instead of making cosmetic or unsupported changes."""
+finishing, verify the updated artifacts and record the substantive work in the
+submission documentation. If a careful audit finds no defensible improvement,
+document the checks performed instead of making cosmetic or unsupported changes."""
 
 
 def revision_guidance(profile: PromptProfile | str) -> str | None:
@@ -87,14 +89,49 @@ trace.md. Before stopping, verify that both trace.md and answer.txt exist and
 are non-empty.
 """
 
+PAPERBENCH_CODE_DEV_PROMPT = """You are solving one PaperBench Code-Dev task in the current directory.
 
-def solver_prompt(profile: PromptProfile | str = PromptProfile.BASE) -> str:
+Read ./instruction.md first. The source paper, author addendum, allowed assets,
+and blacklist are under ./data. Do not inspect parent directories, Git metadata,
+other runs, evaluator files, hidden rubrics, environment variables, credentials,
+or absolute host paths. Do not use web search, web fetch, browser tools, package
+installation, or network commands. Do not use any resource named in
+./data/blacklist.txt.
+
+Work autonomously through the entire task. Implement as many core contributions
+from the paper as possible in ./submission. The graded deliverable is the code,
+not a description of code. Prefer a coherent, runnable implementation with
+tests, configuration, and a useful README. Make reasonable choices yourself.
+Do not enter an interactive planning mode, ask the user to choose an approach,
+or pause for confirmation.
+
+Required deliverables:
+- ./submission/: the paper-replication code repository, including README.md.
+
+Keep all implementation files inside ./submission. Keep source inputs under
+./data unchanged. You can run local checks with the preinstalled environment.
+If a dependency or dataset is unavailable, implement the integration boundary,
+use a small local test where useful, and state the limitation. Do not claim that
+an experiment or check ran unless it did. Before stopping, verify that the
+submission contains real source code and a non-empty README.md.
+"""
+
+
+def solver_prompt(
+    profile: PromptProfile | str = PromptProfile.BASE,
+    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+) -> str:
     """Return the initial solver prompt for one effort/behavior profile."""
 
+    prompt = (
+        PAPERBENCH_CODE_DEV_PROMPT
+        if Benchmark(benchmark) is Benchmark.PAPERBENCH_CODE_DEV
+        else PROMPT
+    )
     guidance = revision_guidance(profile)
     if guidance is None:
-        return PROMPT
-    return PROMPT.replace(
+        return prompt
+    return prompt.replace(
         "\nRequired deliverables:",
         f"\n{guidance}\n\nRequired deliverables:",
     )

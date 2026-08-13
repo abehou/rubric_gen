@@ -33,6 +33,7 @@ from .scoring import (
     JudgeScoreValidationError,
     RUBRIC_SCORER_VERSION,
     parse_rubric_levels_strict,
+    parse_score_normalization_maximum,
     validate_judge_score,
 )
 
@@ -170,6 +171,7 @@ class JudgeExecutor:
             "exit_code": proc.returncode,
             "judge_exit_code": proc.returncode,
             "score": None,
+            "normalized_score": None,
             "reward": str(reward_path),
             "evaluation": str(evaluation_path),
             "usage": str(usage_path),
@@ -205,6 +207,7 @@ class JudgeExecutor:
             "status": "completed",
             "exit_code": 0,
             "score": validation["score"],
+            "normalized_score": validation["normalized_score"],
         }
 
     def build_score_validation(
@@ -252,10 +255,12 @@ class JudgeExecutor:
             rubric_levels=parse_rubric_levels_strict(rubric.text),
             evaluation=evaluation,
             reward=reward,
+            normalization_maximum=parse_score_normalization_maximum(rubric.text),
         )
         return {
             **score_input_attestation,
             "score": validated.score,
+            "normalized_score": validated.normalized_score,
             "raw_score": validated.raw_score,
             "reported_score": validated.reported_score,
             "score_matches_reported": validated.score_matches_reported,

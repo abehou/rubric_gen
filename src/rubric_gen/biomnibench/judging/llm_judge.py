@@ -221,6 +221,8 @@ def generate_response(
     model: str,
     prompt: JudgePrompt,
     criterion_ids: tuple[str, ...] = (),
+    *,
+    max_output_tokens: int = _MAX_OUTPUT_TOKENS,
 ) -> JudgeGeneration:
     base_url = os.getenv("VLLM_BASE_URL")
     provider = provider_for_model(model, base_url=base_url)
@@ -239,7 +241,7 @@ def generate_response(
                 {"role": "system", "content": prompt.instructions},
                 {"role": "user", "content": prompt.evidence},
             ],
-            max_tokens=_MAX_OUTPUT_TOKENS,
+            max_tokens=max_output_tokens,
             temperature=0,
             response_format={
                 "type": "json_schema",
@@ -261,7 +263,7 @@ def generate_response(
             response_id=getattr(response, "id", None),
             request_parameters={
                 "base_url": base_url.rstrip("/") + "/",
-                "max_tokens": _MAX_OUTPUT_TOKENS,
+                "max_tokens": max_output_tokens,
                 "temperature": 0,
                 "client_timeout_seconds": _OPENAI_TIMEOUT_SECONDS,
                 "client_max_retries": 0,
@@ -294,7 +296,7 @@ def generate_response(
                 model=model,
                 contents=prompt.flat_prompt(),
                 config=types.GenerateContentConfig(
-                    max_output_tokens=_MAX_OUTPUT_TOKENS,
+                    max_output_tokens=max_output_tokens,
                     thinking_config=types.ThinkingConfig(thinking_level="low"),
                 ),
             )
@@ -309,7 +311,7 @@ def generate_response(
             effective_model=str(getattr(response, "model_version", model)),
             response_id=getattr(response, "response_id", None),
             request_parameters={
-                "max_output_tokens": _MAX_OUTPUT_TOKENS,
+                "max_output_tokens": max_output_tokens,
                 "thinking_level": "low",
                 "client_max_retries": 0,
                 "prompt_cache": "implicit-stable-rubric-prefix",
@@ -330,7 +332,7 @@ def generate_response(
                 max_retries=0,
             ).messages.create(
                 model=model,
-                max_tokens=_MAX_OUTPUT_TOKENS,
+                max_tokens=max_output_tokens,
                 system=[{
                     "type": "text",
                     "text": prompt.instructions,
@@ -359,7 +361,7 @@ def generate_response(
             effective_model=str(getattr(response, "model", model)),
             response_id=getattr(response, "id", None),
             request_parameters={
-                "max_output_tokens": _MAX_OUTPUT_TOKENS,
+                "max_output_tokens": max_output_tokens,
                 "effort": "low",
                 "client_timeout_seconds": _ANTHROPIC_TIMEOUT_SECONDS,
                 "client_max_retries": 0,
@@ -385,7 +387,7 @@ def generate_response(
         response = client.responses.create(
             model=model,
             input=prompt.openai_input(),
-            max_output_tokens=_MAX_OUTPUT_TOKENS,
+            max_output_tokens=max_output_tokens,
             reasoning={"effort": "none"},
             text={
                 "format": _openai_text_format(criterion_ids),
@@ -400,7 +402,7 @@ def generate_response(
             reason = getattr(details, "reason", None) or "unknown"
             raise RuntimeError(
                 "OpenAI returned an incomplete judge response "
-                f"(reason={reason}, max_output_tokens={_MAX_OUTPUT_TOKENS})"
+                f"(reason={reason}, max_output_tokens={max_output_tokens})"
             )
         if status not in {None, "completed"}:
             error = getattr(response, "error", None)
@@ -418,7 +420,7 @@ def generate_response(
         effective_model=str(getattr(response, "model", model)),
         response_id=getattr(response, "id", None),
         request_parameters={
-            "max_output_tokens": _MAX_OUTPUT_TOKENS,
+            "max_output_tokens": max_output_tokens,
             "reasoning_effort": "none",
             "text_verbosity": "low",
             "client_timeout_seconds": _OPENAI_TIMEOUT_SECONDS,
@@ -494,6 +496,17 @@ def parse_rubric_levels(rubric: str) -> dict[str, dict[str, int]]:
     return levels_by_criterion
 
 
+def parse_score_normalization_maximum(rubric: str) -> int | None:
+    matches = re.findall(
+        r"^[ \t]*Score normalization maximum:[ \t]*([1-9]\d*)[ \t]*$",
+        rubric,
+        flags=re.MULTILINE,
+    )
+    if len(matches) > 1:
+        raise ValueError("rubric contains multiple score normalization directives")
+    return int(matches[0]) if matches else None
+
+
 def extract_json_object(text: str) -> dict[str, object]:
     start = text.find("{")
     if start < 0:
@@ -527,6 +540,7 @@ def extract_json_object(text: str) -> dict[str, object]:
 def score_response(
     response_text: str,
     rubric_levels: dict[str, dict[str, int]],
+    normalization_maximum: int | None = None,
 ) -> tuple[int, dict[str, object], str]:
     result = extract_json_object(response_text)
     raw_criteria = result.get("criteria")
@@ -550,11 +564,16 @@ def score_response(
         }
         total += score
     reasoning = result.get("overall_reasoning", result.get("reasoning", ""))
-    return max(0, min(100, total)), criteria, str(reasoning)
+    score = (
+        round(total * 100 / normalization_maximum)
+        if normalization_maximum is not None
+        else total
+    )
+    return max(0, min(100, score)), criteria, str(reasoning)
 
 
 def judge_prompt(rubric: str, trace: str, answer: str) -> JudgePrompt:
-    instructions = f"""You are an expert evaluator for a data analysis task.
+    instructions = f"""You are an expert evaluator for a scientific agent task.
 
 Evaluate the agent's work using the following rubric:
 
@@ -565,17 +584,19 @@ evidence. Return only one JSON object with this shape:
 {{"criteria": {{"criterion_1": {{"level": "A", "reason": "..."}}}},
  "overall_reasoning": "..."}}
 Do not calculate or return numerical points. Keep each criterion reason under
-30 words and overall_reasoning under 100 words. Completeness and valid JSON are
+15 words and overall_reasoning under 100 words. Completeness and valid JSON are
 more important than elaboration."""
 
-    evidence = f"""Here is the agent's analysis trace:
-<trace>
+    evidence = f"""Here is the evidence selected by the evaluation harness:
+<submission_evidence>
 {trace or "[No trace file provided]"}
-</trace>
+</submission_evidence>"""
+    if answer:
+        evidence += f"""
 
 Here is the agent's final answer:
 <answer>
-{answer or "[No answer file provided]"}
+{answer}
 </answer>"""
     return JudgePrompt(instructions=instructions, evidence=evidence)
 
@@ -590,16 +611,23 @@ def main() -> None:
     if not model:
         raise RuntimeError("MODEL_NAME must be set")
     rubric_levels = parse_rubric_levels(rubric)
+    normalization_maximum = parse_score_normalization_maximum(rubric)
+    max_output_tokens = min(
+        32_768,
+        max(_MAX_OUTPUT_TOKENS, len(rubric_levels) * 128),
+    )
     generation = generate_response(
         model,
         judge_prompt(rubric, trace, answer),
         tuple(rubric_levels),
+        max_output_tokens=max_output_tokens,
     )
     response_text = generation.text
     print(f"Raw response (first 1000 chars): {response_text[:1000]}...")
     score, criteria, reasoning = score_response(
         response_text,
         rubric_levels,
+        normalization_maximum,
     )
     logs = Path("/logs/verifier")
     logs.mkdir(parents=True, exist_ok=True)

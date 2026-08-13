@@ -239,6 +239,7 @@ class StudyRunner:
             condition_id=str(assignment["condition_id"]),
             replicate=int(assignment["replicate"]),
             execution_order=int(assignment["execution_order"]),
+            benchmark=self.experiment.benchmark,
             judge_max_retries=int(protocol["judge_max_retries"]),
             rubric_proposer_max_retries=int(
                 protocol["rubric_proposer_max_retries"]
@@ -422,6 +423,7 @@ def validate_completed_revision(
         "schema_version": REVISION_MANIFEST_SCHEMA_VERSION,
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": experiment.experiment_id,
+        "benchmark": str(experiment.benchmark),
         "assignment_id": assignment.get("assignment_id"),
         "condition_id": assignment.get("condition_id"),
         "task_id": assignment.get("task_id"),
@@ -619,6 +621,7 @@ def validate_completed_revision(
                 sha256_file(rubric_path),
                 comment,
                 prompt_profile=prompt_profile,
+                benchmark=experiment.benchmark,
             )
         else:
             projected = project_feedback(
@@ -628,6 +631,7 @@ def validate_completed_revision(
                 sha256_file(rubric_path),
                 policy,
                 prompt_profile=prompt_profile,
+                benchmark=experiment.benchmark,
             )
         if (
             read_json_object(feedback, "revision feedback") != projected.payload

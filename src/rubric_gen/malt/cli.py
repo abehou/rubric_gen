@@ -202,7 +202,7 @@ def _default_benchmark_dir() -> Path:
     return bulk_root / "rubric_gen" / "runs" / "malt-benchmark"
 
 
-def _biomnibench_experiments(
+def _study_experiments(
     value: str,
 ) -> tuple[tuple[Path, ...], str, Path, dict[str, object]]:
     experiments: list[Path] = []
@@ -211,7 +211,7 @@ def _biomnibench_experiments(
     try:
         study = json.loads(study_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"invalid randomized Biomni study: {source}") from exc
+        raise ValueError(f"invalid randomized benchmark study: {source}") from exc
     if (
         study.get("schema_version") != 1
         or study.get("kind") != "rubric-gen-randomized-revision-study"
@@ -220,51 +220,52 @@ def _biomnibench_experiments(
         or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
     ):
-        raise ValueError(f"unsupported Biomni study: {source}")
+        raise ValueError(f"unsupported benchmark study: {source}")
     experiment_spec = load_experiment(Path(str(study["experiment_path"])))
     if study["experiment_id"] != experiment_spec.experiment_id:
-        raise ValueError(f"Biomni study experiment ID changed: {source}")
+        raise ValueError(f"benchmark study experiment ID changed: {source}")
     records = study.get("records")
     if not isinstance(records, list) or any(
         not isinstance(item, dict) for item in records
     ):
-        raise ValueError(f"Biomni study has invalid records: {source}")
+        raise ValueError(f"benchmark study has invalid records: {source}")
     assignments = {
         str(item["assignment_id"]): item for item in experiment_spec.assignments
     }
     record_ids = [str(record.get("assignment_id")) for record in records]
     if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
-        raise ValueError(f"Biomni study ledger differs from its experiment: {source}")
+        raise ValueError(f"benchmark study ledger differs from its experiment: {source}")
     for record in records:
         status = record.get("status")
         assignment = assignments[str(record["assignment_id"])]
         experiment = resolve_study_experiment(source, record, assignment)
         if status not in {"completed", "failed", "invalid"}:
             raise ValueError(
-                f"Biomni study must reach a terminal boundary before audit: {source}"
+                "benchmark study must reach a terminal boundary before audit: "
+                f"{source}"
             )
         if status != "completed":
             continue
         experiments.append(experiment)
     resolved = tuple(path.resolve() for path in experiments)
     if len(set(resolved)) != len(resolved):
-        raise ValueError("duplicate Biomni revision experiment")
+        raise ValueError("duplicate benchmark revision experiment")
     if not resolved:
-        raise ValueError("Biomni study has no completed assignments to audit")
+        raise ValueError("benchmark study has no completed assignments to audit")
     return (
         resolved, experiment_spec.experiment_id,
         experiment_spec.tasks_dir.resolve(), experiment_spec.outcome_audit,
     )
 
 
-def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
+def _run_study(args: argparse.Namespace, detection: str) -> int:
     if args.inputs:
         raise ValueError(
-            "MALT shard inputs and --biomnibench-study-dir cannot be mixed"
+            "MALT shard inputs and --study-dir cannot be mixed"
         )
     if not args.ensemble and not args.vllm:
         raise ValueError(
-            "--biomnibench-study-dir requires --ensemble or at least one --vllm"
+            "--study-dir requires --ensemble or at least one --vllm"
         )
     if args.execution not in {None, "standard"}:
         raise ValueError(
@@ -273,7 +274,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     if args.top is not None or args.negative_top is not None:
         raise ValueError(
             "--top and --negative-top are MALT dataset options and cannot "
-            "be used with --biomnibench-study-dir"
+            "be used with --study-dir"
         )
     dataset_only = {
         "benchmark_dir": args.benchmark_dir,
@@ -288,12 +289,12 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
     }
     if supplied_dataset_only:
         raise ValueError(
-            "MALT dataset options cannot be used with --biomnibench-study-dir: "
+            "MALT dataset options cannot be used with --study-dir: "
             + ", ".join(sorted(supplied_dataset_only))
         )
     base_urls = parse_vllm_endpoints(args.vllm or [])
-    experiments, experiment_id, tasks_dir, audit = _biomnibench_experiments(
-        args.biomnibench_study_dir
+    experiments, experiment_id, tasks_dir, audit = _study_experiments(
+        args.study_dir
     )
     expected_models = tuple(audit.get("models", ()))
     models = tuple(base_urls) if base_urls else STRONG_JUDGE_MODELS
@@ -382,7 +383,7 @@ def _run_biomnibench(args: argparse.Namespace, detection: str) -> int:
         )
     ).run()
     print(
-        "Wrote unscored Biomni forensic judgments: "
+        "Wrote unscored benchmark forensic judgments: "
         f"{evaluation_root / 'summary.json'}"
     )
     return exit_code
@@ -398,11 +399,10 @@ def build_parser() -> argparse.ArgumentParser:
               "data/malt-public/data/*.parquet."),
     )
     parser.add_argument(
-        "--biomnibench-study-dir",
-        dest="biomnibench_study_dir",
+        "--study-dir",
         default=None,
         help=(
-            "Randomized Biomni study directories to audit instead of "
+            "Randomized benchmark study directory to audit instead of "
             "a labeled MALT dataset. Requires --ensemble or --vllm."
         ),
     )
@@ -506,8 +506,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run(args: argparse.Namespace) -> int:
     target = detection_target(args.detect)
-    if args.biomnibench_study_dir:
-        return _run_biomnibench(args, target.name)
+    if args.study_dir:
+        return _run_study(args, target.name)
     args.development_fraction = (
         0.2 if args.development_fraction is None else args.development_fraction
     )

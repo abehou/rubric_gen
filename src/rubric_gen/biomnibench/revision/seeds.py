@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Callable
 
 from rubric_gen.biomnibench.agent.models import RunPaths
+from rubric_gen.biomnibench.agent.prompts import solver_prompt
 from rubric_gen.biomnibench.agent.runners import AgentRunner
 from rubric_gen.biomnibench.experiment import Experiment
 from rubric_gen.biomnibench.revision.artifacts import (
@@ -183,7 +184,7 @@ class SeedSetRunner:
         status: str,
         failures: list[dict[str, object]],
     ) -> None:
-        write_json_atomic(root / "manifest.json", {
+        manifest = {
             "schema_version": SEED_SET_SCHEMA_VERSION,
             "kind": SEED_SET_KIND,
             "status": status,
@@ -195,7 +196,14 @@ class SeedSetRunner:
             ],
             "max_concurrency": self.config.max_concurrency,
             "failures": failures,
-        })
+        }
+        if self.experiment.seed_submission_source is not None:
+            source_dir, source_experiment_id = self.experiment.seed_submission_source
+            manifest["submission_source"] = {
+                "output_dir": str(source_dir),
+                "experiment_id": source_experiment_id,
+            }
+        write_json_atomic(root / "manifest.json", manifest)
 
     def _validate_resume_manifest(
         self,
@@ -223,6 +231,12 @@ class SeedSetRunner:
                 for task, replicate in jobs
             ],
         }
+        if self.experiment.seed_submission_source is not None:
+            source_dir, source_experiment_id = self.experiment.seed_submission_source
+            expected["submission_source"] = {
+                "output_dir": str(source_dir),
+                "experiment_id": source_experiment_id,
+            }
         for key, value in expected.items():
             if manifest.get(key) != value:
                 raise RuntimeError(
@@ -274,28 +288,51 @@ class SeedSetRunner:
         if os.path.lexists(destination):
             raise FileExistsError(f"seed block already exists: {destination}")
         try:
-            run_dir = temporary / "run"
-            paths = RunPaths(
-                provider=self.agent.provider,
-                run_dir=run_dir,
-                workspace_dir=temporary / "workspace",
-                prompt_path=run_dir / "prompt.txt",
-                policy_path=run_dir / "no-web-policy.toml",
-                stream_path=run_dir / "trajectory.stream.jsonl",
-                status_path=run_dir / "status.json",
-            )
-            exit_code, paths = AgentRunner(self.agent).run(
-                task_dir.resolve(), paths=paths
-            )
-            if exit_code != 0:
-                raise RuntimeError(f"seed solver exited with code {exit_code}")
             submission = destination / "submission"
             workspace = submission / "workspace"
             submission.mkdir(parents=True)
-            copy_solution_workspace(paths.workspace_dir, workspace)
             trajectory = submission / "trajectory.stream.jsonl"
-            shutil.copyfile(paths.stream_path, trajectory)
-            source_status = json.loads(paths.status_path.read_text())
+            submission_source = self.experiment.seed_submission_source
+            if submission_source is None:
+                run_dir = temporary / "run"
+                paths = RunPaths(
+                    provider=self.agent.provider,
+                    run_dir=run_dir,
+                    workspace_dir=temporary / "workspace",
+                    prompt_path=run_dir / "prompt.txt",
+                    policy_path=run_dir / "no-web-policy.toml",
+                    stream_path=run_dir / "trajectory.stream.jsonl",
+                    status_path=run_dir / "status.json",
+                )
+                exit_code, paths = AgentRunner(
+                    self.agent,
+                    prompt=solver_prompt(benchmark=self.experiment.benchmark),
+                    benchmark=self.experiment.benchmark,
+                ).run(task_dir.resolve(), paths=paths)
+                if exit_code != 0:
+                    raise RuntimeError(f"seed solver exited with code {exit_code}")
+                copy_solution_workspace(paths.workspace_dir, workspace)
+                shutil.copyfile(paths.stream_path, trajectory)
+                source_status = json.loads(paths.status_path.read_text())
+            else:
+                source_dir, source_experiment_id = submission_source
+                source = resolve_seed(
+                    source_dir,
+                    task_dir,
+                    replicate,
+                    experiment_id=source_experiment_id,
+                    provider=self.agent.provider,
+                    requested_model=self.agent.model,
+                )
+                copy_solution_workspace(source.submission_dir / "workspace", workspace)
+                shutil.copyfile(
+                    source.submission_dir / "trajectory.stream.jsonl", trajectory
+                )
+                source_status = dict(source.manifest["source_status"])  # type: ignore[arg-type]
+                source_status["submission_source"] = {
+                    "experiment_id": source_experiment_id,
+                    "seed_sha256": source.sha256,
+                }
             workspace_sha = solution_tree_sha256(workspace)
             trajectory_sha = sha256_file(trajectory)
             instruction_sha = sha256_file(task_dir / "instruction.md")

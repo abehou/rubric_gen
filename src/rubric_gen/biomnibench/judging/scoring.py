@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 
-RUBRIC_SCORER_VERSION = "rubric-scoring-v1"
+RUBRIC_SCORER_VERSION = "rubric-scoring-v3"
 
 
 class JudgeScoreValidationError(ValueError):
@@ -16,6 +16,7 @@ class JudgeScoreValidationError(ValueError):
 @dataclass(frozen=True)
 class ValidatedJudgeScore:
     score: int
+    normalized_score: float
     raw_score: int
     reported_score: int
     score_matches_reported: bool
@@ -34,6 +35,21 @@ _LEVELS_LINE_PATTERN = re.compile(
 )
 _LEVELS_VALUE_PATTERN = re.compile(r"[A-Z]=[+-]?\d+(?:[ \t]+[A-Z]=[+-]?\d+)*")
 _LEVEL_PATTERN = re.compile(r"([A-Z])=([+-]?\d+)")
+_NORMALIZATION_PATTERN = re.compile(
+    r"^[ \t]*Score normalization maximum:[ \t]*([1-9]\d*)[ \t]*$",
+    flags=re.MULTILINE,
+)
+
+
+def parse_score_normalization_maximum(rubric_text: str) -> int | None:
+    """Return the optional raw-point maximum that maps to a score of 100."""
+
+    matches = _NORMALIZATION_PATTERN.findall(rubric_text)
+    if len(matches) > 1:
+        raise JudgeScoreValidationError(
+            "rubric contains more than one score normalization directive"
+        )
+    return int(matches[0]) if matches else None
 
 
 def parse_rubric_levels_strict(rubric_text: str) -> dict[str, dict[str, int]]:
@@ -104,6 +120,7 @@ def validate_judge_score(
     rubric_levels: object,
     evaluation: object,
     reward: object,
+    normalization_maximum: int | None = None,
 ) -> ValidatedJudgeScore:
     """Validate judge artifacts and authoritatively recompute the signed score."""
 
@@ -149,9 +166,21 @@ def validate_judge_score(
         criterion_scores[criterion_key] = levels[selected_level]
 
     raw_score = sum(criterion_scores.values())
-    score = max(0, min(100, raw_score))
+    if normalization_maximum is not None:
+        if type(normalization_maximum) is not int or normalization_maximum < 1:
+            raise JudgeScoreValidationError(
+                "score normalization maximum must be a positive integer"
+            )
+        score = round(raw_score * 100 / normalization_maximum)
+        normalized_score = raw_score / normalization_maximum
+    else:
+        score = raw_score
+        normalized_score = raw_score / 100
+    score = max(0, min(100, score))
+    normalized_score = max(0.0, min(1.0, normalized_score))
     return ValidatedJudgeScore(
         score=score,
+        normalized_score=normalized_score,
         raw_score=raw_score,
         reported_score=reported_score,
         score_matches_reported=score == reported_score,

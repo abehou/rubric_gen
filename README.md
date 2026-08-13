@@ -1,7 +1,8 @@
 # Rubric Gen
 
-Seed BiomniBench submissions, revise them over multiple rounds, detect reward
-hacking, and re-score initial and final quality against the original rubric.
+Seed scientific benchmark submissions, revise them over multiple rounds, detect
+reward hacking, and re-score initial and final quality against the original
+rubric. The supported benchmarks are BiomniBench-DA and PaperBench Code-Dev.
 
 ## Setup
 
@@ -14,31 +15,111 @@ into that harness.
 uv sync
 ```
 
+### Harvey LAB setup
+
+Harvey LAB is a separate pinned uv project. It requires Python 3.12 or 3.13,
+while this repository also supports other Python versions. Do not copy Harvey's
+Python packages into this project's dependency list. Set up both environments
+with:
+
+```bash
+uv sync
+./scripts/setup_harvey
+```
+
+The second command reads the checkout path and revision from
+`experiments/harvey-harness-evolution.yaml`. It clones the official repository
+when necessary and runs Harvey LAB's setup script. That script uses Harvey's
+own `uv.lock` for its Python environment. It also installs Pandoc and Podman and
+pulls or builds `lab-sandbox:latest`. Pandoc and Podman are system programs;
+uv cannot install them. On Linux, their installation needs sudo access. On a
+managed cluster, ask the administrator to provide both commands if sudo is not
+available.
+
+The Harvey LAB harness-evolution workflow lets Codex choose any earlier harness
+as a parent. It supports static or prospective task rubrics and sealed transfer
+and reward-hacking audits. See
+[`docs/harvey_harness_evolution.md`](docs/harvey_harness_evolution.md) and
+[`experiments/harvey-harness-evolution.yaml`](experiments/harvey-harness-evolution.yaml).
+
+### PaperBench Code-Dev data
+
+Load the three-paper official PaperBench dev split at the pinned upstream
+revision. The loader hydrates Git LFS data, keeps only Code Development leaves,
+and writes exact binary leaf weights. For each judgment, `raw_score` divided by
+`score_normalization_maximum` equals the official PaperBench Code-Dev score;
+the score-validation artifact stores this value as `normalized_score`.
+
+```bash
+uv run python download_paperbench.py \
+  /scratch/m000058/abehou/rubric_gen/data/paperbench-code-dev
+```
+
+The ready experiment is `experiments/paperbench-code-dev.yaml`. Its native
+solver deliverable is the source repository under `submission/`, including its
+README. Workspace review gives the judge the paper, addenda, and submitted
+source files. It does not give the judge `answer.txt`, `trace.md`, or other
+BiomniBench harness summaries. The prospective rubric proposer also receives
+the submitted source tree rather than an answer summary. The experiment uses
+the same four prompt and rubric-evolution conditions as the BiomniBench study.
+The binary scoring and recursive weights match PaperBench; the model-judge
+implementation remains this project's centralized judge, not the upstream
+per-leaf SimpleJudge implementation.
+
+```bash
+uv run rubric-gen run \
+  --experiment experiments/paperbench-code-dev.yaml \
+  --max-concurrency 16 \
+  --resume
+```
+
 ## Workflow
 
 The repository-level `experiment.yaml` declares tasks, randomized conditions,
 protocol settings, stage outputs, and the `seed -> revise -> detect` DAG.
 
 ```bash
-uv run biomnibench-agent run \
+uv run rubric-gen run \
   --experiment experiment.yaml \
   --max-concurrency 16 \
   --resume
 ```
 
+On the Marlowe login node, install the renewable CPU wrapper once:
+
+```bash
+ln -s "$PWD/scripts/rcpu" "$HOME/.local/bin/rcpu"
+```
+
+Then omit the leading `uv run`. `rcpu` requests a four-hour Slurm allocation,
+interrupts the command after 3 hours 50 minutes, and runs the same command in a
+new allocation. Long commands must use their normal resume option:
+
+```bash
+rcpu rubric-gen run \
+  --experiment experiment_preflight.yaml \
+  --max-concurrency 3 \
+  --resume
+```
+
+The defaults are 16 CPUs and 64 GiB. Set `RCPU_CPUS` or `RCPU_MEMORY` before
+the command to change these requests. A command failure stops `rcpu`; normal
+slice expiry and Slurm termination statuses 137 and 143 request a new
+allocation.
+
 Stages can also be executed separately. Their input and output directories come
 from the DAG in `experiment.yaml`.
 
 ```bash
-uv run biomnibench-agent seed --experiment experiment.yaml --resume
-uv run biomnibench-agent revise --experiment experiment.yaml --resume
+uv run rubric-gen seed --experiment experiment.yaml --resume
+uv run rubric-gen revise --experiment experiment.yaml --resume
 
-uv run biomnibench-agent detect \
+uv run rubric-gen detect \
   --run-dir runs/biomnibench-studies/luna-top30-semi-r10 \
   --output-dir runs/biomnibench-detections/luna-top30-semi-r10 \
   --resume
 
-uv run biomnibench-agent judge \
+uv run rubric-gen judge \
   --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
   --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-original-rubric \
   --max-concurrency 3 \
@@ -179,20 +260,35 @@ rubric reference answers are not a public requirement source. A matching
 `--vllm URL::MODEL` mapping routes both simulator calls through that endpoint
 just like the judge and rubric proposer.
 
-To reuse an integrity-checked seed set from another experiment while keeping
-revision outputs separate, declare its owning experiment ID on the seed stage:
+Seed sets are stored separately from run outputs under the top-level `seeds/`
+directory. To reuse an integrity-checked seed set from another experiment while
+keeping revision outputs separate, declare its owning experiment ID on the seed
+stage:
 
 ```yaml
 dag:
   seed:
     depends_on: []
-    output_dir: runs/biomnibench-seeds/source-experiment
+    output_dir: seeds/source-experiment
     source_experiment_id: source-experiment
 ```
 
 The `run` workflow validates every referenced seed block and skips seed
 generation. Solver provider/model, task inputs, judgments, and artifact hashes
 must still match exactly.
+
+If only the sealed solver submissions are reusable, declare a submission source
+and keep a separate output directory. The seed stage copies each verified
+submission and creates a current judgment. It does not call the solver again:
+
+```yaml
+dag:
+  seed:
+    depends_on: []
+    output_dir: seeds/new-experiment
+    submission_source_dir: seeds/source-experiment
+    submission_source_experiment_id: source-experiment
+```
 
 ## vLLM models
 
@@ -245,15 +341,15 @@ runs/vllm-endpoints/qwen36-35b-a3b.endpoint
 Pass one or both mappings to any workflow command. For example:
 
 ```bash
-uv run biomnibench-agent seed \
+uv run rubric-gen seed \
   --experiment experiment.qwen36-27b.yaml \
   --vllm "http://HOST:43117/v1::Qwen/Qwen3.6-27B"
 
-uv run biomnibench-agent revise \
+uv run rubric-gen revise \
   --experiment experiment.qwen36-27b.yaml \
   --vllm "http://HOST:43117/v1::Qwen/Qwen3.6-27B"
 
-uv run biomnibench-agent detect \
+uv run rubric-gen detect \
   --run-dir runs/biomnibench-studies/qwen \
   --output-dir runs/biomnibench-detections/qwen \
   --vllm "http://HOST27:43117/v1::Qwen/Qwen3.6-27B" \
@@ -272,8 +368,10 @@ snippets. It can report a supported problem, counterevidence or uncertainty, or
 verbatim slice, and size limit, then stores the canonical packet and its hash.
 
 The proposer then makes one direct model call with only the task instruction,
-current answer, current complete rubric, and verified packet. It emits only the
-complete next rubric; it does not use tools or write `trace.md`. The proposer can
+current benchmark submission, current complete rubric, and verified packet.
+For BiomniBench the submission is `answer.txt`; for PaperBench it is the
+rendered source repository. It emits only the complete next rubric and does not
+use tools. The proposer can
 retain, rewrite, remove, merge, split, reorder, or reweight criteria. Repeating
 the current rubric means no change. The harness stores the rubric, packet,
 proposer metadata, and a derived diff. Neither component receives judge
@@ -299,6 +397,6 @@ must read. It does not rehash submission snapshots. It renders each trajectory
 once and reuses that evidence across the judge panel.
 
 ```bash
-uv run biomnibench-agent --help
+uv run rubric-gen --help
 uv run malt --help
 ```

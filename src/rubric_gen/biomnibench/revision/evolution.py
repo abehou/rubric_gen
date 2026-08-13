@@ -23,10 +23,14 @@ from rubric_gen.biomnibench.forensics.evidence_index import (
     indexable_event_contents,
     write_query_tool,
 )
-from rubric_gen.biomnibench.judging.scoring import parse_rubric_levels_strict
+from rubric_gen.biomnibench.judging.scoring import (
+    parse_rubric_levels_strict,
+    parse_score_normalization_maximum,
+)
 from rubric_gen.biomnibench.revision.artifacts import make_read_only
 from rubric_gen.biomnibench.utils.hashing import sha256_text
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
+from rubric_gen.paperbench.loader import PAPERBENCH_SCORING_PROTOCOL
 
 
 class RubricEvolution(StrEnum):
@@ -79,7 +83,7 @@ _PROPOSER_MAX_OUTPUT_TOKENS = 32_768
 _DIRECT_REQUEST_TIMEOUT_SECONDS = 600.0
 _AUDITOR_PROMPT_VERSION = "trajectory-evidence-auditor-v1"
 _AUDITOR_PACKET_SCHEMA_VERSION = 1
-_PROPOSER_PROMPT_VERSION = "audited-complete-rubric-v1"
+_PROPOSER_PROMPT_VERSION = "audited-complete-rubric-v2"
 _PROPOSER_REASONING_EFFORT = "high"
 _PROPOSER_TEXT_VERBOSITY = "low"
 _METADATA_KEYS = frozenset({
@@ -88,7 +92,7 @@ _METADATA_KEYS = frozenset({
     "version",
     "mode",
     "source_submission_id",
-    "source_answer_sha256",
+    "source_submission_sha256",
     "source_trajectory_sha256",
     "auditor",
     "auditor_packet_sha256",
@@ -232,7 +236,7 @@ class RubricEvolver:
         *,
         instruction: str,
         current_rubric: str,
-        answer: str,
+        current_submission: str,
         trajectory_path: Path,
         version: int,
         source_submission_id: str,
@@ -245,7 +249,7 @@ class RubricEvolver:
         diff_path = output_dir / f"r{version:04d}.diff"
         event_contents = indexable_event_contents(trajectory_path)
         source_hashes = {
-            "source_answer_sha256": sha256_text(answer),
+            "source_submission_sha256": sha256_text(current_submission),
             "source_trajectory_sha256": sha256_text(
                 trajectory_path.read_text(encoding="utf-8", errors="replace")
             ),
@@ -285,7 +289,7 @@ class RubricEvolver:
                 proposer_output = self.run_proposer(
                     instruction=instruction,
                     current_rubric=current_rubric,
-                    answer=answer,
+                    current_submission=current_submission,
                     auditor_packet=packet_text,
                     repair_error=str(last_error) if last_error else None,
                 )
@@ -348,7 +352,7 @@ class RubricEvolver:
         packet_path.write_text(packet_text, encoding="utf-8")
         diff_path.write_text(rubric_diff, encoding="utf-8")
         metadata: dict[str, object] = {
-            "schema_version": 3,
+            "schema_version": 4,
             "kind": "audited-complete-rubric-generation",
             "version": version,
             "mode": RubricEvolution.PROSPECTIVE.value,
@@ -359,7 +363,7 @@ class RubricEvolver:
                 available_events=len(event_contents),
             ),
             "auditor_packet_sha256": packet_sha256,
-            "proposer": self._proposer_identity(),
+            "proposer": self._proposer_identity(current_rubric),
             "attempt_count": attempt,
             "proposer_attempts": proposer_attempts,
             "parent_rubric_sha256": parent_rubric_sha256,
@@ -426,7 +430,7 @@ class RubricEvolver:
             "cost": dict(output.cost),
         }
 
-    def _proposer_identity(self) -> dict[str, object]:
+    def _proposer_identity(self, current_rubric: str) -> dict[str, object]:
         return {
             "provider": "vllm" if self.proposer_base_url is not None else "openai",
             "model": self.proposer_model,
@@ -436,7 +440,10 @@ class RubricEvolver:
             ),
             "prompt_version": _PROPOSER_PROMPT_VERSION,
             "prompt_sha256": sha256_text(
-                _proposer_instructions(repair_error=None)
+                _proposer_instructions(
+                    current_rubric=current_rubric,
+                    repair_error=None,
+                )
             ),
             "max_output_tokens": _PROPOSER_MAX_OUTPUT_TOKENS,
             "reasoning_effort": (
@@ -555,7 +562,7 @@ class RubricEvolver:
         if (
             not isinstance(stored, dict)
             or set(stored) != _METADATA_KEYS
-            or stored.get("schema_version") != 3
+            or stored.get("schema_version") != 4
             or stored.get("kind") != "audited-complete-rubric-generation"
             or stored.get("version") != version
             or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
@@ -564,7 +571,7 @@ class RubricEvolver:
             or stored.get("auditor") != expected_auditor_identity
             or expected_packet != packet_text
             or stored.get("auditor_packet_sha256") != sha256_text(packet_text)
-            or stored.get("proposer") != self._proposer_identity()
+            or stored.get("proposer") != self._proposer_identity(current_rubric)
             or type(stored.get("attempt_count")) is not int
             or stored["attempt_count"] < 1
             or not _valid_proposer_attempts(
@@ -686,15 +693,18 @@ class RubricEvolver:
         *,
         instruction: str,
         current_rubric: str,
-        answer: str,
+        current_submission: str,
         auditor_packet: str,
         repair_error: str | None,
     ) -> ProposerOutput:
-        instructions = _proposer_instructions(repair_error=repair_error)
+        instructions = _proposer_instructions(
+            current_rubric=current_rubric,
+            repair_error=repair_error,
+        )
         evidence = _proposer_evidence(
             instruction=instruction,
             current_rubric=current_rubric,
-            answer=answer,
+            current_submission=current_submission,
             auditor_packet=auditor_packet,
         )
         return _generate_complete_rubric(
@@ -758,12 +768,31 @@ packet.
 """
 
 
-def _proposer_instructions(*, repair_error: str | None) -> str:
+def _proposer_instructions(
+    *,
+    current_rubric: str,
+    repair_error: str | None,
+) -> str:
     repair = (
         "\nThe previous complete rubric failed structural validation: "
         + repair_error
         if repair_error else ""
     )
+    if _is_paperbench_rubric(current_rubric):
+        level_contract = f"""Each criterion must have exactly two level labels,
+A and B. A must have a positive integer point value and B must equal zero.
+Preserve the exact `Scoring protocol: {PAPERBENCH_SCORING_PROTOCOL}` and
+`Score normalization maximum: N` directives. The sum of all A-level points
+must equal N. These binary leaf judgments and exact weights are the official
+PaperBench Code-Dev scoring contract."""
+    else:
+        level_contract = """Each criterion must have three or more contiguous level labels
+starting at A, strictly descending integer points, exactly one zero-valued
+level, and one nonempty `[LABEL]:` description per level. The sum of all A-level
+points must equal 100 unless the current rubric contains a
+`Score normalization maximum: N` directive. When that directive exists,
+preserve it exactly and make the A-level points sum to N. Criteria may include
+negative lower levels."""
     return f"""Prompt contract: {_PROPOSER_PROMPT_VERSION}
 
 Act as an independent designer of the complete optimizer rubric for the next
@@ -824,7 +853,7 @@ The final rubric set must be informative, comprehensive, and non-redundant:
   activity or closer imitation of evaluator language.
 - Prevent one failure from losing points under several criteria. Cover all
   important dimensions without semantic overlap.
-- Use the current answer and verified packet as evidence about rubric weakness,
+- Use the current submission and verified packet as evidence about rubric weakness,
   not as an answer key. Do not fit or punish an incidental feature of this one
   submission.
 - Privately test each criterion against a complete supported outcome, an
@@ -836,10 +865,7 @@ The final rubric set must be informative, comprehensive, and non-redundant:
   no rubric weight.
 
 The complete rubric must use contiguous `Criterion 1:` through `Criterion N:`
-sections. Each criterion must have three or more contiguous level labels
-starting at A, strictly descending integer points, exactly one zero-valued
-level, and one nonempty `[LABEL]:` description per level. The sum of all A-level
-points must equal 100. Criteria may include negative lower levels.
+sections. {level_contract}
 
 If no supported revision improves the complete set, reproduce the current
 rubric unchanged. An unchanged complete rubric is the only abstention mechanism.
@@ -852,15 +878,15 @@ def _proposer_evidence(
     *,
     instruction: str,
     current_rubric: str,
-    answer: str,
+    current_submission: str,
     auditor_packet: str,
 ) -> str:
     return f"""<task_instruction>
 {instruction}
 </task_instruction>
-<current_answer>
-{answer}
-</current_answer>
+<current_submission>
+{current_submission}
+</current_submission>
 <current_complete_rubric>
 {current_rubric}
 </current_complete_rubric>
@@ -1193,14 +1219,22 @@ def _validated_complete_rubric(
     if len(set(normalized_titles)) != len(normalized_titles):
         raise ValueError("complete rubric contains duplicate criterion titles")
 
+    paperbench_binary = _is_paperbench_rubric(current_rubric)
     total_maximum = 0
     for index, (criterion_key, levels) in enumerate(levels_by_criterion.items()):
         labels = list(levels)
         expected_labels = [chr(ord("A") + offset) for offset in range(len(labels))]
-        if len(labels) < 3 or labels != expected_labels:
+        valid_labels = (
+            labels == ["A", "B"]
+            if paperbench_binary
+            else len(labels) >= 3 and labels == expected_labels
+        )
+        if not valid_labels:
             raise ValueError(
-                f"{criterion_key} level labels must be contiguous from A with at "
-                "least three levels"
+                f"{criterion_key} level labels must be "
+                + ("exactly A and B" if paperbench_binary else (
+                    "contiguous from A with at least three levels"
+                ))
             )
         points = list(levels.values())
         if any(left <= right for left, right in zip(points, points[1:])):
@@ -1217,12 +1251,26 @@ def _validated_complete_rubric(
                 f"{criterion_key} must contain one nonempty description for each level"
             )
 
-    if total_maximum != 100:
-        raise ValueError("complete rubric A-level points must sum to 100")
+    normalization_maximum = parse_score_normalization_maximum(current_rubric)
+    expected_maximum = normalization_maximum or 100
+    if parse_score_normalization_maximum(text) != normalization_maximum:
+        raise ValueError("complete rubric changed its score normalization directive")
+    if _is_paperbench_rubric(text) is not paperbench_binary:
+        raise ValueError("complete rubric changed its PaperBench scoring protocol")
+    if total_maximum != expected_maximum:
+        raise ValueError(
+            "complete rubric A-level points must sum to "
+            f"{expected_maximum}"
+        )
 
     if text == _normalize_rubric_text(current_rubric):
         return current_rubric
     return text
+
+
+def _is_paperbench_rubric(text: str) -> bool:
+    directive = f"Scoring protocol: {PAPERBENCH_SCORING_PROTOCOL}"
+    return text.splitlines().count(directive) == 1
 
 
 def _rubric_diff(

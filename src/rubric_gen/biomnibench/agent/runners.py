@@ -18,6 +18,11 @@ from rubric_gen.biomnibench.agent.adapters import AgentAdapterRegistry
 from rubric_gen.biomnibench.agent.costs import RunCost
 from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
 from rubric_gen.biomnibench.agent.prompts import PROMPT
+from rubric_gen.biomnibench.agent.outputs import (
+    solver_output_errors,
+    solver_required_outputs,
+)
+from rubric_gen.benchmarks import Benchmark
 from rubric_gen.biomnibench.agent.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
@@ -76,19 +81,22 @@ class AgentRunner:
         *,
         registry: AgentAdapterRegistry | None = None,
         prompt: str = PROMPT,
-        required_outputs: tuple[str, ...] = ("trace.md", "answer.txt"),
+        required_outputs: tuple[str, ...] | None = None,
+        benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
     ) -> None:
         if not prompt.strip():
             raise ValueError("agent prompt must not be empty")
-        if not required_outputs or any(
-            not name or Path(name).name != name for name in required_outputs
+        self.benchmark = Benchmark(benchmark)
+        resolved_outputs = required_outputs or solver_required_outputs(self.benchmark)
+        if not resolved_outputs or any(
+            not name or Path(name).name != name for name in resolved_outputs
         ):
-            raise ValueError("agent required outputs must be safe file names")
+            raise ValueError("agent required outputs must be safe names")
         self.config = config or AgentRunConfig()
         self.registry = registry or AgentAdapterRegistry()
         self.adapter = self.registry.get(self.config.provider)
         self.prompt = prompt
-        self.required_outputs = required_outputs
+        self.required_outputs = resolved_outputs
 
     @property
     def provider(self) -> str:
@@ -176,8 +184,13 @@ class AgentRunner:
                 self.adapter.print_line(line, raw=self.config.raw)
 
     def validate_outputs(self, paths: RunPaths) -> RunValidation:
-        errors = []
-        for filename in self.required_outputs:
+        if self.required_outputs == solver_required_outputs(self.benchmark):
+            errors = solver_output_errors(paths.workspace_dir, self.benchmark)
+        else:
+            errors = []
+        for filename in (() if errors else self.required_outputs):
+            if filename == "submission":
+                continue
             output_path = paths.workspace_dir / filename
             try:
                 output_stat = os.lstat(output_path)

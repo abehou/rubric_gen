@@ -10,8 +10,12 @@ from enum import Enum
 from pathlib import Path
 
 from rubric_gen.biomnibench.agent.prompts import PromptProfile, revision_guidance
-from rubric_gen.biomnibench.judging.scoring import parse_rubric_levels_strict
+from rubric_gen.biomnibench.judging.scoring import (
+    parse_rubric_levels_strict,
+    parse_score_normalization_maximum,
+)
 from rubric_gen.biomnibench.rubrics.schema import load_json_strict
+from rubric_gen.benchmarks import Benchmark
 
 
 class FeedbackPolicy(str, Enum):
@@ -50,11 +54,13 @@ _CRITERION_TITLE_PATTERN = re.compile(
 def render_feedback_prompt(
     payload: dict[str, object],
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
 ) -> str:
     """Render a canonical solver message from one projected feedback record."""
 
     policy = FeedbackPolicy(payload.get("policy"))
     resolved_profile = PromptProfile(prompt_profile)
+    revision_action = _revision_action(Benchmark(benchmark))
     if payload.get("schema_version") != 1:
         raise ValueError("feedback payload has invalid schema")
 
@@ -75,9 +81,7 @@ def render_feedback_prompt(
             f"{comment}\n"
             "</user_feedback>\n\n"
             "Continue in the same workspace and revise the solution in response. "
-            "Re-run relevant checks and update trace.md and answer.txt. Store "
-            "generated datasets, tables, plots, logs, and other supporting "
-            "outputs under ./artifacts, not ./data. No score, rubric breakdown, "
+            f"{revision_action} No score, rubric breakdown, "
             "or judge reasoning is available."
         )
         guidance = revision_guidance(resolved_profile)
@@ -96,9 +100,7 @@ def render_feedback_prompt(
         prompt = (
             f"Your previous submission received a validated total score of "
             f"{score}/100. Continue in the same workspace and revise the "
-            "solution to improve it. Re-run relevant checks and update "
-            "trace.md and answer.txt. Store generated datasets, tables, plots, "
-            "logs, and other supporting outputs under ./artifacts, not ./data."
+            f"solution to improve it. {revision_action}"
         )
         guidance = revision_guidance(resolved_profile)
         if guidance is not None:
@@ -139,10 +141,8 @@ def render_feedback_prompt(
             "Your previous submission received the validated score breakdown "
             "below. Continue in the same workspace and revise the solution to "
             "improve weak criteria. No judge reasoning is provided, so diagnose "
-            "the causes from the task data and your own artifacts. Re-run relevant "
-            "checks and update trace.md and answer.txt. Store generated datasets, "
-            "tables, plots, logs, and other supporting outputs under ./artifacts, "
-            "not ./data."
+            "the causes from the task inputs and your own submission. "
+            f"{revision_action}"
         )
         guidance = revision_guidance(resolved_profile)
         if guidance is not None:
@@ -184,8 +184,7 @@ def render_feedback_prompt(
             raise ValueError("full feedback contains invalid criterion fields")
     prompt = (
         "Continue in the same workspace and revise your current solution using "
-        "the feedback below. Re-run relevant checks and update trace.md, "
-        "answer.txt, and supporting outputs under ./artifacts, not ./data. Judge "
+        f"the feedback below. {revision_action} Judge "
         "reasons are model feedback, not verified evidence; check them against "
         "the task data and your artifacts."
     )
@@ -205,6 +204,7 @@ def project_feedback(
     policy: FeedbackPolicy,
     max_reason_chars: int = 2_000,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
     """Return the policy-specific view of one validated judge evaluation."""
 
@@ -234,7 +234,7 @@ def project_feedback(
         return ProjectedFeedback(
             score=score,
             payload=payload,
-            prompt=render_feedback_prompt(payload, prompt_profile),
+            prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
         )
 
     if resolved_policy is FeedbackPolicy.SEMI:
@@ -263,7 +263,7 @@ def project_feedback(
         return ProjectedFeedback(
             score=score,
             payload=payload,
-            prompt=render_feedback_prompt(payload, prompt_profile),
+            prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
         )
 
     if type(max_reason_chars) is not int or max_reason_chars < 0:
@@ -278,7 +278,7 @@ def project_feedback(
         criterion_scores=criterion_scores,
         max_reason_chars=max_reason_chars,
     )
-    prompt = render_feedback_prompt(payload, prompt_profile)
+    prompt = render_feedback_prompt(payload, prompt_profile, benchmark)
     return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
 
 
@@ -289,6 +289,7 @@ def project_simulated_user_feedback(
     comment: str,
     *,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
     """Pair a sealed LLM user comment with its independently validated score."""
 
@@ -306,7 +307,21 @@ def project_simulated_user_feedback(
     return ProjectedFeedback(
         score=score,
         payload=payload,
-        prompt=render_feedback_prompt(payload, prompt_profile),
+        prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
+    )
+
+
+def _revision_action(benchmark: Benchmark) -> str:
+    if benchmark is Benchmark.PAPERBENCH_CODE_DEV:
+        return (
+            "Inspect the paper again, improve the real implementation under "
+            "./submission, run relevant local checks, and update trace.md and "
+            "answer.txt. Keep ./data unchanged."
+        )
+    return (
+        "Re-run relevant checks and update trace.md and answer.txt. Store generated "
+        "datasets, tables, plots, logs, and other supporting outputs under "
+        "./artifacts, not ./data."
     )
 
 
@@ -383,6 +398,9 @@ def _validate_score_record(
 
     score = _integer(validation, "score")
     raw_score = _integer(validation, "raw_score")
+    normalized_score = validation.get("normalized_score")
+    if type(normalized_score) is not float or not 0.0 <= normalized_score <= 1.0:
+        raise ValueError("score validation normalized_score must be between zero and one")
     if not 0 <= score <= 100:
         raise ValueError("score validation score must be between 0 and 100")
     selected_levels = _string_map(validation, "selected_levels")
@@ -394,8 +412,23 @@ def _validate_score_record(
         )
     if raw_score != sum(criterion_scores.values()):
         raise ValueError("score validation raw_score does not match criterion scores")
-    if score != max(0, min(100, raw_score)):
+    normalization_maximum = parse_score_normalization_maximum(rubric_text)
+    expected_score = (
+        round(raw_score * 100 / normalization_maximum)
+        if normalization_maximum is not None
+        else raw_score
+    )
+    if score != max(0, min(100, expected_score)):
         raise ValueError("score validation score does not match raw_score")
+    expected_normalized_score = max(
+        0.0,
+        min(
+            1.0,
+            raw_score / (normalization_maximum or 100),
+        ),
+    )
+    if normalized_score != expected_normalized_score:
+        raise ValueError("score validation normalized_score does not match raw_score")
     return score, raw_score, selected_levels, criterion_scores
 
 

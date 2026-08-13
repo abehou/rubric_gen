@@ -37,11 +37,12 @@ RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 LIVE_ROOT_PREFIX = "biomnibench-revision-live-"
 LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
-REVISION_MANIFEST_SCHEMA_VERSION = 3
+REVISION_MANIFEST_SCHEMA_VERSION = 4
 _LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
 REVISION_MANIFEST_KEYS = frozenset(
     {
         "assignment_id",
+        "benchmark",
         "command_network_access",
         "condition_id",
         "data_sha256",
@@ -141,18 +142,25 @@ def copy_solution_workspace(
     return stats
 
 
-def compact_historical_workspace(root: Path) -> WorkspaceCompactionStats:
+def compact_historical_workspace(
+    root: Path,
+    *,
+    retained_names: frozenset[str] = RETAINED_HISTORICAL_SOLUTION_NAMES,
+) -> WorkspaceCompactionStats:
     """Retain only immutable judge inputs in a historical workspace snapshot."""
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"invalid historical solution snapshot: {root}")
     stats = WorkspaceCompactionStats()
     root.chmod(stat.S_IMODE(os.lstat(root).st_mode) | stat.S_IRWXU)
     for child in sorted(root.iterdir(), key=lambda path: path.name):
-        if child.name in RETAINED_HISTORICAL_SOLUTION_NAMES:
+        if child.name in retained_names:
             child_stat = os.lstat(child)
-            if not stat.S_ISREG(child_stat.st_mode):
+            if not (
+                stat.S_ISREG(child_stat.st_mode)
+                or stat.S_ISDIR(child_stat.st_mode)
+            ):
                 raise RuntimeError(
-                    f"retained historical artifact is not a regular file: {child}"
+                    f"retained historical artifact is not regular: {child}"
                 )
             continue
         removed_files, removed_bytes = _tree_file_totals(child)

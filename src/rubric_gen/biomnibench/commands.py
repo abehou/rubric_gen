@@ -1,4 +1,4 @@
-"""Handlers for the BiomniBench experiment DAG."""
+"""Handlers for the benchmark experiment DAG."""
 
 from __future__ import annotations
 
@@ -89,7 +89,7 @@ def run_detect(args: argparse.Namespace) -> int:
 
     argv = [
         "--detect", "rh",
-        "--biomnibench-study-dir", args.run_dir,
+        "--study-dir", args.run_dir,
         "--output-dir", args.output_dir,
         "--max-concurrency", str(args.max_concurrency),
     ]

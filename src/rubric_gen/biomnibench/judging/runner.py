@@ -34,6 +34,7 @@ from rubric_gen.biomnibench.rubrics.bundles import (
     resolve_rubric_bundle,
 )
 from rubric_gen.biomnibench.rubrics.schema import load_json_strict
+from rubric_gen.paperbench.evidence import render_submission_tree
 
 class BiomniBenchJudgeRunner:
     def __init__(self, config: JudgeRunConfig) -> None:
@@ -199,6 +200,7 @@ class BiomniBenchJudgeRunner:
 
         tasks = []
         scores = []
+        normalized_scores = []
         for task, task_records in sorted(by_task.items()):
             task_records = sorted(
                 task_records, key=lambda item: int(item.get("repeat_index") or 1)
@@ -210,6 +212,13 @@ class BiomniBenchJudgeRunner:
                 and type(record.get("score")) is int
             ]
             scores.extend(task_scores)
+            task_normalized_scores = [
+                record["normalized_score"]
+                for record in task_records
+                if record.get("status") in {"completed", "skipped"}
+                and type(record.get("normalized_score")) is float
+            ]
+            normalized_scores.extend(task_normalized_scores)
             first = task_records[0]
             tasks.append(
                 {
@@ -218,10 +227,17 @@ class BiomniBenchJudgeRunner:
                     "score": task_scores[0]
                     if len(task_records) == 1 and task_scores
                     else None,
+                    "normalized_score": task_normalized_scores[0]
+                    if len(task_records) == 1 and task_normalized_scores
+                    else None,
                     "scores": task_scores,
+                    "normalized_scores": task_normalized_scores,
                     "mean_score": round(sum(task_scores) / len(task_scores), 4)
                     if task_scores
                     else None,
+                    "mean_normalized_score": round(
+                        sum(task_normalized_scores) / len(task_normalized_scores), 8
+                    ) if task_normalized_scores else None,
                     "score_stddev": round(pstdev(task_scores), 4)
                     if len(task_scores) > 1
                     else 0.0
@@ -239,6 +255,10 @@ class BiomniBenchJudgeRunner:
                 }
             )
         average = round(sum(scores) / len(scores), 4) if scores else None
+        normalized_average = (
+            round(sum(normalized_scores) / len(normalized_scores), 8)
+            if normalized_scores else None
+        )
         return {
             "review": self.config.review,
             "repeats": self.repeat_count,
@@ -248,6 +268,7 @@ class BiomniBenchJudgeRunner:
             "scored_tasks": sum(1 for task in tasks if task["scored_repeats"] > 0),
             "scored_attempts": len(scores),
             "average_score": average,
+            "average_normalized_score": normalized_average,
             "score_stddev": round(pstdev(scores), 4)
             if len(scores) > 1
             else 0.0
@@ -270,16 +291,23 @@ class BiomniBenchJudgeRunner:
 
     def print_score_summary(self, summary: dict[str, Any]) -> None:
         print(f"Judge scores ({summary['review']})")
-        print("task\tstatus\tmean\tstddev\tscores")
+        print("task\tstatus\tmean\tnormalized_mean\tstddev\tscores")
         for task in summary["tasks"]:
             mean = task["mean_score"] if task["mean_score"] is not None else "-"
             stddev = task["score_stddev"] if task["score_stddev"] is not None else "-"
+            normalized_mean = (
+                task["mean_normalized_score"]
+                if task["mean_normalized_score"] is not None else "-"
+            )
             scores = (
                 ",".join(str(score) for score in task["scores"])
                 if task["scores"]
                 else "-"
             )
-            print(f"{task['task']}\t{task['status']}\t{mean}\t{stddev}\t{scores}")
+            print(
+                f"{task['task']}\t{task['status']}\t{mean}\t{normalized_mean}"
+                f"\t{stddev}\t{scores}"
+            )
         average = summary["average_score"]
         if average is None:
             print(f"Average score: - (0/{summary['total_attempts']} scored attempts)")
@@ -288,6 +316,7 @@ class BiomniBenchJudgeRunner:
                 f"Average score: {average} "
                 f"({summary['scored_attempts']}/{summary['total_attempts']} scored attempts)"
             )
+            print(f"Average normalized score: {summary['average_normalized_score']}")
 
     def completed_record(self, attempt: JudgeAttempt) -> dict[str, Any] | None:
         if not self.config.resume or self.config.force:
@@ -343,6 +372,7 @@ class BiomniBenchJudgeRunner:
             "exit_code": 0,
             "judge_exit_code": 0,
             "score": validation["score"],
+            "normalized_score": validation["normalized_score"],
             "reward": str(reward_path),
             "evaluation": str(evaluation_path),
             "stdout": str(output_dir / "stdout.txt"),
@@ -733,13 +763,22 @@ class BiomniBenchJudgeRunner:
                     "trace.md",
                     root_fd=workspace_fd,
                 )
+            elif self.config.review == "workspace":
+                review_text = self._workspace_review_text(
+                    target,
+                    workspace_fd=workspace_fd,
+                )
             else:
                 raise SystemExit(f"Unknown review mode: {self.config.review}")
 
-            answer_text = self._read_review_artifact(
-                workspace_path,
-                "answer.txt",
-                root_fd=workspace_fd,
+            answer_text = (
+                ""
+                if self.config.review == "workspace"
+                else self._read_review_artifact(
+                    workspace_path,
+                    "answer.txt",
+                    root_fd=workspace_fd,
+                )
             )
             self._validate_directory_fd(
                 workspace_fd,
@@ -774,9 +813,44 @@ class BiomniBenchJudgeRunner:
                 "trajectory.stream.jsonl",
             )
             return self._trajectory_review_text(raw)
+        if self.config.review == "workspace":
+            return self._workspace_review_text(target)
         raise SystemExit(f"Unknown review mode: {self.config.review}")
 
+    def _workspace_review_text(
+        self,
+        target: JudgeTarget,
+        *,
+        workspace_fd: int | None = None,
+    ) -> str:
+        """Render the PaperBench paper and submitted source tree for judging."""
+
+        paper_path = target.task_dir / "environment" / "data" / "paper.md"
+        if paper_path.is_symlink() or not paper_path.is_file():
+            raise SystemExit(f"PaperBench paper is missing: {paper_path}")
+        parts = [
+            "# Source paper\n\n" + paper_path.read_text(encoding="utf-8"),
+        ]
+        for heading, path in (
+            ("Author addendum", target.task_dir / "environment" / "data" / "addendum.md"),
+            ("Judge addendum", target.task_dir / "tests" / "judge.addendum.md"),
+        ):
+            if path.is_symlink():
+                raise SystemExit(f"PaperBench input must not be a symlink: {path}")
+            if path.is_file():
+                parts.append(f"# {heading}\n\n" + path.read_text(encoding="utf-8"))
+
+        workspace = target.workspace_dir.expanduser().absolute()
+        try:
+            submitted_code = render_submission_tree(workspace)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        parts.append("# Submitted code\n\n" + submitted_code)
+        return self.truncate("\n\n".join(parts))
+
     def answer_text(self, target: JudgeTarget) -> str:
+        if self.config.review == "workspace":
+            return ""
         return self._read_review_artifact(target.workspace_dir, "answer.txt")
 
     def execute_judge(

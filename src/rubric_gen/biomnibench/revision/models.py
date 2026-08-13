@@ -19,6 +19,7 @@ from rubric_gen.biomnibench.revision.user_simulator import (
     SimulatedUserConfig,
     SimulatedUserFeedback,
 )
+from rubric_gen.benchmarks import Benchmark
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class SubmissionRevisionConfig:
     condition_id: str
     replicate: int
     execution_order: int
+    benchmark: Benchmark = Benchmark.BIOMNIBENCH_DA
     seed_experiment_id: str | None = None
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
@@ -61,8 +63,8 @@ class SubmissionRevisionConfig:
     def __post_init__(self) -> None:
         if type(self.revision_rounds) is not int or self.revision_rounds < 0:
             raise ValueError("revision_rounds must be a non-negative integer")
-        if self.review not in {"trace", "trajectory"}:
-            raise ValueError("review must be trace or trajectory")
+        if self.review not in {"trace", "trajectory", "workspace"}:
+            raise ValueError("review must be trace, trajectory, or workspace")
         if self.rubric_name is not None and self.rubric_set is not None:
             raise ValueError("rubric_name and rubric_set are mutually exclusive")
         if type(self.show_progress) is not bool:
@@ -102,6 +104,7 @@ class SubmissionRevisionConfig:
                 "is simulated_user"
             )
         PromptProfile(self.prompt_profile)
+        Benchmark(self.benchmark)
         RubricEvolution(self.rubric_evolution)
         for name, model in (
             ("rubric_auditor_model", self.rubric_auditor_model),

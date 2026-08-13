@@ -1,4 +1,4 @@
-"""YAML-defined randomized BiomniBench experiment DAGs."""
+"""YAML-defined randomized benchmark experiment DAGs."""
 
 from __future__ import annotations
 
@@ -16,9 +16,14 @@ from rubric_gen.biomnibench.forensics.protocol import outcome_audit_protocol
 from rubric_gen.biomnibench.revision.evolution import RubricEvolution
 from rubric_gen.biomnibench.revision.feedback import FeedbackPolicy
 from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserConfig
+from rubric_gen.benchmarks import Benchmark
+from rubric_gen.paperbench.loader import (
+    PAPERBENCH_DEV_PAPERS,
+    validate_paperbench_code_dev_dataset,
+)
 
 
-EXPERIMENT_SCHEMA_VERSION = 2
+EXPERIMENT_SCHEMA_VERSION = 3
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 
@@ -31,6 +36,10 @@ class Experiment:
     @property
     def experiment_id(self) -> str:
         return str(self.payload["experiment_id"])
+
+    @property
+    def benchmark(self) -> Benchmark:
+        return Benchmark(str(self.payload["benchmark"]))
 
     @property
     def tasks_dir(self) -> Path:
@@ -66,6 +75,19 @@ class Experiment:
 
         seed_stage = self.dag.get("seed", {})
         return str(seed_stage.get("source_experiment_id", self.experiment_id))
+
+    @property
+    def seed_submission_source(self) -> tuple[Path, str] | None:
+        """Seed set from which a new set copies sealed solver submissions."""
+
+        seed_stage = self.dag.get("seed", {})
+        source_dir = seed_stage.get("submission_source_dir")
+        if source_dir is None:
+            return None
+        return (
+            Path(str(source_dir)),
+            str(seed_stage["submission_source_experiment_id"]),
+        )
 
     def condition(self, condition_id: str) -> dict[str, object]:
         matches = [
@@ -142,13 +164,18 @@ def load_experiment(path: Path) -> Experiment:
     payload["tasks_dir"] = str(_resolve_relative(resolved, payload["tasks_dir"]))
     for stage in payload["dag"].values():
         stage["output_dir"] = str(_resolve_relative(resolved, stage["output_dir"]))
+    seed_stage = payload["dag"]["seed"]
+    if "submission_source_dir" in seed_stage:
+        seed_stage["submission_source_dir"] = str(
+            _resolve_relative(resolved, seed_stage["submission_source_dir"])
+        )
     payload["assignments"] = _randomized_assignments(payload)
     return Experiment(resolved, payload)
 
 
 def _validate(payload: dict[str, Any], path: Path) -> None:
     required = {
-        "schema_version", "kind", "experiment_id", "tasks_dir", "tasks",
+        "schema_version", "kind", "experiment_id", "benchmark", "tasks_dir", "tasks",
         "randomization", "conditions", "protocol", "outcome_audit", "dag",
     }
     if set(payload) != required:
@@ -157,6 +184,7 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
         raise ValueError("unsupported experiment schema version")
     if payload["kind"] != EXPERIMENT_KIND:
         raise ValueError("unsupported experiment kind")
+    benchmark = Benchmark(str(payload["benchmark"]))
     if not isinstance(payload["experiment_id"], str) or not _ID.fullmatch(payload["experiment_id"]):
         raise ValueError("experiment_id is invalid")
     tasks_dir = _resolve_relative(path, payload["tasks_dir"])
@@ -165,12 +193,24 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
         not isinstance(item, str) or Path(item).name != item for item in tasks
     ) or len(tasks) != len(set(tasks)):
         raise ValueError("tasks must be unique safe task IDs")
+    if benchmark is Benchmark.PAPERBENCH_CODE_DEV:
+        if tuple(tasks) != PAPERBENCH_DEV_PAPERS:
+            raise ValueError(
+                "PaperBench Code-Dev tasks must be the pinned official dev split"
+            )
+        validate_paperbench_code_dev_dataset(tasks_dir)
     for task_id in tasks:
         task = tasks_dir / task_id
-        for required_path in (
+        required_paths = [
             task / "instruction.md", task / "environment" / "data",
             task / "tests" / "rubric.txt",
-        ):
+        ]
+        if benchmark is Benchmark.PAPERBENCH_CODE_DEV:
+            required_paths.extend([
+                task / "environment" / "data" / "paper.md",
+                task / "tests" / "paperbench.json",
+            ])
+        for required_path in required_paths:
             if required_path.is_symlink() or not required_path.exists():
                 raise ValueError(f"task input is missing or symlinked: {required_path}")
     randomization = payload["randomization"]
@@ -197,6 +237,11 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     ):
         raise ValueError("condition IDs must be unique portable identifiers")
     _validate_protocol(payload["protocol"])
+    if (
+        benchmark is Benchmark.PAPERBENCH_CODE_DEV
+        and payload["protocol"]["review"] != "workspace"
+    ):
+        raise ValueError("PaperBench Code-Dev requires workspace review")
     audit = payload["outcome_audit"]
     if not isinstance(audit, dict):
         raise ValueError("outcome_audit must be a mapping")
@@ -223,6 +268,14 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
             "source_experiment_id" in stage
         ):
             expected_keys.add("source_experiment_id")
+        if name == "seed" and isinstance(stage, dict) and (
+            "submission_source_dir" in stage
+            or "submission_source_experiment_id" in stage
+        ):
+            expected_keys.update({
+                "submission_source_dir",
+                "submission_source_experiment_id",
+            })
         if not isinstance(stage, dict) or set(stage) != expected_keys:
             raise ValueError(f"dag stage {name} requires depends_on and output_dir")
         if stage["depends_on"] != dependencies:
@@ -233,6 +286,18 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
                 source_experiment_id
             ):
                 raise ValueError("seed source_experiment_id is invalid")
+        if name == "seed" and "submission_source_dir" in stage:
+            if "source_experiment_id" in stage:
+                raise ValueError(
+                    "seed cannot directly reuse a seed set and derive submissions "
+                    "at the same time"
+                )
+            source_experiment_id = stage["submission_source_experiment_id"]
+            if not isinstance(source_experiment_id, str) or not _ID.fullmatch(
+                source_experiment_id
+            ):
+                raise ValueError("seed submission_source_experiment_id is invalid")
+            _resolve_relative(path, stage["submission_source_dir"])
         _resolve_relative(path, stage["output_dir"])
 
 
@@ -254,8 +319,8 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError(f"protocol keys must be exactly {sorted(required)}")
     if type(protocol["revision_rounds"]) is not int or protocol["revision_rounds"] < 1:
         raise ValueError("revision_rounds must be positive")
-    if protocol["review"] not in {"trace", "trajectory"}:
-        raise ValueError("review must be trace or trajectory")
+    if protocol["review"] not in {"trace", "trajectory", "workspace"}:
+        raise ValueError("review must be trace, trajectory, or workspace")
     for name in ("rubric_auditor_model", "rubric_proposer_model"):
         if type(protocol[name]) is not str or not protocol[name].strip():
             raise ValueError(f"{name} must be nonempty")

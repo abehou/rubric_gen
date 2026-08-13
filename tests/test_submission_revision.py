@@ -135,6 +135,7 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
         "run_identity": "seeded-run",
         "repeat_index": 1,
         "score": initial_score,
+        "normalized_score": initial_score / 100,
         "raw_score": initial_score,
         "selected_levels": {"criterion_1": level},
         "criterion_scores": {"criterion_1": initial_score},
@@ -232,6 +233,7 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
         task.parent / "experiment.yaml",
         {
             "experiment_id": config.experiment_id,
+            "benchmark": "biomnibench-da",
             "tasks_dir": str(task.parent.resolve()),
             "tasks": [task.name],
             "randomization": {"seed": 1, "replicates": 1},
@@ -345,6 +347,7 @@ class FakeJudge:
             "run_identity": str(output),
             "repeat_index": 1,
             "score": score,
+            "normalized_score": score / 100,
             "raw_score": score,
             "selected_levels": {"criterion_1": "A"},
             "criterion_scores": {"criterion_1": score},
@@ -1109,6 +1112,7 @@ Levels: A=40 B=20 C=0
     }))
     validation.write_text(json.dumps({
         "score": 80,
+        "normalized_score": 0.8,
         "raw_score": 80,
         "selected_levels": {"criterion_1": "A", "criterion_2": "B"},
         "criterion_scores": {"criterion_1": 60, "criterion_2": 20},

@@ -17,6 +17,7 @@ from tqdm.auto import trange
 from rubric_gen.biomnibench.agent.models import AgentRunConfig
 from rubric_gen.biomnibench.agent.prompts import PromptProfile, solver_prompt
 from rubric_gen.biomnibench.agent.sessions import CliSolverSessionDriver
+from rubric_gen.biomnibench.agent.outputs import solver_output_errors
 from rubric_gen.biomnibench.agent.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
@@ -70,6 +71,8 @@ from rubric_gen.biomnibench.revision.judge import (
 from rubric_gen.biomnibench.revision.evolution import RubricEvolution, RubricEvolver
 from rubric_gen.biomnibench.revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.biomnibench.revision.seeds import ResolvedSeed, resolve_seed
+from rubric_gen.benchmarks import Benchmark
+from rubric_gen.paperbench.evidence import render_submission_tree
 from rubric_gen.biomnibench.revision.store import (
     RevisionStore,
     extract_scoring_identity as _extract_scoring_identity,
@@ -108,7 +111,7 @@ class SubmissionRevisionController:
             requested_model=config.agent.model,
         )
         self.dependencies = dependencies or RevisionDependencies(
-            session=CliSolverSessionDriver(config.agent),
+            session=CliSolverSessionDriver(config.agent, benchmark=config.benchmark),
             judge=BiomniSubmissionJudge(judge_config, self.rubric),
             evolver=(
                 None if config.rubric_evolution is RubricEvolution.STATIC
@@ -196,6 +199,7 @@ class SubmissionRevisionController:
     def _experiment_identity(self) -> dict[str, object]:
         identity: dict[str, object] = {
             "experiment_id": self.config.experiment_id,
+            "benchmark": str(self.config.benchmark),
             "assignment_id": self.config.assignment_id,
             "condition_id": self.config.condition_id,
             "replicate": self.config.replicate,
@@ -273,7 +277,10 @@ class SubmissionRevisionController:
                 submission_ids=["s000"],
                 scores=[],
                 judge_attempts={},
-                next_prompt=solver_prompt(self.config.prompt_profile),
+                next_prompt=solver_prompt(
+                    self.config.prompt_profile,
+                    self.config.benchmark,
+                ),
             )
         try:
             if not initialized:
@@ -1077,10 +1084,15 @@ class SubmissionRevisionController:
         ):
             assert self.dependencies.evolver is not None
             workspace = submission_dir / "workspace"
+            current_submission = (
+                render_submission_tree(workspace)
+                if self.config.benchmark is Benchmark.PAPERBENCH_CODE_DEV
+                else (workspace / "answer.txt").read_text(encoding="utf-8")
+            )
             evolved = self.dependencies.evolver.evolve(
                 instruction=(self.task_dir / "instruction.md").read_text(),
                 current_rubric=rubric.text,
-                answer=(workspace / "answer.txt").read_text(),
+                current_submission=current_submission,
                 trajectory_path=submission_dir / "trajectory.stream.jsonl",
                 version=turn_index + 1,
                 source_submission_id=submission_id,
@@ -1134,6 +1146,7 @@ class SubmissionRevisionController:
                 rubric.sha256,
                 policy,
                 prompt_profile=self.config.prompt_profile,
+                benchmark=self.config.benchmark,
             )
 
         simulator = self.dependencies.feedback_simulator
@@ -1191,6 +1204,7 @@ class SubmissionRevisionController:
             rubric.sha256,
             comment,
             prompt_profile=self.config.prompt_profile,
+            benchmark=self.config.benchmark,
         )
 
     def _publish_progress_report(
@@ -1360,6 +1374,11 @@ class SubmissionRevisionController:
             raise RuntimeError("historical snapshots may only be compacted when complete")
         removed_files = 0
         removed_logical_bytes = 0
+        retained_names = (
+            frozenset({"submission"})
+            if self.config.benchmark is Benchmark.PAPERBENCH_CODE_DEV
+            else frozenset({"answer.txt", "trace.md"})
+        )
         for submission_id in state.submission_ids[:-1]:
             submission_removed_files = 0
             submission_removed_logical_bytes = 0
@@ -1384,8 +1403,14 @@ class SubmissionRevisionController:
             # outside the standard experiment tree. Standard staging is compacted
             # first so its tree continues to match the submission after both steps.
             if os.path.lexists(evaluation_workspace):
-                _compact_historical_workspace(evaluation_workspace)
-            stats = _compact_historical_workspace(submission_dir / "workspace")
+                _compact_historical_workspace(
+                    evaluation_workspace,
+                    retained_names=retained_names,
+                )
+            stats = _compact_historical_workspace(
+                submission_dir / "workspace",
+                retained_names=retained_names,
+            )
             removed_files += stats.removed_files
             removed_logical_bytes += stats.removed_logical_bytes
             submission_removed_files += stats.removed_files
@@ -1494,20 +1519,11 @@ class SubmissionRevisionController:
         _make_tree_read_only(turn_dir)
 
     def _validate_submission_outputs(self, workspace: Path) -> None:
-        invalid: list[str] = []
-        for name in ("trace.md", "answer.txt"):
-            path = workspace / name
-            try:
-                path_stat = os.lstat(path)
-            except OSError:
-                invalid.append(name)
-                continue
-            if not stat.S_ISREG(path_stat.st_mode) or path_stat.st_size == 0:
-                invalid.append(name)
-        if invalid:
+        errors = solver_output_errors(workspace, self.config.benchmark)
+        if errors:
             raise RuntimeError(
                 "solver submission is missing or has invalid required outputs: "
-                + ", ".join(invalid)
+                + ", ".join(errors)
             )
 
     def _verify_live_instruction(self, workspace: Path) -> None:
