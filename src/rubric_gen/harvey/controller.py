@@ -9,6 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Protocol
 
+from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.harvey.artifacts import (
     copy_regular_tree,
@@ -165,27 +166,37 @@ class HarveyEvolutionController:
 
     def run(self, *, resume: bool = False) -> int:
         self._initialize(resume=resume)
-        self._ensure_baseline()
-        baseline = self._ensure_canonical(0)
-        self._write_current_round(0, {candidate_id(0): baseline})
-        for index in range(1, self.experiment.designer.rounds + 1):
-            self._ensure_rubric(index)
-            current = self._crossed_prior_evaluations(index)
-            candidate_exists = self._candidate_dir(index).is_dir()
-            canonical_exists = self._canonical_dir(index).is_dir()
-            if candidate_exists and canonical_exists:
+        with TerminalProgress(
+            total=self.experiment.designer.rounds + 1,
+            description="Harvey evolution",
+            unit="candidate",
+        ) as progress:
+            progress.set_status("baseline h0000")
+            self._ensure_baseline()
+            baseline = self._ensure_canonical(0)
+            self._write_current_round(0, {candidate_id(0): baseline})
+            progress.update()
+            for index in range(1, self.experiment.designer.rounds + 1):
+                progress.set_status(f"round {index} {candidate_id(index)}")
+                self._ensure_rubric(index)
+                current = self._crossed_prior_evaluations(index)
+                candidate_exists = self._candidate_dir(index).is_dir()
+                canonical_exists = self._canonical_dir(index).is_dir()
+                if candidate_exists and canonical_exists:
+                    current[candidate_id(index)] = self._ensure_canonical(index)
+                    self._write_current_round(index, current)
+                    progress.update()
+                    continue
+                if not candidate_exists:
+                    self._write_current_round(index, current)
+                    self._ensure_candidate(index)
                 current[candidate_id(index)] = self._ensure_canonical(index)
-                self._write_current_round(index, current)
-                continue
-            if not candidate_exists:
-                self._write_current_round(index, current)
-                self._ensure_candidate(index)
-            current[candidate_id(index)] = self._ensure_canonical(index)
-            self._write_current_round(
-                index,
-                current,
-                replace=True,
-            )
+                self._write_current_round(
+                    index,
+                    current,
+                    replace=True,
+                )
+                progress.update()
         write_json_atomic(
             self.root / "study.json",
             {

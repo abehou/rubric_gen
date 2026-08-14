@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
 import pytest
 
-from rubric_gen.biomnibench.cli import build_parser
+import rubric_gen.cli as unified_cli
+from rubric_gen.cli import build_parser
 from rubric_gen.biomnibench.vllm import (
     normalize_vllm_base_url,
     parse_vllm_endpoints,
@@ -21,7 +25,7 @@ def test_cli_exposes_only_core_workflow() -> None:
     "argv",
     [
         ["revise", "--experiment", "experiment.yaml", "--dry-run"],
-        ["detect", "--run-dir", "r", "--output-dir", "o", "--preflight-only"],
+        ["detect", "--experiment", "experiment.yaml", "--preflight-only"],
     ],
 )
 def test_cli_rejects_non_executing_modes(argv: list[str]) -> None:
@@ -32,6 +36,60 @@ def test_cli_rejects_non_executing_modes(argv: list[str]) -> None:
 def test_cli_requires_a_command() -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args([])
+
+
+def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
+    path = tmp_path / "harvey.yaml"
+    path.write_text(
+        json.dumps(
+            {"kind": "rubric-gen-harvey-harness-evolution-experiment"}
+        ),
+        encoding="utf-8",
+    )
+    experiment = object()
+    observed: dict[str, object] = {}
+
+    class FakeController:
+        def __init__(self, value: object) -> None:
+            observed["experiment"] = value
+
+        def run(self, *, resume: bool) -> int:
+            observed["resume"] = resume
+            return 17
+
+    monkeypatch.setattr(unified_cli, "load_harvey_experiment", lambda _: experiment)
+    monkeypatch.setattr(unified_cli, "HarveyEvolutionController", FakeController)
+
+    assert unified_cli.main(["run", "--experiment", str(path), "--resume"]) == 17
+    assert observed == {"experiment": experiment, "resume": True}
+
+
+def test_detect_derives_submission_directories_from_experiment(
+    tmp_path, monkeypatch
+) -> None:
+    path = tmp_path / "submission.yaml"
+    path.write_text(
+        json.dumps({"kind": "rubric-gen-randomized-experiment"}),
+        encoding="utf-8",
+    )
+    experiment = SimpleNamespace(
+        dag={
+            "revise": {"output_dir": "/runs/revise"},
+            "detect": {"output_dir": "/runs/detect"},
+        }
+    )
+    observed: dict[str, object] = {}
+
+    def detect(args) -> int:
+        observed.update(vars(args))
+        return 19
+
+    monkeypatch.setattr(unified_cli, "load_experiment", lambda _: experiment)
+    monkeypatch.setattr(unified_cli, "run_submission_detect", detect)
+
+    assert unified_cli.main(["detect", "--experiment", str(path)]) == 19
+    assert observed["run_dir"] == "/runs/revise"
+    assert observed["output_dir"] == "/runs/detect"
 
 
 def test_run_accepts_restart() -> None:
@@ -73,7 +131,7 @@ def test_experiment_commands_accept_repeatable_vllm_endpoints(command: str) -> N
 
 def test_detect_accepts_vllm_endpoints() -> None:
     detect = build_parser().parse_args([
-        "detect", "--run-dir", "runs/study", "--output-dir", "runs/detect",
+        "detect", "--experiment", "experiment.yaml",
         "--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B",
     ])
     assert detect.vllm == ["http://qwen27:43117::Qwen/Qwen3.6-27B"]
@@ -82,13 +140,13 @@ def test_detect_accepts_vllm_endpoints() -> None:
 def test_judge_accepts_only_the_strong_original_rubric_workflow() -> None:
     judge = build_parser().parse_args([
         "judge",
-        "--study-dir", "runs/study",
+        "--experiment", "experiment.yaml",
         "--output-dir", "runs/judge",
         "--max-concurrency", "2",
         "--max-retries", "0",
         "--resume",
     ])
-    assert judge.study_dir == "runs/study"
+    assert judge.experiment == "experiment.yaml"
     assert judge.output_dir == "runs/judge"
     assert judge.max_concurrency == 2
     assert judge.max_retries == 0
@@ -101,6 +159,7 @@ def test_judge_accepts_only_the_strong_original_rubric_workflow() -> None:
     "legacy_args",
     [
         ["--run-dir", "runs/revision"],
+        ["--study-dir", "runs/study"],
         ["--models", "gpt-5.6-sol"],
         ["--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B"],
     ],
@@ -109,7 +168,7 @@ def test_judge_rejects_removed_interfaces(legacy_args: list[str]) -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args([
             "judge",
-            "--study-dir", "runs/study",
+            "--experiment", "experiment.yaml",
             "--output-dir", "runs/judge",
             *legacy_args,
         ])

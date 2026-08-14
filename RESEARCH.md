@@ -34,9 +34,10 @@ The current generator has a full-set interface:
 - The separate trajectory auditor must inspect at least one trajectory event.
 - The auditor can return `no_supported_problem`; it is not forced to find a
   defect.
-- Each evidence and counterevidence snippet has a verified event ID and exact
+- Each evidence and counterevidence citation has an existing event ID and valid
   character offsets.
-- The harness stores the exact canonical packet and its hash.
+- The harness copies the cited text from the trajectory and stores the exact
+  canonical packet and its hash.
 - The proposer receives only the task, current answer, current rubric, and
   verified packet. It has no tools and does not write a trace.
 - The harness validates numbering, level structure, descriptions, and weights.

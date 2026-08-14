@@ -28,7 +28,7 @@ conditions:
     rubric_evolution: prospective
 
 protocol:
-  revision_rounds: 7
+  revision_rounds: 6
   feedback_policy: semi
   solver:
     provider: codex

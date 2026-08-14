@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
+import rubric_gen.harvey.designer as designer_module
 from rubric_gen.harvey.audits import prepare_reward_hacking_cases, run_quality_audit
 from rubric_gen.harvey.artifacts import tree_sha256
 from rubric_gen.harvey.config import (
@@ -20,8 +22,9 @@ from rubric_gen.harvey.config import (
     load_experiment,
 )
 from rubric_gen.harvey.controller import HarveyEvolutionController, build_ranking
-from rubric_gen.harvey.designer import DesignedCandidate
+from rubric_gen.harvey.designer import DESIGNER_PROMPT, CodexHarnessDesigner, DesignedCandidate
 from rubric_gen.harvey.evaluator import CandidateEvaluation, HarveyEvaluator
+from rubric_gen.harvey.podman import configured_podman_environment
 from rubric_gen.harvey.rubrics import TaskRubricProposer
 from rubric_gen.malt.model_judge import ModelGeneration, request_provenance
 
@@ -55,6 +58,7 @@ def _config_text(tmp_path: Path, *, mode: str = "prospective") -> str:
         else ""
     )
     return f"""schema_version: 1
+kind: rubric-gen-harvey-harness-evolution-experiment
 experiment_id: harvey-test
 output_dir: output
 benchmark:
@@ -63,7 +67,7 @@ benchmark:
   development_tasks: [area/task]
   held_out_tasks: []
 task_agent:
-  model: gpt-5.5
+  model: gpt-5.6-luna
   credential_env: [OPENAI_API_KEY]
 judge:
   model: claude-sonnet-4-6
@@ -90,6 +94,7 @@ def test_load_harvey_experiment_resolves_paths_and_modes(tmp_path: Path) -> None
     assert experiment.benchmark.checkout == tmp_path / "checkout"
     assert experiment.rubric.mode == "prospective"
     assert experiment.designer.rounds == 2
+    assert experiment.task_agent.model == "gpt-5.6-luna"
 
 
 def test_static_harvey_experiment_rejects_proposer(tmp_path: Path) -> None:
@@ -174,6 +179,200 @@ def test_tree_hash_rejects_symbolic_links(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="link or special file"):
         tree_sha256(root)
+
+
+def test_designer_parent_contract_uses_candidate_id_without_history_prefix(
+    tmp_path: Path,
+) -> None:
+    assert "such as `h0000`" in DESIGNER_PROMPT
+    assert "do not include the `history/` prefix" in DESIGNER_PROMPT
+    workspace = tmp_path / "workspace"
+    parent = tmp_path / "parent"
+    harness = workspace / "candidate" / "harness"
+    for root in (parent, harness):
+        root.mkdir(parents=True)
+        for name in ("run.py", "system_prompt.md", "agent_loop.py", "tools.py"):
+            (root / name).write_text(name, encoding="utf-8")
+    (harness / "run.py").write_text("changed", encoding="utf-8")
+    (workspace / "proposal.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "parent_harness": "history/h0000",
+                "hypothesis": "Improve review.",
+                "mechanism": "Add an audit.",
+                "expected_effect": "Find omissions.",
+                "risks": ["More tokens."],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="without a history/ prefix"):
+        CodexHarnessDesigner._validate_artifacts(
+            workspace, {"h0000": parent}
+        )
+
+
+def test_designer_retries_semantically_invalid_proposal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    for name in ("run.py", "system_prompt.md", "agent_loop.py", "tools.py"):
+        (parent / name).write_text(name, encoding="utf-8")
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "ranking.json").write_text("{}", encoding="utf-8")
+    workspace = tmp_path / "workspace"
+    designer = CodexHarnessDesigner(
+        HarnessDesigner("gpt-5.6-sol", 1, "high", "priority", 60, 1)
+    )
+    input_hash = designer.prepare_workspace(
+        workspace,
+        candidate_harnesses={"h0000": parent},
+        canonical_evaluations={},
+        current_dir=current,
+    )
+    prompts: list[str] = []
+
+    class FakeRunner:
+        def __init__(self, config, *, prompt: str, required_outputs) -> None:
+            prompts.append(prompt)
+
+        def ensure_executable(self) -> None:
+            return None
+
+        def stream(self, paths) -> int:
+            harness = workspace / "candidate" / "harness"
+            if not harness.exists():
+                shutil.copytree(parent, harness)
+                (harness / "run.py").write_text("changed", encoding="utf-8")
+            proposal = {
+                "schema_version": 1,
+                "parent_harness": "history/h0000" if len(prompts) == 1 else "h0000",
+                "hypothesis": "Improve review.",
+                "mechanism": "Add an audit.",
+                "expected_effect": "Find omissions.",
+                "risks": ["More tokens."],
+            }
+            (workspace / "proposal.json").write_text(
+                json.dumps(proposal), encoding="utf-8"
+            )
+            paths.stream_path.write_text(
+                '{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}\n',
+                encoding="utf-8",
+            )
+            return 0
+
+        @staticmethod
+        def trajectory_errors(path: Path) -> list[str]:
+            return []
+
+    monkeypatch.setattr(designer_module, "AgentRunner", FakeRunner)
+
+    result = designer.run(
+        workspace,
+        tmp_path / "agent",
+        expected_input_sha256=input_hash,
+        candidate_harnesses={"h0000": parent},
+    )
+
+    assert result.parent_id == "h0000"
+    assert len(prompts) == 2
+    assert "without a history/ prefix" in prompts[1]
+
+
+def test_podman_environment_uses_node_local_single_uid_storage(
+    tmp_path: Path,
+) -> None:
+    commands = tmp_path / "commands"
+    commands.mkdir()
+    podman = commands / "podman"
+    podman.write_text(
+        "#!/bin/sh\nprintf '%s\\n' \"$HOME\" \"$XDG_CONFIG_HOME\" \"$@\"\n",
+        encoding="utf-8",
+    )
+    podman.chmod(0o700)
+    subuid = tmp_path / "subuid"
+    subgid = tmp_path / "subgid"
+    subuid.write_text("other:100000:65536\n", encoding="utf-8")
+    subgid.write_text("other:100000:65536\n", encoding="utf-8")
+
+    environment = configured_podman_environment(
+        {
+            "PATH": str(commands),
+            "XDG_RUNTIME_DIR": "/run/user/does-not-exist",
+        },
+        temporary_root=tmp_path / "worker",
+        uid=1234,
+        username="researcher",
+        subuid_path=subuid,
+        subgid_path=subgid,
+    )
+    environment = configured_podman_environment(
+        environment,
+        temporary_root=tmp_path / "worker",
+        uid=1234,
+        username="researcher",
+        subuid_path=subuid,
+        subgid_path=subgid,
+    )
+
+    assert environment["XDG_RUNTIME_DIR"].endswith(
+        "rubric-gen-podman-1234/runtime"
+    )
+    assert environment["XDG_DATA_HOME"].endswith("rubric-gen-podman-1234/data")
+    storage = Path(environment["CONTAINERS_STORAGE_CONF"])
+    assert 'ignore_chown_errors = "true"' in storage.read_text(encoding="utf-8")
+    assert str(tmp_path / "worker") in storage.read_text(encoding="utf-8")
+    assert storage.stat().st_mode & 0o777 == 0o600
+    home = Path(environment["XDG_CONFIG_HOME"]).parent
+    policy = home / ".config" / "containers" / "policy.json"
+    assert json.loads(policy.read_text(encoding="utf-8")) == {
+        "default": [{"type": "insecureAcceptAnything"}]
+    }
+    wrapper = Path(environment["PATH"].split(os.pathsep, 1)[0]) / "podman"
+    wrapper_text = wrapper.read_text(encoding="utf-8")
+    assert f"export HOME={home}" in wrapper_text
+    assert f"export XDG_CONFIG_HOME={home / '.config'}" in wrapper_text
+    assert f"--signature-policy={policy}" in wrapper_text
+    assert f'exec {podman} "$@"' in wrapper_text
+    invocation = subprocess.run(
+        [wrapper, "build", "-t", "sandbox", "."],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    assert invocation == [
+        str(home),
+        str(home / ".config"),
+        "build",
+        f"--signature-policy={policy}",
+        "-t",
+        "sandbox",
+        ".",
+    ]
+
+
+def test_podman_environment_does_not_squash_users_when_subids_exist(
+    tmp_path: Path,
+) -> None:
+    subuid = tmp_path / "subuid"
+    subgid = tmp_path / "subgid"
+    subuid.write_text("researcher:100000:65536\n", encoding="utf-8")
+    subgid.write_text("1234:200000:65536\n", encoding="utf-8")
+
+    environment = configured_podman_environment(
+        {},
+        temporary_root=tmp_path / "worker",
+        uid=1234,
+        username="researcher",
+        subuid_path=subuid,
+        subgid_path=subgid,
+    )
+
+    assert "CONTAINERS_STORAGE_CONF" not in environment
 
 
 class _FakeEvaluator:

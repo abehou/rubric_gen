@@ -30,11 +30,20 @@ uv sync
 The second command reads the checkout path and revision from
 `experiments/harvey-harness-evolution.yaml`. It clones the official repository
 when necessary and runs Harvey LAB's setup script. That script uses Harvey's
-own `uv.lock` for its Python environment. It also installs Pandoc and Podman and
-pulls or builds `lab-sandbox:latest`. Pandoc and Podman are system programs;
-uv cannot install them. On Linux, their installation needs sudo access. On a
-managed cluster, ask the administrator to provide both commands if sudo is not
-available.
+own `uv.lock` for its Python environment. It also needs the `pandoc` and
+`podman` commands and pulls or builds `lab-sandbox:latest`. On a managed Linux
+cluster, install both commands in the active Conda environment when system
+packages are unavailable:
+
+```bash
+conda install -c conda-forge pandoc podman
+./scripts/setup_harvey
+```
+
+The wrapper automatically uses node-local Podman runtime and image storage. If
+the account has no subordinate UID/GID ranges, it enables Podman's single-UID
+HPC mode. A new compute node downloads the sandbox image into its local cache
+on first use.
 
 The Harvey LAB harness-evolution workflow lets Codex choose any earlier harness
 as a parent. It supports static or prospective task rubrics and sealed transfer
@@ -115,12 +124,11 @@ uv run rubric-gen seed --experiment experiment.yaml --resume
 uv run rubric-gen revise --experiment experiment.yaml --resume
 
 uv run rubric-gen detect \
-  --run-dir runs/biomnibench-studies/luna-top30-semi-r10 \
-  --output-dir runs/biomnibench-detections/luna-top30-semi-r10 \
+  --experiment experiments/luna-top30-semi-r10.yaml \
   --resume
 
 uv run rubric-gen judge \
-  --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
+  --experiment experiments/luna-top30-semi-r10.yaml \
   --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-original-rubric \
   --max-concurrency 3 \
   --resume
@@ -350,8 +358,7 @@ uv run rubric-gen revise \
   --vllm "http://HOST:43117/v1::Qwen/Qwen3.6-27B"
 
 uv run rubric-gen detect \
-  --run-dir runs/biomnibench-studies/qwen \
-  --output-dir runs/biomnibench-detections/qwen \
+  --experiment experiment.qwen36-27b.yaml \
   --vllm "http://HOST27:43117/v1::Qwen/Qwen3.6-27B" \
   --vllm "http://HOST35:43583/v1::Qwen/Qwen3.6-35B-A3B"
 ```
@@ -362,10 +369,11 @@ directories, changing `protocol.solver.model` between them. The two-model panel
 is supported directly for `detect`.
 
 Prospective rubric evolution remains part of `revise` when enabled by the
-experiment. A versioned trajectory-auditor agent first selects exact raw-event
-snippets. It can report a supported problem, counterevidence or uncertainty, or
-`no_supported_problem`. The harness verifies each event ID, character offset,
-verbatim slice, and size limit, then stores the canonical packet and its hash.
+experiment. A versioned trajectory-auditor agent first selects raw-event
+citations. It can report a supported problem, counterevidence or uncertainty, or
+`no_supported_problem`. The auditor returns only event IDs and character
+offsets. The harness checks those references, copies the exact text from the
+trajectory, and stores the canonical packet and its hash.
 
 The proposer then makes one direct model call with only the task instruction,
 current benchmark submission, current complete rubric, and verified packet.

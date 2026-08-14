@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 import rubric_gen.biomnibench.commands as commands_module
+import rubric_gen.biomnibench.experiment as experiment_module
 import rubric_gen.biomnibench.study as study_module
 from rubric_gen.biomnibench.experiment import load_experiment
 from rubric_gen.biomnibench.revision.seeds import SeedSetConfig, SeedSetRunner
@@ -76,6 +77,32 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     assert len(first.assignments) == 2 * 3 * 2
     assert all("design_sha256" not in item for item in first.assignments)
     assert {item["execution_order"] for item in first.assignments} == set(range(1, 13))
+
+
+def test_paperbench_experiment_accepts_a_pinned_dev_subset(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = "semantic-self-consistency"
+    _task(tmp_path, task_id)
+    task = tmp_path / "tasks" / task_id
+    (task / "environment" / "data" / "paper.md").write_text("# Paper\n")
+    (task / "tests" / "paperbench.json").write_text("{}\n")
+    payload = _payload(tmp_path)
+    payload["benchmark"] = "paperbench-code-dev"
+    payload["tasks"] = [task_id]
+    payload["protocol"]["review"] = "workspace"  # type: ignore[index]
+    path = tmp_path / "paperbench.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    monkeypatch.setattr(
+        experiment_module,
+        "validate_paperbench_code_dev_dataset",
+        lambda _path: None,
+    )
+
+    experiment = load_experiment(path)
+
+    assert experiment.task_ids == (task_id,)
 
 
 def test_dag_validates_and_reuses_an_explicit_seed_source(

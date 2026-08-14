@@ -19,6 +19,9 @@ from rubric_gen.biomnibench.forensics.evidence_index import (
     INDEX_SCHEMA_VERSION,
     render_compact_evidence,
 )
+from rubric_gen.biomnibench.revision.artifacts import (
+    REVISION_MANIFEST_SCHEMA_VERSION,
+)
 from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
 from rubric_gen.biomnibench.pricing import (
     ANTHROPIC_PRICES_PER_MILLION,
@@ -821,7 +824,7 @@ def _revision_case_id(
     experiment_id = value.get("experiment_id")
     execution_order = value.get("execution_order")
     if (
-        value.get("schema_version") != 2
+        value.get("schema_version") != REVISION_MANIFEST_SCHEMA_VERSION
         or type(experiment_id) is not str
         or not experiment_id
         or type(execution_order) is not int
@@ -1841,14 +1844,18 @@ class ModelJudgeRunner:
             "reserved_api_usd",
         ):
             value = state.get(key)
+            numeric = (
+                float(value)
+                if not isinstance(value, bool) and isinstance(value, (int, float))
+                else None
+            )
             if (
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(float(value))
-                or float(value) < 0
+                numeric is None
+                or not math.isfinite(numeric)
+                or numeric < -1e-9
             ):
                 raise ValueError(f"cost state has invalid {key}")
-            values[key] = float(value)
+            values[key] = max(0.0, numeric)
         raw_by_model = state.get("observed_by_model_usd")
         if not isinstance(raw_by_model, dict) or any(
             model not in self.config.models
@@ -2240,7 +2247,7 @@ class ModelJudgeRunner:
             )
         except Exception:
             with self._budget_lock:
-                self._reserved_usd -= reservation
+                self._reserved_usd = max(0.0, self._reserved_usd - reservation)
                 self._unverified_failure_risk_usd += reservation
                 self._persist_cost_state_locked()
             raise
@@ -2251,7 +2258,7 @@ class ModelJudgeRunner:
             else reservation
         )
         with self._budget_lock:
-            self._reserved_usd -= reservation
+            self._reserved_usd = max(0.0, self._reserved_usd - reservation)
             self._spent_usd += actual or 0.0
             if actual is not None:
                 self._spent_by_model[model] = (

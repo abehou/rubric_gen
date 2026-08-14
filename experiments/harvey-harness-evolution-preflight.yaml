@@ -1,19 +1,15 @@
 schema_version: 1
 kind: rubric-gen-harvey-harness-evolution-experiment
-experiment_id: harvey-harness-prospective-r10
-output_dir: ../runs/harvey-harness-prospective-r10
+experiment_id: harvey-harness-prospective-preflight
+output_dir: ../runs/harvey-harness-prospective-preflight
 
 benchmark:
   checkout: ../../harvey-labs
   revision: 7be41d57fd5a6e97b5f246a029e810f83d09cd96
   development_tasks:
     - antitrust-competition/analyze-antitrust-hsr-strategy
-    - antitrust-competition/analyze-counterparty-markup-of-protective-order
-    - antitrust-competition/compare-leniency-programs-across-three-jurisdictions
-    - antitrust-competition/draft-antitrust-complaint
   held_out_tasks:
     - arbitration-international-dispute-resolution/analyze-arbitration-award-for-new-york-convention-enforcement-defenses
-    - arbitration-international-dispute-resolution/compare-arbitrator-candidates-against-selection-criteria
 
 task_agent:
   model: gpt-5.6-luna
@@ -27,13 +23,13 @@ task_agent:
 
 judge:
   model: claude-sonnet-4-6
-  parallel: 6
+  parallel: 1
   credential_env:
     - ANTHROPIC_API_KEY
 
 designer:
   model: gpt-5.6-sol
-  rounds: 10
+  rounds: 1
   reasoning_effort: high
   service_tier: priority
   timeout_seconds: 7200
@@ -53,5 +49,5 @@ audit:
     - gemini-3.1-pro-preview
   max_concurrency: 3
   max_retries: 1
-  max_cost_usd: 50.0
+  max_cost_usd: 15.0
   primary_rule: majority

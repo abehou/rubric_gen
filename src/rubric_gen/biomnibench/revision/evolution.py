@@ -81,9 +81,10 @@ _MAX_INSPECTION_CHARS = 1_000
 _MAX_UNCERTAINTY_CHARS = 1_000
 _PROPOSER_MAX_OUTPUT_TOKENS = 32_768
 _DIRECT_REQUEST_TIMEOUT_SECONDS = 600.0
-_AUDITOR_PROMPT_VERSION = "trajectory-evidence-auditor-v1"
-_AUDITOR_PACKET_SCHEMA_VERSION = 1
-_PROPOSER_PROMPT_VERSION = "audited-complete-rubric-v2"
+_AUDITOR_PROMPT_VERSION = "trajectory-evidence-auditor-v2"
+_AUDITOR_PACKET_SCHEMA_VERSION = 2
+_PROPOSER_PROMPT_VERSION = "audited-complete-rubric-v4"
+_AUDITOR_VALIDATION_MAX_RETRIES = 1
 _PROPOSER_REASONING_EFFORT = "high"
 _PROPOSER_TEXT_VERBOSITY = "low"
 _METADATA_KEYS = frozenset({
@@ -109,8 +110,9 @@ _METADATA_KEYS = frozenset({
 })
 _COST_KEYS = frozenset({"cost_usd", "estimated_cost_usd", "cost_source"})
 _SNIPPET_KEYS = frozenset({
-    "event_id", "start_offset", "end_offset", "text",
+    "event_id", "start_offset", "end_offset",
 })
+_VERIFIED_SNIPPET_KEYS = _SNIPPET_KEYS | {"text"}
 _PACKET_KEYS = frozenset({
     "schema_version",
     "status",
@@ -124,7 +126,7 @@ _PROBLEM_KEYS = frozenset({"hypothesis", "evidence"})
 _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
-        "schema_version": {"type": "integer", "enum": [1]},
+        "schema_version": {"type": "integer", "enum": [2]},
         "status": {
             "type": "string",
             "enum": ["no_supported_problem", "supported_problem"],
@@ -176,9 +178,8 @@ _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
                 "event_id": {"type": "integer", "minimum": 1},
                 "start_offset": {"type": "integer", "minimum": 0},
                 "end_offset": {"type": "integer", "minimum": 1},
-                "text": {"type": "string", "maxLength": _MAX_SNIPPET_CHARS},
             },
-            "required": ["event_id", "start_offset", "end_offset", "text"],
+            "required": ["event_id", "start_offset", "end_offset"],
             "additionalProperties": False,
         }
     },
@@ -268,13 +269,36 @@ class RubricEvolver:
                 source_hashes,
             )
 
-        auditor_output = self.run_auditor(trajectory_path=trajectory_path)
-        self._validate_auditor_output(auditor_output, event_contents)
-        packet_text = _validated_evidence_packet(
-            auditor_output.packet_text,
-            event_contents=event_contents,
-            retrieved_events=frozenset(auditor_output.retrieved_event_ids),
-        )
+        auditor_output: AuditorOutput | None = None
+        auditor_error: Exception | None = None
+        packet_text = ""
+        for auditor_attempt in range(1, _AUDITOR_VALIDATION_MAX_RETRIES + 2):
+            auditor_output = None
+            try:
+                auditor_output = self.run_auditor(trajectory_path=trajectory_path)
+                self._validate_auditor_output(auditor_output, event_contents)
+                packet_text = _validated_evidence_packet(
+                    auditor_output.packet_text,
+                    event_contents=event_contents,
+                    retrieved_events=frozenset(auditor_output.retrieved_event_ids),
+                    materialized=False,
+                )
+                break
+            except Exception as exc:
+                if auditor_output is not None:
+                    self._archive_failed_auditor_attempt(
+                        output_dir,
+                        version,
+                        auditor_attempt,
+                        auditor_output,
+                        exc,
+                    )
+                auditor_error = exc
+        else:
+            assert auditor_error is not None
+            raise auditor_error
+
+        assert auditor_output is not None
         packet_sha256 = sha256_text(packet_text)
 
         last_error: Exception | None = None
@@ -458,6 +482,35 @@ class RubricEvolver:
         }
 
     @staticmethod
+    def _archive_failed_auditor_attempt(
+        output_dir: Path,
+        version: int,
+        evolve_attempt: int,
+        auditor_output: AuditorOutput,
+        error: Exception,
+    ) -> None:
+        failure_dir = output_dir / f"r{version:04d}.auditor-failures"
+        failure_dir.mkdir(exist_ok=True)
+        sequence = len(list(failure_dir.glob("attempt-*.json"))) + 1
+        stem = f"attempt-{sequence:04d}"
+        (failure_dir / f"{stem}.txt").write_text(
+            auditor_output.packet_text,
+            encoding="utf-8",
+        )
+        write_json_atomic(
+            failure_dir / f"{stem}.json",
+            {
+                "schema_version": 1,
+                "evolve_attempt": evolve_attempt,
+                "error_type": type(error).__name__,
+                "error": str(error) or type(error).__name__,
+                "query_count": auditor_output.query_count,
+                "retrieved_event_ids": list(auditor_output.retrieved_event_ids),
+                "cost": auditor_output.cost,
+            },
+        )
+
+    @staticmethod
     def _archive_failed_attempt(
         output_dir: Path,
         version: int,
@@ -554,6 +607,7 @@ class RubricEvolver:
                     packet_text,
                     event_contents=event_contents,
                     retrieved_events=frozenset(output.retrieved_event_ids),
+                    materialized=True,
                 )
             except (KeyError, TypeError, ValueError):
                 expected_packet = None
@@ -655,19 +709,14 @@ class RubricEvolver:
                     f"{exit_code}"
                 )
             query_state = workspace / "artifacts"
-            counter = query_state / "query-count.txt"
             audit = query_state / "query-audit.jsonl"
-            if not counter.is_file() or not audit.is_file():
+            if not audit.is_file():
                 raise RuntimeError("trajectory auditor query audit is missing")
-            query_count = int(counter.read_text())
             audit_records = [
                 json.loads(line)
                 for line in audit.read_text(encoding="utf-8").splitlines()
             ]
-            if len(audit_records) != query_count:
-                raise RuntimeError(
-                    "trajectory auditor query audit disagrees with query count"
-                )
+            query_count = len(audit_records)
             retrieved = tuple(sorted({
                 event
                 for record in audit_records
@@ -745,21 +794,21 @@ does not support one. A longer or busier trajectory is not evidence of better or
 worse quality. Do not infer facts that are absent from the retrieved text.
 
 Return one JSON object with this exact structure:
-- `schema_version`: 1.
+- `schema_version`: 2.
 - `status`: `no_supported_problem` or `supported_problem`.
 - `inspected`: a short factual statement of what parts or issue types you
   inspected.
 - `problems`: zero or more objects with a short `hypothesis` and one or more
-  exact `evidence` snippets. It must be empty for `no_supported_problem`.
-- `counterevidence`: zero or more exact snippets that weaken a problem
+  `evidence` citations. It must be empty for `no_supported_problem`.
+- `counterevidence`: zero or more citations that weaken a problem
   hypothesis or support uncertainty.
 - `uncertainty`: a short statement or null.
 
-Every snippet must contain `event_id`, zero-based `start_offset`, exclusive
-`end_offset`, and `text`. The text must be the exact character slice returned
-for that event, including whitespace and punctuation. Use `show` with a known
-offset to obtain exact text. Keep each snippet at most {_MAX_SNIPPET_CHARS}
-characters and all snippets together at most {_MAX_PACKET_CHARS} characters.
+Every citation must contain only `event_id`, zero-based `start_offset`, and
+exclusive `end_offset`. Use `show` with a known offset to select the range. The
+harness will copy the exact cited text into the verified packet. Keep each
+citation at most {_MAX_SNIPPET_CHARS} characters and all cited text together at
+most {_MAX_PACKET_CHARS} characters.
 
 Never propose criterion wording, weights, edits, penalties, or rubric strategy.
 You have not received and must not seek judge reasoning, reward-hacking detector
@@ -779,12 +828,17 @@ def _proposer_instructions(
         if repair_error else ""
     )
     if _is_paperbench_rubric(current_rubric):
+        normalization_maximum = parse_score_normalization_maximum(current_rubric)
+        assert normalization_maximum is not None
         level_contract = f"""Each criterion must have exactly two level labels,
 A and B. A must have a positive integer point value and B must equal zero.
-Preserve the exact `Scoring protocol: {PAPERBENCH_SCORING_PROTOCOL}` and
-`Score normalization maximum: N` directives. The sum of all A-level points
-must equal N. These binary leaf judgments and exact weights are the official
-PaperBench Code-Dev scoring contract."""
+Copy these two directive lines exactly, without changing either value:
+`Scoring protocol: {PAPERBENCH_SCORING_PROTOCOL}`
+`Score normalization maximum: {normalization_maximum}`
+The sum of all A-level points must equal {normalization_maximum}. Do not replace
+the maximum with 100, 1000, 10000, 12000, or another round value. These binary
+leaf judgments and the fixed total are the official PaperBench Code-Dev scoring
+contract."""
     else:
         level_contract = """Each criterion must have three or more contiguous level labels
 starting at A, strictly descending integer points, exactly one zero-valued
@@ -1073,6 +1127,7 @@ def _validated_evidence_packet(
     *,
     event_contents: dict[int, str],
     retrieved_events: frozenset[int],
+    materialized: bool,
 ) -> str:
     if type(response) is not str or not response.strip():
         raise ValueError("trajectory auditor returned an empty evidence packet")
@@ -1139,31 +1194,35 @@ def _validated_evidence_packet(
     seen: set[tuple[int, int, int]] = set()
     total_chars = 0
     for snippet in snippets:
-        if not isinstance(snippet, dict) or set(snippet) != _SNIPPET_KEYS:
+        expected_keys = _VERIFIED_SNIPPET_KEYS if materialized else _SNIPPET_KEYS
+        if not isinstance(snippet, dict) or set(snippet) != expected_keys:
             raise ValueError("trajectory auditor packet has an invalid snippet")
         event_id = snippet.get("event_id")
         start = snippet.get("start_offset")
         end = snippet.get("end_offset")
-        text = snippet.get("text")
+        if type(event_id) is not int or event_id not in event_contents:
+            raise ValueError("trajectory auditor citation has an unknown event ID")
+        if event_id not in retrieved_events:
+            raise ValueError("trajectory auditor cited an event it did not retrieve")
         if (
-            type(event_id) is not int
-            or event_id not in event_contents
-            or event_id not in retrieved_events
-            or type(start) is not int
+            type(start) is not int
             or type(end) is not int
-            or type(text) is not str
             or not 0 <= start < end <= len(event_contents[event_id])
-            or end - start > _MAX_SNIPPET_CHARS
-            or text != event_contents[event_id][start:end]
         ):
-            raise ValueError(
-                "trajectory auditor snippet is not a verbatim event slice"
-            )
+            raise ValueError("trajectory auditor citation has invalid offsets")
+        if end - start > _MAX_SNIPPET_CHARS:
+            raise ValueError("trajectory auditor citation exceeds the size limit")
+        exact_text = event_contents[event_id][start:end]
+        if materialized:
+            if snippet.get("text") != exact_text:
+                raise ValueError("verified auditor packet text was modified")
+        else:
+            snippet["text"] = exact_text
         key = (event_id, start, end)
         if key in seen:
             raise ValueError("trajectory auditor packet repeats a snippet")
         seen.add(key)
-        total_chars += len(text)
+        total_chars += len(exact_text)
     if total_chars > _MAX_PACKET_CHARS:
         raise ValueError("trajectory auditor packet snippets exceed the size limit")
     canonical = json.dumps(
@@ -1254,7 +1313,10 @@ def _validated_complete_rubric(
     normalization_maximum = parse_score_normalization_maximum(current_rubric)
     expected_maximum = normalization_maximum or 100
     if parse_score_normalization_maximum(text) != normalization_maximum:
-        raise ValueError("complete rubric changed its score normalization directive")
+        raise ValueError(
+            "complete rubric must preserve the exact directive "
+            f"`Score normalization maximum: {normalization_maximum}`"
+        )
     if _is_paperbench_rubric(text) is not paperbench_binary:
         raise ValueError("complete rubric changed its PaperBench scoring protocol")
     if total_maximum != expected_maximum:

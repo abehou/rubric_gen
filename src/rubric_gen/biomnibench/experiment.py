@@ -194,9 +194,9 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     ) or len(tasks) != len(set(tasks)):
         raise ValueError("tasks must be unique safe task IDs")
     if benchmark is Benchmark.PAPERBENCH_CODE_DEV:
-        if tuple(tasks) != PAPERBENCH_DEV_PAPERS:
+        if not set(tasks).issubset(PAPERBENCH_DEV_PAPERS):
             raise ValueError(
-                "PaperBench Code-Dev tasks must be the pinned official dev split"
+                "PaperBench Code-Dev tasks must come from the pinned official dev split"
             )
         validate_paperbench_code_dev_dataset(tasks_dir)
     for task_id in tasks:

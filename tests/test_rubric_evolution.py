@@ -107,11 +107,10 @@ def _packet(
                 "event_id": 1,
                 "start_offset": start,
                 "end_offset": start + len(snippet_text),
-                "text": snippet_text,
             }],
         }]
     return json.dumps({
-        "schema_version": 1,
+        "schema_version": 2,
         "status": status,
         "inspected": "Inspected the result claim and its stated support.",
         "problems": problems,
@@ -244,7 +243,7 @@ def test_trajectory_query_tool_is_self_contained(tmp_path: Path) -> None:
     assert json.loads(audit.read_text())["event_ids"] == [1]
 
 
-def test_codex_auditor_emits_only_a_structured_packet(
+def test_codex_auditor_uses_audit_log_as_query_count(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     trajectory = tmp_path / "trajectory.stream.jsonl"
@@ -257,7 +256,7 @@ def test_codex_auditor_emits_only_a_structured_packet(
         assert "trajectory-auditor agent" in self.prompt
         assert "trace.md" in self.prompt
         prompt = (task_dir / "instruction.md").read_text()
-        assert "Prompt contract: trajectory-evidence-auditor-v1" in prompt
+        assert "Prompt contract: trajectory-evidence-auditor-v2" in prompt
         assert "Do not force a problem" in prompt
         assert "Never propose criterion wording, weights, edits" in prompt
         assert "judge reasoning" in prompt
@@ -269,10 +268,13 @@ def test_codex_auditor_emits_only_a_structured_packet(
             "no_supported_problem",
             "supported_problem",
         ]
+        assert "text" not in schema["$defs"]["snippet"]["properties"]
         TaskWorkspace(task_dir, paths.workspace_dir).create()
         artifacts = paths.workspace_dir / "artifacts"
         artifacts.mkdir()
-        (artifacts / "query-count.txt").write_text("1")
+        # A query can fail after consuming budget but before appending an audit
+        # row. Successful audit rows are the only downstream count source.
+        (artifacts / "query-count.txt").write_text("2")
         (artifacts / "query-audit.jsonl").write_text('{"event_ids":[1]}\n')
         assert paths.output_last_message_path is not None
         paths.output_last_message_path.write_text(_packet(event_text))
@@ -318,7 +320,7 @@ def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() ->
         ),
         repair_error=None,
     )
-    packet = '{"schema_version":1,"status":"no_supported_problem"}\n'
+    packet = '{"schema_version":2,"status":"no_supported_problem"}\n'
     evidence = evolution_module._proposer_evidence(
         instruction="TASK",
         current_rubric="RUBRIC",
@@ -326,7 +328,7 @@ def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() ->
         auditor_packet=packet,
     )
 
-    assert "Prompt contract: audited-complete-rubric-v2" in instructions
+    assert "Prompt contract: audited-complete-rubric-v4" in instructions
     assert "recursive decompose-filter cycle" in instructions
     assert "informative, comprehensive, and non-redundant" in instructions
     assert "Do not reward effort" in instructions
@@ -356,7 +358,7 @@ def test_direct_proposer_makes_one_model_call(
         instruction="TASK",
         current_rubric=_current_rubric(),
         current_submission="SUBMISSION",
-        auditor_packet='{"schema_version":1}\n',
+        auditor_packet='{"schema_version":2}\n',
         repair_error=None,
     )
 
@@ -454,14 +456,14 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     assert metadata["kind"] == "audited-complete-rubric-generation"
     assert metadata["auditor"]["model"] == "auditor-model"
     assert metadata["auditor"]["prompt_version"] == (
-        "trajectory-evidence-auditor-v1"
+        "trajectory-evidence-auditor-v2"
     )
     assert metadata["auditor"]["query_count"] == 2
     assert metadata["auditor"]["retrieved_event_ids"] == [1]
     assert metadata["auditor_packet_sha256"] == sha256_text(packet_text)
     assert metadata["proposer"]["model"] == "proposer-model"
     assert metadata["proposer"]["prompt_version"] == (
-        "audited-complete-rubric-v2"
+        "audited-complete-rubric-v4"
     )
     assert metadata["attempt_count"] == 1
     assert metadata["proposer_attempts"][0]["cost"][
@@ -556,6 +558,40 @@ def test_evolver_reuses_packet_when_retrying_invalid_rubric(tmp_path: Path) -> N
     assert not (failure_dir / "attempt-0001.trace.md").exists()
 
 
+def test_evolver_retries_and_archives_an_invalid_auditor_packet(
+    tmp_path: Path,
+) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    invalid_packet = json.loads(_packet(event_text))
+    invalid_packet["problems"][0]["evidence"][0]["event_id"] = 2
+    invalid = json.dumps(invalid_packet)
+    outputs = iter((
+        _auditor_output(event_text, packet_text=invalid),
+        _auditor_output(event_text),
+    ))
+    auditor_calls = 0
+
+    def audit(**_kwargs):
+        nonlocal auditor_calls
+        auditor_calls += 1
+        return next(outputs)
+
+    result = _evolver(
+        run_auditor=audit,
+        run_proposer=lambda **_: _proposer_output(),
+    ).evolve(**arguments)
+
+    assert result.text == _revised_rubric()
+    assert auditor_calls == 2
+    failure_dir = tmp_path / "rubrics" / "r0001.auditor-failures"
+    failure = json.loads((failure_dir / "attempt-0001.json").read_text())
+    assert failure["evolve_attempt"] == 1
+    assert failure["error"] == "trajectory auditor citation has an unknown event ID"
+    assert failure["cost"] == _cost()
+    assert (failure_dir / "attempt-0001.txt").read_text() == invalid
+
+
 def test_resume_rejects_different_auditor_or_proposer_identity(
     tmp_path: Path,
 ) -> None:
@@ -608,23 +644,23 @@ def test_no_supported_problem_and_unchanged_rubric_are_valid(tmp_path: Path) -> 
             lambda packet: packet["problems"][0]["evidence"][0].update(
                 {"text": "hallucinated"}
             ),
-            "verbatim event slice",
+            "invalid snippet",
         ),
         (
             lambda packet: packet["problems"][0]["evidence"][0].update(
                 {"event_id": 2}
             ),
-            "verbatim event slice",
+            "unknown event ID",
         ),
         (
             lambda packet: packet["problems"][0]["evidence"][0].update(
-                {"start_offset": 0}
+                {"start_offset": -1}
             ),
-            "verbatim event slice",
+            "invalid offsets",
         ),
     ),
 )
-def test_evolver_deterministically_rejects_unverified_snippets(
+def test_evolver_rejects_invalid_citation_references(
     tmp_path: Path,
     mutate,
     message: str,
@@ -646,6 +682,12 @@ def test_evolver_deterministically_rejects_unverified_snippets(
 
 def test_evolver_rejects_snippet_from_event_not_retrieved(tmp_path: Path) -> None:
     arguments = _arguments(tmp_path)
+    trajectory = arguments["trajectory_path"]
+    assert isinstance(trajectory, Path)
+    trajectory.write_text(
+        '{"type":"message","content":"evidence"}\n'
+        '{"type":"message","content":"other"}\n'
+    )
     event_text = _event_text(arguments)
     evolver = _evolver(
         run_auditor=lambda **_: _auditor_output(
@@ -654,7 +696,7 @@ def test_evolver_rejects_snippet_from_event_not_retrieved(tmp_path: Path) -> Non
         run_proposer=lambda **_: _proposer_output(),
     )
 
-    with pytest.raises(ValueError, match="retrieval metadata"):
+    with pytest.raises(ValueError, match="did not retrieve"):
         evolver.evolve(**arguments)
 
 

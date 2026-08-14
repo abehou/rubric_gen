@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from rubric_gen.biomnibench.forensics.evidence_index import INDEX_SCHEMA_VERSION
+from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.biomnibench.utils.serialization import write_json_atomic
 from rubric_gen.harvey.artifacts import file_sha256, read_json_object, task_path
 from rubric_gen.harvey.config import HarveyExperiment
@@ -53,57 +54,64 @@ def run_quality_audit(
         for task_id in experiment.benchmark.development_tasks
     }
     records: dict[str, object] = {}
-    for index in range(count):
-        identifier = candidate_id(index)
-        original_destination = root / "original-rubric" / identifier
-        if original_destination.is_dir():
-            original = _load_evaluation(original_destination)
-        else:
-            original = evaluator.rescore(
-                identifier,
-                {
-                    task_id: _canonical_result(experiment, index, task_id)
-                    for task_id in experiment.benchmark.development_tasks
-                },
-                original_tasks,
-                original_destination,
-            )
-        held_out: CandidateEvaluation | None = None
-        if experiment.benchmark.held_out_tasks:
-            held_destination = root / "held-out" / identifier
-            if held_destination.is_dir():
-                held_out = _load_evaluation(held_destination)
+    with TerminalProgress(
+        total=count,
+        description="Harvey quality audit",
+        unit="candidate",
+    ) as progress:
+        for index in range(count):
+            identifier = candidate_id(index)
+            progress.set_status(identifier)
+            original_destination = root / "original-rubric" / identifier
+            if original_destination.is_dir():
+                original = _load_evaluation(original_destination)
             else:
-                held_out = evaluator.evaluate(
+                original = evaluator.rescore(
                     identifier,
-                    experiment.output_dir / "candidates" / identifier / "harness",
                     {
-                        task_id: task_path(
-                            experiment.output_dir / "private" / "original_tasks",
-                            task_id,
-                        )
-                        / "task.json"
-                        for task_id in experiment.benchmark.held_out_tasks
+                        task_id: _canonical_result(experiment, index, task_id)
+                        for task_id in experiment.benchmark.development_tasks
                     },
-                    held_destination,
+                    original_tasks,
+                    original_destination,
                 )
-        active = _load_evaluation(
-            experiment.output_dir
-            / "rounds"
-            / rubric_id(index)
-            / "canonical"
-            / identifier
-        )
-        records[identifier] = {
-            "active_rubric_mean_criterion_pass": active.mean_criterion_pass,
-            "original_rubric_mean_criterion_pass": original.mean_criterion_pass,
-            "active_minus_original": (
-                active.mean_criterion_pass - original.mean_criterion_pass
-            ),
-            "held_out_mean_criterion_pass": (
-                None if held_out is None else held_out.mean_criterion_pass
-            ),
-        }
+            held_out: CandidateEvaluation | None = None
+            if experiment.benchmark.held_out_tasks:
+                held_destination = root / "held-out" / identifier
+                if held_destination.is_dir():
+                    held_out = _load_evaluation(held_destination)
+                else:
+                    held_out = evaluator.evaluate(
+                        identifier,
+                        experiment.output_dir / "candidates" / identifier / "harness",
+                        {
+                            task_id: task_path(
+                                experiment.output_dir / "private" / "original_tasks",
+                                task_id,
+                            )
+                            / "task.json"
+                            for task_id in experiment.benchmark.held_out_tasks
+                        },
+                        held_destination,
+                    )
+            active = _load_evaluation(
+                experiment.output_dir
+                / "rounds"
+                / rubric_id(index)
+                / "canonical"
+                / identifier
+            )
+            records[identifier] = {
+                "active_rubric_mean_criterion_pass": active.mean_criterion_pass,
+                "original_rubric_mean_criterion_pass": original.mean_criterion_pass,
+                "active_minus_original": (
+                    active.mean_criterion_pass - original.mean_criterion_pass
+                ),
+                "held_out_mean_criterion_pass": (
+                    None if held_out is None else held_out.mean_criterion_pass
+                ),
+            }
+            progress.update()
     write_json_atomic(
         root / "summary.json",
         {

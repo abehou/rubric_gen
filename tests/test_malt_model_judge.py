@@ -466,7 +466,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
             "trajectory_sha256": "not-revalidated",
         }))
     (revision / "manifest.json").write_text(json.dumps({
-        "schema_version": 2,
+        "schema_version": 4,
         "kind": "rubric-gen-submission-revision-experiment",
         "benchmark": "biomnibench-da",
         "experiment_id": "test-experiment",
@@ -876,12 +876,18 @@ def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
     first = json.loads((output / "summary.json").read_text())["cost"]
     assert first["observed_api_usd"] > 0
 
+    cost_state_path = output / "cost-state.json"
+    cost_state = json.loads(cost_state_path.read_text())
+    cost_state["reserved_api_usd"] = -1.6653345369377348e-16
+    cost_state_path.write_text(json.dumps(cost_state))
+
     assert ModelJudgeRunner(
         ModelJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     resumed = json.loads((output / "summary.json").read_text())["cost"]
     assert resumed["observed_api_usd"] == first["observed_api_usd"]
     assert calls == 1
+    assert json.loads(cost_state_path.read_text())["reserved_api_usd"] == 0.0
 
 
 def test_malt_gemini_uses_only_canonical_gemini_key(

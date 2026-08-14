@@ -14,6 +14,7 @@ _SHA = re.compile(r"^[0-9a-f]{40}$")
 _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _EFFORTS = {None, "minimal", "low", "medium", "high", "xhigh"}
 _TASK_EFFORTS = _EFFORTS | {"max"}
+HARVEY_EXPERIMENT_KIND = "rubric-gen-harvey-harness-evolution-experiment"
 
 
 def _object(value: object, label: str) -> dict[str, Any]:
@@ -237,9 +238,11 @@ def load_experiment(path: Path) -> HarveyExperiment:
     except yaml.YAMLError as exc:
         raise ValueError(f"invalid Harvey experiment YAML: {source}") from exc
     data = _object(raw, "experiment")
-    _exact(data, {"schema_version", "experiment_id", "output_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
+    _exact(data, {"schema_version", "kind", "experiment_id", "output_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
     if data.get("schema_version") != 1:
         raise ValueError("Harvey experiment schema_version must be 1")
+    if data.get("kind") != HARVEY_EXPERIMENT_KIND:
+        raise ValueError("unsupported Harvey experiment kind")
     experiment_id = _text(data.get("experiment_id"), "experiment_id")
     if not _ID.fullmatch(experiment_id):
         raise ValueError("experiment_id has invalid characters")

@@ -129,10 +129,11 @@
   <p>The proposer emits the complete rubric for the next revision. It can retain, rewrite, remove,
   merge, split, reorder, and reweight criteria. An unchanged complete rubric means abstention. The
   harness derives the diff and does not parse edit actions.</p>
-  <p>A frozen, versioned trajectory-auditor agent first selects exact event slices. The packet can
-  report no supported problem, problem hypotheses, counterevidence, and uncertainty. The harness
-  verifies every event ID, offset, verbatim slice, and size limit, then stores the exact packet and
-  its hash. The proposer receives only the task, answer, current rubric, and verified packet; it has
+  <p>A frozen, versioned trajectory-auditor agent first selects event citations. The packet can
+  report no supported problem, problem hypotheses, counterevidence, and uncertainty. The auditor
+  returns only event IDs and offsets; the harness checks each reference, copies the exact trajectory
+  text, and stores the resulting packet and its hash. The proposer receives only the task, answer,
+  current rubric, and verified packet; it has
   no trajectory tools and produces no trace file.</p>
   <p>Build each complete set through recursive decomposition and filtering. Criteria must be atomic,
   task-specific, self-contained, outcome-grounded, and discriminative. Use verified packet evidence to

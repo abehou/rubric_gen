@@ -35,7 +35,8 @@ this workspace.
 
 Before you stop, write proposal.json with exactly these fields:
 schema_version, parent_harness, hypothesis, mechanism, expected_effect, risks.
-schema_version must be 1. parent_harness must name one history/h#### directory.
+schema_version must be 1. parent_harness must be only the candidate ID from one
+history directory, such as `h0000`; do not include the `history/` prefix.
 The four explanation fields must be non-empty strings, except risks, which must
 be a non-empty list of non-empty strings. Do not ask the user a question.
 """
@@ -115,13 +116,15 @@ class CodexHarnessDesigner:
         attempt_streams: list[Path] = []
         attempt_records: list[dict[str, object]] = []
         exit_code = 1
+        validation_error: str | None = None
         for attempt in range(1, self.config.retries + 2):
             attempt_dir = run_dir / "attempts" / f"attempt-{attempt:03d}"
             attempt_dir.mkdir(parents=True)
             prompt = DESIGNER_PROMPT if attempt == 1 else (
                 "Continue the harness-design task in this workspace. The prior "
-                "attempt did not leave a valid proposal.json and candidate/harness. "
-                "Finish both artifacts now without asking questions."
+                "attempt did not leave valid final artifacts. Correct this validation "
+                f"error: {validation_error or 'missing proposal.json or candidate/harness'}. "
+                "Finish proposal.json and candidate/harness now without asking questions."
             )
             paths = RunPaths(
                 provider="codex",
@@ -152,6 +155,13 @@ class CodexHarnessDesigner:
                 workspace / "candidate" / "harness"
             ).is_dir()
             exit_code = process_exit or (1 if errors or output_error else 0)
+            validation_error = None
+            if exit_code == 0:
+                try:
+                    self._validate_artifacts(workspace, candidate_harnesses)
+                except ValueError as exc:
+                    validation_error = str(exc)
+                    exit_code = 1
             attempt_streams.append(paths.stream_path)
             attempt_records.append(
                 {
@@ -160,6 +170,7 @@ class CodexHarnessDesigner:
                     "exit_code": exit_code,
                     "trajectory_errors": errors,
                     "output_error": output_error,
+                    "validation_error": validation_error,
                 }
             )
             if exit_code == 0:
@@ -201,6 +212,21 @@ class CodexHarnessDesigner:
         candidates: dict[str, Path],
         trajectory: Path,
     ) -> DesignedCandidate:
+        parent, harness, proposal, digest = self._validate_artifacts(
+            workspace, candidates
+        )
+        cost = RunCost.from_stream(
+            trajectory,
+            model=self.config.model,
+            service_tier=self.config.service_tier,
+        ).fields()
+        return DesignedCandidate(parent, harness, proposal, digest, trajectory, cost)
+
+    @staticmethod
+    def _validate_artifacts(
+        workspace: Path,
+        candidates: dict[str, Path],
+    ) -> tuple[str, Path, dict[str, object], str]:
         proposal = read_json_object(workspace / "proposal.json", "harness proposal")
         required = {
             "schema_version", "parent_harness", "hypothesis", "mechanism",
@@ -210,7 +236,11 @@ class CodexHarnessDesigner:
             raise ValueError("harness proposal has invalid fields")
         parent = proposal.get("parent_harness")
         if type(parent) is not str or parent not in candidates:
-            raise ValueError("harness proposal does not name an existing parent")
+            available = ", ".join(sorted(candidates))
+            raise ValueError(
+                "harness proposal parent_harness must be a candidate ID without "
+                f"a history/ prefix; available IDs: {available}"
+            )
         for key in ("hypothesis", "mechanism", "expected_effect"):
             if type(proposal.get(key)) is not str or not str(proposal[key]).strip():
                 raise ValueError(f"harness proposal has invalid {key}")
@@ -229,12 +259,7 @@ class CodexHarnessDesigner:
         digest = tree_sha256(harness)
         if digest == tree_sha256(candidates[parent]):
             raise ValueError("proposed harness is identical to its parent")
-        cost = RunCost.from_stream(
-            trajectory,
-            model=self.config.model,
-            service_tier=self.config.service_tier,
-        ).fields()
-        return DesignedCandidate(parent, harness, proposal, digest, trajectory, cost)
+        return parent, harness, proposal, digest
 
 
 def copy_designed_candidate(designed: DesignedCandidate, destination: Path) -> None:

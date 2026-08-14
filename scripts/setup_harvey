@@ -52,4 +52,12 @@ fi
 
 echo "Harvey LAB checkout: $harvey_checkout"
 echo "Harvey LAB revision: $harvey_revision"
-exec "$harvey_checkout/scripts/setup.sh"
+exec uv run --project "$project_root" python -c '
+import os
+import sys
+
+from rubric_gen.harvey.podman import configured_podman_environment
+
+setup = sys.argv[1]
+os.execve(setup, [setup], configured_podman_environment())
+' "$harvey_checkout/scripts/setup.sh"

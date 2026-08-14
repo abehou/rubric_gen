@@ -10,6 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from rubric_gen.biomnibench.utils.progress import TerminalProgress
 from rubric_gen.harvey.artifacts import (
     copy_regular_tree,
     make_tree_read_only,
@@ -20,6 +21,7 @@ from rubric_gen.harvey.artifacts import (
     validate_task,
 )
 from rubric_gen.harvey.config import HarveyExperiment
+from rubric_gen.harvey.podman import configured_podman_environment
 
 
 @dataclass(frozen=True)
@@ -73,17 +75,25 @@ class HarveyEvaluator:
         with tempfile.TemporaryDirectory(prefix="rubric-gen-harvey-") as temporary:
             runtime = Path(temporary)
             self._materialize_runtime(runtime, harness, task_files)
-            for task_id in task_files:
-                task_destination = stage / "tasks" / task_id
-                task_destination.mkdir(parents=True)
-                run_id = candidate_id + "--" + task_id.replace("/", "--")
-                self._run_task(runtime, task_id, run_id, task_destination / "agent.log")
-                self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
-                result = runtime / "results" / run_id
-                copied_result = task_destination / "result"
-                copy_regular_tree(result, copied_result)
-                score = read_json_object(copied_result / "scores.json", "Harvey score")
-                scores[task_id] = score
+            with TerminalProgress(
+                total=len(task_files),
+                description=f"Harvey {candidate_id} evaluation",
+                unit="task",
+            ) as progress:
+                for task_id in task_files:
+                    progress.set_status(f"agent {task_id}")
+                    task_destination = stage / "tasks" / task_id
+                    task_destination.mkdir(parents=True)
+                    run_id = candidate_id + "--" + task_id.replace("/", "--")
+                    self._run_task(runtime, task_id, run_id, task_destination / "agent.log")
+                    progress.set_status(f"judge {task_id}")
+                    self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
+                    result = runtime / "results" / run_id
+                    copied_result = task_destination / "result"
+                    copy_regular_tree(result, copied_result)
+                    score = read_json_object(copied_result / "scores.json", "Harvey score")
+                    scores[task_id] = score
+                    progress.update()
             validate_checkout(
                 self.experiment.benchmark.checkout,
                 self.experiment.benchmark.revision,
@@ -126,21 +136,28 @@ class HarveyEvaluator:
         with tempfile.TemporaryDirectory(prefix="rubric-gen-harvey-rescore-") as temporary:
             runtime = Path(temporary)
             self._materialize_runtime(runtime, None, task_files)
-            for task_id, source in source_results.items():
-                run_id = candidate_id + "--" + task_id.replace("/", "--")
-                runtime_result = runtime / "results" / run_id
-                runtime_result.parent.mkdir(parents=True, exist_ok=True)
-                copy_regular_tree(source, runtime_result)
-                self._make_tree_writable(runtime_result)
-                task_destination = stage / "tasks" / task_id
-                task_destination.mkdir(parents=True)
-                self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
-                score = read_json_object(runtime_result / "scores.json", "crossed Harvey score")
-                (task_destination / "scores.json").write_text(
-                    json.dumps(score, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-                    encoding="utf-8",
-                )
-                scores[task_id] = score
+            with TerminalProgress(
+                total=len(source_results),
+                description=f"Harvey {candidate_id} rescore",
+                unit="task",
+            ) as progress:
+                for task_id, source in source_results.items():
+                    progress.set_status(task_id)
+                    run_id = candidate_id + "--" + task_id.replace("/", "--")
+                    runtime_result = runtime / "results" / run_id
+                    runtime_result.parent.mkdir(parents=True, exist_ok=True)
+                    copy_regular_tree(source, runtime_result)
+                    self._make_tree_writable(runtime_result)
+                    task_destination = stage / "tasks" / task_id
+                    task_destination.mkdir(parents=True)
+                    self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
+                    score = read_json_object(runtime_result / "scores.json", "crossed Harvey score")
+                    (task_destination / "scores.json").write_text(
+                        json.dumps(score, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
+                    )
+                    scores[task_id] = score
+                    progress.update()
         evaluation = aggregate_scores(candidate_id, scores)
         (stage / "summary.json").write_text(
             json.dumps(
@@ -281,10 +298,12 @@ class HarveyEvaluator:
         allowed = {
             "PATH", "LANG", "LANGUAGE", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR",
             "NODE_EXTRA_CA_CERTS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
-            "UV_CACHE_DIR",
+            "UV_CACHE_DIR", "TMPDIR", "SLURM_TMPDIR",
         }
         environment = {name: value for name, value in os.environ.items() if name in allowed}
         environment.update({name: os.environ[name] for name in credential_names})
+        if label == "task agent":
+            environment = configured_podman_environment(environment)
         environment["PWD"] = str(runtime)
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("w", encoding="utf-8") as stream:

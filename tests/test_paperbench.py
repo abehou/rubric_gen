@@ -137,6 +137,19 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
         )
 
 
+def test_paperbench_proposer_names_the_exact_fixed_normalization() -> None:
+    current, _, maximum = render_code_dev_rubric(_rubric())
+
+    instructions = evolution_module._proposer_instructions(
+        current_rubric=current,
+        repair_error="complete rubric changed its score normalization directive",
+    )
+
+    assert f"`Score normalization maximum: {maximum}`" in instructions
+    assert f"A-level points must equal {maximum}" in instructions
+    assert "another round value" in instructions
+
+
 def test_submission_evidence_uses_official_code_dev_file_types(tmp_path: Path) -> None:
     submission = tmp_path / "submission"
     submission.mkdir()

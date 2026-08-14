@@ -60,24 +60,37 @@ Run the repository setup from the `rubric_gen` root:
 
 The command clones Harvey LAB at the revision in the experiment file and runs
 its official setup script. Harvey LAB uses its own uv environment because it
-requires Python 3.12 or 3.13. The setup also needs the system programs Pandoc
-and Podman and installs the `lab-sandbox:latest` image. These system programs
-cannot be uv dependencies. Their installation needs sudo on Linux. Ask the
-cluster administrator to provide them if sudo is unavailable.
+requires Python 3.12 or 3.13. The setup also needs the `pandoc` and `podman`
+commands and installs the `lab-sandbox:latest` image. If system packages are
+unavailable, install both commands in the active Conda environment:
+
+```bash
+conda install -c conda-forge pandoc podman
+./scripts/setup_harvey
+```
+
+On Linux, the wrapper and evaluator use node-local Podman runtime and image
+storage. They enable Podman's single-UID HPC mode only when `/etc/subuid` or
+`/etc/subgid` does not contain a range for the current account. The image cache
+is local to one compute node and is populated on first use.
 
 Keep the Harvey checkout clean. Then edit the task split and models in the
 example configuration.
 
 ```bash
-uv run harvey-agent run \
+uv run rubric-gen run \
   --experiment experiments/harvey-harness-evolution.yaml
 
-uv run harvey-agent judge \
+uv run rubric-gen judge \
   --experiment experiments/harvey-harness-evolution.yaml
 
-uv run harvey-agent detect \
+uv run rubric-gen detect \
   --experiment experiments/harvey-harness-evolution.yaml
 ```
+
+The run displays progress for harness candidates and their development tasks.
+The sealed quality audit displays candidate and task progress. Reward-hacking
+detection displays preparation and model-judgment progress.
 
 Use `--resume` on `run` or `detect` only when their existing experiment identity
 and checkpoints match the configuration exactly.

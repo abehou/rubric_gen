@@ -1,17 +1,15 @@
 schema_version: 3
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-paperbench-code-dev-audited-proposer-score-only-r6
+experiment_id: luna-paperbench-code-dev-preflight
 benchmark: paperbench-code-dev
 
 tasks_dir: /scratch/m000058/abehou/rubric_gen/data/paperbench-code-dev
 tasks:
   - semantic-self-consistency
-  - self-expansion
-  - self-composing-policies
 
 randomization:
   seed: 20260812
-  replicates: 3
+  replicates: 1
 
 conditions:
   - condition_id: base-static
@@ -28,7 +26,7 @@ conditions:
     rubric_evolution: prospective
 
 protocol:
-  revision_rounds: 6
+  revision_rounds: 1
   feedback_policy: score_only
   solver:
     provider: codex
@@ -64,10 +62,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: ../runs/paperbench-code-dev-seeds/luna-r6
+    output_dir: ../runs/paperbench-code-dev-seeds/luna-paperbench-code-dev-preflight
   revise:
     depends_on: [seed]
-    output_dir: ../runs/paperbench-code-dev-studies/luna-r6
+    output_dir: ../runs/paperbench-code-dev-studies/luna-paperbench-code-dev-preflight
   detect:
     depends_on: [revise]
-    output_dir: ../runs/paperbench-code-dev-detections/luna-r6
+    output_dir: ../runs/paperbench-code-dev-detections/luna-paperbench-code-dev-preflight
