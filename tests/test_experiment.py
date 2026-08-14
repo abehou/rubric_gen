@@ -8,12 +8,17 @@ from pathlib import Path
 import pytest
 import yaml
 
-import rubric_gen.biomnibench.commands as commands_module
-import rubric_gen.biomnibench.experiment as experiment_module
-import rubric_gen.biomnibench.study as study_module
-from rubric_gen.biomnibench.experiment import load_experiment
-from rubric_gen.biomnibench.revision.seeds import SeedSetConfig, SeedSetRunner
-from rubric_gen.biomnibench.study import (
+import rubric_gen.submission_revision.commands as commands_module
+import rubric_gen.submission_revision.experiment as experiment_module
+import rubric_gen.submission_revision.study as study_module
+import rubric_gen.benchmarks.paperbench_code_dev as paperbench_contract_module
+from rubric_gen.submission_revision.experiment import load_experiment
+from rubric_gen.submission_revision.seeds import (
+    SEED_SET_KIND,
+    SeedSetConfig,
+    SeedSetRunner,
+)
+from rubric_gen.submission_revision.study import (
     StudyRunConfig,
     StudyRunner,
     _exclusive_study_lease,
@@ -95,7 +100,7 @@ def test_paperbench_experiment_accepts_a_pinned_dev_subset(
     path = tmp_path / "paperbench.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     monkeypatch.setattr(
-        experiment_module,
+        paperbench_contract_module,
         "validate_paperbench_code_dev_dataset",
         lambda _path: None,
     )
@@ -270,7 +275,7 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
         (nested / "artifact.txt").write_text("old\n")
         nested.chmod(0o555)
     (roots["seed"] / "manifest.json").write_text(json.dumps({
-        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "kind": SEED_SET_KIND,
         "experiment_id": experiment_id,
     }))
     (roots["revise"] / "study.json").write_text(json.dumps({
@@ -338,7 +343,7 @@ def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> No
     seed_root = Path(str(experiment.dag["seed"]["output_dir"]))
     seed_root.mkdir(parents=True)
     (seed_root / "manifest.json").write_text(json.dumps({
-        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "kind": SEED_SET_KIND,
         "experiment_id": experiment_id,
     }))
     revise_root = Path(str(experiment.dag["revise"]["output_dir"]))
@@ -375,7 +380,7 @@ def test_run_restart_rejects_an_active_study(tmp_path: Path) -> None:
     for root in roots.values():
         root.mkdir(parents=True)
     (roots["seed"] / "manifest.json").write_text(json.dumps({
-        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "kind": SEED_SET_KIND,
         "experiment_id": experiment_id,
     }))
     (roots["revise"] / "study.json").write_text(json.dumps({
@@ -441,7 +446,7 @@ def test_run_restart_detaches_outputs_before_best_effort_cleanup(
     for root in roots.values():
         root.mkdir(parents=True)
     (roots["seed"] / "manifest.json").write_text(json.dumps({
-        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "kind": SEED_SET_KIND,
         "experiment_id": experiment_id,
     }))
     (roots["revise"] / "study.json").write_text(json.dumps({

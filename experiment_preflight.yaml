@@ -1,6 +1,6 @@
 schema_version: 3
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-audited-proposer-preflight
+experiment_id: luna-frontier-proposer-contract-refactor-preflight-r3
 benchmark: biomnibench-da
 
 tasks_dir: data/biomnibench-da
@@ -46,7 +46,7 @@ protocol:
   rubric_auditor_model: gpt-5.6-luna
   rubric_auditor_query_limit: 12
   rubric_proposer_model: gpt-5.6-luna
-  rubric_proposer_max_retries: 1
+  rubric_proposer_max_retries: 5
 
 outcome_audit:
   models:
@@ -64,12 +64,11 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: seeds/luna-audited-proposer-preflight
-    submission_source_dir: seeds/luna-top30-score-only-r6
-    submission_source_experiment_id: luna-top30-score-only-r6
+    output_dir: seeds/luna-frontier-proposer-contract-refactor-preflight
+    source_experiment_id: luna-frontier-proposer-contract-refactor-preflight
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-audited-proposer-preflight
+    output_dir: runs/biomnibench-studies/luna-frontier-proposer-contract-refactor-preflight-r3
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-audited-proposer-preflight
+    output_dir: runs/biomnibench-detections/luna-frontier-proposer-contract-refactor-preflight-r3

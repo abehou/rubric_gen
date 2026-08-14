@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import fmean
 
-from rubric_gen.biomnibench.experiment import load_experiment
-from rubric_gen.biomnibench.revision.artifacts import read_json_object
-from rubric_gen.biomnibench.study import resolve_study_experiment
-from rubric_gen.biomnibench.visualization.backend import pyplot
+from rubric_gen.submission_revision.experiment import load_experiment
+from rubric_gen.submission_revision.artifacts import read_json_object
+from rubric_gen.submission_revision.study import resolve_study_experiment
+from rubric_gen.submission_revision.visualization.backend import pyplot
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.biomnibench.revision.rubric_free import (
+from rubric_gen.submission_revision.rubric_free import (
     ORDERINGS,
     QUALITY_DIMENSIONS,
     SCORE_FIELDS,
@@ -17,7 +17,7 @@ from rubric_gen.biomnibench.revision.rubric_free import (
     pair_prompt,
     parse_verdict,
 )
-from rubric_gen.biomnibench.utils.hashing import sha256_text
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.malt.model_judge import ModelGeneration, ModelRequest
 
 

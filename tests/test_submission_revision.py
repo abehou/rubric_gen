@@ -9,40 +9,44 @@ from typing import Callable
 
 import pytest
 
-from rubric_gen.biomnibench.agent.models import AgentRunConfig
-from rubric_gen.biomnibench.agent.prompts import PromptProfile, solver_prompt
-from rubric_gen.biomnibench.agent.sessions import SessionTurnResult
-from rubric_gen.biomnibench.experiment import Experiment
-from rubric_gen.biomnibench.revision.controller import SubmissionRevisionController
-from rubric_gen.biomnibench.revision.judge import JudgeArtifacts
-from rubric_gen.biomnibench.revision.models import (
+from rubric_gen.runtime.agents.models import AgentRunConfig
+from rubric_gen.submission_revision.prompts import PromptProfile, solver_prompt
+from rubric_gen.runtime.agents.sessions import SessionTurnResult
+from rubric_gen.submission_revision.experiment import Experiment
+from rubric_gen.submission_revision.controller import (
+    SubmissionRevisionController,
+    fixed_original_attempt_id,
+)
+from rubric_gen.submission_revision.evolution import RubricEvolution
+from rubric_gen.submission_revision.judge import JudgeArtifacts
+from rubric_gen.submission_revision.models import (
     RevisionDependencies,
     SubmissionRevisionConfig,
 )
-from rubric_gen.biomnibench.revision.artifacts import (
+from rubric_gen.submission_revision.artifacts import (
     live_root_parent,
     remove_live_tree,
     sha256_file,
     solution_tree_sha256,
     tree_sha256,
 )
-from rubric_gen.biomnibench.revision.feedback import (
+from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
     project_feedback,
     project_simulated_user_feedback,
 )
-from rubric_gen.biomnibench.revision.seeds import SEED_KIND, SEED_SET_KIND
-from rubric_gen.biomnibench.revision.user_simulator import (
+from rubric_gen.submission_revision.seeds import SEED_KIND, SEED_SET_KIND
+from rubric_gen.submission_revision.user_simulator import (
     SimulatedUserConfig,
     SimulatedUserFeedback,
     SimulatedUserGeneration,
     SimulatedUserRequest,
 )
-from rubric_gen.biomnibench.study import (
+from rubric_gen.submission_revision.study import (
     _expected_rubric_names,
     validate_completed_revision,
 )
-from rubric_gen.biomnibench.utils.hashing import sha256_text
+from rubric_gen.artifacts.hashing import sha256_text
 
 
 EXPERIMENT_ID = "test-experiment"
@@ -372,6 +376,60 @@ class FakeJudge:
         )
 
 
+def test_evolved_candidate_uses_canonical_judge_source() -> None:
+    rubric = SubmissionRevisionController._frozen_evolved_rubric(
+        "candidate rubric\n",
+        "a" * 64,
+    )
+
+    assert rubric.source == "evolved"
+
+
+def test_prospective_fixed_original_score_is_separate_from_on_policy_score(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    base = _config(tmp_path, task, rounds=1)
+    config = replace(
+        base,
+        condition_id="base-prospective",
+        assignment_id=f"{task.name}--rep-001--base-prospective",
+        rubric_evolution=RubricEvolution.PROSPECTIVE,
+    )
+    judge = FakeJudge(task, (0, 72), tmp_path / "judge")
+    controller = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=judge,
+            evolver=object(),  # type: ignore[arg-type]
+        ),
+    )
+    submission = config.experiment_dir / "submissions" / "s001"
+    submission.mkdir(parents=True)
+
+    fixed_score = controller._fixed_original_score(
+        submission_dir=submission,
+        submission_id="s001",
+        turn_index=1,
+        on_policy_score=100,
+    )
+
+    assert fixed_score == 72
+    attempt_id = fixed_original_attempt_id(
+        config.assignment_id,
+        "s001",
+        controller.rubric.sha256,
+    )
+    assert (
+        config.experiment_dir
+        / "evaluations"
+        / "s001"
+        / controller.rubric.sha256
+        / attempt_id
+    ).is_dir()
+
+
 def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     tmp_path: Path,
 ) -> None:
@@ -386,6 +444,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
 
     assert result.submission_ids == ("s000", "s001", "s002")
     assert result.scores == (80, 55, 70)
+    assert result.fixed_original_scores == (80, 55, 70)
     assert session.sessions == ["solver-session", "solver-session"]
     assert len(session.prompts) == 2
     assignment = {
@@ -403,6 +462,8 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     )
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
+    assert state["schema_version"] == 2
+    assert state["fixed_original_scores"] == [80, 55, 70]
     state["next_prompt"] = "persisted historical prompt\n"
     state_path.write_text(json.dumps(state))
     validate_completed_revision(
@@ -613,7 +674,7 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
             "Criterion 2: Evidence\nLevels: A=30 B=0\n"
             "Criterion 3: Explanation\nLevels: A=30 B=0\n"
         ),
-        answer="The result is positive.",
+        current_submission="The result is positive.",
     )
 
     assert selection_calls == 2
@@ -1082,7 +1143,7 @@ def test_interrupted_attempt_artifacts_restore_boundary_and_restart_session(
 def test_live_root_defaults_outside_repository(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("BIOMNIBENCH_LIVE_ROOT", raising=False)
     root = live_root_parent()
-    assert "biomnibench-live" in root.name
+    assert "submission-live" in root.name
     assert Path.cwd().resolve() not in root.parents
 
 

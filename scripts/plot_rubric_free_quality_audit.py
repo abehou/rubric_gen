@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import fmean
 
-from rubric_gen.biomnibench.visualization.backend import pyplot
+from rubric_gen.submission_revision.visualization.backend import pyplot
 
 
 ROOT = Path(__file__).resolve().parents[1]

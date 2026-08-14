@@ -5,8 +5,9 @@ from pathlib import Path
 
 import pytest
 
-import rubric_gen.biomnibench.revision.original_rubric as original_module
-from rubric_gen.biomnibench.revision.original_rubric import (
+from rubric_gen.benchmarks import Benchmark
+import rubric_gen.submission_revision.original_rubric as original_module
+from rubric_gen.submission_revision.original_rubric import (
     OriginalRubricEnsembleConfig,
     OriginalRubricEnsembleRunner,
     OriginalRubricJob,
@@ -15,7 +16,7 @@ from rubric_gen.biomnibench.revision.original_rubric import (
     _job_identity,
     _load_completed_study,
 )
-from rubric_gen.biomnibench.utils.hashing import sha256_text
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS
 
 
@@ -38,6 +39,7 @@ def _target(tmp_path: Path) -> OriginalRubricTarget:
         task_id="da-1-1",
         replicate=1,
         condition_id="base-static",
+        benchmark=Benchmark.BIOMNIBENCH_DA,
         experiment_dir=experiment,
         task_dir=tmp_path / "tasks" / "da-1-1",
         rubric_name="rubric.txt",
@@ -289,6 +291,7 @@ def test_load_completed_study_requires_archived_original_to_match_human_rubric(
 
     class FakeExperiment:
         experiment_id = "test-study"
+        benchmark = Benchmark.BIOMNIBENCH_DA
         assignments = (assignment,)
 
     monkeypatch.setattr(original_module, "load_experiment", lambda _path: FakeExperiment())

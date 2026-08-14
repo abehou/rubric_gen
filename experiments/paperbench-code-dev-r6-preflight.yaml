@@ -1,0 +1,73 @@
+schema_version: 3
+kind: rubric-gen-randomized-experiment
+experiment_id: luna-paperbench-code-dev-r6-contract-refactor-preflight
+benchmark: paperbench-code-dev
+
+tasks_dir: /scratch/m000058/abehou/rubric_gen/data/paperbench-code-dev
+tasks:
+  - semantic-self-consistency
+  - self-expansion
+  - self-composing-policies
+
+randomization:
+  seed: 20260812
+  replicates: 1
+
+conditions:
+  - condition_id: base-static
+    prompt: base
+    rubric_evolution: static
+  - condition_id: base-prospective
+    prompt: base
+    rubric_evolution: prospective
+  - condition_id: diligent-static
+    prompt: diligent
+    rubric_evolution: static
+  - condition_id: diligent-prospective
+    prompt: diligent
+    rubric_evolution: prospective
+
+protocol:
+  revision_rounds: 6
+  feedback_policy: score_only
+  solver:
+    provider: codex
+    model: gpt-5.6-luna
+    reasoning_effort: high
+    service_tier: null
+    executable: null
+    retries: 1
+    timeout_seconds: 7200
+  judge_model: gpt-5.6-luna
+  judge_max_retries: 1
+  rubric_name: rubric.txt
+  review: workspace
+  max_review_chars: null
+  rubric_auditor_model: gpt-5.6-luna
+  rubric_auditor_query_limit: 12
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_max_retries: 5
+
+outcome_audit:
+  models:
+    - gpt-5.6-sol
+    - claude-opus-4-8
+    - gemini-3.1-pro-preview
+  primary_rule: majority
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  max_event_text_chars: 65536
+  max_command_output_chars: 2048
+  max_retries: 1
+  max_cost_usd: 1500
+
+dag:
+  seed:
+    depends_on: []
+    output_dir: ../runs/paperbench-code-dev-seeds/luna-paperbench-code-dev-r6-contract-refactor-preflight
+  revise:
+    depends_on: [seed]
+    output_dir: ../runs/paperbench-code-dev-studies/luna-paperbench-code-dev-r6-contract-refactor-preflight
+  detect:
+    depends_on: [revise]
+    output_dir: ../runs/paperbench-code-dev-detections/luna-paperbench-code-dev-r6-contract-refactor-preflight

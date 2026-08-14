@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-import rubric_gen.biomnibench.revision.judge as judge_module
-from rubric_gen.biomnibench.revision.judge import (
-    BiomniSubmissionJudge,
+import rubric_gen.submission_revision.judge as judge_module
+from rubric_gen.submission_revision.judge import (
+    FrozenRubricJudge,
     FrozenRubric,
     JudgeArtifacts,
     SubmissionJudgeConfig,
@@ -45,11 +45,11 @@ class ScriptedJudgeRunner:
         return self._output_dir
 
 
-def _judge(tmp_path: Path, *, max_retries: int = 5) -> BiomniSubmissionJudge:
+def _judge(tmp_path: Path, *, max_retries: int = 5) -> FrozenRubricJudge:
     task = tmp_path / "tasks" / "da-1-1"
     task.mkdir(parents=True)
     rubric_text = "Criterion 1: result\nLevels: A=100 B=50 C=0\n"
-    return BiomniSubmissionJudge(
+    return FrozenRubricJudge(
         SubmissionJudgeConfig(
             task_dir=task,
             experiment_dir=tmp_path / "experiment",

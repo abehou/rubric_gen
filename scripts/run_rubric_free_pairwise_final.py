@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import argparse
 
-from rubric_gen.biomnibench.revision.rubric_free import (
+from rubric_gen.submission_revision.rubric_free import (
     RubricFreeConfig,
     RubricFreeRunner,
 )
-from rubric_gen.biomnibench.utils.paths import resolve_project_path
+from rubric_gen.runtime.paths import resolve_project_path
 
 
 def build_parser() -> argparse.ArgumentParser:

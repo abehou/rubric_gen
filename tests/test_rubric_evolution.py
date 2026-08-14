@@ -9,20 +9,22 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.biomnibench.agent.models import AgentRunConfig
-from rubric_gen.biomnibench.agent.workspaces import TaskWorkspace
-from rubric_gen.biomnibench.forensics.evidence_index import (
+from rubric_gen.runtime.agents.models import AgentRunConfig
+from rubric_gen.runtime.agents.workspaces import TaskWorkspace
+from rubric_gen.evidence.index import (
     build_evidence_index,
     indexable_event_contents,
     write_query_tool,
 )
-import rubric_gen.biomnibench.revision.evolution as evolution_module
-from rubric_gen.biomnibench.revision.evolution import (
+import rubric_gen.submission_revision.evolution as evolution_module
+from rubric_gen.submission_revision.evolution import (
     AuditorOutput,
     ProposerOutput,
     RubricEvolver,
+    RubricScoreContext,
 )
-from rubric_gen.biomnibench.utils.hashing import sha256_text
+from rubric_gen.submission_revision.judging.scoring import parse_rubric_levels_strict
+from rubric_gen.artifacts.hashing import sha256_text
 
 
 def _current_rubric() -> str:
@@ -69,6 +71,156 @@ def _replacement_rubric() -> str:
     )
 
 
+def _revised_proposal() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "decision": "revise",
+        "rubric_title": "Stronger scientific outcome rubric",
+        "criteria": [
+            {
+                "title": "Data preparation integrity",
+                "description": "The analysis preserves the intended data meaning.",
+                "levels": [
+                    {
+                        "label": "A",
+                        "points": 75,
+                        "description": (
+                            "Executed transformations preserve the intended cohort "
+                            "and variables, with results traceable to source data."
+                        ),
+                    },
+                    {
+                        "label": "B",
+                        "points": 35,
+                        "description": (
+                            "The result is valid for a useful, clearly bounded subset, "
+                            "but a material lineage gap prevents broader use."
+                        ),
+                    },
+                    {
+                        "label": "C",
+                        "points": 0,
+                        "description": (
+                            "The result is invalid, unusable, contradicted, or only "
+                            "asserted."
+                        ),
+                    },
+                ],
+            },
+            {
+                "title": "Independent result validation",
+                "description": "The central result survives an independent check.",
+                "levels": [
+                    {
+                        "label": "A",
+                        "points": 25,
+                        "description": (
+                            "An independent check reproduces the central result and "
+                            "any discrepancy is resolved in the conclusion."
+                        ),
+                    },
+                    {
+                        "label": "B",
+                        "points": 10,
+                        "description": (
+                            "The central result remains useful only within a stated "
+                            "boundary because a material discrepancy is unresolved."
+                        ),
+                    },
+                    {
+                        "label": "C",
+                        "points": 0,
+                        "description": (
+                            "The central result lacks independent support or is "
+                            "contradicted by available evidence."
+                        ),
+                    },
+                ],
+            },
+        ],
+        "challenge_changes": [
+            {
+                "criterion_title": "Independent result validation",
+                "finding_ids": ["F1"],
+                "stable_quality_dimension": "Independent validity",
+                "current_evidence_gap": "The reported result has limited support.",
+                "future_submission_test": (
+                    "A future submission must reproduce the result independently."
+                ),
+            }
+        ],
+    }
+
+
+def _replacement_proposal() -> dict[str, object]:
+    proposal = _revised_proposal()
+    proposal["rubric_title"] = "Replacement outcome rubric"
+    proposal["criteria"] = [
+        {
+            "title": "Reproducible task completion",
+            "description": "The required result is reproducible from task data.",
+            "levels": [
+                {
+                    "label": "A",
+                    "points": 100,
+                    "description": (
+                        "The required analysis is executed and independently "
+                        "reproducible from the task data and persisted artifacts."
+                    ),
+                },
+                {
+                    "label": "B",
+                    "points": 40,
+                    "description": (
+                        "The result is reproducible for a useful, clearly bounded "
+                        "subset but not for the full required scope."
+                    ),
+                },
+                {
+                    "label": "C",
+                    "points": 0,
+                    "description": (
+                        "The result is invalid, unusable, or supported only by prose."
+                    ),
+                },
+            ],
+        }
+    ]
+    proposal["challenge_changes"][0]["criterion_title"] = (  # type: ignore[index]
+        "Reproducible task completion"
+    )
+    return proposal
+
+
+def _retain_proposal() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "decision": "retain",
+        "rubric_title": "",
+        "criteria": [],
+        "challenge_changes": [],
+    }
+
+
+def _score_context(*, saturated: bool = False) -> RubricScoreContext:
+    score = 100 if saturated else 56
+    level = "A" if saturated else "B"
+    return RubricScoreContext(
+        score=score,
+        raw_score=score,
+        selected_levels={"criterion_1": level},
+        criterion_scores={"criterion_1": score},
+        score_history=(score,),
+    )
+
+
+def _rendered(proposal: dict[str, object]) -> str:
+    return evolution_module._proposal_rubric_text(
+        proposal,
+        current_rubric=_current_rubric(),
+    )
+
+
 def _agent(*, model: str = "auditor-model") -> AgentRunConfig:
     return AgentRunConfig(provider="codex", model=model, retries=0)
 
@@ -99,23 +251,26 @@ def _packet(
 ) -> str:
     if start is None:
         start = event_text.index(snippet_text)
-    problems = []
+    findings = []
     if status == "supported_problem":
-        problems = [{
+        findings = [{
+            "finding_id": "F1",
+            "kind": "supported_problem",
             "hypothesis": "The trajectory contains an unsupported result.",
+            "basis": "The result claim lacks a complete verification record.",
             "evidence": [{
                 "event_id": 1,
                 "start_offset": start,
                 "end_offset": start + len(snippet_text),
             }],
+            "counterevidence": [],
+            "uncertainty": "The bounded trace can omit external evidence.",
+            "verification_question": "Can an independent check reproduce it?",
         }]
     return json.dumps({
-        "schema_version": 2,
-        "status": status,
+        "schema_version": 3,
         "inspected": "Inspected the result claim and its stated support.",
-        "problems": problems,
-        "counterevidence": [],
-        "uncertainty": None,
+        "findings": findings,
     })
 
 
@@ -134,25 +289,54 @@ def _auditor_output(
     )
 
 
-def _proposer_output(rubric_text: str | None = None) -> ProposerOutput:
+def _proposer_output(
+    proposal: dict[str, object] | None = None,
+) -> ProposerOutput:
     return ProposerOutput(
-        rubric_text=rubric_text or _revised_rubric(),
+        proposal_text=json.dumps(proposal or _revised_proposal()),
         cost=_cost(),
         generation=_generation(),
     )
 
 
-def _arguments(tmp_path: Path) -> dict[str, object]:
+def _arguments(
+    tmp_path: Path,
+    *,
+    saturated: bool = False,
+) -> dict[str, object]:
     trajectory = tmp_path / "trajectory.stream.jsonl"
     trajectory.write_text('{"type":"message","content":"evidence"}\n')
+    score_context = _score_context(saturated=saturated)
+
+    def candidate_gate(text: str, attempt: int) -> dict[str, object]:
+        levels = parse_rubric_levels_strict(text)
+        selected_levels = {key: "B" for key in levels}
+        criterion_scores = {key: value["B"] for key, value in levels.items()}
+        raw_score = sum(criterion_scores.values())
+        return {
+            "parent_score": score_context.score,
+            "candidate_score": max(0, min(100, raw_score)),
+            "raw_score": raw_score,
+            "selected_levels": selected_levels,
+            "criterion_scores": criterion_scores,
+            "rubric_sha256": sha256_text(text),
+            "attempt_id": f"{attempt:032x}",
+        }
+
+    def candidate_validator(text: str, attempt_id: str) -> dict[str, object]:
+        return candidate_gate(text, int(attempt_id, 16))
+
     return {
         "instruction": "TASK",
         "current_rubric": _current_rubric(),
         "current_submission": "SUBMISSION",
         "trajectory_path": trajectory,
+        "score_context": score_context,
         "version": 1,
         "source_submission_id": "s000",
         "output_dir": tmp_path / "rubrics",
+        "candidate_gate": candidate_gate,
+        "candidate_validator": candidate_validator,
     }
 
 
@@ -243,6 +427,53 @@ def test_trajectory_query_tool_is_self_contained(tmp_path: Path) -> None:
     assert json.loads(audit.read_text())["event_ids"] == [1]
 
 
+def test_trajectory_query_tool_enforces_parallel_budget(tmp_path: Path) -> None:
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / "trajectory.jsonl").write_text(
+        '{"type":"message","content":"evidence"}\n'
+    )
+    (evidence / "manifest.json").write_text(json.dumps({
+        "evidence_files": ["trajectory.jsonl"],
+    }))
+    database = tmp_path / "data" / "trajectory.sqlite"
+    build_evidence_index(evidence, database)
+    query_tool = database.parent / "trajectory_query.py"
+    state_directory = tmp_path / "artifacts"
+    write_query_tool(
+        query_tool,
+        database,
+        max_queries=3,
+        state_directory=state_directory,
+    )
+
+    processes = [
+        subprocess.Popen(
+            [sys.executable, str(query_tool), "timeline"],
+            cwd=tmp_path,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env={"PATH": "/usr/bin:/bin"},
+        )
+        for _ in range(24)
+    ]
+    results = [(*process.communicate(), process.returncode) for process in processes]
+
+    assert sum(return_code == 0 for _, _, return_code in results) == 3
+    assert all(
+        not stderr or "trajectory query budget exhausted" in stderr
+        for _, stderr, _ in results
+    )
+    assert (state_directory / "query-count.txt").read_text() == "3"
+    audit_records = [
+        json.loads(line)
+        for line in (state_directory / "query-audit.jsonl").read_text().splitlines()
+    ]
+    assert len(audit_records) == 3
+    assert all(record["event_ids"] == [1] for record in audit_records)
+
+
 def test_codex_auditor_uses_audit_log_as_query_count(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -256,18 +487,18 @@ def test_codex_auditor_uses_audit_log_as_query_count(
         assert "trajectory-auditor agent" in self.prompt
         assert "trace.md" in self.prompt
         prompt = (task_dir / "instruction.md").read_text()
-        assert "Prompt contract: trajectory-evidence-auditor-v2" in prompt
-        assert "Do not force a problem" in prompt
+        assert "Prompt contract: trajectory-frontier-auditor-v3" in prompt
+        assert "<task_instruction>\nTASK\n</task_instruction>" in prompt
+        assert "potential_concern" in prompt
         assert "Never propose criterion wording, weights, edits" in prompt
         assert "judge reasoning" in prompt
         assert "reward-hacking detector" in prompt
         assert "<current_rubric>" not in prompt
         assert paths.output_schema_path is not None
         schema = json.loads(paths.output_schema_path.read_text())
-        assert schema["properties"]["status"]["enum"] == [
-            "no_supported_problem",
-            "supported_problem",
-        ]
+        assert schema["properties"]["findings"]["items"]["properties"][
+            "kind"
+        ]["enum"] == ["supported_problem", "potential_concern"]
         assert "text" not in schema["$defs"]["snippet"]["properties"]
         TaskWorkspace(task_dir, paths.workspace_dir).create()
         artifacts = paths.workspace_dir / "artifacts"
@@ -283,9 +514,17 @@ def test_codex_auditor_uses_audit_log_as_query_count(
         return 0, paths
 
     monkeypatch.setattr(evolution_module.AgentRunner, "run", fake_run)
-    output = _evolver()._run_trajectory_auditor(trajectory_path=trajectory)
+    output = _evolver()._run_trajectory_auditor(
+        trajectory_path=trajectory,
+        task_instruction="TASK",
+        score_context=_score_context(),
+        repair_error=None,
+        rejected_packet=None,
+    )
 
-    assert json.loads(output.packet_text)["status"] == "supported_problem"
+    assert json.loads(output.packet_text)["findings"][0]["kind"] == (
+        "supported_problem"
+    )
     assert output.query_count == 1
     assert output.retrieved_event_ids == (1,)
 
@@ -309,10 +548,16 @@ def test_codex_auditor_rejects_missing_query_audit(
 
     monkeypatch.setattr(evolution_module.AgentRunner, "run", fake_run)
     with pytest.raises(RuntimeError, match="auditor query audit is missing"):
-        _evolver()._run_trajectory_auditor(trajectory_path=trajectory)
+        _evolver()._run_trajectory_auditor(
+            trajectory_path=trajectory,
+            task_instruction="TASK",
+            score_context=_score_context(),
+            repair_error=None,
+            rejected_packet=None,
+        )
 
 
-def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() -> None:
+def test_proposer_prompt_preserves_recursive_cycle_and_has_explicit_context() -> None:
     instructions = evolution_module._proposer_instructions(
         current_rubric=(
             "Criterion 1: Result\nLevels: A=100 B=50 C=0\n"
@@ -320,28 +565,64 @@ def test_proposer_prompt_preserves_recursive_cycle_and_has_only_four_inputs() ->
         ),
         repair_error=None,
     )
-    packet = '{"schema_version":2,"status":"no_supported_problem"}\n'
+    packet = '{"schema_version":3,"inspected":"x","findings":[]}\n'
     evidence = evolution_module._proposer_evidence(
         instruction="TASK",
         current_rubric="RUBRIC",
         current_submission="SUBMISSION",
         auditor_packet=packet,
+        score_context=_score_context(),
+        rejected_attempts=(),
     )
 
-    assert "Prompt contract: audited-complete-rubric-v4" in instructions
+    assert "Prompt contract: structured-frontier-rubric-v6" in instructions
     assert "recursive decompose-filter cycle" in instructions
     assert "informative, comprehensive, and non-redundant" in instructions
     assert "Do not reward effort" in instructions
     assert "independently useful but bounded outcome" in instructions
     assert "longer or busier trajectory" in instructions
-    assert "Return only the complete rubric" in instructions
+    assert "structured JSON object" in instructions
+    assert "If `saturated` is true" in instructions
     assert "trace.md" not in instructions
     assert "query tool" not in instructions
     assert evidence.count("<task_instruction>") == 1
     assert evidence.count("<current_submission>") == 1
     assert evidence.count("<current_complete_rubric>") == 1
     assert evidence.count("<verified_auditor_packet>") == 1
+    assert evidence.count("<validated_score_context>") == 1
     assert "trajectory_path" not in evidence
+
+
+def test_frontier_retry_prompt_requires_a_distinct_unmet_outcome() -> None:
+    error = (
+        "candidate rubric did not move the saturated submission below its "
+        "frontier: parent score 100, candidate score 100, and 9/9 criteria "
+        "selected level A"
+    )
+    rejected_attempts = ({
+        "validation_error": error,
+        "structured_proposal": '{"schema_version":1}',
+    },)
+    instructions = evolution_module._proposer_instructions(
+        current_rubric=_current_rubric(),
+        repair_error=error,
+    )
+    evidence = evolution_module._proposer_evidence(
+        instruction="TASK",
+        current_rubric=_current_rubric(),
+        current_submission="SUBMISSION",
+        auditor_packet='{"schema_version":3}',
+        score_context=_score_context(saturated=True),
+        rejected_attempts=rejected_attempts,
+    )
+
+    assert "empirical cross-score" in instructions
+    assert "different stable, task-valid outcome gap" in instructions
+    assert "should score below A" in instructions
+    assert "arbitrary busywork" in instructions
+    assert "<rejected_structured_proposal_history>" in evidence
+    assert error in evidence
+    assert '"structured_proposal": "{\\"schema_version\\":1}"' in evidence
 
 
 def test_direct_proposer_makes_one_model_call(
@@ -353,22 +634,24 @@ def test_direct_proposer_makes_one_model_call(
         calls.append(kwargs)
         return _proposer_output()
 
-    monkeypatch.setattr(evolution_module, "_generate_complete_rubric", generate)
+    monkeypatch.setattr(evolution_module, "_generate_structured_rubric", generate)
     output = _evolver()._run_direct_proposer(
         instruction="TASK",
         current_rubric=_current_rubric(),
         current_submission="SUBMISSION",
-        auditor_packet='{"schema_version":2}\n',
+        auditor_packet='{"schema_version":3}\n',
+        score_context=_score_context(),
         repair_error=None,
+        rejected_attempts=(),
     )
 
-    assert output.rubric_text == _revised_rubric()
+    assert output.proposal_text == json.dumps(_revised_proposal())
     assert len(calls) == 1
     assert "trajectory" not in calls[0]
     assert "trace" not in calls[0]
 
 
-def test_openai_proposer_call_returns_plain_complete_rubric(
+def test_openai_proposer_call_returns_structured_proposal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[dict[str, object]] = []
@@ -378,7 +661,7 @@ def test_openai_proposer_call_returns_plain_complete_rubric(
             calls.append(kwargs)
             return types.SimpleNamespace(
                 status="completed",
-                output_text=_revised_rubric(),
+                output_text=json.dumps(_revised_proposal()),
                 model="gpt-proposer-served",
                 id="response-1",
                 usage=types.SimpleNamespace(
@@ -397,7 +680,7 @@ def test_openai_proposer_call_returns_plain_complete_rubric(
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=OpenAI))
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-    output = evolution_module._generate_complete_rubric(
+    output = evolution_module._generate_structured_rubric(
         model="gpt-proposer",
         base_url=None,
         service_tier=None,
@@ -405,9 +688,9 @@ def test_openai_proposer_call_returns_plain_complete_rubric(
         evidence="EVIDENCE",
     )
 
-    assert output.rubric_text == _revised_rubric()
+    assert output.proposal_text == json.dumps(_revised_proposal())
     assert len(calls) == 1
-    assert "response_format" not in calls[0]
+    assert calls[0]["text"]["format"]["type"] == "json_schema"
     assert calls[0]["input"][-1] == {"role": "user", "content": "EVIDENCE"}
     assert calls[0]["store"] is False
 
@@ -429,14 +712,22 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
 
     result = evolver.evolve(**arguments)
 
-    assert auditor_calls == [{"trajectory_path": arguments["trajectory_path"]}]
+    assert auditor_calls == [{
+        "trajectory_path": arguments["trajectory_path"],
+        "task_instruction": "TASK",
+        "score_context": arguments["score_context"],
+        "repair_error": None,
+        "rejected_packet": None,
+    }]
     assert len(proposer_calls) == 1
     assert set(proposer_calls[0]) == {
         "instruction",
         "current_rubric",
         "current_submission",
         "auditor_packet",
+        "score_context",
         "repair_error",
+        "rejected_attempts",
     }
     assert "trajectory_path" not in proposer_calls[0]
     output_dir = arguments["output_dir"]
@@ -445,6 +736,7 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
         output_dir / "r0001.txt",
         output_dir / "r0001.proposer.json",
         output_dir / "r0001.auditor.json",
+        output_dir / "r0001.proposal.json",
         output_dir / "r0001.diff",
     )
     assert all(path.is_file() and not path.stat().st_mode & 0o222 for path in paths)
@@ -452,19 +744,23 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     metadata = json.loads((output_dir / "r0001.proposer.json").read_text())
     packet_text = (output_dir / "r0001.auditor.json").read_text()
     assert metadata["mode"] == "prospective"
-    assert metadata["schema_version"] == 4
+    assert metadata["schema_version"] == 7
     assert metadata["kind"] == "audited-complete-rubric-generation"
     assert metadata["auditor"]["model"] == "auditor-model"
     assert metadata["auditor"]["prompt_version"] == (
-        "trajectory-evidence-auditor-v2"
+        "trajectory-frontier-auditor-v3"
     )
     assert metadata["auditor"]["query_count"] == 2
     assert metadata["auditor"]["retrieved_event_ids"] == [1]
+    assert metadata["auditor"]["repair_error"] is None
+    assert metadata["auditor"]["rejected_packet"] is None
     assert metadata["auditor_packet_sha256"] == sha256_text(packet_text)
     assert metadata["proposer"]["model"] == "proposer-model"
     assert metadata["proposer"]["prompt_version"] == (
-        "audited-complete-rubric-v4"
+        "structured-frontier-rubric-v6"
     )
+    assert metadata["proposer"]["repair_error"] is None
+    assert metadata["proposer"]["rejected_attempts"] == []
     assert metadata["attempt_count"] == 1
     assert metadata["proposer_attempts"][0]["cost"][
         "estimated_cost_usd"
@@ -473,9 +769,11 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     assert metadata["parent_criterion_count"] == 1
     assert metadata["criterion_count"] == 2
     assert metadata["rubric_changed"] is True
+    assert metadata["proposal_decision"] == "revise"
+    assert metadata["candidate_cross_score"]["candidate_score"] == 45
     assert metadata["rubric_sha256"] == result.sha256
-    assert result.text == _revised_rubric()
-    assert json.loads(packet_text)["problems"][0]["evidence"][0]["text"] == (
+    assert result.text == _rendered(_revised_proposal())
+    assert json.loads(packet_text)["findings"][0]["evidence"][0]["text"] == (
         "evidence"
     )
     diff = (output_dir / "r0001.diff").read_text()
@@ -490,10 +788,10 @@ def test_evolver_accepts_full_replacement_rubric(tmp_path: Path) -> None:
     event_text = _event_text(arguments)
     result = _evolver(
         run_auditor=lambda **_: _auditor_output(event_text),
-        run_proposer=lambda **_: _proposer_output(_replacement_rubric()),
+        run_proposer=lambda **_: _proposer_output(_replacement_proposal()),
     ).evolve(**arguments)
 
-    assert result.text == _replacement_rubric()
+    assert result.text == _rendered(_replacement_proposal())
     assert "Scientific validity" not in result.text
     assert result.metadata["criterion_count"] == 1
 
@@ -515,18 +813,22 @@ def test_evolver_accepts_vllm_auditor_and_proposer() -> None:
     )
     assert evolver.auditor.provider == "vllm"
     assert evolver._proposer_identity(
-        "Criterion 1: Result\nLevels: A=100 B=50 C=0\n"
+        "Criterion 1: Result\nLevels: A=100 B=50 C=0\n",
+        instruction="TASK",
+        current_submission="SUBMISSION",
+        auditor_packet="{}",
+        score_context=_score_context(),
+        repair_error=None,
+        rejected_attempts=(),
     )["provider"] == "vllm"
 
 
 def test_evolver_reuses_packet_when_retrying_invalid_rubric(tmp_path: Path) -> None:
     arguments = _arguments(tmp_path)
     event_text = _event_text(arguments)
-    malformed = _revised_rubric().replace(
-        "Levels: A=75 B=35 C=0",
-        "Levels: A=75 B=35 C=35",
-    )
-    responses = iter((malformed, _revised_rubric()))
+    malformed = _revised_proposal()
+    malformed["criteria"][0]["levels"][2]["points"] = 35  # type: ignore[index]
+    responses = iter((malformed, _revised_proposal()))
     auditor_calls = 0
     proposer_calls: list[dict[str, object]] = []
 
@@ -535,27 +837,48 @@ def test_evolver_reuses_packet_when_retrying_invalid_rubric(tmp_path: Path) -> N
         auditor_calls += 1
         return _auditor_output(event_text)
 
-    result = _evolver(
+    evolver = _evolver(
         run_auditor=audit,
         run_proposer=lambda **kwargs: proposer_calls.append(kwargs)
         or _proposer_output(next(responses)),
-    ).evolve(**arguments)
+    )
+    result = evolver.evolve(**arguments)
 
-    assert result.text == _revised_rubric()
+    assert result.text == _rendered(_revised_proposal())
     assert auditor_calls == 1
     assert len(proposer_calls) == 2
     assert proposer_calls[0]["auditor_packet"] == proposer_calls[1][
         "auditor_packet"
     ]
-    assert "strictly descend" in str(proposer_calls[1]["repair_error"])
+    assert "level progression" in str(proposer_calls[1]["repair_error"])
+    rejected_attempt = {
+        "validation_error": str(proposer_calls[1]["repair_error"]),
+        "structured_proposal": json.dumps(malformed),
+    }
+    assert proposer_calls[1]["rejected_attempts"] == (rejected_attempt,)
     failure_dir = tmp_path / "rubrics" / "r0001.proposer-failures"
     failure = json.loads((failure_dir / "attempt-0001.json").read_text())
     assert failure["evolve_attempt"] == 1
     assert failure["auditor_packet_sha256"] == result.metadata[
         "auditor_packet_sha256"
     ]
-    assert (failure_dir / "attempt-0001.txt").read_text() == malformed
+    assert (failure_dir / "attempt-0001.txt").read_text() == json.dumps(malformed)
     assert not (failure_dir / "attempt-0001.trace.md").exists()
+    proposer_identity = result.metadata["proposer"]
+    assert isinstance(proposer_identity, dict)
+    assert "level progression" in str(proposer_identity["repair_error"])
+    assert proposer_identity["rejected_attempts"] == [rejected_attempt]
+    initial_identity = evolver._proposer_identity(
+        str(arguments["current_rubric"]),
+        instruction=str(arguments["instruction"]),
+        current_submission=str(arguments["current_submission"]),
+        auditor_packet=str(proposer_calls[0]["auditor_packet"]),
+        score_context=arguments["score_context"],  # type: ignore[arg-type]
+        repair_error=None,
+        rejected_attempts=(),
+    )
+    assert proposer_identity["prompt_sha256"] != initial_identity["prompt_sha256"]
+    assert evolver.evolve(**arguments) == result
 
 
 def test_evolver_retries_and_archives_an_invalid_auditor_packet(
@@ -564,7 +887,7 @@ def test_evolver_retries_and_archives_an_invalid_auditor_packet(
     arguments = _arguments(tmp_path)
     event_text = _event_text(arguments)
     invalid_packet = json.loads(_packet(event_text))
-    invalid_packet["problems"][0]["evidence"][0]["event_id"] = 2
+    invalid_packet["findings"][0]["evidence"][0]["event_id"] = 2
     invalid = json.dumps(invalid_packet)
     outputs = iter((
         _auditor_output(event_text, packet_text=invalid),
@@ -572,24 +895,44 @@ def test_evolver_retries_and_archives_an_invalid_auditor_packet(
     ))
     auditor_calls = 0
 
-    def audit(**_kwargs):
+    auditor_requests: list[dict[str, object]] = []
+
+    def audit(**kwargs):
         nonlocal auditor_calls
         auditor_calls += 1
+        auditor_requests.append(kwargs)
         return next(outputs)
 
-    result = _evolver(
+    evolver = _evolver(
         run_auditor=audit,
         run_proposer=lambda **_: _proposer_output(),
-    ).evolve(**arguments)
+    )
+    result = evolver.evolve(**arguments)
 
-    assert result.text == _revised_rubric()
+    assert result.text == _rendered(_revised_proposal())
     assert auditor_calls == 2
+    assert "unknown event ID" in str(auditor_requests[1]["repair_error"])
+    assert auditor_requests[1]["rejected_packet"] == invalid
     failure_dir = tmp_path / "rubrics" / "r0001.auditor-failures"
     failure = json.loads((failure_dir / "attempt-0001.json").read_text())
     assert failure["evolve_attempt"] == 1
     assert failure["error"] == "trajectory auditor citation has an unknown event ID"
     assert failure["cost"] == _cost()
     assert (failure_dir / "attempt-0001.txt").read_text() == invalid
+    auditor_identity = result.metadata["auditor"]
+    assert isinstance(auditor_identity, dict)
+    assert "unknown event ID" in str(auditor_identity["repair_error"])
+    assert auditor_identity["rejected_packet"] == invalid
+    initial_identity = evolver._auditor_identity(
+        _auditor_output(event_text),
+        available_events=1,
+        score_context=arguments["score_context"],  # type: ignore[arg-type]
+        task_instruction=str(arguments["instruction"]),
+        repair_error=None,
+        rejected_packet=None,
+    )
+    assert auditor_identity["prompt_sha256"] != initial_identity["prompt_sha256"]
+    assert evolver.evolve(**arguments) == result
 
 
 def test_resume_rejects_different_auditor_or_proposer_identity(
@@ -625,7 +968,7 @@ def test_no_supported_problem_and_unchanged_rubric_are_valid(tmp_path: Path) -> 
         run_auditor=lambda **_: _auditor_output(
             event_text, packet_text=no_problem
         ),
-        run_proposer=lambda **_: _proposer_output(current_rubric),
+        run_proposer=lambda **_: _proposer_output(_retain_proposal()),
     ).evolve(**arguments)
 
     assert result.text == current_rubric
@@ -633,7 +976,7 @@ def test_no_supported_problem_and_unchanged_rubric_are_valid(tmp_path: Path) -> 
     assert result.metadata["rubric_changed"] is False
     assert json.loads(
         (tmp_path / "rubrics" / "r0001.auditor.json").read_text()
-    )["status"] == "no_supported_problem"
+    )["findings"] == []
     assert (tmp_path / "rubrics" / "r0001.diff").read_text() == ""
 
 
@@ -641,19 +984,19 @@ def test_no_supported_problem_and_unchanged_rubric_are_valid(tmp_path: Path) -> 
     ("mutate", "message"),
     (
         (
-            lambda packet: packet["problems"][0]["evidence"][0].update(
+            lambda packet: packet["findings"][0]["evidence"][0].update(
                 {"text": "hallucinated"}
             ),
             "invalid snippet",
         ),
         (
-            lambda packet: packet["problems"][0]["evidence"][0].update(
+            lambda packet: packet["findings"][0]["evidence"][0].update(
                 {"event_id": 2}
             ),
             "unknown event ID",
         ),
         (
-            lambda packet: packet["problems"][0]["evidence"][0].update(
+            lambda packet: packet["findings"][0]["evidence"][0].update(
                 {"start_offset": -1}
             ),
             "invalid offsets",
@@ -701,49 +1044,53 @@ def test_evolver_rejects_snippet_from_event_not_retrieved(tmp_path: Path) -> Non
 
 
 @pytest.mark.parametrize(
-    ("rubric", "message"),
+    ("mutate", "message"),
     (
         (
-            _revised_rubric().replace("Criterion 2:", "Criterion 3:"),
-            "criterion numbers must be contiguous",
-        ),
-        (
-            _revised_rubric().replace(
-                "Criterion 2: Independent result validation",
-                "Criterion 2: Data preparation integrity",
+            lambda proposal: proposal["criteria"][1].update(  # type: ignore[index]
+                {"title": "Data preparation integrity"}
             ),
             "duplicate criterion titles",
         ),
         (
-            _revised_rubric().replace(
-                "[B]: The central result remains useful",
-                "[D]: The central result remains useful",
+            lambda proposal: proposal["criteria"][1]["levels"][1].update(  # type: ignore[index]
+                {"label": "D"}
             ),
-            "one nonempty description for each level",
+            "invalid level progression",
         ),
         (
-            _revised_rubric().replace(
-                "Levels: A=25 B=10 C=0", "Levels: A=24 B=10 C=0"
+            lambda proposal: proposal["criteria"][1]["levels"][1].update(  # type: ignore[index]
+                {"description": ""}
+            ),
+            "invalid level",
+        ),
+        (
+            lambda proposal: proposal["criteria"][1]["levels"][0].update(  # type: ignore[index]
+                {"points": 24}
             ),
             "A-level points must sum to 100",
         ),
         (
-            "```text\n" + _revised_rubric() + "```\n",
-            "must not contain Markdown code fences",
+            lambda proposal: proposal["challenge_changes"][0].update(  # type: ignore[index]
+                {"finding_ids": ["F9"]}
+            ),
+            "does not cite valid frontier findings",
         ),
     ),
 )
-def test_evolver_rejects_invalid_complete_rubric_structure(
+def test_evolver_rejects_invalid_structured_rubric_proposal(
     tmp_path: Path,
-    rubric: str,
+    mutate,
     message: str,
 ) -> None:
     arguments = _arguments(tmp_path)
     event_text = _event_text(arguments)
+    proposal = _revised_proposal()
+    mutate(proposal)
     evolver = _evolver(
         max_retries=0,
         run_auditor=lambda **_: _auditor_output(event_text),
-        run_proposer=lambda **_: _proposer_output(rubric),
+        run_proposer=lambda **_: _proposer_output(proposal),
     )
 
     with pytest.raises(RuntimeError, match=message):
@@ -766,6 +1113,26 @@ def test_resume_rejects_tampered_rubric_diff(tmp_path: Path) -> None:
         evolver.evolve(**arguments)
 
 
+def test_resume_rejects_candidate_score_that_differs_from_judge_artifacts(
+    tmp_path: Path,
+) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    evolver = _evolver(
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **_: _proposer_output(),
+    )
+    evolver.evolve(**arguments)
+    metadata_path = tmp_path / "rubrics" / "r0001.proposer.json"
+    metadata_path.chmod(0o644)
+    metadata = json.loads(metadata_path.read_text())
+    metadata["candidate_cross_score"]["candidate_score"] = 44
+    metadata_path.write_text(json.dumps(metadata) + "\n")
+
+    with pytest.raises(RuntimeError, match="invalid evolved rubric"):
+        evolver.evolve(**arguments)
+
+
 def test_resume_rejects_tampered_auditor_packet(tmp_path: Path) -> None:
     arguments = _arguments(tmp_path)
     event_text = _event_text(arguments)
@@ -777,8 +1144,189 @@ def test_resume_rejects_tampered_auditor_packet(tmp_path: Path) -> None:
     packet_path = tmp_path / "rubrics" / "r0001.auditor.json"
     packet_path.chmod(0o644)
     packet = json.loads(packet_path.read_text())
-    packet["problems"][0]["evidence"][0]["text"] = "hallucinated"
+    packet["findings"][0]["evidence"][0]["text"] = "hallucinated"
     packet_path.write_text(json.dumps(packet) + "\n")
 
     with pytest.raises(RuntimeError, match="invalid evolved rubric"):
         evolver.evolve(**arguments)
+
+
+def test_speculative_auditor_concern_can_have_no_citation(tmp_path: Path) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    packet = json.loads(_packet(event_text))
+    finding = packet["findings"][0]
+    finding["kind"] = "potential_concern"
+    finding["hypothesis"] = "The result may depend on an untested assumption."
+    finding["basis"] = "The task requires a robust scientific conclusion."
+    finding["evidence"] = []
+    finding["uncertainty"] = "The bounded trace does not establish the assumption."
+    finding["verification_question"] = "Does the result survive assumption checks?"
+
+    result = _evolver(
+        run_auditor=lambda **_: _auditor_output(
+            event_text,
+            packet_text=json.dumps(packet),
+        ),
+        run_proposer=lambda **_: _proposer_output(),
+    ).evolve(**arguments)
+
+    sealed = json.loads(
+        (tmp_path / "rubrics" / "r0001.auditor.json").read_text()
+    )
+    assert sealed["findings"][0]["kind"] == "potential_concern"
+    assert sealed["findings"][0]["evidence"] == []
+    assert result.changed is True
+
+
+def test_saturated_score_requires_at_least_one_frontier_finding(
+    tmp_path: Path,
+) -> None:
+    arguments = _arguments(tmp_path, saturated=True)
+    event_text = _event_text(arguments)
+    empty_packet = _packet(event_text, status="no_supported_problem")
+
+    with pytest.raises(ValueError, match="invalid findings"):
+        _evolver(
+            run_auditor=lambda **_: _auditor_output(
+                event_text,
+                packet_text=empty_packet,
+            ),
+            run_proposer=lambda **_: _proposer_output(),
+        ).evolve(**arguments)
+
+
+def test_saturated_score_rejects_retained_rubric(tmp_path: Path) -> None:
+    arguments = _arguments(tmp_path, saturated=True)
+    event_text = _event_text(arguments)
+
+    with pytest.raises(RuntimeError, match="saturated score requires"):
+        _evolver(
+            max_retries=0,
+            run_auditor=lambda **_: _auditor_output(event_text),
+            run_proposer=lambda **_: _proposer_output(_retain_proposal()),
+        ).evolve(**arguments)
+
+
+def test_saturated_score_rejects_candidate_that_stays_at_ceiling(
+    tmp_path: Path,
+) -> None:
+    arguments = _arguments(tmp_path, saturated=True)
+    event_text = _event_text(arguments)
+
+    def saturated_gate(text: str, _attempt: int) -> dict[str, object]:
+        return {
+            "parent_score": 100,
+            "candidate_score": 100,
+            "raw_score": 100,
+            "selected_levels": {"criterion_1": "A", "criterion_2": "A"},
+            "criterion_scores": {"criterion_1": 75, "criterion_2": 25},
+            "rubric_sha256": sha256_text(text),
+            "attempt_id": "b" * 32,
+        }
+
+    arguments["candidate_gate"] = saturated_gate
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "did not move the saturated submission below its frontier: "
+            "parent score 100, candidate score 100, and 2/2 criteria selected level A"
+        ),
+    ):
+        _evolver(
+            max_retries=0,
+            run_auditor=lambda **_: _auditor_output(event_text),
+            run_proposer=lambda **_: _proposer_output(),
+        ).evolve(**arguments)
+
+
+def test_saturated_cross_score_retry_receives_frontier_failure(
+    tmp_path: Path,
+) -> None:
+    arguments = _arguments(tmp_path, saturated=True)
+    event_text = _event_text(arguments)
+    proposer_calls: list[dict[str, object]] = []
+
+    def candidate_gate(text: str, attempt: int) -> dict[str, object]:
+        levels = parse_rubric_levels_strict(text)
+        selected = "A" if attempt < 3 else "B"
+        selected_levels = {key: selected for key in levels}
+        criterion_scores = {
+            key: criterion[selected] for key, criterion in levels.items()
+        }
+        raw_score = sum(criterion_scores.values())
+        return {
+            "parent_score": 100,
+            "candidate_score": raw_score,
+            "raw_score": raw_score,
+            "selected_levels": selected_levels,
+            "criterion_scores": criterion_scores,
+            "rubric_sha256": sha256_text(text),
+            "attempt_id": f"{attempt:032x}",
+        }
+
+    proposals = iter((
+        _revised_proposal(),
+        _replacement_proposal(),
+        _revised_proposal(),
+    ))
+    arguments["candidate_gate"] = candidate_gate
+    arguments["candidate_validator"] = (
+        lambda text, attempt_id: candidate_gate(text, int(attempt_id, 16))
+    )
+    evolver = _evolver(
+        run_auditor=lambda **_: _auditor_output(event_text),
+        run_proposer=lambda **kwargs: proposer_calls.append(kwargs)
+        or _proposer_output(next(proposals)),
+    )
+    result = evolver.evolve(**arguments)
+
+    assert result.text == _rendered(_revised_proposal())
+    assert len(proposer_calls) == 3
+    assert proposer_calls[0]["repair_error"] is None
+    assert proposer_calls[0]["rejected_attempts"] == ()
+    assert (
+        "parent score 100, candidate score 100, and 2/2 criteria selected level A"
+        in str(proposer_calls[1]["repair_error"])
+    )
+    first_rejected = proposer_calls[1]["rejected_attempts"]
+    assert isinstance(first_rejected, tuple) and len(first_rejected) == 1
+    assert first_rejected[0]["structured_proposal"] == json.dumps(
+        _revised_proposal()
+    )
+    rejected_history = proposer_calls[2]["rejected_attempts"]
+    assert isinstance(rejected_history, tuple) and len(rejected_history) == 2
+    assert [attempt["structured_proposal"] for attempt in rejected_history] == [
+        json.dumps(_revised_proposal()),
+        json.dumps(_replacement_proposal()),
+    ]
+    assert "2/2 criteria selected level A" in rejected_history[0][
+        "validation_error"
+    ]
+    assert "1/1 criteria selected level A" in rejected_history[1][
+        "validation_error"
+    ]
+    proposer_identity = result.metadata["proposer"]
+    assert isinstance(proposer_identity, dict)
+    assert proposer_identity["rejected_attempts"] == list(rejected_history)
+    assert evolver.evolve(**arguments) == result
+
+
+def test_auditor_packet_rejects_duplicate_evidence_and_counterevidence(
+    tmp_path: Path,
+) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    packet = json.loads(_packet(event_text))
+    packet["findings"][0]["counterevidence"] = [
+        dict(packet["findings"][0]["evidence"][0])
+    ]
+
+    with pytest.raises(ValueError, match="repeats a snippet"):
+        _evolver(
+            run_auditor=lambda **_: _auditor_output(
+                event_text,
+                packet_text=json.dumps(packet),
+            ),
+            run_proposer=lambda **_: _proposer_output(),
+        ).evolve(**arguments)

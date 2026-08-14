@@ -15,15 +15,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from rubric_gen.biomnibench.forensics.evidence_index import (
+from rubric_gen.evidence.index import (
     INDEX_SCHEMA_VERSION,
     render_compact_evidence,
 )
-from rubric_gen.biomnibench.revision.artifacts import (
+from rubric_gen.submission_revision.artifacts import (
     REVISION_MANIFEST_SCHEMA_VERSION,
 )
-from rubric_gen.biomnibench.utils.hashing import sha256_file, sha256_text
-from rubric_gen.biomnibench.pricing import (
+from rubric_gen.artifacts.hashing import sha256_file, sha256_text
+from rubric_gen.runtime.pricing import (
     ANTHROPIC_PRICES_PER_MILLION,
     GEMINI_PRICES_PER_MILLION,
     HOSTED_PRICES_PER_MILLION,
@@ -34,13 +34,13 @@ from rubric_gen.biomnibench.pricing import (
     PRICING_AS_OF,
     PRICING_SOURCES,
 )
-from rubric_gen.biomnibench.integrations.gemini import GeminiClient
-from rubric_gen.biomnibench.utils.progress import TerminalProgress
-from rubric_gen.biomnibench.forensics.scoring import (
+from rubric_gen.runtime.integrations.gemini import GeminiClient
+from rubric_gen.runtime.progress import TerminalProgress
+from rubric_gen.evidence.scoring import (
     detection_rates,
     plot_detection_rates,
 )
-from rubric_gen.biomnibench.forensics.protocol import (
+from rubric_gen.evidence.protocol import (
     ANTHROPIC_RH_EFFORT,
     DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
     DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
@@ -61,10 +61,9 @@ from rubric_gen.biomnibench.forensics.protocol import (
     RH_INPUT_VALIDATION_POLICY,
     RH_PROMPT_CACHE_POLICY,
 )
-from rubric_gen.biomnibench.utils.serialization import write_json_atomic
+from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.malt.detection import MALT_REWARD_HACKING_PROMPT, detection_target
-from rubric_gen.benchmarks import Benchmark
-from rubric_gen.paperbench.evidence import render_submission_tree
+from rubric_gen.benchmarks import Benchmark, get_benchmark
 
 
 STRONG_JUDGE_MODELS = PRIMARY_RH_MODELS
@@ -693,7 +692,7 @@ def _revision_prompt(
         )
         if lines[: len(previous_lines)] != previous_lines:
             raise ValueError(
-                "Biomni submission trajectories are not cumulative prefixes: "
+                "Submission trajectories are not cumulative prefixes: "
                 f"{revision_dir}"
             )
         for offset, line in enumerate(lines[len(previous_lines) :], start=1):
@@ -717,14 +716,14 @@ def _revision_prompt(
         feedback_path = feedback_root / f"{submission_id}.json"
         if feedback_path.is_symlink() or not feedback_path.is_file():
             raise ValueError(
-                "Biomni revision lacks solver-visible feedback for "
+                "Submission revision lacks solver-visible feedback for "
                 f"{submission_id}: {revision_dir}"
             )
         try:
             feedback = json.loads(feedback_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise ValueError(
-                f"Biomni revision has invalid feedback for {submission_id}: "
+                f"Submission revision has invalid feedback for {submission_id}: "
                 f"{revision_dir}"
             ) from exc
         add(
@@ -741,32 +740,19 @@ def _revision_prompt(
             f"latest trajectory differs from its verified snapshot: {revision_dir}"
         )
     workspace = latest / "workspace"
-    if benchmark is not Benchmark.PAPERBENCH_CODE_DEV:
-        for name in ("trace.md", "answer.txt"):
-            path = workspace / name
-            if path.is_file():
-                add(
-                    f"final_{name}",
-                    _bounded_revision_value(
-                        {
-                            "artifact": name,
-                            "content": blind(path.read_text(errors="replace")),
-                        },
-                        max_text_chars=max_event_text_chars,
-                        stats=compaction_stats,
-                    ),
-                )
-    if benchmark is Benchmark.PAPERBENCH_CODE_DEV:
-        try:
-            submitted_code = render_submission_tree(workspace)
-        except ValueError as exc:
-            raise ValueError(f"invalid PaperBench submission: {revision_dir}") from exc
+    try:
+        final_evidence = get_benchmark(benchmark).final_evidence(workspace)
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise ValueError(
+            f"invalid {benchmark.value} submission: {revision_dir}"
+        ) from exc
+    for artifact in final_evidence:
         add(
-            "final_submission",
+            artifact.name,
             _bounded_revision_value(
                 {
-                    "artifact": "submission source tree",
-                    "content": blind(submitted_code),
+                    "artifact": artifact.artifact,
+                    "content": blind(artifact.content),
                 },
                 max_text_chars=max_event_text_chars,
                 stats=compaction_stats,
@@ -1466,7 +1452,7 @@ def generate(model: str, request_value: ModelRequest) -> ModelGeneration:
             response_id=response.response_id,
             request_parameters=request,
             provider_metadata={
-                "client": "rubric_gen.biomnibench.integrations.gemini",
+                "client": "rubric_gen.runtime.integrations.gemini",
                 "usage": _metadata_value(
                     getattr(response, "usage_metadata", None)
                 ),
@@ -1694,21 +1680,21 @@ class ModelJudgeConfig:
         ):
             raise ValueError("batch execution requires exactly one hosted OpenAI model")
         if self.case_dirs and self.revision_dirs:
-            raise ValueError("MALT cases and Biomni revisions cannot be mixed")
+            raise ValueError("MALT cases and submission revisions cannot be mixed")
         if self.case_dirs:
             if self.dataset_provenance is None:
                 raise ValueError("MALT cases require immutable dataset provenance")
             _validate_dataset_provenance(self.dataset_provenance)
         if self.revision_dirs and self.tasks_dir is None:
-            raise ValueError("Biomni revisions require tasks_dir")
+            raise ValueError("submission revisions require tasks_dir")
         if self.revision_dirs and (
             not self.experiment_ids
             or len(set(self.experiment_ids)) != len(self.experiment_ids)
             or any(not value.strip() for value in self.experiment_ids)
         ):
-            raise ValueError("Biomni revisions require experiment IDs")
+            raise ValueError("submission revisions require experiment IDs")
         if not self.revision_dirs and self.experiment_ids:
-            raise ValueError("experiment IDs apply only to Biomni revisions")
+            raise ValueError("experiment IDs apply only to submission revisions")
 
 
 class ModelJudgeRunner:
@@ -1921,7 +1907,7 @@ class ModelJudgeRunner:
         if source_kind == "revision":
             manifest = json.loads((case / "manifest.json").read_text())
             if manifest.get("experiment_id") not in self.config.experiment_ids:
-                raise ValueError(f"Biomni revision is outside the experiment: {case}")
+                raise ValueError(f"submission revision is outside the experiment: {case}")
             return _revision_prompt(
                 case,
                 self.config.tasks_dir or Path(),

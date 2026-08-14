@@ -1,19 +1,28 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from rubric_gen.biomnibench.agent.outputs import solver_output_errors
-from rubric_gen.biomnibench.agent.prompts import PAPERBENCH_CODE_DEV_PROMPT
-from rubric_gen.biomnibench.judging.llm_judge import judge_prompt
-from rubric_gen.biomnibench.judging.models import JudgeRunConfig, JudgeTarget
-from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
-from rubric_gen.biomnibench.revision.artifacts import compact_historical_workspace
-from rubric_gen.biomnibench.revision.evolution import _validated_complete_rubric
-import rubric_gen.biomnibench.revision.evolution as evolution_module
-from rubric_gen.biomnibench.judging.scoring import (
+from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.benchmarks.paperbench_code_dev import (
+    PAPERBENCH_CODE_DEV,
+    PAPERBENCH_CODE_DEV_PROMPT,
+)
+from rubric_gen.submission_revision.judging.llm_judge import judge_prompt
+from rubric_gen.submission_revision.judging.models import JudgeRunConfig, JudgeTarget
+from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
+from rubric_gen.submission_revision.controller import SubmissionRevisionController
+from rubric_gen.submission_revision.artifacts import compact_historical_workspace
+from rubric_gen.submission_revision.evolution import _validated_complete_rubric
+import rubric_gen.submission_revision.evolution as evolution_module
+from rubric_gen.submission_revision.evolution import RubricScoreContext
+from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
+from rubric_gen.submission_revision.prompts import PromptProfile
+from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
     validate_judge_score,
 )
@@ -167,9 +176,23 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
     submission.mkdir()
     (submission / "README.md").write_text("# Replication\n")
 
-    assert solver_output_errors(tmp_path, "paperbench-code-dev") == []
+    assert PAPERBENCH_CODE_DEV.output_errors(tmp_path) == []
     assert "answer.txt" not in PAPERBENCH_CODE_DEV_PROMPT
     assert "trace.md" not in PAPERBENCH_CODE_DEV_PROMPT
+
+
+def test_paperbench_contract_owns_native_revision_language() -> None:
+    contract = get_benchmark(Benchmark.PAPERBENCH_CODE_DEV)
+    prompt = render_feedback_prompt(
+        {"schema_version": 1, "policy": "score_only", "score": 50},
+        benchmark=contract.benchmark,
+    )
+
+    assert contract is PAPERBENCH_CODE_DEV
+    assert "./submission" in prompt
+    assert "README" in prompt
+    assert "trace.md" not in prompt
+    assert "answer.txt" not in prompt
 
 
 def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
@@ -197,9 +220,10 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
         trajectory_path=tmp_path / "trajectory.jsonl",
         output_root=tmp_path / "output",
     )
-    runner = BiomniBenchJudgeRunner(JudgeRunConfig(
+    runner = SubmissionJudgeRunner(JudgeRunConfig(
         run_dir=target.run_dir,
         tasks_dir=tmp_path,
+        benchmark=Benchmark.PAPERBENCH_CODE_DEV,
         review="workspace",
     ))
 
@@ -208,7 +232,15 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
         instruction="TASK",
         current_rubric="RUBRIC",
         current_submission=render_submission_tree(workspace),
-        auditor_packet='{"status":"no_supported_problem"}\n',
+        auditor_packet='{"schema_version":3,"inspected":"x","findings":[]}\n',
+        score_context=RubricScoreContext(
+            score=50,
+            raw_score=50,
+            selected_levels={"criterion_1": "B"},
+            criterion_scores={"criterion_1": 50},
+            score_history=(50,),
+        ),
+        rejected_attempts=(),
     )
 
     assert "native submission" in judged
@@ -217,6 +249,71 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     assert "native submission" in proposed
     assert "<current_answer>" not in proposed
     assert "<answer>" not in judge_prompt("RUBRIC", judged, "").evidence
+
+
+def test_paperbench_simulated_user_sees_native_submission_tree(
+    tmp_path: Path,
+) -> None:
+    task = tmp_path / "task"
+    task.mkdir()
+    (task / "instruction.md").write_text("Implement the paper.\n")
+    submission_dir = tmp_path / "submission-record"
+    workspace = submission_dir / "workspace"
+    submission = workspace / "submission"
+    submission.mkdir(parents=True)
+    (submission / "README.md").write_text("# Replication\n")
+    (submission / "model.py").write_text("print('native source')\n")
+    (workspace / "answer.txt").write_text("NON-NATIVE ANSWER\n")
+
+    rubric_text = "Criterion 1: Implementation\nLevels: A=100 B=0\n"
+    rubric_sha256 = hashlib.sha256(rubric_text.encode()).hexdigest()
+    validation = tmp_path / "score-validation.json"
+    validation.write_text(json.dumps({
+        "score": 100,
+        "normalized_score": 1.0,
+        "raw_score": 100,
+        "selected_levels": {"criterion_1": "A"},
+        "criterion_scores": {"criterion_1": 100},
+        "rendered_rubric_sha256": rubric_sha256,
+    }))
+    captured: dict[str, object] = {}
+
+    class Simulator:
+        def generate(self, **kwargs):
+            captured.update(kwargs)
+            return {"sealed": True}
+
+        def validate(self, *_args, **_kwargs):
+            return "Please improve the implementation evidence."
+
+    controller = object.__new__(SubmissionRevisionController)
+    controller.config = SimpleNamespace(
+        feedback_policy=FeedbackPolicy.SIMULATED_USER,
+        experiment_id="paperbench-simulated-user-test",
+        assignment_id="paper--rep-001--base-static",
+        prompt_profile=PromptProfile.BASE,
+        benchmark=Benchmark.PAPERBENCH_CODE_DEV,
+    )
+    controller.benchmark = PAPERBENCH_CODE_DEV
+    controller.experiment_dir = tmp_path / "experiment"
+    (controller.experiment_dir / "feedback-generations").mkdir(parents=True)
+    controller.task_dir = task
+    controller.dependencies = SimpleNamespace(feedback_simulator=Simulator())
+
+    controller._project_boundary_feedback(
+        artifacts=SimpleNamespace(score_validation_path=validation),
+        rubric=SimpleNamespace(text=rubric_text, sha256=rubric_sha256),
+        submission_id="s000",
+        rubric_version=0,
+        submission_dir=submission_dir,
+        allow_generation=True,
+    )
+
+    rendered = str(captured["current_submission"])
+    assert "## File: README.md" in rendered
+    assert "## File: model.py" in rendered
+    assert "native source" in rendered
+    assert "NON-NATIVE ANSWER" not in rendered
 
 
 def test_paperbench_historical_compaction_preserves_source_repository(

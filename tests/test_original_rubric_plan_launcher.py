@@ -9,8 +9,8 @@ import pytest
 import yaml
 
 from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS
-from scripts import run_original_rubric_ensemble_plan as launcher
-from scripts.run_original_rubric_ensemble_plan import (
+import rubric_gen.submission_revision.original_rubric_plan as launcher
+from rubric_gen.submission_revision.original_rubric_plan import (
     JudgmentPlan,
     PlannedTarget,
     _assignment_summaries,

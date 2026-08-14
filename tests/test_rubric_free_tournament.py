@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from rubric_gen.biomnibench.revision.rubric_free import SCORE_FIELDS, SYSTEM_PROMPT
-from rubric_gen.biomnibench.revision.rubric_free_tournament import (
+from rubric_gen.submission_revision.rubric_free import SCORE_FIELDS, SYSTEM_PROMPT
+from rubric_gen.submission_revision.rubric_free_tournament import (
     CONDITIONS,
     Finalist,
     MatchTarget,
@@ -13,7 +13,7 @@ from rubric_gen.biomnibench.revision.rubric_free_tournament import (
     TournamentStudy,
     pair_prompt,
 )
-from rubric_gen.biomnibench.utils.hashing import sha256_text
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.malt.model_judge import ModelGeneration, ModelRequest
 
 

@@ -10,7 +10,7 @@ import stat
 import subprocess
 from pathlib import Path
 
-from rubric_gen.biomnibench.utils.serialization import write_json_atomic
+from rubric_gen.artifacts.serialization import write_json_atomic
 
 
 def read_json_object(path: Path, label: str) -> dict[str, object]:

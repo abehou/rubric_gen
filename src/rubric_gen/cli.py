@@ -6,16 +6,16 @@ import argparse
 
 import yaml
 
-from rubric_gen.biomnibench.commands import (
+from rubric_gen.submission_revision.commands import (
     run_detect as run_submission_detect,
     run_dag,
     run_judge as run_submission_judge,
     run_revise,
     run_seed,
 )
-from rubric_gen.biomnibench.experiment import EXPERIMENT_KIND, load_experiment
-from rubric_gen.biomnibench.utils.paths import resolve_project_path
-from rubric_gen.biomnibench.vllm import add_vllm_argument
+from rubric_gen.submission_revision.experiment import EXPERIMENT_KIND, load_experiment
+from rubric_gen.runtime.paths import resolve_project_path
+from rubric_gen.runtime.vllm import add_vllm_argument
 from rubric_gen.harvey.audits import run_quality_audit, run_reward_hacking_audit
 from rubric_gen.harvey.config import (
     HARVEY_EXPERIMENT_KIND,

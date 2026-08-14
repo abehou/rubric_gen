@@ -13,12 +13,12 @@ from pathlib import Path
 from statistics import fmean
 from typing import Callable
 
-from rubric_gen.biomnibench.revision.rubric_free_tournament import (
+from rubric_gen.submission_revision.rubric_free_tournament import (
     CONDITIONS,
     FACTORS,
     SUMMARY_KIND,
 )
-from rubric_gen.biomnibench.visualization.backend import pyplot
+from rubric_gen.submission_revision.visualization.backend import pyplot
 
 
 ROOT = Path(__file__).resolve().parents[1]

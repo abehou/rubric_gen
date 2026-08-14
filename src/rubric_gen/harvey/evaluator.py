@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from rubric_gen.biomnibench.utils.progress import TerminalProgress
+from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.harvey.artifacts import (
     copy_regular_tree,
     make_tree_read_only,

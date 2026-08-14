@@ -7,16 +7,18 @@ import tomllib
 from pathlib import Path
 from typing import Callable
 
-import rubric_gen.biomnibench.agent.adapters as adapters_module
-import rubric_gen.biomnibench.agent.runners as runners_module
-import rubric_gen.biomnibench.agent.sessions as sessions_module
-from rubric_gen.biomnibench.agent.models import AgentRunConfig, RunPaths
-from rubric_gen.biomnibench.agent.adapters import CodexAdapter, VllmAdapter
-from rubric_gen.biomnibench.agent.runners import AgentRunner
-from rubric_gen.biomnibench.agent.sessions import (
-    OUTPUT_RECOVERY_PROMPT,
-    RECOVERY_PROMPT,
+import rubric_gen.runtime.agents.adapters as adapters_module
+import rubric_gen.runtime.agents.runners as runners_module
+import rubric_gen.runtime.agents.sessions as sessions_module
+from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
+from rubric_gen.runtime.agents.adapters import CodexAdapter, VllmAdapter
+from rubric_gen.runtime.agents.runners import AgentRunner
+from rubric_gen.runtime.agents.sessions import (
     CliSolverSessionDriver,
+)
+from rubric_gen.benchmarks.biomnibench_da import (
+    BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT,
+    BIOMNIBENCH_DA_RECOVERY_PROMPT,
 )
 
 
@@ -240,12 +242,14 @@ def test_codex_adapter_mounts_its_sandbox_helpers_read_only(
         status_path=tmp_path / "turn" / "status.json",
     )
     CodexAdapter().prepare_run(
-        paths, AgentRunConfig(provider="codex", model="gpt-5.6-luna")
+        paths,
+        AgentRunConfig(provider="codex", model="gpt-5.6-luna"),
+        "Solve the task.",
     )
 
     controlled = tmp_path / ".agent-state" / "codex" / "config.toml"
     filesystem = tomllib.loads(controlled.read_text())["permissions"][
-        "biomnibench-task"
+        "benchmark-task"
     ]["filesystem"]
     assert filesystem[str(native)] == "read"
     assert filesystem[str(bundled_rg)] == "read"
@@ -338,7 +342,7 @@ def test_persistent_session_retries_in_same_session_and_preserves_all_streams(
     assert all("--resume" in command for command in driver.commands[1:])
     assert driver.commands[0][driver.commands[0].index("-p") + 1] == ("original prompt")
     assert all(
-        command[command.index("-p") + 1] == RECOVERY_PROMPT
+        command[command.index("-p") + 1] == BIOMNIBENCH_DA_RECOVERY_PROMPT
         for command in driver.commands[1:]
     )
 
@@ -431,7 +435,7 @@ def test_persistent_session_recovers_when_success_omits_required_outputs(
     assert len(driver.commands) == 2
     assert "--resume" in driver.commands[1]
     assert driver.commands[1][driver.commands[1].index("-p") + 1] == (
-        OUTPUT_RECOVERY_PROMPT
+        BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT
     )
     status = json.loads((turn_dir / "status.json").read_text())
     assert status["attempts"][0]["output_errors"] == [

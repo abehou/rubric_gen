@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.biomnibench.revision.artifacts import (
+from rubric_gen.submission_revision.artifacts import (
     compact_historical_workspace,
     copy_solution_workspace,
     make_tree_read_only,

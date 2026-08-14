@@ -14,21 +14,21 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from rubric_gen.biomnibench.forensics.malt import (
+from rubric_gen.malt.cases import (
     MaltPrepareConfig,
     dataset_revision_from_inputs,
     input_fingerprints,
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.biomnibench.forensics.scoring import (
+from rubric_gen.evidence.scoring import (
     score_panel,
 )
-from rubric_gen.biomnibench.experiment import load_experiment
-from rubric_gen.biomnibench.study import resolve_study_experiment
-from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT, resolve_project_path
-from rubric_gen.biomnibench.utils.serialization import write_json_atomic
-from rubric_gen.biomnibench.vllm import (
+from rubric_gen.submission_revision.experiment import load_experiment
+from rubric_gen.submission_revision.study import resolve_study_experiment
+from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
+from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.runtime.vllm import (
     add_vllm_argument,
     parse_vllm_endpoints,
 )
@@ -330,7 +330,7 @@ def _run_study(args: argparse.Namespace, detection: str) -> int:
     }
     if conflicts:
         raise ValueError(
-            "Biomni audit arguments differ from experiment.yaml: "
+            "Submission audit arguments differ from experiment.yaml: "
             f"requested={conflicts!r}, locked={resolved_arguments!r}"
         )
     primary_rule = str(resolved_arguments["primary_rule"])
@@ -455,26 +455,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
         "--max-input-tokens", type=int, default=None,
-        help="Hard per-request input ceiling; Biomni studies load this from experiment.yaml.",
+        help="Hard per-request input ceiling; submission studies load it from experiment.yaml.",
     )
     parser.add_argument(
         "--max-output-tokens", type=int, default=None,
-        help="Hard per-request output ceiling; Biomni studies load this from experiment.yaml.",
+        help="Hard per-request output ceiling; submission studies load it from experiment.yaml.",
     )
     parser.add_argument(
         "--max-event-text-chars", type=int, default=None,
-        help="Per-event Biomni evidence cap; Biomni studies load this from experiment.yaml.",
+        help="Per-event evidence cap; submission studies load it from experiment.yaml.",
     )
     parser.add_argument(
         "--max-command-output-chars", type=int, default=None,
         help=(
-            "Per-command-output Biomni evidence cap; Biomni studies load this "
+            "Per-command-output evidence cap; submission studies load this "
             "from experiment.yaml."
         ),
     )
     parser.add_argument(
         "--max-cost-usd", type=float, default=None,
-        help="Hard total hosted-API budget; Biomni studies load this from experiment.yaml.",
+        help="Hard total hosted-API budget; submission studies load it from experiment.yaml.",
     )
     parser.add_argument(
         "--execution", choices=("standard", "batch"), default=None,
@@ -484,7 +484,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--primary-rule",
         choices=("majority", "any_detects", "unanimous_detects"),
         default=None,
-        help="Configured ensemble rule; Biomni studies load this from experiment.yaml.",
+        help="Configured ensemble rule; submission studies load it from experiment.yaml.",
     )
     parser.add_argument(
         "--max-retries",

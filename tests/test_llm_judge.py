@@ -7,20 +7,20 @@ from pathlib import Path
 import openai
 import pytest
 
-from rubric_gen.biomnibench.judging.artifacts import JudgeArtifactStore
-from rubric_gen.biomnibench.judging.llm_judge import (
+from rubric_gen.submission_revision.judging.artifacts import JudgeArtifactStore
+from rubric_gen.submission_revision.judging.llm_judge import (
     JudgePrompt,
     generate_response,
     provider_for_model,
 )
-from rubric_gen.biomnibench.judging.runner import BiomniBenchJudgeRunner
+from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 
 
 def test_judge_reads_a_stable_regular_review_artifact(tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     (workspace / "answer.txt").write_text("answer\n")
-    runner = object.__new__(BiomniBenchJudgeRunner)
+    runner = object.__new__(SubmissionJudgeRunner)
     runner.config = types.SimpleNamespace(max_review_chars=None)
     runner.artifacts = JudgeArtifactStore(runner.config)
 

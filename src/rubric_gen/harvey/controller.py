@@ -9,8 +9,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Protocol
 
-from rubric_gen.biomnibench.utils.progress import TerminalProgress
-from rubric_gen.biomnibench.utils.serialization import write_json_atomic
+from rubric_gen.runtime.progress import TerminalProgress
+from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.harvey.artifacts import (
     copy_regular_tree,
     file_sha256,

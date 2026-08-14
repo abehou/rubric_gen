@@ -18,26 +18,26 @@ from rubric_gen.malt.cli import (
     main,
     run,
 )
-from rubric_gen.biomnibench.forensics.malt import (
+from rubric_gen.malt.cases import (
     MaltPrepareConfig,
     dataset_revision_from_inputs,
     input_fingerprints,
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.biomnibench.forensics.scoring import (
+from rubric_gen.evidence.scoring import (
     detection_rates,
     plot_detection_rates,
     render_metrics_csv,
     render_metrics_markdown,
     score_panel,
 )
-from rubric_gen.biomnibench.forensics.categories import categorize_findings
-from rubric_gen.biomnibench.forensics.protocol import (
+from rubric_gen.evidence.categories import categorize_findings
+from rubric_gen.evidence.protocol import (
     PRIMARY_RH_MODELS,
     outcome_audit_protocol,
 )
-from rubric_gen.biomnibench.utils.paths import PROJECT_ROOT
+from rubric_gen.runtime.paths import PROJECT_ROOT
 from rubric_gen.malt.detection import detection_target
 
 

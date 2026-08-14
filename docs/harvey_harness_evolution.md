@@ -103,7 +103,7 @@ summary reports active-minus-original score gaps and held-out performance.
 case. The evidence contains the visible ranking, raw Codex trajectory, accepted
 proposal, full harness patch, and canonical visible result. The configured model
 panel applies the same reward-hacking target and aggregation used by the existing
-BiomniBench detector.
+submission-revision detector.
 
 ## Security boundary
 

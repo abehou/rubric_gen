@@ -4,6 +4,16 @@ Seed scientific benchmark submissions, revise them over multiple rounds, detect
 reward hacking, and re-score initial and final quality against the original
 rubric. The supported benchmarks are BiomniBench-DA and PaperBench Code-Dev.
 
+## Code structure
+
+Benchmark-native prompts, deliverables, review rendering, and dataset checks
+live in `rubric_gen.benchmarks`. The shared solver runtime is in
+`rubric_gen.runtime`, durable artifact helpers are in `rubric_gen.artifacts`,
+and evidence indexing and audit protocols are in `rubric_gen.evidence`. The
+seed, revise, and judge workflow is in `rubric_gen.submission_revision` and uses
+benchmark contracts instead of benchmark-name conditionals. Harvey keeps its
+separate harness-evolution state machine under `rubric_gen.harvey`.
+
 ## Setup
 
 Requires Python 3.11+, `uv`, and the `codex` CLI. Hosted-model runs also need
@@ -86,6 +96,11 @@ uv run rubric-gen run \
 
 The repository-level `experiment.yaml` declares tasks, randomized conditions,
 protocol settings, stage outputs, and the `seed -> revise -> detect` DAG.
+
+The benchmark-neutral package change updated seed artifact kinds and judge code
+attestations. Seed and revision artifacts made by older code cannot resume with
+the current workflow. Use new experiment and output identities and run `seed`
+again. Do not copy or rewrite old manifests into the current format.
 
 ```bash
 uv run rubric-gen run \
@@ -370,21 +385,36 @@ is supported directly for `detect`.
 
 Prospective rubric evolution remains part of `revise` when enabled by the
 experiment. A versioned trajectory-auditor agent first selects raw-event
-citations. It can report a supported problem, counterevidence or uncertainty, or
-`no_supported_problem`. The auditor returns only event IDs and character
-offsets. The harness checks those references, copies the exact text from the
-trajectory, and stores the canonical packet and its hash.
+citations. It can report supported problems and explicitly speculative potential
+concerns, with counterevidence, uncertainty, and a verification question for
+each finding. A potential concern can have no citation, but it must state its
+basis and must not claim that the concern was observed. The harness checks all
+provided event offsets, copies the exact text from the trajectory, rejects a
+reused citation range, and stores the canonical packet and its hash.
 
-The proposer then makes one direct model call with only the task instruction,
-current benchmark submission, current complete rubric, and verified packet.
+The proposer then makes one direct model call with the task instruction,
+current benchmark submission, current complete rubric, verified packet, and
+validated criterion-level score context.
 For BiomniBench the submission is `answer.txt`; for PaperBench it is the
-rendered source repository. It emits only the complete next rubric and does not
-use tools. The proposer can
+rendered source repository. It emits a structured proposal that the harness
+renders into the complete next rubric. It does not use tools. The proposer can
 retain, rewrite, remove, merge, split, reorder, or reweight criteria. Repeating
-the current rubric means no change. The harness stores the rubric, packet,
-proposer metadata, and a derived diff. Neither component receives judge
-reasoning or reward-hacking detector results. Runs with obsolete proposer
-artifacts cannot resume.
+the current rubric means no change when the score is not saturated. At a score
+of 100, or when every criterion is at level A, the auditor must return at least
+one frontier finding and the proposer must revise the rubric. The harness
+cross-scores the frozen submission with the candidate rubric and rejects a
+candidate that still gives the saturated submission full credit. This check
+does not change the configured judge model. Each correction call receives the
+ordered validation errors and structured proposals from all earlier rejected
+attempts, so it can avoid repeating a threshold that the frozen submission
+already satisfies.
+
+The progress plot and report store two distinct series: the on-policy score
+under each active rubric and the fixed-original score under `r0000`. This
+separates solver improvement from evaluator drift. The harness stores the
+rubric, structured proposal, packet, crossed score, proposer metadata, and a
+derived diff. Neither component receives judge reasoning or reward-hacking
+detector results. Runs with obsolete proposer artifacts cannot resume.
 
 Use the separate `malt` CLI to benchmark the reward-hacking detector against
 labeled MALT data.

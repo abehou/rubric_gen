@@ -8,11 +8,11 @@ from pathlib import Path
 
 import pytest
 
-import rubric_gen.biomnibench.revision.seeds as seeds_module
+import rubric_gen.submission_revision.seeds as seeds_module
 from rubric_gen.cli import build_parser
-from rubric_gen.biomnibench.experiment import Experiment
-from rubric_gen.biomnibench.revision.judge import JudgeArtifacts
-from rubric_gen.biomnibench.revision.seeds import (
+from rubric_gen.submission_revision.experiment import Experiment
+from rubric_gen.submission_revision.judge import JudgeArtifacts
+from rubric_gen.submission_revision.seeds import (
     SeedSetConfig,
     SeedSetRunner,
     resolve_seed,

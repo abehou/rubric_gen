@@ -8,9 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from rubric_gen.biomnibench.rubrics import schema as task_rubrics_module
-from rubric_gen.biomnibench.rubrics import snapshots as task_snapshots_module
-from rubric_gen.biomnibench.rubrics.schema import (
+from rubric_gen.submission_revision.rubrics import schema as task_rubrics_module
+from rubric_gen.submission_revision.rubrics import snapshots as task_snapshots_module
+from rubric_gen.submission_revision.rubrics.schema import (
     DataFileSnapshot,
     RubricCriterion,
     RubricLevel,
@@ -23,7 +23,7 @@ from rubric_gen.biomnibench.rubrics.schema import (
     render_task_process_rubric,
     validate_task_process_rubric,
 )
-from rubric_gen.biomnibench.rubrics.snapshots import _walk_data_files
+from rubric_gen.submission_revision.rubrics.snapshots import _walk_data_files
 
 
 ROOT = Path(__file__).resolve().parents[1]

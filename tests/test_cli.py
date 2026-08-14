@@ -7,7 +7,7 @@ import pytest
 
 import rubric_gen.cli as unified_cli
 from rubric_gen.cli import build_parser
-from rubric_gen.biomnibench.vllm import (
+from rubric_gen.runtime.vllm import (
     normalize_vllm_base_url,
     parse_vllm_endpoints,
 )
