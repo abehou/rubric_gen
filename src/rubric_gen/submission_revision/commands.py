@@ -13,10 +13,8 @@ from pathlib import Path
 
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 from rubric_gen.submission_revision.seeds import (
-    SEED_SET_KIND,
     SeedSetConfig,
     SeedSetRunner,
-    resolve_seed,
 )
 from rubric_gen.submission_revision.study import (
     StudyRunConfig,
@@ -28,10 +26,6 @@ from rubric_gen.runtime.vllm import parse_vllm_endpoints
 
 
 _RESTART_IDENTITY_FILES = {
-    "seed": (
-        "manifest.json",
-        SEED_SET_KIND,
-    ),
     "revise": (
         "study.json",
         "rubric-gen-randomized-revision-study",
@@ -42,32 +36,10 @@ _RESTART_IDENTITY_FILES = {
 def run_seed(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
     endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
-    if experiment.seed_experiment_id != experiment.experiment_id:
-        agent = experiment.agent_config(vllm_endpoints=endpoints)
-        seed_root = Path(str(experiment.dag["seed"]["output_dir"]))
-        blocks = sorted({
-            (str(assignment["task_id"]), int(assignment["replicate"]))
-            for assignment in experiment.assignments
-        })
-        for task_id, replicate in blocks:
-            resolve_seed(
-                seed_root,
-                experiment.task_dir(task_id),
-                replicate,
-                experiment_id=experiment.seed_experiment_id,
-                provider=agent.provider,
-                requested_model=agent.model,
-            )
-        print(
-            f"Validated {len(blocks)} reused seed blocks from "
-            f"{experiment.seed_experiment_id}."
-        )
-        return 0
     return SeedSetRunner(SeedSetConfig(
         experiment=experiment,
         output_dir=Path(str(experiment.dag["seed"]["output_dir"])),
         max_concurrency=args.max_concurrency,
-        resume=args.resume,
         vllm_endpoints=endpoints,
     )).run()
 
@@ -112,20 +84,16 @@ def run_dag(args: argparse.Namespace) -> int:
     vllm = getattr(args, "vllm", [])
     if resume and restart:
         raise ValueError("--resume and --restart are mutually exclusive")
-    if restart:
-        _validate_existing_seed_set(
-            experiment,
-            vllm_endpoints=parse_vllm_endpoints(vllm),
-        )
-        _restart_experiment_outputs(experiment)
     common = argparse.Namespace(
         experiment=str(experiment.path),
         max_concurrency=args.max_concurrency,
         resume=resume,
         vllm=vllm,
     )
-    if not restart and run_seed(common):
+    if run_seed(common):
         return 1
+    if restart:
+        _restart_experiment_outputs(experiment)
     if run_revise(common):
         return 1
     detect = argparse.Namespace(
@@ -141,7 +109,7 @@ def run_dag(args: argparse.Namespace) -> int:
 def _restart_experiment_outputs(experiment: Experiment) -> None:
     roots = {
         stage: Path(str(experiment.dag[stage]["output_dir"])).resolve()
-        for stage in ("seed", "revise", "detect")
+        for stage in ("revise", "detect")
     }
     _validate_restart_roots(experiment, roots)
     study_root = roots["revise"]
@@ -151,29 +119,6 @@ def _restart_experiment_outputs(experiment: Experiment) -> None:
     else:
         detached = _detach_restart_roots(roots)
     _remove_detached_roots(detached)
-
-
-def _validate_existing_seed_set(
-    experiment: Experiment,
-    *,
-    vllm_endpoints: dict[str, str],
-) -> None:
-    seed_root = Path(str(experiment.dag["seed"]["output_dir"]))
-    agent = experiment.agent_config(vllm_endpoints=vllm_endpoints)
-    blocks = sorted({
-        (str(assignment["task_id"]), int(assignment["replicate"]))
-        for assignment in experiment.assignments
-    })
-    for task_id, replicate in blocks:
-        resolve_seed(
-            seed_root,
-            experiment.task_dir(task_id),
-            replicate,
-            experiment_id=experiment.seed_experiment_id,
-            provider=agent.provider,
-            requested_model=agent.model,
-        )
-
 
 def _validate_restart_roots(
     experiment: Experiment,
@@ -190,11 +135,7 @@ def _validate_restart_roots(
     if len(set(values)) != len(values):
         raise RuntimeError("restart output directories must be distinct")
     for stage, root in roots.items():
-        expected_experiment_id = (
-            experiment.seed_experiment_id
-            if stage == "seed"
-            else experiment.experiment_id
-        )
+        expected_experiment_id = experiment.experiment_id
         if root in forbidden or root.name != expected_experiment_id:
             raise RuntimeError(
                 f"unsafe {stage} restart output directory: {root}; "
@@ -240,11 +181,7 @@ def _validate_restart_identity(
     if (
         not isinstance(identity, dict)
         or identity.get("kind") != expected_kind
-        or identity.get("experiment_id") != (
-            experiment.seed_experiment_id
-            if stage == "seed"
-            else experiment.experiment_id
-        )
+        or identity.get("experiment_id") != experiment.experiment_id
     ):
         raise RuntimeError(
             f"restart output identity does not match the experiment: {root}"

@@ -97,12 +97,17 @@ def _detect(args: argparse.Namespace) -> int:
 
 
 def _add_submission_command(
-    subparsers: argparse._SubParsersAction, name: str, handler: object
+    subparsers: argparse._SubParsersAction,
+    name: str,
+    handler: object,
+    *,
+    resumable: bool,
 ) -> None:
     parser = subparsers.add_parser(name, help=f"{name.title()} submission work.")
     parser.add_argument("--experiment", required=True)
     parser.add_argument("--max-concurrency", type=int, default=1)
-    parser.add_argument("--resume", action="store_true")
+    if resumable:
+        parser.add_argument("--resume", action="store_true")
     add_vllm_argument(parser)
     parser.set_defaults(handler=_require_submission_experiment, submission_handler=handler)
 
@@ -110,8 +115,18 @@ def _add_submission_command(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    _add_submission_command(subparsers, "seed", run_seed)
-    _add_submission_command(subparsers, "revise", run_revise)
+    _add_submission_command(
+        subparsers,
+        "seed",
+        run_seed,
+        resumable=False,
+    )
+    _add_submission_command(
+        subparsers,
+        "revise",
+        run_revise,
+        resumable=True,
+    )
 
     run = subparsers.add_parser("run", help="Run an experiment workflow.")
     run.add_argument("--experiment", required=True)

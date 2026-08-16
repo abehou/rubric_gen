@@ -136,8 +136,8 @@ _DIRECT_REQUEST_TIMEOUT_SECONDS = 600.0
 _AUDITOR_PROMPT_VERSION = "trajectory-frontier-auditor-v3"
 _AUDITOR_PACKET_SCHEMA_VERSION = 3
 _PROPOSER_PROMPT_VERSION = "structured-frontier-rubric-v6"
-_PROPOSER_SCHEMA_VERSION = 1
-_AUDITOR_VALIDATION_MAX_RETRIES = 1
+_PROPOSER_SCHEMA_VERSION = 2
+_AUDITOR_VALIDATION_MAX_RETRIES = 2
 _PROPOSER_REASONING_EFFORT = "high"
 _PROPOSER_TEXT_VERBOSITY = "low"
 _FRONTIER_GATE_ERROR_PREFIX = (
@@ -282,12 +282,14 @@ _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
 _PROPOSER_OUTPUT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
-        "schema_version": {"type": "integer", "enum": [1]},
+        "schema_version": {
+            "type": "integer",
+            "enum": [_PROPOSER_SCHEMA_VERSION],
+        },
         "decision": {"type": "string", "enum": ["revise", "retain"]},
         "rubric_title": {"type": "string"},
         "criteria": {
             "type": "array",
-            "maxItems": 26,
             "items": {
                 "type": "object",
                 "properties": {
@@ -1742,9 +1744,15 @@ def _validated_evidence_packet(
         start = snippet.get("start_offset")
         end = snippet.get("end_offset")
         if type(event_id) is not int or event_id not in event_contents:
-            raise ValueError("trajectory auditor citation has an unknown event ID")
+            raise ValueError(
+                f"trajectory auditor citation has an unknown event ID: "
+                f"{event_id!r}"
+            )
         if event_id not in retrieved_events:
-            raise ValueError("trajectory auditor cited an event it did not retrieve")
+            raise ValueError(
+                f"trajectory auditor cited event {event_id} that it did not "
+                "retrieve in this attempt"
+            )
         if (
             type(start) is not int
             or type(end) is not int
@@ -1752,7 +1760,11 @@ def _validated_evidence_packet(
         ):
             raise ValueError("trajectory auditor citation has invalid offsets")
         if end - start > _MAX_SNIPPET_CHARS:
-            raise ValueError("trajectory auditor citation exceeds the size limit")
+            raise ValueError(
+                f"trajectory auditor citation for event {event_id} range "
+                f"[{start}, {end}) has {end - start} characters and exceeds "
+                f"the {_MAX_SNIPPET_CHARS}-character size limit"
+            )
         exact_text = event_contents[event_id][start:end]
         if materialized:
             if snippet.get("text") != exact_text:
@@ -1761,7 +1773,10 @@ def _validated_evidence_packet(
             snippet["text"] = exact_text
         key = (event_id, start, end)
         if key in seen:
-            raise ValueError("trajectory auditor packet repeats a snippet")
+            raise ValueError(
+                f"trajectory auditor packet repeats a snippet: event {event_id} "
+                f"range [{start}, {end})"
+            )
         seen.add(key)
         total_chars += len(exact_text)
     if total_chars > _MAX_PACKET_CHARS:
@@ -1814,10 +1829,7 @@ def _validated_structured_proposal(
         if title or criteria or changes:
             raise ValueError("a retained rubric proposal must omit revision content")
     else:
-        if (
-            not _valid_rubric_field(title)
-            or not 1 <= len(criteria) <= 26
-        ):
+        if not _valid_rubric_field(title) or not criteria:
             raise ValueError("a revised rubric proposal must contain a title and criteria")
         if not 1 <= len(changes) <= 12:
             raise ValueError("a revised rubric proposal must explain challenge changes")
@@ -1874,8 +1886,12 @@ def _validated_structured_proposal(
     if len(set(normalized_titles)) != len(normalized_titles):
         raise ValueError("structured rubric proposal has duplicate criterion titles")
     if decision == "revise" and total_maximum != expected_maximum:
+        delta = expected_maximum - total_maximum
+        adjustment = "increase" if delta > 0 else "decrease"
         raise ValueError(
-            f"structured rubric A-level points must sum to {expected_maximum}"
+            f"structured rubric A-level points must sum to {expected_maximum}; "
+            f"the proposed sum is {total_maximum}, so {adjustment} it by "
+            f"{abs(delta)}"
         )
 
     packet_findings = packet.get("findings") if isinstance(packet, dict) else None

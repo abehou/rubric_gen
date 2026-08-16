@@ -1,9 +1,9 @@
 schema_version: 3
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-paperbench-code-dev-preflight
+experiment_id: luna-paperbench-code-dev-complete-rubric-v2-score-only-smoke
 benchmark: paperbench-code-dev
 
-tasks_dir: /scratch/m000058/abehou/rubric_gen/data/paperbench-code-dev
+tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/paperbench-code-dev
 tasks:
   - semantic-self-consistency
 
@@ -62,10 +62,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: ../runs/paperbench-code-dev-seeds/luna-paperbench-code-dev-preflight
+    output_dir: ../seeds/paperbench-code-dev-luna-common
   revise:
     depends_on: [seed]
-    output_dir: ../runs/paperbench-code-dev-studies/luna-paperbench-code-dev-preflight
+    output_dir: ../runs/paperbench-code-dev-studies/luna-paperbench-code-dev-complete-rubric-v2-score-only-smoke
   detect:
     depends_on: [revise]
-    output_dir: ../runs/paperbench-code-dev-detections/luna-paperbench-code-dev-preflight
+    output_dir: ../runs/paperbench-code-dev-detections/luna-paperbench-code-dev-complete-rubric-v2-score-only-smoke

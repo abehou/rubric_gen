@@ -37,6 +37,7 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision.evolution import RubricEvolution
 from rubric_gen.submission_revision.seeds import resolve_seed
+from rubric_gen.submission_revision.store import extract_seed_scoring_contract
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
@@ -237,7 +238,6 @@ class StudyRunner:
                 vllm_endpoints=self.config.vllm_endpoints
             ),
             experiment_id=self.experiment.experiment_id,
-            seed_experiment_id=self.experiment.seed_experiment_id,
             assignment_id=str(assignment["assignment_id"]),
             condition_id=str(assignment["condition_id"]),
             replicate=int(assignment["replicate"]),
@@ -412,13 +412,23 @@ def validate_completed_revision(
         seed_run_dir,
         task_dir,
         int(assignment["replicate"]),
-        experiment_id=experiment.seed_experiment_id,
         provider=agent.provider,
         requested_model=agent.model,
     )
-    scoring_identity = seed.manifest.get("scoring_identity")
-    if not isinstance(scoring_identity, dict):
+    seed_scoring_identity = seed.manifest.get("scoring_identity")
+    if not isinstance(seed_scoring_identity, dict):
         raise RuntimeError("revision seed has invalid scoring identity")
+    manifest_scoring_identity = manifest.get("scoring_identity")
+    if not isinstance(manifest_scoring_identity, dict):
+        raise RuntimeError("revision manifest has invalid scoring identity")
+    if extract_seed_scoring_contract(
+        seed_scoring_identity,
+        context="revision seed",
+    ) != extract_seed_scoring_contract(
+        manifest_scoring_identity,
+        context="revision manifest",
+    ):
+        raise RuntimeError("revision seed and judge use different scoring contracts")
     revision_rounds = int(protocol["revision_rounds"])
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
@@ -470,7 +480,6 @@ def validate_completed_revision(
         "seed_sha256": seed.sha256,
         "submission_count": expected_count,
         "live_workspace_removed": True,
-        "scoring_identity": scoring_identity,
     }
     if simulator_config is not None:
         manifest_expectations["feedback_simulator"] = simulator_config.identity()

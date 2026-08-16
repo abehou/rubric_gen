@@ -71,19 +71,39 @@ the score-validation artifact stores this value as `normalized_score`.
 
 ```bash
 uv run python download_paperbench.py \
-  /scratch/m000058/abehou/rubric_gen/data/paperbench-code-dev
+  "${BULK%/}/rubric_gen/data/paperbench-code-dev"
 ```
 
-The ready experiment is `experiments/paperbench-code-dev.yaml`. Its native
-solver deliverable is the source repository under `submission/`, including its
-README. Workspace review gives the judge the paper, addenda, and submitted
-source files. It does not give the judge `answer.txt`, `trace.md`, or other
-BiomniBench harness summaries. The prospective rubric proposer also receives
-the submitted source tree rather than an answer summary. The experiment uses
-the same four prompt and rubric-evolution conditions as the BiomniBench study.
-The binary scoring and recursive weights match PaperBench; the model-judge
-implementation remains this project's centralized judge, not the upstream
-per-leaf SimpleJudge implementation.
+The native solver deliverable is the source repository under `submission`,
+including its README. Workspace review gives the judge the paper, addenda, and
+submitted source files. It does not give the judge `answer.txt`, `trace.md`, or
+other BiomniBench harness summaries. The prospective rubric proposer also
+receives the submitted source tree rather than an answer summary. The binary
+scoring and recursive weights match PaperBench. The model-judge implementation
+remains this project's centralized judge, not the upstream per-leaf SimpleJudge
+implementation.
+
+Use the one-task, one-revision smoke experiment after a protocol change:
+
+```bash
+uv run rubric-gen run \
+  --experiment experiments/paperbench-code-dev-preflight.yaml \
+  --max-concurrency 4
+```
+
+Use the three-task, six-revision pilot only after the smoke experiment passes.
+It contains 12 assignments and 72 solver revisions, so it is not a fast
+preflight. Run all assignments concurrently when the allocation and API quota
+permit:
+
+```bash
+uv run rubric-gen run \
+  --experiment experiments/paperbench-code-dev-pilot.yaml \
+  --max-concurrency 12
+```
+
+The full experiment has three replicates and uses the same four prompt and
+rubric-evolution conditions:
 
 ```bash
 uv run rubric-gen run \
@@ -109,33 +129,25 @@ uv run rubric-gen run \
   --resume
 ```
 
-On the Marlowe login node, install the renewable CPU wrapper once:
+Scheduler allocation is external to this repository. Request enough CPUs for
+the selected concurrency. Then run the normal command inside the allocation:
 
 ```bash
-ln -s "$PWD/scripts/rcpu" "$HOME/.local/bin/rcpu"
-```
-
-Then omit the leading `uv run`. `rcpu` requests a four-hour Slurm allocation,
-interrupts the command after 3 hours 50 minutes, and runs the same command in a
-new allocation. Long commands must use their normal resume option:
-
-```bash
-rcpu rubric-gen run \
+uv run rubric-gen run \
   --experiment experiment_preflight.yaml \
   --max-concurrency 3 \
   --resume
 ```
 
-The defaults are 16 CPUs and 64 GiB. Set `RCPU_CPUS` or `RCPU_MEMORY` before
-the command to change these requests. A command failure stops `rcpu`; normal
-slice expiry and Slurm termination statuses 137 and 143 request a new
-allocation.
+If an allocation expires after four hours, request another multi-CPU allocation
+and run the same command with `--resume`. The repository does not contain
+cluster-specific scheduler wrappers.
 
 Stages can also be executed separately. Their input and output directories come
 from the DAG in `experiment.yaml`.
 
 ```bash
-uv run rubric-gen seed --experiment experiment.yaml --resume
+uv run rubric-gen seed --experiment experiment.yaml
 uv run rubric-gen revise --experiment experiment.yaml --resume
 
 uv run rubric-gen detect \
@@ -150,13 +162,14 @@ uv run rubric-gen judge \
 ```
 
 Workflow commands support `--resume` and `--max-concurrency`. The top-level
-`run` command also supports `--restart`. This flag requires and validates the
-complete existing seed set. It keeps those seeds unchanged and replaces only
-the configured revision and detection outputs. It atomically detaches each
-output path before cleanup, so an open network-filesystem file cannot block a
-new run path. It also refuses to replace an active study. Replaced downstream
-outputs are not recoverable unless cleanup leaves a reported detached tree.
-`--restart` and `--resume` are mutually exclusive.
+`run` command also supports `--restart`. The seed stage first reuses valid
+blocks and generates missing blocks in the configured shared pool. It then
+keeps the pool unchanged and replaces only the configured revision and
+detection outputs. It atomically detaches each output path before cleanup, so
+an open network-filesystem file cannot block a new run path. It also refuses to
+replace an active study. Replaced downstream outputs are not recoverable unless
+cleanup leaves a reported detached tree. `--restart` and `--resume` are
+mutually exclusive.
 
 `judge` verifies the completed study before it writes output. It then scores
 `s000` and the final submission independently against the human-written
@@ -283,35 +296,31 @@ rubric reference answers are not a public requirement source. A matching
 `--vllm URL::MODEL` mapping routes both simulator calls through that endpoint
 just like the judge and rubric proposer.
 
-Seed sets are stored separately from run outputs under the top-level `seeds/`
-directory. To reuse an integrity-checked seed set from another experiment while
-keeping revision outputs separate, declare its owning experiment ID on the seed
-stage:
+Seeds are stored separately from run outputs under the top-level `seeds/`
+directory. Compatible experiments must point to the same shared pool:
 
 ```yaml
 dag:
   seed:
     depends_on: []
-    output_dir: seeds/source-experiment
-    source_experiment_id: source-experiment
+    output_dir: seeds/biomnibench-luna-top30-common
 ```
 
-The `run` workflow validates every referenced seed block and skips seed
-generation. Solver provider/model, task inputs, judgments, and artifact hashes
-must still match exactly.
+The pool is incremental. Each `seed` or `run` command checks its required task
+and replicate blocks. It reuses each valid block and generates only missing
+blocks. An invalid existing block causes a clear failure and is not overwritten.
+The `--restart` flag keeps the shared pool and replaces only downstream outputs.
 
-If only the sealed solver submissions are reusable, declare a submission source
-and keep a separate output directory. The seed stage copies each verified
-submission and creates a current judgment. It does not call the solver again:
+For example, the BiomniBench preflight creates three replicate-1 blocks when
+the pool is empty. A later top-30 run reuses those blocks and creates the other
+87. Running the top-30 experiment first lets the preflight reuse all three of
+its required blocks.
 
-```yaml
-dag:
-  seed:
-    depends_on: []
-    output_dir: seeds/new-experiment
-    submission_source_dir: seeds/source-experiment
-    submission_source_experiment_id: source-experiment
-```
+Validation checks the task inputs, solver provider and model, stored files, and
+all recorded content hashes. The initial judgment must use the same judge model,
+review mode, limits, and rubric. Artifact kind names, schema labels, scorer
+versions, and source-code hashes do not block seed reuse. Those fields remain
+available as provenance.
 
 ## vLLM models
 

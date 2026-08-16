@@ -1,6 +1,6 @@
 schema_version: 3
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-top30-audited-proposer-simulated-user-r6
+experiment_id: luna-top30-complete-rubric-v2-simulated-user-r6
 benchmark: biomnibench-da
 
 tasks_dir: data/biomnibench-da
@@ -96,11 +96,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: seeds/luna-top30-score-only-r6
-    source_experiment_id: luna-top30-score-only-r6
+    output_dir: seeds/biomnibench-luna-top30-common
   revise:
     depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-top30-audited-proposer-simulated-user-r6
+    output_dir: runs/biomnibench-studies/luna-top30-complete-rubric-v2-simulated-user-r6
   detect:
     depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-top30-audited-proposer-simulated-user-r6
+    output_dir: runs/biomnibench-detections/luna-top30-complete-rubric-v2-simulated-user-r6

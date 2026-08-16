@@ -16,6 +16,19 @@ from .judge import SCORING_IDENTITY_KEYS
 from .models import RevisionState
 
 
+SEED_SCORING_CONTRACT_KEYS = (
+    "effective_judge_model",
+    "review_mode",
+    "max_review_chars",
+    "rubric_source",
+    "rubric_set_id",
+    "rubric_id",
+    "structured_rubric_sha256",
+    "rendered_rubric_sha256",
+    "manifest_sha256",
+)
+
+
 def extract_scoring_identity(
     payload: dict[str, object],
     *,
@@ -25,6 +38,17 @@ def extract_scoring_identity(
     if missing:
         raise RuntimeError(f"{context} lacks scoring identity: {', '.join(missing)}")
     return {key: payload[key] for key in SCORING_IDENTITY_KEYS}
+
+
+def extract_seed_scoring_contract(
+    payload: dict[str, object],
+    *,
+    context: str,
+) -> dict[str, object]:
+    """Return stable scoring semantics without code-build fingerprints."""
+
+    identity = extract_scoring_identity(payload, context=context)
+    return {key: identity[key] for key in SEED_SCORING_CONTRACT_KEYS}
 
 
 class RevisionStore:

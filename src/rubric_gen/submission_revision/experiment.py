@@ -65,26 +65,6 @@ class Experiment:
     def dag(self) -> dict[str, dict[str, object]]:
         return self.payload["dag"]
 
-    @property
-    def seed_experiment_id(self) -> str:
-        """Experiment identity that owns the configured seed artifacts."""
-
-        seed_stage = self.dag.get("seed", {})
-        return str(seed_stage.get("source_experiment_id", self.experiment_id))
-
-    @property
-    def seed_submission_source(self) -> tuple[Path, str] | None:
-        """Seed set from which a new set copies sealed solver submissions."""
-
-        seed_stage = self.dag.get("seed", {})
-        source_dir = seed_stage.get("submission_source_dir")
-        if source_dir is None:
-            return None
-        return (
-            Path(str(source_dir)),
-            str(seed_stage["submission_source_experiment_id"]),
-        )
-
     def condition(self, condition_id: str) -> dict[str, object]:
         matches = [
             value for value in self.payload["conditions"]
@@ -160,11 +140,6 @@ def load_experiment(path: Path) -> Experiment:
     payload["tasks_dir"] = str(_resolve_relative(resolved, payload["tasks_dir"]))
     for stage in payload["dag"].values():
         stage["output_dir"] = str(_resolve_relative(resolved, stage["output_dir"]))
-    seed_stage = payload["dag"]["seed"]
-    if "submission_source_dir" in seed_stage:
-        seed_stage["submission_source_dir"] = str(
-            _resolve_relative(resolved, seed_stage["submission_source_dir"])
-        )
     payload["assignments"] = _randomized_assignments(payload)
     return Experiment(resolved, payload)
 
@@ -238,40 +213,10 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     for name, dependencies in expected_dependencies.items():
         stage = dag[name]
         expected_keys = {"depends_on", "output_dir"}
-        if name == "seed" and isinstance(stage, dict) and (
-            "source_experiment_id" in stage
-        ):
-            expected_keys.add("source_experiment_id")
-        if name == "seed" and isinstance(stage, dict) and (
-            "submission_source_dir" in stage
-            or "submission_source_experiment_id" in stage
-        ):
-            expected_keys.update({
-                "submission_source_dir",
-                "submission_source_experiment_id",
-            })
         if not isinstance(stage, dict) or set(stage) != expected_keys:
             raise ValueError(f"dag stage {name} requires depends_on and output_dir")
         if stage["depends_on"] != dependencies:
             raise ValueError(f"dag stage {name} has invalid dependencies")
-        if name == "seed" and "source_experiment_id" in stage:
-            source_experiment_id = stage["source_experiment_id"]
-            if not isinstance(source_experiment_id, str) or not _ID.fullmatch(
-                source_experiment_id
-            ):
-                raise ValueError("seed source_experiment_id is invalid")
-        if name == "seed" and "submission_source_dir" in stage:
-            if "source_experiment_id" in stage:
-                raise ValueError(
-                    "seed cannot directly reuse a seed set and derive submissions "
-                    "at the same time"
-                )
-            source_experiment_id = stage["submission_source_experiment_id"]
-            if not isinstance(source_experiment_id, str) or not _ID.fullmatch(
-                source_experiment_id
-            ):
-                raise ValueError("seed submission_source_experiment_id is invalid")
-            _resolve_relative(path, stage["submission_source_dir"])
         _resolve_relative(path, stage["output_dir"])
 
 

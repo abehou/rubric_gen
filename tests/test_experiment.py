@@ -110,54 +110,48 @@ def test_paperbench_experiment_accepts_a_pinned_dev_subset(
     assert experiment.task_ids == (task_id,)
 
 
-def test_dag_validates_and_reuses_an_explicit_seed_source(
+def test_seed_stage_uses_one_shared_directory_without_an_owner_id(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    payload["dag"]["seed"]["source_experiment_id"] = "source-experiment"  # type: ignore[index]
-    payload["dag"]["seed"]["output_dir"] = "runs/seeds/source-experiment"  # type: ignore[index]
+    payload["dag"]["seed"]["output_dir"] = "seeds/shared"  # type: ignore[index]
     payload["dag"]["revise"]["output_dir"] = "runs/revisions/test-experiment"  # type: ignore[index]
     payload["dag"]["detect"]["output_dir"] = "runs/detections/test-experiment"  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
-    calls: list[tuple[str, int, str]] = []
+    observed: list[SeedSetConfig] = []
 
-    def resolve(seed_root, task_dir, replicate, *, experiment_id, **_kwargs):
-        calls.append((task_dir.name, replicate, experiment_id))
+    class FakeSeedSetRunner:
+        def __init__(self, config: SeedSetConfig) -> None:
+            observed.append(config)
 
-    monkeypatch.setattr(commands_module, "resolve_seed", resolve)
+        def run(self) -> int:
+            return 0
+
+    monkeypatch.setattr(commands_module, "SeedSetRunner", FakeSeedSetRunner)
     args = argparse.Namespace(
         experiment=str(path), max_concurrency=2, resume=True, vllm=[]
     )
 
-    experiment = load_experiment(path)
-    assert experiment.seed_experiment_id == "source-experiment"
     assert commands_module.run_seed(args) == 0
-    assert calls == [
-        (task_id, replicate, "source-experiment")
-        for task_id in ("da-1-1", "da-2-1")
-        for replicate in range(1, 4)
-    ]
-    calls.clear()
-    commands_module._validate_existing_seed_set(
-        experiment,
-        vllm_endpoints={},
-    )
-    assert calls == [
-        (task_id, replicate, "source-experiment")
-        for task_id in ("da-1-1", "da-2-1")
-        for replicate in range(1, 4)
-    ]
-    commands_module._validate_restart_roots(
-        experiment,
-        {
-            stage: Path(str(experiment.dag[stage]["output_dir"])).resolve()
-            for stage in ("seed", "revise", "detect")
-        },
-    )
+    assert len(observed) == 1
+    assert observed[0].output_dir == tmp_path / "seeds" / "shared"
+    assert observed[0].max_concurrency == 2
+
+
+def test_seed_stage_rejects_obsolete_source_routing(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["dag"]["seed"]["source_experiment_id"] = "source-experiment"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="requires depends_on and output_dir"):
+        load_experiment(path)
 
 
 def test_simulated_user_feedback_requires_and_loads_model_config(
@@ -284,9 +278,12 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
     }))
     calls: list[str] = []
 
-    def validate_seeds(*_args, **_kwargs) -> None:
+    def seed_stage(_args: argparse.Namespace) -> int:
         assert roots["seed"].is_dir()
-        calls.append("validate-seeds")
+        assert roots["revise"].is_dir()
+        assert roots["detect"].is_dir()
+        calls.append("seed")
+        return 0
 
     def stage(name: str):
         def run(_args: argparse.Namespace) -> int:
@@ -298,16 +295,7 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
 
         return run
 
-    monkeypatch.setattr(
-        commands_module,
-        "_validate_existing_seed_set",
-        validate_seeds,
-    )
-    monkeypatch.setattr(
-        commands_module,
-        "run_seed",
-        lambda _args: pytest.fail("restart must not run seed generation"),
-    )
+    monkeypatch.setattr(commands_module, "run_seed", seed_stage)
     monkeypatch.setattr(commands_module, "run_revise", stage("revise"))
     monkeypatch.setattr(commands_module, "run_detect", stage("detect"))
 
@@ -320,7 +308,7 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
     ))
 
     assert result == 0
-    assert calls == ["validate-seeds", "revise", "detect"]
+    assert calls == ["seed", "revise", "detect"]
     assert roots["seed"].is_dir()
 
 
@@ -393,30 +381,6 @@ def test_run_restart_rejects_an_active_study(tmp_path: Path) -> None:
             commands_module._restart_experiment_outputs(experiment)
 
     assert all(root.is_dir() for root in roots.values())
-
-
-def test_run_restart_requires_an_existing_complete_seed_set(tmp_path: Path) -> None:
-    _task(tmp_path, "da-1-1")
-    _task(tmp_path, "da-2-1")
-    payload = _payload(tmp_path)
-    experiment_id = str(payload["experiment_id"])
-    dag = payload["dag"]
-    assert isinstance(dag, dict)
-    for stage, parent in (
-        ("seed", "seeds"),
-        ("revise", "studies"),
-        ("detect", "detections"),
-    ):
-        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
-    path = tmp_path / "experiment.yaml"
-    path.write_text(yaml.safe_dump(payload, sort_keys=False))
-    experiment = load_experiment(path)
-
-    with pytest.raises(RuntimeError, match="completed seed set"):
-        commands_module._validate_existing_seed_set(
-            experiment,
-            vllm_endpoints={},
-        )
 
 
 def test_run_restart_detaches_outputs_before_best_effort_cleanup(

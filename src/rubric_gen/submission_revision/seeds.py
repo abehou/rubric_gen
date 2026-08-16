@@ -7,7 +7,9 @@ import os
 import queue
 import secrets
 import shutil
+import signal
 import stat
+import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -46,7 +48,6 @@ class SeedSetConfig:
     experiment: Experiment
     output_dir: Path
     max_concurrency: int
-    resume: bool = False
     vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -94,19 +95,18 @@ class SeedSetRunner:
     def run(self) -> int:
         root = self.config.output_dir.resolve()
         existed = os.path.lexists(root)
-        if existed and not self.config.resume:
-            raise FileExistsError(f"seed output already exists: {root}")
         if existed and (root.is_symlink() or not root.is_dir()):
-            raise RuntimeError(f"invalid seed output directory: {root}")
+            raise RuntimeError(f"invalid shared seed directory: {root}")
         jobs = self._jobs()
         if not jobs:
             raise ValueError("seed generation selected no task/replicate blocks")
         if not existed:
             root.mkdir(parents=True)
-        self._validate_resume_manifest(root, jobs, existed=existed)
-        completed, pending = self._resume_partition(root, jobs)
+            self._write_pool_manifest(root)
+        else:
+            self._validate_pool_manifest(root)
+        completed, pending = self._partition(root, jobs)
         failures: list[dict[str, object]] = []
-        self._write_root_manifest(root, jobs, "running", failures)
         with TerminalProgress(
             total=len(jobs),
             description="seed blocks",
@@ -158,12 +158,13 @@ class SeedSetRunner:
                         })
                     finally:
                         progress.update()
-        self._write_root_manifest(
-            root,
-            jobs,
-            "failed" if failures else "completed",
-            failures,
-        )
+        for failure in failures:
+            print(
+                f"seed failed for {failure['task_id']} replicate "
+                f"{failure['replicate']}: {failure['error_type']}: "
+                f"{failure['error']}",
+                file=sys.stderr,
+            )
         return int(bool(failures))
 
     def _jobs(self) -> list[tuple[Path, int]]:
@@ -177,80 +178,30 @@ class SeedSetRunner:
             for task_id, replicate in sorted(earliest, key=earliest.__getitem__)
         ]
 
-    def _write_root_manifest(
-        self,
-        root: Path,
-        jobs: list[tuple[Path, int]],
-        status: str,
-        failures: list[dict[str, object]],
-    ) -> None:
-        manifest = {
+    @staticmethod
+    def _write_pool_manifest(root: Path) -> None:
+        write_json_atomic(root / "manifest.json", {
             "schema_version": SEED_SET_SCHEMA_VERSION,
             "kind": SEED_SET_KIND,
-            "status": status,
-            "experiment_path": str(self.experiment.path),
-            "experiment_id": self.experiment.experiment_id,
-            "blocks": [
-                {"task_id": task.name, "replicate": replicate}
-                for task, replicate in jobs
-            ],
-            "max_concurrency": self.config.max_concurrency,
-            "failures": failures,
-        }
-        if self.experiment.seed_submission_source is not None:
-            source_dir, source_experiment_id = self.experiment.seed_submission_source
-            manifest["submission_source"] = {
-                "output_dir": str(source_dir),
-                "experiment_id": source_experiment_id,
-            }
-        write_json_atomic(root / "manifest.json", manifest)
+        })
 
-    def _validate_resume_manifest(
-        self,
-        root: Path,
-        jobs: list[tuple[Path, int]],
-        *,
-        existed: bool,
-    ) -> None:
+    @staticmethod
+    def _validate_pool_manifest(root: Path) -> None:
         manifest_path = root / "manifest.json"
-        if not existed:
-            return
         if manifest_path.is_symlink() or not manifest_path.is_file():
-            raise RuntimeError("existing seed output has no regular manifest")
+            raise RuntimeError("shared seed directory has no regular manifest")
         try:
             manifest = json.loads(manifest_path.read_text())
-        except json.JSONDecodeError as exc:
-            raise RuntimeError("existing seed manifest is invalid") from exc
-        expected = {
-            "schema_version": SEED_SET_SCHEMA_VERSION,
-            "kind": SEED_SET_KIND,
-            "experiment_path": str(self.experiment.path),
-            "experiment_id": self.experiment.experiment_id,
-            "blocks": [
-                {"task_id": task.name, "replicate": replicate}
-                for task, replicate in jobs
-            ],
-        }
-        if self.experiment.seed_submission_source is not None:
-            source_dir, source_experiment_id = self.experiment.seed_submission_source
-            expected["submission_source"] = {
-                "output_dir": str(source_dir),
-                "experiment_id": source_experiment_id,
-            }
-        for key, value in expected.items():
-            if manifest.get(key) != value:
-                raise RuntimeError(
-                    f"seed resume configuration mismatch for {key}: "
-                    f"recorded={manifest.get(key)!r}, requested={value!r}"
-                )
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("shared seed manifest is invalid") from exc
+        if not isinstance(manifest, dict):
+            raise RuntimeError("shared seed manifest must be an object")
 
-    def _resume_partition(
+    def _partition(
         self,
         root: Path,
         jobs: list[tuple[Path, int]],
     ) -> tuple[list[tuple[Path, int]], list[tuple[Path, int]]]:
-        if not self.config.resume:
-            return [], jobs
         completed: list[tuple[Path, int]] = []
         pending: list[tuple[Path, int]] = []
         for task, replicate in jobs:
@@ -268,7 +219,6 @@ class SeedSetRunner:
                 root,
                 task,
                 replicate,
-                experiment_id=self.experiment.experiment_id,
                 provider=self.agent.provider,
                 requested_model=self.agent.model,
             )
@@ -292,47 +242,38 @@ class SeedSetRunner:
             workspace = submission / "workspace"
             submission.mkdir(parents=True)
             trajectory = submission / "trajectory.stream.jsonl"
-            submission_source = self.experiment.seed_submission_source
-            if submission_source is None:
-                run_dir = temporary / "run"
-                paths = RunPaths(
-                    provider=self.agent.provider,
-                    run_dir=run_dir,
-                    workspace_dir=temporary / "workspace",
-                    prompt_path=run_dir / "prompt.txt",
-                    policy_path=run_dir / "no-web-policy.toml",
-                    stream_path=run_dir / "trajectory.stream.jsonl",
-                    status_path=run_dir / "status.json",
-                )
-                exit_code, paths = AgentRunner(
-                    self.agent,
-                    prompt=solver_prompt(benchmark=self.experiment.benchmark),
-                    benchmark=self.experiment.benchmark,
-                ).run(task_dir.resolve(), paths=paths)
-                if exit_code != 0:
-                    raise RuntimeError(f"seed solver exited with code {exit_code}")
-                copy_solution_workspace(paths.workspace_dir, workspace)
-                shutil.copyfile(paths.stream_path, trajectory)
-                source_status = json.loads(paths.status_path.read_text())
-            else:
-                source_dir, source_experiment_id = submission_source
-                source = resolve_seed(
-                    source_dir,
-                    task_dir,
+            run_dir = temporary / "run"
+            paths = RunPaths(
+                provider=self.agent.provider,
+                run_dir=run_dir,
+                workspace_dir=temporary / "workspace",
+                prompt_path=run_dir / "prompt.txt",
+                policy_path=run_dir / "no-web-policy.toml",
+                stream_path=run_dir / "trajectory.stream.jsonl",
+                status_path=run_dir / "status.json",
+            )
+            exit_code, paths = AgentRunner(
+                self.agent,
+                prompt=solver_prompt(benchmark=self.experiment.benchmark),
+                benchmark=self.experiment.benchmark,
+            ).run(task_dir.resolve(), paths=paths)
+            if exit_code != 0:
+                diagnostics = self._preserve_solver_failure(
+                    destination,
+                    task_dir.name,
                     replicate,
-                    experiment_id=source_experiment_id,
-                    provider=self.agent.provider,
-                    requested_model=self.agent.model,
+                    exit_code,
+                    paths,
                 )
-                copy_solution_workspace(source.submission_dir / "workspace", workspace)
-                shutil.copyfile(
-                    source.submission_dir / "trajectory.stream.jsonl", trajectory
+                signal_name = _signal_name(exit_code)
+                signal_suffix = f" ({signal_name})" if signal_name else ""
+                raise RuntimeError(
+                    f"seed solver exited with code {exit_code}{signal_suffix}; "
+                    f"diagnostics: {diagnostics}"
                 )
-                source_status = dict(source.manifest["source_status"])  # type: ignore[arg-type]
-                source_status["submission_source"] = {
-                    "experiment_id": source_experiment_id,
-                    "seed_sha256": source.sha256,
-                }
+            copy_solution_workspace(paths.workspace_dir, workspace)
+            shutil.copyfile(paths.stream_path, trajectory)
+            source_status = json.loads(paths.status_path.read_text())
             workspace_sha = solution_tree_sha256(workspace)
             trajectory_sha = sha256_file(trajectory)
             instruction_sha = sha256_file(task_dir / "instruction.md")
@@ -406,6 +347,41 @@ class SeedSetRunner:
         finally:
             shutil.rmtree(temporary, ignore_errors=True)
 
+    @staticmethod
+    def _preserve_solver_failure(
+        destination: Path,
+        task_id: str,
+        replicate: int,
+        exit_code: int,
+        paths: RunPaths,
+    ) -> Path:
+        diagnostics = destination / "failed_solver"
+        diagnostics.mkdir()
+        copied: list[str] = []
+        for source in (
+            paths.prompt_path,
+            paths.policy_path,
+            paths.stream_path,
+            paths.status_path,
+            paths.output_schema_path,
+            paths.output_last_message_path,
+        ):
+            if source is None or source.is_symlink() or not source.is_file():
+                continue
+            target = diagnostics / source.name
+            shutil.copyfile(source, target)
+            copied.append(target.name)
+        write_json_atomic(diagnostics / "failure.json", {
+            "schema_version": 1,
+            "kind": "rubric-gen-failed-seed-solver",
+            "task_id": task_id,
+            "replicate": replicate,
+            "exit_code": exit_code,
+            "signal": _signal_name(exit_code),
+            "copied_files": copied,
+        })
+        return diagnostics
+
     def _judge_initial_submission(
         self,
         task_dir: Path,
@@ -439,26 +415,22 @@ def resolve_seed(
     task_dir: Path,
     replicate: int,
     *,
-    experiment_id: str,
     provider: str,
     requested_model: str,
 ) -> ResolvedSeed:
     root = seed_set.resolve()
     if seed_set.is_symlink() or not (root / "manifest.json").is_file():
         raise RuntimeError("seed set is not a regular completed seed set")
-    root_manifest = json.loads((root / "manifest.json").read_text())
-    if (
-        root_manifest.get("schema_version") != SEED_SET_SCHEMA_VERSION
-        or root_manifest.get("kind") != SEED_SET_KIND
-        or root_manifest.get("status") != "completed"
-        or root_manifest.get("experiment_id") != experiment_id
-    ):
-        raise RuntimeError("seed set does not match the experiment")
+    try:
+        root_manifest = json.loads((root / "manifest.json").read_text())
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("seed set has an invalid manifest") from exc
+    if not isinstance(root_manifest, dict):
+        raise RuntimeError("seed set manifest must be an object")
     return _resolve_task_seed(
         root,
         task_dir,
         replicate,
-        experiment_id=experiment_id,
         provider=provider,
         requested_model=requested_model,
     )
@@ -469,7 +441,6 @@ def _resolve_task_seed(
     task_dir: Path,
     replicate: int,
     *,
-    experiment_id: str,
     provider: str,
     requested_model: str,
 ) -> ResolvedSeed:
@@ -479,19 +450,25 @@ def _resolve_task_seed(
     manifest_path = seed_root / "manifest.json"
     if manifest_path.is_symlink() or not manifest_path.is_file():
         raise RuntimeError(f"missing seed for {task_dir.name} replicate {replicate}")
-    manifest = json.loads(manifest_path.read_text())
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"invalid seed for {task_dir.name} replicate {replicate}"
+        ) from exc
+    required = {
+        "experiment_id", "task_id", "replicate", "provider",
+        "requested_model", "instruction_sha256", "data_sha256",
+        "workspace_sha256", "trajectory_sha256", "score_validation_sha256",
+        "evaluation_sha256", "usage_sha256", "scoring_identity",
+        "judgment_sha256", "seed_sha256", "source_status",
+    }
+    owner = manifest.get("experiment_id") if isinstance(manifest, dict) else None
     if (
-        set(manifest) != {
-            "schema_version", "kind", "experiment_id", "task_id",
-            "replicate", "provider", "requested_model", "instruction_sha256",
-            "data_sha256", "workspace_sha256", "trajectory_sha256",
-            "score_validation_sha256", "evaluation_sha256", "scoring_identity",
-            "usage_sha256",
-            "judgment_sha256", "seed_sha256", "source_status",
-        }
-        or manifest.get("schema_version") != SEED_SCHEMA_VERSION
-        or manifest.get("kind") != SEED_KIND
-        or manifest.get("experiment_id") != experiment_id
+        not isinstance(manifest, dict)
+        or not required.issubset(manifest)
+        or type(owner) is not str
+        or not owner
         or manifest.get("task_id") != task_dir.name
         or manifest.get("replicate") != replicate
         or manifest.get("provider") != provider
@@ -518,7 +495,7 @@ def _resolve_task_seed(
         f"{json.dumps(identity, sort_keys=True, separators=(',', ':'))}\n"
     )
     solution_sha = sha256_text(
-        f"{experiment_id}\n{task_dir.name}\n{replicate}\n"
+        f"{owner}\n{task_dir.name}\n{replicate}\n"
         f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
     )
     if (
@@ -545,6 +522,15 @@ def _resolve_task_seed(
 
 def _seed_root(root: Path, task_id: str, replicate: int) -> Path:
     return root / "tasks" / task_id / f"rep-{replicate:03d}"
+
+
+def _signal_name(exit_code: int) -> str | None:
+    if exit_code >= 0:
+        return None
+    try:
+        return signal.Signals(-exit_code).name
+    except ValueError:
+        return f"signal {-exit_code}"
 
 
 def _remove_partial_seed(root: Path) -> None:

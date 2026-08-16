@@ -79,6 +79,7 @@ from rubric_gen.benchmarks import get_benchmark
 from rubric_gen.submission_revision.store import (
     RevisionStore,
     extract_scoring_identity as _extract_scoring_identity,
+    extract_seed_scoring_contract as _extract_seed_scoring_contract,
 )
 from rubric_gen.submission_revision.reports import publish_revision_report
 from rubric_gen.submission_revision.visualization.revisions import write_revision_score_plot
@@ -128,7 +129,6 @@ class SubmissionRevisionController:
             config.seed_run_dir,
             self.task_dir,
             config.replicate,
-            experiment_id=config.seed_experiment_id or config.experiment_id,
             provider=config.agent.provider,
             requested_model=config.agent.model,
         )
@@ -205,11 +205,13 @@ class SubmissionRevisionController:
         if self.scoring_identity["rendered_rubric_sha256"] != self.rubric.sha256:
             raise RuntimeError("submission judge resolved a different optimizer rubric")
         _, _, seed_scoring_identity = self.seed.judgment
-        if _extract_scoring_identity(
+        if _extract_seed_scoring_contract(
             seed_scoring_identity, context="seeded initial judgment"
-        ) != self.scoring_identity:
+        ) != _extract_seed_scoring_contract(
+            self.scoring_identity, context="submission judge"
+        ):
             raise RuntimeError(
-                "seeded initial judgment does not match the revision judge identity"
+                "seeded initial judgment does not match the scoring contract"
             )
         self.store = RevisionStore(
             self.experiment_dir,
@@ -1087,7 +1089,10 @@ class SubmissionRevisionController:
         self._verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
         self._verify_round_scoring_identity(
-            artifacts.score_validation_path, rubric, judge
+            artifacts.score_validation_path,
+            rubric,
+            judge,
+            seeded=turn_index == 0,
         )
         feedback = self._project_boundary_feedback(
             artifacts=artifacts,
@@ -1539,7 +1544,29 @@ class SubmissionRevisionController:
         validation_path: Path,
         rubric: FrozenRubric,
         judge: object,
+        *,
+        seeded: bool = False,
     ) -> None:
+        if seeded:
+            validation = _read_json_object(
+                validation_path,
+                "seeded optimizer score validation",
+            )
+            identity = _extract_seed_scoring_contract(
+                validation,
+                context="seeded optimizer score validation",
+            )
+            reported = judge.scoring_identity()  # type: ignore[attr-defined]
+            if identity != _extract_seed_scoring_contract(
+                reported,
+                context="round judge",
+            ):
+                raise RuntimeError(
+                    "seeded score does not match the scoring contract"
+                )
+            if identity["rendered_rubric_sha256"] != rubric.sha256:
+                raise RuntimeError("seeded score attests a different rubric")
+            return
         if self.config.rubric_evolution is RubricEvolution.STATIC:
             self._pin_or_verify_scoring_identity(validation_path)
             return
@@ -1572,7 +1599,10 @@ class SubmissionRevisionController:
                     judge = self._judge_for_rubric(rubric, index)
                 artifacts = judge.validate(submission_dir, attempt_id)
             self._verify_round_scoring_identity(
-                artifacts.score_validation_path, rubric, judge
+                artifacts.score_validation_path,
+                rubric,
+                judge,
+                seeded=index == 0,
             )
             projected = self._project_boundary_feedback(
                 artifacts=artifacts,

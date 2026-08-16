@@ -73,7 +73,7 @@ def _replacement_rubric() -> str:
 
 def _revised_proposal() -> dict[str, object]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "decision": "revise",
         "rubric_title": "Stronger scientific outcome rubric",
         "criteria": [
@@ -194,7 +194,7 @@ def _replacement_proposal() -> dict[str, object]:
 
 def _retain_proposal() -> dict[str, object]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "decision": "retain",
         "rubric_title": "",
         "criteria": [],
@@ -691,6 +691,9 @@ def test_openai_proposer_call_returns_structured_proposal(
     assert output.proposal_text == json.dumps(_revised_proposal())
     assert len(calls) == 1
     assert calls[0]["text"]["format"]["type"] == "json_schema"
+    proposal_schema = calls[0]["text"]["format"]["schema"]
+    assert proposal_schema["properties"]["schema_version"]["enum"] == [2]
+    assert "maxItems" not in proposal_schema["properties"]["criteria"]
     assert calls[0]["input"][-1] == {"role": "user", "content": "EVIDENCE"}
     assert calls[0]["store"] is False
 
@@ -759,6 +762,7 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     assert metadata["proposer"]["prompt_version"] == (
         "structured-frontier-rubric-v6"
     )
+    assert metadata["proposer"]["output_schema_version"] == 2
     assert metadata["proposer"]["repair_error"] is None
     assert metadata["proposer"]["rejected_attempts"] == []
     assert metadata["attempt_count"] == 1
@@ -916,7 +920,9 @@ def test_evolver_retries_and_archives_an_invalid_auditor_packet(
     failure_dir = tmp_path / "rubrics" / "r0001.auditor-failures"
     failure = json.loads((failure_dir / "attempt-0001.json").read_text())
     assert failure["evolve_attempt"] == 1
-    assert failure["error"] == "trajectory auditor citation has an unknown event ID"
+    assert failure["error"] == (
+        "trajectory auditor citation has an unknown event ID: 2"
+    )
     assert failure["cost"] == _cost()
     assert (failure_dir / "attempt-0001.txt").read_text() == invalid
     auditor_identity = result.metadata["auditor"]
@@ -933,6 +939,39 @@ def test_evolver_retries_and_archives_an_invalid_auditor_packet(
     )
     assert auditor_identity["prompt_sha256"] != initial_identity["prompt_sha256"]
     assert evolver.evolve(**arguments) == result
+
+
+def test_evolver_allows_two_auditor_repairs(tmp_path: Path) -> None:
+    arguments = _arguments(tmp_path)
+    event_text = _event_text(arguments)
+    invalid_packet = json.loads(_packet(event_text))
+    invalid_packet["findings"][0]["evidence"][0]["event_id"] = 2
+    invalid = json.dumps(invalid_packet)
+    outputs = iter((
+        _auditor_output(event_text, packet_text=invalid),
+        _auditor_output(event_text, packet_text=invalid),
+        _auditor_output(event_text),
+    ))
+    requests: list[dict[str, object]] = []
+
+    def audit(**kwargs):
+        requests.append(kwargs)
+        return next(outputs)
+
+    result = _evolver(
+        run_auditor=audit,
+        run_proposer=lambda **_: _proposer_output(),
+    ).evolve(**arguments)
+
+    assert result.text == _rendered(_revised_proposal())
+    assert len(requests) == 3
+    assert requests[1]["rejected_packet"] == invalid
+    assert requests[2]["rejected_packet"] == invalid
+    failure_dir = tmp_path / "rubrics" / "r0001.auditor-failures"
+    assert sorted(path.name for path in failure_dir.glob("*.json")) == [
+        "attempt-0001.json",
+        "attempt-0002.json",
+    ]
 
 
 def test_resume_rejects_different_auditor_or_proposer_identity(
@@ -1039,7 +1078,10 @@ def test_evolver_rejects_snippet_from_event_not_retrieved(tmp_path: Path) -> Non
         run_proposer=lambda **_: _proposer_output(),
     )
 
-    with pytest.raises(ValueError, match="did not retrieve"):
+    with pytest.raises(
+        ValueError,
+        match="cited event 1 that it did not retrieve in this attempt",
+    ):
         evolver.evolve(**arguments)
 
 
@@ -1068,7 +1110,10 @@ def test_evolver_rejects_snippet_from_event_not_retrieved(tmp_path: Path) -> Non
             lambda proposal: proposal["criteria"][1]["levels"][0].update(  # type: ignore[index]
                 {"points": 24}
             ),
-            "A-level points must sum to 100",
+            (
+                "A-level points must sum to 100; the proposed sum is 99, "
+                "so increase it by 1"
+            ),
         ),
         (
             lambda proposal: proposal["challenge_changes"][0].update(  # type: ignore[index]
@@ -1194,6 +1239,48 @@ def test_saturated_score_requires_at_least_one_frontier_finding(
             ),
             run_proposer=lambda **_: _proposer_output(),
         ).evolve(**arguments)
+
+
+def test_structured_proposal_accepts_more_than_26_criteria() -> None:
+    proposal = _revised_proposal()
+    criteria: list[dict[str, object]] = []
+    for index in range(1, 71):
+        maximum = 2 if index <= 30 else 1
+        criteria.append({
+            "title": f"Quality dimension {index}",
+            "description": f"Observable task quality dimension {index}.",
+            "levels": [
+                {
+                    "label": "A",
+                    "points": maximum,
+                    "description": "The outcome is fully established.",
+                },
+                {
+                    "label": "B",
+                    "points": maximum - 1,
+                    "description": "The outcome is established with a boundary.",
+                },
+                {
+                    "label": "C",
+                    "points": maximum - 2,
+                    "description": "The outcome is not established.",
+                },
+            ],
+        })
+    proposal["criteria"] = criteria
+    proposal["challenge_changes"][0]["criterion_title"] = (  # type: ignore[index]
+        "Quality dimension 1"
+    )
+
+    validated, _ = evolution_module._validated_structured_proposal(
+        json.dumps(proposal),
+        current_rubric=_current_rubric(),
+        packet_text='{"schema_version":3,"inspected":"x","findings":['
+        '{"finding_id":"F1"}]}',
+        saturated=False,
+    )
+
+    assert len(validated["criteria"]) == 70
 
 
 def test_saturated_score_rejects_retained_rubric(tmp_path: Path) -> None:

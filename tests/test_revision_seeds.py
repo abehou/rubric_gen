@@ -121,6 +121,23 @@ class FakeAgentRunner:
         return 0, paths
 
 
+class KilledAgentRunner:
+    def __init__(self, config, **_kwargs) -> None:
+        self.config = config
+
+    def run(self, task_dir: Path, *, paths):
+        paths.run_dir.mkdir(parents=True)
+        paths.workspace_dir.mkdir(parents=True)
+        paths.prompt_path.write_text("test prompt\n")
+        paths.stream_path.write_text('{"type":"turn.started"}\n')
+        paths.status_path.write_text(json.dumps({
+            "provider": "codex",
+            "process_exit_code": -9,
+            "exit_code": -9,
+        }))
+        return -9, paths
+
+
 def _fake_judge(self, task_dir: Path, submission: Path, experiment_dir: Path):
     output = experiment_dir / "artifacts"
     output.mkdir(parents=True)
@@ -158,7 +175,6 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
             output,
             task,
             replicate,
-            experiment_id=EXPERIMENT_ID,
             provider="codex",
             requested_model="test-model",
         )
@@ -167,22 +183,51 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
     assert len({seed.sha256 for seed in seeds}) == 3
     assert all(seed.manifest["replicate"] == index for index, seed in enumerate(seeds, 1))
     root = json.loads((output / "manifest.json").read_text())
-    assert root["status"] == "completed"
-    assert len(root["blocks"]) == 3
+    assert root == {
+        "schema_version": seeds_module.SEED_SET_SCHEMA_VERSION,
+        "kind": seeds_module.SEED_SET_KIND,
+    }
 
 
-def test_seed_resume_reuses_only_integrity_checked_complete_blocks(
+def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
     design = _design(tmp_path, task)
+    first_payload = copy.deepcopy(design.payload)
+    first_payload["assignments"] = [
+        assignment
+        for assignment in design.assignments
+        if assignment["replicate"] == 1
+    ]
+    first = Experiment(tmp_path / "first.yaml", first_payload)
     output = tmp_path / "seeds"
     FakeAgentRunner.calls = 0
     monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
-    SeedSetRunner(SeedSetConfig(design, output, 1)).run()
-    assert SeedSetRunner(SeedSetConfig(design, output, 3, resume=True)).run() == 0
+    SeedSetRunner(SeedSetConfig(first, output, 1)).run()
+    assert FakeAgentRunner.calls == 1
+
+    second_payload = copy.deepcopy(design.payload)
+    second_payload["experiment_id"] = "second-experiment"
+    second = Experiment(tmp_path / "second.yaml", second_payload)
+    assert SeedSetRunner(SeedSetConfig(second, output, 3)).run() == 0
     assert FakeAgentRunner.calls == 3
+    owners = {
+        replicate: resolve_seed(
+            output,
+            task,
+            replicate,
+            provider="codex",
+            requested_model="test-model",
+        ).manifest["experiment_id"]
+        for replicate in range(1, 4)
+    }
+    assert owners == {
+        1: EXPERIMENT_ID,
+        2: "second-experiment",
+        3: "second-experiment",
+    }
 
     answer = output / "tasks" / task.name / "rep-002" / "submission" / "workspace" / "answer.txt"
     answer.chmod(stat.S_IRUSR | stat.S_IWUSR)
@@ -192,66 +237,83 @@ def test_seed_resume_reuses_only_integrity_checked_complete_blocks(
             output,
             task,
             2,
-            experiment_id=EXPERIMENT_ID,
             provider="codex",
             requested_model="test-model",
         )
 
 
-def test_seed_set_reuses_source_submissions_and_creates_current_judgments(
+def test_seed_failure_preserves_diagnostics_until_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    payload = copy.deepcopy(design.payload)
+    payload["assignments"] = [
+        assignment
+        for assignment in design.assignments
+        if assignment["replicate"] == 1
+    ]
+    experiment = Experiment(tmp_path / "one-replicate.yaml", payload)
+    output = tmp_path / "seeds"
+    monkeypatch.setattr(seeds_module, "AgentRunner", KilledAgentRunner)
+
+    assert SeedSetRunner(SeedSetConfig(experiment, output, 1)).run() == 1
+
+    diagnostics = output / "tasks" / task.name / "rep-001" / "failed_solver"
+    failure = json.loads((diagnostics / "failure.json").read_text())
+    assert failure["exit_code"] == -9
+    assert failure["signal"] == "SIGKILL"
+    assert failure["copied_files"] == [
+        "prompt.txt",
+        "trajectory.stream.jsonl",
+        "status.json",
+    ]
+    error = capsys.readouterr().err
+    assert "code -9 (SIGKILL)" in error
+    assert f"diagnostics: {diagnostics}" in error
+    assert (diagnostics / "trajectory.stream.jsonl").is_file()
+
+    FakeAgentRunner.calls = 0
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+    assert SeedSetRunner(SeedSetConfig(experiment, output, 1)).run() == 0
+    assert not diagnostics.exists()
+    resolve_seed(
+        output,
+        task,
+        1,
+        provider="codex",
+        requested_model="test-model",
+    )
+
+
+def test_shared_pool_reuses_complete_blocks_without_an_overwrite_flag(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
-    source_design = _design(tmp_path, task)
-    source_output = tmp_path / "source-seeds"
+    design = _design(tmp_path, task)
+    output = tmp_path / "seeds"
     monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
     FakeAgentRunner.calls = 0
-    assert SeedSetRunner(
-        SeedSetConfig(source_design, source_output, 1)
-    ).run() == 0
-
-    payload = copy.deepcopy(source_design.payload)
-    payload["experiment_id"] = "derived-experiment"
-    payload["dag"] = {
-        "seed": {
-            "depends_on": [],
-            "output_dir": str(tmp_path / "derived-seeds"),
-            "submission_source_dir": str(source_output),
-            "submission_source_experiment_id": EXPERIMENT_ID,
-        }
-    }
-    derived = Experiment(tmp_path / "derived.yaml", payload)
-    derived_output = tmp_path / "derived-seeds"
-    FakeAgentRunner.calls = 0
-
-    assert SeedSetRunner(SeedSetConfig(derived, derived_output, 1)).run() == 0
-    assert FakeAgentRunner.calls == 0
-    source = resolve_seed(
-        source_output,
+    SeedSetRunner(SeedSetConfig(design, output, 1)).run()
+    assert FakeAgentRunner.calls == 3
+    assert SeedSetRunner(SeedSetConfig(design, output, 1)).run() == 0
+    assert FakeAgentRunner.calls == 3
+    seed = resolve_seed(
+        output,
         task,
         1,
-        experiment_id=EXPERIMENT_ID,
         provider="codex",
         requested_model="test-model",
     )
-    reused = resolve_seed(
-        derived_output,
-        task,
-        1,
-        experiment_id="derived-experiment",
-        provider="codex",
-        requested_model="test-model",
-    )
-    assert reused.manifest["workspace_sha256"] == source.manifest["workspace_sha256"]
-    assert reused.manifest["trajectory_sha256"] == source.manifest["trajectory_sha256"]
-    assert reused.manifest["source_status"]["submission_source"] == {
-        "experiment_id": EXPERIMENT_ID,
-        "seed_sha256": source.sha256,
-    }
+
+    assert seed.manifest["experiment_id"] == EXPERIMENT_ID
 
 
-def test_seed_refuses_overwrite_and_experiment_mismatch(
+def test_seed_accepts_legacy_labels_and_additional_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
@@ -260,17 +322,35 @@ def test_seed_refuses_overwrite_and_experiment_mismatch(
     monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
     SeedSetRunner(SeedSetConfig(design, output, 1)).run()
-    with pytest.raises(FileExistsError):
-        SeedSetRunner(SeedSetConfig(design, output, 1)).run()
-    with pytest.raises(RuntimeError, match="match the experiment"):
-        resolve_seed(
-            output,
-            task,
-            1,
-            experiment_id="other-experiment",
-            provider="codex",
-            requested_model="test-model",
-        )
+
+    root_manifest_path = output / "manifest.json"
+    root_manifest = json.loads(root_manifest_path.read_text())
+    root_manifest.update({
+        "kind": "rubric-gen-biomnibench-randomized-seed-set",
+        "legacy_note": "preserved provenance",
+    })
+    root_manifest_path.write_text(json.dumps(root_manifest))
+
+    block_manifest_path = (
+        output / "tasks" / task.name / "rep-001" / "manifest.json"
+    )
+    block_manifest_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    block_manifest = json.loads(block_manifest_path.read_text())
+    block_manifest.update({
+        "kind": "rubric-gen-biomnibench-randomized-seed",
+        "legacy_note": "preserved provenance",
+    })
+    block_manifest_path.write_text(json.dumps(block_manifest))
+
+    seed = resolve_seed(
+        output,
+        task,
+        1,
+        provider="codex",
+        requested_model="test-model",
+    )
+
+    assert seed.manifest["kind"] == "rubric-gen-biomnibench-randomized-seed"
 
 
 def test_seed_rejects_provenance_metadata_tampering(
@@ -293,7 +373,6 @@ def test_seed_rejects_provenance_metadata_tampering(
             output,
             task,
             1,
-            experiment_id=EXPERIMENT_ID,
             provider="codex",
             requested_model="test-model",
         )
@@ -301,11 +380,14 @@ def test_seed_rejects_provenance_metadata_tampering(
 
 def test_seed_cli_is_experiment_only() -> None:
     args = build_parser().parse_args([
-        "seed", "--experiment", "experiment.yaml", "--resume"
+        "seed", "--experiment", "experiment.yaml"
     ])
     assert args.experiment == "experiment.yaml"
-    assert args.resume is True
     with pytest.raises(SystemExit):
         build_parser().parse_args([
             "seed", "--tasks-dir", "tasks", "--output-dir", "seeds"
+        ])
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "seed", "--experiment", "experiment.yaml", "--resume"
         ])

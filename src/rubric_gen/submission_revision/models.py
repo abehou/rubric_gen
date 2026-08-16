@@ -37,7 +37,6 @@ class SubmissionRevisionConfig:
     replicate: int
     execution_order: int
     benchmark: Benchmark = Benchmark.BIOMNIBENCH_DA
-    seed_experiment_id: str | None = None
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
@@ -79,7 +78,6 @@ class SubmissionRevisionConfig:
             raise ValueError("submission revision requires an explicit solver model")
         for name, value in (
             ("experiment_id", self.experiment_id),
-            ("seed_experiment_id", self.seed_experiment_id or self.experiment_id),
             ("assignment_id", self.assignment_id),
             ("condition_id", self.condition_id),
         ):

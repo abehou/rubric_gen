@@ -82,7 +82,12 @@ def _identity(task: Path) -> dict[str, object]:
     }
 
 
-def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
+def _write_seed_set(
+    root: Path,
+    task: Path,
+    initial_score: int = 80,
+    scoring_identity: dict[str, object] | None = None,
+) -> Path:
     seed_set = root / "seeds"
     seed_root = seed_set / "tasks" / task.name / "rep-001"
     submission = seed_root / "submission"
@@ -126,7 +131,7 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
         "criteria": {"criterion_1": {"level": level, "reason": "seed"}},
         "reasoning": "seed",
     }))
-    identity = _identity(task)
+    identity = dict(scoring_identity or _identity(task))
     validation = judgment / "score_validation.json"
     usage = judgment / "usage.json"
     usage.write_text('{"schema_version":1,"usage":{}}')
@@ -182,12 +187,24 @@ def _write_seed_set(root: Path, task: Path, initial_score: int = 80) -> Path:
     return seed_set
 
 
-def _config(root: Path, task: Path, *, rounds: int, score: int = 80):
+def _config(
+    root: Path,
+    task: Path,
+    *,
+    rounds: int,
+    score: int = 80,
+    seed_scoring_identity: dict[str, object] | None = None,
+):
     return SubmissionRevisionConfig(
         task_dir=task,
         experiment_dir=root / "experiment",
         revision_rounds=rounds,
-        seed_run_dir=_write_seed_set(root, task, score),
+        seed_run_dir=_write_seed_set(
+            root,
+            task,
+            score,
+            scoring_identity=seed_scoring_identity,
+        ),
         agent=AgentRunConfig(provider="codex", model="test-model"),
         experiment_id=EXPERIMENT_ID,
         assignment_id=f"{task.name}--rep-001--base-static",
@@ -428,6 +445,71 @@ def test_prospective_fixed_original_score_is_separate_from_on_policy_score(
         / controller.rubric.sha256
         / attempt_id
     ).is_dir()
+
+
+def test_revision_accepts_seed_judgment_from_an_older_code_build(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    legacy_identity = _identity(task)
+    legacy_identity.update({
+        "scorer_version": "rubric-scoring-v1",
+        "judge_source_sha256": "a" * 64,
+        "judge_runner_sha256": "b" * 64,
+        "scorer_module_sha256": "c" * 64,
+    })
+    config = _config(
+        tmp_path,
+        task,
+        rounds=1,
+        seed_scoring_identity=legacy_identity,
+    )
+    judge = FakeJudge(task, (0, 90), tmp_path / "judge")
+
+    result = SubmissionRevisionController(
+        config,
+        RevisionDependencies(session=FakeSession(), judge=judge),
+    ).run()
+
+    assert result.scores == (80, 90)
+    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
+    assert manifest["scoring_identity"] == judge.identity
+    assignment = {
+        "assignment_id": config.assignment_id,
+        "task_id": task.name,
+        "replicate": 1,
+        "condition_id": config.condition_id,
+        "execution_order": 1,
+    }
+    validate_completed_revision(
+        config.experiment_dir,
+        assignment,
+        _design(config, task),
+        config.seed_run_dir,
+    )
+
+
+def test_revision_rejects_seed_judgment_with_different_scoring_semantics(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    incompatible_identity = _identity(task)
+    incompatible_identity["review_mode"] = "trajectory"
+    config = _config(
+        tmp_path,
+        task,
+        rounds=1,
+        seed_scoring_identity=incompatible_identity,
+    )
+
+    with pytest.raises(RuntimeError, match="scoring contract"):
+        SubmissionRevisionController(
+            config,
+            RevisionDependencies(
+                session=FakeSession(),
+                judge=FakeJudge(task, (0, 90), tmp_path / "judge"),
+            ),
+        )
 
 
 def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
