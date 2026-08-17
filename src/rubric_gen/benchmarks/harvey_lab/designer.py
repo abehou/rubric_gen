@@ -8,9 +8,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.runtime.agents.costs import RunCost
+from rubric_gen.runtime.agents.contracts import RegularFileOutputs
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.runners import AgentRunner
-from rubric_gen.harvey.artifacts import (
+from rubric_gen.benchmarks.harvey_lab.artifacts import (
     copy_regular_tree,
     file_sha256,
     make_tree_read_only,
@@ -18,7 +19,7 @@ from rubric_gen.harvey.artifacts import (
     tree_sha256,
     validate_regular_tree,
 )
-from rubric_gen.harvey.config import HarnessDesigner
+from rubric_gen.benchmarks.harvey_lab.config import HarnessDesigner
 
 
 DESIGNER_PROMPT = """You are the harness designer in a Harvey LAB experiment.
@@ -146,7 +147,7 @@ class CodexHarnessDesigner:
                     quiet=False,
                 ),
                 prompt=prompt,
-                required_outputs=("proposal.json",),
+                output_errors=RegularFileOutputs(("proposal.json",)),
             )
             runner.ensure_executable()
             process_exit = runner.stream(paths)

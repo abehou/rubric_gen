@@ -26,12 +26,12 @@ from rubric_gen.submission_revision.study import resolve_study_experiment
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.malt.model_judge import (
-    STRONG_JUDGE_MODELS,
-    ModelGeneration,
-    ModelRequest,
-    generate,
+from rubric_gen.runtime.llm import (
+    GenerationResult,
+    StructuredRequest,
+    generate_structured,
 )
+from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 
 
 SUMMARY_KIND = "rubric-free-final-tournament"
@@ -102,7 +102,7 @@ class TournamentConfig:
     semi_study_dir: Path
     full_study_dir: Path
     output_dir: Path
-    models: tuple[str, ...] = STRONG_JUDGE_MODELS
+    models: tuple[str, ...] = PRIMARY_RH_MODELS
     max_concurrency: int = 3
     max_retries: int = 1
     resume: bool = False
@@ -374,7 +374,7 @@ Return exactly one JSON object with per-score-field scores and justifications:
 """
 
 
-GenerateResponse = Callable[[str, ModelRequest], ModelGeneration]
+GenerateResponse = Callable[[str, StructuredRequest], GenerationResult]
 
 
 @dataclass(frozen=True)
@@ -390,7 +390,7 @@ class TournamentRunner:
         config: TournamentConfig,
         *,
         load_study: Callable[[Path, Path], TournamentStudy] = load_completed_studies,
-        generate_response: GenerateResponse = generate,
+        generate_response: GenerateResponse = generate_structured,
     ) -> None:
         self.config = config
         self.load_study = load_study
@@ -569,7 +569,7 @@ class TournamentRunner:
         return records
 
     def _evaluate_job(self, job: MatchJob) -> dict[str, object]:
-        request = ModelRequest(
+        request = StructuredRequest(
             instructions=SYSTEM_PROMPT,
             evidence=pair_prompt(job.target, job.ordering),
             schema_name="rubric_free_final_tournament_verdict",

@@ -16,7 +16,9 @@ from rubric_gen.runtime.agents.runners import AgentRunner
 from rubric_gen.runtime.agents.sessions import (
     CliSolverSessionDriver,
 )
-from rubric_gen.benchmarks.biomnibench_da import (
+from rubric_gen.benchmarks.biomnibench_da.contract import (
+    BIOMNIBENCH_DA,
+    BIOMNIBENCH_DA_PROMPT,
     BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT,
     BIOMNIBENCH_DA_RECOVERY_PROMPT,
 )
@@ -43,11 +45,15 @@ def test_one_shot_agent_subprocess_does_not_inherit_stdin(
     monkeypatch,
 ) -> None:
     paths = _run_paths(tmp_path)
-    runner = AgentRunner(AgentRunConfig(
-        provider="codex",
-        model="test-model",
-        quiet=True,
-    ))
+    runner = AgentRunner(
+        AgentRunConfig(
+            provider="codex",
+            model="test-model",
+            quiet=True,
+        ),
+        prompt=BIOMNIBENCH_DA_PROMPT,
+        output_errors=BIOMNIBENCH_DA.output_errors,
+    )
     monkeypatch.setattr(runner.adapter, "prepare_run", lambda *args: None)
     monkeypatch.setattr(
         runner,
@@ -73,11 +79,14 @@ def test_persistent_agent_subprocess_does_not_inherit_stdin(
     monkeypatch,
 ) -> None:
     paths = _run_paths(tmp_path)
-    driver = CliSolverSessionDriver(AgentRunConfig(
-        provider="codex",
-        model="test-model",
-        quiet=True,
-    ))
+    driver = CliSolverSessionDriver(
+        AgentRunConfig(
+            provider="codex",
+            model="test-model",
+            quiet=True,
+        ),
+        contract=BIOMNIBENCH_DA,
+    )
     original_popen = sessions_module.subprocess.Popen
     popen_kwargs: list[dict[str, object]] = []
 
@@ -103,7 +112,8 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
                 model="gemini-test",
                 quiet=True,
                 retries=retries,
-            )
+            ),
+            contract=BIOMNIBENCH_DA,
         )
         self.outcomes = outcomes
         self.commands: list[list[str]] = []
@@ -167,10 +177,13 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
 def test_codex_persistent_session_has_no_network_or_web_override(
     tmp_path: Path,
 ) -> None:
-    driver = CliSolverSessionDriver(AgentRunConfig(
-        provider="codex",
-        model="gpt-5.6-luna",
-    ))
+    driver = CliSolverSessionDriver(
+        AgentRunConfig(
+            provider="codex",
+            model="gpt-5.6-luna",
+        ),
+        contract=BIOMNIBENCH_DA,
+    )
     paths = RunPaths.for_task(
         task_dir=tmp_path / "task",
         runs_dir=tmp_path / "runs",

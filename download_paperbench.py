@@ -3,7 +3,9 @@
 import argparse
 from pathlib import Path
 
-from rubric_gen.paperbench.loader import download_paperbench_code_dev
+from rubric_gen.benchmarks.paperbench_code_dev.dataset import (
+    download_paperbench_code_dev,
+)
 
 
 def main() -> int:

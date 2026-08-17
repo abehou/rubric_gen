@@ -6,8 +6,11 @@ import os
 import stat
 from pathlib import Path
 
-from rubric_gen.benchmarks import Benchmark
-from rubric_gen.benchmarks.contracts import FinalEvidence, SubmissionBenchmark
+from rubric_gen.benchmarks.base import (
+    FinalEvidence,
+    SubmissionBenchmark,
+    SubmissionBenchmarkId,
+)
 
 
 BIOMNIBENCH_DA_PROMPT = """You are solving one BiomniBench-DA task in the current directory.
@@ -61,7 +64,7 @@ BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT = (
 
 
 class BiomniBenchDA(SubmissionBenchmark):
-    benchmark = Benchmark.BIOMNIBENCH_DA
+    benchmark = SubmissionBenchmarkId.BIOMNIBENCH_DA
     initial_prompt = BIOMNIBENCH_DA_PROMPT
     recovery_prompt = BIOMNIBENCH_DA_RECOVERY_PROMPT
     output_recovery_prompt = BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT

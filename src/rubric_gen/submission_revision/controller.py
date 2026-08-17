@@ -73,7 +73,7 @@ from rubric_gen.submission_revision.evolution import (
 )
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
-from rubric_gen.benchmarks import get_benchmark
+from rubric_gen.benchmarks import get_submission_benchmark
 from rubric_gen.submission_revision.store import (
     RevisionStore,
     extract_scoring_identity as _extract_scoring_identity,
@@ -123,7 +123,7 @@ class SubmissionRevisionController:
         dependencies: RevisionDependencies | None = None,
     ) -> None:
         self.config = config
-        self.benchmark = get_benchmark(config.benchmark)
+        self.benchmark = get_submission_benchmark(config.benchmark)
         self.experiment_dir = Path(config.experiment_dir).resolve()
         self.task_dir = Path(config.task_dir).resolve()
         judge_config = config.judge_config()
@@ -140,7 +140,7 @@ class SubmissionRevisionController:
             requested_model=config.agent.model,
         )
         self.dependencies = dependencies or RevisionDependencies(
-            session=CliSolverSessionDriver(config.agent, benchmark=config.benchmark),
+            session=CliSolverSessionDriver(config.agent, contract=self.benchmark),
             judge=FrozenRubricJudge(judge_config, self.rubric),
             master_judge=FrozenRubricJudge(
                 master_judge_config,

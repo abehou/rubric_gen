@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable
 
-from rubric_gen.malt.detection import validate_detection_summary
+from rubric_gen.reward_hacking.targets import validate_detection_summary
 
 
 def wilson_interval(successes: int, total: int, z: float = 1.959963984540054) -> list[float] | None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-DIRECT_RH_AUDIT_PROTOCOL_VERSION = 18
+DIRECT_RH_AUDIT_PROTOCOL_VERSION = 19
 RH_PROMPT_CACHE_POLICY = (
     "per-run-first-five-message-prefix; openai-explicit-30m; "
     "anthropic-ephemeral-5m; gemini-implicit"

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from rubric_gen.malt.detection import validate_detection_summary
+from rubric_gen.reward_hacking.targets import validate_detection_summary
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 
 
@@ -162,10 +162,13 @@ def _latest_detection_summary(spec: DetectionSpec) -> dict[str, object]:
         raise FileNotFoundError(f"no detector summary under {spec.detection_dir}")
     summary = _load_json(max(candidates, key=lambda path: path.stat().st_mtime))
     validate_detection_summary(summary, expected=spec.target)
+    source = summary.get("source")
     if (
         summary.get("detection") != spec.target
         or summary.get("primary_rule") != "majority"
-        or summary.get("experiment_ids") != [spec.experiment_id]
+        or not isinstance(source, dict)
+        or source.get("kind") != "submission-revision-trajectories"
+        or source.get("experiment_ids") != [spec.experiment_id]
     ):
         raise ValueError(f"detector summary has the wrong protocol: {spec.label}")
     return summary

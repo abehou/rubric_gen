@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from rubric_gen.benchmarks import get_submission_benchmark
 from rubric_gen.runtime.agents.models import RunPaths
 from rubric_gen.submission_revision.prompts import solver_prompt
 from rubric_gen.runtime.agents.runners import AgentRunner
@@ -252,10 +253,11 @@ class SeedSetRunner:
                 stream_path=run_dir / "trajectory.stream.jsonl",
                 status_path=run_dir / "status.json",
             )
+            benchmark = get_submission_benchmark(self.experiment.benchmark)
             exit_code, paths = AgentRunner(
                 self.agent,
                 prompt=solver_prompt(benchmark=self.experiment.benchmark),
-                benchmark=self.experiment.benchmark,
+                output_errors=benchmark.output_errors,
             ).run(task_dir.resolve(), paths=paths)
             if exit_code != 0:
                 diagnostics = self._preserve_solver_failure(

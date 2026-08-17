@@ -201,12 +201,18 @@ bash scripts/start_vllm_servers.sh submit .vllm-venv
 
 ## Repository layout
 
-- `src/rubric_gen/`: implementation
+- `src/rubric_gen/benchmarks/`: all benchmark-owned contracts and workflows
+- `src/rubric_gen/submission_revision/`: shared seed and revision workflow
+- `src/rubric_gen/reward_hacking/`: shared detector and model-panel services
+- `src/rubric_gen/runtime/`: benchmark-neutral model and process adapters
 - `experiments/`: experiment configurations
 - `seeds/`: shared seed pools
 - `runs/`: revision and audit outputs
 - `scripts/`: analysis and cluster utilities
 - `docs/`: design and benchmark documentation
+
+See [docs/architecture.md](docs/architecture.md) for package boundaries and
+extension rules.
 
 ## CLI help
 

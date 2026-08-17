@@ -1,6 +1,7 @@
 """PaperBench Code-Dev dataset integration."""
 
-from rubric_gen.paperbench.loader import (
+from rubric_gen.benchmarks.paperbench_code_dev.contract import PAPERBENCH_CODE_DEV
+from rubric_gen.benchmarks.paperbench_code_dev.dataset import (
     PAPERBENCH_DEV_PAPERS,
     PAPERBENCH_SCORING_PROTOCOL,
     download_paperbench_code_dev,
@@ -11,6 +12,7 @@ from rubric_gen.paperbench.loader import (
 
 __all__ = [
     "PAPERBENCH_DEV_PAPERS",
+    "PAPERBENCH_CODE_DEV",
     "PAPERBENCH_SCORING_PROTOCOL",
     "download_paperbench_code_dev",
     "prepare_paperbench_code_dev",

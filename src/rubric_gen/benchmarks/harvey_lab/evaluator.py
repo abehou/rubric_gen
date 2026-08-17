@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.runtime.progress import TerminalProgress
-from rubric_gen.harvey.artifacts import (
+from rubric_gen.benchmarks.harvey_lab.artifacts import (
     copy_regular_tree,
     make_tree_read_only,
     read_json_object,
@@ -20,8 +20,8 @@ from rubric_gen.harvey.artifacts import (
     validate_regular_tree,
     validate_task,
 )
-from rubric_gen.harvey.config import HarveyExperiment
-from rubric_gen.harvey.podman import (
+from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
+from rubric_gen.benchmarks.harvey_lab.podman import (
     cache_image,
     configured_podman_environment,
     restore_cached_image,

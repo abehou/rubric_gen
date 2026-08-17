@@ -10,7 +10,7 @@ from pathlib import Path
 from statistics import fmean, median
 from typing import Callable
 
-from rubric_gen.benchmarks import Benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -27,7 +27,7 @@ from rubric_gen.submission_revision.study import (
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS
+from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 
 
 SUMMARY_KIND = "original-rubric-ensemble-rescore"
@@ -40,7 +40,7 @@ class OriginalRubricTarget:
     task_id: str
     replicate: int
     condition_id: str
-    benchmark: Benchmark
+    benchmark: SubmissionBenchmarkId
     experiment_dir: Path
     task_dir: Path
     rubric_name: str
@@ -66,7 +66,7 @@ class OriginalRubricTarget:
                 raise ValueError(f"{name} must be a safe non-empty basename")
         if type(self.replicate) is not int or self.replicate < 1:
             raise ValueError("replicate must be positive")
-        Benchmark(self.benchmark)
+        SubmissionBenchmarkId(self.benchmark)
         if self.review not in {"trace", "trajectory", "workspace"}:
             raise ValueError("review must be trace, trajectory, or workspace")
         if (
@@ -127,7 +127,7 @@ class OriginalRubricJob:
     boundary: str
 
     def __post_init__(self) -> None:
-        if self.model not in STRONG_JUDGE_MODELS:
+        if self.model not in PRIMARY_RH_MODELS:
             raise ValueError(f"unsupported strong judge model: {self.model}")
         if self.boundary not in BOUNDARIES:
             raise ValueError(f"unsupported boundary: {self.boundary}")
@@ -462,7 +462,7 @@ class OriginalRubricEnsembleRunner:
         jobs = tuple(
             OriginalRubricJob(target, model, boundary)
             for target in study.targets
-            for model in STRONG_JUDGE_MODELS
+            for model in PRIMARY_RH_MODELS
             for boundary in BOUNDARIES
         )
         has_summary = self._prepare_output()
@@ -522,7 +522,7 @@ class OriginalRubricEnsembleRunner:
 
     def _protocol(self) -> dict[str, object]:
         return {
-            "models": list(STRONG_JUDGE_MODELS),
+            "models": list(PRIMARY_RH_MODELS),
             "submissions": list(BOUNDARIES),
             "rubric": "original-human-written-r0000",
             "score_scale": [0, 100],
@@ -635,7 +635,7 @@ class OriginalRubricEnsembleRunner:
         assignment_summaries = self._assignment_summaries(study, records)
         complete = sum(record["status"] == "completed" for record in records)
         failed = sum(record["status"] == "failed" for record in records)
-        total = len(study.targets) * len(STRONG_JUDGE_MODELS) * len(BOUNDARIES)
+        total = len(study.targets) * len(PRIMARY_RH_MODELS) * len(BOUNDARIES)
         status = (
             "completed"
             if complete == total
@@ -677,7 +677,7 @@ class OriginalRubricEnsembleRunner:
         for target in study.targets:
             judges: dict[str, dict[str, object]] = {}
             complete_scores: list[tuple[float, float]] = []
-            for model in STRONG_JUDGE_MODELS:
+            for model in PRIMARY_RH_MODELS:
                 initial = record_map.get((target.assignment_id, model, "initial"))
                 final = record_map.get((target.assignment_id, model, "final"))
                 if (
@@ -700,14 +700,14 @@ class OriginalRubricEnsembleRunner:
                 }
                 complete_scores.append((initial_score, final_score))
             ensemble: dict[str, object]
-            if len(complete_scores) != len(STRONG_JUDGE_MODELS):
+            if len(complete_scores) != len(PRIMARY_RH_MODELS):
                 ensemble = {"status": "incomplete"}
             else:
                 initial_scores = [item[0] for item in complete_scores]
                 final_scores = [item[1] for item in complete_scores]
                 votes = [
                     str(judges[model]["winner"])
-                    for model in STRONG_JUDGE_MODELS
+                    for model in PRIMARY_RH_MODELS
                 ]
                 initial_mean = fmean(initial_scores)
                 final_mean = fmean(final_scores)

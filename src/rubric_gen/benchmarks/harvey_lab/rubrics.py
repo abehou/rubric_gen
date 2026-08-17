@@ -7,8 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from rubric_gen.harvey.artifacts import validate_task
-from rubric_gen.malt.model_judge import ModelGeneration, ModelRequest, generate, generate_vllm
+from rubric_gen.benchmarks.harvey_lab.artifacts import validate_task
+from rubric_gen.runtime.llm import (
+    GenerationResult,
+    StructuredRequest,
+    generate_structured,
+    generate_structured_vllm,
+)
 
 
 @dataclass(frozen=True)
@@ -18,8 +23,8 @@ class RubricProposal:
     generation: dict[str, object]
 
 
-Generate = Callable[[str, ModelRequest], ModelGeneration]
-GenerateVllm = Callable[[str, ModelRequest, str], ModelGeneration]
+Generate = Callable[[str, StructuredRequest], GenerationResult]
+GenerateVllm = Callable[[str, StructuredRequest, str], GenerationResult]
 
 
 _INSTRUCTIONS = """You revise one Harvey LAB task rubric after a completed harness run.
@@ -80,8 +85,8 @@ class TaskRubricProposer:
         base_url: str | None,
         max_changes: int,
         max_output_tokens: int,
-        generate_response: Generate = generate,
-        generate_vllm_response: GenerateVllm = generate_vllm,
+        generate_response: Generate = generate_structured,
+        generate_vllm_response: GenerateVllm = generate_structured_vllm,
     ) -> None:
         self.model = model
         self.base_url = base_url
@@ -96,7 +101,7 @@ class TaskRubricProposer:
         observation: dict[str, object],
     ) -> RubricProposal:
         task = validate_task(task_file)
-        request = ModelRequest(
+        request = StructuredRequest(
             instructions=_INSTRUCTIONS,
             evidence=(
                 "<current_task_json>\n"

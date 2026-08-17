@@ -14,7 +14,7 @@ from rubric_gen.submission_revision.rubric_free_tournament import (
     pair_prompt,
 )
 from rubric_gen.artifacts.hashing import sha256_text
-from rubric_gen.malt.model_judge import ModelGeneration, ModelRequest
+from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 
 
 MODELS = ("judge-a", "judge-b", "judge-c")
@@ -66,7 +66,7 @@ def _study(tmp_path: Path) -> TournamentStudy:
     )
 
 
-def _generation(model: str, request: ModelRequest) -> ModelGeneration:
+def _generation(model: str, request: StructuredRequest) -> GenerationResult:
     verdict: dict[str, object] = {}
     for response_name in ("response_A", "response_B"):
         start = request.evidence.index(f"<{response_name}>") + len(response_name) + 2
@@ -81,7 +81,7 @@ def _generation(model: str, request: ModelRequest) -> ModelGeneration:
             for dimension in SCORE_FIELDS
         }
     verdict["comparative_explanation"] = "The two responses were compared."
-    return ModelGeneration(
+    return GenerationResult(
         text=json.dumps(verdict),
         provider="test",
         requested_model=model,
@@ -113,9 +113,9 @@ def test_tournament_runs_joint_pool_and_reports_controlled_rates(
 ) -> None:
     study = _study(tmp_path)
     output = tmp_path / "output"
-    calls: list[tuple[str, ModelRequest]] = []
+    calls: list[tuple[str, StructuredRequest]] = []
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         calls.append((model, request))
         return _generation(model, request)
 

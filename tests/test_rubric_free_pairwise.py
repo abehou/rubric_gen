@@ -18,7 +18,7 @@ from rubric_gen.submission_revision.rubric_free import (
     parse_verdict,
 )
 from rubric_gen.artifacts.hashing import sha256_text
-from rubric_gen.malt.model_judge import ModelGeneration, ModelRequest
+from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 
 
 MODELS = ("judge-a", "judge-b", "judge-c")
@@ -57,7 +57,7 @@ def _study(tmp_path: Path) -> RubricFreeStudy:
     )
 
 
-def _verdict(request: ModelRequest) -> dict[str, object]:
+def _verdict(request: StructuredRequest) -> dict[str, object]:
     def response_score(name: str) -> int:
         start = request.evidence.index(f"<{name}>") + len(name) + 2
         end = request.evidence.index(f"</{name}>")
@@ -81,8 +81,8 @@ def _verdict(request: ModelRequest) -> dict[str, object]:
     return result
 
 
-def _generation(model: str, request: ModelRequest) -> ModelGeneration:
-    return ModelGeneration(
+def _generation(model: str, request: StructuredRequest) -> GenerationResult:
+    return GenerationResult(
         text=json.dumps(_verdict(request)),
         provider="test",
         requested_model=model,
@@ -125,7 +125,7 @@ def test_pair_prompt_flips_answer_and_trace_positions_together() -> None:
 
 def test_parse_verdict_rejects_non_integer_scores() -> None:
     target = _target()
-    request = ModelRequest(
+    request = StructuredRequest(
         instructions=SYSTEM_PROMPT,
         evidence=pair_prompt(target, ORDERINGS[0]),
         schema_name="test",
@@ -143,9 +143,9 @@ def test_runner_averages_flips_and_resumes_sealed_artifacts(
 ) -> None:
     study = _study(tmp_path)
     output = tmp_path / "output"
-    calls: list[tuple[str, ModelRequest]] = []
+    calls: list[tuple[str, StructuredRequest]] = []
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         calls.append((model, request))
         return _generation(model, request)
 
@@ -185,7 +185,7 @@ def test_runner_averages_flips_and_resumes_sealed_artifacts(
     )
     assert all("raw_response" not in record for record in summary["records"])
 
-    resume_calls: list[tuple[str, ModelRequest]] = []
+    resume_calls: list[tuple[str, StructuredRequest]] = []
     resume_config = RubricFreeConfig(
         study_dir=study.source,
         output_dir=output,

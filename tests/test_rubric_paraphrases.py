@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from rubric_gen.malt.model_judge import ModelGeneration
+from rubric_gen.runtime.llm import GenerationResult
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.paraphrases import (
     ParaphraseRunConfig,
@@ -128,7 +128,7 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
         assert match is not None
         index = int(match.group(1))
         calls.append(index)
-        return ModelGeneration(
+        return GenerationResult(
             text=json.dumps({"rubric_text": _variant(index)}),
             provider="test",
             requested_model="test-paraphraser",
@@ -167,7 +167,7 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
         variant = re.search(r"Paraphrase variant: (\d+)", request.evidence)
         assert task is not None and variant is not None
         calls.append(f"{task.group(1)}:{variant.group(1)}")
-        return ModelGeneration(
+        return GenerationResult(
             text=json.dumps({"rubric_text": _variant(int(variant.group(1)))}),
             provider="test",
             requested_model="test-paraphraser",

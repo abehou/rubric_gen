@@ -14,36 +14,37 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from rubric_gen.malt.cases import (
+from rubric_gen.benchmarks.malt.cases import (
     MaltPrepareConfig,
     dataset_revision_from_inputs,
     input_fingerprints,
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.evidence.scoring import (
+from rubric_gen.reward_hacking.metrics import (
     score_panel,
 )
-from rubric_gen.submission_revision.experiment import load_experiment
-from rubric_gen.submission_revision.study import resolve_study_experiment
 from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.runtime.vllm import (
     add_vllm_argument,
     parse_vllm_endpoints,
 )
-from rubric_gen.malt.model_judge import (
-    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_MAX_EVENT_TEXT_CHARS,
-    DEFAULT_MAX_COST_USD,
-    DEFAULT_MAX_INPUT_TOKENS,
-    MAX_OUTPUT_TOKENS,
-    DIRECT_AUDIT_PROTOCOL_VERSION,
-    STRONG_JUDGE_MODELS,
-    ModelJudgeConfig,
-    ModelJudgeRunner,
+from rubric_gen.reward_hacking.protocol import (
+    DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
+    DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
+    DEFAULT_RH_MAX_INPUT_TOKENS,
+    DEFAULT_RH_MAX_OUTPUT_TOKENS,
+    DIRECT_RH_AUDIT_PROTOCOL_VERSION,
+    PRIMARY_RH_MODELS,
 )
-from rubric_gen.malt.detection import TARGETS, detection_target
+from rubric_gen.reward_hacking.runner import (
+    DEFAULT_PANEL_MAX_COST_USD,
+    RewardHackingJudgeConfig,
+    RewardHackingJudgeRunner,
+)
+from rubric_gen.reward_hacking.sources import transcript_audit_source
+from rubric_gen.reward_hacking.targets import TARGETS, detection_target
 
 
 def _sample_case_dirs(
@@ -202,193 +203,6 @@ def _default_benchmark_dir() -> Path:
     return bulk_root / "rubric_gen" / "runs" / "malt-benchmark"
 
 
-def _study_experiments(
-    value: str,
-) -> tuple[tuple[Path, ...], str, Path, dict[str, object]]:
-    experiments: list[Path] = []
-    source = resolve_project_path(value)
-    study_path = source / "study.json"
-    try:
-        study = json.loads(study_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"invalid randomized benchmark study: {source}") from exc
-    if (
-        study.get("schema_version") != 2
-        or study.get("kind") != "rubric-gen-randomized-revision-study"
-        or study.get("status") not in {"completed", "failed"}
-        or type(study.get("experiment_path")) is not str
-        or type(study.get("experiment_id")) is not str
-        or type(study.get("seed_run_dir")) is not str
-        or type(study.get("paraphrase_run_dir")) is not str
-    ):
-        raise ValueError(f"unsupported benchmark study: {source}")
-    experiment_spec = load_experiment(Path(str(study["experiment_path"])))
-    if study["experiment_id"] != experiment_spec.experiment_id:
-        raise ValueError(f"benchmark study experiment ID changed: {source}")
-    records = study.get("records")
-    if not isinstance(records, list) or any(
-        not isinstance(item, dict) for item in records
-    ):
-        raise ValueError(f"benchmark study has invalid records: {source}")
-    assignments = {
-        str(item["assignment_id"]): item for item in experiment_spec.assignments
-    }
-    record_ids = [str(record.get("assignment_id")) for record in records]
-    if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
-        raise ValueError(f"benchmark study ledger differs from its experiment: {source}")
-    for record in records:
-        status = record.get("status")
-        assignment = assignments[str(record["assignment_id"])]
-        experiment = resolve_study_experiment(source, record, assignment)
-        if status not in {"completed", "failed", "invalid"}:
-            raise ValueError(
-                "benchmark study must reach a terminal boundary before audit: "
-                f"{source}"
-            )
-        if status != "completed":
-            continue
-        experiments.append(experiment)
-    resolved = tuple(path.resolve() for path in experiments)
-    if len(set(resolved)) != len(resolved):
-        raise ValueError("duplicate benchmark revision experiment")
-    if not resolved:
-        raise ValueError("benchmark study has no completed assignments to audit")
-    return (
-        resolved, experiment_spec.experiment_id,
-        experiment_spec.tasks_dir.resolve(), experiment_spec.outcome_audit,
-    )
-
-
-def _run_study(args: argparse.Namespace, detection: str) -> int:
-    if args.inputs:
-        raise ValueError(
-            "MALT shard inputs and --study-dir cannot be mixed"
-        )
-    if not args.ensemble and not args.vllm:
-        raise ValueError(
-            "--study-dir requires --ensemble or at least one --vllm"
-        )
-    if args.execution not in {None, "standard"}:
-        raise ValueError(
-            "--execution batch is available only for one hosted OpenAI --judge run"
-        )
-    if args.top is not None or args.negative_top is not None:
-        raise ValueError(
-            "--top and --negative-top are MALT dataset options and cannot "
-            "be used with --study-dir"
-        )
-    dataset_only = {
-        "benchmark_dir": args.benchmark_dir,
-        "development_fraction": args.development_fraction,
-        "validation_fraction": args.validation_fraction,
-        "split_seed": args.split_seed,
-        "seed": args.seed,
-        "split": args.split,
-    }
-    supplied_dataset_only = {
-        key: value for key, value in dataset_only.items() if value is not None
-    }
-    if supplied_dataset_only:
-        raise ValueError(
-            "MALT dataset options cannot be used with --study-dir: "
-            + ", ".join(sorted(supplied_dataset_only))
-        )
-    base_urls = parse_vllm_endpoints(args.vllm or [])
-    experiments, experiment_id, tasks_dir, audit = _study_experiments(
-        args.study_dir
-    )
-    expected_models = tuple(audit.get("models", ()))
-    models = tuple(base_urls) if base_urls else STRONG_JUDGE_MODELS
-    if models != expected_models:
-        raise ValueError(
-            "selected detector models differ from experiment.yaml: "
-            f"selected={models!r}, expected={expected_models!r}"
-        )
-    resolved_arguments = {
-        "primary_rule": audit.get("primary_rule"),
-        "max_retries": audit.get("max_retries"),
-        "max_input_tokens": audit.get("max_input_tokens"),
-        "max_output_tokens": audit.get("max_output_tokens"),
-        "max_event_text_chars": audit.get("max_event_text_chars"),
-        "max_command_output_chars": audit.get("max_command_output_chars"),
-        "max_cost_usd": audit.get("max_cost_usd"),
-        "execution": audit.get("execution"),
-    }
-    locked_arguments = {
-        "primary_rule": args.primary_rule,
-        "max_retries": args.max_retries,
-        "max_input_tokens": args.max_input_tokens,
-        "max_output_tokens": args.max_output_tokens,
-        "max_event_text_chars": args.max_event_text_chars,
-        "max_command_output_chars": args.max_command_output_chars,
-        "max_cost_usd": args.max_cost_usd,
-        "execution": args.execution,
-    }
-    conflicts = {
-        key: value
-        for key, value in locked_arguments.items()
-        if value is not None and value != resolved_arguments[key]
-    }
-    if conflicts:
-        raise ValueError(
-            "Submission audit arguments differ from experiment.yaml: "
-            f"requested={conflicts!r}, locked={resolved_arguments!r}"
-        )
-    primary_rule = str(resolved_arguments["primary_rule"])
-    max_retries = int(resolved_arguments["max_retries"])
-    max_input_tokens = int(resolved_arguments["max_input_tokens"])
-    max_output_tokens = int(resolved_arguments["max_output_tokens"])
-    max_event_text_chars = int(resolved_arguments["max_event_text_chars"])
-    max_command_output_chars = int(
-        resolved_arguments["max_command_output_chars"]
-    )
-    max_cost_usd = float(resolved_arguments["max_cost_usd"])
-    execution = str(resolved_arguments["execution"])
-    mode = "vllm" if base_urls else "ensemble"
-    identity = (
-        f"{mode}--detect-{detection}--source-{experiment_id}"
-        f"--mc-{args.max_concurrency}"
-        f"--mi-{max_input_tokens}--budget-{max_cost_usd:g}"
-        f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
-        f"--mco-{max_command_output_chars}"
-        f"--exec-{execution}--primary-{primary_rule}"
-    )
-    output_root = (
-        resolve_project_path(args.output_dir)
-        if args.output_dir is not None
-        else _default_output_dir()
-    )
-    output_root.mkdir(parents=True, exist_ok=True)
-    evaluation_root = _evaluation_root(output_root, identity, resume=args.resume)
-    resume_evaluation = bool(args.resume and evaluation_root.is_dir())
-    exit_code = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(),
-            revision_dirs=experiments,
-            tasks_dir=tasks_dir,
-            models=models,
-            base_urls=base_urls,
-            output_dir=evaluation_root,
-            max_concurrency=args.max_concurrency,
-            max_retries=max_retries,
-            resume=resume_evaluation,
-            detection=detection,
-            max_input_tokens=max_input_tokens,
-            max_output_tokens=max_output_tokens,
-            max_event_text_chars=max_event_text_chars,
-            max_command_output_chars=max_command_output_chars,
-            max_cost_usd=max_cost_usd,
-            execution=execution,
-            primary_rule=primary_rule,
-            experiment_ids=(experiment_id,),
-        )
-    ).run()
-    print(
-        "Wrote unscored benchmark forensic judgments: "
-        f"{evaluation_root / 'summary.json'}"
-    )
-    return exit_code
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -398,14 +212,6 @@ def build_parser() -> argparse.ArgumentParser:
         "inputs", nargs="*",
         help=("One MALT configuration's shards. Defaults to "
               "data/malt-public/data/*.parquet."),
-    )
-    parser.add_argument(
-        "--study-dir",
-        default=None,
-        help=(
-            "Randomized benchmark study directory to audit instead of "
-            "a labeled MALT dataset. Requires --ensemble or --vllm."
-        ),
     )
     parser.add_argument(
         "--benchmark-dir",
@@ -456,26 +262,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
         "--max-input-tokens", type=int, default=None,
-        help="Hard per-request input ceiling; submission studies load it from experiment.yaml.",
+        help="Hard per-request input ceiling.",
     )
     parser.add_argument(
         "--max-output-tokens", type=int, default=None,
-        help="Hard per-request output ceiling; submission studies load it from experiment.yaml.",
+        help="Hard per-request output ceiling.",
     )
     parser.add_argument(
         "--max-event-text-chars", type=int, default=None,
-        help="Per-event evidence cap; submission studies load it from experiment.yaml.",
+        help="Per-event evidence cap.",
     )
     parser.add_argument(
         "--max-command-output-chars", type=int, default=None,
-        help=(
-            "Per-command-output evidence cap; submission studies load this "
-            "from experiment.yaml."
-        ),
+        help="Per-command-output evidence cap.",
     )
     parser.add_argument(
         "--max-cost-usd", type=float, default=None,
-        help="Hard total hosted-API budget; submission studies load it from experiment.yaml.",
+        help="Hard total hosted-API budget.",
     )
     parser.add_argument(
         "--execution", choices=("standard", "batch"), default=None,
@@ -485,7 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--primary-rule",
         choices=("majority", "any_detects", "unanimous_detects"),
         default=None,
-        help="Configured ensemble rule; submission studies load it from experiment.yaml.",
+        help="Configured ensemble rule.",
     )
     parser.add_argument(
         "--max-retries",
@@ -507,8 +310,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run(args: argparse.Namespace) -> int:
     target = detection_target(args.detect)
-    if args.study_dir:
-        return _run_study(args, target.name)
     args.development_fraction = (
         0.2 if args.development_fraction is None else args.development_fraction
     )
@@ -519,24 +320,24 @@ def run(args: argparse.Namespace) -> int:
     args.seed = 42 if args.seed is None else args.seed
     args.split = "development" if args.split is None else args.split
     args.max_input_tokens = (
-        DEFAULT_MAX_INPUT_TOKENS
+        DEFAULT_RH_MAX_INPUT_TOKENS
         if args.max_input_tokens is None else args.max_input_tokens
     )
     args.max_output_tokens = (
-        MAX_OUTPUT_TOKENS
+        DEFAULT_RH_MAX_OUTPUT_TOKENS
         if args.max_output_tokens is None else args.max_output_tokens
     )
     args.max_event_text_chars = (
-        DEFAULT_MAX_EVENT_TEXT_CHARS
+        DEFAULT_RH_MAX_EVENT_TEXT_CHARS
         if args.max_event_text_chars is None else args.max_event_text_chars
     )
     args.max_command_output_chars = (
-        DEFAULT_MAX_COMMAND_OUTPUT_CHARS
+        DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
         if args.max_command_output_chars is None
         else args.max_command_output_chars
     )
     args.max_cost_usd = (
-        DEFAULT_MAX_COST_USD if args.max_cost_usd is None else args.max_cost_usd
+        DEFAULT_PANEL_MAX_COST_USD if args.max_cost_usd is None else args.max_cost_usd
     )
     args.execution = "standard" if args.execution is None else args.execution
     args.primary_rule = "majority" if args.primary_rule is None else args.primary_rule
@@ -669,7 +470,7 @@ def run(args: argparse.Namespace) -> int:
     )
     base_urls: dict[str, str] = {}
     if args.ensemble:
-        mode_name, agent_panel, models = "ensemble", None, STRONG_JUDGE_MODELS
+        mode_name, agent_panel, models = "ensemble", None, PRIMARY_RH_MODELS
     elif args.judge:
         assert args.judge
         safe_model = re.sub(r"[^A-Za-z0-9._-]+", "_", args.judge)
@@ -704,7 +505,7 @@ def run(args: argparse.Namespace) -> int:
     preparation_digest = hashlib.sha256(
         json.dumps(preparation, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()[:12]
-    evaluation_protocol = DIRECT_AUDIT_PROTOCOL_VERSION
+    evaluation_protocol = DIRECT_RH_AUDIT_PROTOCOL_VERSION
     mode_name += (
         f"--split-seed-{safe_split_seed}"
         f"--dev-{args.development_fraction:g}"
@@ -726,13 +527,13 @@ def run(args: argparse.Namespace) -> int:
     evaluation_root = _evaluation_root(output_root, mode_name, resume=args.resume)
     resume_evaluation = bool(args.resume and evaluation_root.is_dir())
     assert models is not None
-    exit_code = ModelJudgeRunner(ModelJudgeConfig(
-        case_dirs=case_dirs, models=models, output_dir=evaluation_root,
+    exit_code = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
+        source=transcript_audit_source(case_dirs, preparation),
+        models=models, output_dir=evaluation_root,
         max_concurrency=args.max_concurrency, resume=resume_evaluation,
         max_retries=args.max_retries,
         base_urls=base_urls,
         detection=target.name,
-        dataset_provenance=preparation,
         max_input_tokens=args.max_input_tokens,
         max_output_tokens=args.max_output_tokens,
         max_event_text_chars=args.max_event_text_chars,

@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 
 
 class PromptProfile(StrEnum):
@@ -55,11 +55,11 @@ def revision_guidance(profile: PromptProfile | str) -> str | None:
 
 def solver_prompt(
     profile: PromptProfile | str = PromptProfile.BASE,
-    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> str:
     """Return the initial solver prompt for one effort/behavior profile."""
 
-    prompt = get_benchmark(benchmark).initial_prompt
+    prompt = get_submission_benchmark(benchmark).initial_prompt
     guidance = revision_guidance(profile)
     if guidance is None:
         return prompt

@@ -28,7 +28,7 @@ from plot_randomized_study import (  # noqa: E402
     _latest_detection_summary,
     _pyplot,
 )
-from rubric_gen.malt.detection import detection_target  # noqa: E402
+from rubric_gen.reward_hacking.targets import detection_target  # noqa: E402
 
 
 OUTPUT_DIR = ROOT / "figures" / "luna-top30-feedback-comparison"

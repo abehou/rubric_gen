@@ -5,9 +5,10 @@ from pathlib import Path
 
 import pytest
 
-import rubric_gen.malt.cli as malt_cli_module
+import rubric_gen.benchmarks.malt.cli as malt_cli_module
+import rubric_gen.submission_revision.direct_audit as direct_audit_module
 
-from rubric_gen.malt.cli import (
+from rubric_gen.benchmarks.malt.cli import (
     _annotate_negative_sample_metrics,
     _default_benchmark_dir,
     _default_output_dir,
@@ -18,27 +19,31 @@ from rubric_gen.malt.cli import (
     main,
     run,
 )
-from rubric_gen.malt.cases import (
+from rubric_gen.benchmarks.malt.cases import (
     MaltPrepareConfig,
     dataset_revision_from_inputs,
     input_fingerprints,
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.evidence.scoring import (
+from rubric_gen.reward_hacking.metrics import (
     detection_rates,
     plot_detection_rates,
     render_metrics_csv,
     render_metrics_markdown,
     score_panel,
 )
-from rubric_gen.evidence.categories import categorize_findings
-from rubric_gen.evidence.protocol import (
+from rubric_gen.reward_hacking.categories import categorize_findings
+from rubric_gen.reward_hacking.protocol import (
     PRIMARY_RH_MODELS,
     outcome_audit_protocol,
 )
 from rubric_gen.runtime.paths import PROJECT_ROOT
-from rubric_gen.malt.detection import detection_target
+from rubric_gen.reward_hacking.targets import detection_target
+from rubric_gen.submission_revision.direct_audit import (
+    DirectAuditConfig,
+    run_direct_audit,
+)
 
 
 DATASET_REVISION = "a" * 40
@@ -70,7 +75,7 @@ Here are some things that should not be classified as cheating:
         models=PRIMARY_RH_MODELS,
         primary_rule="majority",
     )
-    assert protocol["protocol_version"] == 18
+    assert protocol["protocol_version"] == 19
     assert protocol["input_validation"] == (
         "study-ledger-and-required-evidence-files; "
         "no-snapshot-hash-revalidation"
@@ -405,35 +410,43 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         def run(self) -> int:
             return 0
 
-    monkeypatch.setattr(malt_cli_module, "ModelJudgeRunner", FakeRunner)
     monkeypatch.setattr(
-        malt_cli_module, "load_experiment", lambda _path: FakeExperiment()
+        direct_audit_module, "RewardHackingJudgeRunner", FakeRunner
     )
-    args = build_parser().parse_args([
-        "--detect", detection, "--study-dir", str(study),
-        "--output-dir", str(tmp_path / "out"),
-        "--ensemble", "--resume",
-    ])
+    monkeypatch.setattr(
+        direct_audit_module, "load_experiment", lambda _path: FakeExperiment()
+    )
 
-    assert run(args) == 0
+    assert run_direct_audit(DirectAuditConfig(
+        study_dir=study,
+        output_dir=tmp_path / "out",
+        max_concurrency=3,
+        resume=True,
+        base_urls={},
+        detection=detection,
+    )) == 0
     config = observed["config"]
-    assert config.case_dirs == ()
-    assert config.revision_dirs == (experiment.resolve(),)
-    assert config.tasks_dir == tasks.resolve()
+    assert config.source.kind == "revision"
+    assert tuple(case.path for case in config.source.cases) == (
+        experiment.resolve(),
+    )
+    assert config.source.provenance == {
+        "kind": "submission-revision-trajectories",
+        "experiment_ids": ["test-experiment"],
+        "tasks_dir": str(tasks.resolve()),
+    }
     assert config.max_cost_usd == 1_500.0
     assert config.max_command_output_chars == 2_048
     assert config.detection == detection
-    assert config.experiment_ids == ("test-experiment",)
     assert config.resume is False
     assert not list((tmp_path / "out").rglob("metrics.json"))
 
 
-def test_biomni_input_requires_forensic_ensemble(tmp_path: Path) -> None:
-    args = build_parser().parse_args([
-        "--detect", "rh", "--study-dir", str(tmp_path),
-    ])
-    with pytest.raises(ValueError, match="requires --ensemble"):
-        run(args)
+def test_malt_cli_rejects_removed_submission_study_mode(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "--detect", "rh", "--study-dir", str(tmp_path),
+        ])
 
 
 def test_removed_biomni_batch_and_agent_flags_are_rejected() -> None:

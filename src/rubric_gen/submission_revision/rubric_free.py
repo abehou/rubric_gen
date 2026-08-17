@@ -17,12 +17,12 @@ from rubric_gen.submission_revision.study import resolve_study_experiment
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.malt.model_judge import (
-    STRONG_JUDGE_MODELS,
-    ModelGeneration,
-    ModelRequest,
-    generate,
+from rubric_gen.runtime.llm import (
+    GenerationResult,
+    StructuredRequest,
+    generate_structured,
 )
+from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 
 
 PAPER = "arXiv:2605.12474v1"
@@ -141,7 +141,7 @@ class RubricFreeStudy:
 class RubricFreeConfig:
     study_dir: Path
     output_dir: Path
-    models: tuple[str, ...] = STRONG_JUDGE_MODELS
+    models: tuple[str, ...] = PRIMARY_RH_MODELS
     max_concurrency: int = 3
     max_retries: int = 1
     resume: bool = False
@@ -399,7 +399,7 @@ def parse_verdict(text: str) -> dict[str, object]:
     return value
 
 
-GenerateResponse = Callable[[str, ModelRequest], ModelGeneration]
+GenerateResponse = Callable[[str, StructuredRequest], GenerationResult]
 
 
 @dataclass(frozen=True)
@@ -415,7 +415,7 @@ class RubricFreeRunner:
         config: RubricFreeConfig,
         *,
         load_study: Callable[[Path], RubricFreeStudy] = load_completed_study,
-        generate_response: GenerateResponse = generate,
+        generate_response: GenerateResponse = generate_structured,
     ) -> None:
         self.config = config
         self.load_study = load_study
@@ -613,7 +613,7 @@ class RubricFreeRunner:
         return records
 
     def _evaluate_job(self, job: PairJob) -> dict[str, object]:
-        request = ModelRequest(
+        request = StructuredRequest(
             instructions=SYSTEM_PROMPT,
             evidence=pair_prompt(job.target, job.ordering),
             schema_name="rubric_free_pairwise_verdict",

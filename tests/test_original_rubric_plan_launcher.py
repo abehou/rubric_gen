@@ -8,7 +8,7 @@ import threading
 import pytest
 import yaml
 
-from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS
+from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 import rubric_gen.submission_revision.original_rubric_plan as launcher
 from rubric_gen.submission_revision.original_rubric_plan import (
     JudgmentPlan,
@@ -41,7 +41,7 @@ def test_checked_plan_has_exact_deduplicated_coverage(
     initial = [target for target in targets if target["boundary"] == "initial"]
     final = [target for target in targets if target["boundary"] == "final"]
 
-    assert plan["models"] == list(STRONG_JUDGE_MODELS)
+    assert plan["models"] == list(PRIMARY_RH_MODELS)
     assert plan["study_dir"] == study_dir
     assert plan["expected"] == {
         "assignments": 360,
@@ -120,7 +120,7 @@ def test_assignment_summary_reuses_one_shared_initial_score(tmp_path: Path) -> N
         review="trace",
         rubric_name="rubric.txt",
         max_review_chars=None,
-        models=tuple(STRONG_JUDGE_MODELS),
+        models=tuple(PRIMARY_RH_MODELS),
         max_retries=1,
         expected={
             "assignments": 2,
@@ -133,7 +133,7 @@ def test_assignment_summary_reuses_one_shared_initial_score(tmp_path: Path) -> N
         assignments=assignments,
     )
     records = []
-    for model_index, model in enumerate(STRONG_JUDGE_MODELS):
+    for model_index, model in enumerate(PRIMARY_RH_MODELS):
         records.append({
             "target_id": initial.target_id,
             "model": model,
@@ -150,7 +150,7 @@ def test_assignment_summary_reuses_one_shared_initial_score(tmp_path: Path) -> N
 
     summaries = _assignment_summaries(plan, records)
 
-    for model_index, model in enumerate(STRONG_JUDGE_MODELS):
+    for model_index, model in enumerate(PRIMARY_RH_MODELS):
         assert {
             summaries[assignment_id]["judges"][model]["initial_score"]
             for assignment_id in assignment_ids
@@ -197,7 +197,7 @@ def test_runner_executes_each_planned_target_model_pair(
         review="trace",
         rubric_name="rubric.txt",
         max_review_chars=None,
-        models=tuple(STRONG_JUDGE_MODELS),
+        models=tuple(PRIMARY_RH_MODELS),
         max_retries=1,
         expected={
             "assignments": 1,
@@ -232,7 +232,7 @@ def test_runner_executes_each_planned_target_model_pair(
     assert set(calls) == {
         (target.target_id, model)
         for target in targets
-        for model in STRONG_JUDGE_MODELS
+        for model in PRIMARY_RH_MODELS
     }
     summary = json.loads((plan.output_dir / "summary.json").read_text())
     assert summary["status"] == "completed"

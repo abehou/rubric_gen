@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 
 
@@ -84,7 +84,7 @@ class ResolvedRubric:
 class JudgeRunConfig:
     run_dir: Path
     tasks_dir: Path
-    benchmark: Benchmark = Benchmark.BIOMNIBENCH_DA
+    benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     extra_run_dirs: tuple[Path, ...] = ()
     review: str = "trace"
     model: str | None = None
@@ -104,7 +104,7 @@ class JudgeRunConfig:
     artifacts_dir: Path | None = None
 
     def __post_init__(self) -> None:
-        get_benchmark(self.benchmark).validate_review(self.review)
+        get_submission_benchmark(self.benchmark).validate_review(self.review)
         if sum(value is not None for value in (
             self.rubric_name, self.rubric_set, self.rubric_path
         )) > 1:
@@ -141,8 +141,8 @@ class JudgeRunConfig:
         return cls(
             run_dir=run_dirs[0],
             tasks_dir=resolve_project_path(getattr(args, "tasks_dir")),
-            benchmark=Benchmark(
-                getattr(args, "benchmark", Benchmark.BIOMNIBENCH_DA)
+            benchmark=SubmissionBenchmarkId(
+                getattr(args, "benchmark", SubmissionBenchmarkId.BIOMNIBENCH_DA)
             ),
             extra_run_dirs=run_dirs[1:],
             review=getattr(args, "review", "trace"),

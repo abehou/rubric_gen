@@ -418,7 +418,7 @@ def test_codex_auditor_uses_audit_log_as_query_count(
 
     def fake_run(self, task_dir, runs_dir=None, *, paths=None):
         assert paths is not None
-        assert self.required_outputs == ("auditor.packet.json",)
+        assert self.output_errors.names == ("auditor.packet.json",)
         assert "trajectory-auditor agent" in self.prompt
         assert "trace.md" in self.prompt
         prompt = (task_dir / "instruction.md").read_text()

@@ -17,9 +17,9 @@ from typing import Callable, Protocol, TextIO
 
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.agents.costs import RunCost
+from rubric_gen.runtime.agents.contracts import SessionContract
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES, NO_WEB_POLICY
-from rubric_gen.benchmarks import Benchmark, get_benchmark
 
 
 @dataclass(frozen=True)
@@ -56,12 +56,11 @@ class CliSolverSessionDriver:
         self,
         config: AgentRunConfig | None = None,
         *,
+        contract: SessionContract,
         registry: AgentAdapterRegistry | None = None,
-        benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
     ) -> None:
         self.config = config or AgentRunConfig()
-        self.benchmark = Benchmark(benchmark)
-        self.contract = get_benchmark(self.benchmark)
+        self.contract = contract
         if not 0 <= self.config.retries <= MAX_TRANSIENT_RETRIES:
             raise ValueError(
                 "Persistent-session retries must be between 0 and "
@@ -185,7 +184,7 @@ class CliSolverSessionDriver:
             expected_session_id = reported_session_id
             current_model = model
             stream_errors = self._trajectory_errors(attempt_stream)
-            output_errors = self._submission_output_errors(paths.workspace_dir)
+            output_errors = self._output_errors(paths.workspace_dir)
             effective_exit_code = (
                 process_exit_code
                 if process_exit_code != 0
@@ -254,7 +253,7 @@ class CliSolverSessionDriver:
                 errors.append(f"trajectory_result_status: {status}")
         return errors
 
-    def _submission_output_errors(self, workspace: Path) -> list[str]:
+    def _output_errors(self, workspace: Path) -> list[str]:
         return self.contract.output_errors(workspace)
 
     def _ensure_executable(self) -> None:

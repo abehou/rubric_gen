@@ -517,13 +517,13 @@ def _generate_with_hosted_model(
     request: SimulatedUserRequest,
 ) -> SimulatedUserGeneration:
     # Import lazily so ordinary revision runs do not load the detector stack.
-    from rubric_gen.malt.model_judge import (
-        ModelRequest,
-        generate,
-        generate_vllm,
+    from rubric_gen.runtime.llm import (
+        StructuredRequest,
+        generate_structured,
+        generate_structured_vllm,
     )
 
-    model_request = ModelRequest(
+    model_request = StructuredRequest(
         instructions=request.instructions,
         evidence=request.evidence,
         schema_name="submission_simulated_user_feedback",
@@ -531,9 +531,9 @@ def _generate_with_hosted_model(
         max_output_tokens=request.max_output_tokens,
     )
     generated = (
-        generate_vllm(config.model, model_request, config.base_url)
+        generate_structured_vllm(config.model, model_request, config.base_url)
         if config.base_url is not None
-        else generate(config.model, model_request)
+        else generate_structured(config.model, model_request)
     )
     return SimulatedUserGeneration(
         text=generated.text,

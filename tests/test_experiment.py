@@ -13,7 +13,7 @@ import yaml
 import rubric_gen.submission_revision.commands as commands_module
 import rubric_gen.submission_revision.experiment as experiment_module
 import rubric_gen.submission_revision.study as study_module
-import rubric_gen.benchmarks.paperbench_code_dev as paperbench_contract_module
+import rubric_gen.benchmarks.paperbench_code_dev.contract as paperbench_contract_module
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.seeds import (
     SEED_SET_KIND,
@@ -409,7 +409,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import rubric_gen.malt.cli as malt_cli_module
+    import rubric_gen.submission_revision.direct_audit as direct_audit_module
     import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
 
     experiment = SimpleNamespace(
@@ -421,11 +421,11 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         outcome_audit={"models": ["strong-a", "strong-b"]},
     )
     calls: list[str] = []
-    direct_argv: list[str] = []
+    direct_configs: list[object] = []
     configs: list[object] = []
 
-    def direct(argv: list[str]) -> int:
-        direct_argv.extend(argv)
+    def direct(config: object) -> int:
+        direct_configs.append(config)
         calls.append("direct")
         return 1
 
@@ -446,7 +446,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
-    monkeypatch.setattr(malt_cli_module, "main", direct)
+    monkeypatch.setattr(direct_audit_module, "run_direct_audit", direct)
     monkeypatch.setattr(
         diagnostics_module,
         "RubricScoreDiagnosticRunner",
@@ -468,8 +468,8 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
 
     assert status == 1
     assert calls == ["direct", "score", "meta", "combined"]
-    assert "--ensemble" in direct_argv
-    assert "weak-model" not in direct_argv
+    assert len(direct_configs) == 1
+    assert direct_configs[0].base_urls == {}
     assert all(
         config.vllm_endpoints == {"weak-model": "http://weak:8000/v1"}
         for config in configs
@@ -480,7 +480,7 @@ def test_detect_runs_meta_stage_after_score_stage_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import rubric_gen.malt.cli as malt_cli_module
+    import rubric_gen.submission_revision.direct_audit as direct_audit_module
     import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
 
     experiment = SimpleNamespace(
@@ -510,7 +510,11 @@ def test_detect_runs_meta_stage_after_score_stage_exception(
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
-    monkeypatch.setattr(malt_cli_module, "main", lambda _argv: 0)
+    monkeypatch.setattr(
+        direct_audit_module,
+        "run_direct_audit",
+        lambda _config: 0,
+    )
     monkeypatch.setattr(
         diagnostics_module,
         "RubricScoreDiagnosticRunner",

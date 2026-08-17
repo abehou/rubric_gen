@@ -1,12 +1,18 @@
-"""Native task and submission contracts for revision benchmarks."""
+"""Types shared by submission benchmarks."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
-from rubric_gen.benchmarks import Benchmark
+
+class SubmissionBenchmarkId(StrEnum):
+    """Identifiers accepted by the submission-revision workflow."""
+
+    BIOMNIBENCH_DA = "biomnibench-da"
+    PAPERBENCH_CODE_DEV = "paperbench-code-dev"
 
 
 @dataclass(frozen=True)
@@ -21,7 +27,7 @@ class FinalEvidence:
 class SubmissionBenchmark(ABC):
     """Define native inputs, outputs, and prompts for one benchmark."""
 
-    benchmark: Benchmark
+    benchmark: SubmissionBenchmarkId
     initial_prompt: str
     recovery_prompt: str
     output_recovery_prompt: str

@@ -13,7 +13,7 @@ from pathlib import Path
 from statistics import pstdev
 from typing import Any, Iterator
 
-from rubric_gen.benchmarks import get_benchmark
+from rubric_gen.benchmarks import get_submission_benchmark
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.judging.artifacts import (
@@ -40,7 +40,7 @@ from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 class SubmissionJudgeRunner:
     def __init__(self, config: JudgeRunConfig) -> None:
         self.config = config
-        self.benchmark = get_benchmark(config.benchmark)
+        self.benchmark = get_submission_benchmark(config.benchmark)
         self.artifacts = JudgeArtifactStore(config)
         self.discovery = JudgeTargetDiscovery(config, self.artifacts)
         # The imported implementation is fixed for this Python process. Pin its

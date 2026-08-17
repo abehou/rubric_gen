@@ -17,12 +17,12 @@ from rubric_gen.submission_revision.commands import (
 from rubric_gen.submission_revision.experiment import EXPERIMENT_KIND, load_experiment
 from rubric_gen.runtime.paths import resolve_project_path
 from rubric_gen.runtime.vllm import add_vllm_argument
-from rubric_gen.harvey.audits import run_quality_audit, run_reward_hacking_audit
-from rubric_gen.harvey.config import (
+from rubric_gen.benchmarks.harvey_lab.audits import run_quality_audit, run_reward_hacking_audit
+from rubric_gen.benchmarks.harvey_lab.config import (
     HARVEY_EXPERIMENT_KIND,
     load_experiment as load_harvey_experiment,
 )
-from rubric_gen.harvey.controller import HarveyEvolutionController
+from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController
 
 
 def _experiment_kind(value: str) -> str:

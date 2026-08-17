@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.benchmarks import Benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId
 import rubric_gen.submission_revision.original_rubric as original_module
 from rubric_gen.submission_revision.original_rubric import (
     OriginalRubricEnsembleConfig,
@@ -17,7 +17,7 @@ from rubric_gen.submission_revision.original_rubric import (
     _load_completed_study,
 )
 from rubric_gen.artifacts.hashing import sha256_text
-from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS
+from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 
 
 def _target(tmp_path: Path) -> OriginalRubricTarget:
@@ -39,7 +39,7 @@ def _target(tmp_path: Path) -> OriginalRubricTarget:
         task_id="da-1-1",
         replicate=1,
         condition_id="base-static",
-        benchmark=Benchmark.BIOMNIBENCH_DA,
+        benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         experiment_dir=experiment,
         task_dir=tmp_path / "tasks" / "da-1-1",
         rubric_name="rubric.txt",
@@ -117,7 +117,7 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         resume=True,
     )
     model_offsets = {
-        model: index for index, model in enumerate(STRONG_JUDGE_MODELS)
+        model: index for index, model in enumerate(PRIMARY_RH_MODELS)
     }
     observed: list[tuple[str, str]] = []
 
@@ -139,7 +139,7 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
     assert runner.run() == 0
     assert sorted(observed) == sorted(
         (model, boundary)
-        for model in STRONG_JUDGE_MODELS
+        for model in PRIMARY_RH_MODELS
         for boundary in ("initial", "final")
     )
     summary = json.loads((output / "summary.json").read_text())
@@ -292,7 +292,7 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
 
     class FakeExperiment:
         experiment_id = "test-study"
-        benchmark = Benchmark.BIOMNIBENCH_DA
+        benchmark = SubmissionBenchmarkId.BIOMNIBENCH_DA
         assignments = (assignment,)
 
     monkeypatch.setattr(original_module, "load_experiment", lambda _path: FakeExperiment())

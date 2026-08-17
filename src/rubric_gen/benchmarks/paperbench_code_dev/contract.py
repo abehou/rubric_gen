@@ -6,10 +6,13 @@ import os
 import stat
 from pathlib import Path
 
-from rubric_gen.benchmarks import Benchmark
-from rubric_gen.benchmarks.contracts import FinalEvidence, SubmissionBenchmark
-from rubric_gen.paperbench.evidence import render_submission_tree
-from rubric_gen.paperbench.loader import (
+from rubric_gen.benchmarks.base import (
+    FinalEvidence,
+    SubmissionBenchmark,
+    SubmissionBenchmarkId,
+)
+from rubric_gen.benchmarks.paperbench_code_dev.submission import render_submission_tree
+from rubric_gen.benchmarks.paperbench_code_dev.dataset import (
     PAPERBENCH_DEV_PAPERS,
     validate_paperbench_code_dev_dataset,
 )
@@ -56,7 +59,7 @@ PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT = (
 
 
 class PaperBenchCodeDev(SubmissionBenchmark):
-    benchmark = Benchmark.PAPERBENCH_CODE_DEV
+    benchmark = SubmissionBenchmarkId.PAPERBENCH_CODE_DEV
     initial_prompt = PAPERBENCH_CODE_DEV_PROMPT
     recovery_prompt = PAPERBENCH_CODE_DEV_RECOVERY_PROMPT
     output_recovery_prompt = PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT

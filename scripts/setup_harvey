@@ -10,7 +10,7 @@ mapfile -t harvey_config < <(
 import sys
 from pathlib import Path
 
-from rubric_gen.harvey.config import load_experiment
+from rubric_gen.benchmarks.harvey_lab.config import load_experiment
 
 experiment = load_experiment(Path(sys.argv[1]))
 print(experiment.benchmark.checkout)
@@ -60,7 +60,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rubric_gen.harvey.podman import (
+from rubric_gen.benchmarks.harvey_lab.podman import (
     cache_image,
     configured_podman_environment,
     restore_cached_image,

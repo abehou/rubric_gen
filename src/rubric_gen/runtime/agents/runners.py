@@ -7,7 +7,6 @@ import os
 import re
 import signal
 import shutil
-import stat
 import subprocess
 import threading
 from dataclasses import dataclass, field
@@ -15,9 +14,9 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
+from rubric_gen.runtime.agents.contracts import OutputValidator
 from rubric_gen.runtime.agents.costs import RunCost
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
-from rubric_gen.benchmarks import Benchmark, get_benchmark
 from rubric_gen.runtime.agents.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
@@ -75,25 +74,18 @@ class AgentRunner:
         config: AgentRunConfig | None = None,
         *,
         registry: AgentAdapterRegistry | None = None,
-        prompt: str | None = None,
-        required_outputs: tuple[str, ...] | None = None,
-        benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+        prompt: str,
+        output_errors: OutputValidator,
     ) -> None:
-        self.benchmark = Benchmark(benchmark)
-        self.contract = get_benchmark(self.benchmark)
-        resolved_prompt = prompt or self.contract.initial_prompt
-        if not resolved_prompt.strip():
+        if not prompt.strip():
             raise ValueError("agent prompt must not be empty")
-        resolved_outputs = required_outputs or self.contract.required_outputs
-        if not resolved_outputs or any(
-            not name or Path(name).name != name for name in resolved_outputs
-        ):
-            raise ValueError("agent required outputs must be safe names")
+        if not callable(output_errors):
+            raise TypeError("agent output validator must be callable")
         self.config = config or AgentRunConfig()
         self.registry = registry or AgentAdapterRegistry()
         self.adapter = self.registry.get(self.config.provider)
-        self.prompt = resolved_prompt
-        self.required_outputs = resolved_outputs
+        self.prompt = prompt
+        self.output_errors = output_errors
 
     @property
     def provider(self) -> str:
@@ -181,22 +173,7 @@ class AgentRunner:
                 self.adapter.print_line(line, raw=self.config.raw)
 
     def validate_outputs(self, paths: RunPaths) -> RunValidation:
-        if self.required_outputs == self.contract.required_outputs:
-            errors = self.contract.output_errors(paths.workspace_dir)
-        else:
-            errors = []
-        for filename in (() if errors else self.required_outputs):
-            if filename == "submission":
-                continue
-            output_path = paths.workspace_dir / filename
-            try:
-                output_stat = os.lstat(output_path)
-            except OSError:
-                errors.append(f"missing_or_empty: {filename}")
-                continue
-            if not stat.S_ISREG(output_stat.st_mode) or output_stat.st_size == 0:
-                errors.append(f"missing_or_empty: {filename}")
-
+        errors = self.output_errors(paths.workspace_dir)
         errors.extend(self.trajectory_errors(paths.stream_path))
         suspicious_files = self.find_cross_run_references(paths)
         return RunValidation(tuple(errors), tuple(suspicious_files))

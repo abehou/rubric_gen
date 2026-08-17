@@ -19,7 +19,7 @@ from rubric_gen.submission_revision.user_simulator import (
     SimulatedUserConfig,
     SimulatedUserFeedback,
 )
-from rubric_gen.benchmarks import Benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId
 
 
 @dataclass(frozen=True)
@@ -38,7 +38,7 @@ class SubmissionRevisionConfig:
     execution_order: int
     optimizer_rubric_path: Path
     master_rubric_name: str
-    benchmark: Benchmark = Benchmark.BIOMNIBENCH_DA
+    benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
@@ -111,7 +111,7 @@ class SubmissionRevisionConfig:
                 "is simulated_user"
             )
         PromptProfile(self.prompt_profile)
-        Benchmark(self.benchmark)
+        SubmissionBenchmarkId(self.benchmark)
         RubricEvolution(self.rubric_evolution)
         for name, model in (
             ("rubric_auditor_model", self.rubric_auditor_model),

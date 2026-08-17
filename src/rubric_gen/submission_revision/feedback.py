@@ -15,7 +15,7 @@ from rubric_gen.submission_revision.judging.scoring import (
     parse_score_normalization_maximum,
 )
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
-from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 
 
 class FeedbackPolicy(str, Enum):
@@ -54,13 +54,13 @@ _CRITERION_TITLE_PATTERN = re.compile(
 def render_feedback_prompt(
     payload: dict[str, object],
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
-    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> str:
     """Render a canonical solver message from one projected feedback record."""
 
     policy = FeedbackPolicy(payload.get("policy"))
     resolved_profile = PromptProfile(prompt_profile)
-    revision_action = get_benchmark(benchmark).revision_action
+    revision_action = get_submission_benchmark(benchmark).revision_action
     if payload.get("schema_version") != 1:
         raise ValueError("feedback payload has invalid schema")
 
@@ -204,7 +204,7 @@ def project_feedback(
     policy: FeedbackPolicy,
     max_reason_chars: int = 2_000,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
-    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
     """Return the policy-specific view of one validated judge evaluation."""
 
@@ -289,7 +289,7 @@ def project_simulated_user_feedback(
     comment: str,
     *,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
-    benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
     """Pair a sealed LLM user comment with its independently validated score."""
 

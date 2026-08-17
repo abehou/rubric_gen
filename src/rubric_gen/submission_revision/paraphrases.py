@@ -17,11 +17,11 @@ from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.malt.model_judge import (
-    ModelGeneration,
-    ModelRequest,
-    generate,
-    generate_vllm,
+from rubric_gen.runtime.llm import (
+    GenerationResult,
+    StructuredRequest,
+    generate_structured,
+    generate_structured_vllm,
 )
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import make_read_only, read_json_object
@@ -88,7 +88,7 @@ class ParaphraseRunConfig:
             raise ValueError("max_concurrency must be positive")
 
 
-GenerationOperation = Callable[[str, ModelRequest], ModelGeneration]
+GenerationOperation = Callable[[str, StructuredRequest], GenerationResult]
 
 
 class ParaphraseRunner:
@@ -304,7 +304,7 @@ class ParaphraseRunner:
                 master=master,
                 repair_error=str(last_error) if last_error is not None else None,
             )
-            generation: ModelGeneration | None = None
+            generation: GenerationResult | None = None
             try:
                 generation = self._generate(request)
                 value = json.loads(generation.text)
@@ -357,13 +357,13 @@ class ParaphraseRunner:
             f"{self.max_retries + 1} attempts: {last_error}"
         ) from last_error
 
-    def _generate(self, request: ModelRequest) -> ModelGeneration:
+    def _generate(self, request: StructuredRequest) -> GenerationResult:
         if self._generation_operation is not None:
             return self._generation_operation(self.model, request)
         endpoint = self.config.vllm_endpoints.get(self.model)
         if endpoint is not None:
-            return generate_vllm(self.model, request, endpoint)
-        return generate(self.model, request)
+            return generate_structured_vllm(self.model, request, endpoint)
+        return generate_structured(self.model, request)
 
     def _archive_failure(
         self,
@@ -371,7 +371,7 @@ class ParaphraseRunner:
         variant_index: int,
         attempt: int,
         error: Exception,
-        generation: ModelGeneration | None,
+        generation: GenerationResult | None,
     ) -> None:
         failure_root = task_root / f"variant-{variant_index:03d}.failures"
         with self._failure_lock:
@@ -394,7 +394,7 @@ def _paraphrase_request(
     variant_index: int,
     master: str,
     repair_error: str | None,
-) -> ModelRequest:
+) -> StructuredRequest:
     repair = ""
     if repair_error is not None:
         repair = (
@@ -410,7 +410,7 @@ Use a distinct but semantically equivalent wording for this variant.{repair}
 {master}
 </master_rubric>
 """
-    return ModelRequest(
+    return StructuredRequest(
         instructions=_INSTRUCTIONS,
         evidence=evidence,
         schema_name="semantic_rubric_paraphrase",

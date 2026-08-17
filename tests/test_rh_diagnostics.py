@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from rubric_gen.benchmarks import Benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.paraphrases import ParaphraseSelection
 from rubric_gen.submission_revision.rh_diagnostics import (
     DiagnosticTarget,
@@ -27,7 +27,7 @@ def _target(tmp_path: Path) -> DiagnosticTarget:
         task_id="da-1-1",
         replicate=1,
         condition_id="diligent-prospective",
-        benchmark=Benchmark.BIOMNIBENCH_DA,
+        benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         experiment_dir=tmp_path,
         task_dir=tmp_path,
         review="trace",

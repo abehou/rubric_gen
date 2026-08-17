@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-import rubric_gen.harvey.designer as designer_module
-from rubric_gen.harvey.audits import prepare_reward_hacking_cases, run_quality_audit
-from rubric_gen.harvey.artifacts import tree_sha256
-from rubric_gen.harvey.config import (
+import rubric_gen.benchmarks.harvey_lab.designer as designer_module
+from rubric_gen.benchmarks.harvey_lab.audits import prepare_reward_hacking_cases, run_quality_audit
+from rubric_gen.benchmarks.harvey_lab.artifacts import tree_sha256
+from rubric_gen.benchmarks.harvey_lab.config import (
     HarnessDesigner,
     HarveyBenchmark,
     HarveyExperiment,
@@ -21,16 +21,16 @@ from rubric_gen.harvey.config import (
     TaskAgent,
     load_experiment,
 )
-from rubric_gen.harvey.controller import HarveyEvolutionController, build_ranking
-from rubric_gen.harvey.designer import DESIGNER_PROMPT, CodexHarnessDesigner, DesignedCandidate
-from rubric_gen.harvey.evaluator import CandidateEvaluation, HarveyEvaluator
-from rubric_gen.harvey.podman import (
+from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController, build_ranking
+from rubric_gen.benchmarks.harvey_lab.designer import DESIGNER_PROMPT, CodexHarnessDesigner, DesignedCandidate
+from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
+from rubric_gen.benchmarks.harvey_lab.podman import (
     cache_image,
     configured_podman_environment,
     restore_cached_image,
 )
-from rubric_gen.harvey.rubrics import TaskRubricProposer
-from rubric_gen.malt.model_judge import ModelGeneration, request_provenance
+from rubric_gen.benchmarks.harvey_lab.rubrics import TaskRubricProposer
+from rubric_gen.runtime.llm import GenerationResult, request_parameters_for_model
 
 
 def _task() -> dict[str, object]:
@@ -119,7 +119,7 @@ def test_task_rubric_proposer_preserves_ids_and_deliverables(tmp_path: Path) -> 
     task_file = tmp_path / "task.json"
     task_file.write_text(json.dumps(_task()), encoding="utf-8")
 
-    def generate(model: str, request: object) -> ModelGeneration:
+    def generate(model: str, request: object) -> GenerationResult:
         assert model == "gpt-5.6-sol"
         text = json.dumps(
             {
@@ -134,13 +134,13 @@ def test_task_rubric_proposer_preserves_ids_and_deliverables(tmp_path: Path) -> 
                 ],
             }
         )
-        return ModelGeneration(
+        return GenerationResult(
             text=text,
             provider="openai",
             requested_model=model,
             effective_model=model,
             response_id="response-test",
-            request_parameters=request_provenance(model),
+            request_parameters=request_parameters_for_model(model),
         )
 
     result = TaskRubricProposer(
@@ -243,8 +243,9 @@ def test_designer_retries_semantically_invalid_proposal(
     prompts: list[str] = []
 
     class FakeRunner:
-        def __init__(self, config, *, prompt: str, required_outputs) -> None:
+        def __init__(self, config, *, prompt: str, output_errors) -> None:
             prompts.append(prompt)
+            assert output_errors.names == ("proposal.json",)
 
         def ensure_executable(self) -> None:
             return None
@@ -407,7 +408,7 @@ def test_shared_image_cache_saves_and_restores_oci_archive(
             return subprocess.CompletedProcess(command, 0, "loaded", "")
         raise AssertionError(command)
 
-    monkeypatch.setattr("rubric_gen.harvey.podman.subprocess.run", run)
+    monkeypatch.setattr("rubric_gen.benchmarks.harvey_lab.podman.subprocess.run", run)
     cache_root = tmp_path / "shared"
     environment = {"PATH": "/usr/bin"}
 
@@ -439,7 +440,7 @@ def test_shared_image_cache_miss_does_not_pull(
         assert command[1:3] == ["image", "inspect"]
         return subprocess.CompletedProcess(command, 1, "", "missing")
 
-    monkeypatch.setattr("rubric_gen.harvey.podman.subprocess.run", run)
+    monkeypatch.setattr("rubric_gen.benchmarks.harvey_lab.podman.subprocess.run", run)
 
     assert not restore_cached_image(
         {"PATH": "/usr/bin"},

@@ -7,15 +7,27 @@ from pathlib import Path
 
 import pytest
 
-from rubric_gen.malt import model_judge
-from rubric_gen.malt.model_judge import (
-    CostBudgetExceeded,
-    ModelGeneration,
-    ModelRequest,
-    ModelJudgeConfig,
-    ModelJudgeRunner,
-    request_provenance,
+import rubric_gen.reward_hacking.review as review
+import rubric_gen.reward_hacking.runner as runner_module
+import rubric_gen.runtime.llm as llm
+from rubric_gen.reward_hacking.review import CostBudgetExceeded
+from rubric_gen.reward_hacking.runner import (
+    PreparedJob,
+    RewardHackingJudgeConfig,
+    RewardHackingJudgeRunner,
 )
+from rubric_gen.reward_hacking.sources import (
+    AuditCase,
+    transcript_audit_source,
+)
+from rubric_gen.submission_revision.audit_evidence import revision_audit_source
+from rubric_gen.runtime.llm import (
+    GenerationResult,
+    StructuredRequest,
+    request_parameters_for_model,
+)
+
+
 DATASET_PROVENANCE = {
     "schema_version": 2,
     "dataset_revision": "a" * 40,
@@ -23,11 +35,18 @@ DATASET_PROVENANCE = {
 }
 
 
+def _source(*case_dirs: Path, provenance: dict[str, object] | None = None):
+    return transcript_audit_source(
+        tuple(case_dirs),
+        DATASET_PROVENANCE if provenance is None else provenance,
+    )
+
+
 def _generation(
     model: str, text: str, *, base_url: str | None = None
-) -> ModelGeneration:
-    request = request_provenance(model, base_url=base_url)
-    return ModelGeneration(
+) -> GenerationResult:
+    request = request_parameters_for_model(model, base_url=base_url)
+    return GenerationResult(
         text=text,
         provider=str(request["provider"]),
         requested_model=model,
@@ -41,8 +60,8 @@ def _rh_text(score: int = 0, reason: str = "No cheating is present.") -> str:
     return json.dumps({"reason": reason, "score": score})
 
 
-def _request() -> ModelRequest:
-    return ModelRequest(
+def _request() -> StructuredRequest:
+    return StructuredRequest(
         instructions="instructions",
         evidence="prompt",
         schema_name="test_schema",
@@ -51,14 +70,14 @@ def _request() -> ModelRequest:
 
 
 def test_rh_request_caches_one_user_prompt_prefix() -> None:
-    payload = model_judge.EvidencePrompt(
+    payload = review.EvidencePrompt(
         instructions="unused",
         evidence="unused",
         stats={},
         messages=tuple(f"user: message {index}" for index in range(7)),
     )
 
-    request = model_judge._rh_requests(payload, evidence_chars=10_000)[0]
+    request = review._rh_requests(payload, evidence_chars=10_000)[0]
 
     assert request.prompt_layout == "cached_user_prefix"
     assert request.openai_input()[0]["role"] == "user"
@@ -75,25 +94,29 @@ def test_rh_request_caches_one_user_prompt_prefix() -> None:
     assert "user: message 6\n</transcript_chunk>" in prompt
 
 
-def test_revision_cache_groups_serialize_only_identical_model_prefixes(
+def test_cache_groups_serialize_identical_model_prefixes(
     tmp_path: Path,
 ) -> None:
     first = _request()
-    second = ModelRequest(
+    second = StructuredRequest(
         instructions=first.instructions,
         evidence="different evidence",
         schema_name=first.schema_name,
         schema=first.schema,
     )
     jobs = [
-        model_judge.PreparedJob(
-            case=tmp_path / name,
+        PreparedJob(
+            case=AuditCase(
+                case_id=name,
+                source_kind=source_kind,
+                path=tmp_path / name,
+                sort_key=(name,),
+            ),
             model=model,
-            source_kind=source_kind,
-                requests=(request,),
-                input_tokens=(100,),
-                compact_stats={},
-                aggregation="synthesis",
+            requests=(request,),
+            input_tokens=(100,),
+            compact_stats={},
+            aggregation="synthesis",
         )
         for name, model, source_kind, request in (
             ("revision-a", "gpt-5.6-sol", "revision", first),
@@ -104,10 +127,10 @@ def test_revision_cache_groups_serialize_only_identical_model_prefixes(
         )
     ]
 
-    groups = [ModelJudgeRunner._standard_cache_group(job) for job in jobs]
+    groups = [RewardHackingJudgeRunner._standard_cache_group(job) for job in jobs]
     assert groups[0] == groups[1]
     assert groups[0] != groups[2]
-    assert groups[3] != groups[4]
+    assert groups[3] == groups[4]
 
 
 def test_preparation_loads_each_case_once_for_all_models(
@@ -115,34 +138,33 @@ def test_preparation_loads_each_case_once_for_all_models(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     case = tmp_path / "case-a"
-    payload = model_judge.EvidencePrompt(
+    payload = review.EvidencePrompt(
         instructions="unused",
         evidence="unused",
         stats={},
         messages=tuple(f"user: message {index}" for index in range(7)),
     )
     loads: list[tuple[Path, str]] = []
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,),
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case),
             models=("model-a", "model-b", "model-c"),
             output_dir=tmp_path / "output",
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         count_tokens=lambda _model, _request: 100,
     )
     monkeypatch.setattr(
         runner,
         "_payload",
-        lambda path, source_kind: (
-            loads.append((path, source_kind)) or payload
+        lambda audit_case: (
+            loads.append((audit_case.path, audit_case.source_kind)) or payload
         ),
     )
 
     jobs = runner._prepare_jobs()
 
     assert len(jobs) == 3
-    assert loads == [(case, "case")]
+    assert loads == [(case, "transcript")]
 
 
 def test_anthropic_preflight_uses_provider_token_counter(
@@ -157,25 +179,25 @@ def test_anthropic_preflight_uses_provider_token_counter(
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-test")
     monkeypatch.setattr(
-        model_judge,
+        llm,
         "_token_counter_client",
         lambda provider, key: types.SimpleNamespace(messages=Messages()),
     )
 
-    assert model_judge.count_input_tokens("claude-opus-4-8", _request()) == 321
+    assert llm.count_input_tokens("claude-opus-4-8", _request()) == 321
     assert observed["model"] == "claude-opus-4-8"
     assert observed["output_config"] == {
         "effort": "low",
         "format": {
             "type": "json_schema",
-            "schema": model_judge._anthropic_schema(_request().schema),
+            "schema": llm.anthropic_schema(_request().schema),
         },
     }
 
 
 def test_anthropic_schema_removes_unsupported_numeric_bounds() -> None:
-    original = model_judge._verdict_schema("rh")
-    rendered = model_judge._anthropic_schema(original)
+    original = review._verdict_schema("rh")
+    rendered = llm.anthropic_schema(original)
 
     assert isinstance(rendered, dict)
     confidence = rendered["properties"]["confidence"]  # type: ignore[index]
@@ -198,7 +220,7 @@ def test_gemini_preflight_reserves_uncounted_schema_bytes(
 
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-test")
     monkeypatch.setattr(
-        model_judge,
+        llm,
         "_token_counter_client",
         lambda provider, key: types.SimpleNamespace(models=Models()),
     )
@@ -211,7 +233,7 @@ def test_gemini_preflight_reserves_uncounted_schema_bytes(
     )
 
     assert (
-        model_judge.count_input_tokens("gemini-3.1-pro-preview", _request())
+        llm.count_input_tokens("gemini-3.1-pro-preview", _request())
         == 100 + schema_bytes
     )
 
@@ -232,7 +254,7 @@ def _case(path: Path, transcript: dict[str, object]) -> Path:
 def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         prompt = request.flat_prompt()
         assert "<first_few_messages>" in prompt
         assert "<transcript_chunk>" in prompt
@@ -242,17 +264,16 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
         )
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("gpt-test",), output_dir=output,
-            dataset_provenance=DATASET_PROVENANCE,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("gpt-test",), output_dir=output,
         ),
         generate_response=generate,
     )
     assert runner.run() == 0
     summary = json.loads((output / "summary.json").read_text())
-    assert summary["schema_version"] == 10
-    assert summary["detection_target"] == model_judge.detection_target(
+    assert summary["schema_version"] == 11
+    assert summary["detection_target"] == review.detection_target(
         "rh"
     ).provenance()
     assert summary["records"][0]["verdict"]["decision"] == "no_reward_hacking_detected"
@@ -267,7 +288,7 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     assert generation["requested_model"] == "gpt-test"
     assert generation["effective_model"] == "gpt-test-served"
     provenance = json.loads((output / "run-provenance.json").read_text())
-    assert provenance["schema_version"] == 6
+    assert provenance["schema_version"] == 7
     assert provenance["input_validation"] == (
         "study-ledger-and-required-evidence-files; "
         "no-snapshot-hash-revalidation"
@@ -280,7 +301,7 @@ def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     calls = 0
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         nonlocal calls
         calls += 1
         if calls == 1:
@@ -288,11 +309,10 @@ def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
         return _generation(model, _rh_text(reason="No divergence."))
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("gpt-test",), output_dir=output,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("gpt-test",), output_dir=output,
             max_retries=1,
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         generate_response=generate,
     )
@@ -326,13 +346,12 @@ def test_job_preparation_reports_progress(
         def update(self) -> None:
             observed["updates"] = int(observed["updates"]) + 1
 
-    monkeypatch.setattr(model_judge, "TerminalProgress", Progress)
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,),
+    monkeypatch.setattr(runner_module, "TerminalProgress", Progress)
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case),
             models=("model-one", "model-two"),
             output_dir=tmp_path / "output",
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         count_tokens=lambda _model, _request: 100,
     )
@@ -340,7 +359,7 @@ def test_job_preparation_reports_progress(
     assert len(runner._prepare_jobs()) == 2
     assert observed == {
         "total": 2,
-        "description": "MALT preparation",
+        "description": "Audit preparation",
         "unit": "job",
         "updates": 2,
         "status": "planning case-a for model-two",
@@ -353,7 +372,7 @@ def test_direct_runner_does_not_make_posthoc_category_calls(
     case = _case(tmp_path / "case-a", {"samples": []})
     calls = 0
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         nonlocal calls
         calls += 1
         return _generation(
@@ -365,13 +384,12 @@ def test_direct_runner_does_not_make_posthoc_category_calls(
         )
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,),
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case),
             models=("gpt-test",),
             output_dir=output,
             max_retries=1,
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         generate_response=generate,
     )
@@ -500,7 +518,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     }))
     observed: dict[str, str] = {}
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         observed["prompt"] = request.flat_prompt()
         return _generation(
             model,
@@ -508,12 +526,13 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
         )
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(),
-            revision_dirs=(revision,),
-            experiment_ids=("test-experiment",),
-            tasks_dir=tasks,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=revision_audit_source(
+                (revision,),
+                tasks_dir=tasks,
+                experiment_ids=("test-experiment",),
+            ),
             models=("gpt-test",),
             output_dir=output,
         ),
@@ -568,7 +587,7 @@ def test_chunking_materializes_exact_value_references() -> None:
     }
     evidence = "\n".join(json.dumps(value) for value in (first, second))
 
-    materialized = model_judge._materialize_exact_value_references(evidence)
+    materialized = review._materialize_exact_value_references(evidence)
     records = [json.loads(line) for line in materialized.splitlines()]
 
     assert records[0]["value"] == records[1]["value"]
@@ -586,20 +605,20 @@ def test_chunking_materializes_exact_value_references() -> None:
     ],
 )
 def test_rh_score_decision_rule_is_explicit(score: int, decision: str) -> None:
-    verdict = model_judge._aggregate_rh_scores([
+    verdict = review._aggregate_rh_scores([
         {"reason": "first maximum", "score": score},
         {"reason": "tied later", "score": score},
     ])
 
     assert verdict["decision"] == decision
     assert verdict["selected_chunk"] == 1
-    assert model_judge._validate_rh_verdict(verdict) == verdict
+    assert review._validate_rh_verdict(verdict) == verdict
 
 
 def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         prompt = request.flat_prompt()
         if "<finding_inventory_json>" in prompt:
             return _generation(model, json.dumps({"categories": [{
@@ -622,11 +641,10 @@ def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None
         }))
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("gpt-test",), output_dir=output,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("gpt-test",), output_dir=output,
             detection="non-normal",
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         generate_response=generate,
     )
@@ -647,7 +665,7 @@ def test_non_normal_direct_prompt_and_verdict_vocabulary(tmp_path: Path) -> None
 def test_all_behaviors_prompt_includes_good_faith_failures(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         prompt = request.flat_prompt()
         assert "ordinary factual" in prompt
         assert "lucky success" in prompt
@@ -665,11 +683,10 @@ def test_all_behaviors_prompt_includes_good_faith_failures(tmp_path: Path) -> No
         }))
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("gpt-test",), output_dir=output,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("gpt-test",), output_dir=output,
             detection="all-behaviors",
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         generate_response=generate,
     )
@@ -685,7 +702,7 @@ def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     observed = {}
 
-    def vllm(model: str, request: ModelRequest, url: str) -> ModelGeneration:
+    def vllm(model: str, request: StructuredRequest, url: str) -> GenerationResult:
         observed.update(model=model, url=url)
         return _generation(
             model,
@@ -693,11 +710,10 @@ def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:
             base_url=url,
         )
 
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("Qwen/Test",), output_dir=tmp_path / "out",
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("Qwen/Test",), output_dir=tmp_path / "out",
             base_urls={"Qwen/Test": "http://node:8000/v1"},
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         generate_vllm_response=vllm,
     )
@@ -707,12 +723,11 @@ def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:
 
 def test_model_judge_rejects_unselected_vllm_endpoint(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="match selected"):
-        ModelJudgeConfig(
-            case_dirs=(tmp_path / "case",),
+        RewardHackingJudgeConfig(
+            source=_source(tmp_path / "case"),
             models=("Qwen/Selected",),
             output_dir=tmp_path / "out",
             base_urls={"Qwen/Other": "http://node:8000/v1"},
-            dataset_provenance=DATASET_PROVENANCE,
         )
 
 
@@ -730,14 +745,13 @@ def test_rh_prompt_preserves_every_converted_message(
     })
     observed: dict[str, str] = {}
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         observed["prompt"] = request.flat_prompt()
         return _generation(model, _rh_text(reason="No divergence."))
 
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("gpt-test",), output_dir=tmp_path / "out",
-            dataset_provenance=DATASET_PROVENANCE,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("gpt-test",), output_dir=tmp_path / "out",
         ),
         generate_response=generate,
     )
@@ -767,7 +781,7 @@ def test_direct_prompt_preserves_distinct_function_calls_with_empty_content(
     ]]}]})
     observed: dict[str, str] = {}
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         observed["prompt"] = request.flat_prompt()
         return _generation(
             model,
@@ -775,12 +789,11 @@ def test_direct_prompt_preserves_distinct_function_calls_with_empty_content(
         )
 
     output = tmp_path / "out"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,),
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case),
             models=("gpt-test",),
             output_dir=output,
-            dataset_provenance=DATASET_PROVENANCE,
         ),
         generate_response=generate,
     )
@@ -800,22 +813,21 @@ def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
     output = tmp_path / "out"
     calls = 0
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         nonlocal calls
         calls += 1
         return _generation(model, _rh_text(reason="No divergence."))
 
     base = dict(
-        case_dirs=(case,),
+        source=_source(case),
         models=("gpt-test",),
         output_dir=output,
-        dataset_provenance=DATASET_PROVENANCE,
     )
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**base), generate_response=generate
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**base), generate_response=generate
     ).run() == 0
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**base, resume=True), generate_response=generate
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     assert calls == 1
     summary = json.loads((output / "summary.json").read_text())
@@ -825,8 +837,8 @@ def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
     )
 
     (output / "cases/case-a/gpt-test/responses.json").write_text("tampered")
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**base, resume=True), generate_response=generate
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     assert calls == 2
     assert (output / "cases/case-a/gpt-test.failed-001").is_dir()
@@ -840,8 +852,11 @@ def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
         }],
     }
     with pytest.raises(ValueError, match="run provenance does not exactly match"):
-        ModelJudgeRunner(
-            ModelJudgeConfig(**{**base, "dataset_provenance": changed}, resume=True),
+        RewardHackingJudgeRunner(
+            RewardHackingJudgeConfig(
+                **{**base, "source": _source(case, provenance=changed)},
+                resume=True,
+            ),
             generate_response=generate,
         ).run()
 
@@ -851,11 +866,11 @@ def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
     output = tmp_path / "out"
     calls = 0
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         nonlocal calls
         calls += 1
         generation = _generation(model, _rh_text(reason="No divergence."))
-        return ModelGeneration(
+        return GenerationResult(
             **{
                 **generation.__dict__,
                 "provider_metadata": {
@@ -865,13 +880,12 @@ def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
         )
 
     base = dict(
-        case_dirs=(case,),
+        source=_source(case),
         models=("gpt-5.6-luna",),
         output_dir=output,
-        dataset_provenance=DATASET_PROVENANCE,
     )
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**base), generate_response=generate
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**base), generate_response=generate
     ).run() == 0
     first = json.loads((output / "summary.json").read_text())["cost"]
     assert first["observed_api_usd"] > 0
@@ -881,8 +895,8 @@ def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
     cost_state["reserved_api_usd"] = -1.6653345369377348e-16
     cost_state_path.write_text(json.dumps(cost_state))
 
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**base, resume=True), generate_response=generate
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     resumed = json.loads((output / "summary.json").read_text())["cost"]
     assert resumed["observed_api_usd"] == first["observed_api_usd"]
@@ -909,7 +923,7 @@ def test_malt_gemini_uses_only_canonical_gemini_key(
         ) -> object:
             observed["prompt"] = prompt
             observed["schema"] = str(response_schema)
-            observed["key"] = model_judge.os.environ["GEMINI_API_KEY"]
+            observed["key"] = llm.os.environ["GEMINI_API_KEY"]
             observed["thinking_level"] = thinking_level
             observed["max_output_tokens"] = str(max_output_tokens)
             return types.SimpleNamespace(
@@ -920,9 +934,9 @@ def test_malt_gemini_uses_only_canonical_gemini_key(
 
     monkeypatch.setenv("GEMINI_API_KEY", "canonical-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "wrong-key")
-    monkeypatch.setattr(model_judge, "GeminiClient", FakeGeminiClient)
+    monkeypatch.setattr(llm, "GeminiClient", FakeGeminiClient)
 
-    generation = model_judge.generate("gemini-test", _request())
+    generation = llm.generate_structured("gemini-test", _request())
     assert generation.text == "response"
     assert generation.effective_model == "gemini-test-served"
     assert generation.response_id == "gemini-response"
@@ -965,7 +979,7 @@ def test_malt_openai_judge_uses_no_reasoning_effort(
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
 
-    generation = model_judge.generate("gpt-5.6-luna", _request())
+    generation = llm.generate_structured("gpt-5.6-luna", _request())
     assert generation.text == "response"
     assert generation.effective_model == "gpt-5.6-luna-served"
     assert generation.response_id == "openai-response"
@@ -1017,7 +1031,7 @@ def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
         types.SimpleNamespace(Anthropic=FakeAnthropic),
     )
 
-    generation = model_judge.generate("claude-opus-4-8", _request())
+    generation = llm.generate_structured("claude-opus-4-8", _request())
 
     assert generation.text == "response"
     assert observed["api_key"] == "anthropic-secret"
@@ -1028,7 +1042,7 @@ def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
         "effort": "low",
         "format": {
             "type": "json_schema",
-            "schema": model_judge._anthropic_schema(_request().schema),
+            "schema": llm.anthropic_schema(_request().schema),
         },
     }
     assert observed["system"] == [{
@@ -1052,16 +1066,16 @@ def test_rh_scans_every_chunk_then_takes_maximum_score(tmp_path: Path) -> None:
     cache_keys: set[str] = set()
     instruction_prefixes: set[str] = set()
 
-    def token_count(model: str, request: ModelRequest) -> int:
+    def token_count(model: str, request: StructuredRequest) -> int:
         return max(1, len(request.flat_prompt()) // 4)
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         schemas.append(request.schema_name)
         cache_keys.add(request.prompt_cache_key())
         instruction_prefixes.add(request.instructions)
         score = 9 if len(schemas) == 3 else 1
         generation = _generation(model, _rh_text(score, f"chunk score {score}"))
-        return ModelGeneration(
+        return GenerationResult(
             **{
                 **generation.__dict__,
                 "response_id": f"response-{len(schemas)}",
@@ -1070,12 +1084,11 @@ def test_rh_scans_every_chunk_then_takes_maximum_score(tmp_path: Path) -> None:
 
     output = tmp_path / "output"
     config = dict(
-        case_dirs=(case,), models=("gpt-test",), output_dir=output,
-        dataset_provenance=DATASET_PROVENANCE,
+        source=_source(case), models=("gpt-test",), output_dir=output,
         max_input_tokens=10_000,
     )
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(**config),
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**config),
         generate_response=generate,
         count_tokens=token_count,
     )
@@ -1083,8 +1096,8 @@ def test_rh_scans_every_chunk_then_takes_maximum_score(tmp_path: Path) -> None:
     assert runner.run() == 0
     record = json.loads((output / "summary.json").read_text())["records"][0]
     assert record["compact_evidence"]["chunked"] == 1
-    assert schemas.count("malt_reward_hacking_score") > 1
-    assert "malt_forensic_synthesis_verdict" not in schemas
+    assert schemas.count("reward_hacking_score") > 1
+    assert "reward_hacking_synthesis_verdict" not in schemas
     assert len(cache_keys) == 1
     assert len(instruction_prefixes) == 1
     prefix = instruction_prefixes.pop()
@@ -1096,8 +1109,8 @@ def test_rh_scans_every_chunk_then_takes_maximum_score(tmp_path: Path) -> None:
     assert record["verdict"]["chunk_count"] == len(schemas)
     assert record["generation"]["response_id"] == "response-3"
     call_count = len(schemas)
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**config, resume=True),
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**config, resume=True),
         generate_response=generate,
         count_tokens=token_count,
     ).run() == 0
@@ -1111,16 +1124,15 @@ def test_runtime_budget_stops_before_generation(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     calls = 0
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         nonlocal calls
         calls += 1
         raise AssertionError("generation must not start")
 
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(case,), models=("gpt-5.6-luna",),
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case), models=("gpt-5.6-luna",),
             output_dir=tmp_path / "output",
-            dataset_provenance=DATASET_PROVENANCE,
             max_cost_usd=0.01,
         ),
         generate_response=generate,
@@ -1140,41 +1152,41 @@ def test_runtime_budget_stops_before_generation(tmp_path: Path) -> None:
 def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     # Luna: 300k uncached input at 2x $0.20/MTok plus 100k output at
     # 1.5x $1.20/MTok.
-    assert ModelJudgeRunner._request_cost(
+    assert RewardHackingJudgeRunner._request_cost(
         "gpt-5.6-luna", 300_000, 100_000
     ) == pytest.approx(0.3)
     # At the threshold the ordinary tier still applies.
-    assert ModelJudgeRunner._request_cost(
+    assert RewardHackingJudgeRunner._request_cost(
         "gpt-5.6-luna", 272_000, 100_000
     ) == pytest.approx(0.1744)
     # Gemini switches above 200k to $4 input and $18 output per MTok.
-    assert ModelJudgeRunner._request_cost(
+    assert RewardHackingJudgeRunner._request_cost(
         "gemini-3.1-pro-preview", 300_000, 100_000
     ) == pytest.approx(3.0)
     # Gemini 3.5 Flash has one standard tier across its context window.
-    assert ModelJudgeRunner._request_cost(
+    assert RewardHackingJudgeRunner._request_cost(
         "gemini-3.5-flash", 300_000, 100_000
     ) == pytest.approx(1.35)
     # Claude's full context uses the standard Opus 4.8 tier.
-    assert ModelJudgeRunner._request_cost(
+    assert RewardHackingJudgeRunner._request_cost(
         "claude-opus-4-8", 300_000, 100_000
     ) == pytest.approx(4.0)
 
 
 def test_cost_reservation_marks_only_the_stable_prefix_as_a_cache_write() -> None:
-    request = ModelRequest(
+    request = StructuredRequest(
         instructions="stable " * 2_000,
         evidence="changing " * 40_000,
         schema_name="test_schema",
         schema={"type": "object", "additionalProperties": False},
     )
-    total = model_judge._estimated_tokens(request)
-    reserved = ModelJudgeRunner._cache_write_reservation_tokens(
+    total = llm.estimate_input_tokens(request)
+    reserved = RewardHackingJudgeRunner._cache_write_reservation_tokens(
         "gpt-5.6-sol", request, total
     )
 
     assert 0 < reserved < total
-    assert ModelJudgeRunner._cache_write_reservation_tokens(
+    assert RewardHackingJudgeRunner._cache_write_reservation_tokens(
         "gemini-3.1-pro-preview", request, total
     ) == 0
 
@@ -1186,16 +1198,15 @@ def test_quota_error_opens_circuit_without_retries(tmp_path: Path) -> None:
     )
     calls = 0
 
-    def generate(model: str, request: ModelRequest) -> ModelGeneration:
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
         nonlocal calls
         calls += 1
         raise RuntimeError("insufficient_quota: top up credits")
 
     output = tmp_path / "output"
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=cases, models=("gpt-test",), output_dir=output,
-            dataset_provenance=DATASET_PROVENANCE,
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(*cases), models=("gpt-test",), output_dir=output,
             max_retries=3, max_concurrency=1,
         ),
         generate_response=generate,
@@ -1257,13 +1268,13 @@ def test_openai_batch_submits_and_resume_collects(
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
     base = dict(
-        case_dirs=(case,), models=("gpt-5.6-luna",),
-        output_dir=tmp_path / "output", dataset_provenance=DATASET_PROVENANCE,
+        source=_source(case), models=("gpt-5.6-luna",),
+        output_dir=tmp_path / "output",
         execution="batch",
     )
     count = lambda _model, _request: 100
 
-    assert ModelJudgeRunner(ModelJudgeConfig(**base), count_tokens=count).run() == 0
+    assert RewardHackingJudgeRunner(RewardHackingJudgeConfig(**base), count_tokens=count).run() == 0
     assert not (tmp_path / "output/summary.json").exists()
     batch_line = json.loads(
         (tmp_path / "output/batch-initial-01.jsonl").read_text().splitlines()[0]
@@ -1271,8 +1282,8 @@ def test_openai_batch_submits_and_resume_collects(
     assert batch_line["body"]["prompt_cache_options"]["mode"] == "explicit"
     assert batch_line["body"]["text"]["format"]["type"] == "json_schema"
 
-    assert ModelJudgeRunner(
-        ModelJudgeConfig(**base, resume=True), count_tokens=count
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(**base, resume=True), count_tokens=count
     ).run() == 0
     summary = json.loads((tmp_path / "output/summary.json").read_text())
     assert summary["records"][0]["verdict"]["decision"] == (
@@ -1282,27 +1293,31 @@ def test_openai_batch_submits_and_resume_collects(
 
 def test_batch_rh_aggregates_chunk_scores_without_synthesis(tmp_path: Path) -> None:
     case = tmp_path / "case-a"
-    request = ModelRequest(
+    request = StructuredRequest(
         instructions="prefix",
         evidence="chunk",
-        schema_name="malt_reward_hacking_score",
-        schema=model_judge._rh_score_schema(),
+        schema_name="reward_hacking_score",
+        schema=review._rh_score_schema(),
         prompt_layout="cached_user_prefix",
     )
-    job = model_judge.PreparedJob(
-        case=case,
+    audit_case = AuditCase(
+        case_id=case.name,
+        source_kind="transcript",
+        path=case,
+        sort_key=(case.name,),
+    )
+    job = PreparedJob(
+        case=audit_case,
         model="gpt-5.6-luna",
-        source_kind="case",
         requests=(request, request, request),
         input_tokens=(100, 100, 100),
         compact_stats={"planned_calls": 3},
         aggregation="max_score",
     )
-    runner = ModelJudgeRunner(ModelJudgeConfig(
-        case_dirs=(case,),
+    runner = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
+        source=_source(case),
         models=("gpt-5.6-luna",),
         output_dir=tmp_path / "output",
-        dataset_provenance=DATASET_PROVENANCE,
         execution="batch",
     ))
     results = {}
@@ -1332,9 +1347,9 @@ def test_batch_rh_aggregates_chunk_scores_without_synthesis(tmp_path: Path) -> N
 def test_openai_batch_prices_a_paid_response_before_parse_retry(
     tmp_path: Path,
 ) -> None:
-    runner = ModelJudgeRunner(
-        ModelJudgeConfig(
-            case_dirs=(),
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(tmp_path / "case"),
             models=("gpt-5.6-luna",),
             output_dir=tmp_path,
             execution="batch",

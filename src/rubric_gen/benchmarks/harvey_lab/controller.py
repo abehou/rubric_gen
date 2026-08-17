@@ -11,7 +11,7 @@ from typing import Protocol
 
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.harvey.artifacts import (
+from rubric_gen.benchmarks.harvey_lab.artifacts import (
     copy_regular_tree,
     file_sha256,
     make_tree_read_only,
@@ -22,14 +22,14 @@ from rubric_gen.harvey.artifacts import (
     validate_task,
     write_identity,
 )
-from rubric_gen.harvey.config import HarveyExperiment
-from rubric_gen.harvey.designer import (
+from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
+from rubric_gen.benchmarks.harvey_lab.designer import (
     CodexHarnessDesigner,
     DesignedCandidate,
     copy_designed_candidate,
 )
-from rubric_gen.harvey.evaluator import CandidateEvaluation, HarveyEvaluator, aggregate_scores
-from rubric_gen.harvey.rubrics import RubricProposal, TaskRubricProposer
+from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator, aggregate_scores
+from rubric_gen.benchmarks.harvey_lab.rubrics import RubricProposal, TaskRubricProposer
 
 
 class Designer(Protocol):

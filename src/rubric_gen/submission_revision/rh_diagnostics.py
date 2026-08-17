@@ -13,13 +13,13 @@ from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.benchmarks import Benchmark, get_benchmark
-from rubric_gen.evidence.scoring import detection_rates
-from rubric_gen.malt.model_judge import (
-    ModelGeneration,
-    ModelRequest,
-    generate,
-    generate_vllm,
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
+from rubric_gen.reward_hacking.metrics import detection_rates
+from rubric_gen.runtime.llm import (
+    GenerationResult,
+    StructuredRequest,
+    generate_structured,
+    generate_structured_vllm,
 )
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -71,7 +71,7 @@ class DiagnosticTarget:
     task_id: str
     replicate: int
     condition_id: str
-    benchmark: Benchmark
+    benchmark: SubmissionBenchmarkId
     experiment_dir: Path
     task_dir: Path
     review: str
@@ -354,7 +354,7 @@ class RubricFreeMetaRunner:
         self,
         config: DiagnosticConfig,
         *,
-        generation_operation: Callable[[str, ModelRequest], ModelGeneration]
+        generation_operation: Callable[[str, StructuredRequest], GenerationResult]
         | None = None,
     ) -> None:
         self.config = config
@@ -433,7 +433,7 @@ class RubricFreeMetaRunner:
         record_path.parent.mkdir(parents=True, exist_ok=True)
         instruction = (target.task_dir / "instruction.md").read_text(encoding="utf-8")
         artifact = _rubric_free_review_material(target, submission)
-        request = ModelRequest(
+        request = StructuredRequest(
             instructions=_META_INSTRUCTIONS,
             evidence=(
                 f"<task_instruction>\n{instruction}\n</task_instruction>\n"
@@ -444,7 +444,7 @@ class RubricFreeMetaRunner:
             schema=_META_SCHEMA,
             max_output_tokens=2_048,
         )
-        generation: ModelGeneration | None = None
+        generation: GenerationResult | None = None
         value: dict[str, object] | None = None
         last_error: Exception | None = None
         max_attempts = int(
@@ -488,13 +488,13 @@ class RubricFreeMetaRunner:
         write_json_atomic(record_path, record)
         return record
 
-    def _generate(self, model: str, request: ModelRequest) -> ModelGeneration:
+    def _generate(self, model: str, request: StructuredRequest) -> GenerationResult:
         if self.generation_operation is not None:
             return self.generation_operation(model, request)
         endpoint = self.config.vllm_endpoints.get(model)
         if endpoint is not None:
-            return generate_vllm(model, request, endpoint)
-        return generate(model, request)
+            return generate_structured_vllm(model, request, endpoint)
+        return generate_structured(model, request)
 
 
 def write_combined_rh_summary(output_dir: Path) -> Path:
@@ -604,7 +604,7 @@ def _rubric_free_review_material(
     target: DiagnosticTarget,
     submission: Path,
 ) -> str:
-    benchmark = get_benchmark(target.benchmark)
+    benchmark = get_submission_benchmark(target.benchmark)
     workspace = submission / "workspace"
     if target.review == "workspace":
         return benchmark.render_workspace_review(target.task_dir, workspace)

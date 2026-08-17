@@ -11,7 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from rubric_gen.benchmarks import Benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.rubrics.schema import canonical_json, load_json_strict
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 
@@ -337,9 +337,9 @@ class JudgeExecutor:
 
     @staticmethod
     def judge_runner_sha256(
-        benchmark: Benchmark | str = Benchmark.BIOMNIBENCH_DA,
+        benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
     ) -> str:
-        resolved = Benchmark(benchmark)
+        resolved = SubmissionBenchmarkId(benchmark)
         module_dir = Path(__file__).parent
         package_dir = module_dir.parents[1]
         sources = [
@@ -348,22 +348,27 @@ class JudgeExecutor:
         ]
         sources.extend((
             ("benchmarks/__init__.py", package_dir / "benchmarks" / "__init__.py"),
-            ("benchmarks/contracts.py", package_dir / "benchmarks" / "contracts.py"),
+            ("benchmarks/base.py", package_dir / "benchmarks" / "base.py"),
+            ("benchmarks/registry.py", package_dir / "benchmarks" / "registry.py"),
         ))
-        if resolved is Benchmark.BIOMNIBENCH_DA:
+        if resolved is SubmissionBenchmarkId.BIOMNIBENCH_DA:
             sources.append((
-                "benchmarks/biomnibench_da.py",
-                package_dir / "benchmarks" / "biomnibench_da.py",
+                "benchmarks/biomnibench_da/contract.py",
+                package_dir / "benchmarks" / "biomnibench_da" / "contract.py",
             ))
         else:
             sources.extend((
                 (
-                    "benchmarks/paperbench_code_dev.py",
-                    package_dir / "benchmarks" / "paperbench_code_dev.py",
+                    "benchmarks/paperbench_code_dev/contract.py",
+                    package_dir / "benchmarks" / "paperbench_code_dev" / "contract.py",
                 ),
                 (
-                    "paperbench/evidence.py",
-                    package_dir / "paperbench" / "evidence.py",
+                    "benchmarks/paperbench_code_dev/dataset.py",
+                    package_dir / "benchmarks" / "paperbench_code_dev" / "dataset.py",
+                ),
+                (
+                    "benchmarks/paperbench_code_dev/submission.py",
+                    package_dir / "benchmarks" / "paperbench_code_dev" / "submission.py",
                 ),
             ))
         digest = hashlib.sha256()

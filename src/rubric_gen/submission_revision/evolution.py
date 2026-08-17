@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from rubric_gen.runtime.agents.costs import RunCost
+from rubric_gen.runtime.agents.contracts import RegularFileOutputs
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.runners import AgentRunner
 from rubric_gen.evidence.index import (
@@ -902,7 +903,7 @@ class RubricEvolver:
             exit_code, _ = AgentRunner(
                 config,
                 prompt=_AUDITOR_AGENT_PROMPT,
-                required_outputs=(packet_output_path.name,),
+                output_errors=RegularFileOutputs((packet_output_path.name,)),
             ).run(task, paths=paths)
             if exit_code != 0:
                 raise RuntimeError(

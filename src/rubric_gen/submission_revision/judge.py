@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.submission_revision.judging.models import (
     JudgeAttempt,
     JudgeRunConfig,
@@ -70,13 +70,13 @@ class SubmissionJudgeConfig:
     rubric_name: str | None
     rubric_set: Path | None
     max_review_chars: int | None
-    benchmark: Benchmark = Benchmark.BIOMNIBENCH_DA
+    benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     base_url: str | None = None
     max_retries: int = MAX_TRANSIENT_RETRIES
     rubric_path: Path | None = None
 
     def __post_init__(self) -> None:
-        get_benchmark(self.benchmark).validate_review(self.review)
+        get_submission_benchmark(self.benchmark).validate_review(self.review)
         if sum(value is not None for value in (
             self.rubric_name, self.rubric_set, self.rubric_path
         )) != 1:

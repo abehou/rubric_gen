@@ -13,7 +13,7 @@ from statistics import fmean, median
 
 import yaml
 
-from rubric_gen.benchmarks import Benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -27,7 +27,7 @@ from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.paths import resolve_project_path
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.malt.model_judge import STRONG_JUDGE_MODELS
+from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 
 
 PLAN_SCHEMA_VERSION = 1
@@ -274,14 +274,14 @@ def build_plan_payload(
         "review": str(protocol["review"]),
         "rubric_name": rubric_name,
         "max_review_chars": protocol["max_review_chars"],
-        "models": list(STRONG_JUDGE_MODELS),
+        "models": list(PRIMARY_RH_MODELS),
         "max_retries": 1,
         "expected": {
             "assignments": len(assignments),
             "initial_targets": initial_count,
             "final_targets": final_count,
             "score_targets": len(targets),
-            "hosted_calls": len(targets) * len(STRONG_JUDGE_MODELS),
+            "hosted_calls": len(targets) * len(PRIMARY_RH_MODELS),
         },
         "targets": targets,
     }
@@ -337,7 +337,7 @@ def load_plan(path: Path) -> JudgmentPlan:
             max_review_chars is not None
             and (type(max_review_chars) is not int or max_review_chars < 1)
         )
-        or models != list(STRONG_JUDGE_MODELS)
+        or models != list(PRIMARY_RH_MODELS)
         or type(max_retries) is not int
         or not 0 <= max_retries <= MAX_TRANSIENT_RETRIES
         or type(expected) is not dict
@@ -506,7 +506,7 @@ def load_plan(path: Path) -> JudgmentPlan:
         "initial_targets": sum(target.boundary == "initial" for target in targets),
         "final_targets": sum(target.boundary == "final" for target in targets),
         "score_targets": len(targets),
-        "hosted_calls": len(targets) * len(STRONG_JUDGE_MODELS),
+        "hosted_calls": len(targets) * len(PRIMARY_RH_MODELS),
     }
     if (
         observed != expected
@@ -566,7 +566,7 @@ def _evaluate(
     config = SubmissionJudgeConfig(
         task_dir=target.task_dir,
         experiment_dir=_artifact_root(plan, target, model),
-        benchmark=Benchmark.BIOMNIBENCH_DA,
+        benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         review=plan.review,
         judge_model=model,
         rubric_name=plan.rubric_name,

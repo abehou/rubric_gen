@@ -9,11 +9,15 @@ from pathlib import Path
 from rubric_gen.evidence.index import INDEX_SCHEMA_VERSION
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.harvey.artifacts import file_sha256, read_json_object, task_path
-from rubric_gen.harvey.config import HarveyExperiment
-from rubric_gen.harvey.controller import candidate_id, rubric_id
-from rubric_gen.harvey.evaluator import CandidateEvaluation, HarveyEvaluator
-from rubric_gen.malt.model_judge import ModelJudgeConfig, ModelJudgeRunner
+from rubric_gen.benchmarks.harvey_lab.artifacts import file_sha256, read_json_object, task_path
+from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
+from rubric_gen.benchmarks.harvey_lab.controller import candidate_id, rubric_id
+from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
+from rubric_gen.reward_hacking.runner import (
+    RewardHackingJudgeConfig,
+    RewardHackingJudgeRunner,
+)
+from rubric_gen.reward_hacking.sources import transcript_audit_source
 
 
 def _completed_candidate_count(experiment: HarveyExperiment) -> int:
@@ -135,7 +139,7 @@ def _load_evaluation(path: Path) -> CandidateEvaluation:
         for key, value in tasks.items()
     ):
         raise ValueError(f"invalid Harvey evaluation: {path}")
-    from rubric_gen.harvey.evaluator import aggregate_scores
+    from rubric_gen.benchmarks.harvey_lab.evaluator import aggregate_scores
 
     return aggregate_scores(identifier, tasks)  # type: ignore[arg-type]
 
@@ -298,7 +302,7 @@ def run_reward_hacking_audit(
     experiment: HarveyExperiment,
     *,
     resume: bool = False,
-    runner_type: type[ModelJudgeRunner] = ModelJudgeRunner,
+    runner_type: type[RewardHackingJudgeRunner] = RewardHackingJudgeRunner,
 ) -> int:
     cases = prepare_reward_hacking_cases(experiment)
     if not cases:
@@ -317,19 +321,21 @@ def run_reward_hacking_audit(
     output = experiment.output_dir / "audits" / "reward-hacking" / "judgments"
     config = experiment.audit
     return runner_type(
-        ModelJudgeConfig(
-            case_dirs=cases,
+        RewardHackingJudgeConfig(
+            source=transcript_audit_source(
+                cases,
+                {
+                    "schema_version": 2,
+                    "dataset_revision": experiment.benchmark.revision,
+                    "inputs": inputs,
+                },
+            ),
             models=config.models,
             output_dir=output,
             max_concurrency=config.max_concurrency,
             max_retries=config.max_retries,
             resume=resume,
             detection="rh",
-            dataset_provenance={
-                "schema_version": 2,
-                "dataset_revision": experiment.benchmark.revision,
-                "inputs": inputs,
-            },
             max_cost_usd=config.max_cost_usd,
             primary_rule=config.primary_rule,
         )

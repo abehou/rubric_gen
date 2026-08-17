@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from rubric_gen.benchmarks import Benchmark, get_benchmark
-from rubric_gen.benchmarks.paperbench_code_dev import (
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
+from rubric_gen.benchmarks.paperbench_code_dev.contract import (
     PAPERBENCH_CODE_DEV,
     PAPERBENCH_CODE_DEV_PROMPT,
 )
@@ -25,8 +25,8 @@ from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
     validate_judge_score,
 )
-from rubric_gen.paperbench.evidence import render_submission_tree
-from rubric_gen.paperbench.loader import (
+from rubric_gen.benchmarks.paperbench_code_dev.submission import render_submission_tree
+from rubric_gen.benchmarks.paperbench_code_dev.dataset import (
     PAPERBENCH_DEV_PAPERS,
     PAPERBENCH_REVISION,
     prepare_paperbench_code_dev,
@@ -181,7 +181,7 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
 
 
 def test_paperbench_contract_owns_native_revision_language() -> None:
-    contract = get_benchmark(Benchmark.PAPERBENCH_CODE_DEV)
+    contract = get_submission_benchmark(SubmissionBenchmarkId.PAPERBENCH_CODE_DEV)
     prompt = render_feedback_prompt(
         {"schema_version": 1, "policy": "score_only", "score": 50},
         benchmark=contract.benchmark,
@@ -222,7 +222,7 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     runner = SubmissionJudgeRunner(JudgeRunConfig(
         run_dir=target.run_dir,
         tasks_dir=tmp_path,
-        benchmark=Benchmark.PAPERBENCH_CODE_DEV,
+        benchmark=SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
         review="workspace",
     ))
 
@@ -284,7 +284,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         experiment_id="paperbench-simulated-user-test",
         assignment_id="paper--rep-001--base-static",
         prompt_profile=PromptProfile.BASE,
-        benchmark=Benchmark.PAPERBENCH_CODE_DEV,
+        benchmark=SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
     )
     controller.benchmark = PAPERBENCH_CODE_DEV
     controller.experiment_dir = tmp_path / "experiment"

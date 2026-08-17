@@ -77,7 +77,10 @@ def run_paraphrase(args: argparse.Namespace) -> int:
 
 
 def run_detect(args: argparse.Namespace) -> int:
-    from rubric_gen.malt.cli import main as malt_main
+    from rubric_gen.submission_revision.direct_audit import (
+        DirectAuditConfig,
+        run_direct_audit,
+    )
     from rubric_gen.submission_revision.rh_diagnostics import (
         DiagnosticConfig,
         RubricFreeMetaRunner,
@@ -106,19 +109,6 @@ def run_detect(args: argparse.Namespace) -> int:
             f"models or none of them; missing={missing!r}"
         )
 
-    argv = [
-        "--detect", "rh",
-        "--study-dir", str(study_dir),
-        "--output-dir", str(direct_dir),
-        "--max-concurrency", str(args.max_concurrency),
-    ]
-    if direct_endpoints:
-        for model, url in direct_endpoints.items():
-            argv.extend(["--vllm", f"{url}::{model}"])
-    else:
-        argv.append("--ensemble")
-    if args.resume:
-        argv.append("--resume")
     statuses: dict[str, int] = {}
     errors: list[tuple[str, Exception]] = []
 
@@ -128,7 +118,16 @@ def run_detect(args: argparse.Namespace) -> int:
         except Exception as exc:
             errors.append((name, exc))
 
-    execute("direct", lambda: malt_main(argv))
+    execute(
+        "direct",
+        lambda: run_direct_audit(DirectAuditConfig(
+            study_dir=study_dir,
+            output_dir=direct_dir,
+            max_concurrency=args.max_concurrency,
+            resume=args.resume,
+            base_urls=direct_endpoints,
+        )),
+    )
     config = DiagnosticConfig(
         experiment=experiment,
         study_dir=study_dir,

@@ -13,11 +13,11 @@ import yaml
 
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
-from rubric_gen.evidence.protocol import outcome_audit_protocol
+from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
 from rubric_gen.submission_revision.evolution import RubricEvolution
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
-from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.artifacts.hashing import sha256_text
 
 
@@ -49,8 +49,8 @@ class Experiment:
         return str(self.payload["experiment_id"])
 
     @property
-    def benchmark(self) -> Benchmark:
-        return Benchmark(str(self.payload["benchmark"]))
+    def benchmark(self) -> SubmissionBenchmarkId:
+        return SubmissionBenchmarkId(str(self.payload["benchmark"]))
 
     @property
     def tasks_dir(self) -> Path:
@@ -179,8 +179,8 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError("unsupported experiment schema version")
     if payload["kind"] != EXPERIMENT_KIND:
         raise ValueError("unsupported experiment kind")
-    benchmark = Benchmark(str(payload["benchmark"]))
-    contract = get_benchmark(benchmark)
+    benchmark = SubmissionBenchmarkId(str(payload["benchmark"]))
+    contract = get_submission_benchmark(benchmark)
     experiment_id = _derived_experiment_id(payload)
     tasks_dir = _resolve_relative(path, payload["tasks_dir"])
     tasks = payload["tasks"]
