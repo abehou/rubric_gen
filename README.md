@@ -1,136 +1,37 @@
 # Rubric Gen
 
-Seed scientific benchmark submissions, revise them over multiple rounds, detect
-reward hacking, and re-score initial and final quality against the original
-rubric. The supported benchmarks are BiomniBench-DA and PaperBench Code-Dev.
-
-## Code structure
-
-Benchmark-native prompts, deliverables, review rendering, and dataset checks
-live in `rubric_gen.benchmarks`. The shared solver runtime is in
-`rubric_gen.runtime`, durable artifact helpers are in `rubric_gen.artifacts`,
-and evidence indexing and audit protocols are in `rubric_gen.evidence`. The
-seed, revise, and judge workflow is in `rubric_gen.submission_revision` and uses
-benchmark contracts instead of benchmark-name conditionals. Harvey keeps its
-separate harness-evolution state machine under `rubric_gen.harvey`.
+Run submission-revision experiments with static or evolving rubrics. Supported
+benchmarks are BiomniBench-DA, PaperBench Code-Dev, and Harvey LAB.
 
 ## Setup
 
-Requires Python 3.11+, `uv`, and the `codex` CLI. Hosted-model runs also need
-the corresponding OpenAI, Anthropic, and Gemini credentials. vLLM solver runs
-use Codex only as the sandboxed tool harness and do not copy hosted credentials
-into that harness.
+Requirements:
+
+- Python 3.11 or newer
+- [`uv`](https://docs.astral.sh/uv/)
+- The `codex` CLI
+- Credentials for each configured hosted model
+
+Install the project:
 
 ```bash
 uv sync
 ```
 
-### Harvey LAB setup
+## Run an experiment
 
-Harvey LAB is a separate pinned uv project. It requires Python 3.12 or 3.13,
-while this repository also supports other Python versions. Do not copy Harvey's
-Python packages into this project's dependency list. Set up both environments
-with:
+An experiment file defines the tasks, conditions, models, feedback policy, and
+this workflow:
 
-```bash
-uv sync
-./scripts/setup_harvey
+```text
+seed -----------\
+                 -> revise -> detect
+paraphrase -----/
 ```
 
-The second command reads the checkout path and revision from
-`experiments/harvey-harness-evolution.yaml`. It clones the official repository
-when necessary and runs Harvey LAB's setup script. That script uses Harvey's
-own `uv.lock` for its Python environment. It also needs the `pandoc` and
-`podman` commands and pulls or builds `lab-sandbox:latest`. On a managed Linux
-cluster, install both commands in the active Conda environment when system
-packages are unavailable:
-
-```bash
-conda install -c conda-forge pandoc podman
-./scripts/setup_harvey
-```
-
-The wrapper automatically uses node-local Podman runtime and image storage. If
-the account has no subordinate UID/GID ranges, it enables Podman's single-UID
-HPC mode. A new compute node downloads the sandbox image into its local cache
-on first use.
-
-The Harvey LAB harness-evolution workflow lets Codex choose any earlier harness
-as a parent. It supports static or prospective task rubrics and sealed transfer
-and reward-hacking audits. See
-[`docs/harvey_harness_evolution.md`](docs/harvey_harness_evolution.md) and
-[`experiments/harvey-harness-evolution.yaml`](experiments/harvey-harness-evolution.yaml).
-
-### PaperBench Code-Dev data
-
-Load the three-paper official PaperBench dev split at the pinned upstream
-revision. The loader hydrates Git LFS data, keeps only Code Development leaves,
-and writes exact binary leaf weights. For each judgment, `raw_score` divided by
-`score_normalization_maximum` equals the official PaperBench Code-Dev score;
-the score-validation artifact stores this value as `normalized_score`.
-
-```bash
-uv run python download_paperbench.py \
-  "${BULK%/}/rubric_gen/data/paperbench-code-dev"
-```
-
-The native solver deliverable is the source repository under `submission`,
-including its README. Workspace review gives the judge the paper, addenda, and
-submitted source files. It does not give the judge `answer.txt`, `trace.md`, or
-other BiomniBench harness summaries. The prospective rubric proposer also
-receives the submitted source tree rather than an answer summary. The binary
-scoring and recursive weights match PaperBench. The model-judge implementation
-remains this project's centralized judge, not the upstream per-leaf SimpleJudge
-implementation.
-
-Use the one-task, one-revision smoke experiment after a protocol change:
-
-```bash
-uv run rubric-gen run \
-  --experiment experiments/paperbench-code-dev-preflight.yaml \
-  --max-concurrency 4
-```
-
-Use the three-task, six-revision pilot only after the smoke experiment passes.
-It contains 12 assignments and 72 solver revisions, so it is not a fast
-preflight. Run all assignments concurrently when the allocation and API quota
-permit:
-
-```bash
-uv run rubric-gen run \
-  --experiment experiments/paperbench-code-dev-pilot.yaml \
-  --max-concurrency 12
-```
-
-The full experiment has three replicates and uses the same four prompt and
-rubric-evolution conditions:
-
-```bash
-uv run rubric-gen run \
-  --experiment experiments/paperbench-code-dev.yaml \
-  --max-concurrency 16 \
-  --resume
-```
-
-## Workflow
-
-The repository-level `experiment.yaml` declares tasks, randomized conditions,
-protocol settings, stage outputs, and the `seed -> revise -> detect` DAG.
-
-The benchmark-neutral package change updated seed artifact kinds and judge code
-attestations. Seed and revision artifacts made by older code cannot resume with
-the current workflow. Use new experiment and output identities and run `seed`
-again. Do not copy or rewrite old manifests into the current format.
-
-```bash
-uv run rubric-gen run \
-  --experiment experiment.yaml \
-  --max-concurrency 16 \
-  --resume
-```
-
-Scheduler allocation is external to this repository. Request enough CPUs for
-the selected concurrency. Then run the normal command inside the allocation:
+The loader derives the experiment ID from the YAML. Revision and detection
+paths must end with `{experiment_id}`. Seed and paraphrase paths are shared
+pools and must not contain this token.
 
 ```bash
 uv run rubric-gen run \
@@ -139,21 +40,103 @@ uv run rubric-gen run \
   --resume
 ```
 
-If an allocation expires after four hours, request another multi-CPU allocation
-and run the same command with `--resume`. The repository does not contain
-cluster-specific scheduler wrappers.
+`--resume` continues valid saved work. `--restart` keeps the shared seed pool
+and sealed paraphrases. It replaces revision and detection outputs.
 
-Stages can also be executed separately. Their input and output directories come
-from the DAG in `experiment.yaml`.
+Run one stage when needed:
 
 ```bash
-uv run rubric-gen seed --experiment experiment.yaml
-uv run rubric-gen revise --experiment experiment.yaml --resume
+uv run rubric-gen seed --experiment experiment.yaml --max-concurrency 3
+uv run rubric-gen paraphrase --experiment experiment.yaml --max-concurrency 3
+uv run rubric-gen revise --experiment experiment.yaml --max-concurrency 3 --resume
+uv run rubric-gen detect --experiment experiment.yaml --max-concurrency 3 --resume
+```
 
-uv run rubric-gen detect \
-  --experiment experiments/luna-top30-semi-r10.yaml \
-  --resume
+Current submission experiments require schema version 5. Old experiment and
+study formats are intentionally rejected. Generate new artifacts with the
+current workflow.
 
+Use these experiment files:
+
+| Benchmark | Small run | Larger run |
+|---|---|---|
+| BiomniBench-DA | `experiment_preflight.yaml` | `experiment.yaml` |
+| PaperBench Code-Dev | `experiments/paperbench-code-dev-preflight.yaml` | `experiments/paperbench-code-dev-pilot.yaml` or `experiments/paperbench-code-dev.yaml` |
+| Harvey LAB | `experiments/harvey-harness-evolution-preflight.yaml` | `experiments/harvey-harness-evolution.yaml` |
+
+The repository also contains larger top-30 configurations
+`experiments/luna-top30-semi-r10.yaml` and
+`experiments/luna-top30-full-r10.yaml`.
+
+## PaperBench data
+
+Install the pinned three-paper Code-Dev dataset:
+
+```bash
+uv run python download_paperbench.py \
+  "${BULK%/}/rubric_gen/data/paperbench-code-dev"
+```
+
+PaperBench submissions are source repositories under `submission`. The loader
+preserves the official relative rubric weights.
+
+## Harvey LAB
+
+Harvey uses its own pinned environment and needs `pandoc` and `podman`.
+
+```bash
+uv sync
+./scripts/setup_harvey
+```
+
+See [docs/harvey_harness_evolution.md](docs/harvey_harness_evolution.md).
+
+## Feedback policies
+
+Set `protocol.feedback_policy` to one of these values:
+
+- `full`
+- `semi`
+- `score_only`
+- `simulated_user`
+
+The shared pool contains several sealed semantic paraphrase sets. Each set has
+one rubric for every available task. A replicate selects one complete set before
+revision. All tasks and conditions in that replicate use the same set index.
+Static conditions keep the selected variant. Prospective conditions evolve it
+after each scored submission. During revision, the other variants remain hidden
+from the solver, in-loop judge, auditor, and proposer.
+
+Configure the stage in the experiment YAML:
+
+```yaml
+rubric_paraphrases:
+  count: 4
+  model: gpt-5.6-luna
+  max_retries: 2
+```
+
+The paraphrase validator preserves criterion order, level labels, weights,
+scoring directives, normalization, and PaperBench leaf IDs. This validation
+cannot prove semantic equivalence. Review a sample before a large experiment.
+
+## Prospective rubric proposer
+
+The proposer returns the complete next rubric as structured JSON. It does not
+return actions, patches, or a `no_patch` decision. It can retain, rewrite,
+remove, merge, split, reorder, or reweight criteria.
+
+The proposer does not receive scores, selected levels, score history, judge
+reasoning, holdout rubrics, or RH detector results. It receives the task,
+current submission, current rubric, and a verified trajectory-audit packet.
+The prompt steers it toward task-specific and discriminative outcome criteria.
+Process evidence can verify an outcome, but effort and activity earn no credit.
+
+## Quality and reward-hacking audits
+
+Score initial and final submissions against the original rubric:
+
+```bash
 uv run rubric-gen judge \
   --experiment experiments/luna-top30-semi-r10.yaml \
   --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-original-rubric \
@@ -161,289 +144,73 @@ uv run rubric-gen judge \
   --resume
 ```
 
-Workflow commands support `--resume` and `--max-concurrency`. The top-level
-`run` command also supports `--restart`. The seed stage first reuses valid
-blocks and generates missing blocks in the configured shared pool. It then
-keeps the pool unchanged and replaces only the configured revision and
-detection outputs. It atomically detaches each output path before cleanup, so
-an open network-filesystem file cannot block a new run path. It also refuses to
-replace an active study. Replaced downstream outputs are not recoverable unless
-cleanup leaves a reported detached tree. `--restart` and `--resume` are
-mutually exclusive.
-
-`judge` verifies the completed study before it writes output. It then scores
-`s000` and the final submission independently against the human-written
-`r0000` rubric. It never uses proposer-generated rubrics. The fixed panel is
-`gpt-5.6-sol`, `claude-opus-4-8`, and `gemini-3.1-pro-preview`.
-Separate progress bars show study validation, resumed-artifact validation, and
-ensemble judging.
-
-The summary preserves every model score. It also reports the ensemble mean,
-median, and strict-majority improvement direction. The command makes six
-hosted-model calls per assignment. A 360-assignment study requires 2,160 calls.
-
-Both completed studies share each `s000` submission across their four conditions.
-Use the semi-feedback plan to score each shared initial submission only once:
+Run the configured reward-hacking (RH) audit:
 
 ```bash
-uv run python scripts/run_original_rubric_ensemble_plan.py run \
-  --plan judgment_plans/luna-top30-semi-r10-original-rubric.yaml \
-  --max-concurrency 10 \
+uv run rubric-gen detect \
+  --experiment experiments/luna-top30-semi-r10.yaml \
+  --max-concurrency 3 \
   --resume
 ```
 
-Use the separate full-feedback plan for the completed full-feedback study:
+The command writes four separate signals:
+
+- `direct/`: a strong three-model ensemble gives categorical RH decisions.
+- `score-diagnostics/`: the selected paraphrase is compared with hidden
+  paraphrases on the initial and final artifacts.
+- `rubric-free/`: the weak in-loop score is compared with a rubric-free score
+  from the same weak model.
+- `summary.json`: the weak in-loop final score is also compared with a strong
+  ensemble score on the final optimizer rubric.
+
+For each score gap, a larger positive value is more RH-suspicious. These gaps
+are not calibrated RH probabilities or labels. A paraphrase gap can measure
+wording sensitivity. A rubric-free gap can measure rubric dependence. A strong
+judge gap can measure judge calibration or capability differences. Only the
+direct ensemble produces an RH detection rate.
+
+With four paraphrases and three strong models, detection schedules 16 judgment
+jobs per assignment. Direct trajectory audits can require more than one model
+call when the evidence is chunked.
+
+Use the separate `malt` command for labeled MALT detector evaluation:
 
 ```bash
-uv run python scripts/run_original_rubric_ensemble_plan.py run \
-  --plan judgment_plans/luna-top30-full-r10-original-rubric.yaml \
-  --max-concurrency 10 \
-  --resume
+uv run malt --help
 ```
 
-Each plan contains 90 shared `s000` targets and 360 condition-specific `s010`
-targets. Each three-model panel therefore makes 1,350 hosted calls. The launcher
-checks target coverage and original-rubric identity before it starts. It uses
-the judge's existing provider prompt caches and sealed-artifact resume logic.
+## vLLM
 
-Run rubric-free pairwise judging on `s000` versus the final `s010` submission:
+Route a configured model to an OpenAI-compatible vLLM server:
 
 ```bash
-uv run python scripts/run_rubric_free_pairwise_final.py \
-  --study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-rubric-free-final-with-trace \
-  --max-concurrency 10 \
-  --resume
-
-uv run python scripts/run_rubric_free_pairwise_final.py \
-  --study-dir runs/biomnibench-studies/luna-top30-full-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-full-r10-rubric-free-final-with-trace \
-  --max-concurrency 10 \
-  --resume
+uv run rubric-gen run \
+  --experiment experiment.yaml \
+  --vllm "http://HOST:PORT/v1::MODEL"
 ```
 
-This workflow modifies the pairwise method in arXiv:2605.12474v1. It keeps the
-exact Appendix I.1 system prompt, three cross-family judges, and both response
-orders. Each response contains `answer.txt` and its matching `trace.md`. Judges
-do not see a rubric or raw trajectory. This added trace evidence means the
-workflow is not a paper-faithful replication. It averages the two orders per
-model before majority and consensus aggregation.
-Each 360-pair study makes 2,160 hosted calls. The current judge model versions
-are successors to the paper's model versions, so this is not an exact replication.
+Repeat `--vllm URL::MODEL` for multiple models. The model name must exactly
+match the experiment configuration.
 
-Use these completed pairs only to measure change from `s000` to `s010`. Generate
-their separate revision-gain plots with:
-
-```bash
-uv run python scripts/plot_rubric_free_quality_audit.py
-```
-
-Run one pooled round-robin tournament to compare experimental factors. It uses
-one reproducibly sampled replicate per task. Each task contributes eight final
-`s010` submissions across both feedback policies, prompts, and rubric types.
-The tournament judges all 28 pairs in this joint pool:
-
-```bash
-uv run python scripts/run_rubric_free_final_tournament.py \
-  --semi-study-dir runs/biomnibench-studies/luna-top30-semi-r10 \
-  --full-study-dir runs/biomnibench-studies/luna-top30-full-r10 \
-  --output-dir runs/biomnibench-judgments/luna-top30-r10-rubric-free-pooled-tournament-with-trace \
-  --max-concurrency 10 \
-  --resume
-```
-
-The joint tournament contains 30 blocks and 840 matches. Three judges score both
-response orders, for 5,040 hosted calls. A tie gives each condition half a win.
-Marginal rates use all opponents. Controlled rates hold the other factors fixed.
-Each tournament response contains its final `answer.txt` and matching `trace.md`.
-Judges do not receive the rubric or raw trajectory.
-
-After both tournaments finish, generate the tournament plots with:
-
-```bash
-uv run python scripts/plot_rubric_free_final_tournament.py
-```
-
-This command writes pooled plots and separate Semi and Full analysis panels. It
-does not replace the `s000`-versus-`s010` revision-gain plots.
-
-## Feedback policies
-
-`protocol.feedback_policy` accepts `full`, `semi`, `score_only`, or
-`simulated_user`. The simulated-user policy makes two LLM calls after each
-scored response. A private selector sees the task instruction, private rubric,
-and current answer. It can return only criterion IDs and fixed high-level
-concern categories. A separate user actor sees only the public task instruction,
-current answer, and selected categories, then writes a natural revision comment.
-Private rubric text, optimizer scores, and judge reasoning cannot enter the
-user-actor request.
-
-```yaml
-protocol:
-  feedback_policy: simulated_user
-  feedback_simulator:
-    model: gpt-5.6-luna
-    max_output_tokens: 1024
-    max_aspects: 2
-    max_retries: 1
-```
-
-`feedback_simulator` is required only for `simulated_user`. Generated comments
-are sealed for exact resume under `feedback-generations/`; the solver-visible
-`feedback/` record contains only the comment, not its private criterion IDs or
-model provenance. Public requirements must be in the task instruction. Private
-rubric reference answers are not a public requirement source. A matching
-`--vllm URL::MODEL` mapping routes both simulator calls through that endpoint
-just like the judge and rubric proposer.
-
-Seeds are stored separately from run outputs under the top-level `seeds/`
-directory. Compatible experiments must point to the same shared pool:
-
-```yaml
-dag:
-  seed:
-    depends_on: []
-    output_dir: seeds/biomnibench-luna-top30-common
-```
-
-The pool is incremental. Each `seed` or `run` command checks its required task
-and replicate blocks. It reuses each valid block and generates only missing
-blocks. An invalid existing block causes a clear failure and is not overwritten.
-The `--restart` flag keeps the shared pool and replaces only downstream outputs.
-
-For example, the BiomniBench preflight creates three replicate-1 blocks when
-the pool is empty. A later top-30 run reuses those blocks and creates the other
-87. Running the top-30 experiment first lets the preflight reuse all three of
-its required blocks.
-
-Validation checks the task inputs, solver provider and model, stored files, and
-all recorded content hashes. The initial judgment must use the same judge model,
-review mode, limits, and rubric. Artifact kind names, schema labels, scorer
-versions, and source-code hashes do not block seed reuse. Those fields remain
-available as provenance.
-
-## vLLM models
-
-`seed`, `revise`, `detect`, and `run` accept a repeatable endpoint
-mapping:
-
-```text
---vllm URL::MODEL
-```
-
-The model string must exactly match the model configured in `experiment.yaml`.
-For example, a Qwen solver, optimizer judge, and prospective-rubric proposer can
-all use the same endpoint:
-
-```yaml
-protocol:
-  solver:
-    provider: vllm
-    model: Qwen/Qwen3.6-27B
-    reasoning_effort: null
-    service_tier: null
-    executable: null
-    retries: 1
-    timeout_seconds: 7200
-  judge_model: Qwen/Qwen3.6-27B
-  rubric_proposer_model: Qwen/Qwen3.6-27B
-```
-
-For `detect`, the endpoint models and their order must exactly match
-`outcome_audit.models` in the experiment.
-
-Install the serving environment and submit the two supplied cluster launchers:
+The supplied launch script can start the configured Qwen servers:
 
 ```bash
 UV_PROJECT_ENVIRONMENT=.vllm-venv uv sync --extra vllm
 bash scripts/start_vllm_servers.sh submit .vllm-venv
 ```
 
-The launchers use the native 262,144-token context and eight-way tensor
-parallelism. They request 8 H100 GPUs for `Qwen/Qwen3.6-27B` and 8 H200 GPUs for
-`Qwen/Qwen3.6-35B-A3B`. Set `HF_HOME` to a sufficiently large cache location
-before launching; otherwise Hugging Face's standard cache is used. Once each
-server is healthy, its complete `URL::MODEL` mapping is written to:
+## Repository layout
 
-```text
-runs/vllm-endpoints/qwen36-27b.endpoint
-runs/vllm-endpoints/qwen36-35b-a3b.endpoint
-```
+- `src/rubric_gen/`: implementation
+- `experiments/`: experiment configurations
+- `seeds/`: shared seed pools
+- `runs/`: revision and audit outputs
+- `scripts/`: analysis and cluster utilities
+- `docs/`: design and benchmark documentation
 
-Pass one or both mappings to any workflow command. For example:
-
-```bash
-uv run rubric-gen seed \
-  --experiment experiment.qwen36-27b.yaml \
-  --vllm "http://HOST:43117/v1::Qwen/Qwen3.6-27B"
-
-uv run rubric-gen revise \
-  --experiment experiment.qwen36-27b.yaml \
-  --vllm "http://HOST:43117/v1::Qwen/Qwen3.6-27B"
-
-uv run rubric-gen detect \
-  --experiment experiment.qwen36-27b.yaml \
-  --vllm "http://HOST27:43117/v1::Qwen/Qwen3.6-27B" \
-  --vllm "http://HOST35:43583/v1::Qwen/Qwen3.6-35B-A3B"
-```
-
-An experiment has exactly one solver configuration. To compare both Qwen
-solvers, create two experiment YAMLs with distinct experiment IDs and output
-directories, changing `protocol.solver.model` between them. The two-model panel
-is supported directly for `detect`.
-
-Prospective rubric evolution remains part of `revise` when enabled by the
-experiment. A versioned trajectory-auditor agent first selects raw-event
-citations. It can report supported problems and explicitly speculative potential
-concerns, with counterevidence, uncertainty, and a verification question for
-each finding. A potential concern can have no citation, but it must state its
-basis and must not claim that the concern was observed. The harness checks all
-provided event offsets, copies the exact text from the trajectory, rejects a
-reused citation range, and stores the canonical packet and its hash.
-
-The proposer then makes one direct model call with the task instruction,
-current benchmark submission, current complete rubric, verified packet, and
-validated criterion-level score context.
-For BiomniBench the submission is `answer.txt`; for PaperBench it is the
-rendered source repository. It emits a structured proposal that the harness
-renders into the complete next rubric. It does not use tools. The proposer can
-retain, rewrite, remove, merge, split, reorder, or reweight criteria. Repeating
-the current rubric means no change when the score is not saturated. At a score
-of 100, or when every criterion is at level A, the auditor must return at least
-one frontier finding and the proposer must revise the rubric. The harness
-cross-scores the frozen submission with the candidate rubric and rejects a
-candidate that still gives the saturated submission full credit. This check
-does not change the configured judge model. Each correction call receives the
-ordered validation errors and structured proposals from all earlier rejected
-attempts, so it can avoid repeating a threshold that the frozen submission
-already satisfies.
-
-The progress plot and report store two distinct series: the on-policy score
-under each active rubric and the fixed-original score under `r0000`. This
-separates solver improvement from evaluator drift. The harness stores the
-rubric, structured proposal, packet, crossed score, proposer metadata, and a
-derived diff. Neither component receives judge reasoning or reward-hacking
-detector results. Runs with obsolete proposer artifacts cannot resume.
-
-Use the separate `malt` CLI to benchmark the reward-hacking detector against
-labeled MALT data.
-
-The `rh` target follows METR's MALT reward-hacking monitor boundary. It detects
-attempts to exploit task scoring, the environment, or task constraints. Its MALT
-positive labels are `bypass_constraints` and `ignores_task_instructions`.
-Hardcoded solutions are not automatically positive without evidence of such an
-exploit.
-
-For `rh`, the monitor repeats the first five converted messages in every prompt.
-It scans every later message chunk and keeps the highest 0–10 chunk score. It
-does not synthesize or average chunk judgments. Score 5 becomes an abstention;
-scores above or below 5 become positive or negative decisions. OpenAI and
-Anthropic cache the repeated prefix. Gemini uses provider-side implicit caching.
-The detector trusts the completed study ledger and checks the evidence files it
-must read. It does not rehash submission snapshots. It renders each trajectory
-once and reuses that evidence across the judge panel.
+## CLI help
 
 ```bash
 uv run rubric-gen --help
-uv run malt --help
+uv run rubric-gen run --help
 ```

@@ -37,13 +37,17 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision.evolution import RubricEvolution
 from rubric_gen.submission_revision.seeds import resolve_seed
+from rubric_gen.submission_revision.paraphrases import (
+    resolve_paraphrase_selection,
+    validate_paraphrase_run,
+)
 from rubric_gen.submission_revision.store import extract_seed_scoring_contract
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 
 
-STUDY_RUN_SCHEMA_VERSION = 1
+STUDY_RUN_SCHEMA_VERSION = 2
 STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
 _STUDY_LEASE_NAME = ".study.lock"
 
@@ -52,6 +56,7 @@ _STUDY_LEASE_NAME = ".study.lock"
 class StudyRunConfig:
     experiment: Experiment
     seed_run_dir: Path
+    paraphrase_run_dir: Path
     output_dir: Path
     max_concurrency: int
     resume: bool = False
@@ -68,6 +73,7 @@ class StudyRunner:
         self.experiment = config.experiment
         self.root = config.output_dir.resolve()
         self.seed_root = config.seed_run_dir.resolve()
+        self.paraphrase_root = config.paraphrase_run_dir.resolve()
         self._manifest_lock = threading.Lock()
 
     def run(self) -> int:
@@ -75,6 +81,7 @@ class StudyRunner:
             self.experiment.assignments,
             key=lambda item: int(item["execution_order"]),
         )
+        validate_paraphrase_run(self.paraphrase_root, self.experiment)
         existed = os.path.lexists(self.root)
         if existed and not self.config.resume:
             raise FileExistsError(f"study output already exists: {self.root}")
@@ -109,6 +116,7 @@ class StudyRunner:
                         assignment,
                         self.experiment,
                         self.seed_root,
+                        self.paraphrase_root,
                         vllm_endpoints=self.config.vllm_endpoints,
                     )
                 except Exception as exc:
@@ -175,6 +183,7 @@ class StudyRunner:
                     assignment,
                     self.experiment,
                     self.seed_root,
+                    self.paraphrase_root,
                     vllm_endpoints=self.config.vllm_endpoints,
                 )
                 with self._manifest_lock:
@@ -228,6 +237,12 @@ class StudyRunner:
     ) -> SubmissionRevisionConfig:
         protocol = self.experiment.protocol
         condition = self.experiment.condition(str(assignment["condition_id"]))
+        selection = resolve_paraphrase_selection(
+            self.paraphrase_root,
+            self.experiment,
+            str(assignment["task_id"]),
+            int(assignment["replicate"]),
+        )
         return SubmissionRevisionConfig(
             task_dir=self.experiment.task_dir(str(assignment["task_id"])),
             experiment_dir=self._experiment_dir(assignment),
@@ -242,6 +257,8 @@ class StudyRunner:
             condition_id=str(assignment["condition_id"]),
             replicate=int(assignment["replicate"]),
             execution_order=int(assignment["execution_order"]),
+            optimizer_rubric_path=selection.optimizer_path,
+            master_rubric_name=str(protocol["rubric_name"]),
             benchmark=self.experiment.benchmark,
             judge_max_retries=int(protocol["judge_max_retries"]),
             rubric_proposer_max_retries=int(
@@ -267,7 +284,6 @@ class StudyRunner:
             judge_base_url=self.config.vllm_endpoints.get(
                 str(protocol["judge_model"])
             ),
-            rubric_name=str(protocol["rubric_name"]),
             max_review_chars=protocol["max_review_chars"],  # type: ignore[arg-type]
             resume=resume,
             show_progress=True,
@@ -287,6 +303,7 @@ class StudyRunner:
             "experiment_path": str(self.experiment.path),
             "experiment_id": self.experiment.experiment_id,
             "seed_run_dir": str(self.seed_root),
+            "paraphrase_run_dir": str(self.paraphrase_root),
             "started_at": _now(),
             "finished_at": None,
             "max_concurrency_last_invocation": self.config.max_concurrency,
@@ -324,6 +341,7 @@ class StudyRunner:
             or manifest.get("experiment_path") != str(self.experiment.path)
             or manifest.get("experiment_id") != self.experiment.experiment_id
             or manifest.get("seed_run_dir") != str(self.seed_root)
+            or manifest.get("paraphrase_run_dir") != str(self.paraphrase_root)
         ):
             raise RuntimeError("study resume identity differs from the experiment")
         records = _records(manifest)
@@ -387,6 +405,7 @@ def validate_completed_revision(
     assignment: dict[str, object],
     experiment: Experiment,
     seed_run_dir: Path,
+    paraphrase_run_dir: Path,
     *,
     vllm_endpoints: dict[str, str] | None = None,
 ) -> None:
@@ -408,6 +427,12 @@ def validate_completed_revision(
     )
     agent = experiment.agent_config(vllm_endpoints=endpoints)
     task_dir = experiment.task_dir(str(assignment["task_id"])).resolve()
+    selection = resolve_paraphrase_selection(
+        paraphrase_run_dir,
+        experiment,
+        str(assignment["task_id"]),
+        int(assignment["replicate"]),
+    )
     seed = resolve_seed(
         seed_run_dir,
         task_dir,
@@ -421,14 +446,19 @@ def validate_completed_revision(
     manifest_scoring_identity = manifest.get("scoring_identity")
     if not isinstance(manifest_scoring_identity, dict):
         raise RuntimeError("revision manifest has invalid scoring identity")
-    if extract_seed_scoring_contract(
+    seed_contract = extract_seed_scoring_contract(
         seed_scoring_identity,
         context="revision seed",
-    ) != extract_seed_scoring_contract(
+    )
+    manifest_contract = extract_seed_scoring_contract(
         manifest_scoring_identity,
         context="revision manifest",
-    ):
-        raise RuntimeError("revision seed and judge use different scoring contracts")
+    )
+    for key in ("effective_judge_model", "review_mode", "max_review_chars"):
+        if seed_contract[key] != manifest_contract[key]:
+            raise RuntimeError(
+                "revision seed and judge use different execution contracts"
+            )
     revision_rounds = int(protocol["revision_rounds"])
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
@@ -471,9 +501,10 @@ def validate_completed_revision(
         "judge_base_url": endpoints.get(str(protocol["judge_model"])),
         "judge_max_retries": protocol["judge_max_retries"],
         "max_review_chars": protocol["max_review_chars"],
-        "rubric_name": protocol["rubric_name"],
-        "rubric_set": None,
-        "rubric_sha256": sha256_file(task_dir / "tests" / str(protocol["rubric_name"])),
+        "optimizer_rubric_path": str(selection.optimizer_path.resolve()),
+        "rubric_sha256": selection.optimizer_sha256,
+        "master_rubric_name": protocol["rubric_name"],
+        "master_rubric_sha256": selection.master_sha256,
         "instruction_sha256": sha256_file(task_dir / "instruction.md"),
         "data_sha256": tree_sha256(task_dir / "environment" / "data"),
         "seed_run_dir": str(seed.root),
@@ -578,7 +609,11 @@ def validate_completed_revision(
         rubric_path = experiment_dir / "rubric" / f"r{rubric_version:04d}.txt"
         if rubric_path.is_symlink() or not rubric_path.is_file():
             raise RuntimeError(f"missing scoring rubric for {submission_id}")
-        if index == 0:
+        reuse_seed_optimizer = (
+            seed_contract["rendered_rubric_sha256"]
+            == sha256_file(rubric_path)
+        )
+        if index == 0 and reuse_seed_optimizer:
             validation_path, evaluation_path, _ = seed.judgment
         else:
             attempt = str(state["judge_attempts"][submission_id])
@@ -659,14 +694,32 @@ def validate_completed_revision(
                 f"feedback disagrees with scoring artifacts: {submission_id}"
             )
         fixed_score = state["fixed_original_scores"][index]
-        if index == 0 or condition_spec["rubric_evolution"] == "static":
+        same_base_and_master = (
+            sha256_file(experiment_dir / "rubric" / "r0000.txt")
+            == selection.master_sha256
+        )
+        if same_base_and_master and (
+            index == 0 or condition_spec["rubric_evolution"] == "static"
+        ):
             if fixed_score != projected.score:
                 raise RuntimeError(
                     f"fixed-original score disagrees with scoring artifacts: "
                     f"{submission_id}"
                 )
+        elif index == 0 and (
+            seed_contract["rendered_rubric_sha256"] == selection.master_sha256
+        ):
+            master_validation_path, _, _ = seed.judgment
+            if read_json_object(
+                master_validation_path,
+                "seeded master-rubric score validation",
+            ).get("score") != fixed_score:
+                raise RuntimeError(
+                    f"fixed-original score disagrees with scoring artifacts: "
+                    f"{submission_id}"
+                )
         else:
-            original_rubric = experiment_dir / "rubric" / "r0000.txt"
+            original_rubric = selection.master_path
             fixed_attempt = fixed_original_attempt_id(
                 str(assignment["assignment_id"]),
                 submission_id,

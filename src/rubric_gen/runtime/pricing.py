@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-PRICING_AS_OF = "2026-08-05"
+PRICING_AS_OF = "2026-08-16"
 PRICING_SOURCES = {
     "openai": "https://developers.openai.com/api/docs/pricing",
     "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
@@ -46,6 +46,11 @@ ANTHROPIC_PRICES_PER_MILLION = {
 }
 
 GEMINI_PRICES_PER_MILLION = {
+    "gemini-3.5-flash": {
+        "input": 1.5,
+        "cached": 0.15,
+        "output": 9.0,
+    },
     "gemini-3.1-pro-preview": {
         "input": 2.0,
         "cached": 0.2,

@@ -356,19 +356,20 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     experiment.mkdir(parents=True)
     (experiment / "manifest.json").write_text(json.dumps({
         "kind": "rubric-gen-submission-revision-experiment",
-        "schema_version": 4,
+        "schema_version": 5,
         "experiment_id": "test-experiment",
         "execution_order": 1,
         "assignment_id": "assignment-1",
         "task_id": "da-1-1",
     }))
     (study / "study.json").write_text(json.dumps({
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "rubric-gen-randomized-revision-study",
         "status": "completed",
         "experiment_path": str(tmp_path / "experiment.yaml"),
         "experiment_id": "test-experiment",
         "seed_run_dir": str(tmp_path / "seeds"),
+        "paraphrase_run_dir": str(tmp_path / "paraphrases"),
         "records": [{
             "assignment_id": "assignment-1",
             "task_id": "da-1-1",

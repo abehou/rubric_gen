@@ -77,6 +77,12 @@ class SubmissionJudgeConfig:
 
     def __post_init__(self) -> None:
         get_benchmark(self.benchmark).validate_review(self.review)
+        if sum(value is not None for value in (
+            self.rubric_name, self.rubric_set, self.rubric_path
+        )) != 1:
+            raise ValueError(
+                "exactly one of rubric_name, rubric_set, and rubric_path is required"
+            )
         if (
             type(self.max_retries) is not int
             or not 0 <= self.max_retries <= MAX_TRANSIENT_RETRIES
@@ -344,7 +350,17 @@ class FrozenRubricJudge:
 
 def resolve_optimizer_rubric(config: SubmissionJudgeConfig) -> FrozenRubric:
     task_dir = Path(config.task_dir).resolve()
-    if config.rubric_set is not None:
+    if config.rubric_path is not None:
+        path = Path(config.rubric_path).resolve()
+        if path.is_symlink() or not path.is_file():
+            raise FileNotFoundError(f"optimizer rubric does not exist: {path}")
+        text = path.read_text(encoding="utf-8")
+        source = "rubric-path"
+        rubric_set_id = None
+        rubric_id = None
+        structured_rubric_sha256 = None
+        manifest_sha256 = None
+    elif config.rubric_set is not None:
         bundle = resolve_rubric_bundle(Path(config.rubric_set), task_dir.name)
         text = bundle.rendered_text
         source = "rubric-set"

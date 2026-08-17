@@ -15,16 +15,18 @@ from rubric_gen.harvey.config import load_experiment
 experiment = load_experiment(Path(sys.argv[1]))
 print(experiment.benchmark.checkout)
 print(experiment.benchmark.revision)
+print(experiment.cache_dir / experiment.benchmark.revision)
 ' "$experiment_file"
 )
 
-if [[ ${#harvey_config[@]} -ne 2 ]]; then
-  echo "Could not read the Harvey checkout and revision from $experiment_file" >&2
+if [[ ${#harvey_config[@]} -ne 3 ]]; then
+  echo "Could not read the Harvey checkout, revision, and cache from $experiment_file" >&2
   exit 1
 fi
 
 harvey_checkout="${harvey_config[0]}"
 harvey_revision="${harvey_config[1]}"
+harvey_cache="${harvey_config[2]}"
 
 if [[ ! -e "$harvey_checkout" ]]; then
   git clone "$harvey_repository" "$harvey_checkout"
@@ -52,12 +54,40 @@ fi
 
 echo "Harvey LAB checkout: $harvey_checkout"
 echo "Harvey LAB revision: $harvey_revision"
-exec uv run --project "$project_root" python -c '
-import os
+echo "Harvey shared cache: $harvey_cache"
+uv run --project "$project_root" python -c '
+import subprocess
 import sys
+from pathlib import Path
 
-from rubric_gen.harvey.podman import configured_podman_environment
+from rubric_gen.harvey.podman import (
+    cache_image,
+    configured_podman_environment,
+    restore_cached_image,
+)
 
 setup = sys.argv[1]
-os.execve(setup, [setup], configured_podman_environment())
-' "$harvey_checkout/scripts/setup.sh"
+cache_root = Path(sys.argv[2])
+local_image = "lab-sandbox:latest"
+remote_image = "ghcr.io/harveyai/lab-sandbox:latest"
+environment = configured_podman_environment(cache_root=cache_root)
+if restore_cached_image(
+    environment,
+    cache_root=cache_root,
+    image=local_image,
+):
+    subprocess.run(
+        ["podman", "tag", local_image, remote_image],
+        env=environment,
+        check=True,
+    )
+result = subprocess.run([setup], env=environment)
+if result.returncode != 0:
+    raise SystemExit(result.returncode)
+archive = cache_image(
+    environment,
+    cache_root=cache_root,
+    image=local_image,
+)
+print(f"Harvey shared image archive: {archive}")
+' "$harvey_checkout/scripts/setup.sh" "$harvey_cache"

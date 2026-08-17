@@ -232,7 +232,7 @@ def test_original_rubric_judge_rejects_nonempty_output_without_resume(
     assert (output / "foreign.txt").read_text() == "do not overwrite"
 
 
-def test_load_completed_study_requires_archived_original_to_match_human_rubric(
+def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -259,12 +259,13 @@ def test_load_completed_study_requires_archived_original_to_match_human_rubric(
     (source / "study.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                    "schema_version": 2,
                 "kind": "rubric-gen-randomized-revision-study",
                 "status": "completed",
                 "experiment_path": str(experiment_spec),
                 "experiment_id": "test-study",
-                "seed_run_dir": str(tmp_path / "seeds"),
+                    "seed_run_dir": str(tmp_path / "seeds"),
+                    "paraphrase_run_dir": str(tmp_path / "paraphrases"),
                 "records": [record],
             }
         )
@@ -277,8 +278,8 @@ def test_load_completed_study_requires_archived_original_to_match_human_rubric(
     (experiment_dir / "manifest.json").write_text(
         json.dumps(
             {
-                "rubric_name": "rubric.txt",
-                "rubric_sha256": sha256_text(rubric),
+                "master_rubric_name": "rubric.txt",
+                "master_rubric_sha256": sha256_text(rubric),
                 "task_dir": str(task),
                 "review": "trace",
                 "max_review_chars": None,
@@ -305,8 +306,12 @@ def test_load_completed_study_requires_archived_original_to_match_human_rubric(
     assert loaded.targets[0].initial_submission.name == "s000"
     assert loaded.targets[0].final_submission.name == "s010"
 
-    (experiment_dir / "rubric" / "r0000.txt").write_text("changed")
-    with pytest.raises(RuntimeError, match="differs from the human rubric"):
+    (experiment_dir / "rubric" / "r0000.txt").write_text("optimizer paraphrase")
+    assert _load_completed_study(source).targets[0].rubric_sha256 == sha256_text(
+        rubric
+    )
+    (task / "tests" / "rubric.txt").write_text("changed")
+    with pytest.raises(RuntimeError, match="master rubric changed"):
         _load_completed_study(source)
 
 

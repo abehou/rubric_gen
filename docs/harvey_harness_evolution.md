@@ -69,10 +69,13 @@ conda install -c conda-forge pandoc podman
 ./scripts/setup_harvey
 ```
 
-On Linux, the wrapper and evaluator use node-local Podman runtime and image
-storage. They enable Podman's single-UID HPC mode only when `/etc/subuid` or
-`/etc/subgid` does not contain a range for the current account. The image cache
-is local to one compute node and is populated on first use.
+On Linux, Podman's writable runtime and storage stay on the compute node.
+Rootless Podman does not support safe writable storage on Network File System
+(NFS) storage. The configured `cache_dir` stores a shared `uv` cache and an Open
+Container Initiative (OCI) image archive. The setup command populates this
+archive. Evaluations restore it on each new node without another image pull.
+The cache is separate for each Harvey revision and user ID. The wrapper enables
+Podman's single-user-ID mode only when the account has no subordinate ID range.
 
 Keep the Harvey checkout clean. Then edit the task split and models in the
 example configuration.

@@ -19,7 +19,6 @@ from rubric_gen.submission_revision.controller import SubmissionRevisionControll
 from rubric_gen.submission_revision.artifacts import compact_historical_workspace
 from rubric_gen.submission_revision.evolution import _validated_complete_rubric
 import rubric_gen.submission_revision.evolution as evolution_module
-from rubric_gen.submission_revision.evolution import RubricScoreContext
 from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.judging.scoring import (
@@ -233,13 +232,6 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
         current_rubric="RUBRIC",
         current_submission=render_submission_tree(workspace),
         auditor_packet='{"schema_version":3,"inspected":"x","findings":[]}\n',
-        score_context=RubricScoreContext(
-            score=50,
-            raw_score=50,
-            selected_levels={"criterion_1": "B"},
-            criterion_scores={"criterion_1": 50},
-            score_history=(50,),
-        ),
         rejected_attempts=(),
     )
 

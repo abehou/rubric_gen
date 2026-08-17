@@ -207,7 +207,7 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
         raise ValueError(f"study must be a regular directory: {source}")
     study = read_json_object(source / "study.json", "study manifest")
     if (
-        study.get("schema_version") != 1
+        study.get("schema_version") != 2
         or study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") != "completed"
         or type(study.get("experiment_path")) is not str
@@ -253,10 +253,10 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
                 type(submission_ids) is not list
                 or not submission_ids
                 or submission_ids[0] != "s000"
-                or submission_ids[-1] != "s010"
+                or type(submission_ids[-1]) is not str
             ):
                 raise RuntimeError(
-                    f"rubric-free pair must select s000 and final s010: {assignment_id}"
+                    f"rubric-free pair has invalid boundaries: {assignment_id}"
                 )
             if task_id not in instruction_cache:
                 instruction_cache[task_id] = _regular_text(
@@ -282,7 +282,7 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
             ) = _submission_response(
                 experiment_dir,
                 task_id,
-                "s010",
+                str(submission_ids[-1]),
             )
             targets.append(PairTarget(
                 assignment_id=assignment_id,

@@ -154,12 +154,13 @@ def _load_completed_study(source: Path) -> OriginalRubricStudy:
         raise ValueError(f"study must be a regular directory: {source}")
     study = read_json_object(source / "study.json", "study manifest")
     if (
-        study.get("schema_version") != 1
+        study.get("schema_version") != 2
         or study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") != "completed"
         or type(study.get("experiment_path")) is not str
         or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
+        or type(study.get("paraphrase_run_dir")) is not str
         or type(study.get("records")) is not list
         or any(type(record) is not dict for record in study["records"])
     ):
@@ -183,6 +184,7 @@ def _load_completed_study(source: Path) -> OriginalRubricStudy:
         raise ValueError("study ledger is incomplete or differs from its experiment")
 
     seed_run_dir = Path(str(study["seed_run_dir"]))
+    paraphrase_run_dir = Path(str(study["paraphrase_run_dir"]))
     targets: list[OriginalRubricTarget] = []
     with TerminalProgress(
         total=len(experiment.assignments),
@@ -197,6 +199,7 @@ def _load_completed_study(source: Path) -> OriginalRubricStudy:
                     assignment,
                     experiment,
                     seed_run_dir,
+                    paraphrase_run_dir,
                 )
             )
             progress.update()
@@ -213,6 +216,7 @@ def _load_completed_target(
     assignment: dict[str, object],
     experiment: Experiment,
     seed_run_dir: Path,
+    paraphrase_run_dir: Path,
 ) -> OriginalRubricTarget:
     assignment_id = str(assignment["assignment_id"])
     experiment_dir = resolve_study_experiment(
@@ -225,13 +229,14 @@ def _load_completed_target(
         assignment,
         experiment,
         seed_run_dir,
+        paraphrase_run_dir,
     )
     manifest = read_json_object(
         experiment_dir / "manifest.json",
         "revision manifest",
     )
     state = read_json_object(experiment_dir / "state.json", "revision state")
-    rubric_name = manifest.get("rubric_name")
+    rubric_name = manifest.get("master_rubric_name")
     task_dir_value = manifest.get("task_dir")
     submission_ids = state.get("submission_ids")
     if (
@@ -246,15 +251,9 @@ def _load_completed_target(
         raise RuntimeError(f"revision has invalid judge inputs: {experiment_dir}")
     task_dir = Path(task_dir_value)
     human_rubric = task_dir / "tests" / rubric_name
-    archived_original = experiment_dir / "rubric" / "r0000.txt"
     rubric_sha256 = sha256_file(human_rubric)
-    if (
-        manifest.get("rubric_sha256") != rubric_sha256
-        or sha256_file(archived_original) != rubric_sha256
-    ):
-        raise RuntimeError(
-            f"archived original rubric differs from the human rubric: {experiment_dir}"
-        )
+    if manifest.get("master_rubric_sha256") != rubric_sha256:
+        raise RuntimeError(f"master rubric changed: {experiment_dir}")
     initial_submission = experiment_dir / "submissions" / str(submission_ids[0])
     final_submission = experiment_dir / "submissions" / str(submission_ids[-1])
     return OriginalRubricTarget(

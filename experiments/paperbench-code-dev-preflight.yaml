@@ -1,6 +1,5 @@
-schema_version: 3
+schema_version: 5
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-paperbench-code-dev-complete-rubric-v2-score-only-smoke
 benchmark: paperbench-code-dev
 
 tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/paperbench-code-dev
@@ -12,12 +11,6 @@ randomization:
   replicates: 1
 
 conditions:
-  - condition_id: base-static
-    prompt: base
-    rubric_evolution: static
-  - condition_id: base-prospective
-    prompt: base
-    rubric_evolution: prospective
   - condition_id: diligent-static
     prompt: diligent
     rubric_evolution: static
@@ -46,11 +39,16 @@ protocol:
   rubric_proposer_model: gpt-5.6-luna
   rubric_proposer_max_retries: 1
 
+rubric_paraphrases:
+  count: 4
+  model: gpt-5.6-luna
+  max_retries: 2
+
 outcome_audit:
   models:
     - gpt-5.6-sol
     - claude-opus-4-8
-    - gemini-3.1-pro-preview
+    - gemini-3.5-flash
   primary_rule: majority
   max_input_tokens: 250000
   max_output_tokens: 4096
@@ -63,9 +61,12 @@ dag:
   seed:
     depends_on: []
     output_dir: ../seeds/paperbench-code-dev-luna-common
+  paraphrase:
+    depends_on: []
+    output_dir: ../runs/paperbench-code-dev-rubric-paraphrases/luna-master-common
   revise:
-    depends_on: [seed]
-    output_dir: ../runs/paperbench-code-dev-studies/luna-paperbench-code-dev-complete-rubric-v2-score-only-smoke
+    depends_on: [seed, paraphrase]
+    output_dir: ../runs/paperbench-code-dev-studies/{experiment_id}
   detect:
-    depends_on: [revise]
-    output_dir: ../runs/paperbench-code-dev-detections/luna-paperbench-code-dev-complete-rubric-v2-score-only-smoke
+    depends_on: [revise, paraphrase]
+    output_dir: ../runs/paperbench-code-dev-detections/{experiment_id}

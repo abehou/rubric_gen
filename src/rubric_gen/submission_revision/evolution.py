@@ -60,60 +60,6 @@ class ProposerOutput:
     generation: dict[str, object]
 
 
-@dataclass(frozen=True)
-class RubricScoreContext:
-    """Validated scoring context supplied to prospective rubric evolution."""
-
-    score: int
-    raw_score: int
-    selected_levels: dict[str, str]
-    criterion_scores: dict[str, int]
-    score_history: tuple[int, ...]
-
-    def __post_init__(self) -> None:
-        if type(self.score) is not int or not 0 <= self.score <= 100:
-            raise ValueError("rubric score context has an invalid normalized score")
-        if type(self.raw_score) is not int:
-            raise ValueError("rubric score context has an invalid raw score")
-        if (
-            not self.selected_levels
-            or set(self.selected_levels) != set(self.criterion_scores)
-            or any(
-                type(key) is not str
-                or type(value) is not str
-                or not value
-                for key, value in self.selected_levels.items()
-            )
-            or any(
-                type(key) is not str or type(value) is not int
-                for key, value in self.criterion_scores.items()
-            )
-        ):
-            raise ValueError("rubric score context has invalid criterion results")
-        if (
-            not self.score_history
-            or self.score_history[-1] != self.score
-            or any(type(value) is not int or not 0 <= value <= 100 for value in self.score_history)
-        ):
-            raise ValueError("rubric score context has invalid score history")
-
-    @property
-    def saturated(self) -> bool:
-        return self.score == 100 or all(
-            level == "A" for level in self.selected_levels.values()
-        )
-
-    def as_json(self) -> dict[str, object]:
-        return {
-            "score": self.score,
-            "raw_score": self.raw_score,
-            "selected_levels": dict(self.selected_levels),
-            "criterion_scores": dict(self.criterion_scores),
-            "score_history": list(self.score_history),
-            "saturated": self.saturated,
-        }
-
-
 _CRITERION_HEADER = re.compile(
     r"^[ \t]*Criterion[ \t]+(\d+)[ \t]*:", re.MULTILINE
 )
@@ -133,16 +79,13 @@ _MAX_INSPECTION_CHARS = 1_000
 _MAX_UNCERTAINTY_CHARS = 1_000
 _PROPOSER_MAX_OUTPUT_TOKENS = 32_768
 _DIRECT_REQUEST_TIMEOUT_SECONDS = 600.0
-_AUDITOR_PROMPT_VERSION = "trajectory-frontier-auditor-v3"
+_AUDITOR_PROMPT_VERSION = "trajectory-quality-auditor-v4"
 _AUDITOR_PACKET_SCHEMA_VERSION = 3
-_PROPOSER_PROMPT_VERSION = "structured-frontier-rubric-v6"
-_PROPOSER_SCHEMA_VERSION = 2
+_PROPOSER_PROMPT_VERSION = "blind-complete-rubric-v1"
+_PROPOSER_SCHEMA_VERSION = 3
 _AUDITOR_VALIDATION_MAX_RETRIES = 2
 _PROPOSER_REASONING_EFFORT = "high"
 _PROPOSER_TEXT_VERBOSITY = "low"
-_FRONTIER_GATE_ERROR_PREFIX = (
-    "candidate rubric did not move the saturated submission below its frontier"
-)
 _METADATA_KEYS = frozenset({
     "schema_version",
     "kind",
@@ -153,11 +96,7 @@ _METADATA_KEYS = frozenset({
     "source_trajectory_sha256",
     "auditor",
     "auditor_packet_sha256",
-    "proposal_sha256",
-    "proposal_decision",
-    "challenge_changes",
-    "score_context",
-    "candidate_cross_score",
+    "structured_rubric_sha256",
     "proposer",
     "attempt_count",
     "proposer_attempts",
@@ -191,20 +130,11 @@ _FINDING_KEYS = frozenset({
 })
 _PROPOSAL_KEYS = frozenset({
     "schema_version",
-    "decision",
     "rubric_title",
     "criteria",
-    "challenge_changes",
 })
 _PROPOSAL_CRITERION_KEYS = frozenset({"title", "description", "levels"})
 _PROPOSAL_LEVEL_KEYS = frozenset({"label", "points", "description"})
-_CHALLENGE_CHANGE_KEYS = frozenset({
-    "criterion_title",
-    "finding_ids",
-    "stable_quality_dimension",
-    "current_evidence_gap",
-    "future_submission_test",
-})
 
 _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -286,7 +216,6 @@ _PROPOSER_OUTPUT_SCHEMA: dict[str, object] = {
             "type": "integer",
             "enum": [_PROPOSER_SCHEMA_VERSION],
         },
-        "decision": {"type": "string", "enum": ["revise", "retain"]},
         "rubric_title": {"type": "string"},
         "criteria": {
             "type": "array",
@@ -314,39 +243,11 @@ _PROPOSER_OUTPUT_SCHEMA: dict[str, object] = {
                 "additionalProperties": False,
             },
         },
-        "challenge_changes": {
-            "type": "array",
-            "maxItems": 12,
-            "items": {
-                "type": "object",
-                "properties": {
-                    "criterion_title": {"type": "string"},
-                    "finding_ids": {
-                        "type": "array",
-                        "maxItems": 8,
-                        "items": {"type": "string"},
-                    },
-                    "stable_quality_dimension": {"type": "string"},
-                    "current_evidence_gap": {"type": "string"},
-                    "future_submission_test": {"type": "string"},
-                },
-                "required": [
-                    "criterion_title",
-                    "finding_ids",
-                    "stable_quality_dimension",
-                    "current_evidence_gap",
-                    "future_submission_test",
-                ],
-                "additionalProperties": False,
-            },
-        },
     },
     "required": [
         "schema_version",
-        "decision",
         "rubric_title",
         "criteria",
-        "challenge_changes",
     ],
     "additionalProperties": False,
 }
@@ -404,25 +305,16 @@ class RubricEvolver:
         instruction: str,
         current_rubric: str,
         current_submission: str,
-        score_context: RubricScoreContext,
         trajectory_path: Path,
         version: int,
         source_submission_id: str,
         output_dir: Path,
-        candidate_gate: Callable[[str, int], dict[str, object]] | None = None,
-        candidate_validator: (
-            Callable[[str, str], dict[str, object]] | None
-        ) = None,
     ) -> EvolvedRubric:
-        if candidate_gate is None or candidate_validator is None:
-            raise ValueError(
-                "prospective rubric evolution requires candidate gate and validator"
-            )
         output_dir.mkdir(parents=True, exist_ok=True)
         rubric_path = output_dir / f"r{version:04d}.txt"
         metadata_path = output_dir / f"r{version:04d}.proposer.json"
         packet_path = output_dir / f"r{version:04d}.auditor.json"
-        proposal_path = output_dir / f"r{version:04d}.proposal.json"
+        proposal_path = output_dir / f"r{version:04d}.rubric.json"
         diff_path = output_dir / f"r{version:04d}.diff"
         event_contents = indexable_event_contents(trajectory_path)
         source_hashes = {
@@ -450,10 +342,8 @@ class RubricEvolver:
                 current_rubric,
                 event_contents,
                 source_hashes,
-                score_context,
                 instruction,
                 current_submission,
-                candidate_validator,
             )
 
         auditor_output: AuditorOutput | None = None
@@ -472,7 +362,6 @@ class RubricEvolver:
                 auditor_output = self.run_auditor(
                     trajectory_path=trajectory_path,
                     task_instruction=instruction,
-                    score_context=score_context,
                     repair_error=auditor_repair_error,
                     rejected_packet=auditor_rejected_packet,
                 )
@@ -482,7 +371,6 @@ class RubricEvolver:
                     event_contents=event_contents,
                     retrieved_events=frozenset(auditor_output.retrieved_event_ids),
                     materialized=False,
-                    require_finding=score_context.saturated,
                 )
                 break
             except Exception as exc:
@@ -511,7 +399,6 @@ class RubricEvolver:
         rejected_attempts: list[dict[str, str]] = []
         proposer_repair_error: str | None = None
         proposer_rejected_attempts: tuple[dict[str, str], ...] = ()
-        candidate_cross_score: dict[str, object] | None = None
         proposer_attempts: list[dict[str, object]] = []
         attempt = 0
         for attempt in range(1, self.max_retries + 2):
@@ -527,7 +414,6 @@ class RubricEvolver:
                     current_rubric=current_rubric,
                     current_submission=current_submission,
                     auditor_packet=packet_text,
-                    score_context=score_context,
                     repair_error=proposer_repair_error,
                     rejected_attempts=proposer_rejected_attempts,
                 )
@@ -537,35 +423,21 @@ class RubricEvolver:
                     "generation": dict(proposer_output.generation),
                 })
                 attempt_recorded = True
-                proposal, proposal_text = _validated_structured_proposal(
+                proposal, proposal_text = _validated_structured_rubric(
                     proposer_output.proposal_text,
                     current_rubric=current_rubric,
-                    packet_text=packet_text,
-                    saturated=score_context.saturated,
                 )
                 text = _proposal_rubric_text(
                     proposal,
                     current_rubric=current_rubric,
                 )
                 text = _validated_complete_rubric(text, current_rubric=current_rubric)
-                changed_candidate = text != _normalize_rubric_text(current_rubric)
-                if proposal["decision"] == "revise" and not changed_candidate:
-                    raise ValueError("a revised rubric proposal must change the rubric")
-                if changed_candidate:
-                    candidate_cross_score = candidate_gate(text, attempt)
-                    if candidate_cross_score.get("rubric_sha256") != sha256_text(text):
-                        raise ValueError("candidate crossed score attests another rubric")
-                _validate_candidate_cross_score(
-                    candidate_cross_score,
-                    score_context=score_context,
-                    changed=changed_candidate,
-                )
                 break
             except Exception as exc:
                 if proposer_output is not None:
                     rejected_attempts.append({
                         "validation_error": str(exc) or type(exc).__name__,
-                        "structured_proposal": proposer_output.proposal_text,
+                        "structured_rubric": proposer_output.proposal_text,
                     })
                     self._archive_failed_attempt(
                         output_dir,
@@ -615,8 +487,8 @@ class RubricEvolver:
         proposal_path.write_text(proposal_text, encoding="utf-8")
         diff_path.write_text(rubric_diff, encoding="utf-8")
         metadata: dict[str, object] = {
-            "schema_version": 7,
-            "kind": "audited-complete-rubric-generation",
+            "schema_version": 8,
+            "kind": "blind-complete-rubric-generation",
             "version": version,
             "mode": RubricEvolution.PROSPECTIVE.value,
             "source_submission_id": source_submission_id,
@@ -624,23 +496,17 @@ class RubricEvolver:
             "auditor": self._auditor_identity(
                 auditor_output,
                 available_events=len(event_contents),
-                score_context=score_context,
                 task_instruction=instruction,
                 repair_error=auditor_repair_error,
                 rejected_packet=auditor_rejected_packet,
             ),
             "auditor_packet_sha256": packet_sha256,
-            "proposal_sha256": sha256_text(proposal_text),
-            "proposal_decision": proposal["decision"],
-            "challenge_changes": proposal["challenge_changes"],
-            "score_context": score_context.as_json(),
-            "candidate_cross_score": candidate_cross_score,
+            "structured_rubric_sha256": sha256_text(proposal_text),
             "proposer": self._proposer_identity(
                 current_rubric,
                 instruction=instruction,
                 current_submission=current_submission,
                 auditor_packet=packet_text,
-                score_context=score_context,
                 repair_error=proposer_repair_error,
                 rejected_attempts=proposer_rejected_attempts,
             ),
@@ -685,7 +551,6 @@ class RubricEvolver:
         output: AuditorOutput,
         *,
         available_events: int,
-        score_context: RubricScoreContext,
         task_instruction: str,
         repair_error: str | None,
         rejected_packet: str | None,
@@ -695,7 +560,6 @@ class RubricEvolver:
             query_limit=self.query_limit,
             available_events=available_events,
             task_instruction=task_instruction,
-            score_context=score_context,
             repair_error=repair_error,
             rejected_packet=rejected_packet,
         )
@@ -727,7 +591,6 @@ class RubricEvolver:
         instruction: str,
         current_submission: str,
         auditor_packet: str,
-        score_context: RubricScoreContext,
         repair_error: str | None,
         rejected_attempts: tuple[dict[str, str], ...],
     ) -> dict[str, object]:
@@ -740,7 +603,6 @@ class RubricEvolver:
             current_rubric=current_rubric,
             current_submission=current_submission,
             auditor_packet=auditor_packet,
-            score_context=score_context,
             rejected_attempts=rejected_attempts,
         )
         return {
@@ -846,10 +708,8 @@ class RubricEvolver:
         current_rubric: str,
         event_contents: dict[int, str],
         source_hashes: dict[str, str],
-        score_context: RubricScoreContext,
         instruction: str,
         current_submission: str,
-        candidate_validator: Callable[[str, str], dict[str, object]],
     ) -> EvolvedRubric:
         if not all(path.is_file() for path in (
             rubric_path, metadata_path, packet_path, proposal_path, diff_path
@@ -861,11 +721,9 @@ class RubricEvolver:
             packet_text = packet_path.read_text(encoding="utf-8")
             proposal_text = proposal_path.read_text(encoding="utf-8")
             rubric_diff = diff_path.read_text(encoding="utf-8")
-            proposal, expected_proposal = _validated_structured_proposal(
+            proposal, expected_proposal = _validated_structured_rubric(
                 proposal_text,
                 current_rubric=current_rubric,
-                packet_text=packet_text,
-                saturated=score_context.saturated,
             )
             proposal_rubric = _proposal_rubric_text(
                 proposal,
@@ -916,7 +774,6 @@ class RubricEvolver:
                 expected_auditor_identity = self._auditor_identity(
                     output,
                     available_events=len(event_contents),
-                    score_context=score_context,
                     task_instruction=instruction,
                     repair_error=auditor_repair_error,
                     rejected_packet=rejected_packet,
@@ -926,7 +783,6 @@ class RubricEvolver:
                     event_contents=event_contents,
                     retrieved_events=frozenset(output.retrieved_event_ids),
                     materialized=True,
-                    require_finding=score_context.saturated,
                 )
             except (KeyError, TypeError, ValueError):
                 expected_packet = None
@@ -944,33 +800,16 @@ class RubricEvolver:
                     instruction=instruction,
                     current_submission=current_submission,
                     auditor_packet=packet_text,
-                    score_context=score_context,
                     repair_error=proposer_repair_error,
                     rejected_attempts=rejected_attempts,
                 )
             except (KeyError, TypeError, ValueError):
                 expected_proposer_identity = None
-        candidate_cross_score = (
-            stored.get("candidate_cross_score")
-            if isinstance(stored, dict)
-            else None
-        )
-        expected_candidate_cross_score = None
-        if changed and isinstance(candidate_cross_score, dict):
-            attempt_id = candidate_cross_score.get("attempt_id")
-            if type(attempt_id) is str:
-                try:
-                    expected_candidate_cross_score = candidate_validator(
-                        text,
-                        attempt_id,
-                    )
-                except (OSError, RuntimeError, TypeError, ValueError):
-                    expected_candidate_cross_score = None
         if (
             not isinstance(stored, dict)
             or set(stored) != _METADATA_KEYS
-            or stored.get("schema_version") != 7
-            or stored.get("kind") != "audited-complete-rubric-generation"
+            or stored.get("schema_version") != 8
+            or stored.get("kind") != "blind-complete-rubric-generation"
             or stored.get("version") != version
             or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
             or stored.get("source_submission_id") != source_submission_id
@@ -979,21 +818,7 @@ class RubricEvolver:
             or expected_packet != packet_text
             or stored.get("auditor_packet_sha256") != sha256_text(packet_text)
             or expected_proposal != proposal_text
-            or stored.get("proposal_sha256") != sha256_text(proposal_text)
-            or stored.get("proposal_decision") != proposal["decision"]
-            or stored.get("challenge_changes") != proposal["challenge_changes"]
-            or stored.get("score_context") != score_context.as_json()
-            or not _valid_candidate_cross_score(
-                candidate_cross_score,
-                score_context=score_context,
-                changed=changed,
-            )
-            or (
-                isinstance(stored.get("candidate_cross_score"), dict)
-                and stored["candidate_cross_score"].get("rubric_sha256")
-                != sha256_text(text)
-            )
-            or candidate_cross_score != expected_candidate_cross_score
+            or stored.get("structured_rubric_sha256") != sha256_text(proposal_text)
             or stored.get("proposer") != expected_proposer_identity
             or type(stored.get("attempt_count")) is not int
             or stored["attempt_count"] < 1
@@ -1003,7 +828,6 @@ class RubricEvolver:
             or stored.get("rubric_sha256") != sha256_text(text)
             or stored.get("parent_rubric_sha256") != sha256_text(current_rubric)
             or stored.get("rubric_changed") is not changed
-            or (proposal["decision"] == "revise") is not changed
             or stored.get("rubric_diff_sha256") != sha256_text(rubric_diff)
             or rubric_diff != expected_diff
             or stored.get("parent_criterion_count") != parent_criterion_count
@@ -1020,7 +844,6 @@ class RubricEvolver:
         *,
         trajectory_path: Path,
         task_instruction: str,
-        score_context: RubricScoreContext,
         repair_error: str | None,
         rejected_packet: str | None,
     ) -> AuditorOutput:
@@ -1054,7 +877,6 @@ class RubricEvolver:
                     query_limit=self.query_limit,
                     available_events=int(inventory["events"]),
                     task_instruction=task_instruction,
-                    score_context=score_context,
                     repair_error=repair_error,
                     rejected_packet=rejected_packet,
                 ),
@@ -1123,7 +945,6 @@ class RubricEvolver:
         current_rubric: str,
         current_submission: str,
         auditor_packet: str,
-        score_context: RubricScoreContext,
         repair_error: str | None,
         rejected_attempts: tuple[dict[str, str], ...],
     ) -> ProposerOutput:
@@ -1136,7 +957,6 @@ class RubricEvolver:
             current_rubric=current_rubric,
             current_submission=current_submission,
             auditor_packet=auditor_packet,
-            score_context=score_context,
             rejected_attempts=rejected_attempts,
         )
         return _generate_structured_rubric(
@@ -1154,18 +974,9 @@ def _auditor_prompt(
     query_limit: int,
     available_events: int,
     task_instruction: str,
-    score_context: RubricScoreContext,
     repair_error: str | None,
     rejected_packet: str | None,
 ) -> str:
-    frontier = (
-        "The current rubric score is saturated. Perform an active frontier audit: "
-        "look beyond invalidating failures for unresolved uncertainty, weak controls, "
-        "missing robustness, unverified assumptions, and plausible failure modes that "
-        "a stronger future submission should resolve."
-        if score_context.saturated
-        else "Perform both an outcome-validity audit and a frontier audit."
-    )
     repair = ""
     if repair_error is not None:
         repair = f"""
@@ -1185,7 +996,8 @@ the packet, including between evidence and counterevidence.
 
 Audit the raw trajectory for supported problems, potential concerns, and
 evidence that weakens either type of finding. You select audit findings; you do
-not design the rubric. {frontier}
+not design the rubric. Inspect outcome validity, controls, uncertainty,
+assumptions, robustness, and plausible failure modes. You have no score signal.
 
 The trajectory is available only through at most {query_limit} bounded calls:
 `{query_tool} inventory`
@@ -1211,8 +1023,8 @@ or infer hidden events.
 Return one JSON object with this exact structure:
 - `schema_version`: 3.
 - `inspected`: a short factual statement of the inspected areas.
-- `findings`: one or more findings when the score is saturated; otherwise zero
-  or more findings. Give each a unique sequential ID such as `F1`. Each finding
+- `findings`: zero or more findings. Give each a unique sequential ID such as
+  `F1`. Each finding
   contains `kind`, `hypothesis`, `basis`, `evidence`,
   `counterevidence`, `uncertainty`, and `verification_question`.
 
@@ -1243,33 +1055,9 @@ def _proposer_instructions(
     repair = ""
     if repair_error is not None:
         repair = (
-            "\n\nThe previous structured proposal failed validation: "
+            "\n\nThe previous complete structured rubric failed validation: "
             + repair_error
         )
-        if repair_error.startswith(_FRONTIER_GATE_ERROR_PREFIX):
-            repair += """
-
-The rejected rubric failed an empirical cross-score against the frozen current
-submission. Treat the score and level counts in the validation error as proof
-that the rejected A-level thresholds did not expose a new quality frontier.
-Review every entry in `rejected_structured_proposal_history`; do not repeat a
-failed threshold, cosmetic rewrite, or equivalent challenge set.
-
-Before returning the corrected proposal:
-1. Compare the current submission with each verified auditor finding and each
-   rejected A-level requirement.
-2. Select a different stable, task-valid outcome gap that the current submission
-   does not establish. If one finding is already resolved, use another finding
-   or a materially stronger unresolved dimension that the packet supports.
-3. Put the missing outcome directly into at least one A-level description cited
-   by `challenge_changes`; make its next lower level give appropriate credit for
-   the bounded outcome that is established.
-4. Privately verify that the frozen current submission should score below A on
-   that criterion before you return the JSON.
-
-Do not manufacture a gap through arbitrary busywork, submission-specific
-wording, or a method that the task does not require. The distinction must remain
-valid for plausible future submissions."""
     scoring_protocol = _scoring_protocol(current_rubric)
     if scoring_protocol is not None:
         normalization_maximum = parse_score_normalization_maximum(current_rubric)
@@ -1296,29 +1084,21 @@ negative lower levels."""
 Act as an independent designer of the complete optimizer rubric for the next
 revision of a scientific task.
 
-Return the structured JSON object required by the response schema. For a
-`revise` decision, provide the full next rubric as structured criteria, not an
-edit or patch. The harness renders the only accepted rubric text format. The
-current rubric is a starting point rather than an immutable template. You may
-retain, rewrite, remove, merge, split, reorder, or reweight any criterion. The
-current submission has already been scored, so the new rubric applies only to
-the next submission.
+Return the complete next rubric as the structured JSON object required by the
+response schema. Do not return an action, decision, edit, patch, or change list.
+The harness renders the only accepted rubric text format. The current rubric is
+a starting point rather than an immutable template. You may retain, rewrite,
+remove, merge, split, reorder, or reweight any criterion. If no change improves
+the rubric, reproduce a complete equivalent rubric without artificial changes.
 
 The trajectory auditor is separate from you. Its packet contains only
 harness-verified verbatim trajectory slices, supported problems, explicitly
 speculative potential concerns, counterevidence, uncertainty, and verification
 questions. Treat a potential concern as a hypothesis to test, not as an
 observed fact. Do not infer additional trajectory facts. You do not have tools,
-judge reasoning, or reward-hacking detector results. Never add a criterion
+scores, selected levels, score history, judge reasoning, or reward-hacking
+detector results. Never add a criterion
 merely because the auditor searched for an issue.
-
-The validated score context is diagnostic input. If `saturated` is true, you
-must choose `revise`, cite at least one auditor finding ID in
-`challenge_changes`, and add a stable task-quality distinction that the current
-submission has not yet established. A saturated score does not prove that the
-quality frontier is exhausted. Tighten verification, robustness, controls,
-uncertainty, or outcome validity where justified. Do not lower a score by adding
-busywork, arbitrary requirements, or details that only fit this submission.
 
 Design the rubric through an internal recursive decompose-filter cycle:
 1. Map the task to the complete set of important outcome dimensions and the
@@ -1375,14 +1155,7 @@ The final rubric set must be informative, comprehensive, and non-redundant:
 The complete rubric must use contiguous `Criterion 1:` through `Criterion N:`
 sections after harness rendering. {level_contract}
 
-For every `revise` decision, populate `challenge_changes`. Each change must name
-one criterion title in the proposed rubric, cite one or more valid finding IDs,
-identify a stable quality dimension, state the current evidence gap without
-turning speculation into fact, and define how a future submission can establish
-the stronger outcome. If the score is not saturated and no task-valid revision
-improves discrimination, choose `retain` and return empty `rubric_title`,
-`rubric_title` as an empty string and return empty `criteria` and
-`challenge_changes` arrays. Return only the schema-conforming JSON object.{repair}
+Return only the schema-conforming complete rubric JSON object.{repair}
 """
 
 
@@ -1392,15 +1165,14 @@ def _proposer_evidence(
     current_rubric: str,
     current_submission: str,
     auditor_packet: str,
-    score_context: RubricScoreContext,
     rejected_attempts: tuple[dict[str, str], ...],
 ) -> str:
     repair = (
         ""
         if not rejected_attempts
-        else f"""<rejected_structured_proposal_history>
+        else f"""<rejected_complete_rubric_history>
 {json.dumps(rejected_attempts, ensure_ascii=False, sort_keys=True)}
-</rejected_structured_proposal_history>
+</rejected_complete_rubric_history>
 """
     )
     return f"""<task_instruction>
@@ -1414,9 +1186,6 @@ def _proposer_evidence(
 </current_complete_rubric>
 <verified_auditor_packet>
 {auditor_packet}</verified_auditor_packet>
-<validated_score_context>
-{json.dumps(score_context.as_json(), ensure_ascii=False, sort_keys=True)}
-</validated_score_context>
 {repair}
 """
 
@@ -1449,7 +1218,7 @@ def _generate_structured_rubric(
             response_format={
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "submission_frontier_rubric_proposal",
+                    "name": "complete_optimizer_rubric",
                     "strict": True,
                     "schema": _PROPOSER_OUTPUT_SCHEMA,
                 },
@@ -1502,7 +1271,7 @@ def _generate_structured_rubric(
             "verbosity": _PROPOSER_TEXT_VERBOSITY,
             "format": {
                 "type": "json_schema",
-                "name": "submission_frontier_rubric_proposal",
+                "name": "complete_optimizer_rubric",
                 "strict": True,
                 "schema": _PROPOSER_OUTPUT_SCHEMA,
             },
@@ -1644,11 +1413,11 @@ def _proposer_repair_context(
         or not rejected
         or any(
             not isinstance(attempt, dict)
-            or set(attempt) != {"validation_error", "structured_proposal"}
+            or set(attempt) != {"validation_error", "structured_rubric"}
             or type(attempt.get("validation_error")) is not str
             or not attempt["validation_error"]
-            or type(attempt.get("structured_proposal")) is not str
-            or not attempt["structured_proposal"]
+            or type(attempt.get("structured_rubric")) is not str
+            or not attempt["structured_rubric"]
             for attempt in rejected
         )
         or rejected[-1]["validation_error"] != repair_error
@@ -1792,47 +1561,32 @@ def _validated_evidence_packet(
     return canonical
 
 
-def _validated_structured_proposal(
+def _validated_structured_rubric(
     response: str,
     *,
     current_rubric: str,
-    packet_text: str,
-    saturated: bool,
 ) -> tuple[dict[str, object], str]:
     if type(response) is not str or not response.strip():
-        raise ValueError("rubric proposer returned an empty structured proposal")
+        raise ValueError("rubric proposer returned an empty structured rubric")
     if len(response) > _MAX_RUBRIC_CHARS * 2:
-        raise ValueError("rubric proposer returned an oversized structured proposal")
+        raise ValueError("rubric proposer returned an oversized structured rubric")
     try:
         proposal = json.loads(response)
-        packet = json.loads(packet_text)
     except json.JSONDecodeError as exc:
         raise ValueError("rubric proposer returned invalid JSON") from exc
     if not isinstance(proposal, dict) or set(proposal) != _PROPOSAL_KEYS:
-        raise ValueError("structured rubric proposal has invalid fields")
+        raise ValueError("structured rubric has invalid fields")
     if proposal.get("schema_version") != _PROPOSER_SCHEMA_VERSION:
-        raise ValueError("structured rubric proposal has an invalid schema version")
-    decision = proposal.get("decision")
+        raise ValueError("structured rubric has an invalid schema version")
     title = proposal.get("rubric_title")
     criteria = proposal.get("criteria")
-    changes = proposal.get("challenge_changes")
     if (
-        decision not in {"revise", "retain"}
-        or type(title) is not str
+        type(title) is not str
+        or not _valid_rubric_field(title)
         or not isinstance(criteria, list)
-        or not isinstance(changes, list)
+        or not criteria
     ):
-        raise ValueError("structured rubric proposal has invalid decision fields")
-    if decision == "retain":
-        if saturated:
-            raise ValueError("a saturated score requires a challenging rubric revision")
-        if title or criteria or changes:
-            raise ValueError("a retained rubric proposal must omit revision content")
-    else:
-        if not _valid_rubric_field(title) or not criteria:
-            raise ValueError("a revised rubric proposal must contain a title and criteria")
-        if not 1 <= len(changes) <= 12:
-            raise ValueError("a revised rubric proposal must explain challenge changes")
+        raise ValueError("structured rubric must contain a title and criteria")
 
     criterion_titles: list[str] = []
     expected_maximum = parse_score_normalization_maximum(current_rubric) or 100
@@ -1840,7 +1594,7 @@ def _validated_structured_proposal(
     total_maximum = 0
     for criterion in criteria:
         if not isinstance(criterion, dict) or set(criterion) != _PROPOSAL_CRITERION_KEYS:
-            raise ValueError("structured rubric proposal has an invalid criterion")
+            raise ValueError("structured rubric has an invalid criterion")
         criterion_title = criterion.get("title")
         description = criterion.get("description")
         levels = criterion.get("levels")
@@ -1851,13 +1605,13 @@ def _validated_structured_proposal(
             or not _valid_rubric_field(description)
             or not isinstance(levels, list)
         ):
-            raise ValueError("structured rubric proposal has an invalid criterion")
+            raise ValueError("structured rubric has an invalid criterion")
         criterion_titles.append(criterion_title)
         labels: list[str] = []
         points: list[int] = []
         for level in levels:
             if not isinstance(level, dict) or set(level) != _PROPOSAL_LEVEL_KEYS:
-                raise ValueError("structured rubric proposal has an invalid level")
+                raise ValueError("structured rubric has an invalid level")
             label = level.get("label")
             point = level.get("points")
             level_description = level.get("description")
@@ -1867,7 +1621,7 @@ def _validated_structured_proposal(
                 or type(level_description) is not str
                 or not _valid_rubric_field(level_description)
             ):
-                raise ValueError("structured rubric proposal has an invalid level")
+                raise ValueError("structured rubric has an invalid level")
             labels.append(label)
             points.append(point)
         expected_labels = [chr(ord("A") + index) for index in range(len(labels))]
@@ -1880,12 +1634,12 @@ def _validated_structured_proposal(
             or points[0] <= 0
             or points.count(0) != 1
         ):
-            raise ValueError("structured rubric proposal has invalid level progression")
+            raise ValueError("structured rubric has invalid level progression")
         total_maximum += points[0]
     normalized_titles = [" ".join(value.lower().split()) for value in criterion_titles]
     if len(set(normalized_titles)) != len(normalized_titles):
-        raise ValueError("structured rubric proposal has duplicate criterion titles")
-    if decision == "revise" and total_maximum != expected_maximum:
+        raise ValueError("structured rubric has duplicate criterion titles")
+    if total_maximum != expected_maximum:
         delta = expected_maximum - total_maximum
         adjustment = "increase" if delta > 0 else "decrease"
         raise ValueError(
@@ -1893,32 +1647,6 @@ def _validated_structured_proposal(
             f"the proposed sum is {total_maximum}, so {adjustment} it by "
             f"{abs(delta)}"
         )
-
-    packet_findings = packet.get("findings") if isinstance(packet, dict) else None
-    valid_finding_ids = {
-        finding.get("finding_id")
-        for finding in packet_findings
-        if isinstance(finding, dict) and type(finding.get("finding_id")) is str
-    } if isinstance(packet_findings, list) else set()
-    for change in changes:
-        if not isinstance(change, dict) or set(change) != _CHALLENGE_CHANGE_KEYS:
-            raise ValueError("structured rubric proposal has an invalid challenge change")
-        finding_ids = change.get("finding_ids")
-        if (
-            change.get("criterion_title") not in criterion_titles
-            or not isinstance(finding_ids, list)
-            or not finding_ids
-            or any(type(value) is not str or value not in valid_finding_ids for value in finding_ids)
-        ):
-            raise ValueError("challenge change does not cite valid frontier findings")
-        for key in (
-            "stable_quality_dimension",
-            "current_evidence_gap",
-            "future_submission_test",
-        ):
-            value = change.get(key)
-            if type(value) is not str or not value.strip() or value != value.strip():
-                raise ValueError("structured rubric proposal has an invalid challenge change")
     canonical = json.dumps(
         proposal,
         ensure_ascii=False,
@@ -1943,8 +1671,6 @@ def _proposal_rubric_text(
     *,
     current_rubric: str,
 ) -> str:
-    if proposal["decision"] == "retain":
-        return current_rubric
     title = proposal["rubric_title"]
     criteria = proposal["criteria"]
     assert isinstance(title, str) and isinstance(criteria, list)
@@ -1978,121 +1704,6 @@ def _proposal_rubric_text(
             lines.append(f"[{level['label']}]: {level['description']}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
-
-
-_CROSS_SCORE_KEYS = frozenset({
-    "parent_score",
-    "candidate_score",
-    "raw_score",
-    "selected_levels",
-    "criterion_scores",
-    "rubric_sha256",
-    "attempt_id",
-})
-
-
-def _validate_candidate_cross_score(
-    value: dict[str, object] | None,
-    *,
-    score_context: RubricScoreContext,
-    changed: bool,
-) -> None:
-    if not _valid_candidate_cross_score_shape(
-        value,
-        score_context=score_context,
-        changed=changed,
-    ):
-        raise ValueError("candidate rubric returned an invalid crossed score")
-    if score_context.saturated and not _candidate_cross_score_moves_frontier(
-        value,
-        score_context=score_context,
-        changed=changed,
-    ):
-        if isinstance(value, dict):
-            selected_levels = value["selected_levels"]
-            assert isinstance(selected_levels, dict)
-            top_level_count = sum(
-                level == "A" for level in selected_levels.values()
-            )
-            detail = (
-                f"parent score {score_context.score}, candidate score "
-                f"{value['candidate_score']}, and {top_level_count}/"
-                f"{len(selected_levels)} criteria selected level A"
-            )
-        else:
-            detail = "no changed candidate rubric was crossed"
-        raise ValueError(f"{_FRONTIER_GATE_ERROR_PREFIX}: {detail}")
-
-
-def _valid_candidate_cross_score(
-    value: object,
-    *,
-    score_context: RubricScoreContext,
-    changed: bool,
-) -> bool:
-    return bool(
-        _valid_candidate_cross_score_shape(
-            value,
-            score_context=score_context,
-            changed=changed,
-        )
-        and (
-            not score_context.saturated
-            or _candidate_cross_score_moves_frontier(
-                value,
-                score_context=score_context,
-                changed=changed,
-            )
-        )
-    )
-
-
-def _valid_candidate_cross_score_shape(
-    value: object,
-    *,
-    score_context: RubricScoreContext,
-    changed: bool,
-) -> bool:
-    if value is None:
-        return not changed
-    return bool(
-        isinstance(value, dict)
-        and set(value) == _CROSS_SCORE_KEYS
-        and value.get("parent_score") == score_context.score
-        and type(value.get("candidate_score")) is int
-        and 0 <= value["candidate_score"] <= 100
-        and type(value.get("raw_score")) is int
-        and isinstance(value.get("selected_levels"), dict)
-        and value["selected_levels"]
-        and all(
-            type(key) is str and type(level) is str and level
-            for key, level in value["selected_levels"].items()
-        )
-        and isinstance(value.get("criterion_scores"), dict)
-        and set(value["criterion_scores"]) == set(value["selected_levels"])
-        and all(type(score) is int for score in value["criterion_scores"].values())
-        and value["raw_score"] == sum(value["criterion_scores"].values())
-        and type(value.get("rubric_sha256")) is str
-        and len(value["rubric_sha256"]) == 64
-        and all(character in "0123456789abcdef" for character in value["rubric_sha256"])
-        and type(value.get("attempt_id")) is str
-        and len(value["attempt_id"]) == 32
-        and all(character in "0123456789abcdef" for character in value["attempt_id"])
-    )
-
-
-def _candidate_cross_score_moves_frontier(
-    value: object,
-    *,
-    score_context: RubricScoreContext,
-    changed: bool,
-) -> bool:
-    return bool(
-        isinstance(value, dict)
-        and changed
-        and value["candidate_score"] < score_context.score
-        and not all(level == "A" for level in value["selected_levels"].values())
-    )
 
 
 def _link_or_copy(source: Path, destination: Path) -> None:

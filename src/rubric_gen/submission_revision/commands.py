@@ -9,12 +9,17 @@ import secrets
 import shutil
 import stat
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 from rubric_gen.submission_revision.seeds import (
     SeedSetConfig,
     SeedSetRunner,
+)
+from rubric_gen.submission_revision.paraphrases import (
+    ParaphraseRunConfig,
+    ParaphraseRunner,
 )
 from rubric_gen.submission_revision.study import (
     StudyRunConfig,
@@ -50,6 +55,9 @@ def run_revise(args: argparse.Namespace) -> int:
     return StudyRunner(StudyRunConfig(
         experiment=experiment,
         seed_run_dir=Path(str(experiment.dag["seed"]["output_dir"])),
+        paraphrase_run_dir=Path(
+            str(experiment.dag["paraphrase"]["output_dir"])
+        ),
         output_dir=Path(str(experiment.dag["revise"]["output_dir"])),
         max_concurrency=args.max_concurrency,
         resume=args.resume,
@@ -57,24 +65,99 @@ def run_revise(args: argparse.Namespace) -> int:
     )).run()
 
 
+def run_paraphrase(args: argparse.Namespace) -> int:
+    experiment = load_experiment(resolve_project_path(args.experiment))
+    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
+    return ParaphraseRunner(ParaphraseRunConfig(
+        experiment=experiment,
+        output_dir=Path(str(experiment.dag["paraphrase"]["output_dir"])),
+        max_concurrency=args.max_concurrency,
+        vllm_endpoints=endpoints,
+    )).run()
+
+
 def run_detect(args: argparse.Namespace) -> int:
     from rubric_gen.malt.cli import main as malt_main
+    from rubric_gen.submission_revision.rh_diagnostics import (
+        DiagnosticConfig,
+        RubricFreeMetaRunner,
+        RubricScoreDiagnosticRunner,
+        write_combined_rh_summary,
+    )
+
+    experiment = load_experiment(resolve_project_path(args.experiment))
+    study_dir = Path(str(experiment.dag["revise"]["output_dir"]))
+    paraphrase_dir = Path(str(experiment.dag["paraphrase"]["output_dir"]))
+    output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
+    direct_dir = output_dir / "direct"
+    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
+    audit_models = tuple(
+        str(model) for model in experiment.outcome_audit["models"]
+    )
+    direct_endpoints = {
+        model: endpoints[model]
+        for model in audit_models
+        if model in endpoints
+    }
+    if direct_endpoints and len(direct_endpoints) != len(audit_models):
+        missing = sorted(set(audit_models) - set(direct_endpoints))
+        raise ValueError(
+            "direct RH detection requires endpoints for all configured audit "
+            f"models or none of them; missing={missing!r}"
+        )
 
     argv = [
         "--detect", "rh",
-        "--study-dir", args.run_dir,
-        "--output-dir", args.output_dir,
+        "--study-dir", str(study_dir),
+        "--output-dir", str(direct_dir),
         "--max-concurrency", str(args.max_concurrency),
     ]
-    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
-    if endpoints:
-        for model, url in endpoints.items():
+    if direct_endpoints:
+        for model, url in direct_endpoints.items():
             argv.extend(["--vllm", f"{url}::{model}"])
     else:
         argv.append("--ensemble")
     if args.resume:
         argv.append("--resume")
-    return malt_main(argv)
+    statuses: dict[str, int] = {}
+    errors: list[tuple[str, Exception]] = []
+
+    def execute(name: str, operation: Callable[[], int]) -> None:
+        try:
+            statuses[name] = int(operation())
+        except Exception as exc:
+            errors.append((name, exc))
+
+    execute("direct", lambda: malt_main(argv))
+    config = DiagnosticConfig(
+        experiment=experiment,
+        study_dir=study_dir,
+        paraphrase_dir=paraphrase_dir,
+        output_dir=output_dir / "score-diagnostics",
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+        vllm_endpoints=endpoints,
+    )
+    execute("score-diagnostics", RubricScoreDiagnosticRunner(config).run)
+    meta_config = DiagnosticConfig(
+        experiment=experiment,
+        study_dir=study_dir,
+        paraphrase_dir=paraphrase_dir,
+        output_dir=output_dir / "rubric-free",
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+        vllm_endpoints=endpoints,
+    )
+    execute("rubric-free", RubricFreeMetaRunner(meta_config).run)
+    if not errors:
+        write_combined_rh_summary(output_dir)
+    if errors:
+        stages = ", ".join(name for name, _error in errors)
+        first = errors[0][1]
+        raise RuntimeError(
+            f"RH detection suite failed in {stages}; other stages were still run"
+        ) from first
+    return int(any(statuses.values()))
 
 
 def run_dag(args: argparse.Namespace) -> int:
@@ -92,13 +175,14 @@ def run_dag(args: argparse.Namespace) -> int:
     )
     if run_seed(common):
         return 1
+    if run_paraphrase(common):
+        return 1
     if restart:
         _restart_experiment_outputs(experiment)
     if run_revise(common):
         return 1
     detect = argparse.Namespace(
-        run_dir=str(experiment.dag["revise"]["output_dir"]),
-        output_dir=str(experiment.dag["detect"]["output_dir"]),
+        experiment=str(experiment.path),
         max_concurrency=min(args.max_concurrency, 3),
         resume=resume,
         vllm=vllm,

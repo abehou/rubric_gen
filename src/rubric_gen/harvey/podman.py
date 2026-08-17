@@ -1,13 +1,16 @@
-"""Node-local rootless Podman configuration for Harvey LAB."""
+"""Rootless Podman runtime with a portable shared Harvey image cache."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import pwd
+import secrets
 import shlex
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 from collections.abc import Mapping
@@ -17,19 +20,24 @@ from pathlib import Path
 def configured_podman_environment(
     source: Mapping[str, str] | None = None,
     *,
+    cache_root: Path,
     temporary_root: Path | None = None,
     uid: int | None = None,
     username: str | None = None,
     subuid_path: Path = Path("/etc/subuid"),
     subgid_path: Path = Path("/etc/subgid"),
 ) -> dict[str, str]:
-    """Return an environment suitable for rootless Podman on a Linux worker."""
+    """Return an environment with local Podman state and shared reusable caches."""
 
     environment = dict(os.environ if source is None else source)
+    resolved_uid = os.getuid() if uid is None else uid
+    shared = _shared_user_cache(cache_root, resolved_uid)
+    uv_cache = shared / "uv"
+    _ensure_private_directory(uv_cache, "Harvey UV cache")
+    environment["UV_CACHE_DIR"] = str(uv_cache)
     if sys.platform != "linux":
         return environment
 
-    resolved_uid = os.getuid() if uid is None else uid
     resolved_username = (
         pwd.getpwuid(resolved_uid).pw_name if username is None else username
     )
@@ -81,6 +89,168 @@ def configured_podman_environment(
         )
         environment["CONTAINERS_STORAGE_CONF"] = str(storage_config)
     return environment
+
+
+def restore_cached_image(
+    environment: Mapping[str, str],
+    *,
+    cache_root: Path,
+    image: str,
+    uid: int | None = None,
+) -> bool:
+    """Load a shared OCI image archive when the image is absent locally."""
+
+    if _inspect_image_id(environment, image) is not None:
+        return True
+    shared = _shared_user_cache(cache_root, os.getuid() if uid is None else uid)
+    reference = _image_reference_path(shared, image)
+    if not reference.exists():
+        return False
+    metadata = _read_image_reference(reference, image)
+    expected_id = str(metadata["image_id"])
+    archive = _image_blob_path(shared, expected_id)
+    if archive.is_symlink() or not archive.is_file():
+        raise RuntimeError(f"Harvey image cache archive is missing: {archive}")
+    result = subprocess.run(
+        ["podman", "load", "--input", str(archive)],
+        env=dict(environment),
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise RuntimeError(f"could not load Harvey image cache {archive}: {detail}")
+    observed_id = _inspect_image_id(environment, image)
+    if observed_id != expected_id:
+        raise RuntimeError(
+            f"Harvey image cache restored {observed_id!r}; expected {expected_id!r}"
+        )
+    return True
+
+
+def cache_image(
+    environment: Mapping[str, str],
+    *,
+    cache_root: Path,
+    image: str,
+    uid: int | None = None,
+) -> Path:
+    """Save a local Podman image as an immutable shared OCI archive."""
+
+    image_id = _inspect_image_id(environment, image)
+    if image_id is None:
+        raise RuntimeError(f"cannot cache missing Podman image: {image}")
+    shared = _shared_user_cache(cache_root, os.getuid() if uid is None else uid)
+    blobs = shared / "images" / "blobs"
+    references = shared / "images" / "refs"
+    _ensure_private_directory(blobs, "Harvey image blob cache")
+    _ensure_private_directory(references, "Harvey image reference cache")
+    archive = _image_blob_path(shared, image_id)
+    if archive.exists():
+        if archive.is_symlink() or not archive.is_file():
+            raise RuntimeError(f"Harvey image cache archive is invalid: {archive}")
+    else:
+        temporary = archive.with_name(
+            f".{archive.name}.tmp-{secrets.token_hex(8)}"
+        )
+        if temporary.exists():
+            raise RuntimeError(f"Harvey image cache temporary path exists: {temporary}")
+        result = subprocess.run(
+            [
+                "podman", "save", "--format", "oci-archive",
+                "--output", str(temporary), image,
+            ],
+            env=dict(environment),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+        if result.returncode != 0:
+            if temporary.exists() and temporary.is_file() and not temporary.is_symlink():
+                temporary.unlink()
+            detail = result.stderr.strip() or result.stdout.strip()
+            raise RuntimeError(f"could not cache Harvey image {image}: {detail}")
+        if temporary.is_symlink() or not temporary.is_file():
+            raise RuntimeError(f"Podman did not create the image archive: {temporary}")
+        temporary.chmod(stat.S_IRUSR | stat.S_IWUSR)
+        os.replace(temporary, archive)
+    _write_atomic_json(
+        _image_reference_path(shared, image),
+        {"schema_version": 1, "image": image, "image_id": image_id},
+    )
+    return archive
+
+
+def _shared_user_cache(cache_root: Path, uid: int) -> Path:
+    root = cache_root.expanduser()
+    if not root.is_absolute():
+        raise ValueError(f"Harvey cache root must be absolute: {root}")
+    if root.is_symlink():
+        raise ValueError(f"Harvey cache root must not be a symbolic link: {root}")
+    shared = root.resolve() / f"user-{uid}"
+    _ensure_private_directory(shared, "Harvey shared cache")
+    return shared
+
+
+def _image_reference_path(shared: Path, image: str) -> Path:
+    key = hashlib.sha256(image.encode("utf-8")).hexdigest()
+    return shared / "images" / "refs" / f"{key}.json"
+
+
+def _image_blob_path(shared: Path, image_id: str) -> Path:
+    key = hashlib.sha256(image_id.encode("utf-8")).hexdigest()
+    return shared / "images" / "blobs" / f"{key}.oci.tar"
+
+
+def _inspect_image_id(environment: Mapping[str, str], image: str) -> str | None:
+    result = subprocess.run(
+        ["podman", "image", "inspect", "--format", "{{.Id}}", image],
+        env=dict(environment),
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        return None
+    image_id = result.stdout.strip()
+    if not image_id:
+        raise RuntimeError(f"Podman returned an empty image ID for {image}")
+    return image_id
+
+
+def _read_image_reference(path: Path, image: str) -> dict[str, object]:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"Harvey image cache reference is invalid: {path}")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Harvey image cache reference is invalid: {path}") from exc
+    if (
+        not isinstance(value, dict)
+        or value.get("schema_version") != 1
+        or value.get("image") != image
+        or type(value.get("image_id")) is not str
+        or not value["image_id"]
+    ):
+        raise RuntimeError(f"Harvey image cache reference is invalid: {path}")
+    return value
+
+
+def _write_atomic_json(path: Path, value: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    temporary = path.with_name(f".{path.name}.tmp-{secrets.token_hex(8)}")
+    if temporary.exists():
+        raise RuntimeError(f"Harvey image reference temporary path exists: {temporary}")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    os.replace(temporary, path)
 
 
 def _temporary_root(environment: Mapping[str, str]) -> Path:
@@ -196,7 +366,18 @@ def _install_podman_wrapper(
         f"export HOME={shlex.quote(str(home))}\n"
         f"export XDG_CONFIG_HOME={shlex.quote(str(config))}\n"
         'case "${1:-}" in\n'
-        "    build|pull)\n"
+        "    pull)\n"
+        '        command="$1"\n'
+        "        shift\n"
+        '        image=""\n'
+        '        for argument in "$@"; do image="$argument"; done\n'
+        f'        if [ -n "$image" ] && {shlex.quote(executable)} image exists "$image"; then\n'
+        "            exit 0\n"
+        "        fi\n"
+        f"        exec {shlex.quote(executable)} \"$command\" "
+        f"--signature-policy={shlex.quote(str(policy))} \"$@\"\n"
+        "        ;;\n"
+        "    build)\n"
         '        command="$1"\n'
         "        shift\n"
         f"        exec {shlex.quote(executable)} \"$command\" "

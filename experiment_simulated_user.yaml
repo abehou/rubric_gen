@@ -1,6 +1,5 @@
-schema_version: 3
+schema_version: 5
 kind: rubric-gen-randomized-experiment
-experiment_id: luna-top30-complete-rubric-v2-simulated-user-r6
 benchmark: biomnibench-da
 
 tasks_dir: data/biomnibench-da
@@ -41,12 +40,6 @@ randomization:
   replicates: 3
 
 conditions:
-  - condition_id: base-static
-    prompt: base
-    rubric_evolution: static
-  - condition_id: base-prospective
-    prompt: base
-    rubric_evolution: prospective
   - condition_id: diligent-static
     prompt: diligent
     rubric_evolution: static
@@ -80,11 +73,16 @@ protocol:
   rubric_proposer_model: gpt-5.6-luna
   rubric_proposer_max_retries: 1
 
+rubric_paraphrases:
+  count: 4
+  model: gpt-5.6-luna
+  max_retries: 2
+
 outcome_audit:
   models:
     - gpt-5.6-sol
     - claude-opus-4-8
-    - gemini-3.1-pro-preview
+    - gemini-3.5-flash
   primary_rule: majority
   max_input_tokens: 250000
   max_output_tokens: 4096
@@ -97,9 +95,12 @@ dag:
   seed:
     depends_on: []
     output_dir: seeds/biomnibench-luna-top30-common
+  paraphrase:
+    depends_on: []
+    output_dir: runs/biomnibench-rubric-paraphrases/luna-master-common
   revise:
-    depends_on: [seed]
-    output_dir: runs/biomnibench-studies/luna-top30-complete-rubric-v2-simulated-user-r6
+    depends_on: [seed, paraphrase]
+    output_dir: runs/biomnibench-studies/{experiment_id}
   detect:
-    depends_on: [revise]
-    output_dir: runs/biomnibench-detections/luna-top30-complete-rubric-v2-simulated-user-r6
+    depends_on: [revise, paraphrase]
+    output_dir: runs/biomnibench-detections/{experiment_id}

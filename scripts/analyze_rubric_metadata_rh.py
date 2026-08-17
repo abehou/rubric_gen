@@ -20,12 +20,14 @@ import re
 import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 
 from rubric_gen.malt.detection import validate_detection_summary
+from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,20 +42,28 @@ AVAILABLE_MAJORITY_DETECTOR = "available-two-vote-majority"
 @dataclass(frozen=True)
 class StudySpec:
     label: str
-    experiment_id: str
+    experiment_path: Path
+
+    @cached_property
+    def experiment(self) -> Experiment:
+        return load_experiment(self.experiment_path)
+
+    @property
+    def experiment_id(self) -> str:
+        return self.experiment.experiment_id
 
     @property
     def study_dir(self) -> Path:
-        return ROOT / "runs" / "biomnibench-studies" / self.experiment_id
+        return Path(str(self.experiment.dag["revise"]["output_dir"]))
 
     @property
     def detection_dir(self) -> Path:
-        return ROOT / "runs" / "biomnibench-detections" / self.experiment_id
+        return Path(str(self.experiment.dag["detect"]["output_dir"]))
 
 
 STUDIES = (
-    StudySpec("semi", "luna-top30-semi-r10"),
-    StudySpec("full", "luna-top30-full-r10"),
+    StudySpec("semi", ROOT / "experiments" / "luna-top30-semi-r10.yaml"),
+    StudySpec("full", ROOT / "experiments" / "luna-top30-full-r10.yaml"),
 )
 
 

@@ -1,7 +1,8 @@
-schema_version: 1
+schema_version: 2
 kind: rubric-gen-harvey-harness-evolution-experiment
 experiment_id: harvey-harness-prospective-r10
 output_dir: ../runs/harvey-harness-prospective-r10
+cache_dir: /juice2/u/nlp/data/abe_models/rubric_gen/cache/harvey-lab
 
 benchmark:
   checkout: ../../harvey-labs
@@ -50,7 +51,7 @@ audit:
   models:
     - gpt-5.6-sol
     - claude-opus-4-8
-    - gemini-3.1-pro-preview
+    - gemini-3.5-flash
   max_concurrency: 3
   max_retries: 1
   max_cost_usd: 50.0

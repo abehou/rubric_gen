@@ -36,6 +36,8 @@ class SubmissionRevisionConfig:
     condition_id: str
     replicate: int
     execution_order: int
+    optimizer_rubric_path: Path
+    master_rubric_name: str
     benchmark: Benchmark = Benchmark.BIOMNIBENCH_DA
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
@@ -51,8 +53,6 @@ class SubmissionRevisionConfig:
     review: str = "trace"
     judge_model: str | None = None
     judge_base_url: str | None = None
-    rubric_name: str | None = None
-    rubric_set: Path | None = None
     max_review_chars: int | None = None
     resume: bool = False
     show_progress: bool = True
@@ -64,8 +64,17 @@ class SubmissionRevisionConfig:
             raise ValueError("revision_rounds must be a non-negative integer")
         if self.review not in {"trace", "trajectory", "workspace"}:
             raise ValueError("review must be trace, trajectory, or workspace")
-        if self.rubric_name is not None and self.rubric_set is not None:
-            raise ValueError("rubric_name and rubric_set are mutually exclusive")
+        if (
+            self.optimizer_rubric_path.is_symlink()
+            or not self.optimizer_rubric_path.is_file()
+        ):
+            raise ValueError("optimizer_rubric_path must be a regular file")
+        if (
+            type(self.master_rubric_name) is not str
+            or Path(self.master_rubric_name).name != self.master_rubric_name
+            or not self.master_rubric_name
+        ):
+            raise ValueError("master_rubric_name must be a safe filename")
         if type(self.show_progress) is not bool:
             raise ValueError("show_progress must be a boolean")
         if self.progress_position is not None and (
@@ -124,8 +133,24 @@ class SubmissionRevisionConfig:
             review=self.review,
             judge_model=self.judge_model,
             base_url=self.judge_base_url,
-            rubric_name=self.rubric_name,
-            rubric_set=self.rubric_set,
+            rubric_name=None,
+            rubric_set=None,
+            rubric_path=self.optimizer_rubric_path,
+            max_review_chars=self.max_review_chars,
+            max_retries=self.judge_max_retries,
+        )
+
+    def master_judge_config(self) -> SubmissionJudgeConfig:
+        return SubmissionJudgeConfig(
+            task_dir=self.task_dir,
+            experiment_dir=self.experiment_dir,
+            benchmark=self.benchmark,
+            review=self.review,
+            judge_model=self.judge_model,
+            base_url=self.judge_base_url,
+            rubric_name=self.master_rubric_name,
+            rubric_set=None,
+            rubric_path=None,
             max_review_chars=self.max_review_chars,
             max_retries=self.judge_max_retries,
         )
@@ -136,6 +161,7 @@ class RevisionDependencies:
 
     session: SolverSessionDriver
     judge: SubmissionJudge
+    master_judge: SubmissionJudge | None = None
     evolver: RubricEvolver | None = None
     feedback_simulator: SimulatedUserFeedback | None = None
 

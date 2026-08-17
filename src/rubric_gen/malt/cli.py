@@ -213,12 +213,13 @@ def _study_experiments(
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid randomized benchmark study: {source}") from exc
     if (
-        study.get("schema_version") != 1
+        study.get("schema_version") != 2
         or study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") not in {"completed", "failed"}
         or type(study.get("experiment_path")) is not str
         or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
+        or type(study.get("paraphrase_run_dir")) is not str
     ):
         raise ValueError(f"unsupported benchmark study: {source}")
     experiment_spec = load_experiment(Path(str(study["experiment_path"])))

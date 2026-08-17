@@ -10,6 +10,7 @@ from rubric_gen.submission_revision.commands import (
     run_detect as run_submission_detect,
     run_dag,
     run_judge as run_submission_judge,
+    run_paraphrase,
     run_revise,
     run_seed,
 )
@@ -85,15 +86,7 @@ def _detect(args: argparse.Namespace) -> int:
             raise ValueError("Harvey detect does not support --vllm")
         experiment = load_harvey_experiment(resolve_project_path(args.experiment))
         return run_reward_hacking_audit(experiment, resume=args.resume)
-    experiment = load_experiment(resolve_project_path(args.experiment))
-    forwarded = argparse.Namespace(
-        run_dir=str(experiment.dag["revise"]["output_dir"]),
-        output_dir=str(experiment.dag["detect"]["output_dir"]),
-        max_concurrency=args.max_concurrency,
-        resume=args.resume,
-        vllm=args.vllm,
-    )
-    return run_submission_detect(forwarded)
+    return run_submission_detect(args)
 
 
 def _add_submission_command(
@@ -119,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
         subparsers,
         "seed",
         run_seed,
+        resumable=False,
+    )
+    _add_submission_command(
+        subparsers,
+        "paraphrase",
+        run_paraphrase,
         resumable=False,
     )
     _add_submission_command(

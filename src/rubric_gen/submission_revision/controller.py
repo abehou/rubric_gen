@@ -70,9 +70,7 @@ from rubric_gen.submission_revision.judge import (
 from rubric_gen.submission_revision.evolution import (
     RubricEvolution,
     RubricEvolver,
-    RubricScoreContext,
 )
-from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.benchmarks import get_benchmark
@@ -109,6 +107,13 @@ def fixed_original_attempt_id(
     ).hexdigest()[:32]
 
 
+def _judge_execution_contract(identity: dict[str, object]) -> dict[str, object]:
+    return {
+        key: identity[key]
+        for key in ("effective_judge_model", "review_mode", "max_review_chars")
+    }
+
+
 class SubmissionRevisionController:
     """Run a fixed-length linear revision conversation for one task."""
 
@@ -123,6 +128,8 @@ class SubmissionRevisionController:
         self.task_dir = Path(config.task_dir).resolve()
         judge_config = config.judge_config()
         self.rubric = _resolve_optimizer_rubric(judge_config)
+        master_judge_config = config.master_judge_config()
+        self.master_rubric = _resolve_optimizer_rubric(master_judge_config)
         self.instruction_sha256 = _sha256_file(self.task_dir / "instruction.md")
         self.data_sha256 = _tree_sha256(self.task_dir / "environment" / "data")
         self.seed: ResolvedSeed = resolve_seed(
@@ -135,6 +142,10 @@ class SubmissionRevisionController:
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent, benchmark=config.benchmark),
             judge=FrozenRubricJudge(judge_config, self.rubric),
+            master_judge=FrozenRubricJudge(
+                master_judge_config,
+                self.master_rubric,
+            ),
             evolver=(
                 None if config.rubric_evolution is RubricEvolution.STATIC
                 else RubricEvolver(
@@ -193,6 +204,7 @@ class SubmissionRevisionController:
             raise ValueError(
                 "feedback simulator dependency is only valid for simulated_user"
             )
+        self.master_judge = self.dependencies.master_judge or self.dependencies.judge
         reported_scoring_identity = self.dependencies.judge.scoring_identity()
         if set(reported_scoring_identity) != set(_SCORING_IDENTITY_KEYS):
             raise RuntimeError(
@@ -204,14 +216,41 @@ class SubmissionRevisionController:
         )
         if self.scoring_identity["rendered_rubric_sha256"] != self.rubric.sha256:
             raise RuntimeError("submission judge resolved a different optimizer rubric")
+        reported_master_identity = self.master_judge.scoring_identity()
+        if set(reported_master_identity) != set(_SCORING_IDENTITY_KEYS):
+            raise RuntimeError("master rubric judge returned an incomplete identity")
+        self.master_scoring_identity = _extract_scoring_identity(
+            reported_master_identity,
+            context="master rubric judge",
+        )
+        if (
+            self.master_scoring_identity["rendered_rubric_sha256"]
+            != self.master_rubric.sha256
+        ):
+            raise RuntimeError("master rubric judge resolved a different rubric")
         _, _, seed_scoring_identity = self.seed.judgment
-        if _extract_seed_scoring_contract(
-            seed_scoring_identity, context="seeded initial judgment"
-        ) != _extract_seed_scoring_contract(
-            self.scoring_identity, context="submission judge"
+        seed_contract = _extract_seed_scoring_contract(
+            seed_scoring_identity,
+            context="seeded initial judgment",
+        )
+        optimizer_contract = _extract_seed_scoring_contract(
+            self.scoring_identity,
+            context="submission judge",
+        )
+        master_contract = _extract_seed_scoring_contract(
+            self.master_scoring_identity,
+            context="master rubric judge",
+        )
+        self.reuse_seed_judgment = seed_contract == optimizer_contract
+        self.reuse_seed_master_judgment = seed_contract == master_contract
+        if _judge_execution_contract(seed_contract) != _judge_execution_contract(
+            optimizer_contract
+        ) or _judge_execution_contract(seed_contract) != _judge_execution_contract(
+            master_contract
         ):
             raise RuntimeError(
-                "seeded initial judgment does not match the scoring contract"
+                "seeded initial judgment uses a different scoring contract for "
+                "judge execution"
             )
         self.store = RevisionStore(
             self.experiment_dir,
@@ -254,13 +293,12 @@ class SubmissionRevisionController:
             "judge_model": self.config.judge_model,
             "judge_base_url": self.config.judge_base_url,
             "max_review_chars": self.config.max_review_chars,
-            "rubric_name": self.config.rubric_name,
-            "rubric_set": (
-                str(Path(self.config.rubric_set).resolve())
-                if self.config.rubric_set is not None
-                else None
+            "optimizer_rubric_path": str(
+                self.config.optimizer_rubric_path.resolve()
             ),
             "rubric_sha256": self.rubric.sha256,
+            "master_rubric_name": self.config.master_rubric_name,
+            "master_rubric_sha256": self.master_rubric.sha256,
             "instruction_sha256": self.instruction_sha256,
             "data_sha256": self.data_sha256,
             "seed_run_dir": str(self.seed.root),
@@ -1081,7 +1119,7 @@ class SubmissionRevisionController:
         if self.config.rubric_evolution is not RubricEvolution.STATIC:
             rubric = self._rubric_version(turn_index)
             judge = self._judge_for_rubric(rubric, turn_index)
-        if turn_index == 0:
+        if turn_index == 0 and self.reuse_seed_judgment:
             validation_path, evaluation_path, _ = self.seed.judgment
             artifacts = JudgeArtifacts(validation_path, evaluation_path)
         else:
@@ -1092,7 +1130,7 @@ class SubmissionRevisionController:
             artifacts.score_validation_path,
             rubric,
             judge,
-            seeded=turn_index == 0,
+            seeded=turn_index == 0 and self.reuse_seed_judgment,
         )
         feedback = self._project_boundary_feedback(
             artifacts=artifacts,
@@ -1104,10 +1142,6 @@ class SubmissionRevisionController:
             ),
             submission_dir=submission_dir,
             allow_generation=True,
-        )
-        score_context = self._rubric_score_context(
-            artifacts.score_validation_path,
-            score_history=(*state.scores, feedback.score),
         )
         fixed_original_score = self._fixed_original_score(
             submission_dir=submission_dir,
@@ -1137,29 +1171,10 @@ class SubmissionRevisionController:
                 instruction=(self.task_dir / "instruction.md").read_text(),
                 current_rubric=rubric.text,
                 current_submission=current_submission,
-                score_context=score_context,
                 trajectory_path=submission_dir / "trajectory.stream.jsonl",
                 version=turn_index + 1,
                 source_submission_id=submission_id,
                 output_dir=self.experiment_dir / "rubric",
-                candidate_gate=lambda text, attempt: self._cross_score_candidate(
-                    rubric_text=text,
-                    submission_dir=submission_dir,
-                    submission_id=submission_id,
-                    version=turn_index + 1,
-                    proposer_attempt=attempt,
-                    parent_score=feedback.score,
-                ),
-                candidate_validator=lambda text, attempt_id: (
-                    self._validate_candidate_cross_score(
-                        rubric_text=text,
-                        submission_dir=submission_dir,
-                        submission_id=submission_id,
-                        version=turn_index + 1,
-                        attempt_id=attempt_id,
-                        parent_score=feedback.score,
-                    )
-                ),
             )
             next_rubric = {
                 "version": turn_index + 1,
@@ -1332,21 +1347,6 @@ class SubmissionRevisionController:
         )
         return FrozenRubricJudge(config, rubric)
 
-    @staticmethod
-    def _rubric_score_context(
-        validation_path: Path,
-        *,
-        score_history: tuple[int, ...],
-    ) -> RubricScoreContext:
-        validation = _read_json_object(validation_path, "optimizer score validation")
-        return RubricScoreContext(
-            score=validation.get("score"),  # type: ignore[arg-type]
-            raw_score=validation.get("raw_score"),  # type: ignore[arg-type]
-            selected_levels=validation.get("selected_levels"),  # type: ignore[arg-type]
-            criterion_scores=validation.get("criterion_scores"),  # type: ignore[arg-type]
-            score_history=score_history,
-        )
-
     def _fixed_original_score(
         self,
         *,
@@ -1356,20 +1356,39 @@ class SubmissionRevisionController:
         on_policy_score: int,
     ) -> int:
         if (
-            turn_index == 0
-            or self.config.rubric_evolution is RubricEvolution.STATIC
+            self.rubric.sha256 == self.master_rubric.sha256
+            and (
+                turn_index == 0
+                or self.config.rubric_evolution is RubricEvolution.STATIC
+            )
         ):
             return on_policy_score
+        if turn_index == 0 and self.reuse_seed_master_judgment:
+            validation_path, _, _ = self.seed.judgment
+            self._verify_round_scoring_identity(
+                validation_path,
+                self.master_rubric,
+                self.master_judge,
+                seeded=True,
+            )
+            validation = _read_json_object(
+                validation_path,
+                "seeded master-rubric score validation",
+            )
+            score = validation.get("score")
+            if type(score) is not int or not 0 <= score <= 100:
+                raise RuntimeError("seeded master-rubric score is invalid")
+            return score
         attempt_id = fixed_original_attempt_id(
             self.config.assignment_id,
             submission_id,
-            self.rubric.sha256,
+            self.master_rubric.sha256,
         )
-        artifacts = self.dependencies.judge.evaluate(submission_dir, attempt_id)
+        artifacts = self.master_judge.evaluate(submission_dir, attempt_id)
         self._verify_round_scoring_identity(
             artifacts.score_validation_path,
-            self.rubric,
-            self.dependencies.judge,
+            self.master_rubric,
+            self.master_judge,
         )
         validation = _read_json_object(
             artifacts.score_validation_path,
@@ -1379,165 +1398,6 @@ class SubmissionRevisionController:
         if type(score) is not int or not 0 <= score <= 100:
             raise RuntimeError("fixed-original judgment has an invalid score")
         return score
-
-    def _cross_score_candidate(
-        self,
-        *,
-        rubric_text: str,
-        submission_dir: Path,
-        submission_id: str,
-        version: int,
-        proposer_attempt: int,
-        parent_score: int,
-    ) -> dict[str, object]:
-        rubric_sha256, rubric, judge = self._candidate_rubric_judge(
-            rubric_text,
-            version=version,
-            create=True,
-        )
-        attempt_id = self._candidate_cross_score_attempt_id(
-            submission_id,
-            rubric_sha256,
-        )
-        artifacts = judge.evaluate(submission_dir, attempt_id)
-        self._verify_round_scoring_identity(
-            artifacts.score_validation_path,
-            rubric,
-            judge,
-        )
-        summary = self._candidate_cross_score_summary(
-            artifacts.score_validation_path,
-            parent_score=parent_score,
-            rubric_sha256=rubric_sha256,
-            attempt_id=attempt_id,
-        )
-        self._append_event({
-            "event": "candidate_rubric_cross_scored",
-            "submission_id": submission_id,
-            "rubric_version": version,
-            "proposer_attempt": proposer_attempt,
-            **summary,
-        })
-        return summary
-
-    def _validate_candidate_cross_score(
-        self,
-        *,
-        rubric_text: str,
-        submission_dir: Path,
-        submission_id: str,
-        version: int,
-        attempt_id: str,
-        parent_score: int,
-    ) -> dict[str, object]:
-        rubric_sha256, rubric, judge = self._candidate_rubric_judge(
-            rubric_text,
-            version=version,
-            create=False,
-        )
-        expected_attempt_id = self._candidate_cross_score_attempt_id(
-            submission_id,
-            rubric_sha256,
-        )
-        if attempt_id != expected_attempt_id:
-            raise RuntimeError("candidate crossed score has an invalid attempt ID")
-        artifacts = judge.validate(submission_dir, attempt_id)
-        self._verify_round_scoring_identity(
-            artifacts.score_validation_path,
-            rubric,
-            judge,
-        )
-        return self._candidate_cross_score_summary(
-            artifacts.score_validation_path,
-            parent_score=parent_score,
-            rubric_sha256=rubric_sha256,
-            attempt_id=attempt_id,
-        )
-
-    def _candidate_rubric_judge(
-        self,
-        rubric_text: str,
-        *,
-        version: int,
-        create: bool,
-    ) -> tuple[str, FrozenRubric, FrozenRubricJudge]:
-        rubric_sha256 = sha256_text(rubric_text)
-        candidate_root = (
-            self.experiment_dir
-            / "rubric"
-            / "candidates"
-            / f"r{version:04d}"
-        )
-        candidate_path = candidate_root / f"{rubric_sha256}.txt"
-        if os.path.lexists(candidate_path):
-            if candidate_path.is_symlink() or not candidate_path.is_file():
-                raise RuntimeError("candidate rubric path is invalid")
-            if candidate_path.read_text(encoding="utf-8") != rubric_text:
-                raise RuntimeError("candidate rubric hash collision")
-        else:
-            if not create:
-                raise RuntimeError("candidate rubric artifact is missing")
-            candidate_root.mkdir(parents=True, exist_ok=True)
-            temporary = candidate_root / (
-                f".{rubric_sha256}.{secrets.token_hex(8)}.tmp"
-            )
-            try:
-                temporary.write_text(rubric_text, encoding="utf-8")
-                os.replace(temporary, candidate_path)
-            finally:
-                if os.path.lexists(temporary):
-                    temporary.unlink()
-            _make_read_only(candidate_path)
-        rubric = self._frozen_evolved_rubric(
-            rubric_text,
-            rubric_sha256,
-        )
-        config = replace(
-            self.config.judge_config(),
-            rubric_name=None,
-            rubric_set=None,
-            rubric_path=candidate_path,
-        )
-        judge = FrozenRubricJudge(config, rubric)
-        return rubric_sha256, rubric, judge
-
-    def _candidate_cross_score_attempt_id(
-        self,
-        submission_id: str,
-        rubric_sha256: str,
-    ) -> str:
-        return hashlib.sha256(
-            (
-                "candidate-cross-score\0"
-                + self.config.assignment_id
-                + "\0"
-                + submission_id
-                + "\0"
-                + rubric_sha256
-            ).encode("utf-8")
-        ).hexdigest()[:32]
-
-    @staticmethod
-    def _candidate_cross_score_summary(
-        validation_path: Path,
-        *,
-        parent_score: int,
-        rubric_sha256: str,
-        attempt_id: str,
-    ) -> dict[str, object]:
-        validation = _read_json_object(
-            validation_path,
-            "candidate crossed score validation",
-        )
-        return {
-            "parent_score": parent_score,
-            "candidate_score": validation.get("score"),
-            "raw_score": validation.get("raw_score"),
-            "selected_levels": validation.get("selected_levels"),
-            "criterion_scores": validation.get("criterion_scores"),
-            "rubric_sha256": rubric_sha256,
-            "attempt_id": attempt_id,
-        }
 
     def _verify_round_scoring_identity(
         self,
@@ -1590,7 +1450,7 @@ class SubmissionRevisionController:
                 raise RuntimeError("scored submission has no judge attempt identity")
             rubric = self.rubric
             judge = self.dependencies.judge
-            if index == 0:
+            if index == 0 and self.reuse_seed_judgment:
                 validation_path, evaluation_path, _ = self.seed.judgment
                 artifacts = JudgeArtifacts(validation_path, evaluation_path)
             else:
@@ -1602,7 +1462,7 @@ class SubmissionRevisionController:
                 artifacts.score_validation_path,
                 rubric,
                 judge,
-                seeded=index == 0,
+                seeded=index == 0 and self.reuse_seed_judgment,
             )
             projected = self._project_boundary_feedback(
                 artifacts=artifacts,
@@ -1624,22 +1484,40 @@ class SubmissionRevisionController:
                     "stored feedback disagrees with validated judge artifacts"
                 )
             fixed_score = state.fixed_original_scores[index]
-            if index == 0 or self.config.rubric_evolution is RubricEvolution.STATIC:
+            if (
+                self.rubric.sha256 == self.master_rubric.sha256
+                and (
+                    index == 0
+                    or self.config.rubric_evolution is RubricEvolution.STATIC
+                )
+            ):
                 expected_fixed_score = projected.score
+            elif index == 0 and self.reuse_seed_master_judgment:
+                master_validation_path, _, _ = self.seed.judgment
+                self._verify_round_scoring_identity(
+                    master_validation_path,
+                    self.master_rubric,
+                    self.master_judge,
+                    seeded=True,
+                )
+                expected_fixed_score = _read_json_object(
+                    master_validation_path,
+                    "seeded master-rubric score validation",
+                ).get("score")
             else:
                 fixed_attempt_id = fixed_original_attempt_id(
                     self.config.assignment_id,
                     submission_id,
-                    self.rubric.sha256,
+                    self.master_rubric.sha256,
                 )
-                fixed_artifacts = self.dependencies.judge.validate(
+                fixed_artifacts = self.master_judge.validate(
                     submission_dir,
                     fixed_attempt_id,
                 )
                 self._verify_round_scoring_identity(
                     fixed_artifacts.score_validation_path,
-                    self.rubric,
-                    self.dependencies.judge,
+                    self.master_rubric,
+                    self.master_judge,
                 )
                 fixed_validation = _read_json_object(
                     fixed_artifacts.score_validation_path,

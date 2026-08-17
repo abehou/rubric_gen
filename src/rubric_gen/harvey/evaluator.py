@@ -21,7 +21,11 @@ from rubric_gen.harvey.artifacts import (
     validate_task,
 )
 from rubric_gen.harvey.config import HarveyExperiment
-from rubric_gen.harvey.podman import configured_podman_environment
+from rubric_gen.harvey.podman import (
+    cache_image,
+    configured_podman_environment,
+    restore_cached_image,
+)
 
 
 @dataclass(frozen=True)
@@ -284,8 +288,8 @@ class HarveyEvaluator:
         ]
         self._execute(command, runtime, log, config.credential_env, "Harvey judge")
 
-    @staticmethod
     def _execute(
+        self,
         command: list[str],
         runtime: Path,
         log: Path,
@@ -302,8 +306,22 @@ class HarveyEvaluator:
         }
         environment = {name: value for name, value in os.environ.items() if name in allowed}
         environment.update({name: os.environ[name] for name in credential_names})
+        image: str | None = None
+        cache_root: Path | None = None
         if label == "task agent":
-            environment = configured_podman_environment(environment)
+            image = self.experiment.task_agent.sandbox_image
+            cache_root = (
+                self.experiment.cache_dir / self.experiment.benchmark.revision
+            )
+            environment = configured_podman_environment(
+                environment,
+                cache_root=cache_root,
+            )
+            restore_cached_image(
+                environment,
+                cache_root=cache_root,
+                image=image,
+            )
         environment["PWD"] = str(runtime)
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("w", encoding="utf-8") as stream:
@@ -318,3 +336,5 @@ class HarveyEvaluator:
             )
         if result.returncode != 0:
             raise RuntimeError(f"{label} failed with exit code {result.returncode}; see {log}")
+        if image is not None and cache_root is not None:
+            cache_image(environment, cache_root=cache_root, image=image)

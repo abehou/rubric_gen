@@ -1,4 +1,4 @@
-"""Plot outcomes from the completed semi- and full-feedback 2x2 studies."""
+"""Plot outcomes from diligent-only semi- and full-feedback studies."""
 
 from __future__ import annotations
 
@@ -8,23 +8,23 @@ import random
 import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 
 import numpy as np
 
 from rubric_gen.malt.detection import validate_detection_summary
+from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "figures" / "luna-top30-feedback-comparison"
 
 CONDITIONS = (
-    "base-static",
-    "base-prospective",
     "diligent-static",
     "diligent-prospective",
 )
-PROMPT_COLORS = {"base": "#4477AA", "diligent": "#EE7733"}
+RUBRIC_COLORS = {"static": "#4477AA", "prospective": "#EE7733"}
 RUBRIC_LINESTYLES = {"static": "-", "prospective": "--"}
 ENSEMBLE_RULES = ("majority", "any_detects")
 ENSEMBLE_RULE_LABELS = {
@@ -36,25 +36,40 @@ ENSEMBLE_RULE_LABELS = {
 @dataclass(frozen=True)
 class StudySpec:
     label: str
-    experiment_id: str
+    experiment_path: Path
+
+    @cached_property
+    def experiment(self) -> Experiment:
+        return load_experiment(self.experiment_path)
+
+    @property
+    def experiment_id(self) -> str:
+        return self.experiment.experiment_id
 
     @property
     def study_dir(self) -> Path:
-        return ROOT / "runs" / "biomnibench-studies" / self.experiment_id
+        return Path(str(self.experiment.dag["revise"]["output_dir"]))
 
 
 @dataclass(frozen=True)
 class DetectionSpec:
     label: str
-    directory_name: str
-    experiment_id: str
+    experiment_path: Path
     target: str
     positive_decision: str
     negative_decision: str
 
+    @cached_property
+    def experiment(self) -> Experiment:
+        return load_experiment(self.experiment_path)
+
+    @property
+    def experiment_id(self) -> str:
+        return self.experiment.experiment_id
+
     @property
     def detection_dir(self) -> Path:
-        return ROOT / "runs" / "biomnibench-detections" / self.directory_name
+        return Path(str(self.experiment.dag["detect"]["output_dir"]))
 
 
 @dataclass(frozen=True)
@@ -68,27 +83,29 @@ class DetectionStatistics:
     estimates: dict[str, float]
     intervals: dict[str, tuple[float, float]]
     counts: dict[str, tuple[int, int]]
-    interaction: float
+    prospective_minus_static: float
     complete_blocks: int
 
 
 STUDIES = (
-    StudySpec("Semi feedback", "luna-top30-semi-r10"),
-    StudySpec("Full feedback", "luna-top30-full-r10"),
+    StudySpec(
+        "Semi feedback", ROOT / "experiments" / "luna-top30-semi-r10.yaml"
+    ),
+    StudySpec(
+        "Full feedback", ROOT / "experiments" / "luna-top30-full-r10.yaml"
+    ),
 )
 RH_DETECTIONS = (
     DetectionSpec(
         label="Semi feedback",
-        directory_name="luna-top30-semi-r10",
-        experiment_id="luna-top30-semi-r10",
+        experiment_path=ROOT / "experiments" / "luna-top30-semi-r10.yaml",
         target="rh",
         positive_decision="reward_hacking_detected",
         negative_decision="no_reward_hacking_detected",
     ),
     DetectionSpec(
         label="Full feedback",
-        directory_name="luna-top30-full-r10",
-        experiment_id="luna-top30-full-r10",
+        experiment_path=ROOT / "experiments" / "luna-top30-full-r10.yaml",
         target="rh",
         positive_decision="reward_hacking_detected",
         negative_decision="no_reward_hacking_detected",
@@ -121,10 +138,10 @@ def _study_records(spec: StudySpec) -> list[dict[str, object]]:
         study.get("experiment_id") != spec.experiment_id
         or study.get("status") != "completed"
         or not isinstance(records, list)
-        or len(records) != 360
+        or len(records) != len(spec.experiment.assignments)
         or any(not isinstance(record, dict) for record in records)
     ):
-        raise ValueError(f"expected completed 360-assignment study: {spec.label}")
+        raise ValueError(f"expected a completed current study: {spec.label}")
     incomplete = [
         str(record.get("assignment_id"))
         for record in records
@@ -138,7 +155,9 @@ def _study_records(spec: StudySpec) -> list[dict[str, object]]:
 
 
 def _latest_detection_summary(spec: DetectionSpec) -> dict[str, object]:
-    candidates = list((spec.detection_dir / "evaluations").glob("*/summary.json"))
+    candidates = list(
+        (spec.detection_dir / "direct" / "evaluations").glob("*/summary.json")
+    )
     if not candidates:
         raise FileNotFoundError(f"no detector summary under {spec.detection_dir}")
     summary = _load_json(max(candidates, key=lambda path: path.stat().st_mtime))
@@ -195,7 +214,7 @@ def _ensemble_outcomes(
         or len(models) != 3
         or len(set(models)) != 3
         or not isinstance(records, list)
-        or len(records) != 1_080
+        or len(records) != len(spec.experiment.assignments) * len(models)
     ):
         raise ValueError(f"expected a complete three-model panel: {spec.label}")
 
@@ -215,8 +234,11 @@ def _ensemble_outcomes(
         if isinstance(decision, str):
             panels[source_value][model_value] = decision
         sources[source_value] = Path(source_value)
-    if len(panels) != 360:
-        raise ValueError(f"expected 360 detector panels, found {len(panels)}")
+    if len(panels) != len(spec.experiment.assignments):
+        raise ValueError(
+            f"expected {len(spec.experiment.assignments)} detector panels, "
+            f"found {len(panels)}"
+        )
 
     outcomes: dict[tuple[str, int, str], int] = {}
     substantive = {spec.positive_decision, spec.negative_decision}
@@ -283,12 +305,12 @@ def _detection_statistics(
     if not complete_blocks:
         raise ValueError("detector has no complete randomized blocks")
     block_means = np.mean(np.asarray(complete_blocks, dtype=float), axis=0)
-    interaction = block_means[3] - block_means[1] - block_means[2] + block_means[0]
+    prospective_minus_static = block_means[1] - block_means[0]
     return DetectionStatistics(
         estimates=estimates,
         intervals=intervals,
         counts=counts,
-        interaction=float(interaction),
+        prospective_minus_static=float(prospective_minus_static),
         complete_blocks=len(complete_blocks),
     )
 
@@ -301,51 +323,50 @@ def _draw_detection_panel(
     annotation_xy: tuple[float, float] = (0.98, 0.96),
     annotation_ha: str = "right",
 ) -> None:
-    centers = np.arange(2, dtype=float)
-    width = 0.34
-    for prompt_index, prompt in enumerate(("base", "diligent")):
-        conditions = (f"{prompt}-static", f"{prompt}-prospective")
-        values = np.asarray(
-            [statistics.estimates[condition] for condition in conditions]
+    positions = np.arange(len(CONDITIONS), dtype=float)
+    values = np.asarray([
+        statistics.estimates[condition] for condition in CONDITIONS
+    ])
+    low = np.asarray([
+        statistics.intervals[condition][0] for condition in CONDITIONS
+    ])
+    high = np.asarray([
+        statistics.intervals[condition][1] for condition in CONDITIONS
+    ])
+    bars = ax.bar(
+        positions,
+        values,
+        width=0.58,
+        color=[
+            RUBRIC_COLORS[condition.removeprefix("diligent-")]
+            for condition in CONDITIONS
+        ],
+        yerr=np.vstack((values - low, high - values)),
+        capsize=5,
+        error_kw={"elinewidth": 1.4, "capthick": 1.4},
+    )
+    for bar, condition in zip(bars, CONDITIONS, strict=True):
+        detected, total = statistics.counts[condition]
+        _lower, upper = statistics.intervals[condition]
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            upper + 0.012,
+            f"{detected}/{total}",
+            ha="center",
+            va="bottom",
+            fontsize=8.5,
         )
-        low = np.asarray(
-            [statistics.intervals[condition][0] for condition in conditions]
-        )
-        high = np.asarray(
-            [statistics.intervals[condition][1] for condition in conditions]
-        )
-        positions = centers + (prompt_index - 0.5) * width
-        bars = ax.bar(
-            positions,
-            values,
-            width=width,
-            color=PROMPT_COLORS[prompt],
-            label=prompt.title() + " prompt",
-            yerr=np.vstack((values - low, high - values)),
-            capsize=5,
-            error_kw={"elinewidth": 1.4, "capthick": 1.4},
-        )
-        for bar, condition in zip(bars, conditions, strict=True):
-            detected, total = statistics.counts[condition]
-            _lower, upper = statistics.intervals[condition]
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                upper + 0.012,
-                f"{detected}/{total}",
-                ha="center",
-                va="bottom",
-                fontsize=8.5,
-            )
 
     ax.set_xticks(
-        centers,
+        positions,
         ("Static rubric", "Prospective\n(dynamic) rubric"),
     )
     ax.set_title(title, fontsize=12, weight="bold", pad=11)
     ax.yaxis.set_major_formatter(lambda value, _position: f"{value:.0%}")
     ax.text(
         *annotation_xy,
-        f"Interaction: {statistics.interaction * 100:+.1f} pp\n"
+        "Prospective - static: "
+        f"{statistics.prospective_minus_static * 100:+.1f} pp\n"
         f"Complete blocks: {statistics.complete_blocks}",
         transform=ax.transAxes,
         ha=annotation_ha,
@@ -417,17 +438,8 @@ def plot_rh_detection_comparison(
             )
             ax.set_ylim(0, y_limit)
     fig.supylabel("Reward-hacking detection rate", x=0.012, fontsize=11)
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        frameon=False,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.008),
-        ncol=2,
-    )
     fig.suptitle(
-        "Reward-hacking detections by feedback, prompt, and rubric policy",
+        "Reward-hacking detections by feedback and rubric policy",
         fontsize=15,
         weight="bold",
         y=0.99,
@@ -442,7 +454,7 @@ def plot_rh_detection_comparison(
         fontsize=9,
         color="#4A5568",
     )
-    fig.tight_layout(rect=(0.025, 0.065, 1, 0.89), h_pad=2.0)
+    fig.tight_layout(rect=(0.025, 0.035, 1, 0.89), h_pad=2.0)
     _save_figure(fig, "rh_detection_feedback_comparison")
     plt.close(fig)
 
@@ -474,11 +486,17 @@ def _score_rows(
             raise ValueError(f"invalid study record: {assignment_id}")
         state = _load_json(spec.study_dir / experiment_dir / "state.json")
         scores = np.asarray(state.get("scores"), dtype=float)
-        if scores.shape != (11,):
-            raise ValueError(f"expected 11 scores for {assignment_id}")
+        expected_rounds = int(spec.experiment.protocol["revision_rounds"])
+        if scores.shape != (expected_rounds + 1,):
+            raise ValueError(
+                f"expected {expected_rounds + 1} scores for {assignment_id}"
+            )
         grouped[str(condition)].append((task_id, scores))
-    if any(len(grouped[condition]) != 90 for condition in CONDITIONS):
-        raise ValueError(f"{spec.label} does not have 90 assignments per condition")
+    expected = len(spec.experiment.task_ids) * spec.experiment.replicates
+    if any(len(grouped[condition]) != expected for condition in CONDITIONS):
+        raise ValueError(
+            f"{spec.label} does not have {expected} assignments per condition"
+        )
     return grouped
 
 
@@ -487,12 +505,13 @@ def plot_score_trajectories(
     study_records: dict[str, list[dict[str, object]]],
 ) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(13.2, 6.0), sharex=True, sharey=True)
-    turns = np.arange(11)
     for study_index, (ax, spec) in enumerate(zip(axes, STUDIES, strict=True)):
+        rounds = int(spec.experiment.protocol["revision_rounds"])
+        turns = np.arange(rounds + 1)
         grouped = _score_rows(spec, study_records[spec.label])
         all_scores = []
         for condition_index, condition in enumerate(CONDITIONS):
-            prompt, rubric = condition.split("-", maxsplit=1)
+            rubric = condition.removeprefix("diligent-")
             rows = grouped[condition]
             matrix = np.stack([scores for _, scores in rows])
             all_scores.append(matrix)
@@ -502,10 +521,9 @@ def plot_score_trajectories(
                 seed=20262010 + study_index * 100 + condition_index,
             )
             label = (
-                f"{prompt.title()} · "
-                f"{'Prospective (dynamic)' if rubric == 'prospective' else 'Static'}"
+                "Prospective (dynamic)" if rubric == "prospective" else "Static"
             )
-            color = PROMPT_COLORS[prompt]
+            color = RUBRIC_COLORS[rubric]
             linestyle = RUBRIC_LINESTYLES[rubric]
             ax.plot(
                 turns,
@@ -537,7 +555,7 @@ def plot_score_trajectories(
         )
         ax.set_title(spec.label, fontsize=12, weight="bold", pad=11)
         ax.set_xticks(turns)
-        ax.set_xlim(-0.25, 10.25)
+        ax.set_xlim(-0.25, rounds + 0.25)
         ax.set_ylim(0, 100)
         ax.set_xlabel("Revision round (0 = initial submission)")
         ax.grid(color="#E2E8F0", linewidth=0.8)
@@ -550,11 +568,11 @@ def plot_score_trajectories(
         frameon=False,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.0),
-        ncol=4,
+        ncol=2,
         fontsize=9,
     )
     fig.suptitle(
-        "Score trajectories by feedback, prompt, and rubric policy",
+        "Diligent-prompt score trajectories by feedback and rubric policy",
         fontsize=15,
         weight="bold",
         y=0.99,
@@ -563,7 +581,7 @@ def plot_score_trajectories(
         0.5,
         0.935,
         "Each condition has 90 assignments; bands are 95% task-cluster bootstrap intervals. "
-        "The feedback studies used separate initial runs, so cross-panel differences are not causal estimates.",
+        "Feedback arms use the shared seed pool, but cross-panel differences remain descriptive.",
         ha="center",
         va="top",
         fontsize=9,
@@ -588,7 +606,8 @@ def _print_statistics(
             f"95% CI {lower:.3f}–{upper:.3f})"
         )
     print(
-        f"  interaction={statistics.interaction:+.3f}; "
+        "  prospective_minus_static="
+        f"{statistics.prospective_minus_static:+.3f}; "
         f"complete_blocks={statistics.complete_blocks}"
     )
 

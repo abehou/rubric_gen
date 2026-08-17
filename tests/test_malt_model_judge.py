@@ -466,7 +466,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
             "trajectory_sha256": "not-revalidated",
         }))
     (revision / "manifest.json").write_text(json.dumps({
-        "schema_version": 4,
+        "schema_version": 5,
         "kind": "rubric-gen-submission-revision-experiment",
         "benchmark": "biomnibench-da",
         "experiment_id": "test-experiment",
@@ -1151,6 +1151,10 @@ def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     assert ModelJudgeRunner._request_cost(
         "gemini-3.1-pro-preview", 300_000, 100_000
     ) == pytest.approx(3.0)
+    # Gemini 3.5 Flash has one standard tier across its context window.
+    assert ModelJudgeRunner._request_cost(
+        "gemini-3.5-flash", 300_000, 100_000
+    ) == pytest.approx(1.35)
     # Claude's full context uses the standard Opus 4.8 tier.
     assert ModelJudgeRunner._request_cost(
         "claude-opus-4-8", 300_000, 100_000

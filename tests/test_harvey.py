@@ -24,7 +24,11 @@ from rubric_gen.harvey.config import (
 from rubric_gen.harvey.controller import HarveyEvolutionController, build_ranking
 from rubric_gen.harvey.designer import DESIGNER_PROMPT, CodexHarnessDesigner, DesignedCandidate
 from rubric_gen.harvey.evaluator import CandidateEvaluation, HarveyEvaluator
-from rubric_gen.harvey.podman import configured_podman_environment
+from rubric_gen.harvey.podman import (
+    cache_image,
+    configured_podman_environment,
+    restore_cached_image,
+)
 from rubric_gen.harvey.rubrics import TaskRubricProposer
 from rubric_gen.malt.model_judge import ModelGeneration, request_provenance
 
@@ -57,10 +61,11 @@ def _config_text(tmp_path: Path, *, mode: str = "prospective") -> str:
         if mode == "prospective"
         else ""
     )
-    return f"""schema_version: 1
+    return f"""schema_version: 2
 kind: rubric-gen-harvey-harness-evolution-experiment
 experiment_id: harvey-test
 output_dir: output
+cache_dir: cache
 benchmark:
   checkout: checkout
   revision: {'a' * 40}
@@ -91,6 +96,7 @@ def test_load_harvey_experiment_resolves_paths_and_modes(tmp_path: Path) -> None
     experiment = load_experiment(path)
 
     assert experiment.output_dir == tmp_path / "output"
+    assert experiment.cache_dir == tmp_path / "cache"
     assert experiment.benchmark.checkout == tmp_path / "checkout"
     assert experiment.rubric.mode == "prospective"
     assert experiment.designer.rounds == 2
@@ -283,7 +289,7 @@ def test_designer_retries_semantically_invalid_proposal(
     assert "without a history/ prefix" in prompts[1]
 
 
-def test_podman_environment_uses_node_local_single_uid_storage(
+def test_podman_environment_uses_local_storage_and_shared_cache(
     tmp_path: Path,
 ) -> None:
     commands = tmp_path / "commands"
@@ -304,6 +310,7 @@ def test_podman_environment_uses_node_local_single_uid_storage(
             "PATH": str(commands),
             "XDG_RUNTIME_DIR": "/run/user/does-not-exist",
         },
+        cache_root=tmp_path / "shared",
         temporary_root=tmp_path / "worker",
         uid=1234,
         username="researcher",
@@ -312,6 +319,7 @@ def test_podman_environment_uses_node_local_single_uid_storage(
     )
     environment = configured_podman_environment(
         environment,
+        cache_root=tmp_path / "shared",
         temporary_root=tmp_path / "worker",
         uid=1234,
         username="researcher",
@@ -323,6 +331,9 @@ def test_podman_environment_uses_node_local_single_uid_storage(
         "rubric-gen-podman-1234/runtime"
     )
     assert environment["XDG_DATA_HOME"].endswith("rubric-gen-podman-1234/data")
+    assert environment["UV_CACHE_DIR"] == str(
+        tmp_path / "shared" / "user-1234" / "uv"
+    )
     storage = Path(environment["CONTAINERS_STORAGE_CONF"])
     assert 'ignore_chown_errors = "true"' in storage.read_text(encoding="utf-8")
     assert str(tmp_path / "worker") in storage.read_text(encoding="utf-8")
@@ -353,6 +364,89 @@ def test_podman_environment_uses_node_local_single_uid_storage(
         "sandbox",
         ".",
     ]
+    cached_pull = subprocess.run(
+        [wrapper, "pull", "registry.example/sandbox:latest"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    assert cached_pull == [
+        str(home),
+        str(home / ".config"),
+        "image",
+        "exists",
+        "registry.example/sandbox:latest",
+    ]
+
+
+def test_shared_image_cache_saves_and_restores_oci_archive(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = "lab-sandbox:latest"
+    image_id = "sha256:harvey-image"
+    local = True
+    calls: list[list[str]] = []
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        nonlocal local
+        calls.append(command)
+        if command[1:3] == ["image", "inspect"]:
+            return subprocess.CompletedProcess(
+                command,
+                0 if local else 1,
+                image_id + "\n" if local else "",
+                "",
+            )
+        if command[1] == "save":
+            output = Path(command[command.index("--output") + 1])
+            output.write_bytes(b"oci archive")
+            return subprocess.CompletedProcess(command, 0, "", "")
+        if command[1] == "load":
+            local = True
+            return subprocess.CompletedProcess(command, 0, "loaded", "")
+        raise AssertionError(command)
+
+    monkeypatch.setattr("rubric_gen.harvey.podman.subprocess.run", run)
+    cache_root = tmp_path / "shared"
+    environment = {"PATH": "/usr/bin"}
+
+    archive = cache_image(
+        environment,
+        cache_root=cache_root,
+        image=image,
+        uid=1234,
+    )
+    assert archive.read_bytes() == b"oci archive"
+    assert sum(command[1] == "save" for command in calls) == 1
+
+    local = False
+    assert restore_cached_image(
+        environment,
+        cache_root=cache_root,
+        image=image,
+        uid=1234,
+    )
+    assert sum(command[1] == "load" for command in calls) == 1
+    assert Path(calls[-2][calls[-2].index("--input") + 1]) == archive
+
+
+def test_shared_image_cache_miss_does_not_pull(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert command[1:3] == ["image", "inspect"]
+        return subprocess.CompletedProcess(command, 1, "", "missing")
+
+    monkeypatch.setattr("rubric_gen.harvey.podman.subprocess.run", run)
+
+    assert not restore_cached_image(
+        {"PATH": "/usr/bin"},
+        cache_root=tmp_path / "shared",
+        image="lab-sandbox:latest",
+        uid=1234,
+    )
 
 
 def test_podman_environment_does_not_squash_users_when_subids_exist(
@@ -365,6 +459,7 @@ def test_podman_environment_does_not_squash_users_when_subids_exist(
 
     environment = configured_podman_environment(
         {},
+        cache_root=tmp_path / "shared",
         temporary_root=tmp_path / "worker",
         uid=1234,
         username="researcher",
@@ -518,6 +613,7 @@ def test_controller_runs_linear_round_with_free_parent_record_and_resumes(
         source=source,
         experiment_id="harvey-test",
         output_dir=tmp_path / "output",
+        cache_dir=tmp_path / "cache",
         benchmark=HarveyBenchmark(checkout, revision, ("area/task",), ()),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
@@ -568,6 +664,7 @@ def test_production_evaluator_uses_runtime_modules_and_rescores_read_only_output
         source=source,
         experiment_id="harvey-test",
         output_dir=tmp_path / "output",
+        cache_dir=tmp_path / "cache",
         benchmark=HarveyBenchmark(checkout, revision, ("area/task",), ()),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),

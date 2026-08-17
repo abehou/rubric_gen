@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -38,9 +40,8 @@ def _task(root: Path, task_id: str) -> None:
 
 def _payload(root: Path) -> dict[str, object]:
     return {
-        "schema_version": 3,
+        "schema_version": 5,
         "kind": "rubric-gen-randomized-experiment",
-        "experiment_id": "test-experiment",
         "benchmark": "biomnibench-da",
         "tasks_dir": "tasks",
         "tasks": ["da-1-1", "da-2-1"],
@@ -59,14 +60,29 @@ def _payload(root: Path) -> dict[str, object]:
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
         },
+        "rubric_paraphrases": {
+            "count": 3,
+            "model": "test-paraphraser",
+            "max_retries": 1,
+        },
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
             "primary_rule": "majority",
         },
         "dag": {
             "seed": {"depends_on": [], "output_dir": "runs/seeds"},
-            "revise": {"depends_on": ["seed"], "output_dir": "runs/revisions"},
-            "detect": {"depends_on": ["revise"], "output_dir": "runs/detections"},
+            "paraphrase": {
+                "depends_on": [],
+                "output_dir": "runs/paraphrases/common",
+            },
+            "revise": {
+                "depends_on": ["seed", "paraphrase"],
+                "output_dir": "runs/revisions/{experiment_id}",
+            },
+            "detect": {
+                "depends_on": ["revise", "paraphrase"],
+                "output_dir": "runs/detections/{experiment_id}",
+            },
         },
     }
 
@@ -82,6 +98,72 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     assert len(first.assignments) == 2 * 3 * 2
     assert all("design_sha256" not in item for item in first.assignments)
     assert {item["execution_order"] for item in first.assignments} == set(range(1, 13))
+
+
+def test_experiment_id_is_derived_from_semantic_yaml(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    first_path = tmp_path / "first.yaml"
+    first_path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    first = load_experiment(first_path)
+
+    second_path = tmp_path / "second.yaml"
+    second_path.write_text(yaml.safe_dump(payload, sort_keys=True))
+    second = load_experiment(second_path)
+
+    assert re.fullmatch(
+        r"biomnibench-da-semi-r10-[0-9a-f]{12}", first.experiment_id
+    )
+    assert second.experiment_id == first.experiment_id
+    assert Path(str(first.dag["revise"]["output_dir"])).name == first.experiment_id
+    assert Path(str(first.dag["detect"]["output_dir"])).name == first.experiment_id
+
+
+def test_experiment_id_changes_with_behavior_but_not_output_routing(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    baseline = _payload(tmp_path)
+    baseline_path = tmp_path / "baseline.yaml"
+    baseline_path.write_text(yaml.safe_dump(baseline, sort_keys=False))
+    baseline_id = load_experiment(baseline_path).experiment_id
+
+    routed = _payload(tmp_path)
+    routed["dag"]["revise"]["output_dir"] = "other/studies/{experiment_id}"  # type: ignore[index]
+    routed["dag"]["detect"]["output_dir"] = "other/detections/{experiment_id}"  # type: ignore[index]
+    routed_path = tmp_path / "routed.yaml"
+    routed_path.write_text(yaml.safe_dump(routed, sort_keys=False))
+    assert load_experiment(routed_path).experiment_id == baseline_id
+
+    changed = _payload(tmp_path)
+    changed["protocol"]["revision_rounds"] = 11  # type: ignore[index]
+    changed_path = tmp_path / "changed.yaml"
+    changed_path.write_text(yaml.safe_dump(changed, sort_keys=False))
+    changed_id = load_experiment(changed_path).experiment_id
+    assert changed_id != baseline_id
+    assert "-r11-" in changed_id
+
+
+def test_experiment_rejects_manual_id_and_nonautomatic_output_paths(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    manual = _payload(tmp_path)
+    manual["experiment_id"] = "manual-id"
+    manual_path = tmp_path / "manual.yaml"
+    manual_path.write_text(yaml.safe_dump(manual, sort_keys=False))
+    with pytest.raises(ValueError, match="experiment keys must be exactly"):
+        load_experiment(manual_path)
+
+    fixed_output = _payload(tmp_path)
+    fixed_output["dag"]["revise"]["output_dir"] = "runs/revisions/fixed"  # type: ignore[index]
+    fixed_path = tmp_path / "fixed.yaml"
+    fixed_path.write_text(yaml.safe_dump(fixed_output, sort_keys=False))
+    with pytest.raises(ValueError, match="must end with .*experiment_id"):
+        load_experiment(fixed_path)
 
 
 def test_paperbench_experiment_accepts_a_pinned_dev_subset(
@@ -118,8 +200,6 @@ def test_seed_stage_uses_one_shared_directory_without_an_owner_id(
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
     payload["dag"]["seed"]["output_dir"] = "seeds/shared"  # type: ignore[index]
-    payload["dag"]["revise"]["output_dir"] = "runs/revisions/test-experiment"  # type: ignore[index]
-    payload["dag"]["detect"]["output_dir"] = "runs/detections/test-experiment"  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     observed: list[SeedSetConfig] = []
@@ -213,7 +293,10 @@ def test_vllm_solver_requires_and_uses_matching_endpoint(tmp_path: Path) -> None
     assert config.base_url == "http://qwen27:43117/v1"
 
 
-def test_experiment_workflow_suppresses_solver_event_streams(tmp_path: Path) -> None:
+def test_experiment_workflow_suppresses_solver_event_streams(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     path = tmp_path / "experiment.yaml"
@@ -228,12 +311,19 @@ def test_experiment_workflow_suppresses_solver_event_streams(tmp_path: Path) -> 
     study = StudyRunner(StudyRunConfig(
         experiment=experiment,
         seed_run_dir=tmp_path / "seeds",
+        paraphrase_run_dir=tmp_path / "paraphrases",
         output_dir=tmp_path / "study",
         max_concurrency=1,
     ))
     assignment = min(
         experiment.assignments,
         key=lambda item: int(item["execution_order"]),
+    )
+    optimizer = experiment.task_dir(str(assignment["task_id"])) / "tests" / "rubric.txt"
+    monkeypatch.setattr(
+        study_module,
+        "resolve_paraphrase_selection",
+        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
     )
 
     assert seed.agent.quiet is True
@@ -247,21 +337,13 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    experiment_id = str(payload["experiment_id"])
-    dag = payload["dag"]
-    assert isinstance(dag, dict)
-    for stage, parent in (
-        ("seed", "seeds"),
-        ("revise", "studies"),
-        ("detect", "detections"),
-    ):
-        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
+    experiment_id = experiment.experiment_id
     roots = {
         stage: Path(str(experiment.dag[stage]["output_dir"]))
-        for stage in ("seed", "revise", "detect")
+        for stage in ("seed", "paraphrase", "revise", "detect")
     }
     for root in roots.values():
         nested = root / "nested"
@@ -285,9 +367,18 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
         calls.append("seed")
         return 0
 
+    def paraphrase_stage(stage_args: argparse.Namespace) -> int:
+        assert stage_args.resume is False
+        assert roots["paraphrase"].is_dir()
+        assert roots["revise"].is_dir()
+        assert roots["detect"].is_dir()
+        calls.append("paraphrase")
+        return 0
+
     def stage(name: str):
         def run(_args: argparse.Namespace) -> int:
             assert roots["seed"].is_dir()
+            assert roots["paraphrase"].is_dir()
             assert not roots["revise"].exists()
             assert not roots["detect"].exists()
             calls.append(name)
@@ -296,6 +387,7 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
         return run
 
     monkeypatch.setattr(commands_module, "run_seed", seed_stage)
+    monkeypatch.setattr(commands_module, "run_paraphrase", paraphrase_stage)
     monkeypatch.setattr(commands_module, "run_revise", stage("revise"))
     monkeypatch.setattr(commands_module, "run_detect", stage("detect"))
 
@@ -308,26 +400,148 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
     ))
 
     assert result == 0
-    assert calls == ["seed", "revise", "detect"]
+    assert calls == ["seed", "paraphrase", "revise", "detect"]
     assert roots["seed"].is_dir()
+    assert roots["paraphrase"].is_dir()
+
+
+def test_detect_runs_score_methods_when_direct_panel_has_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import rubric_gen.malt.cli as malt_cli_module
+    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
+
+    experiment = SimpleNamespace(
+        dag={
+            "revise": {"output_dir": str(tmp_path / "study")},
+            "paraphrase": {"output_dir": str(tmp_path / "paraphrases")},
+            "detect": {"output_dir": str(tmp_path / "detect")},
+        },
+        outcome_audit={"models": ["strong-a", "strong-b"]},
+    )
+    calls: list[str] = []
+    direct_argv: list[str] = []
+    configs: list[object] = []
+
+    def direct(argv: list[str]) -> int:
+        direct_argv.extend(argv)
+        calls.append("direct")
+        return 1
+
+    class ScoreRunner:
+        def __init__(self, config: object) -> None:
+            configs.append(config)
+
+        def run(self) -> int:
+            calls.append("score")
+            return 0
+
+    class MetaRunner:
+        def __init__(self, config: object) -> None:
+            configs.append(config)
+
+        def run(self) -> int:
+            calls.append("meta")
+            return 0
+
+    monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
+    monkeypatch.setattr(malt_cli_module, "main", direct)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "RubricScoreDiagnosticRunner",
+        ScoreRunner,
+    )
+    monkeypatch.setattr(diagnostics_module, "RubricFreeMetaRunner", MetaRunner)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "write_combined_rh_summary",
+        lambda _path: calls.append("combined"),
+    )
+
+    status = commands_module.run_detect(argparse.Namespace(
+        experiment="experiment.yaml",
+        max_concurrency=3,
+        resume=True,
+        vllm=["http://weak:8000::weak-model"],
+    ))
+
+    assert status == 1
+    assert calls == ["direct", "score", "meta", "combined"]
+    assert "--ensemble" in direct_argv
+    assert "weak-model" not in direct_argv
+    assert all(
+        config.vllm_endpoints == {"weak-model": "http://weak:8000/v1"}
+        for config in configs
+    )
+
+
+def test_detect_runs_meta_stage_after_score_stage_exception(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import rubric_gen.malt.cli as malt_cli_module
+    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
+
+    experiment = SimpleNamespace(
+        dag={
+            "revise": {"output_dir": str(tmp_path / "study")},
+            "paraphrase": {"output_dir": str(tmp_path / "paraphrases")},
+            "detect": {"output_dir": str(tmp_path / "detect")},
+        },
+        outcome_audit={"models": ["strong-a", "strong-b"]},
+    )
+    calls: list[str] = []
+
+    class ScoreRunner:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def run(self) -> int:
+            calls.append("score")
+            raise RuntimeError("strong judge unavailable")
+
+    class MetaRunner:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def run(self) -> int:
+            calls.append("meta")
+            return 0
+
+    monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
+    monkeypatch.setattr(malt_cli_module, "main", lambda _argv: 0)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "RubricScoreDiagnosticRunner",
+        ScoreRunner,
+    )
+    monkeypatch.setattr(diagnostics_module, "RubricFreeMetaRunner", MetaRunner)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "write_combined_rh_summary",
+        lambda _path: calls.append("combined"),
+    )
+
+    with pytest.raises(RuntimeError, match="score-diagnostics"):
+        commands_module.run_detect(argparse.Namespace(
+            experiment="experiment.yaml",
+            max_concurrency=3,
+            resume=False,
+            vllm=[],
+        ))
+
+    assert calls == ["score", "meta"]
 
 
 def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    experiment_id = str(payload["experiment_id"])
-    dag = payload["dag"]
-    assert isinstance(dag, dict)
-    for stage, parent in (
-        ("seed", "seeds"),
-        ("revise", "studies"),
-        ("detect", "detections"),
-    ):
-        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
+    experiment_id = experiment.experiment_id
     seed_root = Path(str(experiment.dag["seed"]["output_dir"]))
     seed_root.mkdir(parents=True)
     (seed_root / "manifest.json").write_text(json.dumps({
@@ -349,18 +563,10 @@ def test_run_restart_rejects_an_active_study(tmp_path: Path) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    experiment_id = str(payload["experiment_id"])
-    dag = payload["dag"]
-    assert isinstance(dag, dict)
-    for stage, parent in (
-        ("seed", "seeds"),
-        ("revise", "studies"),
-        ("detect", "detections"),
-    ):
-        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
+    experiment_id = experiment.experiment_id
     roots = {
         stage: Path(str(experiment.dag[stage]["output_dir"]))
         for stage in ("seed", "revise", "detect")
@@ -391,18 +597,10 @@ def test_run_restart_detaches_outputs_before_best_effort_cleanup(
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    experiment_id = str(payload["experiment_id"])
-    dag = payload["dag"]
-    assert isinstance(dag, dict)
-    for stage, parent in (
-        ("seed", "seeds"),
-        ("revise", "studies"),
-        ("detect", "detections"),
-    ):
-        dag[stage]["output_dir"] = f"runs/{parent}/{experiment_id}"  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
+    experiment_id = experiment.experiment_id
     roots = {
         stage: Path(str(experiment.dag[stage]["output_dir"]))
         for stage in ("seed", "revise", "detect")
@@ -465,6 +663,7 @@ def test_study_resume_reclaims_interrupted_running_records(
         StudyRunConfig(
             experiment=experiment,
             seed_run_dir=tmp_path / "runs" / "seeds",
+            paraphrase_run_dir=tmp_path / "runs" / "paraphrases",
             output_dir=output,
             max_concurrency=1,
             resume=True,
@@ -485,6 +684,13 @@ def test_study_resume_reclaims_interrupted_running_records(
     })
     runner._write_manifest(manifest)
     revisions: list[object] = []
+    optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    monkeypatch.setattr(study_module, "validate_paraphrase_run", lambda *_: None)
+    monkeypatch.setattr(
+        study_module,
+        "resolve_paraphrase_selection",
+        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
+    )
     monkeypatch.setattr(
         study_module,
         "run_submission_revision",

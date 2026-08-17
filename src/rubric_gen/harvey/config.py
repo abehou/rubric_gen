@@ -15,6 +15,7 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _EFFORTS = {None, "minimal", "low", "medium", "high", "xhigh"}
 _TASK_EFFORTS = _EFFORTS | {"max"}
 HARVEY_EXPERIMENT_KIND = "rubric-gen-harvey-harness-evolution-experiment"
+HARVEY_EXPERIMENT_SCHEMA_VERSION = 2
 
 
 def _object(value: object, label: str) -> dict[str, Any]:
@@ -118,6 +119,7 @@ class HarveyExperiment:
     source: Path
     experiment_id: str
     output_dir: Path
+    cache_dir: Path
     benchmark: HarveyBenchmark
     task_agent: TaskAgent
     judge: HarveyJudge
@@ -238,9 +240,11 @@ def load_experiment(path: Path) -> HarveyExperiment:
     except yaml.YAMLError as exc:
         raise ValueError(f"invalid Harvey experiment YAML: {source}") from exc
     data = _object(raw, "experiment")
-    _exact(data, {"schema_version", "kind", "experiment_id", "output_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
-    if data.get("schema_version") != 1:
-        raise ValueError("Harvey experiment schema_version must be 1")
+    _exact(data, {"schema_version", "kind", "experiment_id", "output_dir", "cache_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
+    if data.get("schema_version") != HARVEY_EXPERIMENT_SCHEMA_VERSION:
+        raise ValueError(
+            f"Harvey experiment schema_version must be {HARVEY_EXPERIMENT_SCHEMA_VERSION}"
+        )
     if data.get("kind") != HARVEY_EXPERIMENT_KIND:
         raise ValueError("unsupported Harvey experiment kind")
     experiment_id = _text(data.get("experiment_id"), "experiment_id")
@@ -248,13 +252,21 @@ def load_experiment(path: Path) -> HarveyExperiment:
         raise ValueError("experiment_id has invalid characters")
     root = source.parent
     output_dir = (root / _text(data.get("output_dir"), "output_dir")).resolve()
+    cache_dir = (root / _text(data.get("cache_dir"), "cache_dir")).resolve()
     benchmark = _benchmark(data.get("benchmark"), root)
     if output_dir == benchmark.checkout or output_dir in benchmark.checkout.parents or benchmark.checkout in output_dir.parents:
         raise ValueError("output_dir and the Harvey checkout must not contain each other")
+    protected = (output_dir, benchmark.checkout)
+    if any(
+        cache_dir == path or cache_dir in path.parents or path in cache_dir.parents
+        for path in protected
+    ):
+        raise ValueError("cache_dir must be separate from output_dir and the Harvey checkout")
     return HarveyExperiment(
         source=source,
         experiment_id=experiment_id,
         output_dir=output_dir,
+        cache_dir=cache_dir,
         benchmark=benchmark,
         task_agent=_task_agent(data.get("task_agent")),
         judge=_judge(data.get("judge")),

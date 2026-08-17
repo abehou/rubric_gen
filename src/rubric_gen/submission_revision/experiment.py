@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import random
 import re
 from dataclasses import dataclass
@@ -17,11 +18,25 @@ from rubric_gen.submission_revision.evolution import RubricEvolution
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
 from rubric_gen.benchmarks import Benchmark, get_benchmark
+from rubric_gen.artifacts.hashing import sha256_text
 
 
-EXPERIMENT_SCHEMA_VERSION = 3
+EXPERIMENT_SCHEMA_VERSION = 5
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
+EXPERIMENT_ID_TOKEN = "{experiment_id}"
+_IDENTITY_KEYS = (
+    "schema_version",
+    "kind",
+    "benchmark",
+    "tasks_dir",
+    "tasks",
+    "randomization",
+    "conditions",
+    "protocol",
+    "rubric_paraphrases",
+    "outcome_audit",
+)
 
 
 @dataclass(frozen=True)
@@ -60,6 +75,10 @@ class Experiment:
     @property
     def outcome_audit(self) -> dict[str, object]:
         return self.payload["outcome_audit"]
+
+    @property
+    def rubric_paraphrases(self) -> dict[str, object]:
+        return self.payload["rubric_paraphrases"]
 
     @property
     def dag(self) -> dict[str, dict[str, object]]:
@@ -136,18 +155,23 @@ def load_experiment(path: Path) -> Experiment:
     if not isinstance(value, dict):
         raise ValueError("experiment YAML must contain a mapping")
     payload: dict[str, Any] = value
-    _validate(payload, resolved)
+    experiment_id = _validate(payload, resolved)
+    payload["experiment_id"] = experiment_id
     payload["tasks_dir"] = str(_resolve_relative(resolved, payload["tasks_dir"]))
     for stage in payload["dag"].values():
-        stage["output_dir"] = str(_resolve_relative(resolved, stage["output_dir"]))
+        output_dir = str(stage["output_dir"]).replace(
+            EXPERIMENT_ID_TOKEN, experiment_id
+        )
+        stage["output_dir"] = str(_resolve_relative(resolved, output_dir))
     payload["assignments"] = _randomized_assignments(payload)
     return Experiment(resolved, payload)
 
 
-def _validate(payload: dict[str, Any], path: Path) -> None:
+def _validate(payload: dict[str, Any], path: Path) -> str:
     required = {
-        "schema_version", "kind", "experiment_id", "benchmark", "tasks_dir", "tasks",
-        "randomization", "conditions", "protocol", "outcome_audit", "dag",
+        "schema_version", "kind", "benchmark", "tasks_dir", "tasks",
+        "randomization", "conditions", "protocol", "rubric_paraphrases",
+        "outcome_audit", "dag",
     }
     if set(payload) != required:
         raise ValueError(f"experiment keys must be exactly {sorted(required)}")
@@ -157,8 +181,7 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
         raise ValueError("unsupported experiment kind")
     benchmark = Benchmark(str(payload["benchmark"]))
     contract = get_benchmark(benchmark)
-    if not isinstance(payload["experiment_id"], str) or not _ID.fullmatch(payload["experiment_id"]):
-        raise ValueError("experiment_id is invalid")
+    experiment_id = _derived_experiment_id(payload)
     tasks_dir = _resolve_relative(path, payload["tasks_dir"])
     tasks = payload["tasks"]
     if not isinstance(tasks, list) or not tasks or any(
@@ -190,6 +213,7 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     ):
         raise ValueError("condition IDs must be unique portable identifiers")
     _validate_protocol(payload["protocol"])
+    _validate_rubric_paraphrases(payload["rubric_paraphrases"])
     contract.validate_review(payload["protocol"]["review"])
     audit = payload["outcome_audit"]
     if not isinstance(audit, dict):
@@ -207,9 +231,18 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
     # The YAML is concise; stable detector mechanics are supplied by the implementation.
     payload["outcome_audit"] = expected_audit
     dag = payload["dag"]
-    if not isinstance(dag, dict) or set(dag) != {"seed", "revise", "detect"}:
-        raise ValueError("dag must contain exactly seed, revise, and detect")
-    expected_dependencies = {"seed": [], "revise": ["seed"], "detect": ["revise"]}
+    if not isinstance(dag, dict) or set(dag) != {
+        "seed", "paraphrase", "revise", "detect"
+    }:
+        raise ValueError(
+            "dag must contain exactly seed, paraphrase, revise, and detect"
+        )
+    expected_dependencies = {
+        "seed": [],
+        "paraphrase": [],
+        "revise": ["seed", "paraphrase"],
+        "detect": ["revise", "paraphrase"],
+    }
     for name, dependencies in expected_dependencies.items():
         stage = dag[name]
         expected_keys = {"depends_on", "output_dir"}
@@ -217,7 +250,60 @@ def _validate(payload: dict[str, Any], path: Path) -> None:
             raise ValueError(f"dag stage {name} requires depends_on and output_dir")
         if stage["depends_on"] != dependencies:
             raise ValueError(f"dag stage {name} has invalid dependencies")
-        _resolve_relative(path, stage["output_dir"])
+        output_dir = str(stage["output_dir"])
+        token_count = output_dir.count(EXPERIMENT_ID_TOKEN)
+        if name in {"seed", "paraphrase"} and token_count:
+            raise ValueError(
+                f"{name} output_dir must not contain {{experiment_id}}"
+            )
+        if name in {"revise", "detect"} and (
+            token_count != 1 or Path(output_dir).name != EXPERIMENT_ID_TOKEN
+        ):
+            raise ValueError(
+                f"dag stage {name} output_dir must end with {{experiment_id}}"
+            )
+        _resolve_relative(
+            path,
+            output_dir.replace(EXPERIMENT_ID_TOKEN, experiment_id),
+        )
+    return experiment_id
+
+
+def _validate_rubric_paraphrases(value: object) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "count", "model", "max_retries"
+    }:
+        raise ValueError(
+            "rubric_paraphrases requires count, model, and max_retries"
+        )
+    if type(value["count"]) is not int or value["count"] < 2:
+        raise ValueError("rubric paraphrase count must be at least two")
+    if type(value["model"]) is not str or not value["model"].strip():
+        raise ValueError("rubric paraphrase model must be nonempty")
+    if type(value["max_retries"]) is not int or value["max_retries"] < 0:
+        raise ValueError("rubric paraphrase retries must be non-negative")
+
+
+def _derived_experiment_id(payload: dict[str, Any]) -> str:
+    """Derive one readable identity from the experiment's semantic YAML."""
+
+    identity = {key: payload[key] for key in _IDENTITY_KEYS}
+    digest = sha256_text(json.dumps(
+        identity,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ))[:12]
+    benchmark = str(payload["benchmark"])
+    protocol = payload["protocol"]
+    if not isinstance(protocol, dict):
+        raise ValueError("protocol must be a mapping")
+    feedback = str(protocol.get("feedback_policy", "invalid")).replace("_", "-")
+    rounds = protocol.get("revision_rounds", "invalid")
+    experiment_id = f"{benchmark}-{feedback}-r{rounds}-{digest}"
+    if not _ID.fullmatch(experiment_id):
+        raise ValueError("derived experiment ID is invalid")
+    return experiment_id
 
 
 def _validate_protocol(protocol: object) -> None:

@@ -2080,8 +2080,10 @@ class ModelJudgeRunner:
         input_price = price["input"]
         cached_price = price.get("cached", input_price)
         output_price = price["output"]
-        if model in GEMINI_PRICES_PER_MILLION and input_tokens > int(
-            price["long_threshold"]
+        if (
+            model in GEMINI_PRICES_PER_MILLION
+            and "long_threshold" in price
+            and input_tokens > int(price["long_threshold"])
         ):
             input_price = price["long_input"]
             cached_price = price["long_cached"]

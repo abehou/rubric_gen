@@ -6,6 +6,7 @@ import stat
 from dataclasses import replace
 from pathlib import Path
 from typing import Callable
+from types import SimpleNamespace
 
 import pytest
 
@@ -47,9 +48,29 @@ from rubric_gen.submission_revision.study import (
     validate_completed_revision,
 )
 from rubric_gen.artifacts.hashing import sha256_text
+import rubric_gen.submission_revision.study as study_module
 
 
 EXPERIMENT_ID = "test-experiment"
+
+
+@pytest.fixture(autouse=True)
+def _resolve_test_paraphrase(monkeypatch: pytest.MonkeyPatch) -> None:
+    def resolve(_root, experiment, task_id, _replicate):
+        master = (
+            experiment.task_dir(task_id)
+            / "tests"
+            / str(experiment.protocol["rubric_name"])
+        )
+        digest = sha256_file(master)
+        return SimpleNamespace(
+            optimizer_path=master,
+            optimizer_sha256=digest,
+            master_path=master,
+            master_sha256=digest,
+        )
+
+    monkeypatch.setattr(study_module, "resolve_paraphrase_selection", resolve)
 
 
 def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
@@ -211,9 +232,10 @@ def _config(
         condition_id="base-static",
         replicate=1,
         execution_order=1,
+        optimizer_rubric_path=task / "tests" / "rubric.txt",
+        master_rubric_name="rubric.txt",
         feedback_policy=FeedbackPolicy.FULL,
         prompt_profile=PromptProfile.BASE,
-        rubric_name="rubric.txt",
         review="trace",
         show_progress=False,
     )
@@ -232,7 +254,7 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
         "judge_model": config.judge_model,
         "judge_max_retries": config.judge_max_retries,
         "max_review_chars": config.max_review_chars,
-        "rubric_name": config.rubric_name,
+        "rubric_name": config.master_rubric_name,
         "solver": {
             "provider": agent.provider,
             "model": agent.model,
@@ -264,6 +286,11 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
                 "rubric_evolution": config.rubric_evolution.value,
             }],
             "protocol": protocol,
+            "rubric_paraphrases": {
+                "count": 2,
+                "model": "test-paraphraser",
+                "max_retries": 0,
+            },
             "outcome_audit": {},
             "dag": {},
         },
@@ -486,6 +513,7 @@ def test_revision_accepts_seed_judgment_from_an_older_code_build(
         assignment,
         _design(config, task),
         config.seed_run_dir,
+        config.experiment_dir / "paraphrases",
     )
 
 
@@ -541,6 +569,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
         assignment,
         _design(config, task),
         config.seed_run_dir,
+        config.experiment_dir / "paraphrases",
     )
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
@@ -553,6 +582,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
         assignment,
         _design(config, task),
         config.seed_run_dir,
+        config.experiment_dir / "paraphrases",
     )
     manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
     assert manifest["live_workspace_removed"] is True
@@ -573,6 +603,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
             assignment,
             _design(config, task),
             config.seed_run_dir,
+            config.experiment_dir / "paraphrases",
         )
 
 
@@ -692,6 +723,7 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
         assignment,
         _design(config, task),
         config.seed_run_dir,
+        config.experiment_dir / "paraphrases",
     )
 
 
@@ -868,6 +900,7 @@ def test_completed_revision_validates_model_endpoint_manifest_fields(
         assignment,
         _design(config, task),
         config.seed_run_dir,
+        config.experiment_dir / "paraphrases",
         vllm_endpoints={
             "judge-model": "http://judge:8000/v1",
             "proposer-model": "http://proposer:8000/v1",
@@ -1005,6 +1038,7 @@ def test_failed_solver_turn_is_sealed_and_never_misreported_as_complete(
             assignment,
             _design(config, task),
             config.seed_run_dir,
+            config.experiment_dir / "paraphrases",
         )
     with pytest.raises(RuntimeError, match="provider exited"):
         SubmissionRevisionController(

@@ -37,7 +37,7 @@ RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 LIVE_ROOT_PREFIX = "submission-revision-live-"
 LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
-REVISION_MANIFEST_SCHEMA_VERSION = 4
+REVISION_MANIFEST_SCHEMA_VERSION = 5
 _LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
 REVISION_MANIFEST_KEYS = frozenset(
     {
@@ -61,6 +61,9 @@ REVISION_MANIFEST_KEYS = frozenset(
         "live_workspace_removed",
         "max_review_chars",
         "model",
+        "master_rubric_name",
+        "master_rubric_sha256",
+        "optimizer_rubric_path",
         "prompt",
         "provider",
         "reasoning_effort",
@@ -68,14 +71,12 @@ REVISION_MANIFEST_KEYS = frozenset(
         "review",
         "revision_rounds",
         "rubric_evolution",
-        "rubric_name",
         "rubric_auditor_model",
         "rubric_auditor_base_url",
         "rubric_auditor_query_limit",
         "rubric_proposer_model",
         "rubric_proposer_base_url",
         "rubric_proposer_max_retries",
-        "rubric_set",
         "rubric_sha256",
         "schema_version",
         "scoring_identity",

@@ -18,7 +18,9 @@ def test_cli_exposes_only_core_workflow() -> None:
     subparsers = next(
         action for action in parser._actions if hasattr(action, "choices") and action.choices
     )
-    assert set(subparsers.choices) == {"run", "seed", "revise", "detect", "judge"}
+    assert set(subparsers.choices) == {
+        "run", "seed", "paraphrase", "revise", "detect", "judge"
+    }
 
 
 @pytest.mark.parametrize(
@@ -64,7 +66,7 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
     assert observed == {"experiment": experiment, "resume": True}
 
 
-def test_detect_derives_submission_directories_from_experiment(
+def test_detect_forwards_the_experiment_to_detection_suite(
     tmp_path, monkeypatch
 ) -> None:
     path = tmp_path / "submission.yaml"
@@ -72,24 +74,17 @@ def test_detect_derives_submission_directories_from_experiment(
         json.dumps({"kind": "rubric-gen-randomized-experiment"}),
         encoding="utf-8",
     )
-    experiment = SimpleNamespace(
-        dag={
-            "revise": {"output_dir": "/runs/revise"},
-            "detect": {"output_dir": "/runs/detect"},
-        }
-    )
     observed: dict[str, object] = {}
 
     def detect(args) -> int:
         observed.update(vars(args))
         return 19
 
-    monkeypatch.setattr(unified_cli, "load_experiment", lambda _: experiment)
     monkeypatch.setattr(unified_cli, "run_submission_detect", detect)
 
     assert unified_cli.main(["detect", "--experiment", str(path)]) == 19
-    assert observed["run_dir"] == "/runs/revise"
-    assert observed["output_dir"] == "/runs/detect"
+    assert observed["experiment"] == str(path)
+    assert observed["max_concurrency"] == 3
 
 
 def test_run_accepts_restart() -> None:
