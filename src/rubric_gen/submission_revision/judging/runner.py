@@ -27,8 +27,10 @@ from rubric_gen.submission_revision.judging.models import (
     JudgeAttempt,
     JudgeRunConfig,
     JudgeTarget,
+    GradingEngine,
     ResolvedRubric,
     RUBRIC_PATH_SOURCE,
+    grading_engine_for_benchmark,
     safe_basename as _safe_basename,
 )
 from rubric_gen.submission_revision.rubrics.bundles import (
@@ -265,6 +267,11 @@ class SubmissionJudgeRunner:
             if normalized_scores else None
         )
         return {
+            "benchmark": self.config.benchmark.value,
+            "grading_engine": grading_engine_for_benchmark(
+                self.config.benchmark
+            ).value,
+            "score_instrument_scope": self.config.benchmark.value,
             "review": self.config.review,
             "repeats": self.repeat_count,
             "max_concurrency": self.job_count,
@@ -340,6 +347,7 @@ class SubmissionJudgeRunner:
             return None
         score_input_attestation = self.score_input_attestation(
             attempt=attempt,
+            rubric=rubric,
             judge_source=judge_source,
             review_text=review_text,
             answer_text=answer_text,
@@ -517,23 +525,19 @@ class SubmissionJudgeRunner:
         return tests_dir
 
     def find_judge(self, task_dir: Path) -> Path:
-        tests_dir = self._tests_dir(task_dir)
-        if self.config.judge_name is None:
-            centralized = Path(__file__).with_name("llm_judge.py")
-            if centralized.is_symlink() or not centralized.is_file():
-                raise SystemExit(f"Missing centralized judge: {centralized}")
-            return centralized
-        names = [self.config.judge_name]
-        for name in names:
-            if name is None:
-                continue
-            _safe_basename(name, "judge_name")
-            candidate = tests_dir / name
-            if candidate.is_symlink():
-                raise SystemExit(f"Judge file must not be a symlink: {candidate}")
-            if candidate.is_file():
-                return candidate
-        raise SystemExit(f"Missing judge file in {tests_dir}")
+        self._tests_dir(task_dir)
+        engine = grading_engine_for_benchmark(self.config.benchmark)
+        judge_name = (
+            "autorubric_judge.py"
+            if engine is GradingEngine.AUTORUBRIC_CRITERION
+            else "paperbench_judge.py"
+        )
+        centralized = Path(__file__).with_name(judge_name)
+        if centralized.is_symlink() or not centralized.is_file():
+            raise SystemExit(
+                f"Missing benchmark-fixed {engine.value} judge: {centralized}"
+            )
+        return centralized
 
     def find_rubric(self, task_dir: Path) -> Path:
         tests_dir = self._tests_dir(task_dir)
@@ -929,6 +933,7 @@ class SubmissionJudgeRunner:
         self,
         *,
         attempt: JudgeAttempt,
+        rubric: ResolvedRubric,
         judge_source: bytes,
         review_text: str,
         answer_text: str,
@@ -936,6 +941,7 @@ class SubmissionJudgeRunner:
     ) -> dict[str, Any]:
         return self.executor.score_input_attestation(
             attempt=attempt,
+            rubric=rubric,
             judge_source=judge_source,
             review_text=review_text,
             answer_text=answer_text,
@@ -950,11 +956,6 @@ class SubmissionJudgeRunner:
 
     def judge_model(self, env: dict[str, str] | None = None) -> str:
         return self.executor.judge_model(env)
-
-    def rewrite_judge_paths(
-        self, text: str, tests_dir: Path, logs_dir: Path
-    ) -> str:
-        return self.executor.rewrite_judge_paths(text, tests_dir, logs_dir)
 
     def load_json(self, path: Path) -> object:
         return load_json_strict(path.read_text(encoding="utf-8"))

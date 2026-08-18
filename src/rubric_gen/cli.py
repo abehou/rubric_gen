@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import argparse
 
-import yaml
-
 from rubric_gen.submission_revision.commands import (
     run_detect as run_submission_detect,
     run_dag,
@@ -17,6 +15,7 @@ from rubric_gen.submission_revision.commands import (
 from rubric_gen.submission_revision.experiment import EXPERIMENT_KIND, load_experiment
 from rubric_gen.runtime.paths import resolve_project_path
 from rubric_gen.runtime.vllm import add_vllm_argument
+from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.benchmarks.harvey_lab.audits import run_quality_audit, run_reward_hacking_audit
 from rubric_gen.benchmarks.harvey_lab.config import (
     HARVEY_EXPERIMENT_KIND,
@@ -29,7 +28,7 @@ def _experiment_kind(value: str) -> str:
     path = resolve_project_path(value)
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"experiment must be a regular YAML file: {path}")
-    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    payload = load_yaml_strict(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or not isinstance(payload.get("kind"), str):
         raise ValueError(f"experiment kind is missing or invalid: {path}")
     kind = payload["kind"]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import math
 import os
 import socket
 import stat
@@ -15,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
+from numbers import Real
 
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.experiment import Experiment
@@ -24,9 +26,11 @@ from rubric_gen.submission_revision.controller import (
 )
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
-    project_feedback,
-    project_simulated_user_feedback,
+    project_bank_feedback,
+    project_bank_simulated_user_feedback,
 )
+from rubric_gen.submission_revision.bank_scoring import preflight_bank_dispatch
+from rubric_gen.submission_revision.evolution import RubricBankProposer
 from rubric_gen.submission_revision.models import SubmissionRevisionConfig
 from rubric_gen.submission_revision.artifacts import (
     read_json_object,
@@ -35,16 +39,23 @@ from rubric_gen.submission_revision.artifacts import (
     tree_sha256,
     verify_submission_snapshot,
 )
-from rubric_gen.submission_revision.evolution import RubricEvolution
+from rubric_gen.submission_revision.rubric_bank import (
+    RubricBankPolicy,
+    load_rubric_bank,
+)
 from rubric_gen.submission_revision.seeds import resolve_seed
 from rubric_gen.submission_revision.paraphrases import (
     resolve_paraphrase_selection,
     validate_paraphrase_run,
 )
-from rubric_gen.submission_revision.store import extract_seed_scoring_contract
+from rubric_gen.submission_revision.store import (
+    extract_judge_execution_contract,
+    extract_seed_scoring_contract,
+)
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.benchmarks import get_submission_benchmark
 
 
 STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
@@ -270,12 +281,7 @@ class StudyRunner:
                 vllm_endpoints=self.config.vllm_endpoints
             ),
             prompt_profile=PromptProfile(str(condition["prompt"])),
-            rubric_evolution=RubricEvolution(str(condition["rubric_evolution"])),
-            rubric_auditor_model=str(protocol["rubric_auditor_model"]),
-            rubric_auditor_base_url=self.config.vllm_endpoints.get(
-                str(protocol["rubric_auditor_model"])
-            ),
-            rubric_auditor_query_limit=int(protocol["rubric_auditor_query_limit"]),
+            rubric_policy=RubricBankPolicy(str(condition["rubric_policy"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             rubric_proposer_base_url=self.config.vllm_endpoints.get(
                 str(protocol["rubric_proposer_model"])
@@ -442,7 +448,7 @@ def validate_completed_revision(
     seed_scoring_identity = seed.manifest.get("scoring_identity")
     if not isinstance(seed_scoring_identity, dict):
         raise RuntimeError("revision seed has invalid scoring identity")
-    manifest_scoring_identity = manifest.get("scoring_identity")
+    manifest_scoring_identity = manifest.get("initial_member_scoring_identity")
     if not isinstance(manifest_scoring_identity, dict):
         raise RuntimeError("revision manifest has invalid scoring identity")
     seed_contract = extract_seed_scoring_contract(
@@ -453,14 +459,31 @@ def validate_completed_revision(
         manifest_scoring_identity,
         context="revision manifest",
     )
-    for key in ("effective_judge_model", "review_mode", "max_review_chars"):
-        if seed_contract[key] != manifest_contract[key]:
-            raise RuntimeError(
-                "revision seed and judge use different execution contracts"
-            )
+    if extract_judge_execution_contract(
+        seed_contract,
+        context="revision seed",
+    ) != extract_judge_execution_contract(
+        manifest_contract,
+        context="revision manifest",
+    ):
+        raise RuntimeError(
+            "revision seed and judge use different execution contracts"
+        )
     revision_rounds = int(protocol["revision_rounds"])
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
+    bank_policy = RubricBankPolicy(str(condition_spec["rubric_policy"]))
+    initial_generation = load_rubric_bank(
+        experiment_dir,
+        0,
+        expected_policy=bank_policy,
+    )
+    if (
+        initial_generation.bank.rubric_count != 1
+        or initial_generation.bank.items[0].rubric.content_sha256
+        != selection.optimizer_sha256
+    ):
+        raise RuntimeError("initial rubric bank differs from randomized selection")
     manifest_expectations = {
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": experiment.experiment_id,
@@ -483,12 +506,7 @@ def validate_completed_revision(
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": protocol["feedback_policy"],
         "prompt": condition_spec["prompt"],
-        "rubric_evolution": condition_spec["rubric_evolution"],
-        "rubric_auditor_model": protocol["rubric_auditor_model"],
-        "rubric_auditor_base_url": endpoints.get(
-            str(protocol["rubric_auditor_model"])
-        ),
-        "rubric_auditor_query_limit": protocol["rubric_auditor_query_limit"],
+        "rubric_policy": condition_spec["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_base_url": endpoints.get(
             str(protocol["rubric_proposer_model"])
@@ -499,8 +517,9 @@ def validate_completed_revision(
         "judge_base_url": endpoints.get(str(protocol["judge_model"])),
         "judge_max_retries": protocol["judge_max_retries"],
         "max_review_chars": protocol["max_review_chars"],
-        "optimizer_rubric_path": str(selection.optimizer_path.resolve()),
-        "rubric_sha256": selection.optimizer_sha256,
+        "initial_rubric_path": str(selection.optimizer_path.resolve()),
+        "initial_bank_sha256": initial_generation.bank.content_sha256,
+        "initial_bank_member_count": initial_generation.bank.rubric_count,
         "master_rubric_name": protocol["rubric_name"],
         "master_rubric_sha256": selection.master_sha256,
         "instruction_sha256": sha256_file(task_dir / "instruction.md"),
@@ -537,13 +556,19 @@ def validate_completed_revision(
         or not isinstance(state.get("scores"), list)
         or len(state["scores"]) != expected_count
         or any(
-            type(score) is not int or not 0 <= score <= 100
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
             for score in state["scores"]
         )
         or not isinstance(state.get("fixed_original_scores"), list)
         or len(state["fixed_original_scores"]) != expected_count
         or any(
-            type(score) is not int or not 0 <= score <= 100
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
             for score in state["fixed_original_scores"]
         )
         or not isinstance(state.get("judge_attempts"), dict)
@@ -562,6 +587,27 @@ def validate_completed_revision(
     observed = sorted(path.name for path in submissions.iterdir())
     if observed != expected_ids:
         raise RuntimeError("revision submission set is incomplete")
+    rubric_generation_root = experiment_dir / "rubric-generations"
+    if bank_policy is RubricBankPolicy.FIXED:
+        if os.path.lexists(rubric_generation_root):
+            raise RuntimeError(
+                "rubric-generations is invalid for a fixed rubric policy"
+            )
+    else:
+        expected_rubric_generations = [
+            f"bank-{index:04d}" for index in range(1, expected_count)
+        ]
+        if (
+            rubric_generation_root.is_symlink()
+            or not rubric_generation_root.is_dir()
+            or sorted(path.name for path in rubric_generation_root.iterdir())
+            != expected_rubric_generations
+            or any(
+                path.is_symlink() or not path.is_dir()
+                for path in rubric_generation_root.iterdir()
+            )
+        ):
+            raise RuntimeError("rubric generation set is incomplete")
     feedback_root = experiment_dir / "feedback"
     expected_feedback = [f"{submission_id}.json" for submission_id in expected_ids]
     if (
@@ -570,6 +616,14 @@ def validate_completed_revision(
         or sorted(path.name for path in feedback_root.iterdir()) != expected_feedback
     ):
         raise RuntimeError("revision feedback set is incomplete")
+    bank_evaluation_root = experiment_dir / "bank-evaluations"
+    if (
+        bank_evaluation_root.is_symlink()
+        or not bank_evaluation_root.is_dir()
+        or sorted(path.name for path in bank_evaluation_root.iterdir())
+        != expected_feedback
+    ):
+        raise RuntimeError("revision bank evaluation set is incomplete")
     generation_root = experiment_dir / "feedback-generations"
     if policy is FeedbackPolicy.SIMULATED_USER:
         expected_generations = [
@@ -598,53 +652,104 @@ def validate_completed_revision(
         if feedback.is_symlink() or not feedback.is_file():
             raise RuntimeError(f"missing feedback for {submission_id}")
         index = int(submission_id[1:])
-        rubric_version = (
-            0 if condition_spec["rubric_evolution"] == "static" else index
+        generation_round = 0 if bank_policy is RubricBankPolicy.FIXED else index
+        generation = load_rubric_bank(
+            experiment_dir,
+            generation_round,
+            expected_policy=bank_policy,
         )
-        rubric_path = experiment_dir / "rubric" / f"r{rubric_version:04d}.txt"
-        if rubric_path.is_symlink() or not rubric_path.is_file():
-            raise RuntimeError(f"missing scoring rubric for {submission_id}")
-        reuse_seed_optimizer = (
-            seed_contract["rendered_rubric_sha256"]
-            == sha256_file(rubric_path)
-        )
-        if index == 0 and reuse_seed_optimizer:
-            validation_path, evaluation_path, _ = seed.judgment
-        else:
-            attempt = str(state["judge_attempts"][submission_id])
-            evaluation_root = (
-                experiment_dir
-                / "evaluations"
-                / submission_id
-                / sha256_file(rubric_path)
-                / attempt
-                / "run"
-                / "judges"
-                / str(protocol["review"])
-                / str(assignment["task_id"])
+        if generation_round > 0:
+            prior = load_rubric_bank(
+                experiment_dir,
+                generation_round - 1,
+                expected_policy=bank_policy,
             )
-            validation_path = evaluation_root / "score_validation.json"
-            evaluation_path = evaluation_root / "evaluation.json"
-        if (
-            validation_path.is_symlink()
-            or evaluation_path.is_symlink()
-            or not validation_path.is_file()
-            or not evaluation_path.is_file()
-        ):
-            raise RuntimeError(
-                f"scoring artifacts are incomplete for {submission_id}"
+            generation.bank.validate_lineage(prior.bank)
+            adaptive = bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
+            source_submission = submissions / f"s{index - 1:03d}"
+            validated_generation = RubricBankProposer(
+                benchmark=experiment.benchmark,
+                model=str(protocol["rubric_proposer_model"]),
+                base_url=endpoints.get(str(protocol["rubric_proposer_model"])),
+                service_tier=(
+                    agent.service_tier
+                    if endpoints.get(str(protocol["rubric_proposer_model"])) is None
+                    else None
+                ),
+                max_retries=int(protocol["rubric_proposer_max_retries"]),
+            ).replace_bank(
+                instruction=(task_dir / "instruction.md").read_text(
+                    encoding="utf-8"
+                ),
+                current_bank=prior.bank,
+                policy=bank_policy,
+                generation_round=generation_round,
+                output_dir=rubric_generation_root,
+                current_submission=(
+                    get_submission_benchmark(experiment.benchmark).render_submission(
+                        source_submission / "workspace"
+                    )
+                    if adaptive
+                    else None
+                ),
+                trajectory_path=(
+                    source_submission / "trajectory.stream.jsonl"
+                    if adaptive
+                    else None
+                ),
+                source_boundary=index - 1 if adaptive else None,
             )
-        validation_record = read_json_object(
-            validation_path, "score validation"
-        )
-        if (
-            validation_record.get("evaluation_sha256")
-            != sha256_file(evaluation_path)
-        ):
-            raise RuntimeError(
-                f"evaluation disagrees with score validation: {submission_id}"
+            if validated_generation != generation:
+                raise RuntimeError(
+                    "rubric generation disagrees with the active bank"
+                )
+        bank = generation.bank
+        member_artifacts: dict[str, tuple[Path, Path]] = {}
+        attempt = str(state["judge_attempts"][submission_id])
+        for item in bank.items:
+            rubric_hash = item.rubric.content_sha256
+            if (
+                index == 0
+                and seed_contract["rendered_rubric_sha256"] == rubric_hash
+            ):
+                validation_path, evaluation_path, _ = seed.judgment
+            else:
+                evaluation_root = (
+                    experiment_dir
+                    / "evaluations"
+                    / submission_id
+                    / rubric_hash
+                    / attempt
+                    / "run"
+                    / "judges"
+                    / str(protocol["review"])
+                    / str(assignment["task_id"])
+                )
+                validation_path = evaluation_root / "score_validation.json"
+                evaluation_path = evaluation_root / "evaluation.json"
+            if (
+                validation_path.is_symlink()
+                or evaluation_path.is_symlink()
+                or not validation_path.is_file()
+                or not evaluation_path.is_file()
+            ):
+                raise RuntimeError(
+                    "scoring artifacts are incomplete for "
+                    f"{submission_id}/{rubric_hash}"
+                )
+            validation_record = read_json_object(
+                validation_path,
+                "score validation",
             )
-        rubric_text = rubric_path.read_text(encoding="utf-8")
+            if (
+                validation_record.get("evaluation_sha256")
+                != sha256_file(evaluation_path)
+            ):
+                raise RuntimeError(
+                    "evaluation disagrees with score validation: "
+                    f"{submission_id}/{rubric_hash}"
+                )
+            member_artifacts[rubric_hash] = (validation_path, evaluation_path)
         if policy is FeedbackPolicy.SIMULATED_USER:
             assert simulator is not None
             generation_path = generation_root / f"{submission_id}.json"
@@ -660,26 +765,71 @@ def validate_completed_revision(
                 experiment_id=experiment.experiment_id,
                 assignment_id=str(assignment["assignment_id"]),
                 submission_id=submission_id,
-                rubric_version=rubric_version,
-                rubric_text=rubric_text,
+                generation_round=generation_round,
+                bank=bank,
             )
-            projected = project_simulated_user_feedback(
-                validation_path,
-                rubric_text,
-                sha256_file(rubric_path),
+            projected = project_bank_simulated_user_feedback(
+                bank,
+                {
+                    rubric_hash: paths[0]
+                    for rubric_hash, paths in member_artifacts.items()
+                },
                 comment,
                 prompt_profile=prompt_profile,
                 benchmark=experiment.benchmark,
             )
         else:
-            projected = project_feedback(
-                validation_path,
-                evaluation_path,
-                rubric_text,
-                sha256_file(rubric_path),
+            projected = project_bank_feedback(
+                bank,
+                member_artifacts,
                 policy,
                 prompt_profile=prompt_profile,
                 benchmark=experiment.benchmark,
+            )
+        score_by_member: dict[str, float] = {}
+        bank_members: dict[str, dict[str, object]] = {}
+        for item in bank.items:
+            rubric_hash = item.rubric.content_sha256
+            validation_path, evaluation_path = member_artifacts[rubric_hash]
+            member_score = read_json_object(
+                validation_path,
+                "score validation",
+            ).get("score")
+            if type(member_score) is not int:
+                raise RuntimeError("bank member score is invalid")
+            score_by_member[rubric_hash] = float(member_score)
+            bank_members[rubric_hash] = {
+                "weight": item.weight,
+                "score": member_score,
+                "score_validation_sha256": sha256_file(validation_path),
+                "evaluation_sha256": sha256_file(evaluation_path),
+            }
+        expected_bank_evaluation = {
+            "kind": "weighted-rubric-bank-evaluation",
+            "submission_id": submission_id,
+            "generation_round": bank.generation_round,
+            "bank_sha256": bank.content_sha256,
+            "dispatch_preflight": preflight_bank_dispatch(
+                bank,
+                benchmark=experiment.benchmark,
+                review_text=(
+                    next(iter(member_artifacts.values()))[0].parent
+                    / "judge_input_trace.md"
+                ).read_text(encoding="utf-8"),
+                answer_text=(
+                    next(iter(member_artifacts.values()))[0].parent
+                    / "judge_input_answer.txt"
+                ).read_text(encoding="utf-8"),
+            ),
+            "members": bank_members,
+            "weighted_score": bank.aggregate(score_by_member),
+        }
+        if read_json_object(
+            experiment_dir / "bank-evaluations" / f"{submission_id}.json",
+            "bank evaluation",
+        ) != expected_bank_evaluation:
+            raise RuntimeError(
+                f"bank evaluation disagrees with members: {submission_id}"
             )
         if (
             read_json_object(feedback, "revision feedback") != projected.payload
@@ -690,11 +840,11 @@ def validate_completed_revision(
             )
         fixed_score = state["fixed_original_scores"][index]
         same_base_and_master = (
-            sha256_file(experiment_dir / "rubric" / "r0000.txt")
+            initial_generation.bank.items[0].rubric.content_sha256
             == selection.master_sha256
         )
         if same_base_and_master and (
-            index == 0 or condition_spec["rubric_evolution"] == "static"
+            index == 0 or bank_policy is RubricBankPolicy.FIXED
         ):
             if fixed_score != projected.score:
                 raise RuntimeError(
@@ -756,21 +906,27 @@ def validate_completed_revision(
                     f"fixed-original score disagrees with scoring artifacts: "
                     f"{submission_id}"
                 )
-    expected_rubrics = _expected_rubric_names(condition_spec, expected_count)
-    observed_rubrics = sorted(
-        path.name for path in (experiment_dir / "rubric").glob("r*.txt")
-    )
-    if observed_rubrics != expected_rubrics:
-        raise RuntimeError("revision rubric version set is incomplete")
+    expected_banks = _expected_bank_names(condition_spec, expected_count)
+    bank_root = experiment_dir / "rubric-banks"
+    if (
+        bank_root.is_symlink()
+        or not bank_root.is_dir()
+        or sorted(path.name for path in bank_root.iterdir()) != expected_banks
+        or any(
+            path.is_symlink() or not path.is_dir()
+            for path in bank_root.iterdir()
+        )
+    ):
+        raise RuntimeError("revision rubric bank set is incomplete")
 
 
-def _expected_rubric_names(
+def _expected_bank_names(
     condition_spec: dict[str, object], submission_count: int
 ) -> list[str]:
-    evolution = RubricEvolution(str(condition_spec["rubric_evolution"]))
-    if evolution is RubricEvolution.PROSPECTIVE:
-        return [f"r{index:04d}.txt" for index in range(submission_count)]
-    return ["r0000.txt"]
+    policy = RubricBankPolicy(str(condition_spec["rubric_policy"]))
+    if policy is RubricBankPolicy.FIXED:
+        return ["bank-0000"]
+    return [f"bank-{index:04d}" for index in range(submission_count)]
 
 
 @contextmanager

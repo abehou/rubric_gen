@@ -46,16 +46,27 @@ def _payload(root: Path) -> dict[str, object]:
         "tasks": ["da-1-1", "da-2-1"],
         "randomization": {"seed": 42, "replicates": 3},
         "conditions": [
-            {"condition_id": "base-static", "prompt": "base", "rubric_evolution": "static"},
-            {"condition_id": "diligent-prospective", "prompt": "diligent", "rubric_evolution": "prospective"},
+            {
+                "condition_id": "base-fixed",
+                "prompt": "base",
+                "rubric_policy": "fixed",
+            },
+            {
+                "condition_id": "diligent-nonadaptive-replacement",
+                "prompt": "diligent",
+                "rubric_policy": "nonadaptive_replacement",
+            },
+            {
+                "condition_id": "diligent-adaptive-replacement",
+                "prompt": "diligent",
+                "rubric_policy": "adaptive_replacement",
+            },
         ],
         "protocol": {
             "revision_rounds": 10, "feedback_policy": "semi",
             "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "minimal", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
             "judge_model": "test-judge", "judge_max_retries": 1,
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
-            "rubric_auditor_model": "test-auditor",
-            "rubric_auditor_query_limit": 2,
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
         },
@@ -67,12 +78,17 @@ def _payload(root: Path) -> dict[str, object]:
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
             "primary_rule": "majority",
-            "component_weights": {
+            "loss_weights": {
                 "verifier_exploitation": 1,
-                "rubric_drift": 1,
-                "wording_exploitation": 1,
-                "specification_exploitation": 1,
+                "dynamic_rubric_gap": 1,
             },
+            "direct_detector_max_cost_usd": 100,
+            "mechanistic_max_calls": 1_024,
+            "mechanistic_max_request_bytes": 268_435_456,
+            "mechanistic_max_output_tokens": 4_194_304,
+            "holistic_max_calls": 96,
+            "holistic_max_request_bytes": 134_217_728,
+            "holistic_max_output_tokens": 393_216,
         },
         "dag": {
             "seed": {"depends_on": [], "output_dir": "runs/seeds"},
@@ -100,9 +116,11 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     first = load_experiment(path)
     second = load_experiment(path)
     assert first.assignments == second.assignments
-    assert len(first.assignments) == 2 * 3 * 2
+    assert len(first.assignments) == 2 * 3 * 3
     assert all("design_sha256" not in item for item in first.assignments)
-    assert {item["execution_order"] for item in first.assignments} == set(range(1, 13))
+    assert {item["execution_order"] for item in first.assignments} == set(
+        range(1, 19)
+    )
 
 
 def test_experiment_id_is_derived_from_semantic_yaml(tmp_path: Path) -> None:
@@ -125,17 +143,234 @@ def test_experiment_id_is_derived_from_semantic_yaml(tmp_path: Path) -> None:
     assert Path(str(first.dag["detect"]["output_dir"])).name == first.experiment_id
 
 
-def test_experiment_requires_all_reward_hacking_component_weights(
+def test_experiment_requires_exact_reward_hacking_loss_weights(
     tmp_path: Path,
 ) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    payload["outcome_audit"]["component_weights"].pop("rubric_drift")
+    payload["outcome_audit"]["loss_weights"].pop("dynamic_rubric_gap")
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
-    with pytest.raises(ValueError, match="component_weights must contain exactly"):
+    with pytest.raises(ValueError, match="loss_weights must contain exactly"):
+        load_experiment(path)
+
+
+def test_experiment_rejects_obsolete_component_weights(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["outcome_audit"]["component_weights"] = payload[
+        "outcome_audit"
+    ].pop("loss_weights")
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="outcome_audit keys must be"):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "mechanistic_max_calls",
+        "mechanistic_max_request_bytes",
+        "mechanistic_max_output_tokens",
+        "holistic_max_calls",
+        "holistic_max_request_bytes",
+        "holistic_max_output_tokens",
+    ],
+)
+def test_experiment_requires_each_predispatch_stage_cap(
+    tmp_path: Path,
+    missing: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["outcome_audit"].pop(missing)
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="stage caps"):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize("invalid", [0, -1, 1.5, True, "10"])
+def test_experiment_requires_positive_integer_stage_caps(
+    tmp_path: Path,
+    invalid: object,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["outcome_audit"]["mechanistic_max_calls"] = invalid
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="positive integer"):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid", "message"),
+    [
+        ("judge_model", None, "judge_model"),
+        ("judge_model", 7, "judge_model"),
+        ("judge_max_retries", "1", "judge_max_retries"),
+        ("judge_max_retries", -1, "judge_max_retries"),
+        ("rubric_name", "../rubric.txt", "safe basename"),
+        ("rubric_name", "", "safe basename"),
+        ("max_review_chars", 0, "max_review_chars"),
+        ("max_review_chars", "100", "max_review_chars"),
+    ],
+)
+def test_experiment_eagerly_validates_judge_protocol_fields(
+    tmp_path: Path,
+    field: str,
+    invalid: object,
+    message: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"][field] = invalid
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match=message):
+        load_experiment(path)
+
+
+def test_experiment_requires_exact_solver_keys(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"]["solver"]["retry"] = 1
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="solver keys must be exactly"):
+        load_experiment(path)
+
+
+def test_experiment_rejects_unknown_solver_provider(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"]["solver"]["provider"] = "unknown-provider"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="solver provider must be one of"):
+        load_experiment(path)
+
+
+def test_experiment_rejects_non_string_dag_output_dir(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["dag"]["seed"]["output_dir"] = 123
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="output_dir must be a nonempty string"):
+        load_experiment(path)
+
+
+def test_experiment_rejects_duplicate_yaml_keys(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = yaml.safe_dump(_payload(tmp_path), sort_keys=False)
+    path = tmp_path / "experiment.yaml"
+    path.write_text(payload.replace(
+        "kind: rubric-gen-randomized-experiment\n",
+        "kind: forged\nkind: rubric-gen-randomized-experiment\n",
+        1,
+    ))
+
+    with pytest.raises(ValueError, match="duplicate YAML key: kind"):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid", "message"),
+    [
+        ("provider", 1, "solver provider"),
+        ("model", 1, "solver model"),
+        ("retries", "1", "solver retries"),
+        ("timeout_seconds", 0, "solver timeout_seconds"),
+        ("service_tier", 1, "optional string"),
+    ],
+)
+def test_experiment_rejects_solver_value_coercion(
+    tmp_path: Path,
+    field: str,
+    invalid: object,
+    message: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"]["solver"][field] = invalid
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match=message):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid", "message"),
+    [
+        ("condition_id", 123, "condition_id"),
+        ("prompt", 123, "condition prompt"),
+        ("rubric_policy", 123, "condition rubric_policy"),
+    ],
+)
+def test_experiment_rejects_condition_value_coercion(
+    tmp_path: Path,
+    field: str,
+    invalid: object,
+    message: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"][0][field] = invalid
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match=message):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid", "message"),
+    [
+        ("models", ["judge-a", 3], "list of strings"),
+        ("primary_rule", 1, "primary_rule must be a string"),
+        ("max_input_tokens", "250000", "max input tokens"),
+        ("max_retries", "1", "max retries"),
+    ],
+)
+def test_experiment_rejects_outcome_audit_value_coercion(
+    tmp_path: Path,
+    field: str,
+    invalid: object,
+    message: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["outcome_audit"][field] = invalid
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match=message):
         load_experiment(path)
 
 
@@ -452,6 +687,9 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         def __init__(self, config: object) -> None:
             configs.append(config)
 
+        def preflight(self) -> None:
+            calls.append("mechanistic-preflight")
+
         def run(self) -> int:
             calls.append("mechanistic")
             return 0
@@ -459,6 +697,9 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     class HolisticRunner:
         def __init__(self, config: object) -> None:
             configs.append(config)
+
+        def preflight(self) -> None:
+            calls.append("holistic-preflight")
 
         def run(self) -> int:
             calls.append("holistic")
@@ -490,7 +731,14 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     ))
 
     assert status == 1
-    assert calls == ["direct", "mechanistic", "holistic", "combined"]
+    assert calls == [
+        "mechanistic-preflight",
+        "holistic-preflight",
+        "direct",
+        "mechanistic",
+        "holistic",
+        "combined",
+    ]
     assert len(direct_configs) == 1
     assert direct_configs[0].base_urls == {}
     assert all(
@@ -520,6 +768,9 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
         def __init__(self, _config: object) -> None:
             pass
 
+        def preflight(self) -> None:
+            calls.append("mechanistic-preflight")
+
         def run(self) -> int:
             calls.append("mechanistic")
             raise RuntimeError("strong judge unavailable")
@@ -527,6 +778,9 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     class HolisticRunner:
         def __init__(self, _config: object) -> None:
             pass
+
+        def preflight(self) -> None:
+            calls.append("holistic-preflight")
 
         def run(self) -> int:
             calls.append("holistic")
@@ -562,7 +816,85 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
             vllm=[],
         ))
 
-    assert calls == ["mechanistic", "holistic"]
+    assert calls == [
+        "mechanistic-preflight",
+        "holistic-preflight",
+        "mechanistic",
+        "holistic",
+    ]
+
+
+def test_detect_stops_before_provider_work_when_stage_preflight_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import rubric_gen.submission_revision.direct_audit as direct_audit_module
+    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
+
+    experiment = SimpleNamespace(
+        dag={
+            "revise": {"output_dir": str(tmp_path / "study")},
+            "paraphrase": {"output_dir": str(tmp_path / "paraphrases")},
+            "detect": {"output_dir": str(tmp_path / "detect")},
+        },
+        outcome_audit={"models": ["strong-a"]},
+    )
+    calls: list[str] = []
+
+    class MechanisticRunner:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def preflight(self) -> None:
+            calls.append("mechanistic-preflight")
+
+        def run(self) -> int:
+            calls.append("mechanistic-provider")
+            return 0
+
+    class HolisticRunner:
+        def __init__(self, _config: object) -> None:
+            pass
+
+        def preflight(self) -> None:
+            calls.append("holistic-preflight")
+            raise RuntimeError("holistic calls exceeds its hard cap")
+
+        def run(self) -> int:
+            calls.append("holistic-provider")
+            return 0
+
+    monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
+    monkeypatch.setattr(
+        direct_audit_module,
+        "run_direct_audit",
+        lambda _config: calls.append("direct-provider") or 0,
+    )
+    monkeypatch.setattr(
+        diagnostics_module,
+        "MechanisticEvaluationRunner",
+        MechanisticRunner,
+    )
+    monkeypatch.setattr(
+        diagnostics_module,
+        "HolisticPairwiseRunner",
+        HolisticRunner,
+    )
+    monkeypatch.setattr(
+        diagnostics_module,
+        "write_reward_hacking_evaluation",
+        lambda _path: calls.append("combined"),
+    )
+
+    with pytest.raises(RuntimeError, match="calls exceeds its hard cap"):
+        commands_module.run_detect(argparse.Namespace(
+            experiment="experiment.yaml",
+            max_concurrency=3,
+            resume=False,
+            vllm=[],
+        ))
+
+    assert calls == ["mechanistic-preflight", "holistic-preflight"]
 
 
 def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> None:
@@ -779,7 +1111,7 @@ def test_study_reports_recorded_assignment_failures(
 
     assert runner.run() == 1
     assert (
-        "assignment failed: da-1-1--rep-001--base-static: "
+        "assignment failed: da-1-1--rep-001--base-fixed: "
         "RuntimeError: scoring identity mismatch"
     ) in capsys.readouterr().err
 

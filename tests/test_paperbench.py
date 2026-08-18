@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,7 +11,7 @@ from rubric_gen.benchmarks.paperbench_code_dev.contract import (
     PAPERBENCH_CODE_DEV,
     PAPERBENCH_CODE_DEV_PROMPT,
 )
-from rubric_gen.submission_revision.judging.llm_judge import judge_prompt
+from rubric_gen.submission_revision.judging.paperbench_judge import paperbench_payload
 from rubric_gen.submission_revision.judging.models import JudgeRunConfig, JudgeTarget
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 from rubric_gen.submission_revision.controller import SubmissionRevisionController
@@ -21,6 +20,13 @@ from rubric_gen.submission_revision.evolution import _validated_complete_rubric
 import rubric_gen.submission_revision.evolution as evolution_module
 from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
+from rubric_gen.submission_revision.rubric_bank import (
+    CompleteRubric,
+    RubricBank,
+    RubricBankItem,
+    RubricBankPolicy,
+    RubricLineage,
+)
 from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
     validate_judge_score,
@@ -137,25 +143,43 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
     current, _, _ = render_code_dev_rubric(_rubric())
     revised = current.replace("Criterion 1: Implement", "Criterion 1: Correctly implement")
 
-    assert _validated_complete_rubric(revised, current_rubric=current) == revised
-    with pytest.raises(ValueError, match="exactly A and B"):
+    assert _validated_complete_rubric(
+        revised,
+        normalization_maximum=4,
+        scoring_protocol="paperbench-code-dev",
+    ) == revised
+    with pytest.raises(ValueError, match="invalid level labels"):
         _validated_complete_rubric(
             revised.replace("Levels: A=1 B=0", "Levels: A=1 B=0 C=-1"),
-            current_rubric=current,
+            normalization_maximum=4,
+            scoring_protocol="paperbench-code-dev",
         )
 
 
 def test_paperbench_proposer_names_the_exact_fixed_normalization() -> None:
     current, _, maximum = render_code_dev_rubric(_rubric())
 
-    instructions = evolution_module._proposer_instructions(
-        current_rubric=current,
-        repair_error="complete rubric changed its score normalization directive",
+    rubric = CompleteRubric.from_content(current)
+    bank = RubricBank(
+        0,
+        None,
+        (RubricBankItem(rubric, 1.0, RubricLineage.NEW),),
+    )
+    evidence = evolution_module._proposer_evidence(
+        instruction="Replicate the paper.",
+        current_bank=bank,
+        policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+        current_submission=None,
+        trajectory_context="",
+        repair_error="complete rubric changed its normalization directive",
+        rejected_attempts=(),
     )
 
-    assert f"`Score normalization maximum: {maximum}`" in instructions
-    assert f"A-level points must equal {maximum}" in instructions
-    assert "another round value" in instructions
+    assert f"Score normalization maximum: {maximum}" in evidence
+    assert "complete rubric changed its normalization directive" in evidence
+    instructions = evolution_module._proposer_instructions()
+    assert "same normalized" in instructions
+    assert "score scale" in instructions
 
 
 def test_submission_evidence_uses_official_code_dev_file_types(tmp_path: Path) -> None:
@@ -183,7 +207,7 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
 def test_paperbench_contract_owns_native_revision_language() -> None:
     contract = get_submission_benchmark(SubmissionBenchmarkId.PAPERBENCH_CODE_DEV)
     prompt = render_feedback_prompt(
-        {"policy": "score_only", "score": 50},
+        {"policy": "score_only", "score": 50, "bank_sha256": "0" * 64},
         benchmark=contract.benchmark,
     )
 
@@ -227,11 +251,20 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     ))
 
     judged = runner._workspace_review_text(target)
+    current, _, _ = render_code_dev_rubric(_rubric())
+    current_rubric = CompleteRubric.from_content(current)
+    current_bank = RubricBank(
+        0,
+        None,
+        (RubricBankItem(current_rubric, 1.0, RubricLineage.NEW),),
+    )
     proposed = evolution_module._proposer_evidence(
         instruction="TASK",
-        current_rubric="RUBRIC",
+        current_bank=current_bank,
+        policy=RubricBankPolicy.ADAPTIVE_REPLACEMENT,
         current_submission=render_submission_tree(workspace),
-        auditor_packet='{"inspected":"x","findings":[]}\n',
+        trajectory_context='{"events":[]}\n',
+        repair_error=None,
         rejected_attempts=(),
     )
 
@@ -240,7 +273,10 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     assert "NON-NATIVE TRACE" not in judged
     assert "native submission" in proposed
     assert "<current_answer>" not in proposed
-    assert "<answer>" not in judge_prompt("RUBRIC", judged, "").evidence
+    payload = json.loads(paperbench_payload("RUBRIC", judged, ""))
+    assert payload["rubric_text"] == "RUBRIC"
+    assert payload["artifact_evidence"]["workspace_review"] == judged
+    assert payload["artifact_evidence"]["final_answer"] is None
 
 
 def test_paperbench_simulated_user_sees_native_submission_tree(
@@ -257,8 +293,23 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     (submission / "model.py").write_text("print('native source')\n")
     (workspace / "answer.txt").write_text("NON-NATIVE ANSWER\n")
 
-    rubric_text = "Criterion 1: Implementation\nLevels: A=100 B=0\n"
-    rubric_sha256 = hashlib.sha256(rubric_text.encode()).hexdigest()
+    rubric_text = (
+        "RUBRIC: Implementation\n\n"
+        "Scoring protocol: binary pass/fail\n"
+        "Score normalization maximum: 100\n\n"
+        "Criterion 1: Implementation\n"
+        "Description: Evaluate the implementation.\n"
+        "Levels: A=100 B=0\n"
+        "[A]: Fully implemented.\n"
+        "[B]: Not implemented.\n"
+    )
+    rubric = CompleteRubric.from_content(rubric_text)
+    rubric_sha256 = rubric.content_sha256
+    bank = RubricBank(
+        0,
+        None,
+        (RubricBankItem(rubric, 1.0, RubricLineage.NEW),),
+    )
     validation = tmp_path / "score-validation.json"
     validation.write_text(json.dumps({
         "score": 100,
@@ -282,7 +333,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     controller.config = SimpleNamespace(
         feedback_policy=FeedbackPolicy.SIMULATED_USER,
         experiment_id="paperbench-simulated-user-test",
-        assignment_id="paper--rep-001--base-static",
+        assignment_id="paper--rep-001--base-fixed",
         prompt_profile=PromptProfile.BASE,
         benchmark=SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
     )
@@ -293,10 +344,12 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     controller.dependencies = SimpleNamespace(feedback_simulator=Simulator())
 
     controller._project_boundary_feedback(
-        artifacts=SimpleNamespace(score_validation_path=validation),
-        rubric=SimpleNamespace(text=rubric_text, sha256=rubric_sha256),
+        artifacts={
+            rubric_sha256: SimpleNamespace(score_validation_path=validation)
+        },
+        bank=bank,
         submission_id="s000",
-        rubric_version=0,
+        generation_round=0,
         submission_dir=submission_dir,
         allow_generation=True,
     )

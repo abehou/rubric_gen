@@ -9,14 +9,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from rubric_gen.runtime.agents.models import AgentRunConfig
+from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
+from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
+from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
-from rubric_gen.submission_revision.evolution import RubricEvolution
+from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
+from rubric_gen.submission_revision.judging.models import safe_basename
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.artifacts.hashing import sha256_text
 
@@ -103,8 +105,9 @@ class Experiment:
         vllm_endpoints: dict[str, str] | None = None,
     ) -> AgentRunConfig:
         value = self.protocol["solver"]
-        provider = str(value["provider"])
-        model = str(value["model"])
+        provider = value["provider"]
+        model = value["model"]
+        assert isinstance(provider, str) and isinstance(model, str)
         base_url = None
         if provider == "vllm":
             base_url = (vllm_endpoints or {}).get(model)
@@ -119,8 +122,8 @@ class Experiment:
             reasoning_effort=_optional_string(value.get("reasoning_effort")),
             service_tier=_optional_string(value.get("service_tier")),
             executable=_optional_string(value.get("executable")),
-            retries=int(value["retries"]),
-            timeout_seconds=int(value["timeout_seconds"]),
+            retries=value["retries"],
+            timeout_seconds=value["timeout_seconds"],
             quiet=quiet,
         )
 
@@ -135,7 +138,8 @@ class Experiment:
             return None
         value = self.protocol["feedback_simulator"]
         assert isinstance(value, dict)
-        model = str(value["model"])
+        model = value["model"]
+        assert isinstance(model, str)
         return SimulatedUserConfig(
             model=model,
             base_url=(vllm_endpoints or {}).get(model),
@@ -149,7 +153,7 @@ def load_experiment(path: Path) -> Experiment:
     resolved = path.resolve()
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"experiment must be a regular YAML file: {path}")
-    value = yaml.safe_load(path.read_text(encoding="utf-8"))
+    value = load_yaml_strict(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise ValueError("experiment YAML must contain a mapping")
     payload: dict[str, Any] = value
@@ -198,12 +202,23 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     condition_ids: list[str] = []
     for condition in conditions:
         if not isinstance(condition, dict) or set(condition) != {
-            "condition_id", "prompt", "rubric_evolution"
+            "condition_id", "prompt", "rubric_policy"
         }:
-            raise ValueError("each condition requires condition_id, prompt, and rubric_evolution")
-        condition_ids.append(str(condition["condition_id"]))
-        PromptProfile(str(condition["prompt"]))
-        RubricEvolution(str(condition["rubric_evolution"]))
+            raise ValueError(
+                "each condition requires condition_id, prompt, and rubric_policy"
+            )
+        condition_id = condition["condition_id"]
+        prompt = condition["prompt"]
+        rubric_policy = condition["rubric_policy"]
+        if type(condition_id) is not str or not condition_id:
+            raise ValueError("condition_id must be a nonempty string")
+        if type(prompt) is not str:
+            raise ValueError("condition prompt must be a string")
+        if type(rubric_policy) is not str:
+            raise ValueError("condition rubric_policy must be a string")
+        condition_ids.append(condition_id)
+        PromptProfile(prompt)
+        RubricBankPolicy(rubric_policy)
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):
@@ -214,16 +229,62 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     audit = payload["outcome_audit"]
     if not isinstance(audit, dict):
         raise ValueError("outcome_audit must be a mapping")
+    required_audit_keys = {
+        "models",
+        "primary_rule",
+        "loss_weights",
+        "direct_detector_max_cost_usd",
+        "mechanistic_max_calls",
+        "mechanistic_max_request_bytes",
+        "mechanistic_max_output_tokens",
+        "holistic_max_calls",
+        "holistic_max_request_bytes",
+        "holistic_max_output_tokens",
+    }
+    optional_audit_keys = {
+        "max_input_tokens",
+        "max_output_tokens",
+        "max_event_text_chars",
+        "max_command_output_chars",
+        "max_retries",
+    }
+    if not required_audit_keys <= set(audit) or not set(audit) <= (
+        required_audit_keys | optional_audit_keys
+    ):
+        raise ValueError(
+            "outcome_audit keys must be exactly the required models, primary_rule, "
+            "loss_weights, direct detector budget, and stage caps, plus supported "
+            "input limits"
+        )
+    audit_models = audit["models"]
+    if not isinstance(audit_models, list) or any(
+        type(model) is not str for model in audit_models
+    ):
+        raise ValueError("outcome_audit models must be a list of strings")
+    if type(audit["primary_rule"]) is not str:
+        raise ValueError("outcome_audit primary_rule must be a string")
     expected_audit = outcome_audit_protocol(
-        models=tuple(str(model) for model in audit.get("models", ())),
-        primary_rule=str(audit.get("primary_rule")),
-        component_weights=audit.get("component_weights", {}),
-        max_input_tokens=int(audit.get("max_input_tokens", 250_000)),
-        max_output_tokens=int(audit.get("max_output_tokens", 4_096)),
-        max_event_text_chars=int(audit.get("max_event_text_chars", 65_536)),
-        max_command_output_chars=int(audit.get("max_command_output_chars", 2_048)),
-        max_retries=int(audit.get("max_retries", 1)),
-        max_cost_usd=float(audit.get("max_cost_usd", 1_500.0)),
+        models=tuple(audit_models),
+        primary_rule=audit["primary_rule"],
+        loss_weights=audit["loss_weights"],
+        max_input_tokens=audit.get("max_input_tokens", 250_000),
+        max_output_tokens=audit.get("max_output_tokens", 4_096),
+        max_event_text_chars=audit.get("max_event_text_chars", 65_536),
+        max_command_output_chars=audit.get("max_command_output_chars", 2_048),
+        max_retries=audit.get("max_retries", 1),
+        direct_detector_max_cost_usd=audit[
+            "direct_detector_max_cost_usd"
+        ],
+        mechanistic_max_calls=audit["mechanistic_max_calls"],
+        mechanistic_max_request_bytes=audit[
+            "mechanistic_max_request_bytes"
+        ],
+        mechanistic_max_output_tokens=audit[
+            "mechanistic_max_output_tokens"
+        ],
+        holistic_max_calls=audit["holistic_max_calls"],
+        holistic_max_request_bytes=audit["holistic_max_request_bytes"],
+        holistic_max_output_tokens=audit["holistic_max_output_tokens"],
     )
     # The YAML is concise; stable detector mechanics are supplied by the implementation.
     payload["outcome_audit"] = expected_audit
@@ -247,7 +308,10 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             raise ValueError(f"dag stage {name} requires depends_on and output_dir")
         if stage["depends_on"] != dependencies:
             raise ValueError(f"dag stage {name} has invalid dependencies")
-        output_dir = str(stage["output_dir"])
+        output_value = stage["output_dir"]
+        if type(output_value) is not str or not output_value.strip():
+            raise ValueError(f"dag stage {name} output_dir must be a nonempty string")
+        output_dir = output_value
         token_count = output_dir.count(EXPERIMENT_ID_TOKEN)
         if name in {"seed", "paraphrase"} and token_count:
             raise ValueError(
@@ -307,13 +371,14 @@ def _validate_protocol(protocol: object) -> None:
     base_keys = {
         "revision_rounds", "feedback_policy", "solver", "judge_model",
         "judge_max_retries", "rubric_name", "review", "max_review_chars",
-        "rubric_auditor_model", "rubric_auditor_query_limit",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",
     }
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
-    feedback_policy = FeedbackPolicy(str(protocol.get("feedback_policy")))
+    if type(protocol.get("feedback_policy")) is not str:
+        raise ValueError("feedback_policy must be a string")
+    feedback_policy = FeedbackPolicy(protocol["feedback_policy"])
     required = set(base_keys)
     if feedback_policy is FeedbackPolicy.SIMULATED_USER:
         required.add("feedback_simulator")
@@ -323,29 +388,64 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError("revision_rounds must be positive")
     if protocol["review"] not in {"trace", "trajectory", "workspace"}:
         raise ValueError("review must be trace, trajectory, or workspace")
-    for name in ("rubric_auditor_model", "rubric_proposer_model"):
+    if type(protocol["judge_model"]) is not str or not protocol[
+        "judge_model"
+    ].strip():
+        raise ValueError("judge_model must be a nonempty string")
+    if (
+        type(protocol["judge_max_retries"]) is not int
+        or not 0 <= protocol["judge_max_retries"] <= MAX_TRANSIENT_RETRIES
+    ):
+        raise ValueError(
+            "judge_max_retries must be between 0 and "
+            f"{MAX_TRANSIENT_RETRIES}"
+        )
+    safe_basename(protocol["rubric_name"], "rubric_name")
+    max_review_chars = protocol["max_review_chars"]
+    if max_review_chars is not None and (
+        type(max_review_chars) is not int or max_review_chars < 1
+    ):
+        raise ValueError("max_review_chars must be null or a positive integer")
+    for name in ("rubric_proposer_model",):
         if type(protocol[name]) is not str or not protocol[name].strip():
             raise ValueError(f"{name} must be nonempty")
-    if (
-        type(protocol["rubric_auditor_query_limit"]) is not int
-        or protocol["rubric_auditor_query_limit"] < 1
-    ):
-        raise ValueError("rubric_auditor_query_limit must be positive")
     if (
         type(protocol["rubric_proposer_max_retries"]) is not int
         or protocol["rubric_proposer_max_retries"] < 0
     ):
         raise ValueError("rubric_proposer_max_retries must be non-negative")
     solver = protocol["solver"]
-    if not isinstance(solver, dict):
-        raise ValueError("solver must be a mapping")
+    solver_keys = {
+        "provider",
+        "model",
+        "reasoning_effort",
+        "service_tier",
+        "executable",
+        "retries",
+        "timeout_seconds",
+    }
+    if not isinstance(solver, dict) or set(solver) != solver_keys:
+        raise ValueError(f"solver keys must be exactly {sorted(solver_keys)}")
+    if type(solver["provider"]) is not str or not solver["provider"].strip():
+        raise ValueError("solver provider must be a nonempty string")
+    if solver["provider"] not in AgentAdapterRegistry().names:
+        raise ValueError(
+            "solver provider must be one of "
+            + ", ".join(AgentAdapterRegistry().names)
+        )
+    if type(solver["model"]) is not str or not solver["model"].strip():
+        raise ValueError("solver model must be a nonempty string")
+    if type(solver["retries"]) is not int or solver["retries"] < 0:
+        raise ValueError("solver retries must be a non-negative integer")
+    if type(solver["timeout_seconds"]) is not int or solver["timeout_seconds"] < 1:
+        raise ValueError("solver timeout_seconds must be a positive integer")
     AgentRunConfig(
-        provider=str(solver.get("provider")), model=str(solver.get("model")),
-        reasoning_effort=_optional_string(solver.get("reasoning_effort")),
-        service_tier=_optional_string(solver.get("service_tier")),
-        executable=_optional_string(solver.get("executable")),
-        retries=int(solver.get("retries", 1)),
-        timeout_seconds=int(solver.get("timeout_seconds", 7_200)),
+        provider=solver["provider"], model=solver["model"],
+        reasoning_effort=_optional_string(solver["reasoning_effort"]),
+        service_tier=_optional_string(solver["service_tier"]),
+        executable=_optional_string(solver["executable"]),
+        retries=solver["retries"],
+        timeout_seconds=solver["timeout_seconds"],
     )
     if feedback_policy is FeedbackPolicy.SIMULATED_USER:
         simulator = protocol["feedback_simulator"]
@@ -376,7 +476,8 @@ def _randomized_assignments(payload: dict[str, Any]) -> list[dict[str, object]]:
             conditions = list(payload["conditions"])
             rng.shuffle(conditions)
             for within_block_order, condition in enumerate(conditions, start=1):
-                condition_id = str(condition["condition_id"])
+                condition_id = condition["condition_id"]
+                assert isinstance(condition_id, str)
                 assignments.append({
                     "assignment_id": f"{task_id}--rep-{replicate:03d}--{condition_id}",
                     "task_id": task_id,
@@ -398,4 +499,8 @@ def _resolve_relative(experiment_path: Path, value: object) -> Path:
 
 
 def _optional_string(value: object) -> str | None:
-    return None if value is None else str(value)
+    if value is None:
+        return None
+    if type(value) is not str or not value.strip():
+        raise ValueError("optional string values must be null or nonempty strings")
+    return value

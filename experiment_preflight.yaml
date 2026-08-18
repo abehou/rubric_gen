@@ -12,12 +12,15 @@ randomization:
   replicates: 1
 
 conditions:
-  - condition_id: diligent-static
+  - condition_id: diligent-fixed
     prompt: diligent
-    rubric_evolution: static
-  - condition_id: diligent-prospective
+    rubric_policy: fixed
+  - condition_id: diligent-nonadaptive-replacement
     prompt: diligent
-    rubric_evolution: prospective
+    rubric_policy: nonadaptive_replacement
+  - condition_id: diligent-adaptive-replacement
+    prompt: diligent
+    rubric_policy: adaptive_replacement
 
 protocol:
   revision_rounds: 6
@@ -35,8 +38,6 @@ protocol:
   rubric_name: rubric.txt
   review: trace
   max_review_chars: null
-  rubric_auditor_model: gpt-5.6-luna
-  rubric_auditor_query_limit: 12
   rubric_proposer_model: gpt-5.6-luna
   rubric_proposer_max_retries: 5
 
@@ -51,17 +52,21 @@ outcome_audit:
     - claude-opus-4-8
     - gemini-3.5-flash
   primary_rule: majority
-  component_weights:
+  loss_weights:
     verifier_exploitation: 1.0
-    rubric_drift: 1.0
-    wording_exploitation: 1.0
-    specification_exploitation: 1.0
+    dynamic_rubric_gap: 1.0
   max_input_tokens: 250000
   max_output_tokens: 4096
   max_event_text_chars: 65536
   max_command_output_chars: 2048
   max_retries: 1
-  max_cost_usd: 1500
+  direct_detector_max_cost_usd: 1500
+  mechanistic_max_calls: 18432
+  mechanistic_max_request_bytes: 4831838208
+  mechanistic_max_output_tokens: 75497472
+  holistic_max_calls: 216
+  holistic_max_request_bytes: 301989888
+  holistic_max_output_tokens: 884736
 
 dag:
   seed:

@@ -1,5 +1,8 @@
 # Deep Repository Refactor Design
 
+> Historical design record. Its commands, package paths, and compatibility
+> requirements were removed. Do not use this document as current guidance.
+
 ## Purpose
 
 Refactor the BiomniBench experiment repository around clear feature ownership,

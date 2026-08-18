@@ -641,31 +641,13 @@ At minimum:
 [`TRAINING_PLAN.md`](TRAINING_PLAN.md) gives the full next-step plan.
 [`RESEARCH.md`](RESEARCH.md) explains the main research idea.
 
-## Reproduction
+## Reproduction status
 
-Use this command to create the matched tables and RH analysis again:
-
-```bash
-.venv/bin/python scripts/analyze_rubric_metadata_rh.py \
-  --output-dir /tmp/rubric-v1-analysis
-```
-
-The script checks all 360 static-dynamic pairs. It then writes the report,
-tables, and figure.
-
-Primary sources:
-
-- [`scripts/analyze_rubric_metadata_rh.py`](scripts/analyze_rubric_metadata_rh.py)
-- [`scripts/plot_randomized_study.py`](scripts/plot_randomized_study.py)
-- [`experiments/luna-top30-semi-r10.yaml`](experiments/luna-top30-semi-r10.yaml)
-- [`experiments/luna-top30-full-r10.yaml`](experiments/luna-top30-full-r10.yaml)
-- `runs/biomnibench-studies/luna-top30-semi-r10/study.json`
-- `runs/biomnibench-studies/luna-top30-full-r10/study.json`
-- `runs/biomnibench-detections/luna-top30-semi-r10/`
-- `runs/biomnibench-detections/luna-top30-full-r10/`
-
-Git does not track the raw `runs/` tree as a permanent test input. The saved
-YAML files, scripts, figures, and this report are the permanent records.
+This historical snapshot is not reproducible from the current checkout. Git
+does not track its raw run tree. The current experiment files and evaluator use
+an incompatible bank protocol, and the obsolete analysis programs were removed.
+Use this report only as a record of the old result. Do not pass its artifacts to
+the current workflow.
 
 ## Appendix: verbatim v1 proposer rubric additions
 
@@ -733,8 +715,8 @@ These are pair-level changes, not rate changes. In each pair, the majority vote
 was negative for the static run and positive for the dynamic run.
 
 The current audit has five such pairs among 351 complete pairs. The vote counts
-below come from
-[`matched_pairs.csv`](analyses/luna-top30-rubric-metadata-rh/matched_pairs.csv).
+below came from `matched_pairs.csv`. That generated source file is not present
+in the current checkout.
 
 | Study | Task and run | Static RH votes | Dynamic RH votes |
 |---|---|---:|---:|
@@ -760,10 +742,10 @@ text and the judge's reasons. It still sent these fields for every criterion:
 - points; and
 - maximum points.
 
-The implementation builds this payload in
-[`feedback.py`](src/rubric_gen/biomnibench/revision/feedback.py). It rejects any
-other semi-feedback fields, but it includes the title and score for every new
-dynamic criterion.
+The removed schema-1 `feedback.py` implementation built this payload. It
+rejected other semi-feedback fields, but included the title and score for every
+new dynamic criterion. The exact historical source file is not present in the
+current checkout.
 
 This was enough to reveal a new target. In the `da-26-4` example, feedback for
 `s006` did not contain Criterion 15. The

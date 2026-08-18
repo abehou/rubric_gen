@@ -40,12 +40,16 @@ DEFAULT_RH_MAX_OUTPUT_TOKENS = 4_096
 DEFAULT_RH_MAX_EVENT_TEXT_CHARS = 65_536
 DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS = 2_048
 DEFAULT_RH_MAX_RETRIES = 1
-DEFAULT_RH_MAX_COST_USD = 1_500.0
+DEFAULT_DIRECT_DETECTOR_MAX_COST_USD = 1_500.0
+DEFAULT_MECHANISTIC_MAX_CALLS = 2_048
+DEFAULT_MECHANISTIC_MAX_REQUEST_BYTES = 536_870_912
+DEFAULT_MECHANISTIC_MAX_OUTPUT_TOKENS = 8_388_608
+DEFAULT_HOLISTIC_MAX_CALLS = 24
+DEFAULT_HOLISTIC_MAX_REQUEST_BYTES = 33_554_432
+DEFAULT_HOLISTIC_MAX_OUTPUT_TOKENS = 98_304
 RH_COMPONENTS = (
     "verifier_exploitation",
-    "rubric_drift",
-    "wording_exploitation",
-    "specification_exploitation",
+    "dynamic_rubric_gap",
 )
 
 
@@ -53,29 +57,37 @@ def outcome_audit_protocol(
     *,
     models: tuple[str, ...],
     primary_rule: str,
-    component_weights: Mapping[str, object],
+    loss_weights: Mapping[str, object],
     max_input_tokens: int = DEFAULT_RH_MAX_INPUT_TOKENS,
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS,
     max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
     max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
     max_retries: int = DEFAULT_RH_MAX_RETRIES,
-    max_cost_usd: float = DEFAULT_RH_MAX_COST_USD,
+    direct_detector_max_cost_usd: float = (
+        DEFAULT_DIRECT_DETECTOR_MAX_COST_USD
+    ),
+    mechanistic_max_calls: int = DEFAULT_MECHANISTIC_MAX_CALLS,
+    mechanistic_max_request_bytes: int = DEFAULT_MECHANISTIC_MAX_REQUEST_BYTES,
+    mechanistic_max_output_tokens: int = DEFAULT_MECHANISTIC_MAX_OUTPUT_TOKENS,
+    holistic_max_calls: int = DEFAULT_HOLISTIC_MAX_CALLS,
+    holistic_max_request_bytes: int = DEFAULT_HOLISTIC_MAX_REQUEST_BYTES,
+    holistic_max_output_tokens: int = DEFAULT_HOLISTIC_MAX_OUTPUT_TOKENS,
 ) -> dict[str, object]:
     """Return the exact metadata-blinded reward-hacking evaluation protocol."""
 
     if primary_rule not in {"majority", "any_detects", "unanimous_detects"}:
         raise ValueError("primary RH rule is invalid")
     if (
-        not isinstance(component_weights, Mapping)
-        or set(component_weights) != set(RH_COMPONENTS)
+        not isinstance(loss_weights, Mapping)
+        or set(loss_weights) != set(RH_COMPONENTS)
     ):
         raise ValueError(
-            "component_weights must contain exactly "
+            "loss_weights must contain exactly "
             + ", ".join(RH_COMPONENTS)
         )
     weights: dict[str, float] = {}
     for name in RH_COMPONENTS:
-        value = component_weights[name]
+        value = loss_weights[name]
         if (
             isinstance(value, bool)
             or not isinstance(value, (int, float))
@@ -83,41 +95,57 @@ def outcome_audit_protocol(
             or value < 0
         ):
             raise ValueError(
-                f"component weight must be finite and non-negative: {name}"
+                f"loss weight must be finite and non-negative: {name}"
             )
         weights[name] = float(value)
     if not any(weights.values()):
-        raise ValueError("at least one component weight must be positive")
+        raise ValueError("at least one loss weight must be positive")
     if (
         not models
         or len(set(models)) != len(models)
         or any(type(model) is not str or not model.strip() for model in models)
     ):
         raise ValueError("audit models must be unique non-empty strings")
-    if not 10_000 <= max_input_tokens <= 272_000:
+    if type(max_input_tokens) is not int or not 10_000 <= max_input_tokens <= 272_000:
         raise ValueError("audit max input tokens must be between 10000 and 272000")
-    if not 1_024 <= max_output_tokens <= 16_384:
+    if type(max_output_tokens) is not int or not 1_024 <= max_output_tokens <= 16_384:
         raise ValueError("audit max output tokens must be between 1024 and 16384")
-    if not 4_096 <= max_event_text_chars <= 262_144:
+    if type(max_event_text_chars) is not int or not (
+        4_096 <= max_event_text_chars <= 262_144
+    ):
         raise ValueError(
             "audit max event text characters must be between 4096 and 262144"
         )
-    if not 512 <= max_command_output_chars <= max_event_text_chars:
+    if type(max_command_output_chars) is not int or not (
+        512 <= max_command_output_chars <= max_event_text_chars
+    ):
         raise ValueError(
             "audit max command output characters must be between 512 and "
             "max_event_text_chars"
         )
     if type(max_retries) is not int or max_retries < 0:
         raise ValueError("audit max retries must be a non-negative integer")
-    if isinstance(max_cost_usd, bool) or not isinstance(
-        max_cost_usd, (int, float)
-    ) or max_cost_usd <= 0:
-        raise ValueError("audit API cost budget must be positive")
+    if isinstance(direct_detector_max_cost_usd, bool) or not isinstance(
+        direct_detector_max_cost_usd, (int, float)
+    ) or not math.isfinite(float(direct_detector_max_cost_usd)) or (
+        direct_detector_max_cost_usd <= 0
+    ):
+        raise ValueError("direct detector API cost budget must be positive")
+    stage_caps = {
+        "mechanistic_max_calls": mechanistic_max_calls,
+        "mechanistic_max_request_bytes": mechanistic_max_request_bytes,
+        "mechanistic_max_output_tokens": mechanistic_max_output_tokens,
+        "holistic_max_calls": holistic_max_calls,
+        "holistic_max_request_bytes": holistic_max_request_bytes,
+        "holistic_max_output_tokens": holistic_max_output_tokens,
+    }
+    if any(type(value) is not int or value <= 0 for value in stage_caps.values()):
+        raise ValueError("each audit stage cap must be a positive integer")
     return {
         "detection": "rh",
         "models": list(models),
         "primary_rule": primary_rule,
-        "component_weights": weights,
+        "loss_weights": weights,
         "openai_reasoning_effort": OPENAI_RH_REASONING_EFFORT,
         "openai_text_verbosity": OPENAI_RH_TEXT_VERBOSITY,
         "anthropic_effort": ANTHROPIC_RH_EFFORT,
@@ -127,7 +155,10 @@ def outcome_audit_protocol(
         "max_event_text_chars": max_event_text_chars,
         "max_command_output_chars": max_command_output_chars,
         "max_retries": max_retries,
-        "max_cost_usd": float(max_cost_usd),
+        "direct_detector_max_cost_usd": float(
+            direct_detector_max_cost_usd
+        ),
+        **stage_caps,
         "prompt_cache": RH_PROMPT_CACHE_POLICY,
         "input_validation": RH_INPUT_VALIDATION_POLICY,
         "monitor": {

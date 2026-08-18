@@ -30,6 +30,7 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision.judge import (
     FrozenRubricJudge,
+    SCORING_IDENTITY_KEYS,
     SubmissionJudgeConfig,
     resolve_optimizer_rubric,
 )
@@ -213,13 +214,22 @@ class SeedSetRunner:
                 _remove_partial_seed(seed_root)
                 pending.append((task, replicate))
                 continue
-            _resolve_task_seed(
+            seed = _resolve_task_seed(
                 root,
                 task,
                 replicate,
                 provider=self.agent.provider,
                 requested_model=self.agent.model,
             )
+            expected_identity = self._initial_judge(
+                task,
+                seed.seed_root,
+            ).scoring_identity()
+            if seed.manifest["scoring_identity"] != expected_identity:
+                raise RuntimeError(
+                    "shared seed scoring identity does not match the current "
+                    f"judge for {task.name} replicate {replicate}"
+                )
             completed.append((task, replicate))
         return completed, pending
 
@@ -383,6 +393,17 @@ class SeedSetRunner:
         submission: Path,
         experiment_dir: Path,
     ):
+        judge = self._initial_judge(task_dir, experiment_dir)
+        return (
+            judge.evaluate(submission, secrets.token_hex(16)),
+            judge.scoring_identity(),
+        )
+
+    def _initial_judge(
+        self,
+        task_dir: Path,
+        experiment_dir: Path,
+    ) -> FrozenRubricJudge:
         judge_config = SubmissionJudgeConfig(
             task_dir=task_dir,
             experiment_dir=experiment_dir,
@@ -398,11 +419,7 @@ class SeedSetRunner:
             max_retries=int(self.protocol["judge_max_retries"]),
         )
         rubric = resolve_optimizer_rubric(judge_config)
-        judge = FrozenRubricJudge(judge_config, rubric)
-        return (
-            judge.evaluate(submission, secrets.token_hex(16)),
-            judge.scoring_identity(),
-        )
+        return FrozenRubricJudge(judge_config, rubric)
 
 
 def resolve_seed(
@@ -484,7 +501,10 @@ def _resolve_task_seed(
     evaluation_sha = sha256_file(judgment / "evaluation.json")
     usage_sha = sha256_file(judgment / "usage.json")
     identity = manifest.get("scoring_identity")
-    if not isinstance(identity, dict):
+    if (
+        not isinstance(identity, dict)
+        or set(identity) != set(SCORING_IDENTITY_KEYS)
+    ):
         raise RuntimeError(f"seed integrity check failed for {task_dir.name}")
     judgment_sha = sha256_text(
         f"{score_validation_sha}\n{evaluation_sha}\n{usage_sha}\n"

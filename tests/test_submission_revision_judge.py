@@ -3,11 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 import rubric_gen.submission_revision.judge as judge_module
 from rubric_gen.submission_revision.judge import (
+    SCORING_IDENTITY_KEYS,
     FrozenRubricJudge,
     FrozenRubric,
     JudgeArtifacts,
@@ -73,6 +75,29 @@ def _judge(tmp_path: Path, *, max_retries: int = 5) -> FrozenRubricJudge:
             manifest_sha256=None,
         ),
     )
+
+
+def test_scoring_identity_binds_endpoint_benchmark_and_engine(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    judge = _judge(tmp_path)
+    judge_source = tmp_path / "autorubric_judge.py"
+    judge_source.write_text("fixed judge\n")
+    runner = SimpleNamespace(
+        find_judge=lambda _task_dir: judge_source,
+        judge_runner_sha256=lambda: "1" * 64,
+        scorer_module_sha256=lambda: "2" * 64,
+        judge_model=lambda _env: "gpt-5.6-luna",
+    )
+    monkeypatch.setattr(judge, "_runner", lambda *_args, **_kwargs: runner)
+
+    identity = judge.scoring_identity()
+
+    assert set(identity) == set(SCORING_IDENTITY_KEYS)
+    assert identity["judge_api_base"] is None
+    assert identity["benchmark"] == "biomnibench-da"
+    assert identity["grading_engine"] == "autorubric-criterion"
 
 
 def test_explicit_rubric_path_has_one_canonical_source(tmp_path: Path) -> None:

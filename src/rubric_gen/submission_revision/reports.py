@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
+import math
 import secrets
 import shutil
+from numbers import Real
 from pathlib import Path
 
 from rubric_gen.submission_revision.artifacts import (
@@ -68,9 +70,21 @@ def publish_revision_report(experiment_dir: Path) -> Path:
     revision_rounds = manifest.get("revision_rounds")
     if (
         type(on_policy_scores) is not list
-        or any(type(score) is not int for score in on_policy_scores)
+        or any(
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
+            for score in on_policy_scores
+        )
         or type(fixed_original_scores) is not list
-        or any(type(score) is not int for score in fixed_original_scores)
+        or any(
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
+            for score in fixed_original_scores
+        )
         or len(fixed_original_scores) != len(on_policy_scores)
         or type(revision_rounds) is not int
     ):
@@ -85,7 +99,7 @@ def publish_revision_report(experiment_dir: Path) -> Path:
         "fixed_original_scores": fixed_original_scores,
         "feedback_policy": manifest.get("feedback_policy"),
         "prompt": manifest["prompt"],
-        "rubric_evolution": manifest["rubric_evolution"],
+        "rubric_policy": manifest["rubric_policy"],
         "provider": manifest.get("provider"),
         "solver_model": manifest.get("model"),
         "judge_model": manifest.get("judge_model"),

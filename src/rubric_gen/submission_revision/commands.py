@@ -109,6 +109,32 @@ def run_detect(args: argparse.Namespace) -> int:
             f"models or none of them; missing={missing!r}"
         )
 
+    mechanistic_config = EvaluationConfig(
+        experiment=experiment,
+        study_dir=study_dir,
+        paraphrase_dir=paraphrase_dir,
+        output_dir=output_dir / "mechanistic",
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+        vllm_endpoints=endpoints,
+    )
+    holistic_config = EvaluationConfig(
+        experiment=experiment,
+        study_dir=study_dir,
+        paraphrase_dir=paraphrase_dir,
+        output_dir=output_dir / "holistic",
+        max_concurrency=args.max_concurrency,
+        resume=args.resume,
+        vllm_endpoints=endpoints,
+    )
+    mechanistic_runner = MechanisticEvaluationRunner(mechanistic_config)
+    holistic_runner = HolisticPairwiseRunner(holistic_config)
+
+    # These reads prepare the exact semantic jobs and enforce both stage caps.
+    # No detector, judge, output writer, or provider runs before both pass.
+    mechanistic_runner.preflight()
+    holistic_runner.preflight()
+
     statuses: dict[str, int] = {}
     errors: list[tuple[str, Exception]] = []
 
@@ -128,26 +154,8 @@ def run_detect(args: argparse.Namespace) -> int:
             base_urls=direct_endpoints,
         )),
     )
-    config = EvaluationConfig(
-        experiment=experiment,
-        study_dir=study_dir,
-        paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "mechanistic",
-        max_concurrency=args.max_concurrency,
-        resume=args.resume,
-        vllm_endpoints=endpoints,
-    )
-    execute("mechanistic", MechanisticEvaluationRunner(config).run)
-    holistic_config = EvaluationConfig(
-        experiment=experiment,
-        study_dir=study_dir,
-        paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "holistic",
-        max_concurrency=args.max_concurrency,
-        resume=args.resume,
-        vllm_endpoints=endpoints,
-    )
-    execute("holistic", HolisticPairwiseRunner(holistic_config).run)
+    execute("mechanistic", mechanistic_runner.run)
+    execute("holistic", holistic_runner.run)
     if not errors:
         write_reward_hacking_evaluation(output_dir)
     if errors:

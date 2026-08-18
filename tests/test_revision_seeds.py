@@ -37,9 +37,9 @@ def _task(root: Path) -> Path:
 def _design(root: Path, task: Path) -> Experiment:
     conditions = [
         {"condition_id": f"{prompt}--{rubric}", "prompt": prompt,
-         "rubric_evolution": rubric}
+         "rubric_policy": rubric}
         for prompt in ("base", "anti-rh")
-        for rubric in ("static", "prospective")
+        for rubric in ("fixed", "adaptive_replacement")
     ]
     assignments = []
     execution = 0
@@ -68,8 +68,8 @@ def _design(root: Path, task: Path) -> Experiment:
             "feedback_policy": "semi",
             "prompt_control": "base",
             "prompt_treatment": "anti-rh",
-            "rubric_control": "static",
-            "rubric_treatment": "prospective",
+            "rubric_control": "fixed",
+            "rubric_treatment": "adaptive_replacement",
             "solver": {
                 "provider": "codex",
                 "model": "test-model",
@@ -84,8 +84,6 @@ def _design(root: Path, task: Path) -> Experiment:
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
-            "rubric_auditor_model": "test-auditor",
-            "rubric_auditor_query_limit": 2,
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
         },
@@ -154,7 +152,8 @@ def _fake_judge(self, task_dir: Path, submission: Path, experiment_dir: Path):
         "request_parameters": {},
         "usage": {"input_tokens": 10, "output_tokens": 2},
     }))
-    return JudgeArtifacts(validation, evaluation), {"identity": "test"}
+    identity = self._initial_judge(task_dir, experiment_dir).scoring_identity()
+    return JudgeArtifacts(validation, evaluation), identity
 
 
 def test_seed_set_creates_one_independent_seed_per_task_replicate(
@@ -375,6 +374,62 @@ def test_seed_rejects_provenance_metadata_tampering(
             provider="codex",
             requested_model="test-model",
         )
+
+
+def test_seed_rejects_incomplete_scoring_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    output = tmp_path / "seeds"
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+    SeedSetRunner(SeedSetConfig(design, output, 1)).run()
+    manifest_path = output / "tasks" / task.name / "rep-001" / "manifest.json"
+    manifest_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["scoring_identity"]["grading_engine"]
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(RuntimeError, match="seed integrity check failed"):
+        resolve_seed(
+            output,
+            task,
+            1,
+            provider="codex",
+            requested_model="test-model",
+        )
+
+
+def test_seed_stage_rejects_a_completed_stale_judge_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    output = tmp_path / "seeds"
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+
+    def stale_judge(
+        self,
+        task_dir: Path,
+        submission: Path,
+        experiment_dir: Path,
+    ):
+        artifacts, identity = _fake_judge(
+            self,
+            task_dir,
+            submission,
+            experiment_dir,
+        )
+        identity["judge_api_base"] = "https://stale.example.invalid"
+        return artifacts, identity
+
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", stale_judge)
+    runner = SeedSetRunner(SeedSetConfig(design, output, 1))
+    assert runner.run() == 0
+
+    with pytest.raises(RuntimeError, match="does not match the current judge"):
+        runner.run()
 
 
 def test_seed_cli_is_experiment_only() -> None:

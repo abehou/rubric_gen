@@ -10,7 +10,8 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.runtime.agents.sessions import SolverSessionDriver
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
-from rubric_gen.submission_revision.evolution import RubricEvolution, RubricEvolver
+from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 from rubric_gen.submission_revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
@@ -44,10 +45,7 @@ class SubmissionRevisionConfig:
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
     feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
-    rubric_evolution: RubricEvolution = RubricEvolution.STATIC
-    rubric_auditor_model: str = "gpt-5.6-luna"
-    rubric_auditor_base_url: str | None = None
-    rubric_auditor_query_limit: int = 12
+    rubric_policy: RubricBankPolicy = RubricBankPolicy.FIXED
     rubric_proposer_model: str = "gpt-5.6-luna"
     rubric_proposer_base_url: str | None = None
     review: str = "trace"
@@ -112,18 +110,12 @@ class SubmissionRevisionConfig:
             )
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)
-        RubricEvolution(self.rubric_evolution)
+        RubricBankPolicy(self.rubric_policy)
         for name, model in (
-            ("rubric_auditor_model", self.rubric_auditor_model),
             ("rubric_proposer_model", self.rubric_proposer_model),
         ):
             if type(model) is not str or not model.strip():
                 raise ValueError(f"{name} must be nonempty")
-        if (
-            type(self.rubric_auditor_query_limit) is not int
-            or self.rubric_auditor_query_limit < 1
-        ):
-            raise ValueError("rubric_auditor_query_limit must be positive")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(
@@ -162,7 +154,7 @@ class RevisionDependencies:
     session: SolverSessionDriver
     judge: SubmissionJudge
     master_judge: SubmissionJudge | None = None
-    evolver: RubricEvolver | None = None
+    bank_proposer: RubricBankProposer | None = None
     feedback_simulator: SimulatedUserFeedback | None = None
 
 
@@ -173,8 +165,8 @@ class SubmissionRevisionResult:
     experiment_dir: Path
     session_id: str
     submission_ids: tuple[str, ...]
-    scores: tuple[int, ...]
-    fixed_original_scores: tuple[int, ...]
+    scores: tuple[float, ...]
+    fixed_original_scores: tuple[float, ...]
 
 
 class RevisionPhase(StrEnum):
@@ -197,8 +189,8 @@ class RevisionState:
     session_id: str | None
     effective_solver_model: str | None
     submission_ids: list[str]
-    scores: list[int]
-    fixed_original_scores: list[int]
+    scores: list[float]
+    fixed_original_scores: list[float]
     judge_attempts: dict[str, str]
     next_prompt: str
 
@@ -236,11 +228,19 @@ class RevisionState:
             or type(submission_ids) is not list
             or any(type(value) is not str for value in submission_ids)
             or type(scores) is not list
-            or any(type(value) is not int for value in scores)
-            or any(not 0 <= value <= 100 for value in scores)
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not 0 <= float(value) <= 100
+                for value in scores
+            )
             or type(fixed_original_scores) is not list
-            or any(type(value) is not int for value in fixed_original_scores)
-            or any(not 0 <= value <= 100 for value in fixed_original_scores)
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not 0 <= float(value) <= 100
+                for value in fixed_original_scores
+            )
             or len(fixed_original_scores) != len(scores)
             or type(judge_attempts) is not dict
             or any(
@@ -260,8 +260,8 @@ class RevisionState:
             session_id=session_id,
             effective_solver_model=effective_model,
             submission_ids=list(submission_ids),
-            scores=list(scores),
-            fixed_original_scores=list(fixed_original_scores),
+            scores=[float(value) for value in scores],
+            fixed_original_scores=[float(value) for value in fixed_original_scores],
             judge_attempts=dict(judge_attempts),
             next_prompt=next_prompt,
         )

@@ -115,6 +115,20 @@ def test_static_harvey_experiment_rejects_proposer(tmp_path: Path) -> None:
         load_experiment(path)
 
 
+def test_harvey_experiment_rejects_duplicate_yaml_keys(tmp_path: Path) -> None:
+    path = tmp_path / "experiment.yaml"
+    text = _config_text(tmp_path).replace(
+        "audit:\n  models: [gpt-5.6-sol]\n",
+        "audit:\n"
+        "  models: [gpt-5.6-sol]\n"
+        "  models: [claude-opus-4-8]\n",
+    )
+    path.write_text(text, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate YAML key: models"):
+        load_experiment(path)
+
+
 def test_task_rubric_proposer_preserves_ids_and_deliverables(tmp_path: Path) -> None:
     task_file = tmp_path / "task.json"
     task_file.write_text(json.dumps(_task()), encoding="utf-8")

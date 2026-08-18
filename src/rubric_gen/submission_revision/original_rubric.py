@@ -8,23 +8,31 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import fmean, median
-from typing import Callable
+from typing import Callable, Iterator
 
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.judge import (
+    SCORING_IDENTITY_KEYS,
     FrozenRubricJudge,
     JudgeArtifacts,
     SubmissionJudgeConfig,
     resolve_optimizer_rubric,
 )
+from rubric_gen.submission_revision.judging.models import (
+    grading_engine_for_benchmark,
+)
+from rubric_gen.submission_revision.judging.preflight import (
+    JudgeDispatchInput,
+    preflight_judge_dispatches,
+)
 from rubric_gen.submission_revision.study import (
     resolve_study_experiment,
     validate_completed_revision,
 )
-from rubric_gen.artifacts.hashing import sha256_file
+from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
@@ -89,6 +97,9 @@ class OriginalRubricStudy:
     source: Path
     experiment_id: str
     targets: tuple[OriginalRubricTarget, ...]
+    mechanistic_max_calls: int
+    mechanistic_max_request_bytes: int
+    mechanistic_max_output_tokens: int
 
     def __post_init__(self) -> None:
         if not self.targets:
@@ -96,6 +107,15 @@ class OriginalRubricStudy:
         assignment_ids = [target.assignment_id for target in self.targets]
         if len(assignment_ids) != len(set(assignment_ids)):
             raise ValueError("original-rubric targets contain duplicate assignments")
+        if len({target.benchmark for target in self.targets}) != 1:
+            raise ValueError("original-rubric targets must use one benchmark")
+        for name, value in (
+            ("mechanistic_max_calls", self.mechanistic_max_calls),
+            ("mechanistic_max_request_bytes", self.mechanistic_max_request_bytes),
+            ("mechanistic_max_output_tokens", self.mechanistic_max_output_tokens),
+        ):
+            if type(value) is not int or value < 1:
+                raise ValueError(f"{name} must be positive")
 
 
 @dataclass(frozen=True)
@@ -141,10 +161,24 @@ class OriginalRubricJob:
         return self.target.assignment_id, self.model, self.boundary
 
 
+@dataclass(frozen=True)
+class PreparedOriginalRubricJob:
+    job: OriginalRubricJob
+    semantic_judgment_id: str
+    scoring_identity: dict[str, object]
+    rubric_text_sha256: str
+    review_input_sha256: str
+    answer_input_sha256: str
+
+
 StudyLoader = Callable[[Path], OriginalRubricStudy]
 JobOperation = Callable[
     [OriginalRubricEnsembleConfig, OriginalRubricJob],
     dict[str, object],
+]
+JudgeFactory = Callable[
+    [OriginalRubricEnsembleConfig, OriginalRubricJob],
+    FrozenRubricJudge,
 ]
 
 
@@ -206,6 +240,15 @@ def _load_completed_study(source: Path) -> OriginalRubricStudy:
         source=source.resolve(),
         experiment_id=experiment.experiment_id,
         targets=tuple(targets),
+        mechanistic_max_calls=experiment.outcome_audit[
+            "mechanistic_max_calls"
+        ],
+        mechanistic_max_request_bytes=experiment.outcome_audit[
+            "mechanistic_max_request_bytes"
+        ],
+        mechanistic_max_output_tokens=experiment.outcome_audit[
+            "mechanistic_max_output_tokens"
+        ],
     )
 
 
@@ -338,6 +381,156 @@ def _build_judge(
     return FrozenRubricJudge(judge_config, rubric)
 
 
+def _is_sha256(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _validated_scoring_identity(
+    judge: FrozenRubricJudge,
+    job: OriginalRubricJob,
+) -> dict[str, object]:
+    identity = judge.scoring_identity()
+    expected = {
+        "effective_judge_model": job.model,
+        "judge_api_base": None,
+        "benchmark": job.target.benchmark.value,
+        "grading_engine": grading_engine_for_benchmark(
+            job.target.benchmark
+        ).value,
+        "review_mode": job.target.review,
+        "max_review_chars": job.target.max_review_chars,
+        "rendered_rubric_sha256": job.target.rubric_sha256,
+    }
+    if (
+        type(identity) is not dict
+        or set(identity) != set(SCORING_IDENTITY_KEYS)
+        or any(identity.get(key) != value for key, value in expected.items())
+        or any(
+            not _is_sha256(identity.get(key))
+            for key in (
+                "judge_source_sha256",
+                "judge_runner_sha256",
+                "scorer_module_sha256",
+            )
+        )
+    ):
+        raise RuntimeError("original-rubric scoring identity is invalid")
+    return identity
+
+
+def _prepare_job(
+    config: OriginalRubricEnsembleConfig,
+    job: OriginalRubricJob,
+    build_judge: JudgeFactory,
+) -> PreparedOriginalRubricJob:
+    judge = build_judge(config, job)
+    scoring_identity = _validated_scoring_identity(judge, job)
+    if (
+        judge.rubric.sha256 != job.target.rubric_sha256
+        or sha256_text(judge.rubric.text) != job.target.rubric_sha256
+    ):
+        raise RuntimeError("original-rubric text changed before predispatch")
+    review_text, answer_text = judge.review_inputs(job.submission)
+    return _prepared_job_from_request(
+        job,
+        scoring_identity,
+        review_text,
+        answer_text,
+    )
+
+
+def _prepared_job_from_request(
+    job: OriginalRubricJob,
+    scoring_identity: dict[str, object],
+    review_text: str,
+    answer_text: str,
+) -> PreparedOriginalRubricJob:
+    review_input_sha256 = sha256_text(review_text)
+    answer_input_sha256 = sha256_text(answer_text)
+    semantic_identity = {
+        "task_id": job.target.task_id,
+        "requested_model": job.model,
+        "rubric_text_sha256": job.target.rubric_sha256,
+        "review_input_sha256": review_input_sha256,
+        "answer_input_sha256": answer_input_sha256,
+        "scoring_identity": scoring_identity,
+    }
+    semantic_judgment_id = sha256_text(json.dumps(
+        semantic_identity,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ))
+    return PreparedOriginalRubricJob(
+        job=job,
+        semantic_judgment_id=semantic_judgment_id,
+        scoring_identity=scoring_identity,
+        rubric_text_sha256=job.target.rubric_sha256,
+        review_input_sha256=review_input_sha256,
+        answer_input_sha256=answer_input_sha256,
+    )
+
+
+def _dispatch_input(
+    config: OriginalRubricEnsembleConfig,
+    prepared: PreparedOriginalRubricJob,
+    build_judge: JudgeFactory,
+) -> JudgeDispatchInput:
+    judge = build_judge(config, prepared.job)
+    scoring_identity = _validated_scoring_identity(judge, prepared.job)
+    if (
+        judge.rubric.sha256 != prepared.rubric_text_sha256
+        or sha256_text(judge.rubric.text) != prepared.rubric_text_sha256
+    ):
+        raise RuntimeError("original-rubric text changed during predispatch")
+    review_text, answer_text = judge.review_inputs(prepared.job.submission)
+    observed = _prepared_job_from_request(
+        prepared.job,
+        scoring_identity,
+        review_text,
+        answer_text,
+    )
+    if observed != prepared:
+        raise RuntimeError("original-rubric request changed during predispatch")
+    return JudgeDispatchInput(
+        rubric_text=judge.rubric.text,
+        review_text=review_text,
+        answer_text=answer_text,
+    )
+
+
+def _job_sort_key(job: OriginalRubricJob) -> tuple[str, int, int]:
+    return (
+        job.target.assignment_id,
+        PRIMARY_RH_MODELS.index(job.model),
+        BOUNDARIES.index(job.boundary),
+    )
+
+
+def _group_prepared_jobs(
+    prepared_jobs: tuple[PreparedOriginalRubricJob, ...],
+) -> dict[str, tuple[PreparedOriginalRubricJob, ...]]:
+    grouped: dict[str, list[PreparedOriginalRubricJob]] = {}
+    for prepared in prepared_jobs:
+        grouped.setdefault(prepared.semantic_judgment_id, []).append(prepared)
+    return {
+        semantic_id: tuple(sorted(values, key=lambda value: _job_sort_key(value.job)))
+        for semantic_id, values in sorted(grouped.items())
+    }
+
+
+def _judgment_owner(job: OriginalRubricJob) -> dict[str, str]:
+    return {
+        "assignment_id": job.target.assignment_id,
+        "model": job.model,
+        "boundary": job.boundary,
+    }
+
+
 def _relative_artifact(output_dir: Path, path: Path) -> str:
     resolved_output = output_dir.resolve()
     resolved_path = path.resolve()
@@ -373,12 +566,19 @@ def _completed_record(
         "ensemble score validation",
     )
     score = validation.get("score")
+    scoring_identity = {
+        key: validation.get(key) for key in SCORING_IDENTITY_KEYS
+    }
+    review_input_sha256 = validation.get("review_input_sha256")
+    answer_input_sha256 = validation.get("answer_input_sha256")
     if (
         type(score) is not int
         or not 0 <= score <= 100
         or validation.get("effective_judge_model") != job.model
         or validation.get("rendered_rubric_sha256") != job.target.rubric_sha256
         or validation.get("review_mode") != job.target.review
+        or not _is_sha256(review_input_sha256)
+        or not _is_sha256(answer_input_sha256)
     ):
         raise RuntimeError("ensemble judge produced an incompatible score validation")
     usage_path = artifacts.score_validation_path.with_name("usage.json")
@@ -389,6 +589,9 @@ def _completed_record(
         **_job_identity(job),
         "status": "completed",
         "score": score,
+        "scoring_identity": scoring_identity,
+        "review_input_sha256": review_input_sha256,
+        "answer_input_sha256": answer_input_sha256,
         "score_validation": _relative_artifact(
             config.output_dir,
             artifacts.score_validation_path,
@@ -398,6 +601,43 @@ def _completed_record(
         "evaluation_sha256": sha256_file(artifacts.evaluation_path),
         "usage": _relative_artifact(config.output_dir, usage_path),
         "usage_sha256": sha256_file(usage_path),
+    }
+
+
+def _completed_reference_record(
+    completed: dict[str, object],
+    prepared: PreparedOriginalRubricJob,
+    owner: OriginalRubricJob,
+) -> dict[str, object]:
+    return {
+        **_job_identity(prepared.job),
+        "semantic_judgment_id": prepared.semantic_judgment_id,
+        "judgment_owner": _judgment_owner(owner),
+        "artifact_attempt_id": _attempt_id(owner),
+        "status": "completed",
+        "score": completed["score"],
+        "score_validation": completed["score_validation"],
+        "score_validation_sha256": completed["score_validation_sha256"],
+        "evaluation": completed["evaluation"],
+        "evaluation_sha256": completed["evaluation_sha256"],
+        "usage": completed["usage"],
+        "usage_sha256": completed["usage_sha256"],
+    }
+
+
+def _failed_reference_record(
+    prepared: PreparedOriginalRubricJob,
+    owner: OriginalRubricJob,
+    error: Exception,
+) -> dict[str, object]:
+    message = str(error) or type(error).__name__
+    return {
+        **_job_identity(prepared.job),
+        "semantic_judgment_id": prepared.semantic_judgment_id,
+        "judgment_owner": _judgment_owner(owner),
+        "artifact_attempt_id": _attempt_id(owner),
+        "status": "failed",
+        "error": message,
     }
 
 
@@ -443,11 +683,13 @@ class OriginalRubricEnsembleRunner:
         load_study: StudyLoader = _load_completed_study,
         evaluate_job: JobOperation = _evaluate_job,
         validate_job: JobOperation = _validate_job,
+        build_judge: JudgeFactory = _build_judge,
     ) -> None:
         self.config = config
         self.load_study = load_study
         self.evaluate_job = evaluate_job
         self.validate_job = validate_job
+        self.build_judge = build_judge
 
     def run(self) -> int:
         study_path = self.config.study_dir.resolve()
@@ -456,6 +698,8 @@ class OriginalRubricEnsembleRunner:
             output_path, study_path
         ):
             raise ValueError("judge output and source study must not contain each other")
+        output_state = self._inspect_output()
+        has_summary = output_state[1]
         study = self.load_study(study_path)
         jobs = tuple(
             OriginalRubricJob(target, model, boundary)
@@ -463,16 +707,40 @@ class OriginalRubricEnsembleRunner:
             for model in PRIMARY_RH_MODELS
             for boundary in BOUNDARIES
         )
-        has_summary = self._prepare_output()
+        prepared_jobs = tuple(
+            _prepare_job(self.config, job, self.build_judge) for job in jobs
+        )
+        groups = _group_prepared_jobs(prepared_jobs)
+        predispatch_plan = self._predispatch_plan(study, groups)
+        self._create_output(output_state)
         retained = (
-            self._retained_records(study, jobs)
+            self._retained_records(
+                study,
+                jobs,
+                groups,
+                predispatch_plan,
+            )
             if self.config.resume and has_summary
             else []
         )
         retained_keys = {_record_key(record) for record in retained}
-        pending = [job for job in jobs if job.key not in retained_keys]
-        records = retained
-        self._write_summary(study, records, final=False)
+        pending_groups: list[tuple[PreparedOriginalRubricJob, ...]] = []
+        for group in groups.values():
+            present = [item.job.key in retained_keys for item in group]
+            if any(present) and not all(present):
+                raise RuntimeError(
+                    "judge resume summary contains a partial semantic judgment"
+                )
+            if not any(present):
+                pending_groups.append(group)
+        records = list(retained)
+        self._write_summary(
+            study,
+            records,
+            predispatch_plan=predispatch_plan,
+            semantic_judgment_count=len(groups),
+            final=False,
+        )
 
         with TerminalProgress(
             total=len(jobs),
@@ -482,28 +750,56 @@ class OriginalRubricEnsembleRunner:
             for _record in retained:
                 progress.update()
             with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
-                futures = {pool.submit(self.evaluate_job, self.config, job): job for job in pending}
+                futures = {
+                    pool.submit(
+                        self._evaluate_prepared_group,
+                        group,
+                    ): group
+                    for group in pending_groups
+                }
                 for future in as_completed(futures):
-                    job = futures[future]
+                    group = futures[future]
+                    owner = group[0].job
                     try:
-                        record = future.result()
-                        self._check_completed_record(record, job)
+                        completed = future.result()
+                        self._check_base_completed_record(
+                            completed,
+                            group[0],
+                        )
+                        new_records = [
+                            _completed_reference_record(completed, item, owner)
+                            for item in group
+                        ]
                     except Exception as exc:
-                        record = {
-                            **_job_identity(job),
-                            "status": "failed",
-                            "error": str(exc),
-                        }
-                    records.append(record)
-                    self._write_summary(study, records, final=False)
-                    progress.update()
+                        new_records = [
+                            _failed_reference_record(item, owner, exc)
+                            for item in group
+                        ]
+                    records.extend(new_records)
+                    self._write_summary(
+                        study,
+                        records,
+                        predispatch_plan=predispatch_plan,
+                        semantic_judgment_count=len(groups),
+                        final=False,
+                    )
+                    for _record in new_records:
+                        progress.update()
                     progress.set_status(
                         f"failed={sum(item['status'] == 'failed' for item in records)}"
                     )
-        self._write_summary(study, records, final=True)
+        self._write_summary(
+            study,
+            records,
+            predispatch_plan=predispatch_plan,
+            semantic_judgment_count=len(groups),
+            final=True,
+        )
         return int(any(record["status"] == "failed" for record in records))
 
-    def _prepare_output(self) -> bool:
+    def _inspect_output(
+        self,
+    ) -> tuple[bool, bool, tuple[int, int] | None]:
         output = self.config.output_dir
         if output.is_symlink() or output.exists() and not output.is_dir():
             raise ValueError(f"judge output must be a regular directory: {output}")
@@ -515,8 +811,136 @@ class OriginalRubricEnsembleRunner:
                 )
             if entries and not (output / "summary.json").is_file():
                 raise RuntimeError("judge resume output has no summary.json")
-        output.mkdir(parents=True, exist_ok=True)
-        return (output / "summary.json").is_file()
+        exists = output.is_dir()
+        identity = None
+        if exists:
+            status = output.stat(follow_symlinks=False)
+            identity = status.st_dev, status.st_ino
+        return exists, (output / "summary.json").is_file(), identity
+
+    def _create_output(
+        self,
+        expected_state: tuple[bool, bool, tuple[int, int] | None],
+    ) -> None:
+        output = self.config.output_dir
+        if output.is_symlink() or output.exists() and not output.is_dir():
+            raise ValueError(f"judge output must be a regular directory: {output}")
+        expected_exists, expected_summary, expected_identity = expected_state
+        if expected_exists:
+            if not output.is_dir():
+                raise RuntimeError("judge output changed during predispatch")
+            status = output.stat(follow_symlinks=False)
+            if (status.st_dev, status.st_ino) != expected_identity:
+                raise RuntimeError("judge output changed during predispatch")
+            entries = list(output.iterdir())
+            if (
+                (output / "summary.json").is_file() != expected_summary
+                or entries and not expected_summary
+            ):
+                raise RuntimeError("judge output changed during predispatch")
+            return
+        if output.exists():
+            raise RuntimeError("judge output appeared during predispatch")
+        output.mkdir(parents=True, exist_ok=False)
+
+    def _evaluate_prepared_group(
+        self,
+        group: tuple[PreparedOriginalRubricJob, ...],
+    ) -> dict[str, object]:
+        for prepared in group:
+            observed = _prepare_job(
+                self.config,
+                prepared.job,
+                self.build_judge,
+            )
+            if observed != prepared:
+                raise RuntimeError(
+                    "original-rubric request changed before provider dispatch"
+                )
+        return self.evaluate_job(self.config, group[0].job)
+
+    def _predispatch_plan(
+        self,
+        study: OriginalRubricStudy,
+        groups: dict[str, tuple[PreparedOriginalRubricJob, ...]],
+    ) -> dict[str, object]:
+        def dispatches() -> Iterator[JudgeDispatchInput]:
+            for group in groups.values():
+                first: JudgeDispatchInput | None = None
+                for prepared in group:
+                    observed = _dispatch_input(
+                        self.config,
+                        prepared,
+                        self.build_judge,
+                    )
+                    if first is None:
+                        first = observed
+                    elif observed != first:
+                        raise RuntimeError(
+                            "deduplicated original-rubric requests differ"
+                        )
+                assert first is not None
+                yield first
+
+        benchmark = study.targets[0].benchmark
+        base = preflight_judge_dispatches(benchmark, dispatches())
+        raw_shapes = base.pop("jobs")
+        if type(raw_shapes) is not list or len(raw_shapes) != len(groups):
+            raise RuntimeError("original-rubric predispatch shapes are invalid")
+        planned_jobs = []
+        for group, shape in zip(groups.values(), raw_shapes, strict=True):
+            owner = group[0]
+            planned_jobs.append({
+                "semantic_judgment_id": owner.semantic_judgment_id,
+                "logical_reference_count": len(group),
+                "judgment_owner": _judgment_owner(owner.job),
+                "task_id": owner.job.target.task_id,
+                "requested_model": owner.job.model,
+                "rubric_text_sha256": owner.rubric_text_sha256,
+                "review_input_sha256": owner.review_input_sha256,
+                "answer_input_sha256": owner.answer_input_sha256,
+                "scoring_identity": owner.scoring_identity,
+                "shape": shape,
+            })
+        outer_attempt_limit = self.config.max_retries + 1
+        caps = {
+            "calls": study.mechanistic_max_calls,
+            "request_bytes": study.mechanistic_max_request_bytes,
+            "output_tokens": study.mechanistic_max_output_tokens,
+        }
+        base_totals: dict[str, int] = {}
+        maximum_totals: dict[str, int] = {}
+        for resource in ("calls", "request_bytes", "output_tokens"):
+            value = base.get(resource)
+            if type(value) is not int or value < 0:
+                raise RuntimeError(
+                    f"original-rubric predispatch {resource} is invalid"
+                )
+            base_totals[resource] = value
+            maximum_totals[resource] = value * outer_attempt_limit
+            if maximum_totals[resource] > caps[resource]:
+                raise RuntimeError(
+                    "original-rubric predispatch "
+                    f"{resource} exceeds its hard cap: "
+                    f"{maximum_totals[resource]} > {caps[resource]}"
+                )
+        return {
+            "stage": "original-rubric-mechanistic",
+            "accepted": True,
+            "outer_attempt_limit": outer_attempt_limit,
+            "caps": caps,
+            "base_totals": base_totals,
+            "maximum_totals": maximum_totals,
+            "request_byte_measurement": base["request_byte_measurement"],
+            "dispatch_count": base["dispatch_count"],
+            "logical_reference_count": sum(len(group) for group in groups.values()),
+            "grading_engine": base["grading_engine"],
+            "benchmark": base["benchmark"],
+            "largest_request_bytes_per_call": base[
+                "largest_request_bytes_per_call"
+            ],
+            "jobs": planned_jobs,
+        }
 
     def _protocol(self) -> dict[str, object]:
         return {
@@ -526,6 +950,9 @@ class OriginalRubricEnsembleRunner:
             "score_scale": [0, 100],
             "numeric_aggregates": ["mean", "median"],
             "direction_aggregate": "strict-majority-of-model-deltas",
+            "semantic_deduplication": (
+                "task-request-rubric-model-route-engine-implementation"
+            ),
             "max_retries": self.config.max_retries,
         }
 
@@ -533,6 +960,8 @@ class OriginalRubricEnsembleRunner:
         self,
         study: OriginalRubricStudy,
         jobs: tuple[OriginalRubricJob, ...],
+        groups: dict[str, tuple[PreparedOriginalRubricJob, ...]],
+        predispatch_plan: dict[str, object],
     ) -> list[dict[str, object]]:
         summary = read_json_object(
             self.config.output_dir / "summary.json",
@@ -544,6 +973,7 @@ class OriginalRubricEnsembleRunner:
                 "status",
                 "source",
                 "protocol",
+                "predispatch_plan",
                 "totals",
                 "records",
                 "assignments",
@@ -556,11 +986,21 @@ class OriginalRubricEnsembleRunner:
                 "assignment_count": len(study.targets),
             }
             or summary.get("protocol") != self._protocol()
+            or summary.get("predispatch_plan") != predispatch_plan
             or type(summary.get("records")) is not list
         ):
             raise RuntimeError("judge resume summary has incompatible identity")
         jobs_by_key = {job.key: job for job in jobs}
-        retained: list[dict[str, object]] = []
+        prepared_by_key = {
+            prepared.job.key: prepared
+            for group in groups.values()
+            for prepared in group
+        }
+        expected_group_keys = {
+            semantic_id: {prepared.job.key for prepared in group}
+            for semantic_id, group in groups.items()
+        }
+        values_by_semantic_id: dict[str, list[dict[str, object]]] = {}
         seen: set[tuple[str, str, str]] = set()
         with TerminalProgress(
             total=len(summary["records"]),
@@ -578,34 +1018,73 @@ class OriginalRubricEnsembleRunner:
                         "judge resume summary contains an invalid job identity"
                     )
                 seen.add(key)
+                prepared = prepared_by_key[key]
+                owner = groups[prepared.semantic_judgment_id][0].job
+                if not self._has_reference_identity(value, prepared, owner):
+                    raise RuntimeError(
+                        "judge resume summary contains an invalid semantic reference"
+                    )
                 status = value.get("status")
                 if status == "failed":
                     progress.update()
-                    continue
-                if status != "completed":
+                elif status == "completed":
+                    progress.update()
+                else:
                     raise RuntimeError(
                         "judge resume summary contains an invalid status"
                     )
-                validated = self.validate_job(self.config, jobs_by_key[key])
-                self._check_completed_record(validated, jobs_by_key[key])
-                if validated != value:
+                values_by_semantic_id.setdefault(
+                    prepared.semantic_judgment_id,
+                    [],
+                ).append(value)
+
+        retained: list[dict[str, object]] = []
+        for semantic_id, values in values_by_semantic_id.items():
+            observed_keys = {_record_key(value) for value in values}
+            if observed_keys != expected_group_keys[semantic_id]:
+                raise RuntimeError(
+                    "judge resume summary contains a partial semantic judgment"
+                )
+            statuses = {value.get("status") for value in values}
+            if statuses == {"failed"}:
+                continue
+            if statuses != {"completed"}:
+                raise RuntimeError(
+                    "judge resume semantic judgment has inconsistent statuses"
+                )
+            group = groups[semantic_id]
+            owner = group[0].job
+            validated = self.validate_job(self.config, owner)
+            self._check_base_completed_record(validated, group[0])
+            expected_values = {
+                item.job.key: _completed_reference_record(validated, item, owner)
+                for item in group
+            }
+            for value in values:
+                key = _record_key(value)
+                if expected_values[key] != value:
                     raise RuntimeError(
                         "judge resume record differs from its sealed artifacts"
                     )
-                retained.append(validated)
-                progress.update()
+                retained.append(value)
         return retained
 
     @staticmethod
-    def _check_completed_record(
+    def _check_base_completed_record(
         record: dict[str, object],
-        job: OriginalRubricJob,
+        prepared: PreparedOriginalRubricJob,
     ) -> None:
+        job = prepared.job
         if (
             record.get("status") != "completed"
             or _record_key(record) != job.key
             or type(record.get("score")) is not int
             or not 0 <= int(record["score"]) <= 100
+            or record.get("scoring_identity") != prepared.scoring_identity
+            or record.get("review_input_sha256")
+            != prepared.review_input_sha256
+            or record.get("answer_input_sha256")
+            != prepared.answer_input_sha256
             or any(
                 type(record.get(key)) is not str or not record[key]
                 for key in (
@@ -620,11 +1099,45 @@ class OriginalRubricEnsembleRunner:
         ):
             raise RuntimeError("ensemble evaluator returned an invalid completed record")
 
+    @staticmethod
+    def _has_reference_identity(
+        record: dict[str, object],
+        prepared: PreparedOriginalRubricJob,
+        owner: OriginalRubricJob,
+    ) -> bool:
+        common = {
+            **_job_identity(prepared.job),
+            "semantic_judgment_id": prepared.semantic_judgment_id,
+            "judgment_owner": _judgment_owner(owner),
+            "artifact_attempt_id": _attempt_id(owner),
+        }
+        if any(record.get(key) != value for key, value in common.items()):
+            return False
+        if record.get("status") == "failed":
+            return (
+                set(record) == set(common) | {"status", "error"}
+                and type(record.get("error")) is str
+                and bool(record["error"])
+            )
+        completed_fields = {
+            "status",
+            "score",
+            "score_validation",
+            "score_validation_sha256",
+            "evaluation",
+            "evaluation_sha256",
+            "usage",
+            "usage_sha256",
+        }
+        return set(record) == set(common) | completed_fields
+
     def _write_summary(
         self,
         study: OriginalRubricStudy,
         records: list[dict[str, object]],
         *,
+        predispatch_plan: dict[str, object],
+        semantic_judgment_count: int,
         final: bool,
     ) -> None:
         records.sort(key=_record_sort_key)
@@ -650,8 +1163,10 @@ class OriginalRubricEnsembleRunner:
                     "assignment_count": len(study.targets),
                 },
                 "protocol": self._protocol(),
+                "predispatch_plan": predispatch_plan,
                 "totals": {
                     "jobs": total,
+                    "semantic_judgments": semantic_judgment_count,
                     "completed": complete,
                     "failed": failed,
                     "pending": total - complete - failed,

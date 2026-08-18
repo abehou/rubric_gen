@@ -14,7 +14,6 @@ from pathlib import Path
 
 from tqdm.auto import trange
 
-from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile, solver_prompt
 from rubric_gen.runtime.agents.sessions import CliSolverSessionDriver
 from rubric_gen.runtime.agents.workspaces import (
@@ -28,9 +27,10 @@ from rubric_gen.submission_revision.judging.models import (
 from rubric_gen.runtime.progress import PROGRESS_BAR_FORMAT
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
-    project_feedback,
-    project_simulated_user_feedback,
+    project_bank_feedback,
+    project_bank_simulated_user_feedback,
 )
+from rubric_gen.submission_revision.bank_scoring import preflight_bank_dispatch
 from rubric_gen.submission_revision.models import (
     RevisionDependencies,
     RevisionPhase as _RevisionPhase,
@@ -70,15 +70,24 @@ from rubric_gen.submission_revision.judge import (
     JudgeArtifacts as JudgeArtifacts,
     resolve_optimizer_rubric as _resolve_optimizer_rubric,
 )
-from rubric_gen.submission_revision.evolution import (
-    RubricEvolution,
-    RubricEvolver,
+from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.rubric_bank import (
+    CompleteRubric,
+    RubricBank,
+    RubricBankGeneration,
+    RubricBankItem,
+    RubricBankPolicy,
+    RubricLineage,
+    load_rubric_bank,
+    persist_rubric_bank,
+    rubric_bank_directory,
 )
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.benchmarks import get_submission_benchmark
 from rubric_gen.submission_revision.store import (
     RevisionStore,
+    extract_judge_execution_contract as _extract_judge_execution_contract,
     extract_scoring_identity as _extract_scoring_identity,
     extract_seed_scoring_contract as _extract_seed_scoring_contract,
 )
@@ -110,20 +119,6 @@ def fixed_original_attempt_id(
     ).hexdigest()[:32]
 
 
-def _judge_execution_contract(identity: dict[str, object]) -> dict[str, object]:
-    return {
-        key: identity[key]
-        for key in (
-            "judge_source_sha256",
-            "judge_runner_sha256",
-            "scorer_module_sha256",
-            "effective_judge_model",
-            "review_mode",
-            "max_review_chars",
-        )
-    }
-
-
 class SubmissionRevisionController:
     """Run a fixed-length linear revision conversation for one task."""
 
@@ -137,7 +132,22 @@ class SubmissionRevisionController:
         self.experiment_dir = Path(config.experiment_dir).resolve()
         self.task_dir = Path(config.task_dir).resolve()
         judge_config = config.judge_config()
-        self.rubric = _resolve_optimizer_rubric(judge_config)
+        self.initial_rubric = _resolve_optimizer_rubric(judge_config)
+        self.bank_policy = RubricBankPolicy(
+            RubricBankPolicy(config.rubric_policy).value
+        )
+        self.initial_bank = RubricBankGeneration(
+            RubricBank(
+                generation_round=0,
+                source_boundary=None,
+                items=(RubricBankItem(
+                    rubric=CompleteRubric.from_content(self.initial_rubric.text),
+                    weight=1.0,
+                    lineage=RubricLineage.NEW,
+                ),),
+            ),
+            proposer_call_budget=0,
+        )
         master_judge_config = config.master_judge_config()
         self.master_rubric = _resolve_optimizer_rubric(master_judge_config)
         self.instruction_sha256 = _sha256_file(self.task_dir / "instruction.md")
@@ -151,38 +161,21 @@ class SubmissionRevisionController:
         )
         self.dependencies = dependencies or RevisionDependencies(
             session=CliSolverSessionDriver(config.agent, contract=self.benchmark),
-            judge=FrozenRubricJudge(judge_config, self.rubric),
+            judge=FrozenRubricJudge(judge_config, self.initial_rubric),
             master_judge=FrozenRubricJudge(
                 master_judge_config,
                 self.master_rubric,
             ),
-            evolver=(
-                None if config.rubric_evolution is RubricEvolution.STATIC
-                else RubricEvolver(
-                    auditor=AgentRunConfig(
-                        provider=(
-                            "vllm" if config.rubric_auditor_base_url else "codex"
-                        ),
-                        model=config.rubric_auditor_model,
-                        base_url=config.rubric_auditor_base_url,
-                        quiet=True,
-                        reasoning_effort=(
-                            "high" if config.rubric_auditor_base_url is None else None
-                        ),
-                        service_tier=(
-                            config.agent.service_tier
-                            if config.rubric_auditor_base_url is None else None
-                        ),
-                        retries=0,
-                        timeout_seconds=config.agent.timeout_seconds,
-                    ),
-                    proposer_model=config.rubric_proposer_model,
-                    proposer_base_url=config.rubric_proposer_base_url,
-                    proposer_service_tier=(
+            bank_proposer=(
+                None if self.bank_policy is RubricBankPolicy.FIXED
+                else RubricBankProposer(
+                    benchmark=config.benchmark,
+                    model=config.rubric_proposer_model,
+                    base_url=config.rubric_proposer_base_url,
+                    service_tier=(
                         config.agent.service_tier
                         if config.rubric_proposer_base_url is None else None
                     ),
-                    query_limit=config.rubric_auditor_query_limit,
                     max_retries=config.rubric_proposer_max_retries,
                 )
             ),
@@ -193,10 +186,16 @@ class SubmissionRevisionController:
             ),
         )
         if (
-            config.rubric_evolution is not RubricEvolution.STATIC
-            and self.dependencies.evolver is None
+            self.bank_policy is not RubricBankPolicy.FIXED
+            and self.dependencies.bank_proposer is None
         ):
-            raise ValueError("non-static rubric evolution requires an evolver")
+            raise ValueError("a replacement policy requires a bank proposer")
+        if (
+            self.bank_policy is not RubricBankPolicy.FIXED
+            and self.dependencies.bank_proposer is not None
+            and self.dependencies.bank_proposer.benchmark is not config.benchmark
+        ):
+            raise ValueError("bank proposer benchmark differs from revision config")
         if FeedbackPolicy(config.feedback_policy) is FeedbackPolicy.SIMULATED_USER:
             if self.dependencies.feedback_simulator is None:
                 raise ValueError(
@@ -224,7 +223,10 @@ class SubmissionRevisionController:
             reported_scoring_identity,
             context="submission judge",
         )
-        if self.scoring_identity["rendered_rubric_sha256"] != self.rubric.sha256:
+        if (
+            self.scoring_identity["rendered_rubric_sha256"]
+            != self.initial_rubric.sha256
+        ):
             raise RuntimeError("submission judge resolved a different optimizer rubric")
         reported_master_identity = self.master_judge.scoring_identity()
         if set(reported_master_identity) != set(_SCORING_IDENTITY_KEYS):
@@ -253,10 +255,16 @@ class SubmissionRevisionController:
         )
         self.reuse_seed_judgment = seed_contract == optimizer_contract
         self.reuse_seed_master_judgment = seed_contract == master_contract
-        if _judge_execution_contract(seed_contract) != _judge_execution_contract(
-            optimizer_contract
-        ) or _judge_execution_contract(seed_contract) != _judge_execution_contract(
-            master_contract
+        seed_execution = _extract_judge_execution_contract(
+            seed_contract,
+            context="seeded initial judgment",
+        )
+        if seed_execution != _extract_judge_execution_contract(
+            optimizer_contract,
+            context="optimizer judge",
+        ) or seed_execution != _extract_judge_execution_contract(
+            master_contract,
+            context="master judge",
         ):
             raise RuntimeError(
                 "seeded initial judgment uses a different scoring contract for "
@@ -264,8 +272,8 @@ class SubmissionRevisionController:
             )
         self.store = RevisionStore(
             self.experiment_dir,
-            rubric_text=self.rubric.text,
-            rubric_sha256=self.rubric.sha256,
+            initial_bank=self.initial_bank,
+            bank_policy=self.bank_policy,
             scoring_identity=self.scoring_identity,
         )
 
@@ -292,10 +300,7 @@ class SubmissionRevisionController:
             "judge_max_retries": self.config.judge_max_retries,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
-            "rubric_evolution": RubricEvolution(self.config.rubric_evolution).value,
-            "rubric_auditor_model": self.config.rubric_auditor_model,
-            "rubric_auditor_base_url": self.config.rubric_auditor_base_url,
-            "rubric_auditor_query_limit": self.config.rubric_auditor_query_limit,
+            "rubric_policy": self.bank_policy.value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
@@ -303,10 +308,11 @@ class SubmissionRevisionController:
             "judge_model": self.config.judge_model,
             "judge_base_url": self.config.judge_base_url,
             "max_review_chars": self.config.max_review_chars,
-            "optimizer_rubric_path": str(
+            "initial_rubric_path": str(
                 self.config.optimizer_rubric_path.resolve()
             ),
-            "rubric_sha256": self.rubric.sha256,
+            "initial_bank_sha256": self.initial_bank.bank.content_sha256,
+            "initial_bank_member_count": self.initial_bank.bank.rubric_count,
             "master_rubric_name": self.config.master_rubric_name,
             "master_rubric_sha256": self.master_rubric.sha256,
             "instruction_sha256": self.instruction_sha256,
@@ -452,10 +458,10 @@ class SubmissionRevisionController:
                 "live_workspace_removed": False,
                 "session_id": None,
                 "effective_solver_model": None,
-                "scoring_identity": self.scoring_identity,
+                "initial_member_scoring_identity": self.scoring_identity,
             },
         )
-        self._persist_rubric()
+        self._persist_initial_bank()
         self._write_state(state)
 
     def _materialize_seed(self, workspace: Path) -> None:
@@ -475,8 +481,19 @@ class SubmissionRevisionController:
         destination.mkdir(parents=True)
         _link_solution_workspace(source / "workspace", destination / "workspace")
         os.link(source / "trajectory.stream.jsonl", destination / "trajectory.stream.jsonl")
-        for name in ("status.json", "snapshot.json"):
-            shutil.copyfile(source / name, destination / name)
+        _write_json(
+            destination / "status.json",
+            {
+                "task": self.task_dir.name,
+                "task_dir": str(self.task_dir),
+                "workspace_dir": str(destination / "workspace"),
+                "provider": self.config.agent.provider,
+                "session_id": None,
+                "submission_id": "s000",
+                "exit_code": 0,
+            },
+        )
+        shutil.copyfile(source / "snapshot.json", destination / "snapshot.json")
         _make_tree_read_only(destination)
 
     def _load_resume(self) -> tuple[_RevisionState, Path, Path]:
@@ -493,7 +510,7 @@ class SubmissionRevisionController:
         for key, value in self._experiment_identity().items():
             if manifest.get(key) != value:
                 raise RuntimeError(f"resume configuration changed: {key}")
-        if manifest.get("scoring_identity") != self.scoring_identity:
+        if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
             raise RuntimeError("resume scoring identity changed")
         workspace_value = manifest.get("live_workspace_dir")
         if type(workspace_value) is not str or not workspace_value:
@@ -526,7 +543,7 @@ class SubmissionRevisionController:
                 raise
             _remove_tree(live_root, self.experiment_dir)
             live_root = relocated_root
-        self._verify_frozen_rubric()
+        self._verify_initial_bank()
         self._verify_canonical_task_inputs()
         state = self._read_state()
         if state.phase is _RevisionPhase.COMPLETED:
@@ -1008,7 +1025,7 @@ class SubmissionRevisionController:
             if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
                 raise RuntimeError("live workspace changed after the last boundary")
         self._validate_scored_boundaries(state)
-        if manifest.get("scoring_identity") != self.scoring_identity:
+        if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
             raise RuntimeError("revision manifest has the wrong scoring identity")
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
@@ -1123,35 +1140,68 @@ class SubmissionRevisionController:
         submission_dir = self.experiment_dir / "submissions" / submission_id
         _verify_submission_snapshot(submission_dir)
         self._verify_canonical_task_inputs()
-        rubric = self.rubric
-        judge = self.dependencies.judge
-        if self.config.rubric_evolution is not RubricEvolution.STATIC:
-            rubric = self._rubric_version(turn_index)
-            judge = self._judge_for_rubric(rubric, turn_index)
-        if turn_index == 0 and self.reuse_seed_judgment:
-            validation_path, evaluation_path, _ = self.seed.judgment
-            artifacts = JudgeArtifacts(validation_path, evaluation_path)
-        else:
-            artifacts = judge.evaluate(submission_dir, attempt_id)
+        generation = self._active_bank_generation(turn_index)
+        bank = generation.bank
+        review_text, answer_text = self.dependencies.judge.review_inputs(
+            submission_dir
+        )
+        dispatch_preflight = preflight_bank_dispatch(
+            bank,
+            benchmark=self.config.benchmark,
+            review_text=review_text,
+            answer_text=answer_text,
+        )
+        member_artifacts: dict[str, JudgeArtifacts] = {}
+        for item in bank.items:
+            rubric, judge = self._bank_member_runtime(item, turn_index)
+            if (
+                turn_index == 0
+                and item.rubric.content_sha256 == self.initial_rubric.sha256
+                and self.reuse_seed_judgment
+            ):
+                validation_path, evaluation_path, _ = self.seed.judgment
+                artifacts = JudgeArtifacts(validation_path, evaluation_path)
+                seeded = True
+            else:
+                artifacts = judge.evaluate(submission_dir, attempt_id)
+                seeded = False
+            self._verify_round_scoring_identity(
+                artifacts.score_validation_path,
+                rubric,
+                judge,
+                seeded=seeded,
+            )
+            member_artifacts[item.rubric.content_sha256] = artifacts
         self._verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
-        self._verify_round_scoring_identity(
-            artifacts.score_validation_path,
-            rubric,
-            judge,
-            seeded=turn_index == 0 and self.reuse_seed_judgment,
-        )
         feedback = self._project_boundary_feedback(
-            artifacts=artifacts,
-            rubric=rubric,
+            artifacts=member_artifacts,
+            bank=bank,
             submission_id=submission_id,
-            rubric_version=(
-                0 if self.config.rubric_evolution is RubricEvolution.STATIC
-                else turn_index
-            ),
+            generation_round=bank.generation_round,
             submission_dir=submission_dir,
             allow_generation=True,
         )
+        bank_evaluation = self._bank_evaluation_record(
+            bank,
+            member_artifacts,
+            submission_id,
+            dispatch_preflight,
+        )
+        if bank_evaluation["weighted_score"] != feedback.score:
+            raise RuntimeError("bank evaluation and feedback scores disagree")
+        bank_evaluation_path = (
+            self.experiment_dir / "bank-evaluations" / f"{submission_id}.json"
+        )
+        if bank_evaluation_path.exists():
+            if _read_json_object(
+                bank_evaluation_path,
+                "bank evaluation",
+            ) != bank_evaluation:
+                raise RuntimeError("existing bank evaluation changed")
+        else:
+            _write_json_atomic(bank_evaluation_path, bank_evaluation)
+            _make_read_only(bank_evaluation_path)
         fixed_original_score = self._fixed_original_score(
             submission_dir=submission_dir,
             submission_id=submission_id,
@@ -1168,28 +1218,46 @@ class SubmissionRevisionController:
         else:
             _write_json_atomic(feedback_path, feedback.payload)
             _make_read_only(feedback_path)
-        next_rubric: dict[str, object] | None = None
+        next_bank: dict[str, object] | None = None
         if (
-            self.config.rubric_evolution is not RubricEvolution.STATIC
+            self.bank_policy is not RubricBankPolicy.FIXED
             and turn_index < self.config.revision_rounds
         ):
-            assert self.dependencies.evolver is not None
-            workspace = submission_dir / "workspace"
-            current_submission = self.benchmark.render_submission(workspace)
-            evolved = self.dependencies.evolver.evolve(
-                instruction=(self.task_dir / "instruction.md").read_text(),
-                current_rubric=rubric.text,
-                current_submission=current_submission,
-                trajectory_path=submission_dir / "trajectory.stream.jsonl",
-                version=turn_index + 1,
-                source_submission_id=submission_id,
-                output_dir=self.experiment_dir / "rubric",
+            assert self.dependencies.bank_proposer is not None
+            adaptive = (
+                self.bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
             )
-            next_rubric = {
-                "version": turn_index + 1,
-                "sha256": evolved.sha256,
-                "changed": evolved.changed,
-                "source_submission_id": submission_id,
+            next_generation = self.dependencies.bank_proposer.replace_bank(
+                instruction=(self.task_dir / "instruction.md").read_text(),
+                current_bank=bank,
+                policy=self.bank_policy,
+                generation_round=turn_index + 1,
+                current_submission=(
+                    self.benchmark.render_submission(submission_dir / "workspace")
+                    if adaptive
+                    else None
+                ),
+                trajectory_path=(
+                    submission_dir / "trajectory.stream.jsonl" if adaptive else None
+                ),
+                source_boundary=turn_index if adaptive else None,
+                output_dir=self.experiment_dir / "rubric-generations",
+            )
+            next_generation.bank.validate_lineage(bank)
+            persist_rubric_bank(
+                self.experiment_dir,
+                next_generation,
+                self.bank_policy,
+            )
+            next_bank = {
+                "generation_round": next_generation.bank.generation_round,
+                "bank_sha256": next_generation.bank.content_sha256,
+                "rubric_count": next_generation.bank.rubric_count,
+                "effective_sample_size": (
+                    next_generation.bank.effective_sample_size
+                ),
+                "source_boundary": next_generation.bank.source_boundary,
+                "proposer_call_budget": next_generation.proposer_call_budget,
             }
         state.scores.append(feedback.score)
         state.fixed_original_scores.append(fixed_original_score)
@@ -1208,32 +1276,93 @@ class SubmissionRevisionController:
                 "fixed_original_score": fixed_original_score,
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
                 "feedback_sha256": _sha256_file(feedback_path),
-                "rubric_version": (
-                    0 if self.config.rubric_evolution is RubricEvolution.STATIC
-                    else turn_index
-                ),
-                "rubric_sha256": rubric.sha256,
-                "next_rubric": next_rubric,
+                "bank_evaluation_sha256": _sha256_file(bank_evaluation_path),
+                "bank_generation_round": bank.generation_round,
+                "bank_sha256": bank.content_sha256,
+                "bank_member_sha256s": [
+                    item.rubric.content_sha256 for item in bank.items
+                ],
+                "bank_weights": [item.weight for item in bank.items],
+                "next_bank": next_bank,
             }
         )
+
+    def _bank_evaluation_record(
+        self,
+        bank: RubricBank,
+        artifacts: dict[str, JudgeArtifacts],
+        submission_id: str,
+        dispatch_preflight: dict[str, object],
+    ) -> dict[str, object]:
+        if (
+            dispatch_preflight.get("bank_sha256") != bank.content_sha256
+            or dispatch_preflight.get("member_sha256s")
+            != [item.rubric.content_sha256 for item in bank.items]
+        ):
+            raise RuntimeError("bank dispatch preflight has the wrong bank binding")
+        members: dict[str, dict[str, object]] = {}
+        scores: dict[str, float] = {}
+        for item in bank.items:
+            rubric_hash = item.rubric.content_sha256
+            member = artifacts.get(rubric_hash)
+            if member is None:
+                raise RuntimeError("bank evaluation lacks member artifacts")
+            validation = _read_json_object(
+                member.score_validation_path,
+                "bank member score validation",
+            )
+            score = validation.get("score")
+            if type(score) is not int or not 0 <= score <= 100:
+                raise RuntimeError("bank member has an invalid score")
+            if (
+                validation.get("review_input_sha256")
+                != dispatch_preflight.get("review_text_sha256")
+                or validation.get("answer_input_sha256")
+                != dispatch_preflight.get("answer_text_sha256")
+            ):
+                raise RuntimeError(
+                    "bank member score uses a different preflight payload"
+                )
+            scores[rubric_hash] = float(score)
+            members[rubric_hash] = {
+                "weight": item.weight,
+                "score": score,
+                "score_validation_sha256": _sha256_file(
+                    member.score_validation_path
+                ),
+                "evaluation_sha256": _sha256_file(member.evaluation_path),
+            }
+        return {
+            "kind": "weighted-rubric-bank-evaluation",
+            "submission_id": submission_id,
+            "generation_round": bank.generation_round,
+            "bank_sha256": bank.content_sha256,
+            "dispatch_preflight": dispatch_preflight,
+            "members": members,
+            "weighted_score": bank.aggregate(scores),
+        }
 
     def _project_boundary_feedback(
         self,
         *,
-        artifacts: JudgeArtifacts,
-        rubric: FrozenRubric,
+        artifacts: dict[str, JudgeArtifacts],
+        bank: RubricBank,
         submission_id: str,
-        rubric_version: int,
+        generation_round: int,
         submission_dir: Path,
         allow_generation: bool,
     ):
         policy = FeedbackPolicy(self.config.feedback_policy)
         if policy is not FeedbackPolicy.SIMULATED_USER:
-            return project_feedback(
-                artifacts.score_validation_path,
-                artifacts.evaluation_path,
-                rubric.text,
-                rubric.sha256,
+            return project_bank_feedback(
+                bank,
+                {
+                    rubric_hash: (
+                        member.score_validation_path,
+                        member.evaluation_path,
+                    )
+                    for rubric_hash, member in artifacts.items()
+                },
                 policy,
                 prompt_profile=self.config.prompt_profile,
                 benchmark=self.config.benchmark,
@@ -1271,11 +1400,11 @@ class SubmissionRevisionController:
                 experiment_id=self.config.experiment_id,
                 assignment_id=self.config.assignment_id,
                 submission_id=submission_id,
-                rubric_version=rubric_version,
+                generation_round=generation_round,
                 instruction=(self.task_dir / "instruction.md").read_text(
                     encoding="utf-8"
                 ),
-                rubric_text=rubric.text,
+                bank=bank,
                 current_submission=self.benchmark.render_submission(workspace),
             )
             _write_json_atomic(generation_path, generation)
@@ -1285,13 +1414,15 @@ class SubmissionRevisionController:
             experiment_id=self.config.experiment_id,
             assignment_id=self.config.assignment_id,
             submission_id=submission_id,
-            rubric_version=rubric_version,
-            rubric_text=rubric.text,
+            generation_round=generation_round,
+            bank=bank,
         )
-        return project_simulated_user_feedback(
-            artifacts.score_validation_path,
-            rubric.text,
-            rubric.sha256,
+        return project_bank_simulated_user_feedback(
+            bank,
+            {
+                rubric_hash: member.score_validation_path
+                for rubric_hash, member in artifacts.items()
+            },
             comment,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
@@ -1323,38 +1454,56 @@ class SubmissionRevisionController:
                 }
             )
 
-    def _rubric_version(self, version: int) -> FrozenRubric:
-        path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"
-        if version == 0:
-            text = path.read_text(encoding="utf-8")
-            if text != self.rubric.text:
-                raise RuntimeError("base optimizer rubric changed")
-            return self.rubric
-        if path.is_symlink() or not path.is_file():
-            raise RuntimeError(f"evolved rubric version is missing: {path}")
-        text = path.read_text(encoding="utf-8")
-        return self._frozen_evolved_rubric(text, _sha256_file(path))
+    def _active_bank_generation(self, boundary: int) -> RubricBankGeneration:
+        generation_round = (
+            0 if self.bank_policy is RubricBankPolicy.FIXED else boundary
+        )
+        generation = load_rubric_bank(
+            self.experiment_dir,
+            generation_round,
+            expected_policy=self.bank_policy,
+        )
+        if generation_round > 0:
+            prior = load_rubric_bank(
+                self.experiment_dir,
+                generation_round - 1,
+                expected_policy=self.bank_policy,
+            )
+            generation.bank.validate_lineage(prior.bank)
+        return generation
 
     @staticmethod
-    def _frozen_evolved_rubric(text: str, rubric_sha256: str) -> FrozenRubric:
-        """Return the identity used by the judge for a rubric-path override."""
+    def _frozen_bank_member(text: str, rubric_sha256: str) -> FrozenRubric:
+        """Return the judge identity for one immutable bank member."""
         return FrozenRubric(
             text=text, sha256=rubric_sha256, source=RUBRIC_PATH_SOURCE,
             rubric_set_id=None, rubric_id=None,
             structured_rubric_sha256=None, manifest_sha256=None,
         )
 
-    def _judge_for_rubric(
-        self, rubric: FrozenRubric, version: int
-    ) -> FrozenRubricJudge:
-        path = self.experiment_dir / "rubric" / f"r{version:04d}.txt"
+    def _bank_member_runtime(
+        self,
+        item: RubricBankItem,
+        generation_round: int,
+    ) -> tuple[FrozenRubric, object]:
+        if item.rubric.content_sha256 == self.initial_rubric.sha256:
+            return self.initial_rubric, self.dependencies.judge
+        path = (
+            rubric_bank_directory(self.experiment_dir, generation_round)
+            / "members"
+            / f"{item.rubric.content_sha256}.txt"
+        )
+        rubric = self._frozen_bank_member(
+            item.rubric.content,
+            item.rubric.content_sha256,
+        )
         config = replace(
             self.config.judge_config(),
             rubric_name=None,
             rubric_set=None,
             rubric_path=path,
         )
-        return FrozenRubricJudge(config, rubric)
+        return rubric, FrozenRubricJudge(config, rubric)
 
     def _fixed_original_score(
         self,
@@ -1362,13 +1511,16 @@ class SubmissionRevisionController:
         submission_dir: Path,
         submission_id: str,
         turn_index: int,
-        on_policy_score: int,
-    ) -> int:
+        on_policy_score: float,
+    ) -> float:
+        active_bank = self._active_bank_generation(turn_index).bank
         if (
-            self.rubric.sha256 == self.master_rubric.sha256
+            active_bank.rubric_count == 1
+            and active_bank.items[0].rubric.content_sha256
+            == self.master_rubric.sha256
             and (
                 turn_index == 0
-                or self.config.rubric_evolution is RubricEvolution.STATIC
+                or self.bank_policy is RubricBankPolicy.FIXED
             )
         ):
             return on_policy_score
@@ -1437,8 +1589,8 @@ class SubmissionRevisionController:
                 raise RuntimeError("seeded score attests a different rubric")
             return
         if (
-            self.config.rubric_evolution is RubricEvolution.STATIC
-            and rubric.sha256 == self.rubric.sha256
+            self.bank_policy is RubricBankPolicy.FIXED
+            and rubric.sha256 == self.initial_rubric.sha256
         ):
             self._pin_or_verify_scoring_identity(validation_path)
             return
@@ -1460,30 +1612,32 @@ class SubmissionRevisionController:
             attempt_id = state.judge_attempts.get(submission_id)
             if attempt_id is None:
                 raise RuntimeError("scored submission has no judge attempt identity")
-            rubric = self.rubric
-            judge = self.dependencies.judge
-            if index == 0 and self.reuse_seed_judgment:
-                validation_path, evaluation_path, _ = self.seed.judgment
-                artifacts = JudgeArtifacts(validation_path, evaluation_path)
-            else:
-                if self.config.rubric_evolution is not RubricEvolution.STATIC:
-                    rubric = self._rubric_version(index)
-                    judge = self._judge_for_rubric(rubric, index)
-                artifacts = judge.validate(submission_dir, attempt_id)
-            self._verify_round_scoring_identity(
-                artifacts.score_validation_path,
-                rubric,
-                judge,
-                seeded=index == 0 and self.reuse_seed_judgment,
-            )
+            bank = self._active_bank_generation(index).bank
+            member_artifacts: dict[str, JudgeArtifacts] = {}
+            for item in bank.items:
+                rubric, judge = self._bank_member_runtime(item, index)
+                seeded = (
+                    index == 0
+                    and item.rubric.content_sha256 == self.initial_rubric.sha256
+                    and self.reuse_seed_judgment
+                )
+                if seeded:
+                    validation_path, evaluation_path, _ = self.seed.judgment
+                    artifacts = JudgeArtifacts(validation_path, evaluation_path)
+                else:
+                    artifacts = judge.validate(submission_dir, attempt_id)
+                self._verify_round_scoring_identity(
+                    artifacts.score_validation_path,
+                    rubric,
+                    judge,
+                    seeded=seeded,
+                )
+                member_artifacts[item.rubric.content_sha256] = artifacts
             projected = self._project_boundary_feedback(
-                artifacts=artifacts,
-                rubric=rubric,
+                artifacts=member_artifacts,
+                bank=bank,
                 submission_id=submission_id,
-                rubric_version=(
-                    0 if self.config.rubric_evolution is RubricEvolution.STATIC
-                    else index
-                ),
+                generation_round=bank.generation_round,
                 submission_dir=submission_dir,
                 allow_generation=False,
             )
@@ -1495,12 +1649,38 @@ class SubmissionRevisionController:
                 raise RuntimeError(
                     "stored feedback disagrees with validated judge artifacts"
                 )
+            bank_evaluation = _read_json_object(
+                self.experiment_dir
+                / "bank-evaluations"
+                / f"{submission_id}.json",
+                "bank evaluation",
+            )
+            review_text, answer_text = self.dependencies.judge.review_inputs(
+                submission_dir
+            )
+            expected_bank_evaluation = self._bank_evaluation_record(
+                bank,
+                member_artifacts,
+                submission_id,
+                preflight_bank_dispatch(
+                    bank,
+                    benchmark=self.config.benchmark,
+                    review_text=review_text,
+                    answer_text=answer_text,
+                ),
+            )
+            if bank_evaluation != expected_bank_evaluation:
+                raise RuntimeError(
+                    "stored bank evaluation disagrees with member artifacts"
+                )
             fixed_score = state.fixed_original_scores[index]
             if (
-                self.rubric.sha256 == self.master_rubric.sha256
+                bank.rubric_count == 1
+                and bank.items[0].rubric.content_sha256
+                == self.master_rubric.sha256
                 and (
                     index == 0
-                    or self.config.rubric_evolution is RubricEvolution.STATIC
+                    or self.bank_policy is RubricBankPolicy.FIXED
                 )
             ):
                 expected_fixed_score = projected.score
@@ -1601,28 +1781,23 @@ class SubmissionRevisionController:
             submission_dir = self.experiment_dir / "submissions" / submission_id
             attempt_id = state.judge_attempts[submission_id]
             submission_index = int(submission_id[1:])
-            scoring_rubric = (
-                self.rubric
-                if self.config.rubric_evolution is RubricEvolution.STATIC
-                else self._rubric_version(submission_index)
-            )
-            evaluation_workspace = (
-                self.experiment_dir
-                / "evaluations"
-                / submission_id
-                / scoring_rubric.sha256
-                / attempt_id
-                / "run"
-                / "workspace"
-            )
-            # Custom judge implementations may keep their evaluation cache
-            # outside the standard experiment tree. Standard staging is compacted
-            # first so its tree continues to match the submission after both steps.
-            if os.path.lexists(evaluation_workspace):
-                _compact_historical_workspace(
-                    evaluation_workspace,
-                    retained_names=retained_names,
+            bank = self._active_bank_generation(submission_index).bank
+            for item in bank.items:
+                evaluation_workspace = (
+                    self.experiment_dir
+                    / "evaluations"
+                    / submission_id
+                    / item.rubric.content_sha256
+                    / attempt_id
+                    / "run"
+                    / "workspace"
                 )
+                # Custom judges can keep caches outside the standard tree.
+                if os.path.lexists(evaluation_workspace):
+                    _compact_historical_workspace(
+                        evaluation_workspace,
+                        retained_names=retained_names,
+                    )
             stats = _compact_historical_workspace(
                 submission_dir / "workspace",
                 retained_names=retained_names,
@@ -1660,11 +1835,11 @@ class SubmissionRevisionController:
             _make_read_only(submission_dir)
         return removed_files, removed_logical_bytes
 
-    def _persist_rubric(self) -> None:
-        self.store.persist_rubric()
+    def _persist_initial_bank(self) -> None:
+        self.store.persist_initial_bank()
 
-    def _verify_frozen_rubric(self) -> None:
-        self.store.verify_frozen_rubric()
+    def _verify_initial_bank(self) -> None:
+        self.store.verify_initial_bank()
 
     def _write_state(self, state: _RevisionState) -> None:
         self.store.write_state(state)

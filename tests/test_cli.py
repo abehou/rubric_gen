@@ -105,6 +105,18 @@ def test_detect_forwards_the_experiment_to_detection_suite(
     assert observed["max_concurrency"] == 3
 
 
+def test_cli_experiment_routing_rejects_duplicate_yaml_keys(tmp_path) -> None:
+    path = tmp_path / "experiment.yaml"
+    path.write_text(
+        "kind: rubric-gen-randomized-experiment\n"
+        "kind: rubric-gen-randomized-experiment\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="duplicate YAML key: kind"):
+        unified_cli.main(["detect", "--experiment", str(path)])
+
+
 def test_run_accepts_restart() -> None:
     args = build_parser().parse_args([
         "run",

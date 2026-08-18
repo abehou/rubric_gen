@@ -1,5 +1,8 @@
 # Task-Specific Frozen Process Rubrics
 
+> Historical design record. Its commands, package paths, and artifact formats
+> were removed. Do not use this document as current guidance.
+
 **Date:** 2026-07-12
 
 **Status:** Implemented on 2026-07-13

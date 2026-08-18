@@ -7,13 +7,17 @@ import os
 from pathlib import Path
 
 from .artifacts import (
-    make_read_only,
     read_json_object,
-    sha256_file,
 )
 from rubric_gen.artifacts.serialization import write_json_atomic
 from .judge import SCORING_IDENTITY_KEYS
 from .models import RevisionState
+from .rubric_bank import (
+    RubricBankGeneration,
+    RubricBankPolicy,
+    load_rubric_bank,
+    persist_rubric_bank,
+)
 
 
 SEED_SCORING_CONTRACT_KEYS = (
@@ -21,6 +25,9 @@ SEED_SCORING_CONTRACT_KEYS = (
     "judge_runner_sha256",
     "scorer_module_sha256",
     "effective_judge_model",
+    "judge_api_base",
+    "benchmark",
+    "grading_engine",
     "review_mode",
     "max_review_chars",
     "rubric_source",
@@ -29,6 +36,18 @@ SEED_SCORING_CONTRACT_KEYS = (
     "structured_rubric_sha256",
     "rendered_rubric_sha256",
     "manifest_sha256",
+)
+
+JUDGE_EXECUTION_CONTRACT_KEYS = (
+    "judge_source_sha256",
+    "judge_runner_sha256",
+    "scorer_module_sha256",
+    "effective_judge_model",
+    "judge_api_base",
+    "benchmark",
+    "grading_engine",
+    "review_mode",
+    "max_review_chars",
 )
 
 
@@ -54,6 +73,17 @@ def extract_seed_scoring_contract(
     return {key: identity[key] for key in SEED_SCORING_CONTRACT_KEYS}
 
 
+def extract_judge_execution_contract(
+    payload: dict[str, object],
+    *,
+    context: str,
+) -> dict[str, object]:
+    """Return the exact non-rubric judge execution identity."""
+
+    identity = extract_scoring_identity(payload, context=context)
+    return {key: identity[key] for key in JUDGE_EXECUTION_CONTRACT_KEYS}
+
+
 class RevisionStore:
     """Persist and verify one revision experiment's durable control state."""
 
@@ -61,13 +91,13 @@ class RevisionStore:
         self,
         experiment_dir: Path,
         *,
-        rubric_text: str,
-        rubric_sha256: str,
+        initial_bank: RubricBankGeneration,
+        bank_policy: RubricBankPolicy,
         scoring_identity: dict[str, object],
     ) -> None:
         self.experiment_dir = experiment_dir
-        self.rubric_text = rubric_text
-        self.rubric_sha256 = rubric_sha256
+        self.initial_bank = initial_bank
+        self.bank_policy = bank_policy
         self.scoring_identity = dict(scoring_identity)
 
     @property
@@ -78,24 +108,21 @@ class RevisionStore:
     def state_path(self) -> Path:
         return self.experiment_dir / "state.json"
 
-    def persist_rubric(self) -> None:
-        rubric_path = self.experiment_dir / "rubric" / "r0000.txt"
-        if rubric_path.is_file():
-            if sha256_file(rubric_path) != self.rubric_sha256:
-                raise RuntimeError("persisted optimizer rubric changed")
-            return
-        if os.path.lexists(rubric_path):
-            raise RuntimeError("optimizer rubric path is not a regular file")
-        rubric_path.parent.mkdir()
-        rubric_path.write_text(self.rubric_text)
-        make_read_only(rubric_path)
+    def persist_initial_bank(self) -> None:
+        persist_rubric_bank(
+            self.experiment_dir,
+            self.initial_bank,
+            self.bank_policy,
+        )
 
-    def verify_frozen_rubric(self) -> None:
-        rubric_path = self.experiment_dir / "rubric" / "r0000.txt"
-        if rubric_path.is_symlink() or not rubric_path.is_file():
-            raise RuntimeError("persisted optimizer rubric is missing")
-        if rubric_path.read_text(encoding="utf-8") != self.rubric_text:
-            raise RuntimeError("persisted optimizer rubric changed")
+    def verify_initial_bank(self) -> None:
+        persisted = load_rubric_bank(
+            self.experiment_dir,
+            0,
+            expected_policy=self.bank_policy,
+        )
+        if persisted != self.initial_bank:
+            raise RuntimeError("persisted initial rubric bank changed")
 
     def write_state(self, state: RevisionState) -> None:
         write_json_atomic(self.state_path, state.as_json())
@@ -141,7 +168,7 @@ class RevisionStore:
             context="optimizer score validation",
         )
         manifest = read_json_object(self.manifest_path, "revision manifest")
-        if manifest.get("scoring_identity") != self.scoring_identity:
+        if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
             raise RuntimeError("optimizer scoring identity changed in the manifest")
         if identity != self.scoring_identity:
             raise RuntimeError("optimizer scoring identity changed during revision")

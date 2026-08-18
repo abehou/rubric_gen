@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from rubric_gen.runtime.yaml import load_yaml_strict
+
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
@@ -239,7 +241,7 @@ def _audit(value: object) -> RewardHackingAudit:
 def load_experiment(path: Path) -> HarveyExperiment:
     source = path.resolve(strict=True)
     try:
-        raw = yaml.safe_load(source.read_text(encoding="utf-8"))
+        raw = load_yaml_strict(source.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         raise ValueError(f"invalid Harvey experiment YAML: {source}") from exc
     data = _object(raw, "experiment")

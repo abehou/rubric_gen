@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
+from numbers import Real
 from pathlib import Path
 
 from rubric_gen.submission_revision.prompts import PromptProfile, revision_guidance
@@ -16,6 +19,7 @@ from rubric_gen.submission_revision.judging.scoring import (
 )
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
+from rubric_gen.submission_revision.rubric_bank import RubricBank
 
 
 class FeedbackPolicy(str, Enum):
@@ -34,7 +38,7 @@ MAX_SIMULATED_USER_COMMENT_CHARS = 6_000
 class ProjectedFeedback:
     """Canonical feedback record and the corresponding solver message."""
 
-    score: int
+    score: float
     payload: dict[str, object]
     prompt: str
 
@@ -63,7 +67,7 @@ def render_feedback_prompt(
     revision_action = get_submission_benchmark(benchmark).revision_action
 
     if policy is FeedbackPolicy.SIMULATED_USER:
-        if set(payload) != {"policy", "comment"}:
+        if set(payload) != {"policy", "comment", "bank_sha256"}:
             raise ValueError("simulated-user feedback contains unexpected fields")
         comment = payload.get("comment")
         if (
@@ -88,16 +92,17 @@ def render_feedback_prompt(
         return prompt
 
     score = payload.get("score")
-    if type(score) is not int:
+    if isinstance(score, bool) or not isinstance(score, Real):
         raise ValueError("feedback payload has an invalid score")
-    if not 0 <= score <= 100:
+    score = float(score)
+    if not math.isfinite(score) or not 0 <= score <= 100:
         raise ValueError("feedback score must be between 0 and 100")
     if policy is FeedbackPolicy.SCORE_ONLY:
-        if set(payload) != {"policy", "score"}:
+        if set(payload) != {"policy", "score", "bank_sha256"}:
             raise ValueError("score-only feedback contains unexpected fields")
         prompt = (
             f"Your previous submission received a validated total score of "
-            f"{score}/100. Continue in the same workspace and revise the "
+            f"{score:g}/100. Continue in the same workspace and revise the "
             f"solution to improve it. {revision_action}"
         )
         guidance = revision_guidance(resolved_profile)
@@ -109,31 +114,16 @@ def render_feedback_prompt(
         expected_keys = {
             "policy",
             "score",
-            "raw_score",
-            "criteria",
+            "bank_sha256",
+            "members",
         }
         if set(payload) != expected_keys:
             raise ValueError("semi feedback contains unexpected fields")
-        if type(payload.get("raw_score")) is not int or type(
-            payload.get("criteria")
-        ) is not dict:
+        if type(payload.get("members")) is not dict:
             raise ValueError("semi feedback contains invalid fields")
-        for criterion in payload["criteria"].values():
-            if type(criterion) is not dict or set(criterion) != {
-                "title",
-                "selected_level",
-                "points",
-                "maximum_points",
-            }:
-                raise ValueError("semi feedback contains an invalid criterion")
-            if (
-                type(criterion.get("title")) is not str
-                or not criterion["title"]
-                or type(criterion.get("selected_level")) is not str
-                or type(criterion.get("points")) is not int
-                or type(criterion.get("maximum_points")) is not int
-            ):
-                raise ValueError("semi feedback contains invalid criterion fields")
+        aggregate = _validate_bank_members(payload["members"], policy)
+        if not math.isclose(score, aggregate, rel_tol=0.0, abs_tol=1e-12):
+            raise ValueError("semi feedback score differs from member aggregate")
         prompt = (
             "Your previous submission received the validated score breakdown "
             "below. Continue in the same workspace and revise the solution to "
@@ -150,34 +140,19 @@ def render_feedback_prompt(
 
     expected_keys = {
         "policy",
-        "rubric_text",
         "score",
-        "raw_score",
-        "criteria",
-        "overall_reasoning",
+        "bank_sha256",
+        "members",
     }
     if set(payload) != expected_keys:
         raise ValueError("full feedback contains unexpected fields")
     if (
-        type(payload.get("rubric_text")) is not str
-        or type(payload.get("raw_score")) is not int
-        or type(payload.get("criteria")) is not dict
-        or type(payload.get("overall_reasoning")) is not str
+        type(payload.get("members")) is not dict
     ):
         raise ValueError("full feedback contains invalid fields")
-    for criterion in payload["criteria"].values():
-        if type(criterion) is not dict or set(criterion) != {
-            "selected_level",
-            "points",
-            "judge_reason",
-        }:
-            raise ValueError("full feedback contains an invalid criterion")
-        if (
-            type(criterion.get("selected_level")) is not str
-            or type(criterion.get("points")) is not int
-            or type(criterion.get("judge_reason")) is not str
-        ):
-            raise ValueError("full feedback contains invalid criterion fields")
+    aggregate = _validate_bank_members(payload["members"], policy)
+    if not math.isclose(score, aggregate, rel_tol=0.0, abs_tol=1e-12):
+        raise ValueError("full feedback score differs from member aggregate")
     prompt = (
         "Continue in the same workspace and revise your current solution using "
         f"the feedback below. {revision_action} Judge "
@@ -192,7 +167,156 @@ def render_feedback_prompt(
     )
 
 
-def project_feedback(
+def _validate_bank_members(value: object, policy: FeedbackPolicy) -> float:
+    if not isinstance(value, dict) or not value:
+        raise ValueError("bank feedback must contain members")
+    for rubric_hash, member in value.items():
+        if (
+            type(rubric_hash) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", rubric_hash) is None
+            or not isinstance(member, dict)
+        ):
+            raise ValueError("bank feedback contains an invalid member")
+        expected = {"weight", "score", "raw_score", "criteria"}
+        if policy is FeedbackPolicy.FULL:
+            expected |= {"rubric_text", "overall_reasoning"}
+        if set(member) != expected:
+            raise ValueError("bank feedback contains invalid member fields")
+        weight = member.get("weight")
+        member_score = member.get("score")
+        if (
+            isinstance(weight, bool)
+            or not isinstance(weight, Real)
+            or not math.isfinite(float(weight))
+            or float(weight) <= 0
+            or type(member_score) is not int
+            or not 0 <= member_score <= 100
+            or type(member.get("raw_score")) is not int
+            or type(member.get("criteria")) is not dict
+        ):
+            raise ValueError("bank feedback contains invalid member values")
+        if policy is FeedbackPolicy.FULL and (
+            type(member.get("rubric_text")) is not str
+            or type(member.get("overall_reasoning")) is not str
+        ):
+            raise ValueError("bank feedback contains invalid full member values")
+    weights = [float(member["weight"]) for member in value.values()]
+    if not math.isclose(math.fsum(weights), 1.0, rel_tol=0.0, abs_tol=1e-12):
+        raise ValueError("bank feedback member weights must sum to 1")
+    return math.fsum(
+        float(member["weight"]) * float(member["score"])
+        for member in value.values()
+    )
+
+
+def project_bank_feedback(
+    bank: RubricBank,
+    artifacts: Mapping[str, tuple[Path, Path]],
+    policy: FeedbackPolicy,
+    *,
+    max_reason_chars: int = 2_000,
+    prompt_profile: PromptProfile | str = PromptProfile.BASE,
+    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+) -> ProjectedFeedback:
+    """Project exact member evaluations and their weighted bank aggregate."""
+
+    resolved_policy = FeedbackPolicy(policy)
+    if resolved_policy is FeedbackPolicy.SIMULATED_USER:
+        raise ValueError("use project_bank_simulated_user_feedback")
+    expected_hashes = {item.rubric.content_sha256 for item in bank.items}
+    if set(artifacts) != expected_hashes:
+        raise ValueError("judge artifacts must match the rubric bank exactly")
+    member_payloads: dict[str, dict[str, object]] = {}
+    member_scores: dict[str, float] = {}
+    for item in bank.items:
+        rubric_hash = item.rubric.content_sha256
+        validation_path, evaluation_path = artifacts[rubric_hash]
+        projected = _project_member_feedback(
+            validation_path,
+            evaluation_path,
+            item.rubric.content,
+            rubric_hash,
+            resolved_policy,
+            max_reason_chars=max_reason_chars,
+            prompt_profile=prompt_profile,
+            benchmark=benchmark,
+        )
+        member_scores[rubric_hash] = projected.score
+        if resolved_policy is not FeedbackPolicy.SCORE_ONLY:
+            member = dict(projected.payload)
+            member.pop("policy")
+            member["weight"] = item.weight
+            member_payloads[rubric_hash] = member
+    score = bank.aggregate(member_scores)
+    payload: dict[str, object] = {
+        "policy": resolved_policy.value,
+        "score": score,
+        "bank_sha256": bank.content_sha256,
+    }
+    if resolved_policy is not FeedbackPolicy.SCORE_ONLY:
+        payload["members"] = member_payloads
+    return ProjectedFeedback(
+        score=score,
+        payload=payload,
+        prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
+    )
+
+
+def project_bank_simulated_user_feedback(
+    bank: RubricBank,
+    score_validation_paths: Mapping[str, Path],
+    comment: str,
+    *,
+    prompt_profile: PromptProfile | str = PromptProfile.BASE,
+    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+) -> ProjectedFeedback:
+    """Pair a sealed user comment with the weighted validated bank score."""
+
+    expected_hashes = {item.rubric.content_sha256 for item in bank.items}
+    if set(score_validation_paths) != expected_hashes:
+        raise ValueError("score validations must match the rubric bank exactly")
+    scores: dict[str, float] = {}
+    for item in bank.items:
+        validation = _load_object(
+            score_validation_paths[item.rubric.content_sha256],
+            "score validation",
+        )
+        score, _, _, _ = _validate_score_record(
+            validation,
+            item.rubric.content,
+            item.rubric.content_sha256,
+        )
+        scores[item.rubric.content_sha256] = score
+    score = bank.aggregate(scores)
+    payload: dict[str, object] = {
+        "policy": FeedbackPolicy.SIMULATED_USER.value,
+        "comment": comment,
+        "bank_sha256": bank.content_sha256,
+    }
+    return ProjectedFeedback(
+        score=score,
+        payload=payload,
+        prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
+    )
+
+
+def render_rubric_bank(bank: RubricBank) -> str:
+    """Render a bank with explicit member hashes and weights."""
+
+    parts = [f"Complete rubric bank: {bank.content_sha256}"]
+    for index, item in enumerate(bank.items, start=1):
+        parts.extend((
+            "",
+            f"Member {index}",
+            f"Rubric SHA-256: {item.rubric.content_sha256}",
+            f"Weight: {item.weight:.17g}",
+            "",
+            item.rubric.content.rstrip(),
+        ))
+    return "\n".join(parts) + "\n"
+
+
+def _project_member_feedback(
     score_validation_path: Path,
     evaluation_path: Path,
     rubric_text: str,
@@ -226,11 +350,7 @@ def project_feedback(
             "policy": resolved_policy.value,
             "score": score,
         }
-        return ProjectedFeedback(
-            score=score,
-            payload=payload,
-            prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
-        )
+        return ProjectedFeedback(score=score, payload=payload, prompt="")
 
     if resolved_policy is FeedbackPolicy.SEMI:
         rubric_levels = parse_rubric_levels_strict(rubric_text)
@@ -254,11 +374,7 @@ def project_feedback(
                 for criterion_id in sorted(selected_levels)
             },
         }
-        return ProjectedFeedback(
-            score=score,
-            payload=payload,
-            prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
-        )
+        return ProjectedFeedback(score=score, payload=payload, prompt="")
 
     if type(max_reason_chars) is not int or max_reason_chars < 0:
         raise ValueError("max_reason_chars must be a non-negative integer")
@@ -272,36 +388,7 @@ def project_feedback(
         criterion_scores=criterion_scores,
         max_reason_chars=max_reason_chars,
     )
-    prompt = render_feedback_prompt(payload, prompt_profile, benchmark)
-    return ProjectedFeedback(score=score, payload=payload, prompt=prompt)
-
-
-def project_simulated_user_feedback(
-    score_validation_path: Path,
-    rubric_text: str,
-    expected_rubric_sha256: str,
-    comment: str,
-    *,
-    prompt_profile: PromptProfile | str = PromptProfile.BASE,
-    benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
-) -> ProjectedFeedback:
-    """Pair a sealed LLM user comment with its independently validated score."""
-
-    validation = _load_object(score_validation_path, "score validation")
-    score, _, _, _ = _validate_score_record(
-        validation,
-        rubric_text,
-        expected_rubric_sha256,
-    )
-    payload: dict[str, object] = {
-        "policy": FeedbackPolicy.SIMULATED_USER.value,
-        "comment": comment,
-    }
-    return ProjectedFeedback(
-        score=score,
-        payload=payload,
-        prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
-    )
+    return ProjectedFeedback(score=score, payload=payload, prompt="")
 
 
 def _criterion_summaries(

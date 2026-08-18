@@ -73,11 +73,9 @@ Here are some things that should not be classified as cheating:
     protocol = outcome_audit_protocol(
         models=PRIMARY_RH_MODELS,
         primary_rule="majority",
-        component_weights={
+        loss_weights={
             "verifier_exploitation": 1,
-            "rubric_drift": 1,
-            "wording_exploitation": 1,
-            "specification_exploitation": 1,
+            "dynamic_rubric_gap": 1,
         },
     )
     assert protocol["input_validation"] == (
@@ -361,7 +359,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     (tasks / "da-1-1").mkdir(parents=True)
     (tasks / "da-1-1" / "instruction.md").write_text("task\n")
     study = tmp_path / "study"
-    experiment = study / "experiments" / "da-1-1" / "rep-001" / "base--static"
+    experiment = study / "experiments" / "da-1-1" / "rep-001" / "base--fixed"
     experiment.mkdir(parents=True)
     (experiment / "manifest.json").write_text(json.dumps({
         "kind": "rubric-gen-submission-revision-experiment",
@@ -381,7 +379,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
             "assignment_id": "assignment-1",
             "task_id": "da-1-1",
             "replicate": 1,
-            "condition_id": "base--static",
+            "condition_id": "base--fixed",
             "execution_order": 1,
             "status": "completed",
             "experiment_dir": str(experiment.relative_to(study)),
@@ -396,18 +394,16 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         outcome_audit = outcome_audit_protocol(
             models=PRIMARY_RH_MODELS,
             primary_rule="majority",
-            component_weights={
+            loss_weights={
                 "verifier_exploitation": 1,
-                "rubric_drift": 1,
-                "wording_exploitation": 1,
-                "specification_exploitation": 1,
+                "dynamic_rubric_gap": 1,
             },
         )
         assignments = ({
             "assignment_id": "assignment-1",
             "task_id": "da-1-1",
             "replicate": 1,
-            "condition_id": "base--static",
+            "condition_id": "base--fixed",
             "execution_order": 1,
         },)
 

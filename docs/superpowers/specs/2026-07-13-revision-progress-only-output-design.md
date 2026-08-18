@@ -1,5 +1,8 @@
 # Revision Progress-Only Output
 
+> Historical design record. The named CLI and workflow were removed. Do not use
+> this document as current guidance.
+
 ## Goal
 
 Make `biomnibench-agent revise` display only its progress bar during a normal

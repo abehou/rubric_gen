@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import hashlib
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,10 @@ SCORE_INPUT_ATTESTATION_KEYS = {
     "judge_runner_sha256",
     "scorer_module_sha256",
     "effective_judge_model",
+    "judge_api_base",
+    "benchmark",
+    "grading_engine",
+    "engine_execution",
     "review_mode",
     "max_review_chars",
     "task",
@@ -44,9 +49,30 @@ SCORE_VALIDATION_KEYS = {
     "reward_sha256",
     "evaluation_sha256",
     "usage_sha256",
+    "engine_metrics",
 } | SCORE_INPUT_ATTESTATION_KEYS
 
 _SAFE_BASENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+
+
+class GradingEngine(str, Enum):
+    """The one preregistered scoring instrument for each benchmark."""
+
+    AUTORUBRIC_CRITERION = "autorubric-criterion"
+    PAPERBENCH_STRUCTURED = "paperbench-structured"
+
+
+def grading_engine_for_benchmark(
+    benchmark: SubmissionBenchmarkId | str,
+) -> GradingEngine:
+    """Return the fixed engine. No selector or runtime fallback exists."""
+
+    resolved = SubmissionBenchmarkId(benchmark)
+    if resolved is SubmissionBenchmarkId.BIOMNIBENCH_DA:
+        return GradingEngine.AUTORUBRIC_CRITERION
+    if resolved is SubmissionBenchmarkId.PAPERBENCH_CODE_DEV:
+        return GradingEngine.PAPERBENCH_STRUCTURED
+    raise ValueError(f"no grading engine is registered for {resolved.value}")
 
 
 def safe_basename(value: object, context: str) -> str:
@@ -88,7 +114,6 @@ class JudgeRunConfig:
     model: str | None = None
     base_url: str | None = None
     output_path: Path | None = None
-    judge_name: str | None = None
     rubric_name: str | None = None
     rubric_set: Path | None = None
     rubric_path: Path | None = None
@@ -107,8 +132,6 @@ class JudgeRunConfig:
             self.rubric_name, self.rubric_set, self.rubric_path
         )) > 1:
             raise ValueError("rubric_name, rubric_set, and rubric_path are mutually exclusive")
-        if self.judge_name is not None:
-            safe_basename(self.judge_name, "judge_name")
         if self.rubric_name is not None:
             safe_basename(self.rubric_name, "rubric_name")
 
@@ -146,7 +169,6 @@ class JudgeRunConfig:
             review=getattr(args, "review", "trace"),
             model=getattr(args, "model", None),
             output_path=resolve_project_path(output) if output else None,
-            judge_name=getattr(args, "judge_name", None),
             rubric_name=getattr(args, "rubric", None),
             rubric_set=(
                 resolve_project_path(getattr(args, "rubric_set"))

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.runtime.paths import PROJECT_ROOT
+from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
 
 EXCLUDED_SOLUTION_NAMES = frozenset(
@@ -62,22 +63,20 @@ REVISION_MANIFEST_KEYS = frozenset(
         "model",
         "master_rubric_name",
         "master_rubric_sha256",
-        "optimizer_rubric_path",
+        "initial_rubric_path",
+        "initial_bank_sha256",
+        "initial_bank_member_count",
         "prompt",
         "provider",
         "reasoning_effort",
         "replicate",
         "review",
         "revision_rounds",
-        "rubric_evolution",
-        "rubric_auditor_model",
-        "rubric_auditor_base_url",
-        "rubric_auditor_query_limit",
+        "rubric_policy",
         "rubric_proposer_model",
         "rubric_proposer_base_url",
         "rubric_proposer_max_retries",
-        "rubric_sha256",
-        "scoring_identity",
+        "initial_member_scoring_identity",
         "seed_run_dir",
         "seed_sha256",
         "service_tier",
@@ -343,8 +342,8 @@ def remove_owned_evaluation_tree(root: Path, evaluations_dir: Path) -> None:
 
 def read_json_object(path: Path, context: str) -> dict[str, object]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        value = load_json_strict(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
         raise RuntimeError(f"{context} is not valid JSON: {path}") from exc
     if type(value) is not dict:
         raise RuntimeError(f"{context} must be a JSON object: {path}")

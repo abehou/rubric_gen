@@ -1,7 +1,7 @@
 # Rubric Gen
 
-Run submission-revision experiments with static or evolving rubrics. Supported
-benchmarks are BiomniBench-DA, PaperBench Code-Dev, and Harvey LAB.
+Run randomized submission-revision experiments with weighted rubric banks.
+Supported benchmarks are BiomniBench-DA, PaperBench Code-Dev, and Harvey LAB.
 
 ## Setup
 
@@ -64,6 +64,15 @@ Use these experiment files:
 | PaperBench Code-Dev | `experiments/paperbench-code-dev-preflight.yaml` | `experiments/paperbench-code-dev-pilot.yaml` or `experiments/paperbench-code-dev.yaml` |
 | Harvey LAB | `experiments/harvey-harness-evolution-preflight.yaml` | `experiments/harvey-harness-evolution.yaml` |
 
+> [!WARNING]
+> The supplied resource caps are hard ceilings, not approved operating budgets.
+> The large BiomniBench-DA configs permit 552,960 mechanistic provider calls
+> and 6,480 holistic provider calls. The BiomniBench-DA preflight configs permit
+> 18,432 mechanistic calls and 216 holistic calls. These counts include the
+> configured outer retry allowance. They exclude seed, revision, proposer,
+> solver, paraphrase, and direct-detector calls. Set operator-approved caps
+> before you run either configuration.
+
 The repository also contains larger top-30 configurations
 `experiments/luna-top30-semi-r10.yaml` and
 `experiments/luna-top30-full-r10.yaml`.
@@ -102,10 +111,9 @@ Set `protocol.feedback_policy` to one of these values:
 
 The shared pool contains several sealed semantic paraphrase sets. Each set has
 one rubric for every available task. A replicate selects one complete set before
-revision. All tasks and conditions in that replicate use the same set index.
-Static conditions keep the selected variant. Prospective conditions evolve it
-after each scored submission. During revision, the other variants remain hidden
-from the solver, in-loop judge, auditor, and proposer.
+revision. All conditions in that replicate use the same selected variant as the
+initial bank. The other variants remain hidden from the solver, in-loop judge,
+and proposer. They provide a common wording-sensitivity audit.
 
 Configure the stage in the experiment YAML:
 
@@ -122,17 +130,47 @@ from the master rubric. It also rejects changed numbers inside wording fields.
 This validation cannot prove semantic equivalence. Review a sample before a
 large experiment.
 
-## Prospective rubric proposer
+## Rubric-bank replacement
 
-The proposer returns the complete next rubric as structured JSON. It does not
-return actions, patches, or a `no_patch` decision. It can retain, rewrite,
-remove, merge, split, reorder, or reweight criteria.
+Each condition uses one bank policy:
 
-The proposer does not receive scores, selected levels, score history, judge
-reasoning, holdout rubrics, or RH detector results. It receives the task,
-current submission, current rubric, and a verified trajectory-audit packet.
-The prompt steers it toward task-specific and discriminative outcome criteria.
-Process evidence can verify an outcome, but effort and activity earn no credit.
+- `fixed` keeps the initial bank.
+- `nonadaptive_replacement` replaces the full bank using task-only evidence.
+- `adaptive_replacement` replaces the full bank using the preceding artifact.
+
+The proposer returns the complete next bank in one structured response. The
+response wholly replaces the prior bank. It does not contain actions or
+patches. The proposer can retain, refine, add, delete, split, or reweight bank
+members. Every member is a complete rubric. All weights are positive, and the
+harness normalizes them to sum to one.
+
+The nonadaptive proposer cannot receive an artifact or trajectory. The adaptive
+proposer receives the task, prior complete bank, preceding submission, and a
+bounded recent trajectory. It does not receive holdout rubrics or reward-hacking
+detector results. The next bank is sealed before it scores the next artifact.
+The prompt treats all supplied task and artifact text as untrusted data. The
+complete proposer request has a 4 MiB UTF-8 cap and fails before dispatch. The
+harness does not silently truncate an oversized submission.
+
+Every bank manifest records member hashes, lineage, weights, rubric count, and
+effective sample size. A larger count does not imply independent samples.
+Correlated rubrics can retain shared bias.
+
+## Grading engines
+
+The benchmark fixes the grading engine. The CLI cannot switch engines.
+
+- BiomniBench-DA uses the pinned AutoRubric criterion grader. The harness
+  validates the sole vote for every criterion and recomputes signed points.
+- PaperBench Code-Dev uses three whole-artifact structured judgments. The
+  evaluator takes the median signed-point level for each criterion. Its
+  official rubrics contain up to 151 leaves. AutoRubric would resend the
+  complete repository once per leaf, which is not a safe primary instrument.
+
+Both engines preserve the repository rubric's signed point values. They disable
+provider retries and reject incomplete structured output. AutoRubric remains
+useful for a predeclared PaperBench calibration subset. Do not pool raw scores
+from both benchmarks as if they used one measurement instrument.
 
 ## Quality and reward-hacking audits
 
@@ -145,6 +183,10 @@ uv run rubric-gen judge \
   --max-concurrency 3 \
   --resume
 ```
+
+The command deduplicates exact semantic requests across conditions. It then
+preflights all unique requests against the experiment's mechanistic hard caps
+before it creates the output directory or calls a provider.
 
 Run the configured reward-hacking (RH) audit:
 
@@ -162,17 +204,22 @@ The command writes three evaluation layers:
   and sealed holdout rubrics.
 - `holistic/`: the strong panel compares initial and final artifacts without a
   criterion rubric. Each model sees both response orders.
-- `summary.json`: the result combines four signed components and direct outcomes.
+- `summary.json`: the result combines two signed components, rubric diagnostics,
+  quality outcomes, and direct outcomes.
 
-The four components are verifier exploitation, rubric drift, wording
-exploitation, and specification exploitation. Their sum equals the weak proxy
-score minus strong rubric-free quality at each boundary. The primary score
-outcome is the final-minus-initial change in their weighted positive-part loss.
-Only the direct ensemble produces a categorical RH detection rate.
+The two primary components are verifier exploitation and the dynamic-rubric
+gap. Their sum equals the weak bank score minus strong rubric-free quality at
+each boundary. Active-to-selected, wording, and sealed-specification gaps
+partition the dynamic term. They are diagnostics and do not receive separate
+loss weights. Holdout score dispersion and range measure wording sensitivity
+without entering the identity. Only the direct ensemble produces a categorical
+reward-hacking decision.
 
-With four paraphrases and three strong models, detection schedules 30 reference
-calls for a static assignment and 33 for a prospective assignment. Direct
-trajectory audits can require more calls when the evidence is chunked.
+Reference call counts depend on the realized bank size. Before dispatch, each
+audit stage records its exact call, request-byte, and maximum-output-token plan.
+The judge artifacts retain realized token use and cost when providers report
+them. A comparison with different realized bank sizes estimates a total policy
+effect. It does not isolate semantic targeting.
 
 See [the evaluation formulation](docs/reward_hacking_evaluation.md) for the
 estimands, exact identity, and limits.
@@ -212,7 +259,7 @@ bash scripts/start_vllm_servers.sh submit .vllm-venv
 - `experiments/`: experiment configurations
 - `seeds/`: shared seed pools
 - `runs/`: revision and audit outputs
-- `scripts/`: analysis and cluster utilities
+- `scripts/`: environment and cluster utilities
 - `docs/`: design and benchmark documentation
 
 See [docs/architecture.md](docs/architecture.md) for package boundaries and

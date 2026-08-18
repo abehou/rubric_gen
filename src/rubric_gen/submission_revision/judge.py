@@ -14,6 +14,7 @@ from rubric_gen.submission_revision.judging.models import (
     JudgeRunConfig,
     JudgeTarget,
     RUBRIC_PATH_SOURCE,
+    grading_engine_for_benchmark,
 )
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
@@ -35,6 +36,9 @@ SCORING_IDENTITY_KEYS = (
     "judge_runner_sha256",
     "scorer_module_sha256",
     "effective_judge_model",
+    "judge_api_base",
+    "benchmark",
+    "grading_engine",
     "review_mode",
     "max_review_chars",
     "rubric_source",
@@ -54,6 +58,8 @@ class JudgeArtifacts:
 
 class SubmissionJudge(Protocol):
     def scoring_identity(self) -> dict[str, object]: ...
+
+    def review_inputs(self, submission_dir: Path) -> tuple[str, str]: ...
 
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts: ...
 
@@ -122,6 +128,11 @@ class FrozenRubricJudge:
             "judge_runner_sha256": runner.judge_runner_sha256(),
             "scorer_module_sha256": runner.scorer_module_sha256(),
             "effective_judge_model": runner.judge_model(os.environ.copy()),
+            "judge_api_base": self.config.base_url,
+            "benchmark": self.config.benchmark.value,
+            "grading_engine": grading_engine_for_benchmark(
+                self.config.benchmark
+            ).value,
             "review_mode": self.config.review,
             "max_review_chars": self.config.max_review_chars,
             "rubric_source": self.rubric.source,
@@ -131,6 +142,12 @@ class FrozenRubricJudge:
             "rendered_rubric_sha256": self.rubric.sha256,
             "manifest_sha256": self.rubric.manifest_sha256,
         }
+
+    def review_inputs(self, submission_dir: Path) -> tuple[str, str]:
+        """Return the exact immutable review payload without running the judge."""
+
+        runner, target = self._runner_and_target(submission_dir)
+        return runner.review_inputs(target)
 
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         evaluation_root = self._evaluation_root(submission_dir, attempt_id)

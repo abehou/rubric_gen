@@ -112,13 +112,16 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
     max_output_tokens = int(study.protocol["max_output_tokens"])
     max_event_text_chars = int(study.protocol["max_event_text_chars"])
     max_command_output_chars = int(study.protocol["max_command_output_chars"])
-    max_cost_usd = float(study.protocol["max_cost_usd"])
+    direct_detector_max_cost_usd = float(
+        study.protocol["direct_detector_max_cost_usd"]
+    )
     execution = str(study.protocol["execution"])
     mode = "vllm" if config.base_urls else "ensemble"
     identity = (
         f"{mode}--detect-{config.detection}--source-{study.experiment_id}"
         f"--mc-{config.max_concurrency}"
-        f"--mi-{max_input_tokens}--budget-{max_cost_usd:g}"
+        f"--mi-{max_input_tokens}"
+        f"--direct-budget-{direct_detector_max_cost_usd:g}"
         f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
         f"--mco-{max_command_output_chars}"
         f"--exec-{execution}--primary-{primary_rule}"
@@ -147,7 +150,7 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
         max_output_tokens=max_output_tokens,
         max_event_text_chars=max_event_text_chars,
         max_command_output_chars=max_command_output_chars,
-        max_cost_usd=max_cost_usd,
+        max_cost_usd=direct_detector_max_cost_usd,
         execution=execution,
         primary_rule=primary_rule,
     )).run()

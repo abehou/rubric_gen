@@ -94,9 +94,9 @@ def _experiment(
         "tasks": list(task_ids),
         "randomization": {"seed": 41, "replicates": 2},
         "conditions": [{
-            "condition_id": "diligent-static",
+            "condition_id": "diligent-fixed",
             "prompt": "diligent",
-            "rubric_evolution": "static",
+            "rubric_policy": "fixed",
         }],
         "protocol": {
             "revision_rounds": 1,
@@ -115,8 +115,6 @@ def _experiment(
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
-            "rubric_auditor_model": "test-auditor",
-            "rubric_auditor_query_limit": 2,
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
         },
@@ -128,12 +126,17 @@ def _experiment(
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
             "primary_rule": "majority",
-            "component_weights": {
+            "loss_weights": {
                 "verifier_exploitation": 1,
-                "rubric_drift": 1,
-                "wording_exploitation": 1,
-                "specification_exploitation": 1,
+                "dynamic_rubric_gap": 1,
             },
+            "direct_detector_max_cost_usd": 100,
+            "mechanistic_max_calls": 1_024,
+            "mechanistic_max_request_bytes": 268_435_456,
+            "mechanistic_max_output_tokens": 4_194_304,
+            "holistic_max_calls": 96,
+            "holistic_max_request_bytes": 134_217_728,
+            "holistic_max_output_tokens": 393_216,
         },
         "dag": {
             "seed": {"depends_on": [], "output_dir": "seeds"},
