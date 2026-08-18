@@ -124,7 +124,6 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
     if primary_rule not in ensembles:
         raise ValueError("panel summary has no valid prespecified primary rule")
     return {
-        "schema_version": 1,
         "detection": target.name,
         "cases_with_any_verdict": len(by_case),
         "complete_panel_cases": len(complete),
@@ -321,7 +320,6 @@ def score_panel(
         return score_decisions(items)
 
     return {
-        "schema_version": 2,
         "detection": target.name,
         "split": split,
         "split_gold_cases": len(split_gold),

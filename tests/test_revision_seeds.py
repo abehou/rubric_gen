@@ -147,7 +147,6 @@ def _fake_judge(self, task_dir: Path, submission: Path, experiment_dir: Path):
     evaluation.write_text('{"criteria":{},"reasoning":"ok"}')
     validation.write_text('{"score":75}')
     usage.write_text(json.dumps({
-        "schema_version": 2,
         "provider": "openai",
         "requested_model": "test-judge",
         "effective_model": "test-judge",
@@ -184,7 +183,6 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
     assert all(seed.manifest["replicate"] == index for index, seed in enumerate(seeds, 1))
     root = json.loads((output / "manifest.json").read_text())
     assert root == {
-        "schema_version": seeds_module.SEED_SET_SCHEMA_VERSION,
         "kind": seeds_module.SEED_SET_KIND,
     }
 
@@ -313,7 +311,7 @@ def test_shared_pool_reuses_complete_blocks_without_an_overwrite_flag(
     assert seed.manifest["experiment_id"] == EXPERIMENT_ID
 
 
-def test_seed_accepts_legacy_labels_and_additional_metadata(
+def test_seed_rejects_obsolete_labels_and_additional_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
@@ -342,15 +340,16 @@ def test_seed_accepts_legacy_labels_and_additional_metadata(
     })
     block_manifest_path.write_text(json.dumps(block_manifest))
 
-    seed = resolve_seed(
-        output,
-        task,
-        1,
-        provider="codex",
-        requested_model="test-model",
-    )
-
-    assert seed.manifest["kind"] == "rubric-gen-biomnibench-randomized-seed"
+    with pytest.raises(RuntimeError, match="invalid seed"):
+        resolve_seed(
+            output,
+            task,
+            1,
+            provider="codex",
+            requested_model="test-model",
+        )
+    with pytest.raises(RuntimeError, match="shared seed manifest"):
+        SeedSetRunner(SeedSetConfig(design, output, 1)).run()
 
 
 def test_seed_rejects_provenance_metadata_tampering(

@@ -116,7 +116,6 @@ def snapshot(tmp_path: Path) -> TaskSnapshot:
 
 def valid_rubric_payload(snapshot: TaskSnapshot) -> dict[str, object]:
     return {
-        "schema_version": 1,
         "task_id": snapshot.task_id,
         "purpose": "Evaluate an evidence-grounded analysis process.",
         "criteria": [
@@ -237,9 +236,9 @@ def test_bool_points_are_rejected_without_integer_coercion(
 @pytest.mark.parametrize(
     "malformed",
     (
-        '{"schema_version":1,"schema_version":1}',
-        '{"schema_version":NaN}',
-        '{"schema_version":Infinity}',
+        '{"task_id":"x","task_id":"x"}',
+        '{"task_id":NaN}',
+        '{"task_id":Infinity}',
     ),
 )
 def test_malformed_rubric_json_is_rejected_strictly(malformed: str) -> None:

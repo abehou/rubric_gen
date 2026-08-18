@@ -154,8 +154,7 @@ def _load_completed_study(source: Path) -> OriginalRubricStudy:
         raise ValueError(f"study must be a regular directory: {source}")
     study = read_json_object(source / "study.json", "study manifest")
     if (
-        study.get("schema_version") != 2
-        or study.get("kind") != "rubric-gen-randomized-revision-study"
+        study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") != "completed"
         or type(study.get("experiment_path")) is not str
         or type(study.get("experiment_id")) is not str
@@ -293,7 +292,6 @@ def _snapshot_identity(job: OriginalRubricJob) -> dict[str, str]:
 
 def _attempt_id(job: OriginalRubricJob) -> str:
     payload = {
-        "schema_version": 1,
         "kind": SUMMARY_KIND,
         "assignment_id": job.target.assignment_id,
         "model": job.model,
@@ -542,7 +540,6 @@ class OriginalRubricEnsembleRunner:
         )
         if (
             set(summary) != {
-                "schema_version",
                 "kind",
                 "status",
                 "source",
@@ -552,7 +549,6 @@ class OriginalRubricEnsembleRunner:
                 "assignments",
                 "conditions",
             }
-            or summary.get("schema_version") != 1
             or summary.get("kind") != SUMMARY_KIND
             or summary.get("source") != {
                 "study_dir": str(study.source),
@@ -646,7 +642,6 @@ class OriginalRubricEnsembleRunner:
         write_json_atomic(
             self.config.output_dir / "summary.json",
             {
-                "schema_version": 1,
                 "kind": SUMMARY_KIND,
                 "status": status,
                 "source": {

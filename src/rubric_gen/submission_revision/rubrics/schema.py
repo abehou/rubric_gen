@@ -113,7 +113,6 @@ class TaskAnchor:
 
 @dataclass(frozen=True)
 class TaskSnapshot:
-    schema_version: int
     task_id: str
     question: str
     required_outputs: tuple[str, ...]
@@ -135,7 +134,6 @@ class TaskSnapshot:
             "question": self.question,
             "required_outputs": list(self.required_outputs),
             "required_summary_anchor_ids": list(self.required_summary_anchor_ids),
-            "schema_version": self.schema_version,
             "snapshot_sha256": self.snapshot_sha256,
             "task_id": self.task_id,
         }
@@ -164,13 +162,12 @@ class RubricCriterion:
 
 @dataclass(frozen=True)
 class TaskProcessRubric:
-    schema_version: int
     task_id: str
     purpose: str
     criteria: tuple[RubricCriterion, ...]
 
 
-_RUBRIC_KEYS = ("schema_version", "task_id", "purpose", "criteria")
+_RUBRIC_KEYS = ("task_id", "purpose", "criteria")
 _CRITERION_KEYS = (
     "criterion_id",
     "title",
@@ -295,16 +292,11 @@ def _string_list(value: object, context: str) -> tuple[str, ...]:
 
 
 def parse_task_process_rubric(response: str) -> TaskProcessRubric:
-    """Parse strict schema-version-1 JSON without type coercion."""
+    """Parse the strict current JSON format without type coercion."""
 
     _strict_value(response, str, "rubric response")
     raw = load_json_strict(response)
     payload = _closed_object(raw, _RUBRIC_KEYS, "rubric")
-    schema_version = _strict_value(
-        payload["schema_version"],
-        int,
-        "schema_version",
-    )
     task_id = _strict_value(payload["task_id"], str, "task_id")
     purpose = _strict_value(payload["purpose"], str, "purpose")
     raw_criteria = _strict_value(payload["criteria"], list, "criteria")
@@ -372,7 +364,6 @@ def parse_task_process_rubric(response: str) -> TaskProcessRubric:
             )
         )
     return TaskProcessRubric(
-        schema_version=schema_version,
         task_id=task_id,
         purpose=purpose,
         criteria=tuple(criteria),
@@ -451,8 +442,6 @@ def validate_task_process_rubric(
     """Return every deterministic schema and task-grounding error."""
 
     errors: list[str] = []
-    if rubric.schema_version != 1:
-        errors.append("schema_version must be 1")
     if rubric.task_id != snapshot.task_id:
         errors.append("task_id does not match snapshot")
     if not rubric.purpose.strip():

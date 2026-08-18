@@ -12,9 +12,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterator
 
-INDEX_SCHEMA_VERSION = 5
-
-
 def _canonical_json(value: Any) -> str:
     return json.dumps(
         value,
@@ -134,7 +131,7 @@ def render_compact_evidence(evidence_dir: Path) -> tuple[str, dict[str, int]]:
         for record in (*seen.values(), *references)
     )
     return rendered, {
-        "evidence_schema_version": INDEX_SCHEMA_VERSION,
+        "evidence_index_sha256": index_implementation_sha256(),
         "source_bytes": source_bytes,
         "source_references": len(references),
         "distinct_events": len(seen),
@@ -150,8 +147,12 @@ def build_evidence_index(evidence_dir: Path, database: Path) -> dict[str, object
     temporary = database.with_suffix(database.suffix + ".tmp")
     temporary.unlink(missing_ok=True)
     connection = sqlite3.connect(temporary)
-    connection.execute("CREATE TABLE metadata (schema_version INTEGER NOT NULL)")
-    connection.execute("INSERT INTO metadata VALUES (?)", (INDEX_SCHEMA_VERSION,))
+    connection.execute(
+        "CREATE TABLE metadata (implementation_sha256 TEXT NOT NULL)"
+    )
+    connection.execute(
+        "INSERT INTO metadata VALUES (?)", (index_implementation_sha256(),)
+    )
     connection.execute(
         "CREATE TABLE events (event_id INTEGER PRIMARY KEY, "
         "role TEXT NOT NULL, chars INTEGER NOT NULL, "
@@ -209,16 +210,24 @@ def build_evidence_index(evidence_dir: Path, database: Path) -> dict[str, object
 
 
 def ensure_evidence_index(evidence_dir: Path, database: Path) -> dict[str, object] | None:
-    """Build or replace a missing, partial, or obsolete index."""
+    """Build or replace an index made by different indexing code."""
     try:
         connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
-        version = connection.execute("SELECT schema_version FROM metadata").fetchone()
+        implementation = connection.execute(
+            "SELECT implementation_sha256 FROM metadata"
+        ).fetchone()
         connection.close()
     except sqlite3.Error:
-        version = None
-    if version == (INDEX_SCHEMA_VERSION,):
+        implementation = None
+    if implementation == (index_implementation_sha256(),):
         return None
     return build_evidence_index(evidence_dir, database)
+
+
+def index_implementation_sha256() -> str:
+    """Return an automatic identity for the current index implementation."""
+
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
 def write_query_tool(

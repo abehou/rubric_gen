@@ -106,7 +106,6 @@ class HarveyEvaluator:
         (stage / "summary.json").write_text(
             json.dumps(
                 {
-                    "schema_version": 1,
                     "kind": "harvey-candidate-evaluation",
                     "candidate_id": candidate_id,
                     "mean_criterion_pass": evaluation.mean_criterion_pass,
@@ -166,7 +165,6 @@ class HarveyEvaluator:
         (stage / "summary.json").write_text(
             json.dumps(
                 {
-                    "schema_version": 1,
                     "kind": "harvey-crossed-evaluation",
                     "candidate_id": candidate_id,
                     "mean_criterion_pass": evaluation.mean_criterion_pass,

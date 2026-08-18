@@ -9,8 +9,6 @@ from rubric_gen.submission_revision.rubrics.schema import canonical_json
 
 @dataclass(frozen=True)
 class TaskRubricRequest:
-    schema_version: int
-    prompt_version: str
     task_snapshot: dict[str, object]
     previous_errors: tuple[str, ...] = ()
 
@@ -89,10 +87,9 @@ _RUBRIC_JSON_SCHEMA: dict[str, object] = {
             "type": "array",
         },
         "purpose": {"type": "string"},
-        "schema_version": {"const": 1, "type": "integer"},
         "task_id": {"type": "string"},
     },
-    "required": ["schema_version", "task_id", "purpose", "criteria"],
+    "required": ["task_id", "purpose", "criteria"],
     "type": "object",
 }
 
@@ -122,9 +119,7 @@ def build_task_rubric_prompt(request: TaskRubricRequest) -> str:
 
     return (
         _prompt_contract()
-        + "\nPrompt version:\n"
-        + request.prompt_version
-        + "\n\nPrevious validation errors (JSON):\n"
+        + "\nPrevious validation errors (JSON):\n"
         + canonical_json(list(request.previous_errors))
         + "\n\nImmutable task snapshot (JSON):\n"
         + canonical_json(request.task_snapshot)

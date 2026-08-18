@@ -144,7 +144,7 @@ def test_revision_report_separates_on_policy_and_fixed_scores(
     report_dir = publish_revision_report(experiment)
 
     summary = json.loads((report_dir / "summary.json").read_text())
-    assert summary["schema_version"] == 2
+    assert "schema_version" not in summary
     assert summary["on_policy_scores"] == [56, 100]
     assert summary["fixed_original_scores"] == [56, 72]
     assert "scores" not in summary

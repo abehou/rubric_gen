@@ -18,7 +18,6 @@ from rubric_gen.reward_hacking.review import (
 )
 from rubric_gen.reward_hacking.sources import AuditCase, AuditSource
 from rubric_gen.reward_hacking.targets import detection_target
-from rubric_gen.submission_revision.artifacts import REVISION_MANIFEST_SCHEMA_VERSION
 
 
 def revision_audit_source(
@@ -105,8 +104,7 @@ def _revision_case_id(
     experiment_id = value.get("experiment_id")
     execution_order = value.get("execution_order")
     if (
-        value.get("schema_version") != REVISION_MANIFEST_SCHEMA_VERSION
-        or type(experiment_id) is not str
+        type(experiment_id) is not str
         or not experiment_id
         or type(execution_order) is not int
         or execution_order < 1

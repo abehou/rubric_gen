@@ -28,6 +28,7 @@ from rubric_gen.submission_revision.judging.models import (
     JudgeRunConfig,
     JudgeTarget,
     ResolvedRubric,
+    RUBRIC_PATH_SOURCE,
     safe_basename as _safe_basename,
 )
 from rubric_gen.submission_revision.rubrics.bundles import (
@@ -556,7 +557,7 @@ class SubmissionJudgeRunner:
                 rendered_rubric_sha256=resolved.rendered_rubric_sha256,
                 rubric_id=None,
                 rubric_set_id=None,
-                source="evolved",
+                source=RUBRIC_PATH_SOURCE,
                 manifest_path=None,
                 manifest_sha256=None,
             )

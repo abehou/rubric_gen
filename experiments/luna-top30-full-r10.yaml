@@ -1,4 +1,3 @@
-schema_version: 5
 kind: rubric-gen-randomized-experiment
 benchmark: biomnibench-da
 
@@ -79,6 +78,11 @@ outcome_audit:
     - claude-opus-4-8
     - gemini-3.5-flash
   primary_rule: majority
+  component_weights:
+    verifier_exploitation: 1.0
+    rubric_drift: 1.0
+    wording_exploitation: 1.0
+    specification_exploitation: 1.0
   max_input_tokens: 250000
   max_output_tokens: 4096
   max_event_text_chars: 65536
@@ -92,7 +96,7 @@ dag:
     output_dir: ../seeds/biomnibench-luna-top30-common
   paraphrase:
     depends_on: []
-    output_dir: ../runs/biomnibench-rubric-paraphrases/luna-master-common
+    output_dir: ../runs/biomnibench-rubric-paraphrases/luna-wording-only
   revise:
     depends_on: [seed, paraphrase]
     output_dir: ../runs/biomnibench-studies/{experiment_id}

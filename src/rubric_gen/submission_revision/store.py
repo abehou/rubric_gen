@@ -17,6 +17,9 @@ from .models import RevisionState
 
 
 SEED_SCORING_CONTRACT_KEYS = (
+    "judge_source_sha256",
+    "judge_runner_sha256",
+    "scorer_module_sha256",
     "effective_judge_model",
     "review_mode",
     "max_review_chars",
@@ -45,7 +48,7 @@ def extract_seed_scoring_contract(
     *,
     context: str,
 ) -> dict[str, object]:
-    """Return stable scoring semantics without code-build fingerprints."""
+    """Return the exact current scoring contract for a reusable seed."""
 
     identity = extract_scoring_identity(payload, context=context)
     return {key: identity[key] for key in SEED_SCORING_CONTRACT_KEYS}

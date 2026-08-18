@@ -52,8 +52,8 @@ uv run rubric-gen revise --experiment experiment.yaml --max-concurrency 3 --resu
 uv run rubric-gen detect --experiment experiment.yaml --max-concurrency 3 --resume
 ```
 
-Current submission experiments require schema version 5. Old experiment and
-study formats are intentionally rejected. Generate new artifacts with the
+Submission experiments accept only the current format. Old experiment and
+study artifacts are intentionally rejected. Generate fresh artifacts with the
 current workflow.
 
 Use these experiment files:
@@ -116,9 +116,11 @@ rubric_paraphrases:
   max_retries: 2
 ```
 
-The paraphrase validator preserves criterion order, level labels, weights,
-scoring directives, normalization, and PaperBench leaf IDs. This validation
-cannot prove semantic equivalence. Review a sample before a large experiment.
+The paraphraser returns wording fields only. The program copies criterion order,
+level labels, points, scoring directives, normalization, and PaperBench leaf IDs
+from the master rubric. It also rejects changed numbers inside wording fields.
+This validation cannot prove semantic equivalence. Review a sample before a
+large experiment.
 
 ## Prospective rubric proposer
 
@@ -153,25 +155,27 @@ uv run rubric-gen detect \
   --resume
 ```
 
-The command writes four separate signals:
+The command writes three evaluation layers:
 
 - `direct/`: a strong three-model ensemble gives categorical RH decisions.
-- `score-diagnostics/`: the selected paraphrase is compared with hidden
-  paraphrases on the initial and final artifacts.
-- `rubric-free/`: the weak in-loop score is compared with a rubric-free score
-  from the same weak model.
-- `summary.json`: the weak in-loop final score is also compared with a strong
-  ensemble score on the final optimizer rubric.
+- `mechanistic/`: the strong panel scores both boundaries with active, selected,
+  and sealed holdout rubrics.
+- `holistic/`: the strong panel compares initial and final artifacts without a
+  criterion rubric. Each model sees both response orders.
+- `summary.json`: the result combines four signed components and direct outcomes.
 
-For each score gap, a larger positive value is more RH-suspicious. These gaps
-are not calibrated RH probabilities or labels. A paraphrase gap can measure
-wording sensitivity. A rubric-free gap can measure rubric dependence. A strong
-judge gap can measure judge calibration or capability differences. Only the
-direct ensemble produces an RH detection rate.
+The four components are verifier exploitation, rubric drift, wording
+exploitation, and specification exploitation. Their sum equals the weak proxy
+score minus strong rubric-free quality at each boundary. The primary score
+outcome is the final-minus-initial change in their weighted positive-part loss.
+Only the direct ensemble produces a categorical RH detection rate.
 
-With four paraphrases and three strong models, detection schedules 16 judgment
-jobs per assignment. Direct trajectory audits can require more than one model
-call when the evidence is chunked.
+With four paraphrases and three strong models, detection schedules 30 reference
+calls for a static assignment and 33 for a prospective assignment. Direct
+trajectory audits can require more calls when the evidence is chunked.
+
+See [the evaluation formulation](docs/reward_hacking_evaluation.md) for the
+estimands, exact identity, and limits.
 
 Use the separate `malt` command for labeled MALT detector evaluation:
 

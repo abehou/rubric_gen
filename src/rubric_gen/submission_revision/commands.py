@@ -82,10 +82,10 @@ def run_detect(args: argparse.Namespace) -> int:
         run_direct_audit,
     )
     from rubric_gen.submission_revision.rh_diagnostics import (
-        DiagnosticConfig,
-        RubricFreeMetaRunner,
-        RubricScoreDiagnosticRunner,
-        write_combined_rh_summary,
+        EvaluationConfig,
+        HolisticPairwiseRunner,
+        MechanisticEvaluationRunner,
+        write_reward_hacking_evaluation,
     )
 
     experiment = load_experiment(resolve_project_path(args.experiment))
@@ -128,28 +128,28 @@ def run_detect(args: argparse.Namespace) -> int:
             base_urls=direct_endpoints,
         )),
     )
-    config = DiagnosticConfig(
+    config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
         paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "score-diagnostics",
+        output_dir=output_dir / "mechanistic",
         max_concurrency=args.max_concurrency,
         resume=args.resume,
         vllm_endpoints=endpoints,
     )
-    execute("score-diagnostics", RubricScoreDiagnosticRunner(config).run)
-    meta_config = DiagnosticConfig(
+    execute("mechanistic", MechanisticEvaluationRunner(config).run)
+    holistic_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
         paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "rubric-free",
+        output_dir=output_dir / "holistic",
         max_concurrency=args.max_concurrency,
         resume=args.resume,
         vllm_endpoints=endpoints,
     )
-    execute("rubric-free", RubricFreeMetaRunner(meta_config).run)
+    execute("holistic", HolisticPairwiseRunner(holistic_config).run)
     if not errors:
-        write_combined_rh_summary(output_dir)
+        write_reward_hacking_evaluation(output_dir)
     if errors:
         stages = ", ".join(name for name, _error in errors)
         first = errors[0][1]

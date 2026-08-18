@@ -174,7 +174,6 @@ exactly once: do not omit IDs, duplicate IDs, or invent IDs.
         return result
 
     return {
-        "schema_version": 1,
         "kind": "post-hoc-finding-category-rates",
         "categorization_model": model,
         "finding_count": len(inventory),

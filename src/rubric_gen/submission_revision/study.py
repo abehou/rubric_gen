@@ -7,6 +7,7 @@ import json
 import os
 import socket
 import stat
+import sys
 import threading
 import traceback
 from contextlib import contextmanager
@@ -28,7 +29,6 @@ from rubric_gen.submission_revision.feedback import (
 )
 from rubric_gen.submission_revision.models import SubmissionRevisionConfig
 from rubric_gen.submission_revision.artifacts import (
-    REVISION_MANIFEST_SCHEMA_VERSION,
     read_json_object,
     revision_manifest_keys,
     sha256_file,
@@ -47,7 +47,6 @@ from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 
 
-STUDY_RUN_SCHEMA_VERSION = 2
 STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
 _STUDY_LEASE_NAME = ".study.lock"
 
@@ -140,6 +139,7 @@ class StudyRunner:
             )
             manifest["finished_at"] = _now()
             self._write_manifest(manifest)
+            _report_noncompleted_records(manifest)
             return int(manifest["status"] != "completed")
 
         positions: list[int] = list(range(1, self.config.max_concurrency + 1))
@@ -227,6 +227,7 @@ class StudyRunner:
         )
         manifest["finished_at"] = _now()
         self._write_manifest(manifest)
+        _report_noncompleted_records(manifest)
         return int(manifest["status"] != "completed")
 
     def _revision_config(
@@ -297,7 +298,6 @@ class StudyRunner:
         self, assignments: list[dict[str, object]]
     ) -> dict[str, object]:
         return {
-            "schema_version": STUDY_RUN_SCHEMA_VERSION,
             "kind": STUDY_RUN_KIND,
             "status": "pending",
             "experiment_path": str(self.experiment.path),
@@ -336,8 +336,7 @@ class StudyRunner:
         assignments: list[dict[str, object]],
     ) -> None:
         if (
-            manifest.get("schema_version") != STUDY_RUN_SCHEMA_VERSION
-            or manifest.get("kind") != STUDY_RUN_KIND
+            manifest.get("kind") != STUDY_RUN_KIND
             or manifest.get("experiment_path") != str(self.experiment.path)
             or manifest.get("experiment_id") != self.experiment.experiment_id
             or manifest.get("seed_run_dir") != str(self.seed_root)
@@ -463,7 +462,6 @@ def validate_completed_revision(
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
     manifest_expectations = {
-        "schema_version": REVISION_MANIFEST_SCHEMA_VERSION,
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": experiment.experiment_id,
         "benchmark": str(experiment.benchmark),
@@ -526,11 +524,10 @@ def validate_completed_revision(
         or type(manifest.get("effective_solver_model")) is not str
         or not manifest["effective_solver_model"]
         or set(state) != {
-            "schema_version", "phase", "next_turn_index", "session_id",
+            "phase", "next_turn_index", "session_id",
             "effective_solver_model", "submission_ids", "scores",
             "fixed_original_scores", "judge_attempts", "next_prompt",
         }
-        or state.get("schema_version") != 2
         or state.get("phase") != "completed"
         or state.get("submission_ids") != expected_ids
         or state.get("next_turn_index") != expected_count
@@ -597,8 +594,6 @@ def validate_completed_revision(
             submission / "snapshot.json", "submission snapshot"
         )
         status = read_json_object(submission / "status.json", "submission status")
-        if snapshot.get("schema_version") != 2 or status.get("schema_version") != 2:
-            raise RuntimeError(f"submission uses an invalid schema: {submission_id}")
         feedback = experiment_dir / "feedback" / f"{submission_id}.json"
         if feedback.is_symlink() or not feedback.is_file():
             raise RuntimeError(f"missing feedback for {submission_id}")
@@ -841,6 +836,18 @@ def _reclaim_interrupted_records(manifest: dict[str, object]) -> int:
         record.pop("traceback", None)
         reclaimed += 1
     return reclaimed
+
+
+def _report_noncompleted_records(manifest: dict[str, object]) -> None:
+    for record in _records(manifest):
+        status = str(record.get("status"))
+        if status == "completed":
+            continue
+        print(
+            f"assignment {status}: {record.get('assignment_id')}: "
+            f"{record.get('error_type')}: {record.get('error')}",
+            file=sys.stderr,
+        )
 
 
 def _records(manifest: dict[str, object]) -> list[dict[str, object]]:

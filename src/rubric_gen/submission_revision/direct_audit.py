@@ -45,8 +45,7 @@ def load_audit_study(study_dir: Path) -> AuditStudy:
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid randomized benchmark study: {source}") from exc
     if (
-        study.get("schema_version") != 2
-        or study.get("kind") != "rubric-gen-randomized-revision-study"
+        study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") not in {"completed", "failed"}
         or type(study.get("experiment_path")) is not str
         or type(study.get("experiment_id")) is not str

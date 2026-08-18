@@ -192,7 +192,6 @@ class JudgeGeneration:
 
     def usage_record(self) -> dict[str, object]:
         return {
-            "schema_version": 1,
             "provider": self.provider,
             "requested_model": self.requested_model,
             "effective_model": self.effective_model,

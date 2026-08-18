@@ -183,7 +183,7 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
 def test_paperbench_contract_owns_native_revision_language() -> None:
     contract = get_submission_benchmark(SubmissionBenchmarkId.PAPERBENCH_CODE_DEV)
     prompt = render_feedback_prompt(
-        {"schema_version": 1, "policy": "score_only", "score": 50},
+        {"policy": "score_only", "score": 50},
         benchmark=contract.benchmark,
     )
 
@@ -231,7 +231,7 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
         instruction="TASK",
         current_rubric="RUBRIC",
         current_submission=render_submission_tree(workspace),
-        auditor_packet='{"schema_version":3,"inspected":"x","findings":[]}\n',
+        auditor_packet='{"inspected":"x","findings":[]}\n',
         rejected_attempts=(),
     )
 

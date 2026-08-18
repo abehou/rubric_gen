@@ -30,13 +30,11 @@ from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 
 
-PLAN_SCHEMA_VERSION = 1
 PLAN_KIND = "rubric-gen-original-rubric-ensemble-plan"
 SUMMARY_KIND = "rubric-gen-planned-original-rubric-ensemble"
 RUN_KIND = "rubric-gen-original-rubric-ensemble-plan-run"
 _SAFE_COMPONENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 _PLAN_KEYS = {
-    "schema_version",
     "kind",
     "plan_id",
     "study_dir",
@@ -120,8 +118,7 @@ def _snapshot_identity(submission: Path) -> tuple[str, str]:
     snapshot = read_json_object(submission / "snapshot.json", "submission snapshot")
     values = snapshot.get("workspace_sha256"), snapshot.get("trajectory_sha256")
     if (
-        snapshot.get("schema_version") != 2
-        or snapshot.get("submission_id") != submission.name
+        snapshot.get("submission_id") != submission.name
         or any(
             type(value) is not str
             or len(value) != 64
@@ -141,8 +138,7 @@ def _study_inputs(study_dir: Path) -> tuple[
 ]:
     study = read_json_object(study_dir / "study.json", "study manifest")
     if (
-        study.get("schema_version") != 1
-        or study.get("kind") != "rubric-gen-randomized-revision-study"
+        study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") != "completed"
         or type(study.get("experiment_path")) is not str
         or type(study.get("records")) is not list
@@ -264,7 +260,6 @@ def build_plan_payload(
     initial_count = sum(target["boundary"] == "initial" for target in targets)
     final_count = sum(target["boundary"] == "final" for target in targets)
     return {
-        "schema_version": PLAN_SCHEMA_VERSION,
         "kind": PLAN_KIND,
         "plan_id": plan_id,
         "study_dir": study_value,
@@ -310,7 +305,7 @@ def load_plan(path: Path) -> JudgmentPlan:
         raise ValueError(f"judgment plan is not valid YAML: {path}") from exc
     if type(raw) is not dict or set(raw) != _PLAN_KEYS:
         raise ValueError("judgment plan has an invalid top-level schema")
-    if raw.get("schema_version") != PLAN_SCHEMA_VERSION or raw.get("kind") != PLAN_KIND:
+    if raw.get("kind") != PLAN_KIND:
         raise ValueError("judgment plan has an unsupported identity")
     plan_id = _safe_component(raw.get("plan_id"), "plan_id")
     study_dir = resolve_project_path(str(raw["study_dir"])).resolve()
@@ -446,8 +441,7 @@ def load_plan(path: Path) -> JudgmentPlan:
                 raise ValueError(f"plan submission path changed: {target_id}")
             status = read_json_object(submission / "status.json", "submission status")
             if (
-                status.get("schema_version") != 2
-                or status.get("task") != task_id
+                status.get("task") != task_id
                 or status.get("submission_id") != submission_id
                 or status.get("exit_code") != 0
             ):
@@ -539,7 +533,6 @@ def load_plan(path: Path) -> JudgmentPlan:
 def _attempt_id(plan: JudgmentPlan, target: PlannedTarget, model: str) -> str:
     workspace_sha256, trajectory_sha256 = _snapshot_identity(target.submission_dir)
     payload = {
-        "schema_version": 1,
         "kind": SUMMARY_KIND,
         "plan_sha256": plan.sha256,
         "target_id": target.target_id,
@@ -757,7 +750,6 @@ def _write_summary(
     write_json_atomic(
         plan.output_dir / "summary.json",
         {
-            "schema_version": 1,
             "kind": SUMMARY_KIND,
             "status": (
                 "completed"
@@ -798,7 +790,6 @@ def _prepare_output(plan: JudgmentPlan, *, resume: bool) -> None:
     if output.is_symlink() or output.exists() and not output.is_dir():
         raise ValueError(f"plan output must be a regular directory: {output}")
     identity = {
-        "schema_version": 1,
         "kind": RUN_KIND,
         "plan_sha256": plan.sha256,
         "plan_id": plan.plan_id,

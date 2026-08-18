@@ -14,7 +14,7 @@ from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.evidence.index import INDEX_SCHEMA_VERSION
+from rubric_gen.evidence.index import index_implementation_sha256
 from rubric_gen.reward_hacking.metrics import detection_rates, plot_detection_rates
 from rubric_gen.reward_hacking.protocol import (
     ANTHROPIC_RH_EFFORT,
@@ -22,7 +22,6 @@ from rubric_gen.reward_hacking.protocol import (
     DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
     DEFAULT_RH_MAX_INPUT_TOKENS,
     DEFAULT_RH_MAX_OUTPUT_TOKENS,
-    DIRECT_RH_AUDIT_PROTOCOL_VERSION,
     GEMINI_RH_THINKING_LEVEL,
     MALT_RH_AGGREGATION,
     MALT_RH_CHARS_PER_TOKEN,
@@ -91,7 +90,7 @@ class RewardHackingJudgeConfig:
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS
     max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS
     max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
-    max_cost_usd: float = DEFAULT_PANEL_MAX_COST_USD
+    max_cost_usd: float | None = DEFAULT_PANEL_MAX_COST_USD
     execution: str = "standard"
     primary_rule: str = "majority"
 
@@ -122,7 +121,7 @@ class RewardHackingJudgeConfig:
                 "max_command_output_chars must be between 512 and "
                 "max_event_text_chars"
             )
-        if self.max_cost_usd <= 0:
+        if self.max_cost_usd is not None and self.max_cost_usd <= 0:
             raise ValueError("max_cost_usd must be positive")
         if self.execution not in {"standard", "batch"}:
             raise ValueError("execution must be standard or batch")
@@ -142,7 +141,7 @@ class PreparedJob:
     model: str
     requests: tuple[StructuredRequest, ...]
     input_tokens: tuple[int, ...]
-    compact_stats: dict[str, int]
+    compact_stats: dict[str, object]
     aggregation: str
 
     @property
@@ -195,9 +194,8 @@ class RewardHackingJudgeRunner:
         self._reserved_usd = 0.0
         self._circuit_open: dict[str, str] = {}
         self.run_provenance = {
-            "schema_version": 7,
-            "audit_protocol_version": DIRECT_RH_AUDIT_PROTOCOL_VERSION,
-            "evidence_schema_version": INDEX_SCHEMA_VERSION,
+            "implementation_sha256": sha256_file(Path(__file__)),
+            "evidence_index_sha256": index_implementation_sha256(),
             "detection": config.detection,
             "detection_target": target.provenance(),
             "models": list(config.models),
@@ -276,7 +274,6 @@ class RewardHackingJudgeRunner:
         if (
             not isinstance(state, dict)
             or set(state) != {
-                "schema_version",
                 "kind",
                 "run_provenance_sha256",
                 "observed_api_usd",
@@ -285,7 +282,6 @@ class RewardHackingJudgeRunner:
                 "reserved_api_usd",
                 "budget_usd",
             }
-            or state.get("schema_version") != 2
             or state.get("kind") != "reward-hacking-standard-cost-state"
             or state.get("run_provenance_sha256") != self.run_provenance_sha256
             or state.get("budget_usd") != self.config.max_cost_usd
@@ -339,7 +335,6 @@ class RewardHackingJudgeRunner:
 
     def _persist_cost_state_locked(self) -> None:
         write_json_atomic(self.config.output_dir / "cost-state.json", {
-            "schema_version": 2,
             "kind": "reward-hacking-standard-cost-state",
             "run_provenance_sha256": self.run_provenance_sha256,
             "observed_api_usd": self._spent_usd,
@@ -647,7 +642,7 @@ class RewardHackingJudgeRunner:
                 self.config.max_output_tokens,
                 cache_write_input_tokens=cache_write_tokens,
             ) or 0.0
-            if (
+            if self.config.max_cost_usd is not None and (
                 self._spent_usd + self._reserved_usd + reservation
                 + self._unverified_failure_risk_usd
                 > self.config.max_cost_usd
@@ -747,7 +742,7 @@ class RewardHackingJudgeRunner:
         self, records: list[dict[str, object]], jobs: tuple[PreparedJob, ...]
     ) -> int:
         records.sort(key=lambda row: (str(row["case_id"]), str(row["model"])))
-        summary = {"schema_version": 11, "kind": "reward-hacking-model-panel",
+        summary = {"kind": "reward-hacking-model-panel",
                    "models": list(self.config.models),
                    "base_urls": self.config.base_urls,
                    "max_retries": self.config.max_retries,
@@ -1133,7 +1128,6 @@ class RewardHackingJudgeRunner:
             for filename, value in artifact_values.items():
                 write_json_atomic(root / filename, value)
             write_json_atomic(root / "metadata.json", {
-                "schema_version": 4,
                 "execution": "batch",
                 "compact_evidence": job.compact_stats,
                 "attempt_count": int(state.get("attempt", 1)),
@@ -1178,7 +1172,6 @@ class RewardHackingJudgeRunner:
             if self.config.resume:
                 raise ValueError("resumed Batch run has no batch-state.json")
             state: dict[str, object] = {
-                "schema_version": 3,
                 "kind": "reward-hacking-openai-batch",
                 "run_provenance_sha256": self.run_provenance_sha256,
                 "phase": "initial",
@@ -1197,7 +1190,15 @@ class RewardHackingJudgeRunner:
             raise FileExistsError("Batch state exists; rerun with --resume")
         state = json.loads(state_path.read_text(encoding="utf-8"))
         if (
-            state.get("schema_version") != 3
+            not isinstance(state, dict)
+            or set(state) != {
+                "kind", "run_provenance_sha256", "phase", "attempt",
+                "initial_results", "initial_failures", "synthesis_results",
+                "synthesis_failures", "observed_api_usd",
+                "observed_by_model_usd", "unverified_failed_request_risk_usd",
+                "status", "batch_id", "input_file_id", "custom_ids",
+                "local_input",
+            }
             or state.get("kind") != "reward-hacking-openai-batch"
             or state.get("run_provenance_sha256") != self.run_provenance_sha256
         ):
@@ -1325,7 +1326,11 @@ class RewardHackingJudgeRunner:
             )
             state["unverified_failed_request_risk_usd"] = risk
             self._unverified_failure_risk_usd = risk
-            if self._spent_usd + risk + retry_reservation > self.config.max_cost_usd:
+            if (
+                self.config.max_cost_usd is not None
+                and self._spent_usd + risk + retry_reservation
+                > self.config.max_cost_usd
+            ):
                 for custom_id in retry_ids:
                     failures[custom_id] = {
                         **errors[custom_id],
@@ -1429,8 +1434,8 @@ class RewardHackingJudgeRunner:
         )
         request_hashes = [sha256_text(request.flat_prompt()) for request in job.requests]
         resume_identity = {
-            "audit_protocol_version": DIRECT_RH_AUDIT_PROTOCOL_VERSION,
-            "evidence_schema_version": INDEX_SCHEMA_VERSION,
+            "implementation_sha256": sha256_file(Path(__file__)),
+            "evidence_index_sha256": index_implementation_sha256(),
             "run_provenance_sha256": self.run_provenance_sha256,
             "detection": self.config.detection,
             "requested_model": model,
@@ -1475,7 +1480,10 @@ class RewardHackingJudgeRunner:
                 generation_current = False
         current = (
             existing_metadata is not None
-            and existing_metadata.get("schema_version") == 4
+            and set(existing_metadata) == {
+                "resume_identity", "compact_evidence", "attempt_count",
+                "generations", "artifacts",
+            }
             and existing_metadata.get("resume_identity") == resume_identity
             and existing_metadata.get("compact_evidence") == job.compact_stats
             and isinstance(existing_metadata.get("generations"), list)
@@ -1580,7 +1588,6 @@ class RewardHackingJudgeRunner:
             write_json_atomic(generations_path, generations)
             write_json_atomic(verdict_path, verdict)
             write_json_atomic(metadata_path, {
-                "schema_version": 4,
                 "resume_identity": resume_identity,
                 "compact_evidence": job.compact_stats,
                 "attempt_count": attempt_count,

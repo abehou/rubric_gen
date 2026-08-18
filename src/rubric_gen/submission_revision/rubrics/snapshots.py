@@ -595,7 +595,6 @@ def build_task_snapshot(
         )
     )
     snapshot = TaskSnapshot(
-        schema_version=1,
         task_id=task_root.name,
         question=question,
         required_outputs=required_outputs,

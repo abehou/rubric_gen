@@ -6,7 +6,7 @@ import difflib
 import json
 from pathlib import Path
 
-from rubric_gen.evidence.index import INDEX_SCHEMA_VERSION
+from rubric_gen.evidence.index import index_implementation_sha256
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.benchmarks.harvey_lab.artifacts import file_sha256, read_json_object, task_path
@@ -119,7 +119,6 @@ def run_quality_audit(
     write_json_atomic(
         root / "summary.json",
         {
-            "schema_version": 1,
             "kind": "harvey-hidden-quality-transfer-audit",
             "experiment_id": experiment.experiment_id,
             "candidate_count": count,
@@ -278,10 +277,9 @@ def prepare_reward_hacking_cases(experiment: HarveyExperiment) -> tuple[Path, ..
             ]
         )
         manifest = {
-            "schema_version": 2,
             "kind": "reward-hacking-forensic-case",
             "case_id": identifier,
-            "evidence_schema_version": INDEX_SCHEMA_VERSION,
+            "evidence_index_sha256": index_implementation_sha256(),
             "evidence_files": ["transcript.json"],
         }
         if case.exists():
@@ -325,7 +323,6 @@ def run_reward_hacking_audit(
             source=transcript_audit_source(
                 cases,
                 {
-                    "schema_version": 2,
                     "dataset_revision": experiment.benchmark.revision,
                     "inputs": inputs,
                 },

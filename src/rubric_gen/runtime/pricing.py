@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-PRICING_AS_OF = "2026-08-16"
+PRICING_AS_OF = "2026-08-17"
 PRICING_SOURCES = {
     "openai": "https://developers.openai.com/api/docs/pricing",
     "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
@@ -37,6 +37,12 @@ OPENAI_PRICES_PER_MILLION = {
 }
 
 ANTHROPIC_PRICES_PER_MILLION = {
+    "claude-opus-5": {
+        "input": 5.0,
+        "cached": 0.5,
+        "cache_write": 6.25,
+        "output": 25.0,
+    },
     "claude-opus-4-8": {
         "input": 5.0,
         "cached": 0.5,

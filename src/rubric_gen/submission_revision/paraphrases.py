@@ -25,42 +25,278 @@ from rubric_gen.runtime.llm import (
 )
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import make_read_only, read_json_object
-from rubric_gen.submission_revision.evolution import _validated_complete_rubric
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
 )
 
 
-PARAPHRASE_RUN_SCHEMA_VERSION = 2
 PARAPHRASE_RUN_KIND = "rubric-gen-shared-rubric-paraphrase-pool"
-PARAPHRASE_PROTOCOL_VERSION = "semantic-rubric-paraphrase-v1"
+PARAPHRASE_PROTOCOL = "wording-only-rubric-paraphrase"
 PARAPHRASE_MAX_OUTPUT_TOKENS = 32_768
+PARAPHRASE_VARIANT_KIND = "sealed-wording-only-rubric-paraphrase"
 _LEAF_ID = re.compile(r"^PaperBench leaf ID:\s*(\S+)\s*$", re.MULTILINE)
-_RESPONSE_SCHEMA: dict[str, object] = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["rubric_text"],
-    "properties": {
-        "rubric_text": {"type": "string", "minLength": 1},
-    },
-}
+_CRITERION_HEADER = re.compile(
+    r"^(?P<prefix>[ \t]*Criterion[ \t]+(?P<number>\d+)[ \t]*:[ \t]*)"
+    r"(?P<text>\S[^\r\n]*?)(?P<suffix>[ \t]*)$",
+    re.MULTILINE,
+)
+_DESCRIPTION_LINE = re.compile(
+    r"^(?P<prefix>[ \t]*Description:[ \t]*)"
+    r"(?P<text>\S[^\r\n]*?)(?P<suffix>[ \t]*)$",
+    re.MULTILINE,
+)
+_LEVELS_LINE = re.compile(r"^[ \t]*Levels:[ \t]*[^\r\n]+$", re.MULTILINE)
+_LEVEL_DESCRIPTION = re.compile(
+    r"^(?P<prefix>[ \t]*\[(?P<label>[A-Z])\]:[ \t]*)"
+    r"(?P<text>\S[^\r\n]*)$",
+    re.MULTILINE,
+)
+_FIXED_PREAMBLE_LINE = re.compile(
+    r"^(?:[ \t]*RUBRIC:|[ \t]*#{1,6}[ \t]+|[ \t]*Total Points:|"
+    r"[ \t]*CRITERIA(?:[ \t]|\()|[ \t]*Scoring protocol:|"
+    r"[ \t]*Score normalization maximum:)"
+)
+_PREFIXED_PREAMBLE_LINE = re.compile(
+    r"^(?P<prefix>[ \t]*(?:Notes|Purpose):[ \t]*)"
+    r"(?P<text>\S[^\r\n]*?)(?P<suffix>[ \t]*)$"
+)
+_NUMBER_TOKEN = re.compile(r"\d+(?:,\d{3})*(?:\.\d+)?%?")
+_STRUCTURAL_WORDING_LINE = re.compile(
+    r"^[ \t]*(?:Criterion[ \t]+\d+[ \t]*:|Description:|Levels:|"
+    r"\[[A-Z]\]:|PaperBench leaf ID:|Scoring protocol:|"
+    r"Score normalization maximum:|Total Points:|CRITERIA(?:[ \t]|\())",
+    re.MULTILINE,
+)
 
-_INSTRUCTIONS = f"""Prompt contract: {PARAPHRASE_PROTOCOL_VERSION}
+_INSTRUCTIONS = f"""Prompt contract: {PARAPHRASE_PROTOCOL}
 
-Rewrite the complete rubric with different surface wording only.
+Rewrite only the supplied wording fields. The program owns and copies all rubric
+structure. You cannot edit criterion numbers, criterion order, level labels,
+point values, scoring directives, normalization, or PaperBench leaf IDs. Do not
+return those fields.
 
-Preserve all semantics. Preserve every requirement, exception, factual anchor,
-number, filename, command, identifier, example, and scoring direction. Preserve
-the criterion count, criterion order, level labels, point values, scoring
-protocol, and normalization maximum exactly. Preserve every PaperBench leaf ID
-exactly. Do not add, remove, merge, split, weaken, strengthen, clarify, or repair
-criteria. Do not adapt the rubric to a submission. Do not turn examples into
-requirements or requirements into examples.
+Preserve all semantics within each wording field. Preserve every requirement,
+exception, factual anchor, number, filename, command, identifier, example, and
+scoring direction. Keep every number in the same order. Do not move content
+between fields. Do not add, remove, merge, split, weaken, strengthen, clarify,
+or repair criteria. Do not adapt the rubric to a submission. Do not turn
+examples into requirements or requirements into examples.
 
-Change enough wording that the result is a real paraphrase. Return the complete
-rubric in `rubric_text`. Do not use Markdown code fences.
+Change enough wording that the result is a real paraphrase. Return only the
+ordered `wording` list required by the response schema. Keep each value on one line.
+Do not use Markdown code fences.
 """
+
+
+@dataclass(frozen=True)
+class _WordingSlot:
+    key: str
+    start: int
+    end: int
+    text: str
+
+
+@dataclass(frozen=True)
+class _WordingTemplate:
+    source: str
+    slots: tuple[_WordingSlot, ...]
+
+    @property
+    def fields(self) -> dict[str, str]:
+        return {slot.key: slot.text for slot in self.slots}
+
+    @property
+    def fixed_fragments(self) -> tuple[str, ...]:
+        fragments: list[str] = []
+        cursor = 0
+        for slot in self.slots:
+            fragments.append(self.source[cursor:slot.start])
+            cursor = slot.end
+        fragments.append(self.source[cursor:])
+        return tuple(fragments)
+
+    def response_schema(self) -> dict[str, object]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["wording"],
+            "properties": {
+                "wording": {
+                    "type": "array",
+                    "minItems": len(self.slots),
+                    "maxItems": len(self.slots),
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["field", "text"],
+                        "properties": {
+                            "field": {"type": "string", "minLength": 1},
+                            "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 65_536,
+                                "pattern": r"^[^\r\n]+$",
+                            },
+                        },
+                    },
+                },
+            },
+        }
+
+    def render(self, wording: object) -> str:
+        if type(wording) is not list or len(wording) != len(self.slots):
+            raise ValueError("paraphraser wording fields do not match the master")
+        replacements: dict[str, str] = {}
+        for slot, item in zip(self.slots, wording):
+            if type(item) is not dict or set(item) != {"field", "text"}:
+                raise ValueError("paraphraser wording item has an invalid schema")
+            if item["field"] != slot.key:
+                raise ValueError(
+                    f"paraphraser returned {item['field']!r} where {slot.key!r} "
+                    "was required"
+                )
+            value = item["text"]
+            if type(value) is not str:
+                raise ValueError(f"{slot.key} must be a string")
+            _validate_wording_value(slot, value)
+            replacements[slot.key] = value
+
+        pieces: list[str] = []
+        cursor = 0
+        for slot in self.slots:
+            pieces.append(self.source[cursor:slot.start])
+            pieces.append(replacements[slot.key])
+            cursor = slot.end
+        pieces.append(self.source[cursor:])
+        return "".join(pieces)
+
+
+def _wording_template(rubric: str) -> _WordingTemplate:
+    if type(rubric) is not str or not rubric.strip():
+        raise ValueError("rubric must be a non-empty string")
+    if "```" in rubric:
+        raise ValueError("rubric must not contain Markdown code fences")
+
+    levels_by_criterion = parse_rubric_levels_strict(rubric)
+    headers = list(_CRITERION_HEADER.finditer(rubric))
+    expected_numbers = list(range(1, len(headers) + 1))
+    actual_numbers = [int(header.group("number")) for header in headers]
+    if actual_numbers != expected_numbers:
+        raise ValueError("rubric criterion numbers must be contiguous from 1")
+
+    slots: list[_WordingSlot] = []
+    preamble = rubric[:headers[0].start()]
+    preamble_index = 0
+    offset = 0
+    for line in preamble.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        if content.strip() and _FIXED_PREAMBLE_LINE.match(content) is None:
+            prefixed = _PREFIXED_PREAMBLE_LINE.match(content)
+            if prefixed is not None:
+                start = offset + prefixed.start("text")
+                end = offset + prefixed.end("text")
+            else:
+                leading = len(content) - len(content.lstrip())
+                trailing = len(content.rstrip())
+                start = offset + leading
+                end = offset + trailing
+            preamble_index += 1
+            slots.append(_WordingSlot(
+                key=f"preamble_{preamble_index:02d}",
+                start=start,
+                end=end,
+                text=rubric[start:end],
+            ))
+        offset += len(line)
+
+    for index, header in enumerate(headers):
+        number = int(header.group("number"))
+        block_end = (
+            headers[index + 1].start() if index + 1 < len(headers) else len(rubric)
+        )
+        slots.append(_WordingSlot(
+            key=f"criterion_{number}_title",
+            start=header.start("text"),
+            end=header.end("text"),
+            text=header.group("text"),
+        ))
+
+        levels_lines = list(_LEVELS_LINE.finditer(rubric, header.end(), block_end))
+        if len(levels_lines) != 1:
+            raise ValueError(
+                f"criterion_{number} must contain exactly one Levels line"
+            )
+        levels_line = levels_lines[0]
+
+        descriptions = list(
+            _DESCRIPTION_LINE.finditer(rubric, header.end(), levels_line.start())
+        )
+        if len(descriptions) > 1:
+            raise ValueError(
+                f"criterion_{number} contains more than one Description line"
+            )
+        if descriptions:
+            description = descriptions[0]
+            slots.append(_WordingSlot(
+                key=f"criterion_{number}_description",
+                start=description.start("text"),
+                end=description.end("text"),
+                text=description.group("text"),
+            ))
+
+        level_descriptions = list(
+            _LEVEL_DESCRIPTION.finditer(rubric, levels_line.end(), block_end)
+        )
+        expected_labels = list(levels_by_criterion[f"criterion_{number}"])
+        actual_labels = [match.group("label") for match in level_descriptions]
+        if actual_labels != expected_labels:
+            raise ValueError(
+                f"criterion_{number} must contain one description for each level"
+            )
+        for level_index, match in enumerate(level_descriptions):
+            boundary = (
+                level_descriptions[level_index + 1].start()
+                if level_index + 1 < len(level_descriptions)
+                else block_end
+            )
+            end = boundary
+            while end > match.start("text") and rubric[end - 1].isspace():
+                end -= 1
+            slots.append(_WordingSlot(
+                key=f"criterion_{number}_level_{match.group('label')}",
+                start=match.start("text"),
+                end=end,
+                text=rubric[match.start("text"):end],
+            ))
+
+    slots.sort(key=lambda slot: slot.start)
+    if not slots:
+        raise ValueError("rubric contains no paraphrasable wording")
+    if len({slot.key for slot in slots}) != len(slots):
+        raise ValueError("rubric contains duplicate wording fields")
+    for left, right in zip(slots, slots[1:]):
+        if left.end > right.start:
+            raise ValueError(f"rubric wording fields overlap at {right.key}")
+    return _WordingTemplate(source=rubric, slots=tuple(slots))
+
+
+def _validate_wording_value(slot: _WordingSlot, value: str) -> None:
+    if not value or value != value.strip():
+        raise ValueError(f"{slot.key} must be non-empty without outer whitespace")
+    if "\r" in value or "\n" in value:
+        raise ValueError(f"{slot.key} must stay on one line")
+    if "```" in value:
+        raise ValueError(f"{slot.key} must not contain Markdown code fences")
+    if _STRUCTURAL_WORDING_LINE.search(value) is not None:
+        raise ValueError(f"{slot.key} must not contain rubric structure")
+    expected_numbers = _NUMBER_TOKEN.findall(slot.text)
+    actual_numbers = _NUMBER_TOKEN.findall(value)
+    if actual_numbers != expected_numbers:
+        raise ValueError(
+            f"{slot.key} changed its numbers or their order; expected "
+            f"{expected_numbers}, got {actual_numbers}"
+        )
 
 
 @dataclass(frozen=True)
@@ -205,11 +441,10 @@ class ParaphraseRunner:
 
     def _new_manifest(self) -> dict[str, object]:
         return {
-            "schema_version": PARAPHRASE_RUN_SCHEMA_VERSION,
             "kind": PARAPHRASE_RUN_KIND,
             "benchmark": self.experiment.benchmark.value,
             "tasks_dir": str(self.experiment.tasks_dir.resolve()),
-            "protocol_version": PARAPHRASE_PROTOCOL_VERSION,
+            "protocol": PARAPHRASE_PROTOCOL,
             "model": self.model,
             "count": self.count,
             "tasks": [],
@@ -227,11 +462,10 @@ class ParaphraseRunner:
 
     def _validate_manifest_identity(self, manifest: dict[str, object]) -> None:
         keys = {
-            "schema_version",
             "kind",
             "benchmark",
             "tasks_dir",
-            "protocol_version",
+            "protocol",
             "model",
             "count",
             "tasks",
@@ -241,12 +475,11 @@ class ParaphraseRunner:
         records = manifest.get("tasks")
         if (
             set(manifest) != keys
-            or manifest.get("schema_version") != PARAPHRASE_RUN_SCHEMA_VERSION
             or manifest.get("kind") != PARAPHRASE_RUN_KIND
             or manifest.get("benchmark") != self.experiment.benchmark.value
             or manifest.get("tasks_dir")
             != str(self.experiment.tasks_dir.resolve())
-            or manifest.get("protocol_version") != PARAPHRASE_PROTOCOL_VERSION
+            or manifest.get("protocol") != PARAPHRASE_PROTOCOL
             or manifest.get("model") != self.model
             or manifest.get("count") != self.count
             or not isinstance(records, list)
@@ -275,6 +508,7 @@ class ParaphraseRunner:
         metadata_path = task_root / f"variant-{variant_index:03d}.json"
         master_path = self._master_path(task_id)
         master = master_path.read_text(encoding="utf-8")
+        template = _wording_template(master)
         if os.path.lexists(rubric_path) or os.path.lexists(metadata_path):
             if rubric_path.is_file() and metadata_path.is_file():
                 _validate_variant_files(
@@ -301,18 +535,16 @@ class ParaphraseRunner:
             request = _paraphrase_request(
                 task_id=task_id,
                 variant_index=variant_index,
-                master=master,
+                template=template,
                 repair_error=str(last_error) if last_error is not None else None,
             )
             generation: GenerationResult | None = None
             try:
                 generation = self._generate(request)
                 value = json.loads(generation.text)
-                if not isinstance(value, dict) or set(value) != {"rubric_text"}:
+                if not isinstance(value, dict) or set(value) != {"wording"}:
                     raise ValueError("paraphraser response has an invalid schema")
-                candidate = value["rubric_text"]
-                if type(candidate) is not str:
-                    raise ValueError("paraphraser rubric_text must be a string")
+                candidate = template.render(value["wording"])
                 text = validate_semantic_paraphrase(master, candidate)
                 with self._commit_lock:
                     prior_hashes = {
@@ -324,9 +556,8 @@ class ParaphraseRunner:
                         raise ValueError("paraphraser returned a duplicate variant")
                     rubric_path.write_text(text, encoding="utf-8")
                     write_json_atomic(metadata_path, {
-                        "schema_version": 1,
-                        "kind": "sealed-semantic-rubric-paraphrase",
-                        "protocol_version": PARAPHRASE_PROTOCOL_VERSION,
+                        "kind": PARAPHRASE_VARIANT_KIND,
+                        "protocol": PARAPHRASE_PROTOCOL,
                         "task_id": task_id,
                         "variant_index": variant_index,
                         "model": self.model,
@@ -378,7 +609,6 @@ class ParaphraseRunner:
             failure_root.mkdir(exist_ok=True)
             path = failure_root / f"attempt-{attempt:03d}.json"
             write_json_atomic(path, {
-                "schema_version": 1,
                 "error_type": type(error).__name__,
                 "error": str(error) or type(error).__name__,
                 "response": generation.text if generation is not None else None,
@@ -392,47 +622,62 @@ def _paraphrase_request(
     *,
     task_id: str,
     variant_index: int,
-    master: str,
+    template: _WordingTemplate,
     repair_error: str | None,
 ) -> StructuredRequest:
     repair = ""
     if repair_error is not None:
         repair = (
-            "\nThe previous response failed structural validation: "
+            "\nThe previous response failed wording validation: "
             + repair_error
-            + "\nReturn a corrected complete paraphrase."
+            + "\nReturn a corrected wording list."
         )
     evidence = f"""Task ID: {task_id}
 Paraphrase variant: {variant_index}
 Use a distinct but semantically equivalent wording for this variant.{repair}
 
-<master_rubric>
-{master}
-</master_rubric>
+<wording_fields_json>
+{json.dumps(
+    [{"field": slot.key, "text": slot.text} for slot in template.slots],
+    ensure_ascii=False,
+    indent=2,
+)}
+</wording_fields_json>
 """
     return StructuredRequest(
         instructions=_INSTRUCTIONS,
         evidence=evidence,
-        schema_name="semantic_rubric_paraphrase",
-        schema=_RESPONSE_SCHEMA,
+        schema_name="wording_only_rubric_paraphrase",
+        schema=template.response_schema(),
         max_output_tokens=PARAPHRASE_MAX_OUTPUT_TOKENS,
     )
 
 
 def validate_semantic_paraphrase(master: str, candidate: str) -> str:
-    text = _validated_complete_rubric(candidate, current_rubric=master)
-    if sha256_text(text) == sha256_text(master):
+    if type(candidate) is not str or not candidate.strip():
+        raise ValueError("paraphrase must be a non-empty string")
+    if "```" in candidate:
+        raise ValueError("paraphrase must not contain Markdown code fences")
+    if sha256_text(candidate) == sha256_text(master):
         raise ValueError("paraphraser returned the unchanged master rubric")
     master_levels = parse_rubric_levels_strict(master)
-    candidate_levels = parse_rubric_levels_strict(text)
-    if list(candidate_levels) != list(master_levels):
-        raise ValueError("paraphrase changed criterion count or order")
-    for key in master_levels:
-        if candidate_levels[key] != master_levels[key]:
-            raise ValueError(f"paraphrase changed level weights for {key}")
-    if _LEAF_ID.findall(text) != _LEAF_ID.findall(master):
+    candidate_levels = parse_rubric_levels_strict(candidate)
+    if candidate_levels != master_levels:
+        raise ValueError("paraphrase changed criterion order or level values")
+    if _LEAF_ID.findall(candidate) != _LEAF_ID.findall(master):
         raise ValueError("paraphrase changed PaperBench leaf IDs")
-    return text
+    master_template = _wording_template(master)
+    candidate_template = _wording_template(candidate)
+    if tuple(master_template.fields) != tuple(candidate_template.fields):
+        raise ValueError("paraphrase changed its wording-field layout")
+    if candidate_template.fixed_fragments != master_template.fixed_fragments:
+        raise ValueError("paraphrase changed immutable rubric structure")
+    for master_slot, candidate_slot in zip(
+        master_template.slots,
+        candidate_template.slots,
+    ):
+        _validate_wording_value(master_slot, candidate_slot.text)
+    return candidate
 
 
 def resolve_paraphrase_selection(
@@ -486,22 +731,20 @@ def validate_paraphrase_run(root: Path, experiment: Experiment) -> None:
     records = manifest.get("tasks")
     if (
         set(manifest) != {
-            "schema_version",
             "kind",
             "benchmark",
             "tasks_dir",
-            "protocol_version",
+            "protocol",
             "model",
             "count",
             "tasks",
             "created_at",
             "updated_at",
         }
-        or manifest.get("schema_version") != PARAPHRASE_RUN_SCHEMA_VERSION
         or manifest.get("kind") != PARAPHRASE_RUN_KIND
         or manifest.get("benchmark") != experiment.benchmark.value
         or manifest.get("tasks_dir") != str(experiment.tasks_dir.resolve())
-        or manifest.get("protocol_version") != PARAPHRASE_PROTOCOL_VERSION
+        or manifest.get("protocol") != PARAPHRASE_PROTOCOL
         or manifest.get("model") != experiment.rubric_paraphrases["model"]
         or manifest.get("count") != experiment.rubric_paraphrases["count"]
         or not isinstance(records, list)
@@ -600,9 +843,13 @@ def _validate_variant_files(
         raise RuntimeError(f"rubric paraphrase is invalid: {rubric_path}") from exc
     metadata = read_json_object(metadata_path, "rubric paraphrase metadata")
     if (
-        metadata.get("schema_version") != 1
-        or metadata.get("kind") != "sealed-semantic-rubric-paraphrase"
-        or metadata.get("protocol_version") != PARAPHRASE_PROTOCOL_VERSION
+        set(metadata) != {
+            "kind", "protocol", "task_id", "variant_index", "model",
+            "attempt_count", "master_path", "master_sha256", "rubric_sha256",
+            "prompt_sha256", "generation",
+        }
+        or metadata.get("kind") != PARAPHRASE_VARIANT_KIND
+        or metadata.get("protocol") != PARAPHRASE_PROTOCOL
         or metadata.get("task_id") != task_id
         or metadata.get("variant_index") != variant_index
         or metadata.get("model") != model

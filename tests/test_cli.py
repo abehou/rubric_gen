@@ -48,7 +48,7 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
         ),
         encoding="utf-8",
     )
-    experiment = object()
+    experiment = SimpleNamespace(output_dir=tmp_path / "output")
     observed: dict[str, object] = {}
 
     class FakeController:
@@ -57,13 +57,31 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
 
         def run(self, *, resume: bool) -> int:
             observed["resume"] = resume
-            return 17
+            observed.setdefault("stages", []).append("evolution")
+            return 0
+
+    def quality(value: object) -> int:
+        assert value is experiment
+        observed.setdefault("stages", []).append("quality")
+        return 0
+
+    def detect(value: object, *, resume: bool) -> int:
+        assert value is experiment
+        assert resume is False
+        observed.setdefault("stages", []).append("detect")
+        return 0
 
     monkeypatch.setattr(unified_cli, "load_harvey_experiment", lambda _: experiment)
     monkeypatch.setattr(unified_cli, "HarveyEvolutionController", FakeController)
+    monkeypatch.setattr(unified_cli, "run_quality_audit", quality)
+    monkeypatch.setattr(unified_cli, "run_reward_hacking_audit", detect)
 
-    assert unified_cli.main(["run", "--experiment", str(path), "--resume"]) == 17
-    assert observed == {"experiment": experiment, "resume": True}
+    assert unified_cli.main(["run", "--experiment", str(path), "--resume"]) == 0
+    assert observed == {
+        "experiment": experiment,
+        "resume": True,
+        "stages": ["evolution", "quality", "detect"],
+    }
 
 
 def test_detect_forwards_the_experiment_to_detection_suite(

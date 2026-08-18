@@ -37,7 +37,6 @@ RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 LIVE_ROOT_PREFIX = "submission-revision-live-"
 LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
 REVISION_EXPERIMENT_KIND = "rubric-gen-submission-revision-experiment"
-REVISION_MANIFEST_SCHEMA_VERSION = 5
 _LIVE_ROOT_SENTINEL = ".rubric-gen-live-root.json"
 REVISION_MANIFEST_KEYS = frozenset(
     {
@@ -78,7 +77,6 @@ REVISION_MANIFEST_KEYS = frozenset(
         "rubric_proposer_base_url",
         "rubric_proposer_max_retries",
         "rubric_sha256",
-        "schema_version",
         "scoring_identity",
         "seed_run_dir",
         "seed_sha256",
@@ -291,7 +289,6 @@ def write_live_root_sentinel(root: Path, experiment_dir: Path) -> None:
     write_json(
         root / _LIVE_ROOT_SENTINEL,
         {
-            "schema_version": 1,
             "kind": "rubric-gen-submission-revision-live-root",
             "experiment_dir": str(experiment_dir.resolve()),
         },
@@ -494,7 +491,6 @@ def validate_live_root(root: Path, experiment_dir: Path) -> None:
         raise RuntimeError(f"live revision root sentinel is missing: {root}")
     payload = read_json_object(sentinel, "live revision root sentinel")
     if payload != {
-        "schema_version": 1,
         "kind": "rubric-gen-submission-revision-live-root",
         "experiment_dir": str(experiment_dir.resolve()),
     }:

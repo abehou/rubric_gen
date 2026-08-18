@@ -128,7 +128,6 @@ def build_ranking(
         if not dominated:
             frontier.append(str(record["candidate_id"]))
     return {
-        "schema_version": 1,
         "kind": "harvey-current-rubric-ranking",
         "rubric_version": rubric_version,
         "objectives": ["mean_criterion_pass", "mean_all_pass"],
@@ -200,7 +199,6 @@ class HarveyEvolutionController:
         write_json_atomic(
             self.root / "study.json",
             {
-                "schema_version": 1,
                 "kind": "harvey-harness-evolution-study",
                 "experiment_id": self.experiment.experiment_id,
                 "status": "completed",
@@ -214,7 +212,6 @@ class HarveyEvolutionController:
 
     def _identity(self) -> dict[str, object]:
         value = {
-            "schema_version": 1,
             "kind": "harvey-harness-evolution-experiment",
             "experiment_id": self.experiment.experiment_id,
             "experiment_path": str(self.experiment.source),
@@ -271,7 +268,6 @@ class HarveyEvolutionController:
             write_json_atomic(
                 destination / "candidate.json",
                 {
-                    "schema_version": 1,
                     "kind": "harvey-harness-candidate",
                     "parent_harness": None,
                     "harness_sha256": tree_sha256(destination / "harness"),
@@ -321,8 +317,7 @@ class HarveyEvolutionController:
         write_json_atomic(
             pending / "rubric.json",
             {
-                "schema_version": 1,
-                "kind": "harvey-task-rubric-version",
+                "kind": "harvey-task-rubric",
                 "rubric_version": rubric_id(index),
                 "parent_rubric": None if index == 0 else rubric_id(index - 1),
                 "mode": self.experiment.rubric.mode,
@@ -413,7 +408,6 @@ class HarveyEvolutionController:
         write_json_atomic(
             attempt / "accepted.json",
             {
-                "schema_version": 1,
                 "candidate_id": candidate_id(index),
                 "parent_harness": designed.parent_id,
                 "harness_sha256": designed.harness_sha256,
@@ -459,7 +453,6 @@ class HarveyEvolutionController:
             write_json_atomic(
                 current / "scores" / candidate / "summary.json",
                 {
-                    "schema_version": 1,
                     "candidate_id": candidate,
                     "mean_criterion_pass": evaluation.mean_criterion_pass,
                     "mean_all_pass": evaluation.mean_all_pass,

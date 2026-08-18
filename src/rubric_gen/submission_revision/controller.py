@@ -21,7 +21,10 @@ from rubric_gen.runtime.agents.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
 )
-from rubric_gen.submission_revision.judging.models import DEFAULT_JUDGE_MODEL
+from rubric_gen.submission_revision.judging.models import (
+    DEFAULT_JUDGE_MODEL,
+    RUBRIC_PATH_SOURCE,
+)
 from rubric_gen.runtime.progress import PROGRESS_BAR_FORMAT
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
@@ -41,12 +44,12 @@ from rubric_gen.submission_revision.artifacts import (
     is_excluded_solution_root as _is_excluded_solution_root,
     link_solution_workspace as _link_solution_workspace,
     REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
-    REVISION_MANIFEST_SCHEMA_VERSION as _REVISION_MANIFEST_SCHEMA_VERSION,
     compact_historical_workspace as _compact_historical_workspace,
     copy_solution_workspace as _copy_solution_workspace,
     make_read_only as _make_read_only,
     make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
+    revision_manifest_keys as _revision_manifest_keys,
     remove_created_live_tree as _remove_created_live_tree,
     remove_live_tree as _remove_tree,
     sha256_file as _sha256_file,
@@ -110,7 +113,14 @@ def fixed_original_attempt_id(
 def _judge_execution_contract(identity: dict[str, object]) -> dict[str, object]:
     return {
         key: identity[key]
-        for key in ("effective_judge_model", "review_mode", "max_review_chars")
+        for key in (
+            "judge_source_sha256",
+            "judge_runner_sha256",
+            "scorer_module_sha256",
+            "effective_judge_model",
+            "review_mode",
+            "max_review_chars",
+        )
     }
 
 
@@ -435,7 +445,6 @@ class SubmissionRevisionController:
         _write_json(
             self.experiment_dir / "manifest.json",
             {
-                "schema_version": _REVISION_MANIFEST_SCHEMA_VERSION,
                 "kind": _REVISION_EXPERIMENT_KIND,
                 **self._experiment_identity(),
                 "submission_count": self.config.revision_rounds + 1,
@@ -479,8 +488,8 @@ class SubmissionRevisionController:
             self.experiment_dir / "manifest.json",
             "revision manifest",
         )
-        if manifest.get("schema_version") != _REVISION_MANIFEST_SCHEMA_VERSION:
-            raise RuntimeError("revision manifest has an unsupported schema")
+        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value):
+            raise RuntimeError("revision manifest has invalid fields")
         for key, value in self._experiment_identity().items():
             if manifest.get(key) != value:
                 raise RuntimeError(f"resume configuration changed: {key}")
@@ -1330,7 +1339,7 @@ class SubmissionRevisionController:
     def _frozen_evolved_rubric(text: str, rubric_sha256: str) -> FrozenRubric:
         """Return the identity used by the judge for a rubric-path override."""
         return FrozenRubric(
-            text=text, sha256=rubric_sha256, source="evolved",
+            text=text, sha256=rubric_sha256, source=RUBRIC_PATH_SOURCE,
             rubric_set_id=None, rubric_id=None,
             structured_rubric_sha256=None, manifest_sha256=None,
         )
@@ -1427,7 +1436,10 @@ class SubmissionRevisionController:
             if identity["rendered_rubric_sha256"] != rubric.sha256:
                 raise RuntimeError("seeded score attests a different rubric")
             return
-        if self.config.rubric_evolution is RubricEvolution.STATIC:
+        if (
+            self.config.rubric_evolution is RubricEvolution.STATIC
+            and rubric.sha256 == self.rubric.sha256
+        ):
             self._pin_or_verify_scoring_identity(validation_path)
             return
         validation = _read_json_object(validation_path, "optimizer score validation")
@@ -1548,7 +1560,6 @@ class SubmissionRevisionController:
         if (
             snapshot.get("session_id") != session_id
             or snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace)
-            or status.get("schema_version") != 2
             or status.get("task") != self.task_dir.name
             or status.get("task_dir") != str(self.task_dir)
             or status.get("workspace_dir") != str(submission_dir / "workspace")
@@ -1779,7 +1790,6 @@ class SubmissionRevisionController:
         _write_json(
             status_path,
             {
-                "schema_version": 2,
                 "task": self.task_dir.name,
                 "task_dir": str(self.task_dir),
                 "workspace_dir": str(snapshot_workspace),
@@ -1795,7 +1805,6 @@ class SubmissionRevisionController:
         _write_json(
             snapshot_path,
             {
-                "schema_version": 2,
                 "submission_id": submission_id,
                 "session_id": session_id,
                 "workspace_sha256": workspace_sha256,

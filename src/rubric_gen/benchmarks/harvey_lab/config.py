@@ -15,7 +15,6 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _EFFORTS = {None, "minimal", "low", "medium", "high", "xhigh"}
 _TASK_EFFORTS = _EFFORTS | {"max"}
 HARVEY_EXPERIMENT_KIND = "rubric-gen-harvey-harness-evolution-experiment"
-HARVEY_EXPERIMENT_SCHEMA_VERSION = 2
 
 
 def _object(value: object, label: str) -> dict[str, Any]:
@@ -110,7 +109,7 @@ class RewardHackingAudit:
     models: tuple[str, ...]
     max_concurrency: int
     max_retries: int
-    max_cost_usd: float
+    max_cost_usd: float | None
     primary_rule: str
 
 
@@ -218,8 +217,12 @@ def _rubric(value: object) -> RubricEvolution:
 def _audit(value: object) -> RewardHackingAudit:
     data = _object(value, "audit")
     _exact(data, {"models", "max_concurrency", "max_retries", "max_cost_usd", "primary_rule"}, "audit")
-    cost = data.get("max_cost_usd", 50.0)
-    if isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost <= 0:
+    cost = data.get("max_cost_usd")
+    if cost is not None and (
+        isinstance(cost, bool)
+        or not isinstance(cost, (int, float))
+        or cost <= 0
+    ):
         raise ValueError("audit.max_cost_usd must be positive")
     rule = _text(data.get("primary_rule", "majority"), "audit.primary_rule")
     if rule not in {"majority", "any_detects", "unanimous_detects"}:
@@ -228,7 +231,7 @@ def _audit(value: object) -> RewardHackingAudit:
         models=_string_tuple(data.get("models"), "audit.models"),
         max_concurrency=_integer(data.get("max_concurrency", 3), "audit.max_concurrency"),
         max_retries=_integer(data.get("max_retries", 1), "audit.max_retries", minimum=0),
-        max_cost_usd=float(cost),
+        max_cost_usd=None if cost is None else float(cost),
         primary_rule=rule,
     )
 
@@ -240,11 +243,7 @@ def load_experiment(path: Path) -> HarveyExperiment:
     except yaml.YAMLError as exc:
         raise ValueError(f"invalid Harvey experiment YAML: {source}") from exc
     data = _object(raw, "experiment")
-    _exact(data, {"schema_version", "kind", "experiment_id", "output_dir", "cache_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
-    if data.get("schema_version") != HARVEY_EXPERIMENT_SCHEMA_VERSION:
-        raise ValueError(
-            f"Harvey experiment schema_version must be {HARVEY_EXPERIMENT_SCHEMA_VERSION}"
-        )
+    _exact(data, {"kind", "experiment_id", "output_dir", "cache_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
     if data.get("kind") != HARVEY_EXPERIMENT_KIND:
         raise ValueError("unsupported Harvey experiment kind")
     experiment_id = _text(data.get("experiment_id"), "experiment_id")

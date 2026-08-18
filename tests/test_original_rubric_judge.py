@@ -259,7 +259,6 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
     (source / "study.json").write_text(
         json.dumps(
             {
-                    "schema_version": 2,
                 "kind": "rubric-gen-randomized-revision-study",
                 "status": "completed",
                 "experiment_path": str(experiment_spec),

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
+from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.submission_revision.judging.scoring import parse_rubric_levels_strict
 from rubric_gen.submission_revision.feedback import (
     MAX_SIMULATED_USER_COMMENT_CHARS,
@@ -12,7 +14,6 @@ from rubric_gen.submission_revision.feedback import (
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
 
-SIMULATED_USER_PROTOCOL_VERSION = 3
 SIMULATED_USER_GENERATION_KIND = "submission-simulated-user-feedback"
 
 _CONCERN_CATEGORIES = (
@@ -61,7 +62,7 @@ class SimulatedUserConfig:
 
     def identity(self) -> dict[str, object]:
         return {
-            "protocol_version": SIMULATED_USER_PROTOCOL_VERSION,
+            "implementation_sha256": sha256_file(Path(__file__)),
             "model": self.model,
             "base_url": (
                 self.base_url.rstrip("/") + "/"
@@ -202,7 +203,6 @@ class SimulatedUserFeedback:
                     "comment": comment,
                 }
                 record: dict[str, object] = {
-                    "schema_version": 2,
                     "kind": SIMULATED_USER_GENERATION_KIND,
                     "experiment_id": experiment_id,
                     "assignment_id": assignment_id,
@@ -242,7 +242,6 @@ class SimulatedUserFeedback:
         rubric_text: str,
     ) -> str:
         expected_keys = {
-            "schema_version",
             "kind",
             "experiment_id",
             "assignment_id",
@@ -257,7 +256,6 @@ class SimulatedUserFeedback:
         attempt_count = record.get("attempt_count")
         if (
             set(record) != expected_keys
-            or record.get("schema_version") != 2
             or record.get("kind") != SIMULATED_USER_GENERATION_KIND
             or record.get("experiment_id") != experiment_id
             or record.get("assignment_id") != assignment_id

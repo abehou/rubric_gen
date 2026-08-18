@@ -13,10 +13,10 @@ from rubric_gen.submission_revision.judging.models import (
     JudgeAttempt,
     JudgeRunConfig,
     JudgeTarget,
+    RUBRIC_PATH_SOURCE,
 )
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
-from rubric_gen.submission_revision.judging.scoring import RUBRIC_SCORER_VERSION
 from rubric_gen.submission_revision.artifacts import (
     make_tree_read_only,
     prepare_evaluation_run,
@@ -31,7 +31,6 @@ from rubric_gen.submission_revision.rubrics.bundles import resolve_rubric_bundle
 
 
 SCORING_IDENTITY_KEYS = (
-    "scorer_version",
     "judge_source_sha256",
     "judge_runner_sha256",
     "scorer_module_sha256",
@@ -119,7 +118,6 @@ class FrozenRubricJudge:
         runner = self._runner(self.experiment_dir, resume=False)
         judge_path = runner.find_judge(self.task_dir)
         return {
-            "scorer_version": RUBRIC_SCORER_VERSION,
             "judge_source_sha256": sha256_file(judge_path),
             "judge_runner_sha256": runner.judge_runner_sha256(),
             "scorer_module_sha256": runner.scorer_module_sha256(),
@@ -355,7 +353,7 @@ def resolve_optimizer_rubric(config: SubmissionJudgeConfig) -> FrozenRubric:
         if path.is_symlink() or not path.is_file():
             raise FileNotFoundError(f"optimizer rubric does not exist: {path}")
         text = path.read_text(encoding="utf-8")
-        source = "rubric-path"
+        source = RUBRIC_PATH_SOURCE
         rubric_set_id = None
         rubric_id = None
         structured_rubric_sha256 = None

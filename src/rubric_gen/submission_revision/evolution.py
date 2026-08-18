@@ -80,15 +80,12 @@ _MAX_INSPECTION_CHARS = 1_000
 _MAX_UNCERTAINTY_CHARS = 1_000
 _PROPOSER_MAX_OUTPUT_TOKENS = 32_768
 _DIRECT_REQUEST_TIMEOUT_SECONDS = 600.0
-_AUDITOR_PROMPT_VERSION = "trajectory-quality-auditor-v4"
-_AUDITOR_PACKET_SCHEMA_VERSION = 3
-_PROPOSER_PROMPT_VERSION = "blind-complete-rubric-v1"
-_PROPOSER_SCHEMA_VERSION = 3
+_AUDITOR_PROMPT_ID = "trajectory-quality-auditor"
+_PROPOSER_PROMPT_ID = "blind-complete-rubric"
 _AUDITOR_VALIDATION_MAX_RETRIES = 2
 _PROPOSER_REASONING_EFFORT = "high"
 _PROPOSER_TEXT_VERBOSITY = "low"
 _METADATA_KEYS = frozenset({
-    "schema_version",
     "kind",
     "version",
     "mode",
@@ -115,7 +112,6 @@ _SNIPPET_KEYS = frozenset({
 })
 _VERIFIED_SNIPPET_KEYS = _SNIPPET_KEYS | {"text"}
 _PACKET_KEYS = frozenset({
-    "schema_version",
     "inspected",
     "findings",
 })
@@ -130,7 +126,6 @@ _FINDING_KEYS = frozenset({
     "verification_question",
 })
 _PROPOSAL_KEYS = frozenset({
-    "schema_version",
     "rubric_title",
     "criteria",
 })
@@ -140,7 +135,6 @@ _PROPOSAL_LEVEL_KEYS = frozenset({"label", "points", "description"})
 _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
-        "schema_version": {"type": "integer", "enum": [3]},
         "inspected": {"type": "string", "maxLength": _MAX_INSPECTION_CHARS},
         "findings": {
             "type": "array",
@@ -194,7 +188,7 @@ _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
             },
         },
     },
-    "required": ["schema_version", "inspected", "findings"],
+    "required": ["inspected", "findings"],
     "additionalProperties": False,
     "$defs": {
         "snippet": {
@@ -213,10 +207,6 @@ _AUDITOR_OUTPUT_SCHEMA: dict[str, object] = {
 _PROPOSER_OUTPUT_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
-        "schema_version": {
-            "type": "integer",
-            "enum": [_PROPOSER_SCHEMA_VERSION],
-        },
         "rubric_title": {"type": "string"},
         "criteria": {
             "type": "array",
@@ -246,7 +236,6 @@ _PROPOSER_OUTPUT_SCHEMA: dict[str, object] = {
         },
     },
     "required": [
-        "schema_version",
         "rubric_title",
         "criteria",
     ],
@@ -488,7 +477,6 @@ class RubricEvolver:
         proposal_path.write_text(proposal_text, encoding="utf-8")
         diff_path.write_text(rubric_diff, encoding="utf-8")
         metadata: dict[str, object] = {
-            "schema_version": 8,
             "kind": "blind-complete-rubric-generation",
             "version": version,
             "mode": RubricEvolution.PROSPECTIVE.value,
@@ -572,13 +560,12 @@ class RubricEvolver:
             "service_tier": self.auditor.service_tier,
             "timeout_seconds": self.auditor.timeout_seconds,
             "executable": self.auditor.executable,
-            "prompt_version": _AUDITOR_PROMPT_VERSION,
+            "prompt_id": _AUDITOR_PROMPT_ID,
             "prompt_sha256": sha256_text(
                 _AUDITOR_AGENT_PROMPT + "\0" + task_prompt
             ),
             "repair_error": repair_error,
             "rejected_packet": rejected_packet,
-            "packet_schema_version": _AUDITOR_PACKET_SCHEMA_VERSION,
             "query_limit": self.query_limit,
             "query_count": output.query_count,
             "retrieved_event_ids": list(output.retrieved_event_ids),
@@ -613,8 +600,7 @@ class RubricEvolver:
                 self.proposer_base_url.rstrip("/") + "/"
                 if self.proposer_base_url is not None else None
             ),
-            "prompt_version": _PROPOSER_PROMPT_VERSION,
-            "output_schema_version": _PROPOSER_SCHEMA_VERSION,
+            "prompt_id": _PROPOSER_PROMPT_ID,
             "prompt_sha256": sha256_text(instructions + "\0" + evidence),
             "repair_error": repair_error,
             "rejected_attempts": [dict(attempt) for attempt in rejected_attempts],
@@ -651,7 +637,6 @@ class RubricEvolver:
         write_json_atomic(
             metadata_path,
             {
-                "schema_version": 1,
                 "evolve_attempt": evolve_attempt,
                 "error_type": type(error).__name__,
                 "error": str(error) or type(error).__name__,
@@ -685,7 +670,6 @@ class RubricEvolver:
         write_json_atomic(
             metadata_path,
             {
-                "schema_version": 2,
                 "evolve_attempt": evolve_attempt,
                 "auditor_packet_sha256": packet_sha256,
                 "error_type": type(error).__name__,
@@ -809,7 +793,6 @@ class RubricEvolver:
         if (
             not isinstance(stored, dict)
             or set(stored) != _METADATA_KEYS
-            or stored.get("schema_version") != 8
             or stored.get("kind") != "blind-complete-rubric-generation"
             or stored.get("version") != version
             or stored.get("mode") != RubricEvolution.PROSPECTIVE.value
@@ -859,7 +842,6 @@ class RubricEvolver:
             linked_trajectory = evidence / "trajectory.stream.jsonl"
             _link_or_copy(trajectory_path, linked_trajectory)
             write_json_atomic(evidence / "manifest.json", {
-                "schema_version": 1,
                 "kind": "trajectory-auditor-evidence",
                 "evidence_files": [linked_trajectory.name],
             })
@@ -989,7 +971,7 @@ the packet, including between evidence and counterevidence.
 {rejected_packet or ""}
 </rejected_packet>
 """
-    return f"""Prompt contract: {_AUDITOR_PROMPT_VERSION}
+    return f"""Prompt contract: {_AUDITOR_PROMPT_ID}
 
 <task_instruction>
 {task_instruction}
@@ -1022,7 +1004,6 @@ potential concern as an observed fact. Use `uncertainty` and a focused
 or infer hidden events.
 
 Return one JSON object with this exact structure:
-- `schema_version`: 3.
 - `inspected`: a short factual statement of the inspected areas.
 - `findings`: zero or more findings. Give each a unique sequential ID such as
   `F1`. Each finding
@@ -1080,7 +1061,7 @@ points must equal 100 unless the current rubric contains a
 `Score normalization maximum: N` directive. When that directive exists,
 preserve it exactly and make the A-level points sum to N. Criteria may include
 negative lower levels."""
-    return f"""Prompt contract: {_PROPOSER_PROMPT_VERSION}
+    return f"""Prompt contract: {_PROPOSER_PROMPT_ID}
 
 Act as an independent designer of the complete optimizer rubric for the next
 revision of a scientific task.
@@ -1445,8 +1426,6 @@ def _validated_evidence_packet(
         raise ValueError("trajectory auditor returned invalid JSON") from exc
     if not isinstance(packet, dict) or set(packet) != _PACKET_KEYS:
         raise ValueError("trajectory auditor packet has invalid fields")
-    if packet.get("schema_version") != _AUDITOR_PACKET_SCHEMA_VERSION:
-        raise ValueError("trajectory auditor packet has an invalid schema version")
     inspected = packet.get("inspected")
     if (
         type(inspected) is not str
@@ -1577,8 +1556,6 @@ def _validated_structured_rubric(
         raise ValueError("rubric proposer returned invalid JSON") from exc
     if not isinstance(proposal, dict) or set(proposal) != _PROPOSAL_KEYS:
         raise ValueError("structured rubric has invalid fields")
-    if proposal.get("schema_version") != _PROPOSER_SCHEMA_VERSION:
-        raise ValueError("structured rubric has an invalid schema version")
     title = proposal.get("rubric_title")
     criteria = proposal.get("criteria")
     if (

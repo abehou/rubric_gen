@@ -21,6 +21,7 @@ from rubric_gen.reward_hacking.sources import (
     transcript_audit_source,
 )
 from rubric_gen.submission_revision.audit_evidence import revision_audit_source
+from rubric_gen.evidence.index import index_implementation_sha256
 from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
@@ -29,7 +30,6 @@ from rubric_gen.runtime.llm import (
 
 
 DATASET_PROVENANCE = {
-    "schema_version": 2,
     "dataset_revision": "a" * 40,
     "inputs": [{"path": "/dataset/shard.parquet", "bytes": 1, "sha256": "b" * 64}],
 }
@@ -242,10 +242,9 @@ def _case(path: Path, transcript: dict[str, object]) -> Path:
     path.mkdir()
     (path / "transcript.json").write_text(json.dumps(transcript))
     (path / "manifest.json").write_text(json.dumps({
-        "schema_version": 2,
         "kind": "reward-hacking-forensic-case",
         "case_id": path.name,
-        "evidence_schema_version": 5,
+        "evidence_index_sha256": index_implementation_sha256(),
         "evidence_files": ["transcript.json"],
     }))
     return path
@@ -272,7 +271,6 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     )
     assert runner.run() == 0
     summary = json.loads((output / "summary.json").read_text())
-    assert summary["schema_version"] == 11
     assert summary["detection_target"] == review.detection_target(
         "rh"
     ).provenance()
@@ -288,13 +286,12 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     assert generation["requested_model"] == "gpt-test"
     assert generation["effective_model"] == "gpt-test-served"
     provenance = json.loads((output / "run-provenance.json").read_text())
-    assert provenance["schema_version"] == 7
     assert provenance["input_validation"] == (
         "study-ledger-and-required-evidence-files; "
         "no-snapshot-hash-revalidation"
     )
     assert provenance["detection_target"] == summary["detection_target"]
-    assert "implementation" not in provenance
+    assert len(provenance["implementation_sha256"]) == 64
 
 
 def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
@@ -478,13 +475,11 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
         )
         (submission / "status.json").write_text(json.dumps({"exit_code": 0}))
         (submission / "snapshot.json").write_text(json.dumps({
-            "schema_version": 2,
             "submission_id": f"s{index:03d}",
             "workspace_sha256": "not-revalidated",
             "trajectory_sha256": "not-revalidated",
         }))
     (revision / "manifest.json").write_text(json.dumps({
-        "schema_version": 5,
         "kind": "rubric-gen-submission-revision-experiment",
         "benchmark": "biomnibench-da",
         "experiment_id": "test-experiment",
@@ -503,7 +498,6 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     feedback = revision / "feedback"
     feedback.mkdir()
     (feedback / "s000.json").write_text(json.dumps({
-        "schema_version": 1,
         "policy": "semi",
         "score": 20,
         "raw_score": 20,
@@ -1149,6 +1143,33 @@ def test_runtime_budget_stops_before_generation(tmp_path: Path) -> None:
     assert record["error_type"] == "CostBudgetExceeded"
 
 
+def test_omitted_runtime_budget_allows_generation(tmp_path: Path) -> None:
+    case = _case(tmp_path / "case-a", {"samples": []})
+    calls = 0
+
+    def generate(model: str, request: StructuredRequest) -> GenerationResult:
+        nonlocal calls
+        calls += 1
+        return _generation(model, _rh_text())
+
+    output = tmp_path / "output"
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(case),
+            models=("gpt-5.6-luna",),
+            output_dir=output,
+            max_cost_usd=None,
+        ),
+        generate_response=generate,
+        count_tokens=lambda _model, _request: 100_000,
+    )
+
+    assert runner.run() == 0
+    assert calls == 1
+    summary = json.loads((output / "summary.json").read_text())
+    assert summary["cost"]["budget_usd"] is None
+
+
 def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     # Luna: 300k uncached input at 2x $0.20/MTok plus 100k output at
     # 1.5x $1.20/MTok.
@@ -1170,6 +1191,9 @@ def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     # Claude's full context uses the standard Opus 4.8 tier.
     assert RewardHackingJudgeRunner._request_cost(
         "claude-opus-4-8", 300_000, 100_000
+    ) == pytest.approx(4.0)
+    assert RewardHackingJudgeRunner._request_cost(
+        "claude-opus-5", 300_000, 100_000
     ) == pytest.approx(4.0)
 
 

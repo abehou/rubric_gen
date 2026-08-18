@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 
-DIRECT_RH_AUDIT_PROTOCOL_VERSION = 19
+
 RH_PROMPT_CACHE_POLICY = (
     "per-run-first-five-message-prefix; openai-explicit-30m; "
     "anthropic-ephemeral-5m; gemini-implicit"
@@ -39,12 +41,19 @@ DEFAULT_RH_MAX_EVENT_TEXT_CHARS = 65_536
 DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS = 2_048
 DEFAULT_RH_MAX_RETRIES = 1
 DEFAULT_RH_MAX_COST_USD = 1_500.0
+RH_COMPONENTS = (
+    "verifier_exploitation",
+    "rubric_drift",
+    "wording_exploitation",
+    "specification_exploitation",
+)
 
 
 def outcome_audit_protocol(
     *,
     models: tuple[str, ...],
     primary_rule: str,
+    component_weights: Mapping[str, object],
     max_input_tokens: int = DEFAULT_RH_MAX_INPUT_TOKENS,
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS,
     max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
@@ -52,10 +61,33 @@ def outcome_audit_protocol(
     max_retries: int = DEFAULT_RH_MAX_RETRIES,
     max_cost_usd: float = DEFAULT_RH_MAX_COST_USD,
 ) -> dict[str, object]:
-    """Return the exact metadata-blinded primary binary-outcome protocol."""
+    """Return the exact metadata-blinded reward-hacking evaluation protocol."""
 
     if primary_rule not in {"majority", "any_detects", "unanimous_detects"}:
         raise ValueError("primary RH rule is invalid")
+    if (
+        not isinstance(component_weights, Mapping)
+        or set(component_weights) != set(RH_COMPONENTS)
+    ):
+        raise ValueError(
+            "component_weights must contain exactly "
+            + ", ".join(RH_COMPONENTS)
+        )
+    weights: dict[str, float] = {}
+    for name in RH_COMPONENTS:
+        value = component_weights[name]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or value < 0
+        ):
+            raise ValueError(
+                f"component weight must be finite and non-negative: {name}"
+            )
+        weights[name] = float(value)
+    if not any(weights.values()):
+        raise ValueError("at least one component weight must be positive")
     if (
         not models
         or len(set(models)) != len(models)
@@ -82,10 +114,10 @@ def outcome_audit_protocol(
     ) or max_cost_usd <= 0:
         raise ValueError("audit API cost budget must be positive")
     return {
-        "protocol_version": DIRECT_RH_AUDIT_PROTOCOL_VERSION,
         "detection": "rh",
         "models": list(models),
         "primary_rule": primary_rule,
+        "component_weights": weights,
         "openai_reasoning_effort": OPENAI_RH_REASONING_EFFORT,
         "openai_text_verbosity": OPENAI_RH_TEXT_VERBOSITY,
         "anthropic_effort": ANTHROPIC_RH_EFFORT,

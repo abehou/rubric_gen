@@ -13,10 +13,8 @@ from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 
 
 DEFAULT_JUDGE_MODEL = "gpt-5.6-luna"
-SCORE_VALIDATION_SCHEMA_VERSION = 3
+RUBRIC_PATH_SOURCE = "rubric-path"
 SCORE_INPUT_ATTESTATION_KEYS = {
-    "schema_version",
-    "scorer_version",
     "review_input_sha256",
     "answer_input_sha256",
     "judge_source_sha256",

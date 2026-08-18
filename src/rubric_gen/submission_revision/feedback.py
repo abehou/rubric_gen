@@ -61,11 +61,9 @@ def render_feedback_prompt(
     policy = FeedbackPolicy(payload.get("policy"))
     resolved_profile = PromptProfile(prompt_profile)
     revision_action = get_submission_benchmark(benchmark).revision_action
-    if payload.get("schema_version") != 1:
-        raise ValueError("feedback payload has invalid schema")
 
     if policy is FeedbackPolicy.SIMULATED_USER:
-        if set(payload) != {"schema_version", "policy", "comment"}:
+        if set(payload) != {"policy", "comment"}:
             raise ValueError("simulated-user feedback contains unexpected fields")
         comment = payload.get("comment")
         if (
@@ -95,7 +93,7 @@ def render_feedback_prompt(
     if not 0 <= score <= 100:
         raise ValueError("feedback score must be between 0 and 100")
     if policy is FeedbackPolicy.SCORE_ONLY:
-        if set(payload) != {"schema_version", "policy", "score"}:
+        if set(payload) != {"policy", "score"}:
             raise ValueError("score-only feedback contains unexpected fields")
         prompt = (
             f"Your previous submission received a validated total score of "
@@ -109,7 +107,6 @@ def render_feedback_prompt(
 
     if policy is FeedbackPolicy.SEMI:
         expected_keys = {
-            "schema_version",
             "policy",
             "score",
             "raw_score",
@@ -152,7 +149,6 @@ def render_feedback_prompt(
         )
 
     expected_keys = {
-        "schema_version",
         "policy",
         "rubric_text",
         "score",
@@ -227,7 +223,6 @@ def project_feedback(
 
     if resolved_policy is FeedbackPolicy.SCORE_ONLY:
         payload: dict[str, object] = {
-            "schema_version": 1,
             "policy": resolved_policy.value,
             "score": score,
         }
@@ -246,7 +241,6 @@ def project_feedback(
             criterion_scores,
         )
         payload = {
-            "schema_version": 1,
             "policy": resolved_policy.value,
             "score": score,
             "raw_score": raw_score,
@@ -300,7 +294,6 @@ def project_simulated_user_feedback(
         expected_rubric_sha256,
     )
     payload: dict[str, object] = {
-        "schema_version": 1,
         "policy": FeedbackPolicy.SIMULATED_USER.value,
         "comment": comment,
     }
@@ -460,7 +453,6 @@ def _project_full_payload(
         }
 
     return {
-        "schema_version": 1,
         "policy": FeedbackPolicy.FULL.value,
         "rubric_text": rubric_text,
         "score": score,

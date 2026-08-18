@@ -24,7 +24,6 @@ from .models import (
     DEFAULT_JUDGE_MODEL,
     SCORE_INPUT_ATTESTATION_KEYS,
     SCORE_VALIDATION_KEYS,
-    SCORE_VALIDATION_SCHEMA_VERSION,
     JudgeAttempt,
     JudgeRunConfig,
     JudgeTarget,
@@ -32,7 +31,6 @@ from .models import (
 )
 from .scoring import (
     JudgeScoreValidationError,
-    RUBRIC_SCORER_VERSION,
     parse_rubric_levels_strict,
     parse_score_normalization_maximum,
     validate_judge_score,
@@ -246,10 +244,9 @@ class JudgeExecutor:
         if (
             type(usage) is not dict
             or set(usage) != {
-                "schema_version", "provider", "requested_model",
+                "provider", "requested_model",
                 "effective_model", "response_id", "request_parameters", "usage",
             }
-            or usage.get("schema_version") != 1
         ):
             raise JudgeScoreValidationError("judge usage record is invalid")
         validated = validate_judge_score(
@@ -320,8 +317,6 @@ class JudgeExecutor:
         if type(attempt.repeat_index) is not int or attempt.repeat_index < 1:
             raise JudgeScoreValidationError("repeat_index must be a positive integer")
         return {
-            "schema_version": SCORE_VALIDATION_SCHEMA_VERSION,
-            "scorer_version": RUBRIC_SCORER_VERSION,
             "review_input_sha256": sha256_text(review_text),
             "answer_input_sha256": sha256_text(answer_text),
             "judge_source_sha256": hashlib.sha256(judge_source).hexdigest(),

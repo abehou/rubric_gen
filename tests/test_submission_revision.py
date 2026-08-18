@@ -87,7 +87,6 @@ def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
 
 def _identity(task: Path) -> dict[str, object]:
     return {
-        "scorer_version": "test-scorer-v1",
         "judge_source_sha256": "1" * 64,
         "judge_runner_sha256": "2" * 64,
         "scorer_module_sha256": "3" * 64,
@@ -127,7 +126,6 @@ def _write_seed_set(
         f"{workspace_sha}\n{trajectory_sha}\n"
     )
     (submission / "status.json").write_text(json.dumps({
-        "schema_version": 2,
         "task": task.name,
         "replicate": 1,
         "experiment_id": EXPERIMENT_ID,
@@ -138,7 +136,6 @@ def _write_seed_set(
         "exit_code": 0,
     }))
     (submission / "snapshot.json").write_text(json.dumps({
-        "schema_version": 2,
         "submission_id": "s000",
         "session_id": None,
         "workspace_sha256": workspace_sha,
@@ -155,9 +152,8 @@ def _write_seed_set(
     identity = dict(scoring_identity or _identity(task))
     validation = judgment / "score_validation.json"
     usage = judgment / "usage.json"
-    usage.write_text('{"schema_version":1,"usage":{}}')
+    usage.write_text('{"usage":{}}')
     validation.write_text(json.dumps({
-        "schema_version": 2,
         **identity,
         "review_input_sha256": "4" * 64,
         "answer_input_sha256": "5" * 64,
@@ -176,7 +172,6 @@ def _write_seed_set(
         f"{json.dumps(identity, sort_keys=True, separators=(',', ':'))}\n"
     )
     (seed_root / "manifest.json").write_text(json.dumps({
-        "schema_version": 4,
         "kind": SEED_KIND,
         "experiment_id": EXPERIMENT_ID,
         "task_id": task.name,
@@ -200,10 +195,7 @@ def _write_seed_set(
         },
     }))
     (seed_set / "manifest.json").write_text(json.dumps({
-        "schema_version": 3,
         "kind": SEED_SET_KIND,
-        "status": "completed",
-        "experiment_id": EXPERIMENT_ID,
     }))
     return seed_set
 
@@ -355,8 +347,15 @@ class FakeSession:
 
 
 class FakeJudge:
-    def __init__(self, task: Path, scores: tuple[int, ...], root: Path) -> None:
-        self.identity = _identity(task)
+    def __init__(
+        self,
+        task: Path,
+        scores: tuple[int, ...],
+        root: Path,
+        *,
+        identity: dict[str, object] | None = None,
+    ) -> None:
+        self.identity = dict(identity or _identity(task))
         self.task_name = task.name
         self.scores = scores
         self.root = root
@@ -387,7 +386,6 @@ class FakeJudge:
         }))
         validation = output / "score_validation.json"
         validation.write_text(json.dumps({
-            "schema_version": 2,
             **self.identity,
             "review_input_sha256": "4" * 64,
             "answer_input_sha256": "5" * 64,
@@ -426,7 +424,7 @@ def test_evolved_candidate_uses_canonical_judge_source() -> None:
         "a" * 64,
     )
 
-    assert rubric.source == "evolved"
+    assert rubric.source == "rubric-path"
 
 
 def test_prospective_fixed_original_score_is_separate_from_on_policy_score(
@@ -474,13 +472,68 @@ def test_prospective_fixed_original_score_is_separate_from_on_policy_score(
     ).is_dir()
 
 
-def test_revision_accepts_seed_judgment_from_an_older_code_build(
+def test_static_paraphrase_accepts_separate_master_rubric_score(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
-    legacy_identity = _identity(task)
-    legacy_identity.update({
-        "scorer_version": "rubric-scoring-v1",
+    optimizer_rubric = tmp_path / "optimizer-rubric.txt"
+    optimizer_rubric.write_text(
+        "Criterion 1: Produce the correct result\nLevels: A=100 B=50 C=0\n"
+    )
+    config = replace(
+        _config(tmp_path, task, rounds=1),
+        optimizer_rubric_path=optimizer_rubric,
+    )
+    optimizer_identity = _identity(task)
+    optimizer_identity.update({
+        "rubric_source": "rubric-path",
+        "rendered_rubric_sha256": sha256_file(optimizer_rubric),
+    })
+    master_judge = FakeJudge(task, (0, 72), tmp_path / "master-judge")
+    controller = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=FakeJudge(
+                task,
+                (0, 90),
+                tmp_path / "optimizer-judge",
+                identity=optimizer_identity,
+            ),
+            master_judge=master_judge,
+        ),
+    )
+    submission = config.experiment_dir / "submissions" / "s001"
+    submission.mkdir(parents=True)
+
+    fixed_score = controller._fixed_original_score(
+        submission_dir=submission,
+        submission_id="s001",
+        turn_index=1,
+        on_policy_score=90,
+    )
+
+    assert fixed_score == 72
+    attempt_id = fixed_original_attempt_id(
+        config.assignment_id,
+        "s001",
+        controller.master_rubric.sha256,
+    )
+    assert (
+        config.experiment_dir
+        / "evaluations"
+        / "s001"
+        / controller.master_rubric.sha256
+        / attempt_id
+    ).is_dir()
+
+
+def test_revision_rejects_seed_judgment_from_a_different_code_build(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    stale_identity = _identity(task)
+    stale_identity.update({
         "judge_source_sha256": "a" * 64,
         "judge_runner_sha256": "b" * 64,
         "scorer_module_sha256": "c" * 64,
@@ -489,32 +542,15 @@ def test_revision_accepts_seed_judgment_from_an_older_code_build(
         tmp_path,
         task,
         rounds=1,
-        seed_scoring_identity=legacy_identity,
+        seed_scoring_identity=stale_identity,
     )
     judge = FakeJudge(task, (0, 90), tmp_path / "judge")
 
-    result = SubmissionRevisionController(
-        config,
-        RevisionDependencies(session=FakeSession(), judge=judge),
-    ).run()
-
-    assert result.scores == (80, 90)
-    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
-    assert manifest["scoring_identity"] == judge.identity
-    assignment = {
-        "assignment_id": config.assignment_id,
-        "task_id": task.name,
-        "replicate": 1,
-        "condition_id": config.condition_id,
-        "execution_order": 1,
-    }
-    validate_completed_revision(
-        config.experiment_dir,
-        assignment,
-        _design(config, task),
-        config.seed_run_dir,
-        config.experiment_dir / "paraphrases",
-    )
+    with pytest.raises(RuntimeError, match="scoring contract"):
+        SubmissionRevisionController(
+            config,
+            RevisionDependencies(session=FakeSession(), judge=judge),
+        )
 
 
 def test_revision_rejects_seed_judgment_with_different_scoring_semantics(
@@ -573,7 +609,6 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     )
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
-    assert state["schema_version"] == 2
     assert state["fixed_original_scores"] == [80, 55, 70]
     state["next_prompt"] = "persisted historical prompt\n"
     state_path.write_text(json.dumps(state))
@@ -696,7 +731,7 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
     feedback = json.loads(
         (config.experiment_dir / "feedback" / "s000.json").read_text()
     )
-    assert set(feedback) == {"schema_version", "policy", "comment"}
+    assert set(feedback) == {"policy", "comment"}
     generation = json.loads(
         (
             config.experiment_dir
@@ -1316,7 +1351,7 @@ Levels: A=40 B=20 C=0
     assert '"title": "Evidence"' in semi.prompt
     assert "needs more evidence" not in semi.prompt
     assert "Criterion 2" not in score.prompt
-    assert set(simulated.payload) == {"schema_version", "policy", "comment"}
+    assert set(simulated.payload) == {"policy", "comment"}
     assert "The evidence is hard to verify" in simulated.prompt
     assert "80/100" not in simulated.prompt
     assert "needs more evidence" not in simulated.prompt

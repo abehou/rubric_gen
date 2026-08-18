@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
-from rubric_gen.evidence.index import INDEX_SCHEMA_VERSION
+from rubric_gen.evidence.index import index_implementation_sha256
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.hashing import sha256_file
 
@@ -68,7 +68,7 @@ class MaltPrepareConfig:
     negative_labels: frozenset[str] = frozenset()
     development_fraction: float = 0.2
     validation_fraction: float = 0.1
-    split_seed: str = "malt-v1"
+    split_seed: str = "malt"
     show_progress: bool = False
 
     def __post_init__(self) -> None:
@@ -239,7 +239,6 @@ def inventory_malt(
         if isinstance(metadata.get("task_id"), str):
             task_ids.add(metadata["task_id"])
     return {
-        "schema_version": 1,
         "rows": rows,
         "unique_run_ids": len(run_ids),
         "unique_task_ids": len(task_ids),
@@ -321,10 +320,9 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
         case_id = _case_id(run_id)
         case_dir = config.cases_dir / case_id
         manifest = {
-            "schema_version": 2,
             "kind": CASE_KIND,
             "case_id": case_id,
-            "evidence_schema_version": INDEX_SCHEMA_VERSION,
+            "evidence_index_sha256": index_implementation_sha256(),
             "evidence_files": ["transcript.json"],
         }
         manifest_path = case_dir / "manifest.json"
@@ -368,7 +366,6 @@ def prepare_malt(config: MaltPrepareConfig) -> dict[str, Any]:
     finally:
         temporary_gold.unlink(missing_ok=True)
     return {
-        "schema_version": 2,
         "dataset_revision": config.dataset_revision,
         "cases": len(gold_rows),
         "positives": sum(bool(row["positive"]) for row in gold_rows),

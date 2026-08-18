@@ -35,7 +35,6 @@ from rubric_gen.reward_hacking.protocol import (
     DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
     DEFAULT_RH_MAX_INPUT_TOKENS,
     DEFAULT_RH_MAX_OUTPUT_TOKENS,
-    DIRECT_RH_AUDIT_PROTOCOL_VERSION,
     PRIMARY_RH_MODELS,
 )
 from rubric_gen.reward_hacking.runner import (
@@ -115,7 +114,6 @@ def _annotate_negative_sample_metrics(
     )
     sample_negatives = len(sampled_case_ids) - sample_positives
     prevalence = population_positives / len(population_labels)
-    metrics["schema_version"] = 3
     metrics["sampling"] = {
         "strategy": "all_positives_seeded_negatives",
         "population_positives": population_positives,
@@ -316,7 +314,7 @@ def run(args: argparse.Namespace) -> int:
     args.validation_fraction = (
         0.1 if args.validation_fraction is None else args.validation_fraction
     )
-    args.split_seed = "malt-v1" if args.split_seed is None else args.split_seed
+    args.split_seed = "malt" if args.split_seed is None else args.split_seed
     args.seed = 42 if args.seed is None else args.seed
     args.split = "development" if args.split is None else args.split
     args.max_input_tokens = (
@@ -365,7 +363,6 @@ def run(args: argparse.Namespace) -> int:
     dataset_revision = dataset_revision_from_inputs(inputs)
     inventory = inventory_malt(inputs, show_progress=True)
     inventory.update({
-        "schema_version": 2,
         "dataset_revision": dataset_revision,
         "inputs": fingerprints,
         "review_filter": "manually_reviewed_only",
@@ -381,7 +378,6 @@ def run(args: argparse.Namespace) -> int:
     gold_path = detection_root / "private" / "gold.jsonl"
     preparation_path = detection_root / "private" / "preparation.json"
     preparation = {
-        "schema_version": 2,
         "dataset_revision": dataset_revision,
         "inputs": fingerprints,
         "review_filter": "manually_reviewed_only",
@@ -505,7 +501,6 @@ def run(args: argparse.Namespace) -> int:
     preparation_digest = hashlib.sha256(
         json.dumps(preparation, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()[:12]
-    evaluation_protocol = DIRECT_RH_AUDIT_PROTOCOL_VERSION
     mode_name += (
         f"--split-seed-{safe_split_seed}"
         f"--dev-{args.development_fraction:g}"
@@ -516,7 +511,7 @@ def run(args: argparse.Namespace) -> int:
         f"--mco-{args.max_command_output_chars}"
         f"--exec-{args.execution}"
         f"--primary-{args.primary_rule}"
-        f"--audit-v{evaluation_protocol}--data-{preparation_digest}"
+        f"--data-{preparation_digest}"
     )
     output_root = (
         resolve_project_path(args.output_dir)

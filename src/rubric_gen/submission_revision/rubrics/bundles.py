@@ -22,11 +22,6 @@ from rubric_gen.submission_revision.rubrics.schema import (
 )
 
 
-TASK_RUBRIC_BUNDLE_SCHEMA_VERSION = 1
-TASK_RUBRIC_COMPILER_CONFIG_SCHEMA_VERSION = 1
-TASK_RUBRIC_REWRITER_PROVENANCE_SCHEMA_VERSION = 1
-TASK_RUBRIC_RESPONSE_METADATA_SCHEMA_VERSION = 1
-TASK_RUBRIC_PROMPT_VERSION = "task-process-rubric-v1"
 TASK_RUBRIC_PROVIDER = "google-gemini"
 
 SAFE_TASK_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
@@ -40,49 +35,18 @@ GENERATION_CODE_KEYS = {
     "task_rubrics.py",
     "task_snapshots.py",
 }
-_PRE_BUNDLE_GENERATION_CODE_KEYS = {
-    "gemini_client.py",
-    "rubric_scoring.py",
-    "task_rubric_compiler.py",
-    "task_rubric_prompts.py",
-    "task_rubrics.py",
-    "task_snapshots.py",
-}
-_PRE_SNAPSHOT_GENERATION_CODE_KEYS = {
-    "gemini_client.py",
-    "rubric_scoring.py",
-    "task_rubric_compiler.py",
-    "task_rubric_prompts.py",
-    "task_rubrics.py",
-}
-_PRE_PROMPT_GENERATION_CODE_KEYS = {
-    "gemini_client.py",
-    "rubric_scoring.py",
-    "task_rubric_compiler.py",
-    "task_rubrics.py",
-}
-_HISTORICAL_GENERATION_CODE_KEYS = {
-    "perturbations.py",
-    "rubric_scoring.py",
-    "task_rubric_compiler.py",
-    "task_rubrics.py",
-}
 _COMPILER_CONFIG_KEYS = {
     "api_key_env",
-    "bundle_schema_version",
     "max_concurrency",
     "max_retries",
     "model",
-    "prompt_version",
     "rewriter_provenance_sha256",
-    "schema_version",
     "seed",
     "task_ids",
     "tasks_dir",
     "temperature",
 }
 _REWRITER_PROVENANCE_KEYS = {
-    "schema_version",
     "provider",
     "model",
     "implementation_id",
@@ -91,7 +55,6 @@ _REWRITER_PROVENANCE_KEYS = {
 _RESPONSE_METADATA_KEYS = {
     "raw_response_sha256",
     "response_id",
-    "schema_version",
     "served_model_version",
 }
 
@@ -159,18 +122,6 @@ def _closed_keys(value: dict[str, object], expected: set[str], context: str) -> 
 def _validated_compiler_config(value: object) -> dict[str, object]:
     config = _object(value, "compiler config")
     _closed_keys(config, _COMPILER_CONFIG_KEYS, "compiler config")
-    if (
-        type(config["schema_version"]) is not int
-        or config["schema_version"] != TASK_RUBRIC_COMPILER_CONFIG_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("unsupported compiler config schema version")
-    if (
-        type(config["bundle_schema_version"]) is not int
-        or config["bundle_schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("compiler config bundle schema version mismatch")
-    if config["prompt_version"] != TASK_RUBRIC_PROMPT_VERSION:
-        raise RubricBundleError("compiler config prompt version mismatch")
     _hash(
         config["rewriter_provenance_sha256"],
         "compiler config rewriter provenance sha256",
@@ -205,11 +156,6 @@ def _validated_compiler_config(value: object) -> dict[str, object]:
 def _validated_rewriter_provenance(value: object) -> dict[str, object]:
     raw = _object(value, "rewriter provenance")
     _closed_keys(raw, _REWRITER_PROVENANCE_KEYS, "rewriter provenance")
-    if (
-        type(raw["schema_version"]) is not int
-        or raw["schema_version"] != TASK_RUBRIC_REWRITER_PROVENANCE_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("unsupported rewriter provenance schema version")
     for field_name in ("provider", "model", "implementation_id"):
         field_value = raw[field_name]
         if type(field_value) is not str or not field_value.strip():
@@ -226,11 +172,6 @@ def _validated_rewriter_provenance(value: object) -> dict[str, object]:
 def _validated_response_metadata(value: object) -> dict[str, object]:
     metadata = _object(value, "response metadata")
     _closed_keys(metadata, _RESPONSE_METADATA_KEYS, "response metadata")
-    if (
-        type(metadata["schema_version"]) is not int
-        or metadata["schema_version"] != TASK_RUBRIC_RESPONSE_METADATA_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("unsupported response metadata schema version")
     _hash(metadata["raw_response_sha256"], "response metadata raw-response hash")
     for field_name in ("served_model_version", "response_id"):
         field_value = metadata[field_name]
@@ -246,13 +187,7 @@ def _validated_response_metadata(value: object) -> dict[str, object]:
 def _validated_generation_code_sha256s(value: object) -> dict[str, str]:
     raw_hashes = _object(value, "generation code hashes")
     key_set = set(raw_hashes)
-    if key_set not in (
-        GENERATION_CODE_KEYS,
-        _PRE_BUNDLE_GENERATION_CODE_KEYS,
-        _PRE_SNAPSHOT_GENERATION_CODE_KEYS,
-        _PRE_PROMPT_GENERATION_CODE_KEYS,
-        _HISTORICAL_GENERATION_CODE_KEYS,
-    ):
+    if key_set != GENERATION_CODE_KEYS:
         raise RubricBundleError(
             "generation code hashes has missing or unexpected fields"
         )
@@ -448,16 +383,9 @@ def _validate_snapshot_attestation(
         )
         _closed_keys(
             request,
-            {"schema_version", "prompt_version", "task_snapshot", "previous_errors"},
+            {"task_snapshot", "previous_errors"},
             context,
         )
-        if (
-            type(request["schema_version"]) is not int
-            or request["schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION
-        ):
-            raise RubricBundleError(f"{context} schema version mismatch")
-        if request["prompt_version"] != TASK_RUBRIC_PROMPT_VERSION:
-            raise RubricBundleError(f"{context} prompt version mismatch")
         request_snapshot = _object(request["task_snapshot"], f"{context} snapshot")
         if snapshot is None:
             snapshot = request_snapshot
@@ -521,8 +449,6 @@ def _validate_snapshot_attestation(
     ):
         raise RubricBundleError("task bundle has no successful generation attempt")
     prompt_request = TaskRubricRequest(
-        schema_version=successful_request["schema_version"],  # type: ignore[arg-type]
-        prompt_version=successful_request["prompt_version"],  # type: ignore[arg-type]
         task_snapshot=snapshot,
         previous_errors=tuple(successful_request["previous_errors"]),  # type: ignore[arg-type]
     )
@@ -572,25 +498,16 @@ def resolve_rubric_bundle(
             "generated_at",
             "generation_code_sha256",
             "generation_code_sha256s",
-            "prompt_version",
             "rewriter_provenance",
             "rewriter_provenance_sha256",
             "rubric_set_id",
-            "schema_version",
             "status",
             "tasks",
         },
         "root manifest",
     )
-    if (
-        type(root_manifest["schema_version"]) is not int
-        or root_manifest["schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("unsupported root manifest schema version")
     if root_manifest["status"] != "sealed":
         raise RubricBundleError("root manifest is not sealed")
-    if root_manifest["prompt_version"] != TASK_RUBRIC_PROMPT_VERSION:
-        raise RubricBundleError("unsupported prompt version")
     _string(root_manifest["generated_at"], "root generated_at")
     compiler_config = _validated_compiler_config(root_manifest["compiler_config"])
     compiler_config_sha256 = _hash(
@@ -688,7 +605,6 @@ def resolve_rubric_bundle(
             "rubric_id",
             "rubric_set_id",
             "rubric_sha256",
-            "schema_version",
             "snapshot",
             "status",
             "task_id",
@@ -696,11 +612,6 @@ def resolve_rubric_bundle(
         },
         "task manifest",
     )
-    if (
-        type(task_manifest["schema_version"]) is not int
-        or task_manifest["schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("unsupported task manifest schema version")
     if task_manifest["status"] != "valid" or task_manifest["validation_errors"] != []:
         raise RubricBundleError("task manifest does not attest a valid rubric")
     if task_manifest["task_id"] != task_id:
@@ -741,11 +652,9 @@ def resolve_rubric_bundle(
             "code_sha256s",
             "compiler_config_sha256",
             "model",
-            "prompt_version",
             "provider",
             "rewriter_provenance",
             "rewriter_provenance_sha256",
-            "schema_version",
             "seed",
             "temperature",
         },
@@ -781,13 +690,6 @@ def resolve_rubric_bundle(
         raise RubricBundleError("task rewriter provenance hash mismatch")
     if compiler["provider"] != rewriter_provenance["provider"]:
         raise RubricBundleError("compiler provider mismatch")
-    if compiler["prompt_version"] != TASK_RUBRIC_PROMPT_VERSION:
-        raise RubricBundleError("compiler prompt version mismatch")
-    if (
-        type(compiler["schema_version"]) is not int
-        or compiler["schema_version"] != TASK_RUBRIC_BUNDLE_SCHEMA_VERSION
-    ):
-        raise RubricBundleError("compiler schema version mismatch")
     if compiler["model"] != compiler_config["model"]:
         raise RubricBundleError("task compiler model disagrees with root config")
     if compiler["model"] != rewriter_provenance["model"]:
@@ -897,7 +799,6 @@ def resolve_rubric_bundle(
         "compilation_sha256": compilation_sha256,
         "generation_code_sha256": generation_code_sha256,
         "rewriter_provenance_sha256": rewriter_provenance_sha256,
-        "schema_version": TASK_RUBRIC_BUNDLE_SCHEMA_VERSION,
         "tasks": identity_tasks,
     }
     if sha256_text(canonical_json(identity)) != rubric_set_id:

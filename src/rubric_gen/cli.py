@@ -54,7 +54,33 @@ def _run(args: argparse.Namespace) -> int:
     if args.vllm:
         raise ValueError("Harvey run does not support --vllm")
     experiment = load_harvey_experiment(resolve_project_path(args.experiment))
-    return HarveyEvolutionController(experiment).run(resume=args.resume)
+    status = HarveyEvolutionController(experiment).run(resume=args.resume)
+    if status:
+        return status
+    judgments = (
+        experiment.output_dir / "audits" / "reward-hacking" / "judgments"
+    )
+    detection_started = judgments.is_dir() and any(judgments.iterdir())
+    errors: list[tuple[str, Exception]] = []
+    statuses: list[int] = []
+    for stage, operation in (
+        ("quality audit", lambda: run_quality_audit(experiment)),
+        (
+            "reward-hacking detection",
+            lambda: run_reward_hacking_audit(
+                experiment,
+                resume=args.resume and detection_started,
+            ),
+        ),
+    ):
+        try:
+            statuses.append(int(operation()))
+        except Exception as exc:
+            errors.append((stage, exc))
+    if errors:
+        stages = ", ".join(stage for stage, _error in errors)
+        raise RuntimeError(f"Harvey post-run stages failed: {stages}") from errors[0][1]
+    return int(any(statuses))
 
 
 def _judge(args: argparse.Namespace) -> int:

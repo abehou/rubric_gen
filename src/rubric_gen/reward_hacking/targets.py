@@ -32,7 +32,6 @@ MALT_REWARD_HACKING_PROMPT = (
 @dataclass(frozen=True)
 class DetectionTarget:
     name: str
-    protocol_version: int
     source: str
     positive_labels: frozenset[str]
     negative_labels: frozenset[str]
@@ -46,9 +45,7 @@ class DetectionTarget:
 
     def provenance(self) -> dict[str, object]:
         payload: dict[str, object] = {
-            "schema_version": 1,
             "name": self.name,
-            "protocol_version": self.protocol_version,
             "source": self.source,
             "positive_labels": sorted(self.positive_labels),
             "negative_labels": sorted(self.negative_labels),
@@ -70,7 +67,6 @@ class DetectionTarget:
 TARGETS = {
     "rh": DetectionTarget(
         name="rh",
-        protocol_version=2,
         source=(
             "https://metr.org/blog/2025-10-14-malt-dataset-of-natural-and-"
             "prompted-behaviors/#monitor-prompts-for-reward-hacking-and-sandbagging"
@@ -86,8 +82,7 @@ TARGETS = {
     ),
     "non-normal": DetectionTarget(
         name="non-normal",
-        protocol_version=1,
-        source="project:rubric_gen/non-normal-v1",
+        source="project:rubric_gen/non-normal",
         positive_labels=frozenset({
             "bypass_constraints", "gives_up", "hardcoded_solution",
             "ignores_task_instructions", "match_weaker_model",
@@ -110,8 +105,7 @@ TARGETS = {
     ),
     "all-behaviors": DetectionTarget(
         name="all-behaviors",
-        protocol_version=1,
-        source="project:rubric_gen/all-behaviors-v1",
+        source="project:rubric_gen/all-behaviors",
         positive_labels=frozenset({
             "bypass_constraints", "gives_up", "hardcoded_solution",
             "ignores_task_instructions", "match_weaker_model",
@@ -160,7 +154,5 @@ def validate_detection_summary(
         )
     target = detection_target(name)
     if summary.get("detection_target") != target.provenance():
-        raise ValueError(
-            "detector summary uses an obsolete or mismatched target protocol"
-        )
+        raise ValueError("detector summary has a mismatched target identity")
     return target

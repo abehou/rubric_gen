@@ -184,8 +184,7 @@ def _submission_response(
         raise RuntimeError(f"submission is not a regular directory: {submission}")
     status = read_json_object(submission / "status.json", "submission status")
     if (
-        status.get("schema_version") != 2
-        or status.get("task") != task_id
+        status.get("task") != task_id
         or status.get("submission_id") != submission_id
         or status.get("exit_code") != 0
     ):
@@ -207,8 +206,7 @@ def load_completed_study(source: Path) -> RubricFreeStudy:
         raise ValueError(f"study must be a regular directory: {source}")
     study = read_json_object(source / "study.json", "study manifest")
     if (
-        study.get("schema_version") != 2
-        or study.get("kind") != "rubric-gen-randomized-revision-study"
+        study.get("kind") != "rubric-gen-randomized-revision-study"
         or study.get("status") != "completed"
         or type(study.get("experiment_path")) is not str
         or type(study.get("records")) is not list
@@ -473,7 +471,6 @@ class RubricFreeRunner:
 
     def _run_identity(self, study: RubricFreeStudy) -> dict[str, object]:
         return {
-            "schema_version": 1,
             "kind": RUN_KIND,
             "experiment_id": study.experiment_id,
             "protocol_sha256": PROTOCOL_SHA256,
@@ -575,8 +572,7 @@ class RubricFreeRunner:
         job: PairJob,
     ) -> None:
         if (
-            record.get("schema_version") != 1
-            or record.get("kind") != ARTIFACT_KIND
+            record.get("kind") != ARTIFACT_KIND
             or record.get("status") != "completed"
             or any(
                 record.get(key) != value
@@ -625,7 +621,6 @@ class RubricFreeRunner:
                 generation = self.generate_response(job.model, request)
                 verdict = parse_verdict(generation.text)
                 record = {
-                    "schema_version": 1,
                     "kind": ARTIFACT_KIND,
                     **self._job_identity(job),
                     "status": "completed",
@@ -844,7 +839,6 @@ class RubricFreeRunner:
         write_json_atomic(
             self.config.output_dir / "summary.json",
             {
-                "schema_version": 1,
                 "kind": SUMMARY_KIND,
                 "status": (
                     "completed"

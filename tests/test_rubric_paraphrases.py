@@ -31,16 +31,49 @@ def _master() -> str:
 
 
 def _variant(index: int) -> str:
+    wording = _wording(index)
     return (
-        f"RUBRIC: Quality of the result, wording {index}\n\n"
+        "RUBRIC: Result quality\n\n"
         "Total Points: 100\n\n"
-        f"Criterion 1: Accuracy of the result, form {index}\n\n"
-        "Description: This criterion checks whether the task result is correct.\n\n"
+        f"Criterion 1: {wording['criterion_1_title']}\n\n"
+        f"Description: {wording['criterion_1_description']}\n\n"
         "Levels: A=100 B=50 C=0\n"
-        "[A]: Evidence supports a correct and complete result.\n"
-        "[B]: The result remains useful within a clear material boundary.\n"
-        "[C]: Evidence does not support a usable and valid result.\n"
+        f"[A]: {wording['criterion_1_level_A']}\n"
+        f"[B]: {wording['criterion_1_level_B']}\n"
+        f"[C]: {wording['criterion_1_level_C']}\n"
     )
+
+
+def _wording(index: int) -> dict[str, str]:
+    titles = (
+        "Accurate task result",
+        "Correct task outcome",
+        "Validity of the result",
+    )
+    return {
+        "criterion_1_title": titles[index],
+        "criterion_1_description": (
+            "This criterion checks whether the task result is correct."
+        ),
+        "criterion_1_level_A": (
+            "Evidence supports a result that is both complete and correct."
+        ),
+        "criterion_1_level_B": (
+            "The result stays useful despite one clear material limitation."
+        ),
+        "criterion_1_level_C": (
+            "The evidence does not support a valid and usable result."
+        ),
+    }
+
+
+def _wording_response(index: int) -> dict[str, object]:
+    return {
+        "wording": [
+            {"field": field, "text": text}
+            for field, text in _wording(index).items()
+        ]
+    }
 
 
 def _experiment(
@@ -55,7 +88,6 @@ def _experiment(
         (task / "environment" / "data" / "x.csv").write_text("x\n1\n")
         (task / "tests" / "rubric.txt").write_text(_master())
     payload = {
-        "schema_version": 5,
         "kind": "rubric-gen-randomized-experiment",
         "benchmark": "biomnibench-da",
         "tasks_dir": "tasks",
@@ -96,6 +128,12 @@ def _experiment(
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
             "primary_rule": "majority",
+            "component_weights": {
+                "verifier_exploitation": 1,
+                "rubric_drift": 1,
+                "wording_exploitation": 1,
+                "specification_exploitation": 1,
+            },
         },
         "dag": {
             "seed": {"depends_on": [], "output_dir": "seeds"},
@@ -122,14 +160,16 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
     experiment = _experiment(tmp_path)
     root = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     calls: list[int] = []
+    schemas: list[dict[str, object]] = []
 
     def generate(_model, request):
         match = re.search(r"Paraphrase variant: (\d+)", request.evidence)
         assert match is not None
         index = int(match.group(1))
         calls.append(index)
+        schemas.append(request.schema)
         return GenerationResult(
-            text=json.dumps({"rubric_text": _variant(index)}),
+            text=json.dumps(_wording_response(index)),
             provider="test",
             requested_model="test-paraphraser",
             effective_model="test-paraphraser",
@@ -149,8 +189,14 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
     assert sorted(calls) == [0, 1, 2]
     selection = resolve_paraphrase_selection(root, experiment, "da-1-1", 1)
     assert selection.optimizer_path.is_file()
+    assert selection.optimizer_path.read_text().startswith("RUBRIC: Result quality\n")
     assert len(selection.holdout_paths) == 2
     assert selection.optimizer_path not in selection.holdout_paths
+    assert all("rubric_text" not in json.dumps(schema) for schema in schemas)
+    assert all(
+        set(schema["properties"]) == {"wording"}  # type: ignore[index]
+        for schema in schemas
+    )
     assert runner.run() == 0
     assert sorted(calls) == [0, 1, 2]
 
@@ -168,7 +214,7 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
         assert task is not None and variant is not None
         calls.append(f"{task.group(1)}:{variant.group(1)}")
         return GenerationResult(
-            text=json.dumps({"rubric_text": _variant(int(variant.group(1)))}),
+            text=json.dumps(_wording_response(int(variant.group(1)))),
             provider="test",
             requested_model="test-paraphraser",
             effective_model="test-paraphraser",
@@ -205,7 +251,7 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
 
 def test_paraphrase_validation_rejects_changed_weights_and_leaf_ids() -> None:
     changed_weight = _variant(1).replace("A=100", "A=99")
-    with pytest.raises(ValueError, match="sum|weights"):
+    with pytest.raises(ValueError, match="level values"):
         validate_semantic_paraphrase(_master(), changed_weight)
 
     master = _master().replace(
@@ -218,3 +264,72 @@ def test_paraphrase_validation_rejects_changed_weights_and_leaf_ids() -> None:
     )
     with pytest.raises(ValueError, match="leaf IDs"):
         validate_semantic_paraphrase(master, changed_id)
+
+
+def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
+    tmp_path: Path,
+) -> None:
+    experiment = _experiment(tmp_path)
+    master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    master = _master() + (
+        "\nCriterion 2: Source reliability\n\n"
+        "Description: Check all 21 cited values against their sources.\n\n"
+        "Levels: A=0 B=-5 C=-10\n"
+        "[A]: Every one of the 21 values is traceable.\n"
+        "[B]: Most of the 21 values are traceable.\n"
+        "[C]: The 21 values include unsupported claims.\n"
+    )
+    master_path.write_text(master)
+    root = Path(str(experiment.dag["paraphrase"]["output_dir"]))
+
+    def generate(_model, request):
+        match = re.search(r"Paraphrase variant: (\d+)", request.evidence)
+        assert match is not None
+        variant_index = int(match.group(1))
+        source = json.loads(
+            request.evidence.split("<wording_fields_json>\n", 1)[1].split(
+                "\n</wording_fields_json>", 1
+            )[0]
+        )
+        wording = {
+            item["field"]: item["text"].replace("correct", "valid")
+            for item in source
+        }
+        wording["criterion_2_title"] = (
+            "Reliability of sources",
+            "Source evidence quality",
+            "Traceability of sources",
+        )[variant_index]
+        wording["criterion_2_description"] = (
+            "Verify all 21 cited values by using their sources."
+        )
+        wording["criterion_2_level_A"] = "Each of the 21 values is traceable."
+        wording["criterion_2_level_B"] = "The majority of the 21 values is traceable."
+        wording["criterion_2_level_C"] = (
+            "Unsupported claims occur among the 21 values."
+        )
+        return GenerationResult(
+            text=json.dumps({
+                "wording": [
+                    {"field": item["field"], "text": wording[item["field"]]}
+                    for item in source
+                ]
+            }),
+            provider="test",
+            requested_model="test-paraphraser",
+            effective_model="test-paraphraser",
+            response_id="response",
+            request_parameters={},
+        )
+
+    assert ParaphraseRunner(
+        ParaphraseRunConfig(experiment, root, max_concurrency=2),
+        generation_operation=generate,
+    ).run() == 0
+    variant = (root / "tasks" / "da-1-1" / "variant-000.txt").read_text()
+    assert "Levels: A=0 B=-5 C=-10" in variant
+    assert "Levels: A=100 B=50 C=0" in variant
+
+    changed_number = variant.replace("all 21 cited values", "all 22 cited values")
+    with pytest.raises(ValueError, match="changed its numbers"):
+        validate_semantic_paraphrase(master, changed_number)

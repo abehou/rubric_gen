@@ -71,7 +71,6 @@ def _replacement_rubric() -> str:
 
 def _revised_proposal() -> dict[str, object]:
     return {
-        "schema_version": 3,
         "rubric_title": "Stronger scientific outcome rubric",
         "criteria": [
             {
@@ -229,7 +228,6 @@ def _packet(
             "verification_question": "Can an independent check reproduce it?",
         }]
     return json.dumps({
-        "schema_version": 3,
         "inspected": "Inspected the result claim and its stated support.",
         "findings": findings,
     })
@@ -422,7 +420,7 @@ def test_codex_auditor_uses_audit_log_as_query_count(
         assert "trajectory-auditor agent" in self.prompt
         assert "trace.md" in self.prompt
         prompt = (task_dir / "instruction.md").read_text()
-        assert "Prompt contract: trajectory-quality-auditor-v4" in prompt
+        assert "Prompt contract: trajectory-quality-auditor" in prompt
         assert "<task_instruction>\nTASK\n</task_instruction>" in prompt
         assert "potential_concern" in prompt
         assert "Never propose criterion wording, weights, edits" in prompt
@@ -498,7 +496,7 @@ def test_proposer_prompt_preserves_recursive_cycle_and_has_explicit_context() ->
         ),
         repair_error=None,
     )
-    packet = '{"schema_version":3,"inspected":"x","findings":[]}\n'
+    packet = '{"inspected":"x","findings":[]}\n'
     evidence = evolution_module._proposer_evidence(
         instruction="TASK",
         current_rubric="RUBRIC",
@@ -507,7 +505,7 @@ def test_proposer_prompt_preserves_recursive_cycle_and_has_explicit_context() ->
         rejected_attempts=(),
     )
 
-    assert "Prompt contract: blind-complete-rubric-v1" in instructions
+    assert "Prompt contract: blind-complete-rubric" in instructions
     assert "recursive decompose-filter cycle" in instructions
     assert "informative, comprehensive, and non-redundant" in instructions
     assert "Do not reward effort" in instructions
@@ -530,7 +528,7 @@ def test_retry_prompt_includes_rejected_complete_rubric() -> None:
     error = "structured rubric A-level points must sum to 100"
     rejected_attempts = ({
         "validation_error": error,
-        "structured_rubric": '{"schema_version":1}',
+        "structured_rubric": '{"rubric_title":"rejected"}',
     },)
     instructions = evolution_module._proposer_instructions(
         current_rubric=_current_rubric(),
@@ -540,14 +538,14 @@ def test_retry_prompt_includes_rejected_complete_rubric() -> None:
         instruction="TASK",
         current_rubric=_current_rubric(),
         current_submission="SUBMISSION",
-        auditor_packet='{"schema_version":3}',
+        auditor_packet='{"inspected":"x","findings":[]}',
         rejected_attempts=rejected_attempts,
     )
 
     assert "previous complete structured rubric failed validation" in instructions
     assert "<rejected_complete_rubric_history>" in evidence
     assert error in evidence
-    assert '"structured_rubric": "{\\"schema_version\\":1}"' in evidence
+    assert '"structured_rubric": "{\\"rubric_title\\":\\"rejected\\"}"' in evidence
 
 
 def test_direct_proposer_makes_one_model_call(
@@ -564,7 +562,7 @@ def test_direct_proposer_makes_one_model_call(
         instruction="TASK",
         current_rubric=_current_rubric(),
         current_submission="SUBMISSION",
-        auditor_packet='{"schema_version":3}\n',
+        auditor_packet='{"inspected":"x","findings":[]}\n',
         repair_error=None,
         rejected_attempts=(),
     )
@@ -616,7 +614,7 @@ def test_openai_proposer_call_returns_structured_proposal(
     assert len(calls) == 1
     assert calls[0]["text"]["format"]["type"] == "json_schema"
     proposal_schema = calls[0]["text"]["format"]["schema"]
-    assert proposal_schema["properties"]["schema_version"]["enum"] == [3]
+    assert "schema_version" not in proposal_schema["properties"]
     assert "maxItems" not in proposal_schema["properties"]["criteria"]
     assert calls[0]["input"][-1] == {"role": "user", "content": "EVIDENCE"}
     assert calls[0]["store"] is False
@@ -669,11 +667,10 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     metadata = json.loads((output_dir / "r0001.proposer.json").read_text())
     packet_text = (output_dir / "r0001.auditor.json").read_text()
     assert metadata["mode"] == "prospective"
-    assert metadata["schema_version"] == 8
     assert metadata["kind"] == "blind-complete-rubric-generation"
     assert metadata["auditor"]["model"] == "auditor-model"
-    assert metadata["auditor"]["prompt_version"] == (
-        "trajectory-quality-auditor-v4"
+    assert metadata["auditor"]["prompt_id"] == (
+        "trajectory-quality-auditor"
     )
     assert metadata["auditor"]["query_count"] == 2
     assert metadata["auditor"]["retrieved_event_ids"] == [1]
@@ -681,10 +678,9 @@ def test_evolver_seals_verified_packet_complete_rubric_and_diff(
     assert metadata["auditor"]["rejected_packet"] is None
     assert metadata["auditor_packet_sha256"] == sha256_text(packet_text)
     assert metadata["proposer"]["model"] == "proposer-model"
-    assert metadata["proposer"]["prompt_version"] == (
-        "blind-complete-rubric-v1"
+    assert metadata["proposer"]["prompt_id"] == (
+        "blind-complete-rubric"
     )
-    assert metadata["proposer"]["output_schema_version"] == 3
     assert metadata["proposer"]["repair_error"] is None
     assert metadata["proposer"]["rejected_attempts"] == []
     assert metadata["attempt_count"] == 1

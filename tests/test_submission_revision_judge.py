@@ -12,7 +12,10 @@ from rubric_gen.submission_revision.judge import (
     FrozenRubric,
     JudgeArtifacts,
     SubmissionJudgeConfig,
+    resolve_optimizer_rubric,
 )
+from rubric_gen.submission_revision.judging.models import RUBRIC_PATH_SOURCE
+from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 
 
 class ScriptedJudgeRunner:
@@ -70,6 +73,32 @@ def _judge(tmp_path: Path, *, max_retries: int = 5) -> FrozenRubricJudge:
             manifest_sha256=None,
         ),
     )
+
+
+def test_explicit_rubric_path_has_one_canonical_source(tmp_path: Path) -> None:
+    task = tmp_path / "tasks" / "da-1-1"
+    task.mkdir(parents=True)
+    rubric_path = tmp_path / "optimizer-rubric.txt"
+    rubric_path.write_text("Criterion 1: Result\nLevels: A=100 B=0\n")
+    config = SubmissionJudgeConfig(
+        task_dir=task,
+        experiment_dir=tmp_path / "experiment",
+        review="trace",
+        judge_model="judge-model",
+        rubric_name=None,
+        rubric_set=None,
+        rubric_path=rubric_path,
+        max_review_chars=None,
+    )
+    adapter_rubric = resolve_optimizer_rubric(config)
+
+    runner = object.__new__(SubmissionJudgeRunner)
+    runner.config = config
+    runner.validate_target_identity = lambda _target: None
+    executed_rubric = runner.resolve_rubric(object())
+
+    assert adapter_rubric.source == RUBRIC_PATH_SOURCE
+    assert executed_rubric.source == RUBRIC_PATH_SOURCE
 
 
 def test_optimizer_judge_retries_and_archives_failed_attempts(

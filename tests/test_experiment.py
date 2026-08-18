@@ -40,7 +40,6 @@ def _task(root: Path, task_id: str) -> None:
 
 def _payload(root: Path) -> dict[str, object]:
     return {
-        "schema_version": 5,
         "kind": "rubric-gen-randomized-experiment",
         "benchmark": "biomnibench-da",
         "tasks_dir": "tasks",
@@ -68,6 +67,12 @@ def _payload(root: Path) -> dict[str, object]:
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
             "primary_rule": "majority",
+            "component_weights": {
+                "verifier_exploitation": 1,
+                "rubric_drift": 1,
+                "wording_exploitation": 1,
+                "specification_exploitation": 1,
+            },
         },
         "dag": {
             "seed": {"depends_on": [], "output_dir": "runs/seeds"},
@@ -118,6 +123,20 @@ def test_experiment_id_is_derived_from_semantic_yaml(tmp_path: Path) -> None:
     assert second.experiment_id == first.experiment_id
     assert Path(str(first.dag["revise"]["output_dir"])).name == first.experiment_id
     assert Path(str(first.dag["detect"]["output_dir"])).name == first.experiment_id
+
+
+def test_experiment_requires_all_reward_hacking_component_weights(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["outcome_audit"]["component_weights"].pop("rubric_drift")
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="component_weights must contain exactly"):
+        load_experiment(path)
 
 
 def test_experiment_id_changes_with_behavior_but_not_output_routing(
@@ -429,33 +448,37 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         calls.append("direct")
         return 1
 
-    class ScoreRunner:
+    class MechanisticRunner:
         def __init__(self, config: object) -> None:
             configs.append(config)
 
         def run(self) -> int:
-            calls.append("score")
+            calls.append("mechanistic")
             return 0
 
-    class MetaRunner:
+    class HolisticRunner:
         def __init__(self, config: object) -> None:
             configs.append(config)
 
         def run(self) -> int:
-            calls.append("meta")
+            calls.append("holistic")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
     monkeypatch.setattr(direct_audit_module, "run_direct_audit", direct)
     monkeypatch.setattr(
         diagnostics_module,
-        "RubricScoreDiagnosticRunner",
-        ScoreRunner,
+        "MechanisticEvaluationRunner",
+        MechanisticRunner,
     )
-    monkeypatch.setattr(diagnostics_module, "RubricFreeMetaRunner", MetaRunner)
     monkeypatch.setattr(
         diagnostics_module,
-        "write_combined_rh_summary",
+        "HolisticPairwiseRunner",
+        HolisticRunner,
+    )
+    monkeypatch.setattr(
+        diagnostics_module,
+        "write_reward_hacking_evaluation",
         lambda _path: calls.append("combined"),
     )
 
@@ -467,7 +490,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     ))
 
     assert status == 1
-    assert calls == ["direct", "score", "meta", "combined"]
+    assert calls == ["direct", "mechanistic", "holistic", "combined"]
     assert len(direct_configs) == 1
     assert direct_configs[0].base_urls == {}
     assert all(
@@ -476,7 +499,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     )
 
 
-def test_detect_runs_meta_stage_after_score_stage_exception(
+def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -493,20 +516,20 @@ def test_detect_runs_meta_stage_after_score_stage_exception(
     )
     calls: list[str] = []
 
-    class ScoreRunner:
+    class MechanisticRunner:
         def __init__(self, _config: object) -> None:
             pass
 
         def run(self) -> int:
-            calls.append("score")
+            calls.append("mechanistic")
             raise RuntimeError("strong judge unavailable")
 
-    class MetaRunner:
+    class HolisticRunner:
         def __init__(self, _config: object) -> None:
             pass
 
         def run(self) -> int:
-            calls.append("meta")
+            calls.append("holistic")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -517,17 +540,21 @@ def test_detect_runs_meta_stage_after_score_stage_exception(
     )
     monkeypatch.setattr(
         diagnostics_module,
-        "RubricScoreDiagnosticRunner",
-        ScoreRunner,
+        "MechanisticEvaluationRunner",
+        MechanisticRunner,
     )
-    monkeypatch.setattr(diagnostics_module, "RubricFreeMetaRunner", MetaRunner)
     monkeypatch.setattr(
         diagnostics_module,
-        "write_combined_rh_summary",
+        "HolisticPairwiseRunner",
+        HolisticRunner,
+    )
+    monkeypatch.setattr(
+        diagnostics_module,
+        "write_reward_hacking_evaluation",
         lambda _path: calls.append("combined"),
     )
 
-    with pytest.raises(RuntimeError, match="score-diagnostics"):
+    with pytest.raises(RuntimeError, match="mechanistic"):
         commands_module.run_detect(argparse.Namespace(
             experiment="experiment.yaml",
             max_concurrency=3,
@@ -535,7 +562,7 @@ def test_detect_runs_meta_stage_after_score_stage_exception(
             vllm=[],
         ))
 
-    assert calls == ["score", "meta"]
+    assert calls == ["mechanistic", "holistic"]
 
 
 def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> None:
@@ -715,6 +742,46 @@ def test_study_resume_reclaims_interrupted_running_records(
     assert recovered["attempt_count"] == 5
     assert recovered["pid"] == os.getpid()
     assert len(revisions) == 1
+
+
+def test_study_reports_recorded_assignment_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _task(tmp_path, "da-1-1")
+    payload = _payload(tmp_path)
+    payload["tasks"] = ["da-1-1"]
+    payload["randomization"] = {"seed": 42, "replicates": 1}
+    payload["conditions"] = [payload["conditions"][0]]  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    monkeypatch.setattr(study_module, "validate_paraphrase_run", lambda *_: None)
+    monkeypatch.setattr(
+        study_module,
+        "resolve_paraphrase_selection",
+        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
+    )
+
+    def fail_revision(_revision: object) -> None:
+        raise RuntimeError("scoring identity mismatch")
+
+    monkeypatch.setattr(study_module, "run_submission_revision", fail_revision)
+    runner = StudyRunner(StudyRunConfig(
+        experiment=experiment,
+        seed_run_dir=tmp_path / "runs" / "seeds",
+        paraphrase_run_dir=tmp_path / "runs" / "paraphrases",
+        output_dir=tmp_path / "runs" / "study",
+        max_concurrency=1,
+    ))
+
+    assert runner.run() == 1
+    assert (
+        "assignment failed: da-1-1--rep-001--base-static: "
+        "RuntimeError: scoring identity mismatch"
+    ) in capsys.readouterr().err
 
 
 def test_study_lease_rejects_a_concurrent_invocation(tmp_path: Path) -> None:

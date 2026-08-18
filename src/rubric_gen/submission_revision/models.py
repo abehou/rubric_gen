@@ -204,7 +204,6 @@ class RevisionState:
 
     def as_json(self) -> dict[str, object]:
         return {
-            "schema_version": 2,
             "phase": self.phase,
             "next_turn_index": self.next_turn_index,
             "session_id": self.session_id,
@@ -228,8 +227,7 @@ class RevisionState:
         judge_attempts = payload.get("judge_attempts")
         next_prompt = payload.get("next_prompt")
         if (
-            payload.get("schema_version") != 2
-            or type(phase) is not str
+            type(phase) is not str
             or type(next_turn_index) is not int
             or session_id is not None
             and type(session_id) is not str

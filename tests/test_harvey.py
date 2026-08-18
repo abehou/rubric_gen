@@ -61,8 +61,7 @@ def _config_text(tmp_path: Path, *, mode: str = "prospective") -> str:
         if mode == "prospective"
         else ""
     )
-    return f"""schema_version: 2
-kind: rubric-gen-harvey-harness-evolution-experiment
+    return f"""kind: rubric-gen-harvey-harness-evolution-experiment
 experiment_id: harvey-test
 output_dir: output
 cache_dir: cache
@@ -101,6 +100,7 @@ def test_load_harvey_experiment_resolves_paths_and_modes(tmp_path: Path) -> None
     assert experiment.rubric.mode == "prospective"
     assert experiment.designer.rounds == 2
     assert experiment.task_agent.model == "gpt-5.6-luna"
+    assert experiment.audit.max_cost_usd is None
 
 
 def test_static_harvey_experiment_rejects_proposer(tmp_path: Path) -> None:
@@ -203,7 +203,6 @@ def test_designer_parent_contract_uses_candidate_id_without_history_prefix(
     (workspace / "proposal.json").write_text(
         json.dumps(
             {
-                "schema_version": 1,
                 "parent_harness": "history/h0000",
                 "hypothesis": "Improve review.",
                 "mechanism": "Add an audit.",
@@ -256,7 +255,6 @@ def test_designer_retries_semantically_invalid_proposal(
                 shutil.copytree(parent, harness)
                 (harness / "run.py").write_text("changed", encoding="utf-8")
             proposal = {
-                "schema_version": 1,
                 "parent_harness": "history/h0000" if len(prompts) == 1 else "h0000",
                 "hypothesis": "Improve review.",
                 "mechanism": "Add an audit.",
@@ -317,6 +315,7 @@ def test_podman_environment_uses_local_storage_and_shared_cache(
         username="researcher",
         subuid_path=subuid,
         subgid_path=subgid,
+        cgroup_limits_available=False,
     )
     environment = configured_podman_environment(
         environment,
@@ -326,6 +325,7 @@ def test_podman_environment_uses_local_storage_and_shared_cache(
         username="researcher",
         subuid_path=subuid,
         subgid_path=subgid,
+        cgroup_limits_available=False,
     )
 
     assert environment["XDG_RUNTIME_DIR"].endswith(
@@ -377,6 +377,27 @@ def test_podman_environment_uses_local_storage_and_shared_cache(
         "image",
         "exists",
         "registry.example/sandbox:latest",
+    ]
+    limited_run = subprocess.run(
+        [
+            wrapper,
+            "run",
+            "--cpus=2",
+            "--memory=2g",
+            "--pids-limit=256",
+            "sandbox",
+            "true",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    assert limited_run == [
+        str(home),
+        str(home / ".config"),
+        "run",
+        "sandbox",
+        "true",
     ]
 
 
@@ -562,7 +583,6 @@ class _FakeDesigner:
         trajectory = run_dir / "trajectory.stream.jsonl"
         trajectory.write_text("{}\n", encoding="utf-8")
         proposal = {
-            "schema_version": 1,
             "parent_harness": "h0000",
             "hypothesis": "A clearer prompt helps.",
             "mechanism": "Change the system prompt.",

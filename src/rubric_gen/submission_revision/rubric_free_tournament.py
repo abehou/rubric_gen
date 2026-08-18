@@ -141,8 +141,7 @@ def _final_response(
         raise RuntimeError(f"submission is not a regular directory: {submission}")
     status = read_json_object(submission / "status.json", "submission status")
     if (
-        status.get("schema_version") != 2
-        or status.get("task") != task_id
+        status.get("task") != task_id
         or status.get("submission_id") != "s010"
         or status.get("exit_code") != 0
     ):
@@ -171,8 +170,7 @@ def _load_study_candidates(
         raise ValueError(f"study must be a regular directory: {source}")
     manifest = read_json_object(source / "study.json", "study manifest")
     if (
-        manifest.get("schema_version") != 1
-        or manifest.get("kind") != "rubric-gen-randomized-revision-study"
+        manifest.get("kind") != "rubric-gen-randomized-revision-study"
         or manifest.get("status") != "completed"
         or type(manifest.get("experiment_path")) is not str
         or type(manifest.get("records")) is not list
@@ -446,7 +444,6 @@ class TournamentRunner:
 
     def _run_identity(self, study: TournamentStudy) -> dict[str, object]:
         return {
-            "schema_version": 1,
             "kind": RUN_KIND,
             "experiment_ids": list(study.experiment_ids),
             "protocol_sha256": PROTOCOL_SHA256,
@@ -541,8 +538,7 @@ class TournamentRunner:
         self, record: dict[str, object], job: MatchJob
     ) -> None:
         if (
-            record.get("schema_version") != 1
-            or record.get("kind") != ARTIFACT_KIND
+            record.get("kind") != ARTIFACT_KIND
             or record.get("status") != "completed"
             or any(record.get(key) != value for key, value in self._job_identity(job).items())
             or type(record.get("attempt_count")) is not int
@@ -581,7 +577,6 @@ class TournamentRunner:
                 generation = self.generate_response(job.model, request)
                 verdict = parse_verdict(generation.text)
                 record = {
-                    "schema_version": 1,
                     "kind": ARTIFACT_KIND,
                     **self._job_identity(job),
                     "status": "completed",
@@ -789,7 +784,6 @@ class TournamentRunner:
             for record in records
         ]
         write_json_atomic(self.config.output_dir / "summary.json", {
-            "schema_version": 1,
             "kind": SUMMARY_KIND,
             "status": "completed" if completed == total else "failed" if final else "running",
             "paper": {"citation": PAPER, "url": PAPER_URL},

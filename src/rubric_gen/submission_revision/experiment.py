@@ -21,12 +21,10 @@ from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmar
 from rubric_gen.artifacts.hashing import sha256_text
 
 
-EXPERIMENT_SCHEMA_VERSION = 5
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 EXPERIMENT_ID_TOKEN = "{experiment_id}"
 _IDENTITY_KEYS = (
-    "schema_version",
     "kind",
     "benchmark",
     "tasks_dir",
@@ -169,14 +167,12 @@ def load_experiment(path: Path) -> Experiment:
 
 def _validate(payload: dict[str, Any], path: Path) -> str:
     required = {
-        "schema_version", "kind", "benchmark", "tasks_dir", "tasks",
+        "kind", "benchmark", "tasks_dir", "tasks",
         "randomization", "conditions", "protocol", "rubric_paraphrases",
         "outcome_audit", "dag",
     }
     if set(payload) != required:
         raise ValueError(f"experiment keys must be exactly {sorted(required)}")
-    if payload["schema_version"] != EXPERIMENT_SCHEMA_VERSION:
-        raise ValueError("unsupported experiment schema version")
     if payload["kind"] != EXPERIMENT_KIND:
         raise ValueError("unsupported experiment kind")
     benchmark = SubmissionBenchmarkId(str(payload["benchmark"]))
@@ -221,6 +217,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     expected_audit = outcome_audit_protocol(
         models=tuple(str(model) for model in audit.get("models", ())),
         primary_rule=str(audit.get("primary_rule")),
+        component_weights=audit.get("component_weights", {}),
         max_input_tokens=int(audit.get("max_input_tokens", 250_000)),
         max_output_tokens=int(audit.get("max_output_tokens", 4_096)),
         max_event_text_chars=int(audit.get("max_event_text_chars", 65_536)),

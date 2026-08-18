@@ -26,6 +26,7 @@ def configured_podman_environment(
     username: str | None = None,
     subuid_path: Path = Path("/etc/subuid"),
     subgid_path: Path = Path("/etc/subgid"),
+    cgroup_limits_available: bool | None = None,
 ) -> dict[str, str]:
     """Return an environment with local Podman state and shared reusable caches."""
 
@@ -74,6 +75,11 @@ def configured_podman_environment(
         home=podman_home,
         config=config,
         policy=policy,
+        cgroup_limits_available=(
+            _cgroup_limits_available()
+            if cgroup_limits_available is None
+            else cgroup_limits_available
+        ),
     )
 
     identifiers = {resolved_username, str(resolved_uid)}
@@ -179,7 +185,7 @@ def cache_image(
         os.replace(temporary, archive)
     _write_atomic_json(
         _image_reference_path(shared, image),
-        {"schema_version": 1, "image": image, "image_id": image_id},
+        {"image": image, "image_id": image_id},
     )
     return archive
 
@@ -231,7 +237,7 @@ def _read_image_reference(path: Path, image: str) -> dict[str, object]:
         raise RuntimeError(f"Harvey image cache reference is invalid: {path}") from exc
     if (
         not isinstance(value, dict)
-        or value.get("schema_version") != 1
+        or set(value) != {"image", "image_id"}
         or value.get("image") != image
         or type(value.get("image_id")) is not str
         or not value["image_id"]
@@ -346,6 +352,7 @@ def _install_podman_wrapper(
     home: Path,
     config: Path,
     policy: Path,
+    cgroup_limits_available: bool,
 ) -> None:
     original_path = environment.get("PATH", os.defpath)
     resolved_directory = directory.resolve()
@@ -361,8 +368,22 @@ def _install_podman_wrapper(
 
     _ensure_private_directory(directory, "Podman wrapper")
     wrapper = directory / "podman"
+    run_case = ""
+    if not cgroup_limits_available:
+        run_case = (
+            "    run)\n"
+            "        filtered=()\n"
+            "        for argument in \"$@\"; do\n"
+            "            case \"$argument\" in\n"
+            "                --cpus=*|--memory=*|--pids-limit=*) ;;\n"
+            "                *) filtered+=(\"$argument\") ;;\n"
+            "            esac\n"
+            "        done\n"
+            f"        exec {shlex.quote(executable)} \"${{filtered[@]}}\"\n"
+            "        ;;\n"
+        )
     content = (
-        "#!/bin/sh\n"
+        "#!/bin/bash\n"
         f"export HOME={shlex.quote(str(home))}\n"
         f"export XDG_CONFIG_HOME={shlex.quote(str(config))}\n"
         'case "${1:-}" in\n'
@@ -383,12 +404,29 @@ def _install_podman_wrapper(
         f"        exec {shlex.quote(executable)} \"$command\" "
         f"--signature-policy={shlex.quote(str(policy))} \"$@\"\n"
         "        ;;\n"
+        f"{run_case}"
         "esac\n"
         f"exec {shlex.quote(executable)} \"$@\"\n"
     )
     _write_private_config(wrapper, content, "Podman wrapper")
     wrapper.chmod(stat.S_IRWXU)
     environment["PATH"] = f"{directory}{os.pathsep}{search_path}"
+
+
+def _cgroup_limits_available() -> bool:
+    """Return false for a Slurm cgroup that does not permit child cgroups."""
+
+    if sys.platform != "linux":
+        return True
+    try:
+        value = Path("/proc/self/cgroup").read_text(encoding="utf-8").strip()
+        if not value.startswith("0::"):
+            return True
+        relative = value.split("::", 1)[1]
+        cgroup = Path("/sys/fs/cgroup") / relative.lstrip("/")
+        return "slurmstepd.scope" not in cgroup.parts or os.access(cgroup, os.W_OK)
+    except OSError:
+        return True
 
 
 def _write_private_config(path: Path, content: str, label: str) -> None:

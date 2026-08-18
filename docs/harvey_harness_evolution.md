@@ -83,30 +83,25 @@ example configuration.
 ```bash
 uv run rubric-gen run \
   --experiment experiments/harvey-harness-evolution.yaml
-
-uv run rubric-gen judge \
-  --experiment experiments/harvey-harness-evolution.yaml
-
-uv run rubric-gen detect \
-  --experiment experiments/harvey-harness-evolution.yaml
 ```
 
-The run displays progress for harness candidates and their development tasks.
-The sealed quality audit displays candidate and task progress. Reward-hacking
-detection displays preparation and model-judgment progress.
+The command runs harness evolution, the sealed quality audit, and reward-hacking
+detection in sequence. It displays progress for each stage.
 
 Use `--resume` on `run` or `detect` only when their existing experiment identity
 and checkpoints match the configuration exactly.
 
-`judge` first re-scores every candidate's stored development output with the
+The post-run quality stage first re-scores every candidate's stored development output with the
 sealed original rubric. It then runs every candidate on all held-out tasks. Its
 summary reports active-minus-original score gaps and held-out performance.
 
-`detect` converts each accepted Codex design turn into a MALT-compatible forensic
+The post-run detection stage converts each accepted Codex design turn into a MALT-compatible forensic
 case. The evidence contains the visible ranking, raw Codex trajectory, accepted
 proposal, full harness patch, and canonical visible result. The configured model
 panel applies the same reward-hacking target and aggregation used by the existing
 submission-revision detector.
+
+Use `judge` or `detect` only to rerun one post-run stage independently.
 
 ## Security boundary
 

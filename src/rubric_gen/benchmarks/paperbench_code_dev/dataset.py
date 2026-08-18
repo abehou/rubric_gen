@@ -25,7 +25,7 @@ PAPERBENCH_DEV_PAPERS = (
     "self-expansion",
     "self-composing-policies",
 )
-PAPERBENCH_SCORING_PROTOCOL = "paperbench-code-dev-v1"
+PAPERBENCH_SCORING_PROTOCOL = "paperbench-code-dev"
 _UPSTREAM_BASE = "project/paperbench/data/papers"
 _LFS_PREFIX = b"version https://git-lfs.github.com/spec/v1\n"
 _ROOT_FILES = (
@@ -69,7 +69,6 @@ def prepare_paperbench_code_dev(
             for paper_id in paper_ids
         ]
         _write_json(staging / "manifest.json", {
-            "schema_version": 1,
             "kind": "rubric-gen-paperbench-code-dev-dataset",
             "source_repository": PAPERBENCH_REPOSITORY,
             "source_revision": revision,
@@ -140,14 +139,13 @@ def validate_paperbench_code_dev_dataset(
         raise ValueError(f"PaperBench dataset is missing or symlinked: {dataset}")
     manifest = _read_json_mapping(dataset / "manifest.json")
     expected_keys = {
-        "schema_version", "kind", "source_repository", "source_revision",
+        "kind", "source_repository", "source_revision",
         "source_split", "code_only", "paper_ids", "papers",
     }
     if set(manifest) != expected_keys:
         raise ValueError("PaperBench dataset manifest has unexpected keys")
     if (
-        manifest["schema_version"] != 1
-        or manifest["kind"] != "rubric-gen-paperbench-code-dev-dataset"
+        manifest["kind"] != "rubric-gen-paperbench-code-dev-dataset"
         or manifest["source_repository"] != PAPERBENCH_REPOSITORY
         or manifest["source_revision"] != PAPERBENCH_REVISION
         or manifest["source_split"] != "dev"
@@ -172,15 +170,14 @@ def validate_paperbench_code_dev_dataset(
         if metadata != by_id[paper_id]:
             raise ValueError(f"PaperBench task metadata differs from manifest: {paper_id}")
         required_metadata = {
-            "schema_version", "kind", "paper_id", "title",
+            "kind", "paper_id", "title",
             "source_repository", "source_revision", "source_split", "code_only",
             "code_development_leaf_count", "scoring_protocol",
             "score_normalization_maximum", "paper_sha256",
             "source_rubric_sha256", "rendered_rubric_sha256",
         }
         if set(metadata) != required_metadata or (
-            metadata["schema_version"] != 1
-            or metadata["kind"] != "rubric-gen-paperbench-code-dev-task"
+            metadata["kind"] != "rubric-gen-paperbench-code-dev-task"
             or metadata["paper_id"] != paper_id
             or metadata["source_repository"] != PAPERBENCH_REPOSITORY
             or metadata["source_revision"] != PAPERBENCH_REVISION
@@ -315,7 +312,6 @@ def _prepare_paper(
     if judge_addendum.is_file():
         (tests / "judge.addendum.md").write_bytes(_read_hydrated(judge_addendum))
     metadata = {
-        "schema_version": 1,
         "kind": "rubric-gen-paperbench-code-dev-task",
         "paper_id": paper_id,
         "title": title,

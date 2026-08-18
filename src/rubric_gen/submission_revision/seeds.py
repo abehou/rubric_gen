@@ -38,8 +38,6 @@ from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 
 
-SEED_SET_SCHEMA_VERSION = 3
-SEED_SCHEMA_VERSION = 4
 SEED_SET_KIND = "rubric-gen-submission-seed-set"
 SEED_KIND = "rubric-gen-submission-seed"
 
@@ -182,7 +180,6 @@ class SeedSetRunner:
     @staticmethod
     def _write_pool_manifest(root: Path) -> None:
         write_json_atomic(root / "manifest.json", {
-            "schema_version": SEED_SET_SCHEMA_VERSION,
             "kind": SEED_SET_KIND,
         })
 
@@ -195,8 +192,8 @@ class SeedSetRunner:
             manifest = json.loads(manifest_path.read_text())
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise RuntimeError("shared seed manifest is invalid") from exc
-        if not isinstance(manifest, dict):
-            raise RuntimeError("shared seed manifest must be an object")
+        if manifest != {"kind": SEED_SET_KIND}:
+            raise RuntimeError("shared seed manifest has invalid fields")
 
     def _partition(
         self,
@@ -285,7 +282,6 @@ class SeedSetRunner:
                 f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
             )
             write_json_atomic(submission / "status.json", {
-                "schema_version": 2,
                 "task": task_dir.name,
                 "replicate": replicate,
                 "experiment_id": self.experiment.experiment_id,
@@ -296,7 +292,6 @@ class SeedSetRunner:
                 "exit_code": 0,
             })
             write_json_atomic(submission / "snapshot.json", {
-                "schema_version": 2,
                 "submission_id": "s000",
                 "session_id": None,
                 "workspace_sha256": workspace_sha,
@@ -326,7 +321,6 @@ class SeedSetRunner:
             )
             _remove_partial_seed(judge_work)
             write_json_atomic(destination / "manifest.json", {
-                "schema_version": SEED_SCHEMA_VERSION,
                 "kind": SEED_KIND,
                 "experiment_id": self.experiment.experiment_id,
                 "task_id": task_dir.name,
@@ -374,7 +368,6 @@ class SeedSetRunner:
             shutil.copyfile(source, target)
             copied.append(target.name)
         write_json_atomic(diagnostics / "failure.json", {
-            "schema_version": 1,
             "kind": "rubric-gen-failed-seed-solver",
             "task_id": task_id,
             "replicate": replicate,
@@ -459,7 +452,7 @@ def _resolve_task_seed(
             f"invalid seed for {task_dir.name} replicate {replicate}"
         ) from exc
     required = {
-        "experiment_id", "task_id", "replicate", "provider",
+        "kind", "experiment_id", "task_id", "replicate", "provider",
         "requested_model", "instruction_sha256", "data_sha256",
         "workspace_sha256", "trajectory_sha256", "score_validation_sha256",
         "evaluation_sha256", "usage_sha256", "scoring_identity",
@@ -468,7 +461,8 @@ def _resolve_task_seed(
     owner = manifest.get("experiment_id") if isinstance(manifest, dict) else None
     if (
         not isinstance(manifest, dict)
-        or not required.issubset(manifest)
+        or set(manifest) != required
+        or manifest.get("kind") != SEED_KIND
         or type(owner) is not str
         or not owner
         or manifest.get("task_id") != task_dir.name

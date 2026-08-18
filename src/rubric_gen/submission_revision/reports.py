@@ -76,7 +76,6 @@ def publish_revision_report(experiment_dir: Path) -> Path:
     ):
         raise RuntimeError("revision report source has invalid score state")
     summary = {
-        "schema_version": 2,
         "experiment_dir": str(experiment_dir),
         "task_id": manifest.get("task_id"),
         "phase": state.get("phase"),

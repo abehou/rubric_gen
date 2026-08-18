@@ -35,8 +35,8 @@ current/. The canonical evaluator is controller-owned and is not available in
 this workspace.
 
 Before you stop, write proposal.json with exactly these fields:
-schema_version, parent_harness, hypothesis, mechanism, expected_effect, risks.
-schema_version must be 1. parent_harness must be only the candidate ID from one
+parent_harness, hypothesis, mechanism, expected_effect, risks.
+parent_harness must be only the candidate ID from one
 history directory, such as `h0000`; do not include the `history/` prefix.
 The four explanation fields must be non-empty strings, except risks, which must
 be a non-empty list of non-empty strings. Do not ask the user a question.
@@ -191,7 +191,6 @@ class CodexHarnessDesigner:
             raise RuntimeError(f"Codex did not produce a valid harness candidate; see {run_dir}")
         designed = self._validate(workspace, candidate_harnesses, trajectory)
         status = {
-            "schema_version": 1,
             "kind": "harvey-harness-design-turn",
             "model": self.config.model,
             "reasoning_effort": self.config.reasoning_effort,
@@ -230,10 +229,10 @@ class CodexHarnessDesigner:
     ) -> tuple[str, Path, dict[str, object], str]:
         proposal = read_json_object(workspace / "proposal.json", "harness proposal")
         required = {
-            "schema_version", "parent_harness", "hypothesis", "mechanism",
+            "parent_harness", "hypothesis", "mechanism",
             "expected_effect", "risks",
         }
-        if set(proposal) != required or proposal.get("schema_version") != 1:
+        if set(proposal) != required:
             raise ValueError("harness proposal has invalid fields")
         parent = proposal.get("parent_harness")
         if type(parent) is not str or parent not in candidates:
@@ -267,7 +266,6 @@ def copy_designed_candidate(designed: DesignedCandidate, destination: Path) -> N
     destination.mkdir(parents=True)
     copy_regular_tree(designed.harness, destination / "harness")
     record = {
-        "schema_version": 1,
         "kind": "harvey-harness-candidate",
         "parent_harness": designed.parent_id,
         "harness_sha256": designed.harness_sha256,
