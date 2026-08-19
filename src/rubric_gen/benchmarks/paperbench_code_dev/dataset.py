@@ -230,25 +230,25 @@ def render_code_dev_rubric(value: object) -> tuple[str, int, int]:
     pruned = _prune_code_development(root)
     if pruned is None:
         raise ValueError("PaperBench rubric has no Code Development leaves")
-    weighted = list(_effective_leaves(pruned, Fraction(1)))
+    weighted = list(_effective_leaves(pruned, Fraction(1), ()))
     points, normalization_maximum = _exact_integer_points(
-        [weight for _, weight in weighted]
+        [weight for _, weight, _ in weighted]
     )
+    titles = _criterion_titles(weighted)
     sections = [
         "PaperBench Code-Dev rubric. Judge actual source-code implementation, "
         "not plans, prose claims, or unimplemented documentation.",
         f"Scoring protocol: {PAPERBENCH_SCORING_PROTOCOL}",
         f"Score normalization maximum: {normalization_maximum}",
     ]
-    for index, ((node, _), maximum) in enumerate(
-        zip(weighted, points, strict=True),
+    for index, ((node, _, _), title, maximum) in enumerate(
+        zip(weighted, titles, points, strict=True),
         start=1,
     ):
         if maximum < 1:
             raise ValueError("PaperBench effective criterion weight is zero")
-        requirement = " ".join(str(node["requirements"]).split())
         sections.append(
-            f"Criterion {index}: {requirement}\n"
+            f"Criterion {index}: {title}\n"
             f"PaperBench leaf ID: {node['id']}\n"
             f"Levels: A={maximum} B=0\n"
             "[A]: The submitted code correctly implements the requirement.\n"
@@ -388,17 +388,69 @@ def _prune_code_development(node: dict[str, Any]) -> dict[str, Any] | None:
 def _effective_leaves(
     node: dict[str, Any],
     weight: Fraction,
-) -> Iterator[tuple[dict[str, Any], Fraction]]:
+    ancestors: tuple[str, ...],
+) -> Iterator[tuple[dict[str, Any], Fraction, tuple[str, ...]]]:
     children = node["sub_tasks"]
     if not children:
-        yield node, weight
+        yield node, weight, ancestors
         return
     total = sum(Fraction(str(child["weight"])) for child in children)
     if total <= 0:
         raise ValueError("PaperBench rubric has a zero-weight internal branch")
+    next_ancestors = ancestors + (_single_line(node["requirements"]),)
     for child in children:
         child_weight = Fraction(str(child["weight"]))
-        yield from _effective_leaves(child, weight * child_weight / total)
+        yield from _effective_leaves(
+            child,
+            weight * child_weight / total,
+            next_ancestors,
+        )
+
+
+def _criterion_titles(
+    weighted: list[tuple[dict[str, Any], Fraction, tuple[str, ...]]],
+) -> list[str]:
+    """Add the shortest distinct ancestor suffix to repeated leaf titles."""
+
+    titles = [_single_line(node["requirements"]) for node, _, _ in weighted]
+    groups: dict[str, list[int]] = {}
+    for index, title in enumerate(titles):
+        groups.setdefault(_normalized_title(title), []).append(index)
+
+    for indices in groups.values():
+        if len(indices) == 1:
+            continue
+        contexts = [weighted[index][2] for index in indices]
+        maximum_depth = min(len(context) for context in contexts)
+        selected: list[str] | None = None
+        for depth in range(1, maximum_depth + 1):
+            candidates = [
+                " > ".join(context[-depth:])
+                for context in contexts
+            ]
+            if len({_normalized_title(value) for value in candidates}) == len(
+                candidates
+            ):
+                selected = candidates
+                break
+        if selected is None:
+            raise ValueError(
+                "PaperBench duplicate leaves lack distinct ancestor context"
+            )
+        for index, context in zip(indices, selected, strict=True):
+            titles[index] = f"{titles[index]} [Context: {context}]"
+
+    if len({_normalized_title(title) for title in titles}) != len(titles):
+        raise ValueError("PaperBench rendered criterion titles are not unique")
+    return titles
+
+
+def _single_line(value: object) -> str:
+    return " ".join(str(value).split())
+
+
+def _normalized_title(value: str) -> str:
+    return " ".join(value.lower().split())
 
 
 def _exact_integer_points(weights: list[Fraction]) -> tuple[list[int], int]:

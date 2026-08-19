@@ -10,7 +10,11 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.runtime.agents.sessions import SolverSessionDriver
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import (
+    MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
+    MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
+    RubricBankProposer,
+)
 from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 from rubric_gen.submission_revision.judge import (
     SubmissionJudge,
@@ -39,6 +43,10 @@ class SubmissionRevisionConfig:
     execution_order: int
     optimizer_rubric_path: Path
     master_rubric_name: str
+    rubric_semantic_judge_model: str
+    rubric_semantic_judge_max_calls: int
+    rubric_semantic_judge_max_request_bytes: int
+    rubric_semantic_judge_max_output_tokens: int
     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
@@ -48,6 +56,7 @@ class SubmissionRevisionConfig:
     rubric_policy: RubricBankPolicy = RubricBankPolicy.FIXED
     rubric_proposer_model: str = "gpt-5.6-luna"
     rubric_proposer_base_url: str | None = None
+    rubric_semantic_judge_base_url: str | None = None
     review: str = "trace"
     judge_model: str | None = None
     judge_base_url: str | None = None
@@ -113,9 +122,50 @@ class SubmissionRevisionConfig:
         RubricBankPolicy(self.rubric_policy)
         for name, model in (
             ("rubric_proposer_model", self.rubric_proposer_model),
+            ("rubric_semantic_judge_model", self.rubric_semantic_judge_model),
         ):
             if type(model) is not str or not model.strip():
                 raise ValueError(f"{name} must be nonempty")
+        if self.rubric_semantic_judge_model == self.rubric_proposer_model:
+            raise ValueError(
+                "rubric semantic judge must differ from the rubric proposer"
+            )
+        if self.rubric_semantic_judge_model == self.agent.model:
+            raise ValueError("rubric semantic judge must differ from the solver")
+        if (
+            self.judge_model is not None
+            and self.rubric_semantic_judge_model == self.judge_model
+        ):
+            raise ValueError(
+                "rubric semantic judge must differ from the submission judge"
+            )
+        if (
+            self.feedback_simulator is not None
+            and self.rubric_semantic_judge_model
+            == self.feedback_simulator.model
+        ):
+            raise ValueError(
+                "rubric semantic judge must differ from the feedback simulator"
+            )
+        if (
+            type(self.rubric_semantic_judge_max_calls) is not int
+            or self.rubric_semantic_judge_max_calls != self.revision_rounds
+        ):
+            raise ValueError(
+                "rubric semantic judge call cap must equal revision_rounds"
+            )
+        if (
+            type(self.rubric_semantic_judge_max_request_bytes) is not int
+            or not 1 <= self.rubric_semantic_judge_max_request_bytes
+            <= MAX_SEMANTIC_REVIEW_REQUEST_BYTES
+        ):
+            raise ValueError("rubric semantic judge request-byte cap is invalid")
+        if (
+            type(self.rubric_semantic_judge_max_output_tokens) is not int
+            or not 1 <= self.rubric_semantic_judge_max_output_tokens
+            <= MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS
+        ):
+            raise ValueError("rubric semantic judge output-token cap is invalid")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(

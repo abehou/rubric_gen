@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+import sys
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -52,6 +54,24 @@ Levels: A=3 B=0
 [A]: The trainer is complete and correct.
 [B]: The trainer is missing or incorrect.
 """
+
+
+def test_judge_file_executes_from_unrelated_working_directory(
+    tmp_path: Path,
+) -> None:
+    judge_path = Path(paperbench_module.__file__).resolve()
+
+    result = subprocess.run(
+        [sys.executable, str(judge_path), "--help"],
+        cwd=tmp_path,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout
 
 
 def _reports() -> list[dict[str, object]]:

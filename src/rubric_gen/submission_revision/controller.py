@@ -6,6 +6,7 @@ import hashlib
 import os
 import json
 import secrets
+import re
 import shutil
 import stat
 import tempfile
@@ -47,6 +48,7 @@ from rubric_gen.submission_revision.artifacts import (
     compact_historical_workspace as _compact_historical_workspace,
     copy_solution_workspace as _copy_solution_workspace,
     make_read_only as _make_read_only,
+    make_tree_owner_writable as _make_tree_owner_writable,
     make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
     revision_manifest_keys as _revision_manifest_keys,
@@ -70,7 +72,16 @@ from rubric_gen.submission_revision.judge import (
     JudgeArtifacts as JudgeArtifacts,
     resolve_optimizer_rubric as _resolve_optimizer_rubric,
 )
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.judgment_reuse import (
+    ExactJudgmentReuseStore,
+    ExactSimulatorReuseStore,
+    exact_judgment_request,
+    exact_simulator_request,
+)
+from rubric_gen.submission_revision.evolution import (
+    RubricBankProposer,
+    rubric_generation_implementation_identity,
+)
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
     RubricBank,
@@ -78,6 +89,7 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankItem,
     RubricBankPolicy,
     RubricLineage,
+    identity_criterion_map,
     load_rubric_bank,
     persist_rubric_bank,
     rubric_bank_directory,
@@ -119,6 +131,170 @@ def fixed_original_attempt_id(
     ).hexdigest()[:32]
 
 
+def _numbered_bank_directories(
+    root: Path,
+    *,
+    required: bool,
+    context: str,
+) -> list[int]:
+    """Return strict canonical bank directory numbers."""
+
+    if not os.path.lexists(root):
+        if required:
+            raise RuntimeError(f"{context} root is missing")
+        return []
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError(f"{context} root is invalid")
+    rounds: list[int] = []
+    for path in root.iterdir():
+        name = path.name
+        if (
+            path.is_symlink()
+            or not path.is_dir()
+            or len(name) != 9
+            or not name.startswith("bank-")
+            or not name[5:].isdigit()
+        ):
+            raise RuntimeError(f"{context} root contains an invalid entry")
+        rounds.append(int(name[5:]))
+    if len(set(rounds)) != len(rounds):
+        raise RuntimeError(f"{context} root contains duplicate rounds")
+    return sorted(rounds)
+
+
+def _rubric_generation_entries(
+    root: Path,
+) -> tuple[list[int], list[int], list[int]]:
+    """Return generation, rejection, and provider-ledger rounds."""
+
+    if not os.path.lexists(root):
+        return [], [], []
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError("rubric generation root is invalid")
+    rounds: list[int] = []
+    rejection_rounds: list[int] = []
+    ledger_rounds: list[int] = []
+    for path in root.iterdir():
+        name = path.name
+        if (
+            not path.is_symlink()
+            and path.is_dir()
+            and len(name) == 9
+            and name.startswith("bank-")
+            and name[5:].isdigit()
+        ):
+            rounds.append(int(name[5:]))
+            continue
+        prefix = "bank-"
+        suffix = ".semantic-rejection.json"
+        digits = name[len(prefix):-len(suffix)] if (
+            name.startswith(prefix) and name.endswith(suffix)
+        ) else ""
+        if (
+            not path.is_symlink()
+            and path.is_file()
+            and len(digits) == 4
+            and digits.isdigit()
+        ):
+            rejection_rounds.append(int(digits))
+            continue
+        ledger_suffix = ".provider-attempts.json"
+        ledger_digits = name[len(prefix):-len(ledger_suffix)] if (
+            name.startswith(prefix) and name.endswith(ledger_suffix)
+        ) else ""
+        if (
+            not path.is_symlink()
+            and path.is_file()
+            and len(ledger_digits) == 4
+            and ledger_digits.isdigit()
+        ):
+            ledger_rounds.append(int(ledger_digits))
+            continue
+        raise RuntimeError("rubric generation root contains an invalid entry")
+    if len(set(rounds)) != len(rounds):
+        raise RuntimeError("rubric generation root contains duplicate rounds")
+    if len(rejection_rounds) > 1:
+        raise RuntimeError("rubric generation has multiple semantic rejections")
+    if set(rounds) & set(rejection_rounds):
+        raise RuntimeError("rubric generation round has conflicting artifacts")
+    if len(set(ledger_rounds)) != len(ledger_rounds):
+        raise RuntimeError("rubric generation root contains duplicate ledgers")
+    finalized = set(rounds) | set(rejection_rounds)
+    if not finalized <= set(ledger_rounds):
+        raise RuntimeError("rubric generation lacks its provider attempt ledger")
+    return sorted(rounds), sorted(rejection_rounds), sorted(ledger_rounds)
+
+
+_LEDGER_ATOMIC_TEMP = re.compile(
+    r"^\.bank-([0-9]{4})\.provider-attempts\.json\.[a-z0-9_]{8}\.tmp$"
+)
+_SEMANTIC_REJECTION_ATOMIC_TEMP = re.compile(
+    r"^\.bank-([0-9]{4})\.semantic-rejection\.json\.[a-z0-9_]{8}\.tmp$"
+)
+_GENERATION_STAGING_DIRECTORY = re.compile(
+    r"^\.bank-([0-9]{4})\.[a-z0-9_]{8}$"
+)
+
+
+def _remove_owned_rubric_generation_residue(
+    root: Path,
+    *,
+    max_generation_round: int,
+) -> None:
+    """Remove only interrupted atomic writes and generation staging trees."""
+
+    if not os.path.lexists(root):
+        return
+    root_stat = os.lstat(root)
+    if stat.S_ISLNK(root_stat.st_mode) or not stat.S_ISDIR(root_stat.st_mode):
+        raise RuntimeError("rubric generation root is invalid")
+    changed = False
+    for path in sorted(root.iterdir(), key=lambda item: item.name):
+        ledger_match = _LEDGER_ATOMIC_TEMP.fullmatch(path.name)
+        rejection_match = _SEMANTIC_REJECTION_ATOMIC_TEMP.fullmatch(path.name)
+        stage_match = _GENERATION_STAGING_DIRECTORY.fullmatch(path.name)
+        match = ledger_match or rejection_match or stage_match
+        if match is None or not 1 <= int(match.group(1)) <= max_generation_round:
+            continue
+        path_stat = os.lstat(path)
+        if ledger_match is not None or rejection_match is not None:
+            if not stat.S_ISREG(path_stat.st_mode):
+                raise RuntimeError(
+                    "rubric generation temporary path is not a regular file"
+                )
+            path.unlink()
+            changed = True
+            continue
+        if not stat.S_ISDIR(path_stat.st_mode):
+            raise RuntimeError(
+                "rubric generation staging path is not a directory"
+            )
+        descendants = [path, *path.rglob("*")]
+        for descendant in descendants:
+            descendant_stat = os.lstat(descendant)
+            if not (
+                stat.S_ISDIR(descendant_stat.st_mode)
+                or stat.S_ISREG(descendant_stat.st_mode)
+            ):
+                raise RuntimeError(
+                    "rubric generation staging tree contains a non-regular entry"
+                )
+        for descendant in descendants:
+            descendant_stat = os.lstat(descendant)
+            additions = stat.S_IRUSR | stat.S_IWUSR
+            if stat.S_ISDIR(descendant_stat.st_mode):
+                additions |= stat.S_IXUSR
+            descendant.chmod(stat.S_IMODE(descendant_stat.st_mode) | additions)
+        shutil.rmtree(path)
+        changed = True
+    if changed:
+        directory_fd = os.open(root, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+
+
 class SubmissionRevisionController:
     """Run a fixed-length linear revision conversation for one task."""
 
@@ -126,24 +302,43 @@ class SubmissionRevisionController:
         self,
         config: SubmissionRevisionConfig,
         dependencies: RevisionDependencies | None = None,
+        *,
+        judgment_reuse_root: Path | None = None,
     ) -> None:
         self.config = config
         self.benchmark = get_submission_benchmark(config.benchmark)
         self.experiment_dir = Path(config.experiment_dir).resolve()
         self.task_dir = Path(config.task_dir).resolve()
+        self.judgment_reuse = (
+            ExactJudgmentReuseStore(judgment_reuse_root / "judge")
+            if judgment_reuse_root is not None
+            else None
+        )
+        self.simulator_reuse = (
+            ExactSimulatorReuseStore(judgment_reuse_root / "simulated-user")
+            if judgment_reuse_root is not None
+            else None
+        )
         judge_config = config.judge_config()
         self.initial_rubric = _resolve_optimizer_rubric(judge_config)
         self.bank_policy = RubricBankPolicy(
             RubricBankPolicy(config.rubric_policy).value
         )
+        initial_complete_rubric = CompleteRubric.from_content(
+            self.initial_rubric.text
+        )
         self.initial_bank = RubricBankGeneration(
             RubricBank(
                 generation_round=0,
                 source_boundary=None,
+                specification_anchor=initial_complete_rubric,
+                specification_anchor_lineage=RubricLineage.NEW,
+                prior_specification_anchor_sha256=None,
                 items=(RubricBankItem(
-                    rubric=CompleteRubric.from_content(self.initial_rubric.text),
+                    rubric=initial_complete_rubric,
                     weight=1.0,
                     lineage=RubricLineage.NEW,
+                    criterion_map=identity_criterion_map(initial_complete_rubric),
                 ),),
             ),
             proposer_call_budget=0,
@@ -172,6 +367,19 @@ class SubmissionRevisionController:
                     benchmark=config.benchmark,
                     model=config.rubric_proposer_model,
                     base_url=config.rubric_proposer_base_url,
+                    semantic_judge_model=config.rubric_semantic_judge_model,
+                    semantic_judge_base_url=(
+                        config.rubric_semantic_judge_base_url
+                    ),
+                    semantic_judge_max_calls=(
+                        config.rubric_semantic_judge_max_calls
+                    ),
+                    semantic_judge_max_request_bytes=(
+                        config.rubric_semantic_judge_max_request_bytes
+                    ),
+                    semantic_judge_max_output_tokens=(
+                        config.rubric_semantic_judge_max_output_tokens
+                    ),
                     service_tier=(
                         config.agent.service_tier
                         if config.rubric_proposer_base_url is None else None
@@ -193,9 +401,32 @@ class SubmissionRevisionController:
         if (
             self.bank_policy is not RubricBankPolicy.FIXED
             and self.dependencies.bank_proposer is not None
-            and self.dependencies.bank_proposer.benchmark is not config.benchmark
+            and (
+                self.dependencies.bank_proposer.benchmark is not config.benchmark
+                or self.dependencies.bank_proposer.model
+                != config.rubric_proposer_model
+                or self.dependencies.bank_proposer.base_url
+                != config.rubric_proposer_base_url
+                or self.dependencies.bank_proposer.max_retries
+                != config.rubric_proposer_max_retries
+                or self.dependencies.bank_proposer.service_tier
+                != (
+                    config.agent.service_tier
+                    if config.rubric_proposer_base_url is None else None
+                )
+                or self.dependencies.bank_proposer.semantic_judge_model
+                != config.rubric_semantic_judge_model
+                or self.dependencies.bank_proposer.semantic_judge_base_url
+                != config.rubric_semantic_judge_base_url
+                or self.dependencies.bank_proposer.semantic_judge_max_calls
+                != config.rubric_semantic_judge_max_calls
+                or self.dependencies.bank_proposer.semantic_judge_max_request_bytes
+                != config.rubric_semantic_judge_max_request_bytes
+                or self.dependencies.bank_proposer.semantic_judge_max_output_tokens
+                != config.rubric_semantic_judge_max_output_tokens
+            )
         ):
-            raise ValueError("bank proposer benchmark differs from revision config")
+            raise ValueError("bank proposer contract differs from revision config")
         if FeedbackPolicy(config.feedback_policy) is FeedbackPolicy.SIMULATED_USER:
             if self.dependencies.feedback_simulator is None:
                 raise ValueError(
@@ -296,6 +527,7 @@ class SubmissionRevisionController:
             "web_search": False,
             "reasoning_effort": self.config.agent.reasoning_effort,
             "service_tier": self.config.agent.service_tier,
+            "solver_base_url": self.config.agent.base_url,
             "turn_timeout_seconds": self.config.agent.timeout_seconds,
             "judge_max_retries": self.config.judge_max_retries,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
@@ -304,6 +536,24 @@ class SubmissionRevisionController:
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
+            "rubric_semantic_judge_model": (
+                self.config.rubric_semantic_judge_model
+            ),
+            "rubric_semantic_judge_base_url": (
+                self.config.rubric_semantic_judge_base_url
+            ),
+            "rubric_semantic_judge_max_calls": (
+                self.config.rubric_semantic_judge_max_calls
+            ),
+            "rubric_semantic_judge_max_request_bytes": (
+                self.config.rubric_semantic_judge_max_request_bytes
+            ),
+            "rubric_semantic_judge_max_output_tokens": (
+                self.config.rubric_semantic_judge_max_output_tokens
+            ),
+            "rubric_generation_implementation_identity": (
+                rubric_generation_implementation_identity()
+            ),
             "review": self.config.review,
             "judge_model": self.config.judge_model,
             "judge_base_url": self.config.judge_base_url,
@@ -474,6 +724,7 @@ class SubmissionRevisionController:
                 shutil.copytree(child, destination, copy_function=shutil.copyfile)
             else:
                 shutil.copyfile(child, destination)
+            _make_tree_owner_writable(destination)
 
     def _link_seed_snapshot(self) -> None:
         source = self.seed.submission_dir
@@ -887,28 +1138,11 @@ class SubmissionRevisionController:
             )
             _verify_submission_snapshot(source.parent)
             shutil.copytree(source, restored, copy_function=shutil.copyfile)
-            restored.chmod(
-                stat.S_IMODE(os.lstat(restored).st_mode) | stat.S_IRWXU
-            )
+            _make_tree_owner_writable(restored)
             TaskWorkspace(self.task_dir, restored).restore_inputs()
-            for path in [restored, *restored.rglob("*")]:
-                if not path.is_symlink():
-                    path.chmod(
-                        stat.S_IMODE(os.lstat(path).st_mode)
-                        | stat.S_IRUSR
-                        | stat.S_IWUSR
-                        | (stat.S_IXUSR if path.is_dir() else 0)
-                    )
         else:
             TaskWorkspace(self.task_dir, restored).create()
-        for path in [workspace, *workspace.rglob("*")]:
-            if not path.is_symlink():
-                path.chmod(
-                    stat.S_IMODE(os.lstat(path).st_mode)
-                    | stat.S_IRUSR
-                    | stat.S_IWUSR
-                    | (stat.S_IXUSR if path.is_dir() else 0)
-                )
+        _make_tree_owner_writable(workspace)
         shutil.rmtree(workspace)
         restored.rename(workspace)
 
@@ -1024,9 +1258,141 @@ class SubmissionRevisionController:
             )
             if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
                 raise RuntimeError("live workspace changed after the last boundary")
+        self._validate_rubric_generation_replay()
         self._validate_scored_boundaries(state)
         if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
             raise RuntimeError("revision manifest has the wrong scoring identity")
+
+    def _validate_rubric_generation_replay(self) -> None:
+        """Replay every sealed proposal before any resumed dispatch."""
+
+        proposal_root = self.experiment_dir / "rubric-generations"
+        bank_root = self.experiment_dir / "rubric-banks"
+        if self.bank_policy is RubricBankPolicy.FIXED:
+            if os.path.lexists(proposal_root):
+                raise RuntimeError("a fixed policy cannot contain rubric generations")
+            if _numbered_bank_directories(
+                bank_root,
+                required=True,
+                context="rubric bank",
+            ) != [0]:
+                raise RuntimeError("a fixed policy can contain only bank round 0")
+            return
+
+        _remove_owned_rubric_generation_residue(
+            proposal_root,
+            max_generation_round=self.config.revision_rounds,
+        )
+        proposal_rounds, rejection_rounds, ledger_rounds = _rubric_generation_entries(
+            proposal_root
+        )
+        bank_rounds = _numbered_bank_directories(
+            bank_root,
+            required=True,
+            context="rubric bank",
+        )
+        if not bank_rounds or bank_rounds[0] != 0:
+            raise RuntimeError("rubric bank generations must start at round 0")
+        replacement_rounds = bank_rounds[1:]
+        if replacement_rounds != list(range(1, len(replacement_rounds) + 1)):
+            raise RuntimeError("rubric replacement generations are not contiguous")
+        if proposal_rounds != list(range(1, len(proposal_rounds) + 1)):
+            raise RuntimeError("rubric proposal generations are not contiguous")
+        if proposal_rounds[: len(replacement_rounds)] != replacement_rounds:
+            raise RuntimeError(
+                "a persisted rubric bank has no matching sealed proposal"
+            )
+        if len(proposal_rounds) not in {
+            len(replacement_rounds),
+            len(replacement_rounds) + 1,
+        }:
+            raise RuntimeError(
+                "sealed rubric proposals are more than one bank ahead"
+            )
+        if proposal_rounds and proposal_rounds[-1] > self.config.revision_rounds:
+            raise RuntimeError("rubric replacement generation exceeds the study length")
+        if rejection_rounds:
+            rejection_round = rejection_rounds[0]
+            if (
+                proposal_rounds != replacement_rounds
+                or rejection_round != len(replacement_rounds) + 1
+                or rejection_round > self.config.revision_rounds
+            ):
+                raise RuntimeError(
+                    "sealed semantic rejection is not the next terminal generation"
+                )
+        expected_ledger_rounds = list(range(1, len(ledger_rounds) + 1))
+        if ledger_rounds != expected_ledger_rounds:
+            raise RuntimeError("rubric provider attempt ledgers are not contiguous")
+        terminal_ledgers = sorted(
+            set(ledger_rounds) - set(proposal_rounds) - set(rejection_rounds)
+        )
+        if (
+            len(terminal_ledgers) > 1
+            or terminal_ledgers
+            and terminal_ledgers[0] != len(proposal_rounds) + 1
+            or ledger_rounds
+            and ledger_rounds[-1] > self.config.revision_rounds
+        ):
+            raise RuntimeError("rubric provider attempt ledger schedule is invalid")
+
+        proposer = self.dependencies.bank_proposer
+        if proposer is None:
+            raise RuntimeError("replacement replay has no bank proposer")
+        proposer._clear_validated_semantic_outputs()
+        instruction = (self.task_dir / "instruction.md").read_text(
+            encoding="utf-8"
+        )
+        adaptive = self.bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
+        for generation_round in ledger_rounds:
+            prior = load_rubric_bank(
+                self.experiment_dir,
+                generation_round - 1,
+                expected_policy=self.bank_policy,
+            )
+            source_submission = (
+                self.experiment_dir
+                / "submissions"
+                / f"s{generation_round - 1:03d}"
+            )
+            replayed = proposer.replace_bank(
+                instruction=instruction,
+                current_bank=prior.bank,
+                policy=self.bank_policy,
+                generation_round=generation_round,
+                output_dir=proposal_root,
+                current_submission=(
+                    self.benchmark.render_submission(
+                        source_submission / "workspace"
+                    )
+                    if adaptive
+                    else None
+                ),
+                trajectory_path=(
+                    source_submission / "trajectory.stream.jsonl"
+                    if adaptive
+                    else None
+                ),
+                source_boundary=generation_round - 1 if adaptive else None,
+            )
+            if generation_round in rejection_rounds:
+                raise RuntimeError("sealed semantic rejection was not enforced")
+            if generation_round <= len(replacement_rounds):
+                persisted = load_rubric_bank(
+                    self.experiment_dir,
+                    generation_round,
+                    expected_policy=self.bank_policy,
+                )
+                if replayed != persisted:
+                    raise RuntimeError(
+                        "rubric generation disagrees with the persisted bank"
+                    )
+            elif generation_round in proposal_rounds or generation_round in terminal_ledgers:
+                persist_rubric_bank(
+                    self.experiment_dir,
+                    replayed,
+                    self.bank_policy,
+                )
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
         ensure_artifacts_dir(workspace)
@@ -1154,14 +1520,50 @@ class SubmissionRevisionController:
         member_artifacts: dict[str, JudgeArtifacts] = {}
         for item in bank.items:
             rubric, judge = self._bank_member_runtime(item, turn_index)
-            if (
+            seed_reusable = (
                 turn_index == 0
                 and item.rubric.content_sha256 == self.initial_rubric.sha256
                 and self.reuse_seed_judgment
-            ):
+            )
+            if seed_reusable:
                 validation_path, evaluation_path, _ = self.seed.judgment
                 artifacts = JudgeArtifacts(validation_path, evaluation_path)
                 seeded = True
+            elif self.judgment_reuse is not None:
+                request = exact_judgment_request(
+                    task_id=self.task_dir.name,
+                    replicate=self.config.replicate,
+                    rubric_sha256=item.rubric.content_sha256,
+                    review_text=review_text,
+                    answer_text=answer_text,
+                    scoring_identity=judge.scoring_identity(),
+                )
+
+                def generate() -> JudgeArtifacts:
+                    return judge.evaluate(submission_dir, attempt_id)
+
+                reused = self.judgment_reuse.resolve(
+                    request=request,
+                    producer={
+                        "assignment_id": self.config.assignment_id,
+                        "condition_id": self.config.condition_id,
+                        "replicate": self.config.replicate,
+                        "submission_id": submission_id,
+                        "rubric_sha256": item.rubric.content_sha256,
+                        "judge_attempt_id": attempt_id,
+                    },
+                    generate=generate,
+                )
+                self.judgment_reuse.persist_alias(
+                    experiment_dir=self.experiment_dir,
+                    assignment_id=self.config.assignment_id,
+                    replicate=self.config.replicate,
+                    submission_id=submission_id,
+                    rubric_sha256=item.rubric.content_sha256,
+                    reused=reused,
+                )
+                artifacts = reused.artifacts
+                seeded = False
             else:
                 artifacts = judge.evaluate(submission_dir, attempt_id)
                 seeded = False
@@ -1253,8 +1655,8 @@ class SubmissionRevisionController:
                 "generation_round": next_generation.bank.generation_round,
                 "bank_sha256": next_generation.bank.content_sha256,
                 "rubric_count": next_generation.bank.rubric_count,
-                "effective_sample_size": (
-                    next_generation.bank.effective_sample_size
+                "inverse_weight_concentration": (
+                    next_generation.bank.inverse_weight_concentration
                 ),
                 "source_boundary": next_generation.bank.source_boundary,
                 "proposer_call_budget": next_generation.proposer_call_budget,
@@ -1380,11 +1782,54 @@ class SubmissionRevisionController:
             raise RuntimeError(
                 f"simulated-user generation is an invalid symlink: {generation_path}"
             )
+        reuse_request: dict[str, object] | None = None
+        instruction: str | None = None
+        current_submission: str | None = None
+        if self.simulator_reuse is not None:
+            instruction = (self.task_dir / "instruction.md").read_text(
+                encoding="utf-8"
+            )
+            current_submission = self.benchmark.render_submission(
+                submission_dir / "workspace"
+            )
+            reuse_request = exact_simulator_request(
+                experiment_id=self.config.experiment_id,
+                task_id=self.task_dir.name,
+                replicate=self.config.replicate,
+                instruction=instruction,
+                bank_sha256=bank.content_sha256,
+                current_submission=current_submission,
+                simulator_identity=simulator.identity(),
+            )
         if generation_path.is_file():
             generation = _read_json_object(
                 generation_path,
                 "simulated-user generation",
             )
+            if self.simulator_reuse is not None:
+                assert reuse_request is not None
+                reused = self.simulator_reuse.validate_alias(
+                    self.experiment_dir
+                    / "simulated-user-aliases"
+                    / f"{submission_id}.json",
+                    assignment_id=self.config.assignment_id,
+                    replicate=self.config.replicate,
+                    submission_id=submission_id,
+                    expected_request=reuse_request,
+                )
+                expected_generation = self.simulator_reuse.assignment_record(
+                    reused,
+                    experiment_id=self.config.experiment_id,
+                    assignment_id=self.config.assignment_id,
+                    submission_id=submission_id,
+                    generation_round=generation_round,
+                    bank_sha256=bank.content_sha256,
+                    simulator_identity=simulator.identity(),
+                )
+                if generation != expected_generation:
+                    raise RuntimeError(
+                        "simulated-user generation differs from its shared artifact"
+                    )
         else:
             if os.path.lexists(generation_path):
                 raise RuntimeError(
@@ -1396,17 +1841,59 @@ class SubmissionRevisionController:
                     f"missing simulated-user generation for {submission_id}"
                 )
             workspace = submission_dir / "workspace"
-            generation = simulator.generate(
-                experiment_id=self.config.experiment_id,
-                assignment_id=self.config.assignment_id,
-                submission_id=submission_id,
-                generation_round=generation_round,
-                instruction=(self.task_dir / "instruction.md").read_text(
+            if instruction is None:
+                instruction = (self.task_dir / "instruction.md").read_text(
                     encoding="utf-8"
-                ),
-                bank=bank,
-                current_submission=self.benchmark.render_submission(workspace),
-            )
+                )
+            if current_submission is None:
+                current_submission = self.benchmark.render_submission(workspace)
+            if self.simulator_reuse is not None:
+                assert reuse_request is not None
+                reused = self.simulator_reuse.resolve(
+                    request=reuse_request,
+                    producer={
+                        "assignment_id": self.config.assignment_id,
+                        "condition_id": self.config.condition_id,
+                        "replicate": self.config.replicate,
+                        "submission_id": submission_id,
+                        "generation_round": generation_round,
+                    },
+                    generate=lambda: simulator.generate(
+                        experiment_id=self.config.experiment_id,
+                        assignment_id=self.config.assignment_id,
+                        submission_id=submission_id,
+                        generation_round=generation_round,
+                        instruction=instruction,
+                        bank=bank,
+                        current_submission=current_submission,
+                    ),
+                )
+                self.simulator_reuse.persist_alias(
+                    experiment_dir=self.experiment_dir,
+                    assignment_id=self.config.assignment_id,
+                    replicate=self.config.replicate,
+                    submission_id=submission_id,
+                    reused=reused,
+                )
+                generation = self.simulator_reuse.assignment_record(
+                    reused,
+                    experiment_id=self.config.experiment_id,
+                    assignment_id=self.config.assignment_id,
+                    submission_id=submission_id,
+                    generation_round=generation_round,
+                    bank_sha256=bank.content_sha256,
+                    simulator_identity=simulator.identity(),
+                )
+            else:
+                generation = simulator.generate(
+                    experiment_id=self.config.experiment_id,
+                    assignment_id=self.config.assignment_id,
+                    submission_id=submission_id,
+                    generation_round=generation_round,
+                    instruction=instruction,
+                    bank=bank,
+                    current_submission=current_submission,
+                )
             _write_json_atomic(generation_path, generation)
             _make_read_only(generation_path)
         comment = simulator.validate(
@@ -1514,16 +2001,6 @@ class SubmissionRevisionController:
         on_policy_score: float,
     ) -> float:
         active_bank = self._active_bank_generation(turn_index).bank
-        if (
-            active_bank.rubric_count == 1
-            and active_bank.items[0].rubric.content_sha256
-            == self.master_rubric.sha256
-            and (
-                turn_index == 0
-                or self.bank_policy is RubricBankPolicy.FIXED
-            )
-        ):
-            return on_policy_score
         if turn_index == 0 and self.reuse_seed_master_judgment:
             validation_path, _, _ = self.seed.judgment
             self._verify_round_scoring_identity(
@@ -1539,6 +2016,67 @@ class SubmissionRevisionController:
             score = validation.get("score")
             if type(score) is not int or not 0 <= score <= 100:
                 raise RuntimeError("seeded master-rubric score is invalid")
+            return score
+        if (
+            active_bank.rubric_count == 1
+            and active_bank.items[0].rubric.content_sha256
+            == self.master_rubric.sha256
+            and (
+                turn_index == 0
+                or self.bank_policy is RubricBankPolicy.FIXED
+            )
+        ):
+            return on_policy_score
+        if self.judgment_reuse is not None:
+            review_text, answer_text = self.master_judge.review_inputs(submission_dir)
+            request = exact_judgment_request(
+                task_id=self.task_dir.name,
+                replicate=self.config.replicate,
+                rubric_sha256=self.master_rubric.sha256,
+                review_text=review_text,
+                answer_text=answer_text,
+                scoring_identity=self.master_judge.scoring_identity(),
+            )
+            attempt_id = fixed_original_attempt_id(
+                self.config.assignment_id,
+                submission_id,
+                self.master_rubric.sha256,
+            )
+            reused = self.judgment_reuse.resolve(
+                request=request,
+                producer={
+                    "assignment_id": self.config.assignment_id,
+                    "condition_id": self.config.condition_id,
+                    "replicate": self.config.replicate,
+                    "submission_id": submission_id,
+                    "rubric_sha256": self.master_rubric.sha256,
+                    "judge_attempt_id": attempt_id,
+                },
+                generate=lambda: self.master_judge.evaluate(
+                    submission_dir,
+                    attempt_id,
+                ),
+            )
+            self.judgment_reuse.persist_alias(
+                experiment_dir=self.experiment_dir,
+                assignment_id=self.config.assignment_id,
+                replicate=self.config.replicate,
+                submission_id=submission_id,
+                rubric_sha256=self.master_rubric.sha256,
+                reused=reused,
+            )
+            self._verify_round_scoring_identity(
+                reused.artifacts.score_validation_path,
+                self.master_rubric,
+                self.master_judge,
+            )
+            validation = _read_json_object(
+                reused.artifacts.score_validation_path,
+                "shared fixed-original score validation",
+            )
+            score = validation.get("score")
+            if type(score) is not int or not 0 <= score <= 100:
+                raise RuntimeError("shared fixed-original judgment has an invalid score")
             return score
         attempt_id = fixed_original_attempt_id(
             self.config.assignment_id,
@@ -1624,6 +2162,35 @@ class SubmissionRevisionController:
                 if seeded:
                     validation_path, evaluation_path, _ = self.seed.judgment
                     artifacts = JudgeArtifacts(validation_path, evaluation_path)
+                elif self.judgment_reuse is not None:
+                    review_text, answer_text = judge.review_inputs(submission_dir)
+                    expected_request = exact_judgment_request(
+                        task_id=self.task_dir.name,
+                        replicate=self.config.replicate,
+                        rubric_sha256=item.rubric.content_sha256,
+                        review_text=review_text,
+                        answer_text=answer_text,
+                        scoring_identity=judge.scoring_identity(),
+                    )
+                    alias_path = (
+                        self.experiment_dir
+                        / "judgment-aliases"
+                        / submission_id
+                        / (
+                            self.judgment_reuse.request_sha256(expected_request)
+                            + ".json"
+                        )
+                    )
+                    reused = self.judgment_reuse.validate_alias(
+                        alias_path,
+                        assignment_id=self.config.assignment_id,
+                        replicate=self.config.replicate,
+                        submission_id=submission_id,
+                        rubric_sha256=item.rubric.content_sha256,
+                        expected_request=expected_request,
+                    )
+                    artifacts = reused.artifacts
+                    seeded = False
                 else:
                     artifacts = judge.validate(submission_dir, attempt_id)
                 self._verify_round_scoring_identity(
@@ -1674,17 +2241,7 @@ class SubmissionRevisionController:
                     "stored bank evaluation disagrees with member artifacts"
                 )
             fixed_score = state.fixed_original_scores[index]
-            if (
-                bank.rubric_count == 1
-                and bank.items[0].rubric.content_sha256
-                == self.master_rubric.sha256
-                and (
-                    index == 0
-                    or self.bank_policy is RubricBankPolicy.FIXED
-                )
-            ):
-                expected_fixed_score = projected.score
-            elif index == 0 and self.reuse_seed_master_judgment:
+            if index == 0 and self.reuse_seed_master_judgment:
                 master_validation_path, _, _ = self.seed.judgment
                 self._verify_round_scoring_identity(
                     master_validation_path,
@@ -1695,6 +2252,54 @@ class SubmissionRevisionController:
                 expected_fixed_score = _read_json_object(
                     master_validation_path,
                     "seeded master-rubric score validation",
+                ).get("score")
+            elif (
+                bank.rubric_count == 1
+                and bank.items[0].rubric.content_sha256
+                == self.master_rubric.sha256
+                and (
+                    index == 0
+                    or self.bank_policy is RubricBankPolicy.FIXED
+                )
+            ):
+                expected_fixed_score = projected.score
+            elif self.judgment_reuse is not None:
+                review_text, answer_text = self.master_judge.review_inputs(
+                    submission_dir
+                )
+                expected_request = exact_judgment_request(
+                    task_id=self.task_dir.name,
+                    replicate=self.config.replicate,
+                    rubric_sha256=self.master_rubric.sha256,
+                    review_text=review_text,
+                    answer_text=answer_text,
+                    scoring_identity=self.master_judge.scoring_identity(),
+                )
+                alias_path = (
+                    self.experiment_dir
+                    / "judgment-aliases"
+                    / submission_id
+                    / (
+                        self.judgment_reuse.request_sha256(expected_request)
+                        + ".json"
+                    )
+                )
+                reused = self.judgment_reuse.validate_alias(
+                    alias_path,
+                    assignment_id=self.config.assignment_id,
+                    replicate=self.config.replicate,
+                    submission_id=submission_id,
+                    rubric_sha256=self.master_rubric.sha256,
+                    expected_request=expected_request,
+                )
+                self._verify_round_scoring_identity(
+                    reused.artifacts.score_validation_path,
+                    self.master_rubric,
+                    self.master_judge,
+                )
+                expected_fixed_score = _read_json_object(
+                    reused.artifacts.score_validation_path,
+                    "shared fixed-original score validation",
                 ).get("score")
             else:
                 fixed_attempt_id = fixed_original_attempt_id(
@@ -2013,5 +2618,10 @@ class SubmissionRevisionController:
 
 def run_submission_revision(
     config: SubmissionRevisionConfig,
+    *,
+    judgment_reuse_root: Path | None = None,
 ) -> SubmissionRevisionResult:
-    return SubmissionRevisionController(config).run()
+    return SubmissionRevisionController(
+        config,
+        judgment_reuse_root=judgment_reuse_root,
+    ).run()

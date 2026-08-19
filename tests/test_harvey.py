@@ -4,13 +4,16 @@ import json
 import os
 import shutil
 import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 
 import rubric_gen.benchmarks.harvey_lab.designer as designer_module
+import rubric_gen.benchmarks.harvey_lab.evaluator as evaluator_module
 from rubric_gen.benchmarks.harvey_lab.audits import prepare_reward_hacking_cases, run_quality_audit
-from rubric_gen.benchmarks.harvey_lab.artifacts import tree_sha256
+from rubric_gen.benchmarks.harvey_lab.artifacts import tree_sha256, validate_checkout
 from rubric_gen.benchmarks.harvey_lab.config import (
     HarnessDesigner,
     HarveyBenchmark,
@@ -30,6 +33,11 @@ from rubric_gen.benchmarks.harvey_lab.podman import (
     restore_cached_image,
 )
 from rubric_gen.benchmarks.harvey_lab.rubrics import TaskRubricProposer
+from rubric_gen.benchmarks.harvey_lab.seal import (
+    SEAL_NAME,
+    seal_harvey_run,
+    validate_harvey_run_seal,
+)
 from rubric_gen.runtime.llm import GenerationResult, request_parameters_for_model
 
 
@@ -201,6 +209,70 @@ def test_tree_hash_rejects_symbolic_links(tmp_path: Path) -> None:
         tree_sha256(root)
 
 
+def test_harvey_run_seal_binds_artifacts_and_makes_tree_read_only(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "output"
+    nested = root / "audits"
+    nested.mkdir(parents=True)
+    artifact = nested / "summary.json"
+    artifact.write_text('{"status":"completed"}\n', encoding="utf-8")
+    source = tmp_path / "experiment.yaml"
+    source.write_text("experiment\n", encoding="utf-8")
+    experiment = type("Experiment", (), {
+        "experiment_id": "harvey-test",
+        "output_dir": root,
+        "source": source,
+    })()
+
+    try:
+        seal = seal_harvey_run(experiment)  # type: ignore[arg-type]
+
+        assert seal["artifact_count"] == 1
+        assert seal["artifact_bytes"] == artifact.stat().st_size
+        assert validate_harvey_run_seal(experiment) == seal  # type: ignore[arg-type]
+        assert not root.stat().st_mode & 0o222
+        assert not artifact.stat().st_mode & 0o222
+        assert not (root / SEAL_NAME).stat().st_mode & 0o222
+
+        artifact.chmod(artifact.stat().st_mode | 0o200)
+        assert seal_harvey_run(experiment) == seal  # type: ignore[arg-type]
+        assert not artifact.stat().st_mode & 0o222
+
+        source.write_text("changed experiment\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="invalid fields"):
+            validate_harvey_run_seal(experiment)  # type: ignore[arg-type]
+        source.write_text("experiment\n", encoding="utf-8")
+
+        root.chmod(0o700)
+        nested.chmod(0o700)
+        artifact.chmod(0o600)
+        artifact.write_text('{"status":"changed"}\n', encoding="utf-8")
+        with pytest.raises(ValueError, match="does not match its artifacts"):
+            validate_harvey_run_seal(experiment)  # type: ignore[arg-type]
+    finally:
+        for path in (root, *root.rglob("*")):
+            path.chmod(path.stat().st_mode | 0o700)
+
+
+def test_harvey_run_seal_rejects_symbolic_links(tmp_path: Path) -> None:
+    root = tmp_path / "output"
+    root.mkdir()
+    artifact = root / "summary.json"
+    artifact.write_text("{}\n", encoding="utf-8")
+    (root / "alias.json").symlink_to(artifact)
+    source = tmp_path / "experiment.yaml"
+    source.write_text("experiment\n", encoding="utf-8")
+    experiment = type("Experiment", (), {
+        "experiment_id": "harvey-test",
+        "output_dir": root,
+        "source": source,
+    })()
+
+    with pytest.raises(ValueError, match="link or special file"):
+        seal_harvey_run(experiment)  # type: ignore[arg-type]
+
+
 def test_designer_parent_contract_uses_candidate_id_without_history_prefix(
     tmp_path: Path,
 ) -> None:
@@ -236,6 +308,13 @@ def test_designer_parent_contract_uses_candidate_id_without_history_prefix(
 def test_designer_retries_semantically_invalid_proposal(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    node_local = tmp_path / "node-local"
+    node_local.mkdir(mode=0o700)
+    node_local.chmod(0o700)
+    bulk = tmp_path / "bulk"
+    bulk.mkdir()
+    monkeypatch.setenv("SLURM_TMPDIR", str(node_local))
+    monkeypatch.setenv("TMPDIR", str(bulk))
     parent = tmp_path / "parent"
     parent.mkdir()
     for name in ("run.py", "system_prompt.md", "agent_loop.py", "tools.py"):
@@ -254,6 +333,7 @@ def test_designer_retries_semantically_invalid_proposal(
         current_dir=current,
     )
     prompts: list[str] = []
+    state_paths: list[Path] = []
 
     class FakeRunner:
         def __init__(self, config, *, prompt: str, output_errors) -> None:
@@ -264,6 +344,14 @@ def test_designer_retries_semantically_invalid_proposal(
             return None
 
         def stream(self, paths) -> int:
+            assert paths.state_dir is not None
+            state_paths.append(paths.state_dir)
+            assert paths.state_dir.parent == node_local
+            assert paths.state_dir.stat().st_mode & 0o777 == 0o700
+            assert not paths.state_dir.is_symlink()
+            state = paths.state_dir / "codex"
+            state.mkdir(parents=True, exist_ok=True)
+            (state / "auth.json").write_text("test credential", encoding="utf-8")
             harness = workspace / "candidate" / "harness"
             if not harness.exists():
                 shutil.copytree(parent, harness)
@@ -300,6 +388,125 @@ def test_designer_retries_semantically_invalid_proposal(
     assert result.parent_id == "h0000"
     assert len(prompts) == 2
     assert "without a history/ prefix" in prompts[1]
+    assert all(path.parent == node_local for path in state_paths)
+    assert all(not path.exists() for path in state_paths)
+    assert not any(bulk.iterdir())
+
+
+def test_designer_removes_node_local_state_after_runner_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_local = tmp_path / "node-local"
+    node_local.mkdir(mode=0o700)
+    node_local.chmod(0o700)
+    monkeypatch.setenv("SLURM_TMPDIR", str(node_local))
+    state_paths: list[Path] = []
+
+    class FailingRunner:
+        def __init__(self, config, *, prompt: str, output_errors) -> None:
+            return None
+
+        def ensure_executable(self) -> None:
+            return None
+
+        def stream(self, paths) -> int:
+            assert paths.state_dir is not None
+            state_paths.append(paths.state_dir)
+            credential = paths.state_dir / "codex" / "auth.json"
+            credential.parent.mkdir()
+            credential.write_text("test credential", encoding="utf-8")
+            raise RuntimeError("provider failed")
+
+    monkeypatch.setattr(designer_module, "AgentRunner", FailingRunner)
+    designer = CodexHarnessDesigner(
+        HarnessDesigner("gpt-5.6-sol", 1, "high", "priority", 60, 0)
+    )
+
+    with pytest.raises(RuntimeError, match="provider failed"):
+        designer.run(
+            tmp_path / "workspace",
+            tmp_path / "agent",
+            expected_input_sha256="unused",
+            candidate_harnesses={},
+        )
+
+    assert len(state_paths) == 1
+    assert not state_paths[0].exists()
+    assert not any(node_local.iterdir())
+
+
+def test_designer_requires_private_node_local_state_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("SLURM_TMPDIR", raising=False)
+    with pytest.raises(RuntimeError, match="requires SLURM_TMPDIR"):
+        CodexHarnessDesigner._agent_state_root()
+
+    monkeypatch.setenv("SLURM_TMPDIR", "relative")
+    with pytest.raises(RuntimeError, match="must be absolute"):
+        CodexHarnessDesigner._agent_state_root()
+
+    public = tmp_path / "public"
+    public.mkdir(mode=0o700)
+    public.chmod(0o755)
+    monkeypatch.setenv("SLURM_TMPDIR", str(public))
+    with pytest.raises(RuntimeError, match="mode 0700"):
+        CodexHarnessDesigner._agent_state_root()
+
+    private = tmp_path / "private"
+    private.mkdir(mode=0o700)
+    private.chmod(0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(private, target_is_directory=True)
+    monkeypatch.setenv("SLURM_TMPDIR", str(alias))
+    with pytest.raises(RuntimeError, match="regular directory"):
+        CodexHarnessDesigner._agent_state_root()
+
+
+def test_designer_rejects_agent_state_outside_node_local_root(
+    tmp_path: Path,
+) -> None:
+    node_local = tmp_path / "node-local"
+    node_local.mkdir(mode=0o700)
+    node_local.chmod(0o700)
+    escaped = tmp_path / "escaped"
+    escaped.mkdir(mode=0o700)
+    escaped.chmod(0o700)
+
+    with pytest.raises(RuntimeError, match="escaped SLURM_TMPDIR"):
+        CodexHarnessDesigner._validate_agent_state(
+            escaped,
+            node_local,
+            require_private_mode=True,
+        )
+
+
+def test_designer_rejects_non_private_or_linked_agent_state(
+    tmp_path: Path,
+) -> None:
+    node_local = tmp_path / "node-local"
+    node_local.mkdir(mode=0o700)
+    node_local.chmod(0o700)
+    state = node_local / "state"
+    state.mkdir(mode=0o700)
+    state.chmod(0o755)
+
+    with pytest.raises(RuntimeError, match="mode 0700"):
+        CodexHarnessDesigner._validate_agent_state(
+            state,
+            node_local,
+            require_private_mode=True,
+        )
+
+    state.chmod(0o700)
+    alias = node_local / "alias"
+    alias.symlink_to(state, target_is_directory=True)
+    with pytest.raises(RuntimeError, match="regular directory"):
+        CodexHarnessDesigner._validate_agent_state(
+            alias,
+            node_local,
+            require_private_mode=True,
+        )
 
 
 def test_podman_environment_uses_local_storage_and_shared_cache(
@@ -637,6 +844,50 @@ def _fake_checkout(root: Path) -> str:
     ).stdout.strip()
 
 
+def test_checkout_validation_only_checks_selected_benchmark_inputs(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "harvey"
+    _fake_checkout(checkout)
+    unrelated = checkout / "README.md"
+    unrelated.write_text("tracked note", encoding="utf-8")
+    subprocess.run(["git", "-C", str(checkout), "add", "README.md"], check=True)
+    subprocess.run(
+        ["git", "-C", str(checkout), "commit", "-qm", "tracked note"],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    unrelated.write_text("changed tracked note", encoding="utf-8")
+
+    validate_checkout(checkout, revision, ("area/task",))
+
+    untracked = checkout / "harness" / "local.py"
+    untracked.write_text("# local input\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="untracked input files"):
+        validate_checkout(checkout, revision, ("area/task",))
+    untracked.unlink()
+
+    ignored = checkout / "harness" / "ignored.py"
+    exclude = checkout / ".git" / "info" / "exclude"
+    exclude.write_text(exclude.read_text(encoding="utf-8") + "harness/ignored.py\n")
+    ignored.write_text("# ignored local input\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="untracked input files"):
+        validate_checkout(checkout, revision, ("area/task",))
+    ignored.unlink()
+
+    (checkout / "tasks" / "area" / "task" / "task.json").write_text(
+        json.dumps({**_task(), "title": "Changed"}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="tracked changes"):
+        validate_checkout(checkout, revision, ("area/task",))
+
+
 def test_controller_runs_linear_round_with_free_parent_record_and_resumes(
     tmp_path: Path,
 ) -> None:
@@ -751,3 +1002,159 @@ def test_production_evaluator_uses_runtime_modules_and_rescores_read_only_output
     assert result.mean_criterion_pass == 0.5
     assert crossed.mean_criterion_pass == 0.5
     assert len(calls) == 3
+
+
+def test_production_evaluator_runs_independent_tasks_with_bounded_concurrency(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkout = tmp_path / "harvey"
+    _fake_checkout(checkout)
+    second = checkout / "tasks" / "area" / "task-2"
+    shutil.copytree(checkout / "tasks" / "area" / "task", second)
+    subprocess.run(["git", "-C", str(checkout), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(checkout), "commit", "-qm", "second task"],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    source = tmp_path / "experiment.yaml"
+    source.write_text("fixture", encoding="utf-8")
+    tasks = ("area/task", "area/task-2")
+    experiment = HarveyExperiment(
+        source=source,
+        experiment_id="harvey-test",
+        output_dir=tmp_path / "output",
+        cache_dir=tmp_path / "cache",
+        benchmark=HarveyBenchmark(checkout, revision, tasks, ()),
+        task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
+        judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
+        designer=HarnessDesigner("codex", 1, None, None, 10, 0),
+        rubric=RubricEvolution("static", None, None, 2, 4096),
+        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+    )
+    task_agents = threading.Barrier(2, timeout=5)
+    active = 0
+    peak = 0
+    lock = threading.Lock()
+
+    def execute(
+        command: list[str],
+        runtime: Path,
+        log: Path,
+        credential_names: tuple[str, ...],
+        label: str,
+    ) -> None:
+        nonlocal active, peak
+        run_id = command[command.index("--run-id") + 1]
+        result = runtime / "results" / run_id
+        result.mkdir(parents=True, exist_ok=True)
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_text(label, encoding="utf-8")
+        if label == "task agent":
+            with lock:
+                active += 1
+                peak = max(peak, active)
+            task_agents.wait()
+            with lock:
+                active -= 1
+            (result / "output").mkdir()
+            (result / "output" / "memo.md").write_text("memo", encoding="utf-8")
+            (result / "metrics.json").write_text("{}", encoding="utf-8")
+            (result / "transcript.jsonl").write_text("{}\n", encoding="utf-8")
+        else:
+            (result / "scores.json").write_text(
+                json.dumps({"n_passed": 1, "n_criteria": 2, "all_pass": False}),
+                encoding="utf-8",
+            )
+
+    monkeypatch.setattr(HarveyEvaluator, "_execute", staticmethod(execute))
+    evaluator = HarveyEvaluator(
+        experiment,
+        uv_executable="uv-test",
+        max_concurrency=2,
+    )
+    result = evaluator.evaluate(
+        "h0000",
+        checkout / "harness",
+        {
+            task: checkout / "tasks" / task / "task.json"
+            for task in tasks
+        },
+        tmp_path / "canonical",
+    )
+
+    assert peak == 2
+    assert set(result.task_scores) == set(tasks)
+
+
+def test_concurrent_task_agents_initialize_shared_podman_state_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "experiment.yaml"
+    source.write_text("fixture", encoding="utf-8")
+    experiment = HarveyExperiment(
+        source=source,
+        experiment_id="harvey-test",
+        output_dir=tmp_path / "output",
+        cache_dir=tmp_path / "cache",
+        benchmark=HarveyBenchmark(tmp_path / "checkout", "a" * 40, ("area/task",), ()),
+        task_agent=TaskAgent("agent", 10, 0.0, 10, None, "image", ("KEY",)),
+        judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
+        designer=HarnessDesigner("codex", 1, None, None, 10, 0),
+        rubric=RubricEvolution("static", None, None, 2, 4096),
+        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+    )
+    evaluator = HarveyEvaluator(experiment, max_concurrency=2)
+    monkeypatch.setenv("KEY", "test")
+    setup_calls: list[str] = []
+    command_barrier = threading.Barrier(2, timeout=5)
+
+    def configure(source_env: dict[str, str], *, cache_root: Path) -> dict[str, str]:
+        setup_calls.append("configure")
+        return {**source_env, "PODMAN_TEST": str(cache_root)}
+
+    def restore(
+        environment: dict[str, str], *, cache_root: Path, image: str
+    ) -> bool:
+        setup_calls.append("restore")
+        return True
+
+    def cache(
+        environment: dict[str, str], *, cache_root: Path, image: str
+    ) -> Path:
+        setup_calls.append("cache")
+        return cache_root / "image.oci.tar"
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert "PODMAN_TEST" in kwargs["env"]  # type: ignore[operator]
+        command_barrier.wait()
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(evaluator_module, "configured_podman_environment", configure)
+    monkeypatch.setattr(evaluator_module, "restore_cached_image", restore)
+    monkeypatch.setattr(evaluator_module, "cache_image", cache)
+    monkeypatch.setattr(evaluator_module.subprocess, "run", run)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(
+                evaluator._execute,
+                ["agent", str(index)],
+                tmp_path / f"runtime-{index}",
+                tmp_path / f"agent-{index}.log",
+                ("KEY",),
+                "task agent",
+            )
+            for index in range(2)
+        ]
+        for future in futures:
+            future.result()
+
+    assert setup_calls == ["configure", "restore", "cache"]

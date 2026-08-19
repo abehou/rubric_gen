@@ -22,6 +22,12 @@ from rubric_gen.benchmarks.harvey_lab.config import (
     load_experiment as load_harvey_experiment,
 )
 from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController
+from rubric_gen.benchmarks.harvey_lab.evaluator import HarveyEvaluator
+from rubric_gen.benchmarks.harvey_lab.seal import (
+    harvey_run_seal_exists,
+    seal_harvey_run,
+    validate_harvey_run_seal,
+)
 
 
 def _experiment_kind(value: str) -> str:
@@ -48,12 +54,26 @@ def _run(args: argparse.Namespace) -> int:
         return run_dag(args)
     if args.restart:
         raise ValueError("Harvey run does not support --restart")
-    if args.max_concurrency != 1:
-        raise ValueError("Harvey run does not support --max-concurrency")
+    if args.max_concurrency < 1:
+        raise ValueError("--max-concurrency must be positive")
     if args.vllm:
         raise ValueError("Harvey run does not support --vllm")
     experiment = load_harvey_experiment(resolve_project_path(args.experiment))
-    status = HarveyEvolutionController(experiment).run(resume=args.resume)
+    if harvey_run_seal_exists(experiment.output_dir):
+        if args.resume:
+            seal_harvey_run(experiment)
+            return 0
+        validate_harvey_run_seal(experiment)
+        raise FileExistsError(
+            f"Harvey run is sealed; use --resume to verify it: {experiment.output_dir}"
+        )
+    evaluator = HarveyEvaluator(
+        experiment,
+        max_concurrency=args.max_concurrency,
+    )
+    status = HarveyEvolutionController(experiment, evaluator=evaluator).run(
+        resume=args.resume
+    )
     if status:
         return status
     judgments = (
@@ -63,12 +83,16 @@ def _run(args: argparse.Namespace) -> int:
     errors: list[tuple[str, Exception]] = []
     statuses: list[int] = []
     for stage, operation in (
-        ("quality audit", lambda: run_quality_audit(experiment)),
+        (
+            "quality audit",
+            lambda: run_quality_audit(experiment, evaluator=evaluator),
+        ),
         (
             "reward-hacking detection",
             lambda: run_reward_hacking_audit(
                 experiment,
                 resume=args.resume and detection_started,
+                max_concurrency=args.max_concurrency,
             ),
         ),
     ):
@@ -79,7 +103,11 @@ def _run(args: argparse.Namespace) -> int:
     if errors:
         stages = ", ".join(stage for stage, _error in errors)
         raise RuntimeError(f"Harvey post-run stages failed: {stages}") from errors[0][1]
-    return int(any(statuses))
+    if any(statuses):
+        return 1
+    seal = seal_harvey_run(experiment)
+    print(f"Harvey run sealed: {seal['artifact_tree_sha256']}")
+    return 0
 
 
 def _judge(args: argparse.Namespace) -> int:
@@ -88,8 +116,19 @@ def _judge(args: argparse.Namespace) -> int:
             raise ValueError("Harvey judge writes to the experiment output directory")
         if args.resume:
             raise ValueError("Harvey judge does not support --resume")
+        if args.max_concurrency < 1:
+            raise ValueError("--max-concurrency must be positive")
         experiment = load_harvey_experiment(resolve_project_path(args.experiment))
-        return run_quality_audit(experiment)
+        if harvey_run_seal_exists(experiment.output_dir):
+            validate_harvey_run_seal(experiment)
+            raise ValueError("sealed Harvey runs are immutable")
+        return run_quality_audit(
+            experiment,
+            evaluator=HarveyEvaluator(
+                experiment,
+                max_concurrency=args.max_concurrency,
+            ),
+        )
     if args.output_dir is None:
         raise ValueError("submission judge requires --output-dir")
     experiment = load_experiment(resolve_project_path(args.experiment))
@@ -105,12 +144,19 @@ def _judge(args: argparse.Namespace) -> int:
 
 def _detect(args: argparse.Namespace) -> int:
     if _experiment_kind(args.experiment) == HARVEY_EXPERIMENT_KIND:
-        if args.max_concurrency != 3:
-            raise ValueError("Harvey detect does not support --max-concurrency")
+        if args.max_concurrency < 1:
+            raise ValueError("--max-concurrency must be positive")
         if args.vllm:
             raise ValueError("Harvey detect does not support --vllm")
         experiment = load_harvey_experiment(resolve_project_path(args.experiment))
-        return run_reward_hacking_audit(experiment, resume=args.resume)
+        if harvey_run_seal_exists(experiment.output_dir):
+            validate_harvey_run_seal(experiment)
+            raise ValueError("sealed Harvey runs are immutable")
+        return run_reward_hacking_audit(
+            experiment,
+            resume=args.resume,
+            max_concurrency=args.max_concurrency,
+        )
     return run_submission_detect(args)
 
 

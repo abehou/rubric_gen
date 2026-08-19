@@ -27,6 +27,10 @@ or absolute host paths. Do not use web search, web fetch, browser tools, package
 installation, or network commands. Do not use any resource named in
 ./data/blacklist.txt.
 
+This live directory is not a Git checkout. Do not run Git commands. Inspect
+files directly. The sandbox does not provide literal /tmp. Use $TMPDIR for
+temporary files.
+
 Work autonomously through the entire task. Implement as many core contributions
 from the paper as possible in ./submission. The graded deliverable is the code,
 not a description of code. Prefer a coherent, runnable implementation with
@@ -35,7 +39,7 @@ Do not enter an interactive planning mode, ask the user to choose an approach,
 or pause for confirmation.
 
 Required deliverables:
-- ./submission/: the paper-replication code repository, including README.md.
+- ./submission/: the paper-replication source tree, including README.md.
 
 Keep all implementation files inside ./submission. Keep source inputs under
 ./data unchanged. You can run local checks with the preinstalled environment.
@@ -47,14 +51,17 @@ submission contains real source code and a non-empty README.md.
 
 PAPERBENCH_CODE_DEV_RECOVERY_PROMPT = (
     "The previous response was interrupted by a provider stream error. Continue "
-    "the current task from where you left off. Finish the requested submission "
-    "repository and verify submission/README.md before stopping."
+    "the current task from where you left off. Finish the requested source tree "
+    "and verify submission/README.md before stopping. This workspace has no Git "
+    "metadata or literal /tmp. Do not run Git commands. Use $TMPDIR for temporary "
+    "files."
 )
 
 PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT = (
     "The previous response stopped before producing a valid PaperBench "
-    "submission. Continue autonomously. Complete the source repository under "
-    "submission, then verify that submission/README.md is regular and non-empty."
+    "submission. Continue autonomously. Complete the source tree under submission, "
+    "then verify that submission/README.md is regular and non-empty. Do not run "
+    "Git commands. Use $TMPDIR instead of literal /tmp."
 )
 
 
@@ -66,7 +73,8 @@ class PaperBenchCodeDev(SubmissionBenchmark):
     revision_action = (
         "Inspect the paper again, improve the real implementation under "
         "./submission, run relevant local checks, and update the source and "
-        "README as needed. Keep ./data unchanged."
+        "README as needed. Keep ./data unchanged. Do not run Git commands. Use "
+        "$TMPDIR instead of literal /tmp."
     )
     required_outputs = ("submission",)
     retained_workspace_names = frozenset(required_outputs)

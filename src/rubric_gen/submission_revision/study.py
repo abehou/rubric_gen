@@ -30,7 +30,23 @@ from rubric_gen.submission_revision.feedback import (
     project_bank_simulated_user_feedback,
 )
 from rubric_gen.submission_revision.bank_scoring import preflight_bank_dispatch
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import (
+    RubricBankProposer,
+    rubric_generation_implementation_identity,
+)
+from rubric_gen.submission_revision.judgment_reuse import (
+    ExactJudgmentReuseStore,
+    ExactSimulatorReuseStore,
+    exact_judgment_request,
+    exact_simulator_request,
+)
+from rubric_gen.submission_revision.judge import (
+    FrozenRubric,
+    FrozenRubricJudge,
+    SubmissionJudgeConfig,
+    resolve_optimizer_rubric,
+)
+from rubric_gen.submission_revision.judging.models import RUBRIC_PATH_SOURCE
 from rubric_gen.submission_revision.models import SubmissionRevisionConfig
 from rubric_gen.submission_revision.artifacts import (
     read_json_object,
@@ -128,6 +144,7 @@ class StudyRunner:
                         self.seed_root,
                         self.paraphrase_root,
                         vllm_endpoints=self.config.vllm_endpoints,
+                        judgment_reuse_root=self.root / "shared-judgments",
                     )
                 except Exception as exc:
                     record.update({
@@ -188,7 +205,10 @@ class StudyRunner:
                     assignment,
                     resume=os.path.lexists(experiment),
                 )
-                run_submission_revision(replace(revision, progress_position=position))
+                run_submission_revision(
+                    replace(revision, progress_position=position),
+                    judgment_reuse_root=self.root / "shared-judgments",
+                )
                 validate_completed_revision(
                     experiment,
                     assignment,
@@ -196,6 +216,7 @@ class StudyRunner:
                     self.seed_root,
                     self.paraphrase_root,
                     vllm_endpoints=self.config.vllm_endpoints,
+                    judgment_reuse_root=self.root / "shared-judgments",
                 )
                 with self._manifest_lock:
                     latest = self._load_manifest()
@@ -285,6 +306,21 @@ class StudyRunner:
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             rubric_proposer_base_url=self.config.vllm_endpoints.get(
                 str(protocol["rubric_proposer_model"])
+            ),
+            rubric_semantic_judge_model=str(
+                protocol["rubric_semantic_judge_model"]
+            ),
+            rubric_semantic_judge_max_calls=int(
+                protocol["rubric_semantic_judge_max_calls_per_assignment"]
+            ),
+            rubric_semantic_judge_max_request_bytes=int(
+                protocol["rubric_semantic_judge_max_request_bytes_per_call"]
+            ),
+            rubric_semantic_judge_max_output_tokens=int(
+                protocol["rubric_semantic_judge_max_output_tokens_per_call"]
+            ),
+            rubric_semantic_judge_base_url=self.config.vllm_endpoints.get(
+                str(protocol["rubric_semantic_judge_model"])
             ),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
@@ -413,6 +449,7 @@ def validate_completed_revision(
     paraphrase_run_dir: Path,
     *,
     vllm_endpoints: dict[str, str] | None = None,
+    judgment_reuse_root: Path | None = None,
 ) -> None:
     if experiment_dir.is_symlink() or not experiment_dir.is_dir():
         raise RuntimeError(f"revision is not a regular directory: {experiment_dir}")
@@ -469,6 +506,16 @@ def validate_completed_revision(
         raise RuntimeError(
             "revision seed and judge use different execution contracts"
         )
+    reuse_store = (
+        ExactJudgmentReuseStore(judgment_reuse_root / "judge")
+        if judgment_reuse_root is not None
+        else None
+    )
+    simulator_reuse_store = (
+        ExactSimulatorReuseStore(judgment_reuse_root / "simulated-user")
+        if judgment_reuse_root is not None
+        else None
+    )
     revision_rounds = int(protocol["revision_rounds"])
     expected_count = revision_rounds + 1
     expected_ids = [f"s{index:03d}" for index in range(expected_count)]
@@ -484,6 +531,71 @@ def validate_completed_revision(
         != selection.optimizer_sha256
     ):
         raise RuntimeError("initial rubric bank differs from randomized selection")
+    judge_config = SubmissionJudgeConfig(
+        task_dir=task_dir,
+        experiment_dir=experiment_dir,
+        benchmark=experiment.benchmark,
+        review=str(protocol["review"]),
+        judge_model=str(protocol["judge_model"]),
+        base_url=endpoints.get(str(protocol["judge_model"])),
+        rubric_name=None,
+        rubric_set=None,
+        rubric_path=selection.optimizer_path,
+        max_review_chars=protocol["max_review_chars"],  # type: ignore[arg-type]
+        max_retries=int(protocol["judge_max_retries"]),
+    )
+    initial_rubric = resolve_optimizer_rubric(judge_config)
+    initial_judge = FrozenRubricJudge(judge_config, initial_rubric)
+    initial_identity = initial_judge.scoring_identity()
+    initial_contract = extract_seed_scoring_contract(
+        initial_identity,
+        context="resolved initial rubric",
+    )
+    master_judge_config = replace(
+        judge_config,
+        rubric_name=str(protocol["rubric_name"]),
+        rubric_path=None,
+    )
+    master_rubric = resolve_optimizer_rubric(master_judge_config)
+    master_judge = FrozenRubricJudge(master_judge_config, master_rubric)
+    master_contract = extract_seed_scoring_contract(
+        master_judge.scoring_identity(),
+        context="resolved master rubric",
+    )
+    if (
+        initial_rubric.sha256 != selection.optimizer_sha256
+        or master_rubric.sha256 != selection.master_sha256
+        or manifest_scoring_identity != initial_identity
+        or manifest_contract != initial_contract
+    ):
+        raise RuntimeError(
+            "resolved study rubric identities differ from the sealed manifest"
+        )
+
+    def bank_member_judge(item, generation_round: int):
+        if item.rubric.content_sha256 == initial_rubric.sha256:
+            return initial_rubric, initial_judge
+        member_path = (
+            experiment_dir
+            / "rubric-banks"
+            / f"bank-{generation_round:04d}"
+            / "members"
+            / f"{item.rubric.content_sha256}.txt"
+        )
+        member_rubric = FrozenRubric(
+            text=item.rubric.content,
+            sha256=item.rubric.content_sha256,
+            source=RUBRIC_PATH_SOURCE,
+            rubric_set_id=None,
+            rubric_id=None,
+            structured_rubric_sha256=None,
+            manifest_sha256=None,
+        )
+        member_config = replace(
+            judge_config,
+            rubric_path=member_path,
+        )
+        return member_rubric, FrozenRubricJudge(member_config, member_rubric)
     manifest_expectations = {
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": experiment.experiment_id,
@@ -503,6 +615,7 @@ def validate_completed_revision(
         "web_search": False,
         "reasoning_effort": agent.reasoning_effort,
         "service_tier": agent.service_tier,
+        "solver_base_url": agent.base_url,
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": protocol["feedback_policy"],
         "prompt": condition_spec["prompt"],
@@ -512,6 +625,22 @@ def validate_completed_revision(
             str(protocol["rubric_proposer_model"])
         ),
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
+        "rubric_semantic_judge_model": protocol["rubric_semantic_judge_model"],
+        "rubric_semantic_judge_base_url": endpoints.get(
+            str(protocol["rubric_semantic_judge_model"])
+        ),
+        "rubric_semantic_judge_max_calls": protocol[
+            "rubric_semantic_judge_max_calls_per_assignment"
+        ],
+        "rubric_semantic_judge_max_request_bytes": protocol[
+            "rubric_semantic_judge_max_request_bytes_per_call"
+        ],
+        "rubric_semantic_judge_max_output_tokens": protocol[
+            "rubric_semantic_judge_max_output_tokens_per_call"
+        ],
+        "rubric_generation_implementation_identity": (
+            rubric_generation_implementation_identity()
+        ),
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
         "judge_base_url": endpoints.get(str(protocol["judge_model"])),
@@ -520,6 +649,7 @@ def validate_completed_revision(
         "initial_rubric_path": str(selection.optimizer_path.resolve()),
         "initial_bank_sha256": initial_generation.bank.content_sha256,
         "initial_bank_member_count": initial_generation.bank.rubric_count,
+        "initial_member_scoring_identity": initial_identity,
         "master_rubric_name": protocol["rubric_name"],
         "master_rubric_sha256": selection.master_sha256,
         "instruction_sha256": sha256_file(task_dir / "instruction.md"),
@@ -595,15 +725,28 @@ def validate_completed_revision(
             )
     else:
         expected_rubric_generations = [
-            f"bank-{index:04d}" for index in range(1, expected_count)
+            name
+            for index in range(1, expected_count)
+            for name in (
+                f"bank-{index:04d}",
+                f"bank-{index:04d}.provider-attempts.json",
+            )
         ]
         if (
             rubric_generation_root.is_symlink()
             or not rubric_generation_root.is_dir()
             or sorted(path.name for path in rubric_generation_root.iterdir())
             != expected_rubric_generations
+            or any(path.is_symlink() for path in rubric_generation_root.iterdir())
             or any(
-                path.is_symlink() or not path.is_dir()
+                (
+                    path.name.endswith(".provider-attempts.json")
+                    and not path.is_file()
+                )
+                or (
+                    not path.name.endswith(".provider-attempts.json")
+                    and not path.is_dir()
+                )
                 for path in rubric_generation_root.iterdir()
             )
         ):
@@ -641,6 +784,35 @@ def validate_completed_revision(
             "feedback-generations is only valid for simulated_user feedback"
         )
     prompt_profile = PromptProfile(str(condition_spec["prompt"]))
+    generation_proposer = (
+        None
+        if bank_policy is RubricBankPolicy.FIXED
+        else RubricBankProposer(
+            benchmark=experiment.benchmark,
+            model=str(protocol["rubric_proposer_model"]),
+            base_url=endpoints.get(str(protocol["rubric_proposer_model"])),
+            semantic_judge_model=str(protocol["rubric_semantic_judge_model"]),
+            semantic_judge_base_url=endpoints.get(
+                str(protocol["rubric_semantic_judge_model"])
+            ),
+            semantic_judge_max_calls=int(
+                protocol["rubric_semantic_judge_max_calls_per_assignment"]
+            ),
+            semantic_judge_max_request_bytes=int(
+                protocol["rubric_semantic_judge_max_request_bytes_per_call"]
+            ),
+            semantic_judge_max_output_tokens=int(
+                protocol["rubric_semantic_judge_max_output_tokens_per_call"]
+            ),
+            service_tier=(
+                agent.service_tier
+                if endpoints.get(str(protocol["rubric_proposer_model"])) is None
+                else None
+            ),
+            max_retries=int(protocol["rubric_proposer_max_retries"]),
+        )
+    )
+    instruction = (task_dir / "instruction.md").read_text(encoding="utf-8")
     for submission_id in expected_ids:
         submission = submissions / submission_id
         verify_submission_snapshot(submission)
@@ -667,20 +839,9 @@ def validate_completed_revision(
             generation.bank.validate_lineage(prior.bank)
             adaptive = bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
             source_submission = submissions / f"s{index - 1:03d}"
-            validated_generation = RubricBankProposer(
-                benchmark=experiment.benchmark,
-                model=str(protocol["rubric_proposer_model"]),
-                base_url=endpoints.get(str(protocol["rubric_proposer_model"])),
-                service_tier=(
-                    agent.service_tier
-                    if endpoints.get(str(protocol["rubric_proposer_model"])) is None
-                    else None
-                ),
-                max_retries=int(protocol["rubric_proposer_max_retries"]),
-            ).replace_bank(
-                instruction=(task_dir / "instruction.md").read_text(
-                    encoding="utf-8"
-                ),
+            assert generation_proposer is not None
+            validated_generation = generation_proposer.replace_bank(
+                instruction=instruction,
                 current_bank=prior.bank,
                 policy=bank_policy,
                 generation_round=generation_round,
@@ -710,9 +871,34 @@ def validate_completed_revision(
             rubric_hash = item.rubric.content_sha256
             if (
                 index == 0
+                and seed_contract == initial_contract
                 and seed_contract["rendered_rubric_sha256"] == rubric_hash
             ):
                 validation_path, evaluation_path, _ = seed.judgment
+            elif reuse_store is not None:
+                _, member_judge = bank_member_judge(item, generation_round)
+                review_text, answer_text = member_judge.review_inputs(submission)
+                expected_request = exact_judgment_request(
+                    task_id=str(assignment["task_id"]),
+                    replicate=int(assignment["replicate"]),
+                    rubric_sha256=rubric_hash,
+                    review_text=review_text,
+                    answer_text=answer_text,
+                    scoring_identity=member_judge.scoring_identity(),
+                )
+                reused = reuse_store.validate_alias(
+                    experiment_dir
+                    / "judgment-aliases"
+                    / submission_id
+                    / (reuse_store.request_sha256(expected_request) + ".json"),
+                    assignment_id=str(assignment["assignment_id"]),
+                    replicate=int(assignment["replicate"]),
+                    submission_id=submission_id,
+                    rubric_sha256=rubric_hash,
+                    expected_request=expected_request,
+                )
+                validation_path = reused.artifacts.score_validation_path
+                evaluation_path = reused.artifacts.evaluation_path
             else:
                 evaluation_root = (
                     experiment_dir
@@ -758,9 +944,11 @@ def validate_completed_revision(
                     f"missing simulated-user generation for {submission_id}"
                 )
             comment = simulator.validate(
-                read_json_object(
-                    generation_path,
-                    "simulated-user generation",
+                (
+                    read_json_object(
+                        generation_path,
+                        "simulated-user generation",
+                    )
                 ),
                 experiment_id=experiment.experiment_id,
                 assignment_id=str(assignment["assignment_id"]),
@@ -768,6 +956,49 @@ def validate_completed_revision(
                 generation_round=generation_round,
                 bank=bank,
             )
+            if simulator_reuse_store is not None:
+                instruction = (task_dir / "instruction.md").read_text(
+                    encoding="utf-8"
+                )
+                current_submission = get_submission_benchmark(
+                    experiment.benchmark
+                ).render_submission(submission / "workspace")
+                expected_simulator_request = exact_simulator_request(
+                    experiment_id=experiment.experiment_id,
+                    task_id=str(assignment["task_id"]),
+                    replicate=int(assignment["replicate"]),
+                    instruction=instruction,
+                    bank_sha256=bank.content_sha256,
+                    current_submission=current_submission,
+                    simulator_identity=simulator.identity(),
+                )
+                reused_simulator = simulator_reuse_store.validate_alias(
+                    experiment_dir
+                    / "simulated-user-aliases"
+                    / f"{submission_id}.json",
+                    assignment_id=str(assignment["assignment_id"]),
+                    replicate=int(assignment["replicate"]),
+                    submission_id=submission_id,
+                    expected_request=expected_simulator_request,
+                )
+                expected_simulator_generation = (
+                    simulator_reuse_store.assignment_record(
+                        reused_simulator,
+                        experiment_id=experiment.experiment_id,
+                        assignment_id=str(assignment["assignment_id"]),
+                        submission_id=submission_id,
+                        generation_round=generation_round,
+                        bank_sha256=bank.content_sha256,
+                        simulator_identity=simulator.identity(),
+                    )
+                )
+                if read_json_object(
+                    generation_path,
+                    "simulated-user generation",
+                ) != expected_simulator_generation:
+                    raise RuntimeError(
+                        "simulated-user generation differs from its shared artifact"
+                    )
             projected = project_bank_simulated_user_feedback(
                 bank,
                 {
@@ -843,17 +1074,7 @@ def validate_completed_revision(
             initial_generation.bank.items[0].rubric.content_sha256
             == selection.master_sha256
         )
-        if same_base_and_master and (
-            index == 0 or bank_policy is RubricBankPolicy.FIXED
-        ):
-            if fixed_score != projected.score:
-                raise RuntimeError(
-                    f"fixed-original score disagrees with scoring artifacts: "
-                    f"{submission_id}"
-                )
-        elif index == 0 and (
-            seed_contract["rendered_rubric_sha256"] == selection.master_sha256
-        ):
+        if index == 0 and seed_contract == master_contract:
             master_validation_path, _, _ = seed.judgment
             if read_json_object(
                 master_validation_path,
@@ -861,6 +1082,43 @@ def validate_completed_revision(
             ).get("score") != fixed_score:
                 raise RuntimeError(
                     f"fixed-original score disagrees with scoring artifacts: "
+                    f"{submission_id}"
+                )
+        elif same_base_and_master and (
+            index == 0 or bank_policy is RubricBankPolicy.FIXED
+        ):
+            if fixed_score != projected.score:
+                raise RuntimeError(
+                    f"fixed-original score disagrees with scoring artifacts: "
+                    f"{submission_id}"
+                )
+        elif reuse_store is not None:
+            review_text, answer_text = master_judge.review_inputs(submission)
+            expected_request = exact_judgment_request(
+                task_id=str(assignment["task_id"]),
+                replicate=int(assignment["replicate"]),
+                rubric_sha256=selection.master_sha256,
+                review_text=review_text,
+                answer_text=answer_text,
+                scoring_identity=master_judge.scoring_identity(),
+            )
+            reused = reuse_store.validate_alias(
+                experiment_dir
+                / "judgment-aliases"
+                / submission_id
+                / (reuse_store.request_sha256(expected_request) + ".json"),
+                assignment_id=str(assignment["assignment_id"]),
+                replicate=int(assignment["replicate"]),
+                submission_id=submission_id,
+                rubric_sha256=selection.master_sha256,
+                expected_request=expected_request,
+            )
+            if read_json_object(
+                reused.artifacts.score_validation_path,
+                "shared fixed-original score validation",
+            ).get("score") != fixed_score:
+                raise RuntimeError(
+                    "fixed-original score disagrees with shared scoring artifacts: "
                     f"{submission_id}"
                 )
         else:

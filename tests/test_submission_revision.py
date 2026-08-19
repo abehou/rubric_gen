@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import compileall
 import hashlib
 import json
+import os
+import shutil
 import stat
 from dataclasses import replace
 from pathlib import Path
@@ -11,6 +14,7 @@ from types import SimpleNamespace
 import pytest
 
 from rubric_gen.runtime.agents.models import AgentRunConfig
+from rubric_gen.runtime.agents.workspaces import TaskWorkspace
 from rubric_gen.submission_revision.prompts import PromptProfile, solver_prompt
 from rubric_gen.runtime.agents.sessions import SessionTurnResult
 from rubric_gen.benchmarks import SubmissionBenchmarkId
@@ -19,13 +23,20 @@ from rubric_gen.submission_revision.controller import (
     SubmissionRevisionController,
     fixed_original_attempt_id,
 )
-from rubric_gen.submission_revision.judge import JudgeArtifacts
+from rubric_gen.submission_revision.judge import (
+    FrozenRubricJudge,
+    JudgeArtifacts,
+    SubmissionJudgeConfig,
+    resolve_optimizer_rubric,
+)
 from rubric_gen.submission_revision.models import (
     RevisionDependencies,
     SubmissionRevisionConfig,
 )
 from rubric_gen.submission_revision.artifacts import (
     live_root_parent,
+    make_tree_owner_writable,
+    make_tree_read_only,
     read_json_object,
     remove_live_tree,
     sha256_file,
@@ -47,6 +58,7 @@ from rubric_gen.submission_revision.user_simulator import (
 from rubric_gen.submission_revision.evolution import (
     BankProposerOutput,
     RubricBankProposer,
+    SemanticReviewerOutput,
 )
 from rubric_gen.submission_revision.study import (
     _expected_bank_names,
@@ -58,9 +70,13 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankItem,
     RubricLineage,
     RubricBankPolicy,
+    identity_criterion_map,
+    parse_rubric_member_presentation,
+    render_locked_rubric_member,
 )
 from rubric_gen.artifacts.hashing import sha256_text
 import rubric_gen.submission_revision.study as study_module
+import rubric_gen.submission_revision.controller as controller_module
 import rubric_gen.submission_revision.judging.paperbench_judge as paperbench_module
 
 
@@ -113,24 +129,26 @@ def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
     return task
 
 
-def _identity(task: Path) -> dict[str, object]:
-    return {
-        "judge_source_sha256": "1" * 64,
-        "judge_runner_sha256": "2" * 64,
-        "scorer_module_sha256": "3" * 64,
-        "effective_judge_model": "test-judge-model",
-        "judge_api_base": None,
-        "benchmark": SubmissionBenchmarkId.BIOMNIBENCH_DA.value,
-        "grading_engine": "autorubric-criterion",
-        "review_mode": "trace",
-        "max_review_chars": None,
-        "rubric_source": "task-local",
-        "rubric_set_id": None,
-        "rubric_id": None,
-        "structured_rubric_sha256": None,
-        "rendered_rubric_sha256": sha256_file(task / "tests" / "rubric.txt"),
-        "manifest_sha256": None,
-    }
+def _identity(
+    task: Path,
+    *,
+    judge_model: str = "test-judge-model",
+    base_url: str | None = None,
+    experiment_dir: Path | None = None,
+) -> dict[str, object]:
+    config = SubmissionJudgeConfig(
+        task_dir=task,
+        experiment_dir=experiment_dir or task.parent.parent / "experiment",
+        review="trace",
+        judge_model=judge_model,
+        base_url=base_url,
+        rubric_name=None,
+        rubric_set=None,
+        rubric_path=task / "tests" / "rubric.txt",
+        max_review_chars=None,
+    )
+    rubric = resolve_optimizer_rubric(config)
+    return FrozenRubricJudge(config, rubric).scoring_identity()
 
 
 def _write_seed_set(
@@ -259,9 +277,14 @@ def _config(
         execution_order=1,
         optimizer_rubric_path=task / "tests" / "rubric.txt",
         master_rubric_name="rubric.txt",
+        rubric_semantic_judge_model="semantic-model",
+        rubric_semantic_judge_max_calls=rounds,
+        rubric_semantic_judge_max_request_bytes=1_048_576,
+        rubric_semantic_judge_max_output_tokens=32_768,
         feedback_policy=FeedbackPolicy.FULL,
         prompt_profile=PromptProfile.BASE,
         review="trace",
+        judge_model="test-judge-model",
         show_progress=False,
     )
 
@@ -273,6 +296,16 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
         "feedback_policy": config.feedback_policy.value,
         "rubric_proposer_model": config.rubric_proposer_model,
         "rubric_proposer_max_retries": config.rubric_proposer_max_retries,
+        "rubric_semantic_judge_model": config.rubric_semantic_judge_model,
+        "rubric_semantic_judge_max_calls_per_assignment": (
+            config.rubric_semantic_judge_max_calls
+        ),
+        "rubric_semantic_judge_max_request_bytes_per_call": (
+            config.rubric_semantic_judge_max_request_bytes
+        ),
+        "rubric_semantic_judge_max_output_tokens_per_call": (
+            config.rubric_semantic_judge_max_output_tokens
+        ),
         "review": config.review,
         "judge_model": config.judge_model,
         "judge_max_retries": config.judge_max_retries,
@@ -303,11 +336,18 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
             "tasks_dir": str(task.parent.resolve()),
             "tasks": [task.name],
             "randomization": {"seed": 1, "replicates": 1},
-            "conditions": [{
-                "condition_id": config.condition_id,
-                "prompt": config.prompt_profile.value,
-                "rubric_policy": config.rubric_policy.value,
-            }],
+            "conditions": [
+                {
+                    "condition_id": (
+                        config.condition_id
+                        if policy is config.rubric_policy
+                        else f"test-{policy.value.replace('_', '-')}"
+                    ),
+                    "prompt": config.prompt_profile.value,
+                    "rubric_policy": policy.value,
+                }
+                for policy in RubricBankPolicy
+            ],
             "protocol": protocol,
             "rubric_paraphrases": {
                 "count": 2,
@@ -466,6 +506,223 @@ class FakeJudge:
         )
 
 
+def test_seed_materialization_makes_only_the_live_solution_tree_writable(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    controller = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+        ),
+    )
+    sealed = controller.seed.submission_dir / "workspace"
+    package = sealed / "package"
+    package.mkdir()
+    source = package / "module.py"
+    source.write_text("VALUE = 1\n")
+    make_tree_read_only(sealed)
+    live = tmp_path / "live"
+    live.mkdir()
+
+    try:
+        controller._materialize_seed(live)
+
+        live_package = live / "package"
+        assert live_package.stat().st_mode & stat.S_IWUSR
+        assert (live_package / "module.py").stat().st_mode & stat.S_IWUSR
+        assert compileall.compile_dir(live_package, quiet=1)
+        assert (live_package / "__pycache__").is_dir()
+        (live_package / "module.py").unlink()
+        (live_package / "replacement.py").write_text("VALUE = 2\n")
+        assert source.read_text() == "VALUE = 1\n"
+        assert not source.stat().st_mode & stat.S_IWUSR
+        assert not package.stat().st_mode & stat.S_IWUSR
+    finally:
+        make_tree_owner_writable(sealed)
+
+
+def test_scored_snapshot_restore_makes_only_the_live_copy_writable(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    controller = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+        ),
+    )
+    snapshot = config.experiment_dir / "submissions" / "s000"
+    sealed_package = snapshot / "workspace" / "package"
+    sealed_package.mkdir(parents=True)
+    sealed_source = sealed_package / "module.py"
+    sealed_source.write_text("VALUE = 1\n")
+    trajectory = snapshot / "trajectory.stream.jsonl"
+    trajectory.write_text('{"turn":0}\n')
+    (snapshot / "status.json").write_text("{}\n")
+    (snapshot / "snapshot.json").write_text(json.dumps({
+        "submission_id": "s000",
+        "workspace_sha256": tree_sha256(snapshot / "workspace"),
+        "trajectory_sha256": sha256_file(trajectory),
+    }))
+    make_tree_read_only(snapshot)
+
+    live = tmp_path / "live"
+    TaskWorkspace(task, live).create()
+    (live / "stale.py").write_text("raise RuntimeError\n")
+    make_tree_read_only(live)
+
+    try:
+        controller._restore_last_scored_workspace(
+            SimpleNamespace(submission_ids=["s000"]),
+            live,
+        )
+
+        live_package = live / "package"
+        assert compileall.compile_dir(live_package, quiet=1)
+        (live_package / "module.py").unlink()
+        (live_package / "replacement.py").write_text("VALUE = 2\n")
+        assert not (live / "stale.py").exists()
+        assert sealed_source.read_text() == "VALUE = 1\n"
+        assert not sealed_source.stat().st_mode & stat.S_IWUSR
+        assert not sealed_package.stat().st_mode & stat.S_IWUSR
+    finally:
+        make_tree_owner_writable(snapshot)
+
+
+def _singleton_replacement_proposer(
+    config: SubmissionRevisionConfig,
+    *,
+    run_proposer: Callable[..., BankProposerOutput] | None = None,
+) -> RubricBankProposer:
+    def propose(**kwargs) -> BankProposerOutput:
+        stage = kwargs["stage"]
+        schema = kwargs["response_schema"]
+        if stage == "anchor":
+            anchor = schema["properties"]["specification_anchor"]
+            prior_hash = anchor["properties"]["prior_content_sha256"]["enum"][0]
+            value: dict[str, object] = {
+                "specification_anchor": {
+                    "lineage": "retained",
+                    "prior_content_sha256": prior_hash,
+                    "rubric": None,
+                }
+            }
+        else:
+            member_schema = schema["properties"]["members"]["items"]
+            prior_hashes = member_schema["properties"][
+                "prior_content_sha256"
+            ]["anyOf"][0]["enum"]
+            criteria = (
+                schema["properties"]["members"]["items"]["properties"]
+                ["presentation"]["anyOf"][0]["properties"]["criteria"]
+            )
+            criterion_ids = criteria["items"]["properties"]
+            criterion_ids = criterion_ids["anchor_criterion_id"]["enum"]
+
+            def presentation(label: str) -> dict[str, object]:
+                return {
+                    "title": f"{label} presentation",
+                    "overview": f"Inspect the full task through {label} evidence.",
+                    "criteria": [{
+                        "anchor_criterion_id": criterion_id,
+                        "heading": f"{label} {criterion_id}",
+                        "lens": f"Inspect concrete {label} evidence.",
+                    } for criterion_id in criterion_ids],
+                }
+
+            first_generation = "replacement_generation_round: 1" in kwargs[
+                "evidence"
+            ]
+            value = {"members": [{
+                "lineage": "new" if first_generation else "retained",
+                "prior_content_sha256": None if first_generation else prior_hashes[0],
+                "presentation": (
+                    presentation("complete") if first_generation else None
+                ),
+            }]}
+        return BankProposerOutput(
+            proposal_text=json.dumps(value),
+            cost={
+                "cost_usd": None,
+                "estimated_cost_usd": 0.01,
+                "cost_source": "test-estimate",
+            },
+            generation={
+                "provider": "openai",
+                "requested_model": config.rubric_proposer_model,
+                "effective_model": config.rubric_proposer_model,
+                "response_id": "singleton-replacement",
+                "request_parameters": {"max_output_tokens": 96_000},
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            },
+        )
+
+    def review(**kwargs) -> SemanticReviewerOutput:
+        members = kwargs["response_schema"]["properties"]["members"]
+        anchor_schema = kwargs["response_schema"]["properties"][
+            "anchor_fidelity"
+        ]
+        anchor_properties = anchor_schema["properties"]
+        anchor_fidelity = (
+            {"status": "not_applicable"}
+            if "status" in anchor_properties
+            else {
+                "task_fidelity": "faithful",
+                "prior_anchor_fidelity": "faithful",
+                "issues": [],
+            }
+        )
+        value = {"anchor_fidelity": anchor_fidelity, "members": {}}
+        for member_hash, member_schema in members["properties"].items():
+            criterion_ids = member_schema["properties"]["criteria"]["required"]
+            value["members"][member_hash] = {
+                "overall": "equivalent",
+                "criteria": {
+                    criterion_id: "equivalent" for criterion_id in criterion_ids
+                },
+                "issues": [],
+            }
+        return SemanticReviewerOutput(
+            response_text=json.dumps(value),
+            cost={
+                "cost_usd": None,
+                "estimated_cost_usd": 0.01,
+                "cost_source": "test-estimate",
+            },
+            generation={
+                "provider": "openai",
+                "requested_model": config.rubric_semantic_judge_model,
+                "effective_model": config.rubric_semantic_judge_model,
+                "response_id": "semantic-review",
+                "request_parameters": {"max_output_tokens": 32_768},
+                "usage": {"input_tokens": 10, "output_tokens": 10},
+            },
+        )
+
+    return RubricBankProposer(
+        benchmark=config.benchmark,
+        model=config.rubric_proposer_model,
+        base_url=None,
+        semantic_judge_model=config.rubric_semantic_judge_model,
+        semantic_judge_base_url=None,
+        semantic_judge_max_calls=config.rubric_semantic_judge_max_calls,
+        semantic_judge_max_request_bytes=(
+            config.rubric_semantic_judge_max_request_bytes
+        ),
+        semantic_judge_max_output_tokens=(
+            config.rubric_semantic_judge_max_output_tokens
+        ),
+        max_retries=config.rubric_proposer_max_retries,
+        run_proposer=run_proposer or propose,
+        run_semantic_reviewer=review,
+    )
+
+
 def test_bank_member_uses_canonical_judge_source() -> None:
     rubric = SubmissionRevisionController._frozen_bank_member(
         "candidate rubric\n",
@@ -473,6 +730,48 @@ def test_bank_member_uses_canonical_judge_source() -> None:
     )
 
     assert rubric.source == "rubric-path"
+
+
+@pytest.mark.parametrize(
+    ("field", "different"),
+    [
+        ("benchmark", SubmissionBenchmarkId.PAPERBENCH_CODE_DEV),
+        ("model", "different-proposer"),
+        ("base_url", "http://127.0.0.1:9000/v1"),
+        ("max_retries", 7),
+        ("service_tier", "priority"),
+        ("semantic_judge_model", "different-reviewer"),
+        ("semantic_judge_base_url", "http://127.0.0.1:9001/v1"),
+        ("semantic_judge_max_calls", 2),
+        ("semantic_judge_max_request_bytes", 999_999),
+        ("semantic_judge_max_output_tokens", 16_384),
+    ],
+)
+def test_controller_rejects_an_injected_bank_proposer_contract_mismatch(
+    tmp_path: Path,
+    field: str,
+    different: object,
+) -> None:
+    task = _write_task(tmp_path)
+    base = _config(tmp_path, task, rounds=1)
+    config = replace(
+        base,
+        condition_id="base-nonadaptive-replacement",
+        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
+        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+    )
+    proposer = _singleton_replacement_proposer(config)
+    setattr(proposer, field, different)
+
+    with pytest.raises(ValueError, match="contract differs"):
+        SubmissionRevisionController(
+            config,
+            RevisionDependencies(
+                session=FakeSession(),
+                judge=FakeJudge(task, (80,), tmp_path / "judge"),
+                bank_proposer=proposer,
+            ),
+        )
 
 
 def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
@@ -492,10 +791,8 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
         RevisionDependencies(
             session=FakeSession(),
             judge=judge,
-            bank_proposer=RubricBankProposer(
-                benchmark=config.benchmark,
-                model=config.rubric_proposer_model,
-                base_url=None,
+            bank_proposer=_singleton_replacement_proposer(
+                config,
                 run_proposer=lambda **_kwargs: pytest.fail(
                     "this unit test must not propose a bank"
                 ),
@@ -507,15 +804,35 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
             "Correct result", "Independent result"
         )
     )
+    replacement_presentation = parse_rubric_member_presentation({
+        "title": "replacement presentation",
+        "overview": "Inspect the complete replacement anchor.",
+        "criteria": [{
+            "anchor_criterion_id": "criterion_1",
+            "heading": "replacement result",
+            "lens": "Inspect complete result evidence.",
+        }],
+    })
+    replacement_member, replacement_map = render_locked_rubric_member(
+        replacement_rubric,
+        replacement_presentation,
+    )
     replacement_bank = RubricBank(
-        1,
-        0,
-        (
+        generation_round=2,
+        source_boundary=1,
+        specification_anchor=replacement_rubric,
+        specification_anchor_lineage=RubricLineage.REFINED,
+        prior_specification_anchor_sha256=(
+            controller.initial_bank.bank.specification_anchor.content_sha256
+        ),
+        items=(
             RubricBankItem(
-                replacement_rubric,
-                1.0,
-                RubricLineage.REFINED,
-                controller.initial_bank.bank.items[0].rubric.content_sha256,
+                rubric=replacement_member,
+                weight=1.0,
+                lineage=RubricLineage.NEW,
+                criterion_map=replacement_map,
+                prior_content_sha256=None,
+                presentation=replacement_presentation,
             ),
         ),
     )
@@ -838,6 +1155,254 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
         )
 
 
+def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = _write_task(tmp_path)
+    master_path = task / "tests" / "rubric.txt"
+    optimizer_path = tmp_path / "optimizer-rubric.txt"
+    optimizer_path.write_text(
+        "Criterion 1: Independent result\n"
+        "Description: Evaluate the independent result.\n"
+        "Levels: A=100 B=50 C=0\n"
+        "[A]: Correct and fully supported.\n"
+        "[B]: Partly correct with a material limitation.\n"
+        "[C]: Incorrect or unsupported.\n"
+    )
+
+    def scoring_identity(
+        *,
+        rubric_path: Path | None = None,
+        rubric_name: str | None = None,
+    ) -> dict[str, object]:
+        judge_config = SubmissionJudgeConfig(
+            task_dir=task,
+            experiment_dir=tmp_path / "identity-only",
+            review="trace",
+            judge_model="test-judge-model",
+            rubric_name=rubric_name,
+            rubric_set=None,
+            rubric_path=rubric_path,
+            max_review_chars=None,
+        )
+        rubric = resolve_optimizer_rubric(judge_config)
+        return FrozenRubricJudge(judge_config, rubric).scoring_identity()
+
+    master_identity = scoring_identity(rubric_name="rubric.txt")
+    optimizer_identity = scoring_identity(rubric_path=optimizer_path)
+    base = _config(
+        tmp_path,
+        task,
+        rounds=1,
+        seed_scoring_identity=master_identity,
+    )
+    first_config = replace(
+        base,
+        experiment_dir=tmp_path / "base-arm",
+        assignment_id=f"{task.name}--rep-001--base-fixed",
+        condition_id="base-fixed",
+        execution_order=1,
+        optimizer_rubric_path=optimizer_path,
+        prompt_profile=PromptProfile.BASE,
+    )
+    second_config = replace(
+        first_config,
+        experiment_dir=tmp_path / "matched-arm",
+        assignment_id=f"{task.name}--rep-001--matched-fixed",
+        condition_id="matched-fixed",
+        execution_order=2,
+        prompt_profile=PromptProfile.BASE,
+    )
+    shared_root = tmp_path / "shared-judgments"
+
+    class ReuseJudge(FakeJudge):
+        def evaluate(
+            self,
+            submission_dir: Path,
+            attempt_id: str,
+        ) -> JudgeArtifacts:
+            self.calls += 1
+            score = self.scores[self.calls]
+            output = (
+                submission_dir.parents[1]
+                / "evaluations"
+                / submission_dir.name
+                / str(self.identity["rendered_rubric_sha256"])
+                / attempt_id
+                / "run"
+                / "judges"
+                / "trace"
+                / self.task_name
+            )
+            output.mkdir(parents=True)
+            review_text, answer_text = self.review_inputs(submission_dir)
+            (output / "judge_input_trace.md").write_text(review_text)
+            (output / "judge_input_answer.txt").write_text(answer_text)
+            evaluation = output / "evaluation.json"
+            evaluation.write_text(json.dumps({
+                "criteria": {
+                    "criterion_1": {"level": "A", "reason": "checked"}
+                },
+                "reasoning": "checked",
+            }))
+            reward = output / "reward.json"
+            reward.write_text(json.dumps({"reward": score / 100}))
+            usage = output / "usage.json"
+            usage.write_text(json.dumps({"usage": {}}))
+            validation = output / "score_validation.json"
+            validation.write_text(json.dumps({
+                **self.identity,
+                "review_input_sha256": sha256_text(review_text),
+                "answer_input_sha256": sha256_text(answer_text),
+                "task": self.task_name,
+                "run_identity": str(output),
+                "repeat_index": 1,
+                "score": score,
+                "normalized_score": score / 100,
+                "raw_score": score,
+                "selected_levels": {"criterion_1": "A"},
+                "criterion_scores": {"criterion_1": score},
+                "reward_sha256": sha256_file(reward),
+                "evaluation_sha256": sha256_file(evaluation),
+                "usage_sha256": sha256_file(usage),
+            }))
+            return JudgeArtifacts(validation, evaluation)
+
+    first_optimizer = ReuseJudge(
+        task,
+        (0, 61, 71),
+        tmp_path / "first-optimizer",
+        identity=optimizer_identity,
+    )
+    first_master = ReuseJudge(
+        task,
+        (0, 55),
+        tmp_path / "first-master",
+        identity=master_identity,
+    )
+    first_result = SubmissionRevisionController(
+        first_config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=first_optimizer,
+            master_judge=first_master,
+        ),
+        judgment_reuse_root=shared_root,
+    ).run()
+
+    second_optimizer = ReuseJudge(
+        task,
+        (0,),
+        tmp_path / "second-optimizer",
+        identity=optimizer_identity,
+    )
+    second_master = ReuseJudge(
+        task,
+        (0,),
+        tmp_path / "second-master",
+        identity=master_identity,
+    )
+    second_result = SubmissionRevisionController(
+        second_config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=second_optimizer,
+            master_judge=second_master,
+        ),
+        judgment_reuse_root=shared_root,
+    ).run()
+
+    assert first_result.scores == second_result.scores == (61, 71)
+    assert first_result.fixed_original_scores == (80, 55)
+    assert second_result.fixed_original_scores == (80, 55)
+    assert first_optimizer.calls == 2
+    assert first_master.calls == 1
+    assert second_optimizer.calls == 0
+    assert second_master.calls == 0
+    assert not (second_config.experiment_dir / "evaluations").exists()
+    assert len(list((shared_root / "judge" / "entries").iterdir())) == 3
+
+    for config in (first_config, second_config):
+        initial_aliases = list(
+            (
+                config.experiment_dir
+                / "judgment-aliases"
+                / "s000"
+            ).glob("*.json")
+        )
+        assert len(initial_aliases) == 1
+        assert json.loads(initial_aliases[0].read_text())["rubric_sha256"] == (
+            sha256_file(optimizer_path)
+        )
+        later_aliases = list(
+            (
+                config.experiment_dir
+                / "judgment-aliases"
+                / "s001"
+            ).glob("*.json")
+        )
+        assert {
+            json.loads(path.read_text())["rubric_sha256"]
+            for path in later_aliases
+        } == {sha256_file(optimizer_path), sha256_file(master_path)}
+
+    resumed_session = FakeSession()
+    resumed_optimizer = ReuseJudge(
+        task,
+        (0,),
+        tmp_path / "resumed-optimizer",
+        identity=optimizer_identity,
+    )
+    resumed_master = ReuseJudge(
+        task,
+        (0,),
+        tmp_path / "resumed-master",
+        identity=master_identity,
+    )
+    resumed_result = SubmissionRevisionController(
+        replace(second_config, resume=True),
+        RevisionDependencies(
+            session=resumed_session,
+            judge=resumed_optimizer,
+            master_judge=resumed_master,
+        ),
+        judgment_reuse_root=shared_root,
+    ).run()
+    assert resumed_result == second_result
+    assert resumed_session.prompts == []
+    assert resumed_optimizer.calls == 0
+    assert resumed_master.calls == 0
+    assert not (second_config.experiment_dir / "evaluations").exists()
+
+    selection = SimpleNamespace(
+        optimizer_path=optimizer_path,
+        optimizer_sha256=sha256_file(optimizer_path),
+        master_path=master_path,
+        master_sha256=sha256_file(master_path),
+    )
+    monkeypatch.setattr(
+        study_module,
+        "resolve_paraphrase_selection",
+        lambda *_args, **_kwargs: selection,
+    )
+    validate_completed_revision(
+        second_config.experiment_dir,
+        {
+            "assignment_id": second_config.assignment_id,
+            "task_id": task.name,
+            "replicate": 1,
+            "condition_id": second_config.condition_id,
+            "execution_order": second_config.execution_order,
+        },
+        _design(second_config, task),
+        second_config.seed_run_dir,
+        tmp_path / "paraphrases",
+        judgment_reuse_root=shared_root,
+    )
+    assert not (second_config.experiment_dir / "evaluations").exists()
+
+
 def test_paperbench_bank_preflight_failure_dispatches_no_member_judges(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -895,7 +1460,7 @@ def test_study_validates_every_replacement_generation_record(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
-    base = _config(tmp_path, task, rounds=1)
+    base = _config(tmp_path, task, rounds=2)
     config = replace(
         base,
         condition_id="base-nonadaptive-replacement",
@@ -903,46 +1468,50 @@ def test_study_validates_every_replacement_generation_record(
         rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
     )
 
-    def propose(**kwargs) -> BankProposerOutput:
-        current_bank = kwargs["current_bank"]
-        rubric_hash = current_bank.items[0].rubric.content_sha256
-        return BankProposerOutput(
-            proposal_text=json.dumps({"members": [{
-                "relative_weight": 1,
-                "lineage": "retained",
-                "prior_content_sha256": rubric_hash,
-                "rubric": None,
-            }]}),
-            cost={
-                "cost_usd": None,
-                "estimated_cost_usd": 0.01,
-                "cost_source": "test-estimate",
-            },
-            generation={
-                "provider": "openai",
-                "requested_model": config.rubric_proposer_model,
-                "effective_model": config.rubric_proposer_model,
-                "response_id": "replacement-1",
-                "request_parameters": {"max_output_tokens": 32_768},
-                "usage": {"input_tokens": 10, "output_tokens": 10},
-            },
-        )
-
-    proposer = RubricBankProposer(
-        benchmark=config.benchmark,
-        model=config.rubric_proposer_model,
-        base_url=None,
-        max_retries=config.rubric_proposer_max_retries,
-        run_proposer=propose,
-    )
-    SubmissionRevisionController(
+    proposer = _singleton_replacement_proposer(config)
+    controller = SubmissionRevisionController(
         config,
         RevisionDependencies(
             session=FakeSession(),
-            judge=FakeJudge(task, (80, 90, 90), tmp_path / "judge"),
+            judge=FakeJudge(task, (80, 90, 90, 90), tmp_path / "judge"),
             bank_proposer=proposer,
         ),
-    ).run()
+    )
+    member_judges: dict[str, FakeJudge] = {}
+    original_runtime = controller._bank_member_runtime
+
+    def runtime(item: RubricBankItem, generation_round: int):
+        rubric_hash = item.rubric.content_sha256
+        if rubric_hash == controller.initial_rubric.sha256:
+            return original_runtime(item, generation_round)
+        if rubric_hash not in member_judges:
+            identity = _identity(task)
+            identity.update({
+                "rubric_source": "rubric-path",
+                "rendered_rubric_sha256": rubric_hash,
+            })
+            member_judges[rubric_hash] = FakeJudge(
+                task,
+                (0, 90, 90, 90),
+                tmp_path / f"member-{len(member_judges)}",
+                identity=identity,
+            )
+        return (
+            controller._frozen_bank_member(item.rubric.content, rubric_hash),
+            member_judges[rubric_hash],
+        )
+
+    controller._bank_member_runtime = runtime  # type: ignore[method-assign]
+    controller.run()
+    second_generation = json.loads(
+        (
+            config.experiment_dir
+            / "rubric-generations/bank-0002/generation.json"
+        ).read_text()
+    )
+    assert second_generation["semantic_review"]["cost"]["cost_source"] == (
+        "exact-request-reuse"
+    )
     assignment = {
         "assignment_id": config.assignment_id,
         "task_id": task.name,
@@ -979,7 +1548,7 @@ def test_study_validates_every_replacement_generation_record(
     )
     metadata_path.chmod(0o600)
     metadata = json.loads(metadata_path.read_text())
-    metadata["proposer"]["model"] = "tampered-proposer"
+    metadata["member_generation"]["request"]["model"] = "tampered-proposer"
     metadata_path.write_text(json.dumps(metadata))
     with pytest.raises(RuntimeError, match="invalid complete-bank generation"):
         validate_completed_revision(
@@ -991,7 +1560,7 @@ def test_study_validates_every_replacement_generation_record(
         )
 
 
-def test_controller_scores_every_bank_member_and_keeps_exact_weighted_float(
+def test_controller_scores_singleton_bank_exactly(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
@@ -1003,76 +1572,13 @@ def test_controller_scores_every_bank_member_and_keeps_exact_weighted_float(
         rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
     )
 
-    def structured(name: str) -> dict[str, object]:
-        return {
-            "rubric_title": name,
-            "criteria": [{
-                "title": f"{name} criterion",
-                "description": f"Evaluate {name}.",
-                "levels": [
-                    {
-                        "label": "A",
-                        "points": 100,
-                        "description": "Fully satisfied.",
-                    },
-                    {
-                        "label": "B",
-                        "points": 50,
-                        "description": "Partly satisfied.",
-                    },
-                    {
-                        "label": "C",
-                        "points": 0,
-                        "description": "Not satisfied.",
-                    },
-                ],
-            }],
-        }
-
-    def propose(**_kwargs) -> BankProposerOutput:
-        return BankProposerOutput(
-            proposal_text=json.dumps({"members": [
-                {
-                    "relative_weight": 1,
-                    "lineage": "new",
-                    "prior_content_sha256": None,
-                    "rubric": structured("independent accuracy"),
-                },
-                {
-                    "relative_weight": 3,
-                    "lineage": "new",
-                    "prior_content_sha256": None,
-                    "rubric": structured("independent evidence"),
-                },
-            ]}),
-            cost={
-                "cost_usd": None,
-                "estimated_cost_usd": 0.01,
-                "cost_source": "test-estimate",
-            },
-            generation={
-                "provider": "openai",
-                "requested_model": config.rubric_proposer_model,
-                "effective_model": config.rubric_proposer_model,
-                "response_id": "two-member-bank",
-                "request_parameters": {"max_output_tokens": 32_768},
-                "usage": {"input_tokens": 10, "output_tokens": 20},
-            },
-        )
-
     base_judge = FakeJudge(task, (0, 65), tmp_path / "base-judge")
     controller = SubmissionRevisionController(
         config,
         RevisionDependencies(
             session=FakeSession(),
             judge=base_judge,
-            bank_proposer=RubricBankProposer(
-                benchmark=config.benchmark,
-                model=config.rubric_proposer_model,
-                base_url=None,
-                max_retries=config.rubric_proposer_max_retries,
-                run_proposer=propose,
-            ),
+            bank_proposer=_singleton_replacement_proposer(config),
         ),
     )
     member_judges: dict[str, FakeJudge] = {}
@@ -1088,7 +1594,7 @@ def test_controller_scores_every_bank_member_and_keeps_exact_weighted_float(
                 "rubric_source": "rubric-path",
                 "rendered_rubric_sha256": rubric_hash,
             })
-            score = 41 if not member_judges else 80
+            score = 60
             member_judges[rubric_hash] = FakeJudge(
                 task,
                 (0, score),
@@ -1103,16 +1609,16 @@ def test_controller_scores_every_bank_member_and_keeps_exact_weighted_float(
     controller._bank_member_runtime = runtime  # type: ignore[method-assign]
     result = controller.run()
 
-    assert result.scores == (80, 70.25)
-    assert sorted(judge.calls for judge in member_judges.values()) == [1, 1]
+    assert result.scores == (80, 60)
+    assert sorted(judge.calls for judge in member_judges.values()) == [1]
     evaluation = json.loads(
         (config.experiment_dir / "bank-evaluations" / "s001.json").read_text()
     )
-    assert evaluation["weighted_score"] == 70.25
+    assert evaluation["weighted_score"] == 60
     assert sorted(
         (member["weight"], member["score"])
         for member in evaluation["members"].values()
-    ) == [(0.25, 41), (0.75, 80)]
+    ) == [(1.0, 60)]
     validate_completed_revision(
         config.experiment_dir,
         {
@@ -1329,10 +1835,14 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
     bank = RubricBank(
         generation_round=0,
         source_boundary=None,
+        specification_anchor=rubric,
+        specification_anchor_lineage=RubricLineage.NEW,
+        prior_specification_anchor_sha256=None,
         items=(RubricBankItem(
             rubric=rubric,
             weight=1.0,
             lineage=RubricLineage.NEW,
+            criterion_map=identity_criterion_map(rubric),
         ),),
     )
     record = simulator.generate(
@@ -1427,8 +1937,19 @@ def test_completed_revision_validates_model_endpoint_manifest_fields(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
+    scoring_identity = _identity(
+        task,
+        judge_model="judge-model",
+        base_url="http://judge:8000/v1",
+        experiment_dir=tmp_path / "experiment",
+    )
     config = replace(
-        _config(tmp_path, task, rounds=1),
+        _config(
+            tmp_path,
+            task,
+            rounds=1,
+            seed_scoring_identity=scoring_identity,
+        ),
         judge_model="judge-model",
         judge_base_url="http://judge:8000/v1",
         rubric_proposer_model="proposer-model",
@@ -1438,7 +1959,12 @@ def test_completed_revision_validates_model_endpoint_manifest_fields(
         config,
         RevisionDependencies(
             session=FakeSession(),
-            judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+            judge=FakeJudge(
+                task,
+                (80, 90),
+                tmp_path / "judge",
+                identity=scoring_identity,
+            ),
         ),
     ).run()
     assignment = {
@@ -1492,6 +2018,228 @@ def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
     ).run()
     assert result.scores == (80, 90)
     assert judge.calls == 1
+
+
+def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = _write_task(tmp_path)
+    base = _config(tmp_path, task, rounds=1)
+    config = replace(
+        base,
+        condition_id="base-nonadaptive-replacement",
+        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
+        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+    )
+    original_persist = controller_module.persist_rubric_bank
+
+    class SimulatedCrash(RuntimeError):
+        pass
+
+    def crash_before_replacement_bank(*args, **kwargs):
+        generation = args[1]
+        if generation.bank.generation_round == 1:
+            raise SimulatedCrash("crash after proposal sealing")
+        return original_persist(*args, **kwargs)
+
+    monkeypatch.setattr(
+        controller_module,
+        "persist_rubric_bank",
+        crash_before_replacement_bank,
+    )
+    with pytest.raises(SimulatedCrash, match="after proposal sealing"):
+        SubmissionRevisionController(
+            config,
+            RevisionDependencies(
+                session=FakeSession(),
+                judge=FakeJudge(task, (80,), tmp_path / "initial-judge"),
+                bank_proposer=_singleton_replacement_proposer(config),
+            ),
+        ).run()
+
+    proposal = config.experiment_dir / "rubric-generations" / "bank-0001"
+    replacement = config.experiment_dir / "rubric-banks" / "bank-0001"
+    assert proposal.is_dir()
+    assert not replacement.exists()
+    proposal_root = proposal.parent
+    ledger_temp = (
+        proposal_root
+        / ".bank-0001.provider-attempts.json.abcdefgh.tmp"
+    )
+    rejection_temp = (
+        proposal_root
+        / ".bank-0001.semantic-rejection.json.abcdefgh.tmp"
+    )
+    stage = proposal_root / ".bank-0001.abcdefgh"
+    ledger_temp.write_text("partial ledger\n", encoding="utf-8")
+    rejection_temp.write_text("partial rejection\n", encoding="utf-8")
+    stage.mkdir()
+    (stage / "partial.json").write_text("{}\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        controller_module,
+        "persist_rubric_bank",
+        original_persist,
+    )
+    provider_calls = 0
+
+    def reject_provider_call(**_kwargs) -> BankProposerOutput:
+        nonlocal provider_calls
+        provider_calls += 1
+        raise AssertionError("resume called the rubric proposer provider")
+
+    resumed_session = FakeSession()
+    resumed = SubmissionRevisionController(
+        replace(config, resume=True),
+        RevisionDependencies(
+            session=resumed_session,
+            judge=FakeJudge(task, (80,), tmp_path / "resume-judge"),
+            bank_proposer=_singleton_replacement_proposer(
+                config,
+                run_proposer=reject_provider_call,
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        controller_module,
+        "RubricBankProposer",
+        lambda **_kwargs: pytest.fail(
+            "resume constructed a proposer instead of replaying on its dependency"
+        ),
+    )
+
+    class StopAfterReplay(RuntimeError):
+        pass
+
+    def stop_before_solver(_state, _workspace) -> None:
+        assert replacement.is_dir()
+        raise StopAfterReplay("proposal replay completed")
+
+    resumed._run_solver_turn = stop_before_solver  # type: ignore[method-assign]
+    with pytest.raises(StopAfterReplay, match="replay completed"):
+        resumed.run()
+
+    assert replacement.is_dir()
+    assert not ledger_temp.exists()
+    assert not rejection_temp.exists()
+    assert not stage.exists()
+    assert provider_calls == 0
+    assert resumed_session.prompts == []
+    assert resumed.dependencies.bank_proposer is not None
+    assert resumed.dependencies.bank_proposer._validated_semantic_outputs
+
+
+@pytest.mark.parametrize("kind", ["symlink", "fifo"])
+def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
+    tmp_path: Path,
+    kind: str,
+) -> None:
+    root = tmp_path / "rubric-generations"
+    root.mkdir()
+    residue = root / ".bank-0001.provider-attempts.json.abcdefgh.tmp"
+    if kind == "symlink":
+        target = tmp_path / "target"
+        target.write_text("do not remove\n", encoding="utf-8")
+        residue.symlink_to(target)
+    else:
+        os.mkfifo(residue)
+
+    with pytest.raises(RuntimeError, match="not a regular file"):
+        controller_module._remove_owned_rubric_generation_residue(
+            root,
+            max_generation_round=1,
+        )
+
+    assert os.path.lexists(residue)
+
+
+def test_resume_rejects_replacement_bank_without_sealed_proposal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = _write_task(tmp_path)
+    base = _config(tmp_path, task, rounds=1)
+    config = replace(
+        base,
+        condition_id="base-nonadaptive-replacement",
+        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
+        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+    )
+    original_persist = controller_module.persist_rubric_bank
+
+    class SimulatedCrash(RuntimeError):
+        pass
+
+    def persist_bank_then_hide_proposal(*args, **kwargs):
+        result = original_persist(*args, **kwargs)
+        generation = args[1]
+        if generation.bank.generation_round == 1:
+            proposal = (
+                config.experiment_dir / "rubric-generations" / "bank-0001"
+            )
+            parent_mode = stat.S_IMODE(proposal.parent.stat().st_mode)
+            proposal.parent.chmod(0o700)
+            for artifact in proposal.iterdir():
+                artifact.chmod(0o600)
+            proposal.chmod(0o700)
+            shutil.rmtree(proposal)
+            proposal.parent.chmod(parent_mode)
+            raise SimulatedCrash("crash after bank persistence")
+        return result
+
+    monkeypatch.setattr(
+        controller_module,
+        "persist_rubric_bank",
+        persist_bank_then_hide_proposal,
+    )
+    with pytest.raises(SimulatedCrash, match="after bank persistence"):
+        SubmissionRevisionController(
+            config,
+            RevisionDependencies(
+                session=FakeSession(),
+                judge=FakeJudge(task, (80,), tmp_path / "initial-judge"),
+                bank_proposer=_singleton_replacement_proposer(config),
+            ),
+        ).run()
+
+    assert (
+        config.experiment_dir / "rubric-banks" / "bank-0001"
+    ).is_dir()
+    assert not (
+        config.experiment_dir / "rubric-generations" / "bank-0001"
+    ).exists()
+    monkeypatch.setattr(
+        controller_module,
+        "persist_rubric_bank",
+        original_persist,
+    )
+
+    provider_calls = 0
+
+    def reject_provider_call(**_kwargs) -> BankProposerOutput:
+        nonlocal provider_calls
+        provider_calls += 1
+        raise AssertionError("resume called the rubric proposer provider")
+
+    resumed_session = FakeSession()
+    resumed_judge = FakeJudge(task, (80,), tmp_path / "resume-judge")
+    with pytest.raises(RuntimeError, match="no matching sealed proposal"):
+        SubmissionRevisionController(
+            replace(config, resume=True),
+            RevisionDependencies(
+                session=resumed_session,
+                judge=resumed_judge,
+                bank_proposer=_singleton_replacement_proposer(
+                    config,
+                    run_proposer=reject_provider_call,
+                ),
+            ),
+        ).run()
+
+    assert provider_calls == 0
+    assert resumed_judge.calls == 0
+    assert resumed_session.prompts == []
 
 
 def test_judge_resume_accepts_the_persisted_historical_prompt(tmp_path: Path) -> None:
@@ -1850,13 +2598,18 @@ Levels: A=40 B=20 C=0
         "rendered_rubric_sha256": rubric_sha,
         "evaluation_sha256": sha256_file(evaluation),
     }))
+    complete_rubric = CompleteRubric.from_content(rubric)
     bank = RubricBank(
         generation_round=0,
         source_boundary=None,
+        specification_anchor=complete_rubric,
+        specification_anchor_lineage=RubricLineage.NEW,
+        prior_specification_anchor_sha256=None,
         items=(RubricBankItem(
-            rubric=CompleteRubric.from_content(rubric),
+            rubric=complete_rubric,
             weight=1.0,
             lineage=RubricLineage.NEW,
+            criterion_map=identity_criterion_map(complete_rubric),
         ),),
     )
     artifacts = {rubric_sha: (validation, evaluation)}
@@ -1891,54 +2644,61 @@ Levels: A=40 B=20 C=0
     assert score.score == 80
 
 
-def test_bank_feedback_preserves_exact_noninteger_weighted_score(
+def test_bank_feedback_uses_the_singleton_member_score(
     tmp_path: Path,
 ) -> None:
-    rubrics = (
-        CompleteRubric.from_content(
-            "Criterion 1: Accuracy\nDescription: Evaluate accuracy.\n"
-            "Levels: A=100 B=33 C=0\n"
-            "[A]: Full.\n[B]: Partial.\n[C]: None.\n"
-        ),
-        CompleteRubric.from_content(
-            "Criterion 1: Evidence\nDescription: Evaluate evidence.\n"
-            "Levels: A=100 B=50 C=0\n"
-            "[A]: Full.\n[B]: Partial.\n[C]: None.\n"
-        ),
+    anchor = CompleteRubric.from_content(
+        "Criterion 1: Accuracy\nDescription: Evaluate accuracy.\n"
+        "Levels: A=100 B=33 C=0\n"
+        "[A]: Full.\n[B]: Partial.\n[C]: None.\n"
     )
+    presentation = parse_rubric_member_presentation({
+        "title": "Result presentation",
+        "overview": "Inspect the complete result.",
+        "criteria": [{
+            "anchor_criterion_id": "criterion_1",
+            "heading": "Result accuracy",
+            "lens": "Inspect concrete result evidence.",
+        }],
+    })
+    rubric, criterion_map = render_locked_rubric_member(anchor, presentation)
     bank = RubricBank(
-        0,
-        None,
-        (
-            RubricBankItem(rubrics[0], 0.25, RubricLineage.NEW),
-            RubricBankItem(rubrics[1], 0.75, RubricLineage.NEW),
+        generation_round=2,
+        source_boundary=None,
+        specification_anchor=anchor,
+        specification_anchor_lineage=RubricLineage.RETAINED,
+        prior_specification_anchor_sha256=anchor.content_sha256,
+        items=(
+            RubricBankItem(
+                rubric,
+                1.0,
+                RubricLineage.NEW,
+                criterion_map,
+                presentation=presentation,
+            ),
         ),
     )
     artifacts: dict[str, tuple[Path, Path]] = {}
-    for index, (rubric, member_score) in enumerate(zip(rubrics, (33, 100))):
-        evaluation = tmp_path / f"evaluation-{index}.json"
-        validation = tmp_path / f"validation-{index}.json"
-        level = "B" if member_score == 33 else "A"
-        evaluation.write_text(json.dumps({
-            "criteria": {"criterion_1": {"level": level, "reason": "checked"}},
-            "reasoning": "checked",
-        }))
-        validation.write_text(json.dumps({
-            "score": member_score,
-            "normalized_score": member_score / 100,
-            "raw_score": member_score,
-            "selected_levels": {"criterion_1": level},
-            "criterion_scores": {"criterion_1": member_score},
-            "rendered_rubric_sha256": rubric.content_sha256,
-            "evaluation_sha256": sha256_file(evaluation),
-        }))
-        artifacts[rubric.content_sha256] = (validation, evaluation)
+    evaluation = tmp_path / "evaluation.json"
+    validation = tmp_path / "validation.json"
+    evaluation.write_text(json.dumps({
+        "criteria": {"criterion_1": {"level": "B", "reason": "checked"}},
+        "reasoning": "checked",
+    }))
+    validation.write_text(json.dumps({
+        "score": 33,
+        "normalized_score": 0.33,
+        "raw_score": 33,
+        "selected_levels": {"criterion_1": "B"},
+        "criterion_scores": {"criterion_1": 33},
+        "rendered_rubric_sha256": rubric.content_sha256,
+        "evaluation_sha256": sha256_file(evaluation),
+    }))
+    artifacts[rubric.content_sha256] = (validation, evaluation)
 
     projected = project_bank_feedback(bank, artifacts, FeedbackPolicy.SEMI)
 
-    assert projected.score == 83.25
-    assert projected.payload["score"] == 83.25
-    assert "83.25/100" not in projected.prompt
-    assert set(projected.payload["members"]) == {
-        rubric.content_sha256 for rubric in rubrics
-    }
+    assert projected.score == 33
+    assert projected.payload["score"] == 33
+    assert "33/100" not in projected.prompt
+    assert set(projected.payload["members"]) == {rubric.content_sha256}

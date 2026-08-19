@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-PRICING_AS_OF = "2026-08-17"
+PRICING_AS_OF = "2026-08-18"
 PRICING_SOURCES = {
     "openai": "https://developers.openai.com/api/docs/pricing",
     "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
@@ -16,6 +16,12 @@ OPENAI_LONG_INPUT_MULTIPLIER = 2.0
 OPENAI_LONG_OUTPUT_MULTIPLIER = 1.5
 
 OPENAI_PRICES_PER_MILLION = {
+    "gpt-5.5-2026-04-23": {
+        "input": 5.0,
+        "cached": 0.5,
+        "cache_write": 6.25,
+        "output": 30.0,
+    },
     "gpt-5.6-luna": {
         "input": 0.2,
         "cached": 0.02,

@@ -221,7 +221,9 @@ class AgentRunner:
         for path in workspace_dir.rglob("*"):
             if not path.is_file():
                 continue
-            if ".venv" in path.parts or "data" in path.parts:
+            if any(
+                name in path.parts for name in (".agent-tmp", ".venv", "data")
+            ):
                 continue
             if path.suffix in suffixes:
                 files.append(path)

@@ -76,9 +76,10 @@ BOUNDARIES = ("initial", "final")
 ORDERINGS = ("initial-first", "final-first")
 COMPONENTS = RH_COMPONENTS
 SIGNED_RUBRIC_DIAGNOSTICS = (
-    "active_to_selected",
-    "wording_gap",
-    "sealed_specification_gap",
+    "member_to_anchor",
+    "anchor_to_selected",
+    "selected_to_holdout",
+    "holdout_to_holistic",
 )
 WORDING_SENSITIVITY_DIAGNOSTICS = (
     "wording_sensitivity_standard_deviation",
@@ -90,6 +91,8 @@ RUBRIC_DIAGNOSTICS = (
 )
 OUTCOME_METRICS = (
     "terminal_bank_weak_gain",
+    "selected_rubric_gain",
+    "sealed_holdout_bank_gain",
     "holistic_quality_gain",
     "terminal_bank_gain_gap",
     "optimization_induced_risk",
@@ -256,6 +259,26 @@ class BankMemberBinding:
 
 
 @dataclass(frozen=True)
+class SpecificationAnchorBinding:
+    bank_role: str
+    generation_round: int
+    bank_sha256: str
+    bank_manifest_path: Path
+    bank_manifest_sha256: str
+    specification_anchor_sha256: str
+
+    def payload(self) -> dict[str, object]:
+        return {
+            "bank_role": self.bank_role,
+            "generation_round": self.generation_round,
+            "bank_sha256": self.bank_sha256,
+            "bank_manifest_path": str(self.bank_manifest_path.resolve()),
+            "bank_manifest_sha256": self.bank_manifest_sha256,
+            "specification_anchor_sha256": self.specification_anchor_sha256,
+        }
+
+
+@dataclass(frozen=True)
 class MechanisticJob:
     target: EvaluationTarget
     model: str
@@ -264,6 +287,7 @@ class MechanisticJob:
     rubric_path: Path
     roles: tuple[RubricRole, ...]
     bank_members: tuple[BankMemberBinding, ...]
+    specification_anchors: tuple[SpecificationAnchorBinding, ...]
     grading_identity: dict[str, object]
     review_input_sha256: str
     answer_input_sha256: str
@@ -922,6 +946,7 @@ def load_evaluation_targets(
             Path(str(study["seed_run_dir"])),
             config.paraphrase_dir,
             vllm_endpoints=config.vllm_endpoints,
+            judgment_reuse_root=study_root / "shared-judgments",
         )
         state = read_json_object(experiment_dir / "state.json", "revision state")
         submission_ids = state.get("submission_ids")
@@ -1041,6 +1066,8 @@ class MechanisticEvaluationRunner:
             return
         targets = load_evaluation_targets(self.config)
         jobs = self._jobs(targets)
+        for job in jobs:
+            _validate_mechanistic_job_bindings(job)
         unique_jobs_by_key: dict[str, MechanisticJob] = {}
         for job in jobs:
             unique_jobs_by_key.setdefault(job.key, job)
@@ -1079,11 +1106,17 @@ class MechanisticEvaluationRunner:
             "implementation_identity": (
                 _mechanistic_implementation_identity(unique_jobs)
             ),
+            "assignment_reference_count": len(jobs),
+            "assignment_reference_identity_sha256": (
+                _mechanistic_assignment_reference_sha256(jobs)
+            ),
             "boundaries": list(BOUNDARIES),
             "endpoint_bank": "frozen-terminal-bank",
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-route-engine-"
-                "implementation-repeat"
+                "implementation-repeat; terminal specification-anchor, bank-"
+                "member, selected, and holdout roles do not duplicate an exact "
+                "semantic request"
             ),
             "loss_weights": self.config.experiment.outcome_audit[
                 "loss_weights"
@@ -1229,6 +1262,10 @@ class MechanisticEvaluationRunner:
                     tuple[str, str],
                     list[BankMemberBinding],
                 ] = {}
+                grouped_anchor_bindings: dict[
+                    tuple[str, str],
+                    list[SpecificationAnchorBinding],
+                ] = {}
 
                 def include(
                     path: Path,
@@ -1236,17 +1273,40 @@ class MechanisticEvaluationRunner:
                     *,
                     role: RubricRole | None = None,
                     binding: BankMemberBinding | None = None,
+                    anchor_binding: SpecificationAnchorBinding | None = None,
                 ) -> None:
                     resolved = path.resolve()
                     rubric_sha256 = sha256_file(resolved)
+                    if (
+                        binding is not None
+                        and binding.member_sha256 != rubric_sha256
+                    ):
+                        raise RuntimeError(
+                            "RH bank-member binding does not match its rubric"
+                        )
+                    if (
+                        anchor_binding is not None
+                        and anchor_binding.specification_anchor_sha256
+                        != rubric_sha256
+                    ):
+                        raise RuntimeError(
+                            "RH specification-anchor binding does not match its "
+                            "rubric"
+                        )
                     key = (rubric_sha256, model)
                     grouped_paths.setdefault(key, resolved)
                     grouped_roles.setdefault(key, [])
                     grouped_bindings.setdefault(key, [])
+                    grouped_anchor_bindings.setdefault(key, [])
                     if role is not None:
                         grouped_roles[key].append(role)
                     if binding is not None and binding not in grouped_bindings[key]:
                         grouped_bindings[key].append(binding)
+                    if (
+                        anchor_binding is not None
+                        and anchor_binding not in grouped_anchor_bindings[key]
+                    ):
+                        grouped_anchor_bindings[key].append(anchor_binding)
 
                 terminal_generation = target.final_bank_generation
                 terminal_dir = target.final_bank_manifest_path.parent
@@ -1262,6 +1322,15 @@ class MechanisticEvaluationRunner:
                     )
                     for model in terminal_models:
                         include(member_path, model, binding=binding)
+
+                anchor_path = terminal_dir / "specification-anchor.txt"
+                anchor_binding = _expected_specification_anchor_binding(target)
+                for model in models:
+                    include(
+                        anchor_path,
+                        model,
+                        anchor_binding=anchor_binding,
+                    )
 
                 online_generation = target.bank_generation(boundary)
                 online_dir = target.bank_manifest_path(boundary).parent
@@ -1310,6 +1379,10 @@ class MechanisticEvaluationRunner:
                         grouped_bindings[key],
                         key=lambda value: value.bank_role,
                     ))
+                    anchor_bindings = tuple(sorted(
+                        grouped_anchor_bindings[key],
+                        key=lambda value: value.bank_role,
+                    ))
                     api_base = _normalized_api_base(
                         self.config.vllm_endpoints.get(key[1])
                     )
@@ -1345,6 +1418,7 @@ class MechanisticEvaluationRunner:
                         rubric_path=rubric_path,
                         roles=ordered_roles,
                         bank_members=bindings,
+                        specification_anchors=anchor_bindings,
                         grading_identity=grading_identity,
                         review_input_sha256=review_input_sha256,
                         answer_input_sha256=answer_input_sha256,
@@ -1353,6 +1427,7 @@ class MechanisticEvaluationRunner:
         return tuple(jobs)
 
     def _run_job(self, job: MechanisticJob) -> dict[str, object]:
+        _validate_mechanistic_job_bindings(job)
         record_name = f"{job.key}.json"
         self.output.ensure_directory("records")
         record_path = self.output.regular_file(
@@ -2026,11 +2101,12 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
                 "condition IDs and run paths are not judgment-key fields"
             ),
             "rubric_diagnostics": (
-                "active_to_selected, wording_gap, and "
-                "sealed_specification_gap partition dynamic_rubric_gap; they "
-                "are not separate loss terms; sealed-holdout standard "
-                "deviation and range report wording sensitivity outside the "
-                "signed identity"
+                "member_to_anchor, anchor_to_selected, selected_to_holdout, "
+                "and holdout_to_holistic partition dynamic_rubric_gap; they "
+                "are not separate loss terms; the terminal specification "
+                "anchor is a declared scoring specification, not verified "
+                "coverage; sealed-holdout standard deviation and range report "
+                "wording sensitivity outside the signed identity"
             ),
             "direct_detector": (
                 "independent categorical trajectory outcome; not a calibrated "
@@ -2067,6 +2143,9 @@ def _mechanistic_job_identity(job: MechanisticJob) -> dict[str, object]:
         ),
         "rubric_roles": [role.payload() for role in job.roles],
         "bank_members": [binding.payload() for binding in job.bank_members],
+        "specification_anchors": [
+            binding.payload() for binding in job.specification_anchors
+        ],
         "rubric_path": str(job.rubric_path.resolve()),
         "rubric_sha256": sha256_file(job.rubric_path),
         "grading_identity": job.grading_identity,
@@ -2077,6 +2156,23 @@ def _mechanistic_job_identity(job: MechanisticJob) -> dict[str, object]:
         ),
         "rh_implementation_sha256": job.rh_implementation_sha256,
     }
+
+
+def _mechanistic_assignment_reference_sha256(
+    jobs: tuple[MechanisticJob, ...],
+) -> str:
+    digest = hashlib.sha256()
+    for job in jobs:
+        encoded = json.dumps(
+            _mechanistic_job_identity(job),
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    return digest.hexdigest()
 
 
 def _mechanistic_judgment_identity(job: MechanisticJob) -> dict[str, object]:
@@ -2212,6 +2308,61 @@ def _expected_bank_binding(
     )
 
 
+def _expected_specification_anchor_binding(
+    target: EvaluationTarget,
+) -> SpecificationAnchorBinding:
+    generation = target.final_bank_generation
+    bank = generation.bank
+    return SpecificationAnchorBinding(
+        bank_role="terminal_common",
+        generation_round=bank.generation_round,
+        bank_sha256=bank.content_sha256,
+        bank_manifest_path=target.final_bank_manifest_path,
+        bank_manifest_sha256=target.final_bank_manifest_sha256,
+        specification_anchor_sha256=(
+            bank.specification_anchor.content_sha256
+        ),
+    )
+
+
+def _validate_mechanistic_job_bindings(job: MechanisticJob) -> None:
+    rubric_sha256 = sha256_file(job.rubric_path)
+    for binding in job.bank_members:
+        if binding.bank_role == "terminal_common":
+            generation = job.target.final_bank_generation
+        elif binding.bank_role == "online_local":
+            generation = job.target.bank_generation(job.boundary)
+        else:
+            raise RuntimeError("RH bank-member binding has an invalid role")
+        items = {
+            item.rubric.content_sha256: item for item in generation.bank.items
+        }
+        item = items.get(binding.member_sha256)
+        if item is None or binding.member_sha256 != rubric_sha256:
+            raise RuntimeError("RH bank-member binding is outside the bank")
+        if binding != _expected_bank_binding(
+            job.target,
+            job.boundary,
+            item,
+            binding.bank_role,
+        ):
+            raise RuntimeError("RH bank-member binding changed")
+        if sha256_file(binding.bank_manifest_path) != binding.bank_manifest_sha256:
+            raise RuntimeError("RH bank-member manifest changed")
+    for binding in job.specification_anchors:
+        if binding.bank_role != "terminal_common":
+            raise RuntimeError(
+                "RH specification-anchor binding has an invalid role"
+            )
+        if (
+            binding.specification_anchor_sha256 != rubric_sha256
+            or binding != _expected_specification_anchor_binding(job.target)
+        ):
+            raise RuntimeError("RH specification-anchor binding changed")
+        if sha256_file(binding.bank_manifest_path) != binding.bank_manifest_sha256:
+            raise RuntimeError("RH specification-anchor manifest changed")
+
+
 def _bank_score_panel(
     target: EvaluationTarget,
     boundary: str,
@@ -2251,12 +2402,44 @@ def _bank_score_panel(
         "bank_manifest_path": str(manifest_path),
         "bank_manifest_sha256": manifest_sha256,
         "rubric_count": bank.rubric_count,
-        "effective_sample_size": bank.effective_sample_size,
+        "inverse_weight_concentration": bank.inverse_weight_concentration,
         "member_weights": {
             item.rubric.content_sha256: item.weight for item in bank.items
         },
         "member_scores": model_member_scores,
         "scores": aggregate_scores,
+        "mean": fmean(values),
+        "median": median(values),
+        "minimum": min(values),
+        "maximum": max(values),
+    }
+
+
+def _specification_anchor_score_panel(
+    target: EvaluationTarget,
+    boundary: str,
+    observations: dict[tuple[str, str, str, str], float],
+    models: tuple[str, ...],
+) -> dict[str, object]:
+    generation = target.final_bank_generation
+    bank = generation.bank
+    anchor_sha256 = bank.specification_anchor.content_sha256
+    scores = {
+        model: observations[
+            ("terminal_common", boundary, model, anchor_sha256)
+        ]
+        for model in models
+    }
+    values = list(scores.values())
+    return {
+        "bank_role": "terminal_common",
+        "generation_round": bank.generation_round,
+        "source_boundary": bank.source_boundary,
+        "bank_sha256": bank.content_sha256,
+        "bank_manifest_path": str(target.final_bank_manifest_path),
+        "bank_manifest_sha256": target.final_bank_manifest_sha256,
+        "specification_anchor_sha256": anchor_sha256,
+        "scores": scores,
         "mean": fmean(values),
         "median": median(values),
         "minimum": min(values),
@@ -2276,6 +2459,7 @@ def _summarize_mechanistic_scores(
     for target in targets:
         observations: dict[tuple[str, int | None, str, str], float] = {}
         bank_observations: dict[tuple[str, str, str, str], float] = {}
+        anchor_observations: dict[tuple[str, str, str, str], float] = {}
         role_hashes: dict[tuple[str, int], str] = {
             ("selected", target.selection.optimizer_index): (
                 target.selection.optimizer_sha256
@@ -2341,6 +2525,56 @@ def _summarize_mechanistic_scores(
                         f"duplicate RH bank-member observation: {bank_key}"
                     )
                 bank_observations[bank_key] = score
+            specification_anchors = record.get("specification_anchors")
+            if not isinstance(specification_anchors, list):
+                raise RuntimeError(
+                    "RH specification-anchor bindings are invalid"
+                )
+            for anchor_binding in specification_anchors:
+                if not isinstance(anchor_binding, dict):
+                    raise RuntimeError(
+                        "RH specification-anchor binding is invalid"
+                    )
+                anchor_role = anchor_binding.get("bank_role")
+                if anchor_role != "terminal_common":
+                    raise RuntimeError(
+                        "RH specification-anchor binding has an invalid role"
+                    )
+                anchor_hash = anchor_binding.get(
+                    "specification_anchor_sha256"
+                )
+                expected_anchor_hash = (
+                    target.final_bank_generation.bank
+                    .specification_anchor.content_sha256
+                )
+                if anchor_hash != expected_anchor_hash:
+                    raise RuntimeError(
+                        "RH specification-anchor binding is outside the bank"
+                    )
+                if anchor_hash != record_rubric_sha256:
+                    raise RuntimeError(
+                        "RH specification-anchor binding does not match the "
+                        "judged rubric"
+                    )
+                expected_anchor_binding = (
+                    _expected_specification_anchor_binding(target).payload()
+                )
+                if anchor_binding != expected_anchor_binding:
+                    raise RuntimeError(
+                        "RH specification-anchor binding changed"
+                    )
+                anchor_key = (
+                    str(anchor_role),
+                    boundary,
+                    model,
+                    str(anchor_hash),
+                )
+                if anchor_key in anchor_observations:
+                    raise RuntimeError(
+                        "duplicate RH specification-anchor observation: "
+                        f"{anchor_key}"
+                    )
+                anchor_observations[anchor_key] = score
             roles = record.get("rubric_roles")
             if not isinstance(roles, list):
                 raise RuntimeError("RH mechanistic record has no rubric roles")
@@ -2392,6 +2626,15 @@ def _summarize_mechanistic_scores(
                 boundary,
                 "online_local",
                 bank_observations,
+                models,
+            )
+            for boundary in BOUNDARIES
+        }
+        terminal_specification_anchor = {
+            boundary: _specification_anchor_score_panel(
+                target,
+                boundary,
+                anchor_observations,
                 models,
             )
             for boundary in BOUNDARIES
@@ -2463,11 +2706,15 @@ def _summarize_mechanistic_scores(
         }
         rubric_diagnostics = {
             boundary: {
-                "active_to_selected": (
+                "member_to_anchor": (
                     float(terminal_common[boundary]["mean"])
+                    - float(terminal_specification_anchor[boundary]["mean"])
+                ),
+                "anchor_to_selected": (
+                    float(terminal_specification_anchor[boundary]["mean"])
                     - float(selected[boundary]["mean"])
                 ),
-                "wording_gap": (
+                "selected_to_holdout": (
                     float(selected[boundary]["mean"])
                     - float(sealed_holdout[boundary]["mean"])
                 ),
@@ -2505,6 +2752,9 @@ def _summarize_mechanistic_scores(
                 "terminal_common": terminal_common,
                 "terminal_weak": terminal_weak,
                 "online_local": online_local,
+                "terminal_specification_anchor": (
+                    terminal_specification_anchor
+                ),
                 "selected": selected,
                 "sealed_holdout": sealed_holdout,
                 "sealed_holdout_variants": sealed_holdout_variants,
@@ -2949,18 +3199,28 @@ def _combine_assignment(
     assert isinstance(holistic, dict)
     assert isinstance(pairwise, dict)
     terminal_common = reference["terminal_common"]
+    terminal_specification_anchor = reference[
+        "terminal_specification_anchor"
+    ]
+    selected = reference["selected"]
     sealed_holdout = reference["sealed_holdout"]
     assert isinstance(terminal_common, dict)
+    assert isinstance(terminal_specification_anchor, dict)
+    assert isinstance(selected, dict)
     assert isinstance(sealed_holdout, dict)
     boundary_results: dict[str, object] = {}
     for boundary in BOUNDARIES:
         mechanistic_boundary = mechanistic[boundary]
         diagnostic_boundary = partial_diagnostics[boundary]
         terminal_common_boundary = terminal_common[boundary]
+        specification_anchor_boundary = terminal_specification_anchor[boundary]
+        selected_boundary = selected[boundary]
         sealed_holdout_boundary = sealed_holdout[boundary]
         assert isinstance(mechanistic_boundary, dict)
         assert isinstance(diagnostic_boundary, dict)
         assert isinstance(terminal_common_boundary, dict)
+        assert isinstance(specification_anchor_boundary, dict)
+        assert isinstance(selected_boundary, dict)
         assert isinstance(sealed_holdout_boundary, dict)
         rubric_free_score = float(holistic[f"{boundary}_panel_mean"])
         terminal_common_score = float(terminal_common_boundary["mean"])
@@ -2970,14 +3230,37 @@ def _combine_assignment(
             ),
             "dynamic_rubric_gap": terminal_common_score - rubric_free_score,
         }
-        rubric_diagnostics = {
-            "active_to_selected": float(
-                diagnostic_boundary["active_to_selected"]
+        signed_diagnostics = {
+            "member_to_anchor": (
+                terminal_common_score
+                - float(specification_anchor_boundary["mean"])
             ),
-            "wording_gap": float(diagnostic_boundary["wording_gap"]),
-            "sealed_specification_gap": (
+            "anchor_to_selected": (
+                float(specification_anchor_boundary["mean"])
+                - float(selected_boundary["mean"])
+            ),
+            "selected_to_holdout": (
+                float(selected_boundary["mean"])
+                - float(sealed_holdout_boundary["mean"])
+            ),
+            "holdout_to_holistic": (
                 float(sealed_holdout_boundary["mean"]) - rubric_free_score
             ),
+        }
+        for name in SIGNED_RUBRIC_DIAGNOSTICS[:-1]:
+            if not math.isclose(
+                float(diagnostic_boundary[name]),
+                signed_diagnostics[name],
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            ):
+                raise RuntimeError(
+                    "RH stored rubric diagnostic disagrees with its source "
+                    f"scores for {mechanism['assignment_id']} at {boundary}: "
+                    f"{name}"
+                )
+        rubric_diagnostics = {
+            **signed_diagnostics,
             "wording_sensitivity_standard_deviation": float(
                 diagnostic_boundary[
                     "wording_sensitivity_standard_deviation"
@@ -2987,12 +3270,13 @@ def _combine_assignment(
                 diagnostic_boundary["wording_sensitivity_range"]
             ),
         }
-        diagnostic_sum = sum(
+        diagnostic_sum = math.fsum(
             rubric_diagnostics[name] for name in SIGNED_RUBRIC_DIAGNOSTICS
         )
         if not math.isclose(
             components["dynamic_rubric_gap"],
             diagnostic_sum,
+            rel_tol=0.0,
             abs_tol=1e-9,
         ):
             raise RuntimeError(
@@ -3044,6 +3328,14 @@ def _combine_assignment(
         float(final["weak_terminal_bank_score"])
         - float(initial["weak_terminal_bank_score"])
     )
+    selected_rubric_gain = (
+        float(selected["final"]["mean"])
+        - float(selected["initial"]["mean"])
+    )
+    sealed_holdout_bank_gain = (
+        float(sealed_holdout["final"]["mean"])
+        - float(sealed_holdout["initial"]["mean"])
+    )
     holistic_quality_gain = (
         float(final["rubric_free_score"]) - float(initial["rubric_free_score"])
     )
@@ -3070,6 +3362,8 @@ def _combine_assignment(
         "rubric_diagnostic_changes": rubric_diagnostic_changes,
         "outcomes": {
             "terminal_bank_weak_gain": terminal_bank_weak_gain,
+            "selected_rubric_gain": selected_rubric_gain,
+            "sealed_holdout_bank_gain": sealed_holdout_bank_gain,
             "holistic_quality_gain": holistic_quality_gain,
             "terminal_bank_gain_gap": terminal_bank_gain_gap,
             "optimization_induced_risk": max(terminal_bank_gain_gap, 0.0),

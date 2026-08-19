@@ -11,3 +11,4 @@ runs/*
 seeds/
 tmp/
 logs/vllm/*.out
+/paperbench-large.out

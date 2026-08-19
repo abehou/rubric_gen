@@ -348,11 +348,28 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
     (experiment_dir / "manifest.json").write_text(
         json.dumps(
             {
+                "provider": "vllm",
+                "model": "solver-model",
+                "solver_base_url": "http://solver.test/v1",
                 "master_rubric_name": "rubric.txt",
                 "master_rubric_sha256": sha256_text(rubric),
                 "task_dir": str(task),
                 "review": "trace",
                 "max_review_chars": None,
+                "judge_model": "judge-model",
+                "judge_base_url": "http://judge.test/v1",
+                "rubric_proposer_model": "proposer-model",
+                "rubric_proposer_base_url": "http://proposer.test/v1",
+                "rubric_semantic_judge_model": "reviewer-model",
+                "rubric_semantic_judge_base_url": "http://reviewer.test/v1",
+                "feedback_simulator": {
+                    "implementation_sha256": "1" * 64,
+                    "model": "simulator-model",
+                    "base_url": "http://simulator.test/v1/",
+                    "max_output_tokens": 1024,
+                    "max_aspects": 2,
+                    "max_retries": 1,
+                },
             }
         )
     )
@@ -371,12 +388,23 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
         }
 
     monkeypatch.setattr(original_module, "load_experiment", lambda _path: FakeExperiment())
-    monkeypatch.setattr(
-        original_module,
-        "validate_completed_revision",
-        lambda *_args, **_kwargs: None,
-    )
+    validations: list[dict[str, object]] = []
+
+    def validate(*_args, **kwargs) -> None:
+        validations.append(kwargs)
+
+    monkeypatch.setattr(original_module, "validate_completed_revision", validate)
     loaded = _load_completed_study(source)
+    assert validations[-1]["vllm_endpoints"] == {
+        "solver-model": "http://solver.test/v1",
+        "judge-model": "http://judge.test/v1",
+        "proposer-model": "http://proposer.test/v1",
+        "reviewer-model": "http://reviewer.test/v1",
+        "simulator-model": "http://simulator.test/v1",
+    }
+    assert validations[-1]["judgment_reuse_root"] == (
+        source / "shared-judgments"
+    )
     assert loaded.targets[0].rubric_sha256 == sha256_text(rubric)
     assert loaded.targets[0].initial_submission.name == "s000"
     assert loaded.targets[0].final_submission.name == "s010"

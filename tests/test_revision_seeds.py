@@ -186,6 +186,31 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
     }
 
 
+def test_seed_stage_holds_an_exclusive_pool_lease(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    output = tmp_path / "seeds"
+    observed_operations: list[int] = []
+    real_flock = seeds_module.fcntl.flock
+
+    def record_flock(descriptor: int, operation: int) -> None:
+        observed_operations.append(operation)
+        real_flock(descriptor, operation)
+
+    monkeypatch.setattr(seeds_module.fcntl, "flock", record_flock)
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+
+    assert SeedSetRunner(SeedSetConfig(design, output, 2)).run() == 0
+    assert observed_operations == [
+        seeds_module.fcntl.LOCK_EX,
+        seeds_module.fcntl.LOCK_UN,
+    ]
+    assert (output / ".seed.lock").is_file()
+
+
 def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

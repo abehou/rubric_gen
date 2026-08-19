@@ -26,6 +26,7 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankItem,
     RubricBankPolicy,
     RubricLineage,
+    identity_criterion_map,
 )
 from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
@@ -112,6 +113,113 @@ def test_code_dev_rubric_uses_exact_official_binary_weights() -> None:
     assert score.normalized_score == 0.75
 
 
+def test_code_dev_rubric_qualifies_repeated_leaves_with_parent_context() -> None:
+    rubric = {
+        "id": "root",
+        "requirements": "Replicate the paper.",
+        "weight": 1,
+        "sub_tasks": [
+            {
+                "id": "method-a",
+                "requirements": "Method A.",
+                "weight": 1,
+                "sub_tasks": [{
+                    **_leaf("leaf-a", 1, "Code Development"),
+                    "requirements": "Run ten random seeds.",
+                }],
+            },
+            {
+                "id": "method-b",
+                "requirements": "Method B.",
+                "weight": 1,
+                "sub_tasks": [{
+                    **_leaf("leaf-b", 1, "Code Development"),
+                    "requirements": "Run ten random seeds.",
+                }],
+            },
+        ],
+    }
+
+    rendered, leaf_count, maximum = render_code_dev_rubric(rubric)
+
+    assert leaf_count == 2
+    assert maximum == 2
+    assert (
+        "Criterion 1: Run ten random seeds. [Context: Method A.]"
+        in rendered
+    )
+    assert (
+        "Criterion 2: Run ten random seeds. [Context: Method B.]"
+        in rendered
+    )
+    CompleteRubric.from_content(rendered)
+
+
+def test_code_dev_rubric_uses_the_shortest_distinct_ancestor_suffix() -> None:
+    def branch(grandparent_id: str) -> dict[str, object]:
+        return {
+            "id": grandparent_id,
+            "requirements": f"Grandparent {grandparent_id}.",
+            "weight": 1,
+            "sub_tasks": [{
+                "id": f"shared-parent-{grandparent_id}",
+                "requirements": "Shared immediate parent.",
+                "weight": 1,
+                "sub_tasks": [{
+                    **_leaf(f"leaf-{grandparent_id}", 1, "Code Development"),
+                    "requirements": "Run ten random seeds.",
+                }],
+            }],
+        }
+
+    rubric = {
+        "id": "root",
+        "requirements": "Replicate the paper.",
+        "weight": 1,
+        "sub_tasks": [branch("A"), branch("B")],
+    }
+
+    rendered, _, _ = render_code_dev_rubric(rubric)
+
+    assert (
+        "[Context: Grandparent A. > Shared immediate parent.]"
+        in rendered
+    )
+    assert (
+        "[Context: Grandparent B. > Shared immediate parent.]"
+        in rendered
+    )
+
+
+def test_code_dev_rubric_rejects_duplicates_with_identical_ancestry() -> None:
+    rubric = {
+        "id": "root",
+        "requirements": "Replicate the paper.",
+        "weight": 1,
+        "sub_tasks": [{
+            "id": "method",
+            "requirements": "One method.",
+            "weight": 1,
+            "sub_tasks": [
+                {
+                    **_leaf("leaf-a", 1, "Code Development"),
+                    "requirements": "Run ten random seeds.",
+                },
+                {
+                    **_leaf("leaf-b", 1, "Code Development"),
+                    "requirements": "Run ten random seeds.",
+                },
+            ],
+        }],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="duplicate leaves lack distinct ancestor context",
+    ):
+        render_code_dev_rubric(rubric)
+
+
 def test_prepared_dataset_is_reproducible_and_pinned(tmp_path: Path) -> None:
     destination = tmp_path / "prepared"
     prepare_paperbench_code_dev(
@@ -156,16 +264,24 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
         )
 
 
-def test_paperbench_proposer_names_the_exact_fixed_normalization() -> None:
+def test_paperbench_split_proposer_preserves_fixed_normalization_contract() -> None:
     current, _, maximum = render_code_dev_rubric(_rubric())
 
     rubric = CompleteRubric.from_content(current)
     bank = RubricBank(
-        0,
-        None,
-        (RubricBankItem(rubric, 1.0, RubricLineage.NEW),),
+        generation_round=0,
+        source_boundary=None,
+        specification_anchor=rubric,
+        specification_anchor_lineage=RubricLineage.NEW,
+        prior_specification_anchor_sha256=None,
+        items=(RubricBankItem(
+            rubric,
+            1.0,
+            RubricLineage.NEW,
+            identity_criterion_map(rubric),
+        ),),
     )
-    evidence = evolution_module._proposer_evidence(
+    anchor_evidence = evolution_module._anchor_proposer_evidence(
         instruction="Replicate the paper.",
         current_bank=bank,
         policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
@@ -174,12 +290,29 @@ def test_paperbench_proposer_names_the_exact_fixed_normalization() -> None:
         repair_error="complete rubric changed its normalization directive",
         rejected_attempts=(),
     )
+    member_evidence = evolution_module._member_proposer_evidence(
+        instruction="Replicate the paper.",
+        current_bank=bank,
+        next_anchor=rubric,
+        repair_error=None,
+        rejected_attempts=(),
+    )
 
-    assert f"Score normalization maximum: {maximum}" in evidence
-    assert "complete rubric changed its normalization directive" in evidence
-    instructions = evolution_module._proposer_instructions()
-    assert "same normalized" in instructions
-    assert "score scale" in instructions
+    assert f"Score normalization maximum: {maximum}" in anchor_evidence
+    assert "<harness_anchor_contract>" in anchor_evidence
+    assert "scoring_protocol: paperbench-code-dev" in anchor_evidence
+    assert f"normalization_maximum: {maximum}" in anchor_evidence
+    assert (
+        "complete rubric changed its normalization directive"
+        in anchor_evidence
+    )
+    assert "<trajectory_blind_member_contract>" in member_evidence
+    assert "member_count: 1" in member_evidence
+    assert "member_weight: 1.0" in member_evidence
+    assert f"Score normalization maximum: {maximum}" in member_evidence
+    instructions = " ".join(evolution_module._member_instructions().split())
+    assert "copies every normative anchor clause" in instructions
+    assert "assigns unit weight" in instructions
 
 
 def test_submission_evidence_uses_official_code_dev_file_types(tmp_path: Path) -> None:
@@ -202,6 +335,17 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
     assert PAPERBENCH_CODE_DEV.output_errors(tmp_path) == []
     assert "answer.txt" not in PAPERBENCH_CODE_DEV_PROMPT
     assert "trace.md" not in PAPERBENCH_CODE_DEV_PROMPT
+    assert "not a Git checkout" in PAPERBENCH_CODE_DEV_PROMPT
+    assert "Do not run Git commands" in PAPERBENCH_CODE_DEV_PROMPT
+    assert "Use $TMPDIR" in PAPERBENCH_CODE_DEV_PROMPT
+    assert "literal /tmp" in PAPERBENCH_CODE_DEV_PROMPT
+    for guidance in (
+        PAPERBENCH_CODE_DEV.recovery_prompt,
+        PAPERBENCH_CODE_DEV.output_recovery_prompt,
+        PAPERBENCH_CODE_DEV.revision_action,
+    ):
+        assert "Do not run Git commands" in guidance
+        assert "$TMPDIR" in guidance
 
 
 def test_paperbench_contract_owns_native_revision_language() -> None:
@@ -254,11 +398,19 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     current, _, _ = render_code_dev_rubric(_rubric())
     current_rubric = CompleteRubric.from_content(current)
     current_bank = RubricBank(
-        0,
-        None,
-        (RubricBankItem(current_rubric, 1.0, RubricLineage.NEW),),
+        generation_round=0,
+        source_boundary=None,
+        specification_anchor=current_rubric,
+        specification_anchor_lineage=RubricLineage.NEW,
+        prior_specification_anchor_sha256=None,
+        items=(RubricBankItem(
+            current_rubric,
+            1.0,
+            RubricLineage.NEW,
+            identity_criterion_map(current_rubric),
+        ),),
     )
-    proposed = evolution_module._proposer_evidence(
+    proposed = evolution_module._anchor_proposer_evidence(
         instruction="TASK",
         current_bank=current_bank,
         policy=RubricBankPolicy.ADAPTIVE_REPLACEMENT,
@@ -306,9 +458,17 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     rubric = CompleteRubric.from_content(rubric_text)
     rubric_sha256 = rubric.content_sha256
     bank = RubricBank(
-        0,
-        None,
-        (RubricBankItem(rubric, 1.0, RubricLineage.NEW),),
+        generation_round=0,
+        source_boundary=None,
+        specification_anchor=rubric,
+        specification_anchor_lineage=RubricLineage.NEW,
+        prior_specification_anchor_sha256=None,
+        items=(RubricBankItem(
+            rubric,
+            1.0,
+            RubricLineage.NEW,
+            identity_criterion_map(rubric),
+        ),),
     )
     validation = tmp_path / "score-validation.json"
     validation.write_text(json.dumps({
@@ -339,6 +499,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     )
     controller.benchmark = PAPERBENCH_CODE_DEV
     controller.experiment_dir = tmp_path / "experiment"
+    controller.simulator_reuse = None
     (controller.experiment_dir / "feedback-generations").mkdir(parents=True)
     controller.task_dir = task
     controller.dependencies = SimpleNamespace(feedback_simulator=Simulator())

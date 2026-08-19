@@ -200,6 +200,23 @@ def test_codex_persistent_session_has_no_network_or_web_override(
     assert not hasattr(driver.config, "allow_network")
 
 
+def test_agent_environment_uses_workspace_local_temporary_directory(
+    tmp_path: Path,
+) -> None:
+    paths = _run_paths(tmp_path)
+
+    environment = CodexAdapter().build_environment(
+        paths,
+        AgentRunConfig(provider="codex", model="gpt-5.6-luna"),
+    )
+
+    temporary = paths.workspace_dir / ".agent-tmp"
+    assert environment["TMPDIR"] == str(temporary)
+    assert temporary.is_dir()
+    assert temporary.stat().st_mode & 0o777 == 0o700
+    (temporary / "command.out").write_text("ok\n")
+
+
 def test_codex_adapter_restores_controlled_config_between_turns(tmp_path: Path) -> None:
     paths = RunPaths(
         provider="codex",
@@ -320,6 +337,7 @@ def test_vllm_adapter_uses_codex_responses_without_hosted_credentials(
         timeout_seconds=123,
     )
     adapter = VllmAdapter()
+    paths.workspace_dir.mkdir()
 
     adapter.prepare_run(paths, config, "solve")
 

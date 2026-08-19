@@ -71,6 +71,10 @@ protocol:
   review: trace
   max_review_chars: null
   rubric_proposer_model: gpt-5.6-luna
+  rubric_semantic_judge_model: gpt-5.5-2026-04-23
+  rubric_semantic_judge_max_calls_per_assignment: 6
+  rubric_semantic_judge_max_request_bytes_per_call: 1048576
+  rubric_semantic_judge_max_output_tokens_per_call: 32768
   rubric_proposer_max_retries: 1
 
 rubric_paraphrases:
@@ -103,7 +107,7 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: seeds/biomnibench-luna-top30-common
+    output_dir: seeds/biomnibench-luna-top30
   paraphrase:
     depends_on: []
     output_dir: runs/biomnibench-rubric-paraphrases/luna-wording-only

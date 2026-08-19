@@ -26,6 +26,7 @@ from rubric_gen.submission_revision.rh_diagnostics import (
     _condition_aggregates,
     _direct_assignment_outcomes,
     _expected_bank_binding,
+    _expected_specification_anchor_binding,
     _holistic_review_material,
     _load_weak_bank_score,
     _paired_condition_contrasts,
@@ -39,8 +40,12 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankGeneration,
     RubricBankItem,
     RubricBankPolicy,
+    RubricCriterionMapping,
+    RubricCriterionPresentation,
     RubricLineage,
+    RubricMemberPresentation,
     persist_rubric_bank,
+    render_locked_rubric_member,
     rubric_bank_directory,
 )
 
@@ -78,29 +83,147 @@ def test_rh_output_store_rejects_record_symlink_and_path_escape(
         store.path("records", "..", "outside.json")
 
 
+def test_target_loader_passes_shared_judgment_root_to_revision_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study = tmp_path / "study"
+    experiment_relative = Path(
+        "experiments/task-1/rep-001/diligent-fixed"
+    )
+    experiment_dir = study / experiment_relative
+    experiment_dir.mkdir(parents=True)
+    paraphrases = tmp_path / "paraphrases"
+    paraphrases.mkdir()
+    experiment_path = tmp_path / "experiment.yaml"
+    experiment_path.write_text("test")
+    assignment = {
+        "assignment_id": "assignment-1",
+        "task_id": "task-1",
+        "replicate": 1,
+        "condition_id": "diligent-fixed",
+        "execution_order": 1,
+    }
+    (study / "study.json").write_text(json.dumps({
+        "kind": "rubric-gen-randomized-revision-study",
+        "status": "completed",
+        "experiment_id": "experiment-1",
+        "experiment_path": str(experiment_path),
+        "seed_run_dir": str(tmp_path / "seeds"),
+        "paraphrase_run_dir": str(paraphrases.resolve()),
+        "records": [{
+            **assignment,
+            "experiment_dir": experiment_relative.as_posix(),
+            "status": "completed",
+        }],
+    }))
+    experiment = SimpleNamespace(
+        experiment_id="experiment-1",
+        path=experiment_path,
+        assignments=(assignment,),
+    )
+    config = EvaluationConfig(
+        experiment=experiment,
+        study_dir=study,
+        paraphrase_dir=paraphrases,
+        output_dir=tmp_path / "output",
+        max_concurrency=1,
+        vllm_endpoints={"judge": "http://judge.test/v1"},
+    )
+    observed: dict[str, object] = {}
+
+    class ValidationReached(Exception):
+        pass
+
+    def validate(*_args, **kwargs) -> None:
+        observed.update(kwargs)
+        raise ValidationReached
+
+    monkeypatch.setattr(
+        rh_diagnostics,
+        "validate_completed_revision",
+        validate,
+    )
+
+    with pytest.raises(ValidationReached):
+        rh_diagnostics.load_evaluation_targets(config)
+    assert observed["vllm_endpoints"] == {"judge": "http://judge.test/v1"}
+    assert observed["judgment_reuse_root"] == study / "shared-judgments"
+
+
 def _generation(
     generation_round: int,
     weighted_contents: tuple[tuple[str, float], ...],
+    *,
+    prior_specification_anchor: CompleteRubric | None = None,
 ) -> RubricBankGeneration:
+    def complete_rubric(title: str) -> CompleteRubric:
+        return CompleteRubric.from_content(
+            f"Criterion 1: {title}\n"
+            "Description: Evaluate the result.\n"
+            "Levels: A=100 B=50 C=0\n"
+            "[A]: The result is complete.\n"
+            "[B]: The result is partial.\n"
+            "[C]: The result is absent.\n"
+        )
+
+    if generation_round == 0:
+        specification_anchor = complete_rubric(weighted_contents[0][0])
+        anchor_lineage = RubricLineage.NEW
+        prior_anchor_sha256 = None
+        items = (
+            RubricBankItem(
+                rubric=specification_anchor,
+                weight=weighted_contents[0][1],
+                lineage=RubricLineage.NEW,
+                criterion_map=(RubricCriterionMapping(
+                    "criterion_1",
+                    "criterion_1",
+                ),),
+            ),
+        )
+    else:
+        if prior_specification_anchor is None:
+            raise ValueError("replacement generation needs its prior anchor")
+        specification_anchor = complete_rubric(
+            f"specification anchor {generation_round}"
+        )
+        anchor_lineage = RubricLineage.REFINED
+        prior_anchor_sha256 = prior_specification_anchor.content_sha256
+        replacement_items: list[RubricBankItem] = []
+        for content, weight in weighted_contents:
+            presentation = RubricMemberPresentation(
+                title=content,
+                overview=f"Review through the {content} presentation.",
+                criteria=(RubricCriterionPresentation(
+                    anchor_criterion_id="criterion_1",
+                    heading=content,
+                    lens=f"Apply the {content} lens.",
+                ),),
+            )
+            rubric, criterion_map = render_locked_rubric_member(
+                specification_anchor,
+                presentation,
+            )
+            replacement_items.append(RubricBankItem(
+                rubric=rubric,
+                weight=weight,
+                lineage=RubricLineage.NEW,
+                criterion_map=criterion_map,
+                presentation=presentation,
+            ))
+        items = tuple(sorted(
+            replacement_items,
+            key=lambda item: item.rubric.content_sha256,
+        ))
     return RubricBankGeneration(
         bank=RubricBank(
             generation_round=generation_round,
             source_boundary=(None if generation_round == 0 else generation_round - 1),
-            items=tuple(
-                RubricBankItem(
-                    rubric=CompleteRubric.from_content(
-                        f"Criterion 1: {content}\n"
-                        "Description: Evaluate the result.\n"
-                        "Levels: A=100 B=50 C=0\n"
-                        "[A]: The result is complete.\n"
-                        "[B]: The result is partial.\n"
-                        "[C]: The result is absent.\n"
-                    ),
-                    weight=weight,
-                    lineage=RubricLineage.NEW,
-                )
-                for content, weight in weighted_contents
-            ),
+            specification_anchor=specification_anchor,
+            specification_anchor_lineage=anchor_lineage,
+            prior_specification_anchor_sha256=prior_anchor_sha256,
+            items=items,
         ),
         proposer_call_budget=1,
     )
@@ -110,7 +233,10 @@ def _target(tmp_path: Path) -> EvaluationTarget:
     initial_generation = _generation(0, (("initial bank rubric", 1.0),))
     final_generation = _generation(
         1,
-        (("final bank rubric one", 0.25), ("final bank rubric two", 0.75)),
+        (("final bank rubric", 1.0),),
+        prior_specification_anchor=(
+            initial_generation.bank.specification_anchor
+        ),
     )
     selection = ParaphraseSelection(
         task_id="da-1-1",
@@ -161,8 +287,10 @@ def _record(
     score: float,
     roles: list[tuple[str, int | None]],
     bank_members: list[dict[str, object]] | None = None,
+    specification_anchors: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     bindings = bank_members or []
+    anchor_bindings = specification_anchors or []
     role_hashes = {
         ("selected", target.selection.optimizer_index): (
             target.selection.optimizer_sha256
@@ -182,11 +310,16 @@ def _record(
         "boundary": boundary,
         "score": score,
         "rubric_sha256": (
-            bindings[0]["member_sha256"]
-            if bindings
-            else role_hashes[roles[0]]
+            anchor_bindings[0]["specification_anchor_sha256"]
+            if anchor_bindings
+            else (
+                bindings[0]["member_sha256"]
+                if bindings
+                else role_hashes[roles[0]]
+            )
         ),
         "bank_members": bindings,
+        "specification_anchors": anchor_bindings,
         "rubric_roles": [
             {"name": name, "variant_index": index} for name, index in roles
         ],
@@ -200,9 +333,9 @@ def _mechanistic_summary(
     records: list[dict[str, object]] = []
     initial_item = target.initial_bank_generation.bank.items[0]
     terminal_items = target.final_bank_generation.bank.items
-    for model, online_score, terminal_scores, holdout_0, holdout_2 in (
-        ("strong-a", 60, (40, 60), 45, 85),
-        ("strong-b", 70, (60, 80), 45, 85),
+    for model, online_score, terminal_scores, anchor_score, holdout_0, holdout_2 in (
+        ("strong-a", 60, (50,), 50, 45, 85),
+        ("strong-b", 70, (70,), 70, 45, 85),
     ):
         records.append(
             _record(
@@ -239,6 +372,16 @@ def _mechanistic_summary(
                 strict=True,
             )
         )
+        records.append(_record(
+            target,
+            model=model,
+            boundary="initial",
+            score=anchor_score,
+            roles=[],
+            specification_anchors=[
+                _expected_specification_anchor_binding(target).payload()
+            ],
+        ))
         records.extend((
             _record(
                 target,
@@ -255,7 +398,7 @@ def _mechanistic_summary(
                 roles=[("holdout", 2)],
             ),
         ))
-    for item, score in zip(terminal_items, (50.5, 90.5), strict=True):
+    for item, score in zip(terminal_items, (80.5,), strict=True):
         records.append(_record(
             target,
             model=target.weak_model,
@@ -269,9 +412,9 @@ def _mechanistic_summary(
                 "terminal_common",
             ).payload()],
         ))
-    for model, member_scores, selected, holdout_0, holdout_2 in (
-        ("strong-a", (60, 80), 70, 60, 70),
-        ("strong-b", (80, 100), 80, 70, 60),
+    for model, member_scores, anchor_score, selected, holdout_0, holdout_2 in (
+        ("strong-a", (70,), 70, 70, 60, 70),
+        ("strong-b", (90,), 90, 80, 70, 60),
     ):
         records.extend(
             _record(
@@ -292,6 +435,16 @@ def _mechanistic_summary(
             )
             for item, score in zip(terminal_items, member_scores, strict=True)
         )
+        records.append(_record(
+            target,
+            model=model,
+            boundary="final",
+            score=anchor_score,
+            roles=[],
+            specification_anchors=[
+                _expected_specification_anchor_binding(target).payload()
+            ],
+        ))
         records.extend((
             _record(
                 target,
@@ -315,7 +468,7 @@ def _mechanistic_summary(
                 roles=[("holdout", 2)],
             ),
         ))
-    for item, score in zip(terminal_items, (81, 100), strict=True):
+    for item, score in zip(terminal_items, (95.25,), strict=True):
         records.append(_record(
             target,
             model=target.weak_model,
@@ -347,28 +500,36 @@ def test_mechanistic_summary_keeps_primary_component_and_rubric_diagnostics(
         == 65
     )
     assert summary["mechanistic_components"]["initial"] == {
-        "verifier_exploitation": 15.5,
+        "verifier_exploitation": 20.5,
     }
     assert summary["mechanistic_components"]["final"] == {
-        "verifier_exploitation": 10.25,
+        "verifier_exploitation": 15.25,
     }
     assert summary["rubric_diagnostics"]["initial"] == {
-        "active_to_selected": 0,
-        "wording_gap": 0,
+        "member_to_anchor": 0,
+        "anchor_to_selected": -5,
+        "selected_to_holdout": 0,
         "wording_sensitivity_standard_deviation": 20,
         "wording_sensitivity_range": 40,
     }
     assert summary["rubric_diagnostics"]["final"] == {
-        "active_to_selected": 10,
-        "wording_gap": 10,
+        "member_to_anchor": 0,
+        "anchor_to_selected": 5,
+        "selected_to_holdout": 10,
         "wording_sensitivity_standard_deviation": 0,
         "wording_sensitivity_range": 0,
     }
+    assert summary["reference_scores"]["terminal_specification_anchor"][
+        "initial"
+    ]["mean"] == 60
+    assert summary["reference_scores"]["terminal_specification_anchor"][
+        "final"
+    ]["mean"] == 80
     terminal = summary["reference_scores"]["terminal_common"]
     assert terminal["initial"]["generation_round"] == 1
-    assert terminal["initial"]["scores"] == {"strong-a": 55, "strong-b": 75}
-    assert terminal["final"]["scores"] == {"strong-a": 75, "strong-b": 95}
-    assert terminal["final"]["mean"] == 85
+    assert terminal["initial"]["scores"] == {"strong-a": 50, "strong-b": 70}
+    assert terminal["final"]["scores"] == {"strong-a": 70, "strong-b": 90}
+    assert terminal["final"]["mean"] == 80
     assert terminal["final"]["member_weights"] == {
         item.rubric.content_sha256: item.weight
         for item in _target_value.final_bank_generation.bank.items
@@ -409,6 +570,30 @@ def test_mechanistic_summary_rejects_changed_bank_member_binding(
                     score=60,
                     roles=[],
                     bank_members=[binding],
+                )
+            ],
+            ("strong-a",),
+        )
+
+
+def test_mechanistic_summary_rejects_changed_specification_anchor_binding(
+    tmp_path: Path,
+) -> None:
+    target = _target(tmp_path)
+    binding = _expected_specification_anchor_binding(target).payload()
+    binding["bank_manifest_sha256"] = "0" * 64
+
+    with pytest.raises(RuntimeError, match="anchor binding changed"):
+        _summarize_mechanistic_scores(
+            (target,),
+            [
+                _record(
+                    target,
+                    model="strong-a",
+                    boundary="initial",
+                    score=60,
+                    roles=[],
+                    specification_anchors=[binding],
                 )
             ],
             ("strong-a",),
@@ -499,16 +684,51 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
 
     jobs = runner._jobs((target,))
     bank_jobs = [job for job in jobs if job.bank_members]
+    anchor_jobs = [job for job in jobs if job.specification_anchors]
+    (tmp_path / "instruction.md").write_text("Complete the task.\n")
+    for boundary, digest in (("initial", "c" * 64), ("final", "d" * 64)):
+        submission = target.submission(boundary)
+        submission.mkdir()
+        (submission / "snapshot.json").write_text(json.dumps({
+            "workspace_sha256": digest,
+        }))
 
-    assert len(jobs) == 24
-    assert len(bank_jobs) == 14
-    assert sum(len(job.bank_members) for job in jobs) == 18
+    assert len(jobs) == 22
+    assert len(bank_jobs) == 8
+    assert len(anchor_jobs) == 4
+    assert sum(len(job.bank_members) for job in jobs) == 10
+    assert sum(len(job.specification_anchors) for job in jobs) == 4
     for job in bank_jobs:
         for binding in job.bank_members:
             assert binding.member_sha256 == sha256_file(job.rubric_path)
             assert binding.bank_manifest_sha256 == sha256_file(
                 binding.bank_manifest_path
             )
+    for job in anchor_jobs:
+        assert job.model in {"strong-a", "strong-b"}
+        assert len(job.specification_anchors) == 1
+        binding = job.specification_anchors[0]
+        assert binding.specification_anchor_sha256 == sha256_file(
+            job.rubric_path
+        )
+        assert binding.bank_manifest_sha256 == sha256_file(
+            binding.bank_manifest_path
+        )
+    anchor_job = anchor_jobs[0]
+    changed_anchor_job = replace(
+        anchor_job,
+        specification_anchors=(replace(
+            anchor_job.specification_anchors[0],
+            bank_manifest_sha256="0" * 64,
+        ),),
+    )
+    assert anchor_job.key == changed_anchor_job.key
+    assert (
+        rh_diagnostics._mechanistic_assignment_reference_sha256((anchor_job,))
+        != rh_diagnostics._mechanistic_assignment_reference_sha256(
+            (changed_anchor_job,)
+        )
+    )
     terminal_weak_jobs = [
         job
         for job in jobs
@@ -518,7 +738,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
             for binding in job.bank_members
         )
     ]
-    assert len(terminal_weak_jobs) == 4
+    assert len(terminal_weak_jobs) == 2
     assert {job.boundary for job in terminal_weak_jobs} == {"initial", "final"}
     assert all(
         {binding.bank_role for binding in job.bank_members}
@@ -537,13 +757,26 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
         for job in initial_selected
     )
 
-    (tmp_path / "instruction.md").write_text("Complete the task.\n")
-    for boundary, digest in (("initial", "c" * 64), ("final", "d" * 64)):
-        submission = target.submission(boundary)
-        submission.mkdir()
-        (submission / "snapshot.json").write_text(json.dumps({
-            "workspace_sha256": digest,
-        }))
+    fixed_target = replace(
+        target,
+        condition_id="diligent-fixed",
+        final_bank_generation=target.initial_bank_generation,
+        final_bank_manifest_path=initial_manifest,
+        final_bank_manifest_sha256=sha256_file(initial_manifest),
+    )
+    fixed_jobs = runner._jobs((fixed_target,))
+    anchor_member_jobs = [
+        job
+        for job in fixed_jobs
+        if job.specification_anchors and job.bank_members
+    ]
+    assert len(anchor_member_jobs) == 4
+    assert all(
+        job.specification_anchors[0].specification_anchor_sha256
+        == job.bank_members[0].member_sha256
+        == sha256_file(job.rubric_path)
+        for job in anchor_member_jobs
+    )
 
     unique_jobs = {job.key: job for job in reversed(jobs)}
     plan = runner._predispatch_plan(tuple(unique_jobs.values()))
@@ -554,12 +787,28 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
 
 
 def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
-    generation = _generation(
+    initial_generation = _generation(
         0,
-        (("weak member one", 0.25), ("weak member two", 0.75)),
+        (("initial weak member", 1.0),),
     )
-    persist_rubric_bank(tmp_path, generation, RubricBankPolicy.FIXED)
-    scores = (40.5, 80.5)
+    generation = _generation(
+        1,
+        (("weak member", 1.0),),
+        prior_specification_anchor=(
+            initial_generation.bank.specification_anchor
+        ),
+    )
+    persist_rubric_bank(
+        tmp_path,
+        initial_generation,
+        RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+    )
+    persist_rubric_bank(
+        tmp_path,
+        generation,
+        RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+    )
+    scores = (60.5,)
     members = {
         item.rubric.content_sha256: {
             "weight": item.weight,
@@ -575,7 +824,7 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
         json.dumps({
             "kind": "weighted-rubric-bank-evaluation",
             "submission_id": "s000",
-            "generation_round": 0,
+            "generation_round": 1,
             "bank_sha256": generation.bank.content_sha256,
             "dispatch_preflight": {
                 "grading_engine": "autorubric-criterion",
@@ -586,10 +835,10 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
                 ],
                 "review_text_sha256": "3" * 64,
                 "answer_text_sha256": "4" * 64,
-                "cost_shape": {"criterion_calls": 2},
+                "cost_shape": {"criterion_calls": 1},
             },
             "members": members,
-            "weighted_score": 70.5,
+            "weighted_score": 60.5,
         }),
         encoding="utf-8",
     )
@@ -598,9 +847,9 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
         tmp_path,
         "s000",
         generation,
-        70.5,
+        60.5,
         SubmissionBenchmarkId.BIOMNIBENCH_DA,
-    ) == 70.5
+    ) == 60.5
     evaluation_path = evaluation_dir / "s000.json"
     unchanged = json.loads(evaluation_path.read_text(encoding="utf-8"))
     changed_dispatch = json.loads(json.dumps(unchanged))
@@ -611,7 +860,7 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
             tmp_path,
             "s000",
             generation,
-            70.5,
+            60.5,
             SubmissionBenchmarkId.BIOMNIBENCH_DA,
         )
     evaluation_path.write_text(json.dumps(unchanged), encoding="utf-8")
@@ -620,19 +869,19 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
             tmp_path,
             "s000",
             generation,
-            70.0,
+            60.0,
             SubmissionBenchmarkId.BIOMNIBENCH_DA,
         )
     changed = json.loads(evaluation_path.read_text(encoding="utf-8"))
     first_member = generation.bank.items[0].rubric.content_sha256
-    changed["members"][first_member]["weight"] = 0.5
+    changed["members"][first_member]["weight"] = 0.25
     evaluation_path.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(RuntimeError, match="wrong weight"):
         _load_weak_bank_score(
             tmp_path,
             "s000",
             generation,
-            70.5,
+            60.5,
             SubmissionBenchmarkId.BIOMNIBENCH_DA,
         )
 
@@ -714,37 +963,52 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
     )
 
     assert result["boundaries"]["initial"]["components"] == {
-        "verifier_exploitation": 15.5,
-        "dynamic_rubric_gap": 17.5,
+        "verifier_exploitation": 20.5,
+        "dynamic_rubric_gap": 12.5,
     }
     assert result["boundaries"]["initial"]["rubric_diagnostics"] == {
-        "active_to_selected": 0,
-        "wording_gap": 0,
-        "sealed_specification_gap": 17.5,
+        "member_to_anchor": 0,
+        "anchor_to_selected": -5,
+        "selected_to_holdout": 0,
+        "holdout_to_holistic": 17.5,
         "wording_sensitivity_standard_deviation": 20,
         "wording_sensitivity_range": 40,
     }
+    for boundary in ("initial", "final"):
+        boundary_result = result["boundaries"][boundary]
+        assert sum(
+            boundary_result["rubric_diagnostics"][name]
+            for name in (
+                "member_to_anchor",
+                "anchor_to_selected",
+                "selected_to_holdout",
+                "holdout_to_holistic",
+            )
+        ) == boundary_result["components"]["dynamic_rubric_gap"]
     assert result["boundaries"]["final"]["terminal_bank_proxy_gap"] == 20.25
     assert result["component_changes"] == {
         "verifier_exploitation": -5.25,
         "dynamic_rubric_gap": -7.5,
     }
     assert result["rubric_diagnostic_changes"] == {
-        "active_to_selected": 10,
-        "wording_gap": 10,
-        "sealed_specification_gap": -27.5,
+        "member_to_anchor": 0,
+        "anchor_to_selected": 10,
+        "selected_to_holdout": 10,
+        "holdout_to_holistic": -27.5,
         "wording_sensitivity_standard_deviation": -20,
         "wording_sensitivity_range": -40,
     }
     assert result["outcomes"] == {
         "terminal_bank_weak_gain": 14.75,
+        "selected_rubric_gain": 10,
+        "sealed_holdout_bank_gain": 0,
         "holistic_quality_gain": 27.5,
         "terminal_bank_gain_gap": -12.75,
         "optimization_induced_risk": 0,
         "reward_hacking_loss_change": -12.75,
         "online_local_weak_gain": 14.75,
-        "online_local_strong_gain": 20,
-        "online_local_verifier_gap_change": -5.25,
+        "online_local_strong_gain": 15,
+        "online_local_verifier_gap_change": -0.25,
         "pairwise_final_preference_rate": 0.875,
     }
 
@@ -753,9 +1017,9 @@ def test_dynamic_rubric_gap_rejects_a_broken_diagnostic_partition(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _mechanistic_summary(tmp_path)
-    mechanism["rubric_diagnostics"]["final"]["wording_gap"] = 11
+    mechanism["rubric_diagnostics"]["final"]["selected_to_holdout"] = 11
 
-    with pytest.raises(RuntimeError, match="do not partition"):
+    with pytest.raises(RuntimeError, match="disagrees with its source scores"):
         _combine_assignment(
             mechanism,
             {
@@ -813,6 +1077,8 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "condition_id": "adaptive-replacement",
             "outcomes": {
                 "terminal_bank_weak_gain": 11,
+                "selected_rubric_gain": 10,
+                "sealed_holdout_bank_gain": 9,
                 "holistic_quality_gain": 8,
                 "terminal_bank_gain_gap": 3,
                 "optimization_induced_risk": 3,
@@ -827,9 +1093,10 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "dynamic_rubric_gap": -1,
             },
             "rubric_diagnostic_changes": {
-                "active_to_selected": 2,
-                "wording_gap": -1,
-                "sealed_specification_gap": -2,
+                "member_to_anchor": 2,
+                "anchor_to_selected": 1,
+                "selected_to_holdout": -1,
+                "holdout_to_holistic": -3,
                 "wording_sensitivity_standard_deviation": -3,
                 "wording_sensitivity_range": -6,
             },
@@ -841,6 +1108,8 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "condition_id": "fixed",
             "outcomes": {
                 "terminal_bank_weak_gain": 9,
+                "selected_rubric_gain": 3,
+                "sealed_holdout_bank_gain": 4,
                 "holistic_quality_gain": 2,
                 "terminal_bank_gain_gap": 7,
                 "optimization_induced_risk": 7,
@@ -855,9 +1124,10 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "dynamic_rubric_gap": 6,
             },
             "rubric_diagnostic_changes": {
-                "active_to_selected": 0,
-                "wording_gap": 2,
-                "sealed_specification_gap": 4,
+                "member_to_anchor": 0,
+                "anchor_to_selected": 0,
+                "selected_to_holdout": 2,
+                "holdout_to_holistic": 4,
                 "wording_sensitivity_standard_deviation": 1,
                 "wording_sensitivity_range": 2,
             },
@@ -868,6 +1138,10 @@ def test_condition_contrasts_pair_task_replicates() -> None:
 
     assert contrast["direction"] == "left-minus-right"
     assert contrast["left_condition"] == "adaptive-replacement"
+    assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
+    assert contrast["paired_differences"][
+        "sealed_holdout_bank_gain"
+    ]["mean"] == 5
     assert contrast["paired_differences"]["holistic_quality_gain"]["mean"] == 6
     assert contrast["paired_differences"]["terminal_bank_gain_gap"]["mean"] == -4
     assert contrast["paired_differences"][
@@ -1068,6 +1342,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         rubric_path=rubric_path,
         roles=(),
         bank_members=(),
+        specification_anchors=(),
         grading_identity=grading_identity,
         review_input_sha256="2" * 64,
         answer_input_sha256="3" * 64,
@@ -1144,6 +1419,7 @@ def test_mechanistic_resume_rejects_tampered_records(
         rubric_path=rubric_path,
         roles=(),
         bank_members=(),
+        specification_anchors=(),
         grading_identity=grading_identity,
         review_input_sha256="4" * 64,
         answer_input_sha256="5" * 64,
@@ -1397,6 +1673,7 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
         rubric_path=rubric_path,
         roles=(),
         bank_members=(),
+        specification_anchors=(),
         grading_identity=grading_identity,
         review_input_sha256=rh_diagnostics.sha256_text("original trace\n"),
         answer_input_sha256=rh_diagnostics.sha256_text("answer\n"),

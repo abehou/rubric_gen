@@ -190,7 +190,7 @@ def run_dag(args: argparse.Namespace) -> int:
         return 1
     detect = argparse.Namespace(
         experiment=str(experiment.path),
-        max_concurrency=min(args.max_concurrency, 3),
+        max_concurrency=args.max_concurrency,
         resume=resume,
         vllm=vllm,
     )

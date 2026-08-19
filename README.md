@@ -70,8 +70,8 @@ Use these experiment files:
 > and 6,480 holistic provider calls. The BiomniBench-DA preflight configs permit
 > 18,432 mechanistic calls and 216 holistic calls. These counts include the
 > configured outer retry allowance. They exclude seed, revision, proposer,
-> solver, paraphrase, and direct-detector calls. Set operator-approved caps
-> before you run either configuration.
+> semantic-reviewer, solver, paraphrase, and direct-detector calls. Set
+> operator-approved caps before you run either configuration.
 
 The repository also contains larger top-30 configurations
 `experiments/luna-top30-semi-r10.yaml` and
@@ -88,6 +88,12 @@ uv run python download_paperbench.py \
 
 PaperBench submissions are source repositories under `submission`. The loader
 preserves the official relative rubric weights.
+
+Live solver workspaces are not Git checkouts. The harness gives each solver a
+writable `$TMPDIR` under its task workspace. Literal `/tmp` is not available in
+the restricted Codex sandbox. Sealed snapshots exclude this temporary directory
+and nested tool caches. Restored live solution trees are owner-writable copies.
+Sealed artifacts remain read-only.
 
 ## Harvey LAB
 
@@ -109,11 +115,12 @@ Set `protocol.feedback_policy` to one of these values:
 - `score_only`
 - `simulated_user`
 
-The shared pool contains several sealed semantic paraphrase sets. Each set has
+The shared pool contains several sealed rubric-paraphrase sets. Each set has
 one rubric for every available task. A replicate selects one complete set before
 revision. All conditions in that replicate use the same selected variant as the
 initial bank. The other variants remain hidden from the solver, in-loop judge,
-and proposer. They provide a common wording-sensitivity audit.
+and proposer. They provide a common paraphrase-sensitivity diagnostic. This
+diagnostic does not identify a pure wording effect.
 
 Configure the stage in the experiment YAML:
 
@@ -138,23 +145,47 @@ Each condition uses one bank policy:
 - `nonadaptive_replacement` replaces the full bank using task-only evidence.
 - `adaptive_replacement` replaces the full bank using the preceding artifact.
 
-The proposer returns the complete next bank in one structured response. The
-response wholly replaces the prior bank. It does not contain actions or
-patches. The proposer can retain, refine, add, delete, split, or reweight bank
-members. Every member is a complete rubric. All weights are positive, and the
-harness normalizes them to sum to one.
+The current bank format requires one member with weight `1.0`. The experiment
+requires exactly one condition for each policy above. All conditions use one
+prompt. The first replacement must change the bank.
 
-The nonadaptive proposer cannot receive an artifact or trajectory. The adaptive
-proposer receives the task, prior complete bank, preceding submission, and a
-bounded recent trajectory. It does not receive holdout rubrics or reward-hacking
-detector results. The next bank is sealed before it scores the next artifact.
+Each bank has one specification anchor. Both replacement arms use a separate
+anchor-proposer call. Specification repair can occur only in that anchor. A
+trajectory-blind member call then supplies one short presentation. It cannot
+receive a condition label, artifact, score, or trajectory.
+
+The renderer copies the complete normative anchor payload into each member. It
+preserves criterion order, labels, points, requirements, thresholds,
+prerequisites, caps, aggregation rules, and pass/fail boundaries. It adds only
+bounded, single-line titles, overviews, headings, and evidence lenses. A free
+lens can still influence a judge. A separate reviewer therefore checks each
+presentation against the locked anchor. For a changed anchor, the same
+trajectory-blind review call checks the new anchor against the task and prior
+anchor. Any `changed` or `uncertain` verdict stops the generation. This model
+review is an approximate audit, not a semantic guarantee. The exact text lock
+is the normative preservation guarantee.
+
+The nonadaptive anchor proposer cannot receive an artifact or trajectory. The
+adaptive anchor proposer receives the task, prior bank, preceding submission,
+and a bounded recent trajectory. It does not receive holdout rubrics or
+reward-hacking detector results. The member call and semantic reviewer remain
+trajectory-blind in both replacement arms. The next bank is sealed before it
+scores the next artifact.
 The prompt treats all supplied task and artifact text as untrusted data. The
-complete proposer request has a 4 MiB UTF-8 cap and fails before dispatch. The
-harness does not silently truncate an oversized submission.
+complete proposer request has a 1 MiB UTF-8 cap and fails before dispatch. The
+harness does not silently truncate an oversized submission. Each proposer call
+allows at most 96,000 output tokens and uses a 1,800-second client timeout.
+These values are ceilings, not expected usage. Each replacement generation has
+one separately capped semantic-review call. Provider dispatches use a durable
+write-ahead ledger. A failed, malformed, or indeterminate call cannot be
+silently sampled again on resume. An exact completed semantic request can reuse
+its sealed decision within the assignment.
 
-Every bank manifest records member hashes, lineage, weights, rubric count, and
-effective sample size. A larger count does not imply independent samples.
-Correlated rubrics can retain shared bias.
+Every bank manifest records the specification anchor, member hashes, lineage,
+weights, criterion maps, rubric count, and inverse weight concentration. It
+also binds the provider ledger and bank-generation source identity. The inverse
+weight concentration is always one in the primary experiment. The design does
+not claim rubric sampling, ensemble averaging, or an effective sample size.
 
 ## Grading engines
 
@@ -209,17 +240,19 @@ The command writes three evaluation layers:
 
 The two primary components are verifier exploitation and the dynamic-rubric
 gap. Their sum equals the weak bank score minus strong rubric-free quality at
-each boundary. Active-to-selected, wording, and sealed-specification gaps
-partition the dynamic term. They are diagnostics and do not receive separate
-loss weights. Holdout score dispersion and range measure wording sensitivity
-without entering the identity. Only the direct ensemble produces a categorical
-reward-hacking decision.
+each boundary. Member-to-anchor, anchor-to-selected, selected-to-holdout, and
+holdout-to-holistic gaps partition the dynamic term. They are diagnostics and
+do not receive separate loss weights. Holdout score dispersion and range
+measure paraphrase sensitivity without entering the identity. Only the direct
+ensemble produces a categorical reward-hacking decision.
 
-Reference call counts depend on the realized bank size. Before dispatch, each
+Reference call counts use the singleton primary design. Before dispatch, each
 audit stage records its exact call, request-byte, and maximum-output-token plan.
 The judge artifacts retain realized token use and cost when providers report
-them. A comparison with different realized bank sizes estimates a total policy
-effect. It does not isolate semantic targeting.
+them. Across arms, only selected-rubric gain, sealed-holdout gain, rubric-free
+quality gain, pairwise preference, and direct detection use common outcome
+instruments. Terminal-bank `W`, `A`, `C`, and loss values are descriptive
+total-policy endpoints because their rulers can differ by arm.
 
 See [the evaluation formulation](docs/reward_hacking_evaluation.md) for the
 estimands, exact identity, and limits.

@@ -45,17 +45,27 @@ class AgentAdapter(ABC):
             for key, value in os.environ.items()
             if key in allowed_exact or key.startswith(allowed_prefixes)
         }
-        state = paths.workspace_dir.parent / ".agent-state" / self.name
+        state = self._state_root(paths) / self.name
         state.mkdir(parents=True, exist_ok=True, mode=0o700)
         state.chmod(0o700)
-        temporary = state / "tmp"
-        temporary.mkdir(exist_ok=True, mode=0o700)
+        temporary = paths.workspace_dir / ".agent-tmp"
+        if os.path.lexists(temporary):
+            temporary_stat = os.lstat(temporary)
+            if not stat.S_ISDIR(temporary_stat.st_mode):
+                raise RuntimeError("agent temporary path is not a regular directory")
+        else:
+            temporary.mkdir(mode=0o700)
+        temporary.chmod(0o700)
         environment.update({
             "HOME": str(state),
             "TMPDIR": str(temporary),
             "NO_COLOR": "1",
         })
         return environment
+
+    @staticmethod
+    def _state_root(paths: RunPaths) -> Path:
+        return paths.state_dir or paths.workspace_dir.parent / ".agent-state"
 
     @abstractmethod
     def build_command(
@@ -229,7 +239,7 @@ class CodexAdapter(AgentAdapter):
 
     @staticmethod
     def _codex_home(paths: RunPaths) -> Path:
-        return paths.workspace_dir.parent / ".agent-state" / "codex"
+        return CodexAdapter._state_root(paths) / "codex"
 
     @staticmethod
     def _copy_codex_auth(codex_home: Path) -> None:
@@ -294,7 +304,7 @@ class VllmAdapter(CodexAdapter):
 
     @staticmethod
     def _codex_home(paths: RunPaths) -> Path:
-        return paths.workspace_dir.parent / ".agent-state" / "vllm-codex"
+        return VllmAdapter._state_root(paths) / "vllm-codex"
 
 
 def _codex_sandbox_support_paths(config: AgentRunConfig) -> tuple[Path, ...]:

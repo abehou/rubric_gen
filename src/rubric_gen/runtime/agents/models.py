@@ -20,6 +20,7 @@ class RunPaths:
     status_path: Path
     output_schema_path: Path | None = None
     output_last_message_path: Path | None = None
+    state_dir: Path | None = None
 
     @classmethod
     def for_task(

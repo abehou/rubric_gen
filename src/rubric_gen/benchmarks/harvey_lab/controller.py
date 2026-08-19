@@ -232,6 +232,10 @@ class HarveyEvolutionController:
         validate_checkout(
             self.experiment.benchmark.checkout,
             self.experiment.benchmark.revision,
+            (
+                *self.experiment.benchmark.development_tasks,
+                *self.experiment.benchmark.held_out_tasks,
+            ),
         )
         if self.root.exists() and not self.root.is_dir():
             raise ValueError(f"Harvey output is not a directory: {self.root}")

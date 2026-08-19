@@ -16,10 +16,11 @@ from rubric_gen.runtime.paths import PROJECT_ROOT
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
 
-EXCLUDED_SOLUTION_NAMES = frozenset(
+RECURSIVE_EXCLUDED_SOLUTION_NAMES = frozenset(
     {
-        ".git",
+        ".agent-tmp",
         ".cache",
+        ".git",
         ".mypy_cache",
         ".pytest_cache",
         ".ruff_cache",
@@ -27,11 +28,11 @@ EXCLUDED_SOLUTION_NAMES = frozenset(
         ".uv_cache",
         ".venv",
         "__pycache__",
-        "data",
-        "instruction.md",
-        "packages",
         "venv",
     }
+)
+EXCLUDED_SOLUTION_NAMES = RECURSIVE_EXCLUDED_SOLUTION_NAMES | frozenset(
+    {"data", "instruction.md", "packages"}
 )
 RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 
@@ -76,10 +77,17 @@ REVISION_MANIFEST_KEYS = frozenset(
         "rubric_proposer_model",
         "rubric_proposer_base_url",
         "rubric_proposer_max_retries",
+        "rubric_semantic_judge_model",
+        "rubric_semantic_judge_base_url",
+        "rubric_semantic_judge_max_calls",
+        "rubric_semantic_judge_max_request_bytes",
+        "rubric_semantic_judge_max_output_tokens",
+        "rubric_generation_implementation_identity",
         "initial_member_scoring_identity",
         "seed_run_dir",
         "seed_sha256",
         "service_tier",
+        "solver_base_url",
         "session_id",
         "submission_count",
         "task_dir",
@@ -242,7 +250,11 @@ def verify_submission_snapshot(submission_dir: Path) -> None:
 
 
 def tree_sha256(root: Path) -> str:
-    return _hash_tree(root, excluded_names=frozenset())
+    return _hash_tree(
+        root,
+        excluded_names=frozenset(),
+        recursive_excluded_names=frozenset(),
+    )
 
 
 def solution_tree_sha256(root: Path) -> str:
@@ -251,7 +263,11 @@ def solution_tree_sha256(root: Path) -> str:
         for child in root.iterdir()
         if is_excluded_solution_root(child)
     )
-    return _hash_tree(root, excluded_names=excluded_names)
+    return _hash_tree(
+        root,
+        excluded_names=excluded_names,
+        recursive_excluded_names=RECURSIVE_EXCLUDED_SOLUTION_NAMES,
+    )
 
 
 def is_excluded_solution_root(path: Path) -> bool:
@@ -270,6 +286,21 @@ def is_excluded_solution_root(path: Path) -> bool:
 def make_tree_read_only(root: Path) -> None:
     for path in [*root.rglob("*"), root]:
         make_read_only(path)
+
+
+def make_tree_owner_writable(root: Path) -> None:
+    """Make directories and regular files in a private live tree writable."""
+    for path in [root, *root.rglob("*")]:
+        path_stat = os.lstat(path)
+        if stat.S_ISLNK(path_stat.st_mode):
+            continue
+        if stat.S_ISDIR(path_stat.st_mode):
+            additions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+        elif stat.S_ISREG(path_stat.st_mode):
+            additions = stat.S_IRUSR | stat.S_IWUSR
+        else:
+            continue
+        path.chmod(stat.S_IMODE(path_stat.st_mode) | additions)
 
 
 def make_read_only(path: Path) -> None:
@@ -356,6 +387,8 @@ def _copy_solution_entry(
     previous: Path | None,
     stats: SnapshotCopyStats,
 ) -> None:
+    if source.name in RECURSIVE_EXCLUDED_SOLUTION_NAMES:
+        return
     source_stat = os.lstat(source)
     if stat.S_ISLNK(source_stat.st_mode):
         raise RuntimeError(f"solution snapshot contains a symlink: {source}")
@@ -450,11 +483,23 @@ def _link_solution_entry(source: Path, destination: Path) -> None:
     os.link(source, destination, follow_symlinks=False)
 
 
-def _hash_tree(root: Path, *, excluded_names: frozenset[str]) -> str:
+def _hash_tree(
+    root: Path,
+    *,
+    excluded_names: frozenset[str],
+    recursive_excluded_names: frozenset[str],
+) -> str:
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*")):
-        relative = path.relative_to(root).as_posix()
-        if Path(relative).parts[0] in excluded_names:
+        relative_path = path.relative_to(root)
+        relative = relative_path.as_posix()
+        if (
+            relative_path.parts[0] in excluded_names
+            or any(
+                part in recursive_excluded_names
+                for part in relative_path.parts[1:]
+            )
+        ):
             continue
         path_stat = os.lstat(path)
         if stat.S_ISDIR(path_stat.st_mode):

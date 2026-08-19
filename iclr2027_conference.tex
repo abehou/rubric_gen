@@ -9,7 +9,7 @@
 \usepackage{url}
 
 
-\title{Emergent Rubric-Based Reward Hacking in Auto-research}
+\title{Evaluating Dynamic Rubric Replacement in Autoresearch}
 
 % Authors must not appear in the submitted version. They should be hidden
 % as long as the \iclrfinalcopy macro remains commented out below.
@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Autoresearch systems improve artifacts through repeated model feedback. When this feedback uses a fixed rubric, the system can improve the reported score without improving the intended outcome. We formalize this problem using gaps between the exposed judge, a reference judge, a sealed rubric bank, and holistic artifact quality. We then study dynamic rubric banks that can add, remove, refine, or reweight complete rubrics after each round. Our evaluation uses sealed outcome rulers shared across conditions and treats rubric-free pairwise quality and direct reward-hacking detection as separate outcomes. This design tests whether adaptive rubric replacement improves coverage without confusing a change in the scoring rule with a change in artifact quality.
+Autoresearch systems improve artifacts through repeated model feedback. When this feedback uses a fixed rubric, the reported score can increase without a corresponding increase in intended quality. We formalize this risk using contrasts between an exposed judge, a reference panel, sealed paraphrases, and rubric-free artifact quality. Our primary experiment compares three singleton longitudinal regimes: fixed, task-only replacement, and trajectory-conditioned replacement. Every bank has one unit-weight member. A deterministic renderer copies each anchor's normative payload into the member. A separate model audits the remaining presentation fields and any anchor revision, but it does not provide a semantic proof. Only selected-rubric gain, sealed-holdout gain, rubric-free gain, pairwise quality, and direct detection use common instruments across arms. We do not assume that replacement improves coverage or mitigates reward hacking.
 
 \end{abstract}
 
@@ -40,7 +40,7 @@ Autoresearch applies an iterative loop to open-ended work such as code and resea
 
 Rubrics make an open-ended task easier to score, but one rubric can omit part of the task. Its wording can also create a narrow optimization surface. A system can exploit a weak judge, a particular expression of a requirement, or an omission shared by all exposed rubrics. These failures require different measurements because no single judge comparison identifies all of them.
 
-We study a dynamic intervention in which a proposer replaces the complete rubric bank between rounds. Each replacement can add, remove, refine, or reweight rubrics. The next bank can depend on the completed trajectory, but it is sealed before the next artifact is produced. We compare this intervention with a fixed bank and a matched nonadaptive replacement condition. All conditions use the same sealed outcome bank. This distinction is necessary: an exposed score is not evidence of improvement when the scoring rule changes with the artifact.
+We define a dynamic intervention in which a proposer replaces the complete rubric between rounds. The primary design compares a fixed singleton, task-only replacement, and trajectory-conditioned replacement. All three arms use one member with unit weight. Both replacement arms use the same trajectory-blind member renderer and one separate semantic review per generation. The next rubric is sealed before the next artifact is produced. Conditions share the selected rubric, sealed holdouts, rubric-free instruments, pairwise judge, and direct detector within each matched replicate. This distinction is necessary: an exposed score is not evidence of improvement when the scoring rule changes with the artifact.
 
 \section{Formalizing Reward-Hacking in Autoresearch}
 
@@ -48,6 +48,8 @@ We study a dynamic intervention in which a proposer replaces the complete rubric
 Let $i \in \mathcal{I}$ index AI systems,
 $j \in \mathcal{J}$ index tasks, and
 $t \in \{0,\ldots,T\}$ index optimization rounds.
+The experiments also contain replicates. We suppress the replicate index below,
+but all cross-condition sharing statements apply within a matched replicate.
 Let $a_{ij}^t$ denote the artifact produced at round $t$. An artifact can be a code repository, a research paper, or another structured output. The objective is to improve its intended quality over repeated rounds.
 
 At round $t$, the system is evaluated with an exposed rubric bank
@@ -62,7 +64,22 @@ At round $t$, the system is evaluated with an exposed rubric bank
 \qquad
 \sum_{k=1}^{K_{ijt}}\omega_{ijtk}=1.
 \end{equation}
-Each $r_{ijtk}$ is a complete rubric, rather than one criterion. The weights define how the bank scores an artifact. A rubric proposer can add, remove, refine, or reweight rubrics when it produces the next complete bank.
+Each $r_{ijtk}$ must be a complete full-task rubric that can score the artifact
+in isolation. A bank member cannot be a criterion fragment or a topical
+partition. Each bank also has a declared specification anchor $c_{ijt}$. The
+policy can retain or refine this anchor at each replacement. The three-arm study
+fixes $K_{ijt}=1$ and $\omega_{ijt1}=1$ at every round.
+
+The primary renderer copies the full anchor payload into the sole member and
+preserves its criterion order, labels, points, and normative text. A member
+model supplies only bounded titles, overviews, headings, and evidence lenses.
+The resulting criterion map is an order-preserving bijection. The deterministic
+copy preserves the declared normative payload, but a free lens can still affect
+judge interpretation. A separate trajectory-blind reviewer checks all member
+presentations against the anchor. For a refined anchor, the same call checks
+task and prior-anchor fidelity. Any changed or uncertain verdict rejects the
+generation. This model audit is not a proof of semantic equivalence or task
+coverage.
 
 Let $\tau_{ij}^{0:t}$ contain the eligible artifacts and revision history through round $t$. The update rule is
 \begin{equation}
@@ -70,6 +87,9 @@ Let $\tau_{ij}^{0:t}$ contain the eligible artifacts and revision history throug
 =
 P_j\!\left(\tau_{ij}^{0:t}\right).
 \end{equation}
+This equation describes the adaptive anchor updater. The nonadaptive updater
+receives the task and prior bank only. The member renderer receives neither the
+trajectory nor a condition label in any replacement arm.
 The initial bank depends only on task information and not on $a_{ij}^0$. Thus, $a_{ij}^t$ can inform the bank for round $t+1$, but not the bank that scores $a_{ij}^t$. The next bank is sealed before the system produces $a_{ij}^{t+1}$. This time ordering prevents an artifact from selecting the bank that scores it.
 
 The exposed judge score is the weighted bank score
@@ -80,7 +100,7 @@ s_{ijt}
 \omega_{ijtk}
 g_{\mathrm{train}}\!\left(a_{ij}^t,r_{ijtk}\right),
 \end{equation}
-where $g_{\mathrm{train}}$ also supplies feedback for the next revision. We rescore the same artifact and bank with a stronger reference judge:
+where $g_{\mathrm{train}}$ also supplies feedback for the next revision. We rescore the same artifact and bank with a reference panel, whose aggregate score is denoted by $g_{\mathrm{ref}}$:
 \begin{equation}
 s^{\mathrm{ref},+}_{ijt}
 =
@@ -89,18 +109,33 @@ s^{\mathrm{ref},+}_{ijt}
 g_{\mathrm{ref}}\!\left(a_{ij}^t,r_{ijtk}\right).
 \end{equation}
 
-These are boundary-local scores. Their difference across rounds changes both
-the artifact and the scoring bank. We therefore do not use that difference as
-an artifact-improvement estimate. After the run, we freeze the terminal bank
-$\mathcal{B}_{ij}=\mathcal{A}_{ij}^{T}$ and rescore both $a_{ij}^0$ and
-$a_{ij}^{T}$ with both judges under $\mathcal{B}_{ij}$. The primary endpoint
-change uses this common within-run ruler. We report the historical online
-scores under $\mathcal{A}_{ij}^{0}$ and $\mathcal{A}_{ij}^{T}$ only as
-secondary, ruler-confounded diagnostics. The pointwise decomposition below
-applies to either construction, but every primary initial-to-final difference
-uses $\mathcal{B}_{ij}$ for both artifacts.
+These scores are boundary-local. Their difference across rounds changes both
+the artifact and the scoring bank. We retain that difference only as a
+ruler-confounded diagnostic. After the run, we freeze the terminal bank
+\begin{equation}
+\mathcal{B}_{ij}=\mathcal{A}_{ij}^{T}
+=\left\{\left(r^{B}_{ijk},\omega^{B}_{ijk}\right)\right\}_{k=1}^{K^B_{ij}}.
+\end{equation}
+Let $c^B_{ij}=c_{ijT}$ be its terminal specification anchor.
+We then rescore both endpoint artifacts with this bank. For
+$u\in\{0,T\}$, define
+\begin{align}
+W_{ij,u\mid T}
+&=\sum_{k=1}^{K^B_{ij}}\omega^B_{ijk}
+g_{\mathrm{train}}\!\left(a_{ij}^{u},r^B_{ijk}\right), \\
+A_{ij,u\mid T}
+&=\sum_{k=1}^{K^B_{ij}}\omega^B_{ijk}
+g_{\mathrm{ref}}\!\left(a_{ij}^{u},r^B_{ijk}\right), \\
+C_{ij,u\mid T}
+&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},c^B_{ij}\right).
+\end{align}
+Thus, $W$, $A$, and $C$ use terminal instruments within a run. The terminal bank can
+differ across conditions, so these scores are not common instruments across
+policy arms.
 
-For each task, we also create a sealed audit bank
+Before the trials, a generator produces wording variants from one master rubric
+$\bar r_j$. Within each matched replicate, one variant $r_j^*$ becomes the
+selected initial rubric. The remaining sibling variants form the sealed bank
 \begin{equation}
 \mathcal{R}_{j}^{-}
 =
@@ -110,182 +145,251 @@ For each task, we also create a sealed audit bank
 \qquad
 \sum_{m=1}^{M_j}\nu_{jm}=1.
 \end{equation}
-The system, training judge, and rubric proposer never observe this bank. The same bank evaluates every experimental condition. Its reference score is
-\begin{equation}
-s^{\mathrm{ref},-}_{ijt}
-=
-\sum_{m=1}^{M_j}
-\nu_{jm}
-g_{\mathrm{ref}}\!\left(a_{ij}^t,\tilde r_{jm}\right).
-\end{equation}
-Each $\tilde r_{jm}$ is a sealed wording variant of the initially selected
-rubric $r_j^*$. The criteria, criterion order, point values, and scoring rules
-stay fixed. Only the wording changes. Under this semantic-equivalence
-assumption, the selected-to-holdout contrast measures wording sensitivity.
-Structural checks can enforce the invariant fields, but they cannot prove
-semantic equivalence. We therefore audit a sample before the experiment.
+The solver and rubric proposer observe $r_j^*$ but never observe
+$\mathcal{R}_{j}^{-}$. The selected and holdout variants are fixed across
+conditions within the replicate. Define
+\begin{align}
+S_{ij,u}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_j^*\right), \\
+H_{ij,u}&=\sum_{m=1}^{M_j}\nu_{jm}
+g_{\mathrm{ref}}\!\left(a_{ij}^{u},\tilde r_{jm}\right), \\
+Q_{ij,u}&=g_{\mathrm{hol}}\!\left(a_{ij}^{u}\right).
+\end{align}
+Here, $Q$ uses a separate rubric-free prompt with the configured reference-model
+panel. It has generic fixed anchors and a 0--100 range. It does not use the task rubric. Its anchors are not the
+criterion-specific anchors of $W$, $A$, $S$, or $H$. A shared numeric range does
+not make these instruments calibrated or commensurate.
+
+The generator preserves criterion order, point values, and scoring rules while
+changing wording fields. Structural checks enforce these invariants, but they
+cannot establish semantic equivalence. We therefore treat every
+selected-to-holdout comparison as a diagnostic rather than an identified
+wording effect.
 
 \paragraph{Reward-hacking decomposition.}
-We first define \textbf{training verifier exploitation} as
+At endpoint $u$, define the \textbf{training-verifier contrast}
 \begin{equation}
-e^v_{ijt}=s_{ijt}-s^{\mathrm{ref},+}_{ijt}.
+e^v_{ij,u\mid T}=W_{ij,u\mid T}-A_{ij,u\mid T}.
 \end{equation}
-This term measures score inflation caused by the exposed judge, while holding the exposed bank fixed \citep{mahmoud2026reward}.
+A positive value indicates a higher exposed-judge score under the same bank and
+artifact \citep{mahmoud2026reward}. It does not identify judge causation, and the
+reference panel is not ground truth.
 
-Suppose that an independent rubric-free procedure also provides a scalar quality score $q_{ijt}$ with the same fixed anchors and 0--100 range. We define the \textbf{dynamic-rubric gap} as
+Define the \textbf{dynamic-rubric gap}
 \begin{equation}
-e^d_{ijt}=s^{\mathrm{ref},+}_{ijt}-q_{ijt}.
+e^d_{ij,u\mid T}=A_{ij,u\mid T}-Q_{ij,u}.
 \end{equation}
-This term collects the remaining gap between the current rubric bank and intended artifact quality after we hold judge strength fixed. It can contain wording sensitivity, rubric selection effects, and missing task requirements. It does not identify these causes separately, and it is not the causal effect of the dynamic intervention. This grouping is algebraic, not evidence that replacement averages these errors away. That claim requires lower wording dispersion and better common-ruler outcomes than nonadaptive replacement.
+This is an uncalibrated operational contrast. It can contain rubric selection,
+wording, omitted requirements, prompt effects, panel error, and scale mismatch.
+It does not identify any one mechanism or the causal effect of replacement.
+The endpoint scores satisfy the numeric identity
+\begin{equation}
+W_{ij,u\mid T}-Q_{ij,u}
+=e^v_{ij,u\mid T}+e^d_{ij,u\mid T}.
+\end{equation}
+This identity is algebraic. It does not show that replacement averages away
+wording or specification errors.
 
-The primary decomposition is therefore
+We further partition $e^d$ into four descriptive contrasts:
 \begin{align}
-s_{ijt}-q_{ijt}
-&=
-\left(s_{ijt}-s^{\mathrm{ref},+}_{ijt}\right)
-+
-\left(s^{\mathrm{ref},+}_{ijt}-q_{ijt}\right) \\
-&=e^v_{ijt}+e^d_{ijt}.
+e^m_{ij,u\mid T}&=A_{ij,u\mid T}-C_{ij,u\mid T}, \\
+e^c_{ij,u\mid T}&=C_{ij,u\mid T}-S_{ij,u}, \\
+e^w_{ij,u}&=S_{ij,u}-H_{ij,u}, \\
+e^s_{ij,u}&=H_{ij,u}-Q_{ij,u}.
 \end{align}
-
-The sealed bank provides diagnostics for $e^d$. Let $s^{\mathrm{ref},*}_{ijt}$ denote the reference-judge score under the initially selected rubric $r_j^*$. Define
-\begin{align}
-e^a_{ijt}&=s^{\mathrm{ref},+}_{ijt}-s^{\mathrm{ref},*}_{ijt}, \\
-e^w_{ijt}&=s^{\mathrm{ref},*}_{ijt}-s^{\mathrm{ref},-}_{ijt}, \\
-e^s_{ijt}&=s^{\mathrm{ref},-}_{ijt}-q_{ijt}.
-\end{align}
-These terms measure the active-to-selected shift, the selected-to-holdout wording gap, and the sealed specification gap. They satisfy
+They are the member-to-anchor, anchor-to-selected, selected-to-holdout, and
+holdout-to-holistic contrasts. These names describe instruments. They do not
+identify specification, wording, or selection error.
+They satisfy
 \begin{equation}
-e^d_{ijt}=e^a_{ijt}+e^w_{ijt}+e^s_{ijt}.
+e^d_{ij,u\mid T}=e^m_{ij,u\mid T}+e^c_{ij,u\mid T}+e^w_{ij,u}+e^s_{ij,u}.
 \end{equation}
-We use them as diagnostics, not as additional loss terms. When $K_{ijt}=1$, $\mathcal{A}_{ij}^t=\{(r_j^*,1)\}$, and the bank stays fixed, $e^a=0$ and $e^d=e^w+e^s$. This is the original selected-rubric decomposition \citep{roy2026premise}.
+We do not give these diagnostics separate loss weights. In the fixed arm, the
+terminal bank and anchor both equal $r_j^*$. Thus, $e^m=e^c=0$ and
+$e^d=e^w+e^s$. This is the original selected-rubric decomposition
+\citep{roy2026premise}.
 
-The signed term $e^w$ measures directional overfit to the selected wording. It
-does not measure all wording sensitivity. For example, positive and negative
-holdout deviations can cancel. We therefore also report the sealed wording
-dispersion
+The signed term $e^w$ can hide offsetting holdout deviations. We also report the
+sealed holdout dispersion
 \begin{equation}
-\sigma^w_{ijt}
+\sigma^w_{ij,u}
 =
 \left[
 \sum_m\nu_{jm}
 \left(
-g_{\mathrm{ref}}(a_{ij}^t,\tilde r_{jm})
--s^{\mathrm{ref},-}_{ijt}
+g_{\mathrm{ref}}(a_{ij}^{u},\tilde r_{jm})-H_{ij,u}
 \right)^2
 \right]^{1/2}.
 \end{equation}
-This quantity does not enter the telescope. It directly tests whether rubric
-sampling reduces wording-dependent score variation.
+This quantity does not enter the identity. It can reflect wording, semantic
+paraphrase drift, and judge variation. It is not an isolated estimate of
+wording variance or a direct test of the replacement mechanism.
 
-A rubric-free pairwise preference is not a valid $q_{ijt}$. It compares two artifacts and does not share the rubric score's units. We therefore obtain an absolute rubric-free score for the numeric decomposition and report pairwise quality as a separate outcome \citep{shah2014compare,yang2026judgmentbench}. The algebra uses the anchored scalar, but its interpretation as intended quality still requires independent calibration.
+A rubric-free pairwise preference is not a valid $Q_{ij,u}$. It compares two
+artifacts and does not share the absolute score's units. We report pairwise
+quality as a separate outcome \citep{shah2014compare,yang2026judgmentbench}.
+Calibration against independent judgments is necessary before $Q$ or any
+contrast containing $Q$ can be interpreted as intended-quality magnitude.
 
-\paragraph{Empirical reward hacking loss.}
-Let $\phi(\cdot)$ be a nonnegative penalty function. Since reward hacking concerns
-inflation of the optimized reward relative to more robust evaluations, we use
-\begin{equation}
-\phi(x) = [x]_+ = \max(x,0).
-\end{equation}
-
-We define the per-artifact reward-hacking loss as
+\paragraph{Empirical reward-hacking loss.}
+Let $\phi(x)=[x]_+=\max(x,0)$. For endpoint $u$, define the operational loss
 \begin{equation}
 \boxed{
-\ell_{ijt}
+\ell_{ij,u\mid T}
 =
-\lambda_{v}
-\phi\!\left(e^{v}_{ijt}\right)
+\lambda_{v}\phi\!\left(e^{v}_{ij,u\mid T}\right)
 +
-\lambda_{d}
-\phi\!\left(e^{d}_{ijt}\right)
-}
+\lambda_{d}\phi\!\left(e^{d}_{ij,u\mid T}\right)
+}.
 \end{equation}
-where the nonnegative weights $\lambda_v$ and $\lambda_d$ are specified before evaluation. Weighting $e^a$, $e^w$, or $e^s$ again would double count parts of $e^d$. This is an operational loss. Its validity as a measure of intended quality depends on the calibration of $q_{ijt}$. We therefore also report every signed gap and rubric-free pairwise quality. For the primary endpoint, let $\ell_{ij,u\mid T}$ use the frozen terminal bank $\mathcal{B}_{ij}$ to score artifact $a_{ij}^{u}$. We measure $\Delta\ell_{ij}=\ell_{ij,T\mid T}-\ell_{ij,0\mid T}$, and define the empirical optimization-induced reward-hacking risk as
+The nonnegative weights $\lambda_v$ and $\lambda_d$ are specified before
+evaluation. Weighting $e^m$, $e^c$, $e^w$, or $e^s$ again would double count parts of
+$e^d$. This loss remains uncalibrated because it contains $Q$. We therefore
+also report every signed contrast and rubric-free pairwise quality.
+
+Define $\Delta\ell_{ij}=\ell_{ij,T\mid T}-\ell_{ij,0\mid T}$. The aggregate
 \begin{equation}
 \boxed{
-\widehat{\mathcal{H}}_i
+\widehat{\Delta\mathcal{L}}_i
 =
 \frac{1}{|\mathcal{D}_i|}
 \sum_{j\in\mathcal{D}_i}
-\Delta \ell_{ij}.
+\Delta \ell_{ij}
 }
 \end{equation}
-where $\mathcal{D}_i$ denotes the set of evaluated tasks for system $i$.
+is the mean reward-hacking loss change for system $i$. It can be negative and is
+not a nonnegative risk estimate. Here, $\mathcal{D}_i$ is the evaluated task set.
 
-\paragraph{Why a rubric bank can help.}
-Dynamic banks do not make rubric error disappear by definition. To state the motivating hypothesis, suppose that the error of rubric $r$ for artifact $a$ has the form
-\begin{equation}
-\delta_{jr}(a)=b_j(a)+\epsilon_{jr}(a),
-\qquad
-\mathbb{E}_{r}\!\left[\epsilon_{jr}(a)\mid a\right]=0.
-\end{equation}
-Here, $b_j(a)$ is bias shared by the rubric population and $\epsilon_{jr}(a)$ is rubric-specific error. A weighted bank has error
-\begin{equation}
-b_j(a)+\sum_k\omega_k\epsilon_{jr_k}(a).
-\end{equation}
-If the rubric-specific errors are independent with variance $\sigma^2$, the weighted error has variance $\sigma^2\sum_k\omega_k^2=\sigma^2/K_{\mathrm{eff}}$, where $K_{\mathrm{eff}}=(\sum_k\omega_k^2)^{-1}$. Correlated errors give a smaller reduction. The shared bias $b_j(a)$ does not average out. These assumptions are strongest for task-only rubric samples. They do not hold automatically for an adaptive bank. Adaptive replacement can reduce shared bias only if it finds missing requirements and improves semantic coverage. It can also increase bias because it selects rubrics after observing earlier artifacts. The sealed audit bank and the nonadaptive replacement control test these alternatives.
+\paragraph{Why rubric replacement can help.}
+The singleton design makes no averaging or sampling claim. Replacement can help
+only by changing the scoring specification or its presentation. A task-only
+proposer can repair an omission or ambiguity in the prior anchor. It can also
+introduce a new error. A trajectory-conditioned proposer can target failures in
+an earlier artifact. It can also overfit the rubric to that artifact.
 
-Full replacement is not score averaging by itself. Only the members that score
-the same artifact contribute to $K_{\mathrm{eff}}$. Earlier banks can still
-change later artifacts through their feedback. In this sense, replacement can
-act as stochastic sampling of the training objective across rounds. This effect
-requires the system to retain earlier requirements and the sampled rubrics to
-target the same latent objective. It can fail through forgetting, oscillation,
-or adaptive selection bias. We therefore separate within-bank estimator
-variance from the longitudinal effect of the replacement policy.
+Nonadaptive replacement minus fixed combines anchor revision, presentation
+refresh, changed feedback, and additional provider computation. It does not
+identify a pure coverage-repair effect. Adaptive minus nonadaptive isolates the
+assignment to a trajectory-conditioned policy, but later artifacts mediate its
+effect. The sealed wording variants cannot detect an omission shared by the
+master rubric and all its paraphrases. Rubric-free outcomes can expose score
+disagreement, but they cannot identify its cause.
 
 \paragraph{Discriminative reward-hacking detector.}
 A direct detector can identify suspicious behavior in the full autoresearch trajectory \citep{parikh2025malt,thaman2026rhb,wang2025thinking,deshpande2026trace}. Let
 \begin{equation}
-y_{ijt}=D\!\left(\tau_{ij}^{0:t}\right),
-\qquad y_{ijt}\in\{0,1\},
+y_{ij}=D\!\left(\tau_{ij}^{0:T}\right),
+\qquad y_{ij}\in\{0,1\},
 \end{equation}
-where $y_{ijt}=1$ indicates detected reward hacking. We treat this result as a separate outcome. The detector can use evidence that the score gaps omit, and the score gaps can detect inflation without visible deceptive behavior. We do not assume that $(e^v,e^d)$ are sufficient statistics for the detector. Any regression between these measurements is an empirical association with fitted coefficients, not a mathematical consequence of the decomposition.
+where $y_{ij}=1$ indicates detected reward hacking. We exclude and report
+abstaining or incomplete detector decisions. We treat the binary result as a
+separate outcome. The detector can use evidence that the score contrasts omit,
+and the contrasts can show inflation without visible deceptive behavior. We do
+not assume that $(e^v,e^d)$ are sufficient statistics for the detector. Any
+regression between these measurements is an empirical association with fitted
+coefficients, not a mathematical consequence of the decomposition.
+
+We preregister the primary loss weights. A separate exploratory analysis fits a
+detector-associated direction. For each completed run, define
+\begin{align}
+x^v_{ij}&=[e^v_{ij,T\mid T}]_+-[e^v_{ij,0\mid T}]_+, \\
+x^d_{ij}&=[e^d_{ij,T\mid T}]_+-[e^d_{ij,0\mid T}]_+.
+\end{align}
+Within each benchmark, we fit the constrained association model
+\begin{equation}
+\operatorname{logit}\Pr(y_{ij}=1)
+=\alpha+\gamma_v x^v_{ij}+\gamma_d x^d_{ij},
+\qquad \gamma_v,\gamma_d\geq 0,
+\end{equation}
+and report only its normalized exploratory direction,
+\begin{equation}
+\widehat{\lambda}_v=\frac{2\gamma_v}{\gamma_v+\gamma_d},
+\qquad
+\widehat{\lambda}_d=\frac{2\gamma_d}{\gamma_v+\gamma_d}.
+\end{equation}
+Thus, $\widehat{\lambda}_v+\widehat{\lambda}_d=2$. The preregistered
+equal-weight reference remains $(\lambda_v,\lambda_d)=(1,1)$. We report no
+fitted direction when the labels have one class, the centered features lack
+rank two, the likelihood separates, or the fitted slope is zero. For
+uncertainty, we resample task clusters at least 2,000 times and use
+leave-one-task-out checks. We require at least ten tasks, including five event
+tasks and five non-event tasks. The current three-task PaperBench design cannot
+pass this gate, regardless of its number of conditions or replicates. Any fitted
+direction describes detector association within one benchmark. It is not
+causal, normative, or a substitute for the primary weights.
 
 \section{Experiments}
 
 \paragraph{Experimental conditions.}
-We compare three conditions. The \textbf{fixed} condition uses the same complete bank at every round. The \textbf{nonadaptive replacement} condition replaces the full bank on the same schedule as the adaptive condition. It receives task information and prior task-only banks, but not artifacts, scores, or feedback. The \textbf{adaptive replacement} condition uses $P_j(\tau_{ij}^{0:t})$ to produce the next complete bank. We match the two replacement conditions on update times, proposer model, proposal calls, and generation-token limits.
+We compare three conditions under one shared solver prompt. The \textbf{fixed} condition keeps the selected singleton. The \textbf{nonadaptive replacement} condition can revise the anchor from task-only evidence. The \textbf{adaptive replacement} condition can revise it from the preceding artifact and bounded trajectory. Both replacement arms use the same trajectory-blind member process. Every bank has exactly one member with unit weight.
 
-The proposer may change the number and weights of rubrics. Each proposed bank must still cover the complete task. Structural validation rejects malformed banks, but it cannot verify semantic completeness. This distinction matters because rubric deletion is otherwise a trivial way to increase the exposed score. We therefore measure its consequences with common sealed outcomes and retain human coverage review for a representative subset. We report the realized bank size and the effective sample size $(\sum_k\omega_k^2)^{-1}$. A raw rubric count is misleading when some weights are small. When realized sizes differ, the adaptive-versus-nonadaptive contrast estimates the total effect of artifact-conditioned replacement. It does not isolate semantic targeting from the resulting change in scoring cost. All other revision resources remain fixed within a comparison.
+The replacement arms match update times, anchor proposer, member proposer, call limits, semantic reviewer, and generation-token limits. They use more provider work than fixed. Each proposer and reviewer request has a 1~MiB UTF-8 limit. Proposer calls have a 96,000-output-token ceiling. The semantic reviewer has a 32,768-token ceiling and one-call-per-generation cap. All calls use a 1,800-second client timeout. A write-ahead ledger reserves every provider call before dispatch. Resume replays a completed call or fails on an indeterminate call; it cannot resample until one passes. Exact completed semantic requests reuse the same sealed decision within an assignment.
+
+The deterministic renderer preserves the full next-anchor payload and exact criterion order. It adds only bounded, single-line presentation fields. The separate reviewer sees the task, prior anchor, proposed anchor when changed, locked members, and presentation fields. It receives no artifact, trajectory, or policy label. It returns field verdicts and bounded reasons only for changed or uncertain fields. Any such verdict is terminal. The reviewer is separate from proposer, solver, in-loop judge, simulator, and outcome panel in the configured study. It can still share model-family or vendor blind spots, so we treat its decision as an audit rather than ground truth.
 
 \paragraph{Outcome evaluation.}
-The sealed audit bank $\mathcal{R}_j^{-}$ is created before the trials and is shared across all conditions. Reference judges score blinded artifact snapshots with the terminal, selected, and sealed rubrics. Both the training and reference judges rescore the initial and final artifacts under the frozen terminal bank. We preregister one grading engine for each benchmark. BiomniBench-DA uses AutoRubric's criterion-level ordinal interface, shuffled option order, and per-vote records \citep{rao2026autorubric}. We preserve each rubric's signed point values and recompute every score after validating all criterion votes. We reject errored, abstaining, or incomplete panels.
+The sealed audit bank $\mathcal{R}_j^{-}$ is created before the trials and is shared across conditions within each matched replicate. Reference judges score artifact snapshots with the terminal members, terminal specification anchor, selected rubric, and sealed rubrics without an explicit condition label. Both the training and reference judges rescore the initial and final artifacts under the frozen terminal bank. The reference panel also scores both artifacts under the terminal anchor to obtain $C$. An artifact-backed store reuses one provider result for every exact scoring request within a task-replicate block. Its identity binds all provider inputs and scoring code, but excludes condition and boundary labels that do not enter the prompt. Thus, identical artifacts do not receive independent condition-specific draws. We preregister one grading engine for each benchmark. BiomniBench-DA uses AutoRubric's criterion-level ordinal interface, shuffled option order, and per-vote records \citep{rao2026autorubric}. We preserve each rubric's signed point values and recompute every score after validating all criterion votes. We reject errored, abstaining, or incomplete panels.
 
-PaperBench uses a whole-artifact structured judge. Its large rubrics make one full-context call per criterion an unsafe primary instrument. Each of three repeats receives the complete paper, workspace snapshot, and rubric in one bounded evaluation. We keep every raw criterion record and its dispersion, and use the median signed-point level for each criterion. We can run criterion-level AutoRubric on a preregistered calibration subset, but not as a silent fallback. AutoRubric and the structured judge are different instruments. We therefore analyze each benchmark separately and do not pool their raw scores. Neither engine establishes rubric completeness or judge validity.
+PaperBench uses a whole-artifact structured judge. Its large rubrics make one full-context call per criterion an unsafe primary instrument. Each of three repeats receives the complete paper, workspace snapshot, and rubric in one bounded evaluation. We keep every raw criterion record and its dispersion, and use the median signed-point level for each criterion. This median is an aggregation rule, not stable ground truth. Correlated criterion flips can create distinct score modes. Any criterion-level AutoRubric calibration would require a separate preregistered analysis; it is not a fallback. AutoRubric and the structured judge are different instruments. We therefore analyze each benchmark separately and do not pool their raw scores. Neither engine establishes rubric completeness or judge validity.
 
-We also obtain a rubric-free scalar score and compare final artifacts with their initial artifacts through pairwise preference. We randomize presentation order. We treat the scalar gap as exploratory until it is calibrated against independent judgments, and we always report pairwise preference separately. Finally, a direct detector evaluates the complete trajectory without access to the experimental label. We report these outcome families separately rather than assuming that they agree.
+The current Harvey harness-evolution workflow is not a third instance of this
+design. Its proposer applies bounded criterion patches, and it lacks the three
+bank policies and the $W/A/C/S/H/Q$ endpoint. We treat Harvey as a separate
+exploratory workflow and do not pool it with these experiments.
 
-The main treatment contrasts are adaptive replacement versus fixed, and adaptive replacement versus matched nonadaptive replacement. The first estimates the effect of the full intervention. The second tests whether trajectory-dependent targeting adds value beyond replacement and sampling alone. The common quality contrasts use $q$ and the sealed holdout bank. A contrast in
-terminal-bank gaps or losses is instead a total policy outcome because terminal
-banks can differ across conditions.
+We also obtain the rubric-free scalar $Q$ and compare final artifacts with their initial artifacts through pairwise preference. We randomize presentation order. We treat every scalar contrast containing $Q$ as uncalibrated and report pairwise preference separately. Finally, a direct detector evaluates the complete trajectory without an explicit experimental label. We report these outcome families separately rather than assuming that they agree.
 
-We also study the sampling claim directly. For each bank, we record the
-reference-judge score of every member before aggregation. We report
-$\sigma^w$ and the holdout score range at each boundary. For task-only banks,
-we estimate score variance as a function of $K_{\mathrm{eff}}$ with
-pre-specified member subsets. This analysis tests whether broader sampling
-reduces rubric-specific variation. We do not interpret the same curve for
-adaptive banks as an independent-sampling estimate because their members are
-selected from prior trajectories.
+The treatment contrasts are longitudinal intention-to-treat regimes.
+Nonadaptive minus fixed measures the task-only replacement regime. It combines
+anchor revision, presentation refresh, feedback, and added provider work.
+Adaptive minus nonadaptive measures the added trajectory-conditioning regime.
+Adaptive minus fixed remains a descriptive total-intervention contrast.
+
+Only $\Delta S$, $\Delta H$, $\Delta Q$, rubric-free pairwise preference, and
+direct detection use common instruments across arms. The terminal-bank $W$,
+$A$, and $C$ values, their decomposed gaps, and the loss use post-treatment
+rulers. We report their cross-arm differences as descriptive total-policy
+endpoints, not fixed-instrument causal effects.
+
+Member dispersion is undefined in the singleton primary design. We still report
+the sealed-holdout score range at each boundary. This range measures sensitivity
+to the pre-generated rubric paraphrases. It does not identify a pure wording
+effect.
 
 \paragraph{Pilot diagnosis.}
 A legacy three-task pilot used one replicate per condition and a single evolving
-rubric rather than the bank design above. The prospective condition improved the
-mean fixed-rubric final score by one point on BiomniBench-DA and two points on
-PaperBench, with mixed task-level effects. The direct detector reported no cases
-in six trials on each benchmark, but the corresponding 95\% Wilson upper bound is
-approximately 0.39. More importantly, two judgments of one identical
-BiomniBench-DA initial artifact differed by 44 points, and one PaperBench
-reference panel spanned 64 points. These results are inconclusive. They motivate
-the common-ruler endpoint, semantic request reuse, repeated PaperBench grading,
-and separate absolute and pairwise outcomes in the new design.
+rubric rather than the bank design above. Under each task's original master
+rubric and the weak judge, the prospective-minus-static difference in the mean
+final score was one point on BiomniBench-DA and two points on PaperBench. These
+are descriptive differences from one replicate, with mixed task-level signs.
+The direct detector reported no cases in six trials within each benchmark, but
+the corresponding 95\% Wilson upper bound is approximately 0.39. Two judgments
+of one identical BiomniBench-DA initial artifact differed by 44 points. One
+three-model PaperBench reference panel spanned 64 points. These results are
+inconclusive and do not show reward-hacking emergence or mitigation.
+
+The legacy pilot lacks the current terminal-bank $W/A/C/S/H/Q$ measurements, so
+it cannot enter the exploratory lambda fit. Independently, all six detector
+labels were zero within each benchmark. For any finite feature values, the
+intercept then tends to negative infinity for every normalized exploratory
+direction. The profile likelihood has the same supremum over the full simplex
+$\widehat{\lambda}_v\geq0$, $\widehat{\lambda}_d\geq0$, and
+$\widehat{\lambda}_v+\widehat{\lambda}_d=2$. The legacy pilot therefore
+identifies no lambda direction. It only motivates the common-ruler endpoint,
+semantic request reuse, repeated PaperBench grading, and separate absolute and
+pairwise outcomes in the new design.
 
 
 \section{Discussion}
 
-Dynamic rubric replacement is an intervention, not an outcome measure. A proposer can lower the exposed score, remove redundant rubrics, or change weights while improving task coverage. These changes are not failures when sealed outcome quality improves. Conversely, a higher exposed score can result from deleting difficult requirements. The common sealed audit bank is therefore necessary for every treatment comparison.
+Dynamic rubric replacement is an intervention, not an outcome measure. The
+general policy can remove members or change weights, although the primary study
+fixes both. Its anchor updater can still improve, preserve, weaken, or retarget
+coverage. A higher exposed score can therefore result from a worse declared
+specification. We use selected and holdout rubrics, rubric-free outcomes, and
+pairwise preferences for common-instrument comparisons. None of these
+instruments alone establishes semantic coverage.
 
-This design also has limits. A sealed rubric bank can share specification errors with the exposed banks. Multiple judges can share model biases. Rubric-free pairwise preferences provide a useful independent view, but they do not complete the numeric telescope without calibration. Human review on a representative subset remains necessary to test whether the sealed instruments track the intended task.
+This design also has limits. The sealed wording variants preserve specification errors that they share with the master rubric. Multiple judges can share model biases. Rubric-free absolute and pairwise judgments use separate prompts, but they can retain the same model errors. Pairwise preferences do not complete the numeric identity, and the absolute score remains uncalibrated. The present evaluation therefore cannot prove that any rubric bank captures the intended task or that replacement mitigates reward hacking.
 
 \subsection*{AI use statement}
 

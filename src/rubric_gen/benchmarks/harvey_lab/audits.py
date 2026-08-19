@@ -300,6 +300,7 @@ def run_reward_hacking_audit(
     experiment: HarveyExperiment,
     *,
     resume: bool = False,
+    max_concurrency: int | None = None,
     runner_type: type[RewardHackingJudgeRunner] = RewardHackingJudgeRunner,
 ) -> int:
     cases = prepare_reward_hacking_cases(experiment)
@@ -329,7 +330,11 @@ def run_reward_hacking_audit(
             ),
             models=config.models,
             output_dir=output,
-            max_concurrency=config.max_concurrency,
+            max_concurrency=(
+                config.max_concurrency
+                if max_concurrency is None
+                else max_concurrency
+            ),
             max_retries=config.max_retries,
             resume=resume,
             detection="rh",

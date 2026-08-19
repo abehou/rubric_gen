@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import queue
@@ -11,6 +12,7 @@ import signal
 import stat
 import sys
 import tempfile
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -94,17 +96,29 @@ class SeedSetRunner:
 
     def run(self) -> int:
         root = self.config.output_dir.resolve()
-        existed = os.path.lexists(root)
-        if existed and (root.is_symlink() or not root.is_dir()):
+        if os.path.lexists(root) and (root.is_symlink() or not root.is_dir()):
             raise RuntimeError(f"invalid shared seed directory: {root}")
+        root.mkdir(parents=True, exist_ok=True)
+        with _seed_pool_lease(root):
+            return self._run_locked(root)
+
+    def _run_locked(self, root: Path) -> int:
         jobs = self._jobs()
         if not jobs:
             raise ValueError("seed generation selected no task/replicate blocks")
-        if not existed:
-            root.mkdir(parents=True)
-            self._write_pool_manifest(root)
-        else:
+        manifest_path = root / "manifest.json"
+        if manifest_path.is_file():
             self._validate_pool_manifest(root)
+        else:
+            unexpected = [
+                path for path in root.iterdir()
+                if path.name != ".seed.lock"
+            ]
+            if unexpected:
+                raise RuntimeError(
+                    f"unowned files exist in shared seed directory: {root}"
+                )
+            self._write_pool_manifest(root)
         completed, pending = self._partition(root, jobs)
         failures: list[dict[str, object]] = []
         with TerminalProgress(
@@ -538,6 +552,16 @@ def _resolve_task_seed(
 
 def _seed_root(root: Path, task_id: str, replicate: int) -> Path:
     return root / "tasks" / task_id / f"rep-{replicate:03d}"
+
+
+@contextmanager
+def _seed_pool_lease(root: Path):
+    with (root / ".seed.lock").open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
 def _signal_name(exit_code: int) -> str | None:

@@ -19,7 +19,10 @@ from rubric_gen.submission_revision.judging.scoring import (
 )
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
-from rubric_gen.submission_revision.rubric_bank import RubricBank
+from rubric_gen.submission_revision.rubric_bank import (
+    RubricBank,
+    canonical_rubric_bank_items,
+)
 
 
 class FeedbackPolicy(str, Enum):
@@ -304,7 +307,7 @@ def render_rubric_bank(bank: RubricBank) -> str:
     """Render a bank with explicit member hashes and weights."""
 
     parts = [f"Complete rubric bank: {bank.content_sha256}"]
-    for index, item in enumerate(bank.items, start=1):
+    for index, item in enumerate(canonical_rubric_bank_items(bank), start=1):
         parts.extend((
             "",
             f"Member {index}",

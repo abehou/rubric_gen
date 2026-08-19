@@ -1,7 +1,7 @@
 kind: rubric-gen-randomized-experiment
 benchmark: paperbench-code-dev
 
-tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/paperbench-code-dev
+tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/paperbench-code-dev-contextualized
 tasks:
   - semantic-self-consistency
   - self-expansion
@@ -39,7 +39,11 @@ protocol:
   review: workspace
   max_review_chars: null
   rubric_proposer_model: gpt-5.6-luna
-  rubric_proposer_max_retries: 1
+  rubric_semantic_judge_model: gpt-5.5-2026-04-23
+  rubric_semantic_judge_max_calls_per_assignment: 6
+  rubric_semantic_judge_max_request_bytes_per_call: 1048576
+  rubric_semantic_judge_max_output_tokens_per_call: 32768
+  rubric_proposer_max_retries: 5
 
 rubric_paraphrases:
   count: 4
@@ -71,10 +75,10 @@ outcome_audit:
 dag:
   seed:
     depends_on: []
-    output_dir: ../seeds/paperbench-code-dev-luna-common
+    output_dir: ../seeds/paperbench-code-dev-contextualized-luna-clean-workspaces
   paraphrase:
     depends_on: []
-    output_dir: ../runs/paperbench-code-dev-rubric-paraphrases/luna-wording-only
+    output_dir: ../runs/paperbench-code-dev-rubric-paraphrases/contextualized-luna-wording-only
   revise:
     depends_on: [seed, paraphrase]
     output_dir: ../runs/paperbench-code-dev-studies/{experiment_id}

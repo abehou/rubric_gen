@@ -12,7 +12,10 @@ from rubric_gen.submission_revision.feedback import (
     MAX_SIMULATED_USER_COMMENT_CHARS,
 )
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
-from rubric_gen.submission_revision.rubric_bank import RubricBank
+from rubric_gen.submission_revision.rubric_bank import (
+    RubricBank,
+    canonical_rubric_bank_items,
+)
 
 
 SIMULATED_USER_GENERATION_KIND = "submission-simulated-user-feedback"
@@ -328,7 +331,7 @@ def _bank_criteria(bank: RubricBank) -> tuple[tuple[str, ...], str]:
 
     criterion_ids: list[str] = []
     parts: list[str] = []
-    for item in bank.items:
+    for item in canonical_rubric_bank_items(bank):
         rubric_hash = item.rubric.content_sha256
         member_criteria = tuple(parse_rubric_levels_strict(item.rubric.content))
         if not member_criteria:

@@ -69,7 +69,11 @@ def make_tree_read_only(root: Path) -> None:
     root.chmod(stat.S_IMODE(os.lstat(root).st_mode) & ~0o222)
 
 
-def validate_checkout(checkout: Path, revision: str) -> None:
+def validate_checkout(
+    checkout: Path,
+    revision: str,
+    task_ids: tuple[str, ...],
+) -> None:
     required = (
         checkout / "harness" / "run.py",
         checkout / "harness" / "system_prompt.md",
@@ -92,16 +96,67 @@ def validate_checkout(checkout: Path, revision: str) -> None:
     if result.returncode != 0 or result.stdout.strip() != revision:
         observed = result.stdout.strip() or result.stderr.strip() or "unknown"
         raise ValueError(f"Harvey checkout revision is {observed}, expected {revision}")
-    dirty = subprocess.run(
-        ["git", "-C", str(checkout), "status", "--porcelain", "--untracked-files=no"],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
-    )
-    if dirty.returncode != 0 or dirty.stdout.strip():
+    tracked_inputs = [
+        "harness",
+        "evaluation",
+        "sandbox",
+        "utils",
+        "pyproject.toml",
+        "uv.lock",
+        *(f"tasks/{task_id}" for task_id in task_ids),
+    ]
+    try:
+        dirty = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(checkout),
+                "diff",
+                "--quiet",
+                "--no-ext-diff",
+                revision,
+                "--",
+                *tracked_inputs,
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("timed out validating Harvey checkout inputs") from exc
+    if dirty.returncode == 1:
         raise ValueError("Harvey checkout has tracked changes; use a clean pinned checkout")
+    if dirty.returncode != 0:
+        detail = dirty.stderr.strip() or dirty.stdout.strip() or "unknown git error"
+        raise ValueError(f"could not validate Harvey checkout inputs: {detail}")
+    try:
+        untracked = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(checkout),
+                "ls-files",
+                "--others",
+                "--",
+                *tracked_inputs,
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("timed out validating untracked Harvey checkout inputs") from exc
+    if untracked.returncode != 0:
+        detail = untracked.stderr.strip() or untracked.stdout.strip() or "unknown git error"
+        raise ValueError(f"could not validate untracked Harvey checkout inputs: {detail}")
+    if untracked.stdout:
+        raise ValueError(
+            "Harvey checkout has untracked input files; use a clean pinned checkout"
+        )
 
 
 def task_path(root: Path, task_id: str) -> Path:

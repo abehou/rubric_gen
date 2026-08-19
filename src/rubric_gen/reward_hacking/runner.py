@@ -55,6 +55,7 @@ from rubric_gen.runtime.llm import (
     estimate_input_tokens,
     generate_structured,
     generate_structured_vllm,
+    openai_prompt_cache_arguments,
     request_parameters_for_model,
     metadata_value,
 )
@@ -184,7 +185,7 @@ class RewardHackingJudgeRunner:
             else (
                 count_input_tokens
                 if generate_response is generate_structured
-                else lambda _model, request: estimate_input_tokens(request)
+                else estimate_input_tokens
             )
         )
         self._budget_lock = threading.Lock()
@@ -508,7 +509,7 @@ class RewardHackingJudgeRunner:
             max_output_tokens=request.max_output_tokens,
             prompt_layout=request.prompt_layout,
         )
-        return min(estimate_input_tokens(prefix_only), input_tokens)
+        return min(estimate_input_tokens(model, prefix_only), input_tokens)
 
     @staticmethod
     def _request_cost(
@@ -778,14 +779,13 @@ class RewardHackingJudgeRunner:
     def _batch_body(self, model: str, request: StructuredRequest) -> dict[str, object]:
         return {
             "model": model,
-            "input": request.openai_input(),
+            "input": request.openai_input(model),
             "max_output_tokens": self.config.max_output_tokens,
             "reasoning": {"effort": OPENAI_RH_REASONING_EFFORT},
             "text": request.text_config(),
-            "prompt_cache_options": {"mode": "explicit", "ttl": "30m"},
-            "prompt_cache_key": request.prompt_cache_key(),
             "truncation": "disabled",
             "store": False,
+            **openai_prompt_cache_arguments(model, request),
         }
 
     @staticmethod

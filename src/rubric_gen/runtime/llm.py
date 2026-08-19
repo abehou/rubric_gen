@@ -26,6 +26,10 @@ OPENAI_REASONING_EFFORT = "none"
 OPENAI_TEXT_VERBOSITY = "low"
 ANTHROPIC_EFFORT = "low"
 GEMINI_THINKING_LEVEL = "low"
+OPENAI_EXPLICIT_PROMPT_CACHE_MODELS = frozenset({
+    "gpt-5.6-luna",
+    "gpt-5.6-sol",
+})
 _TOKEN_COUNTER_CLIENTS: dict[tuple[str, str], object] = {}
 _TOKEN_COUNTER_CLIENTS_LOCK = threading.Lock()
 
@@ -62,7 +66,12 @@ class StructuredRequest:
         separator = "\n" if self.prompt_layout == "cached_user_prefix" else "\n\n"
         return self.instructions.rstrip() + separator + self.evidence.lstrip()
 
-    def openai_input(self) -> list[dict[str, object]]:
+    def openai_input(self, model: str) -> list[dict[str, object]]:
+        cache_breakpoint = (
+            {"prompt_cache_breakpoint": {"mode": "explicit"}}
+            if openai_supports_explicit_prompt_cache(model)
+            else {}
+        )
         if self.prompt_layout == "cached_user_prefix":
             return [{
                 "role": "user",
@@ -70,7 +79,7 @@ class StructuredRequest:
                     {
                         "type": "input_text",
                         "text": self.instructions,
-                        "prompt_cache_breakpoint": {"mode": "explicit"},
+                        **cache_breakpoint,
                     },
                     {"type": "input_text", "text": self.evidence},
                 ],
@@ -81,7 +90,7 @@ class StructuredRequest:
                 "content": [{
                     "type": "input_text",
                     "text": self.instructions,
-                    "prompt_cache_breakpoint": {"mode": "explicit"},
+                    **cache_breakpoint,
                 }],
             },
             {"role": "user", "content": self.evidence},
@@ -165,6 +174,24 @@ class GenerationResult:
         }
 
 
+def openai_supports_explicit_prompt_cache(model: str) -> bool:
+    """Return whether the OpenAI model accepts explicit prompt-cache fields."""
+
+    return model in OPENAI_EXPLICIT_PROMPT_CACHE_MODELS
+
+
+def openai_prompt_cache_arguments(
+    model: str,
+    request: StructuredRequest,
+) -> dict[str, object]:
+    if not openai_supports_explicit_prompt_cache(model):
+        return {}
+    return {
+        "prompt_cache_options": {"mode": "explicit", "ttl": "30m"},
+        "prompt_cache_key": request.prompt_cache_key(),
+    }
+
+
 def request_parameters_for_model(
     model: str,
     *,
@@ -203,7 +230,7 @@ def request_parameters_for_model(
             "prompt_cache": {"ttl": "5m"},
             "response_format": "json_schema",
         }
-    return {
+    parameters: dict[str, object] = {
         "provider": "openai",
         "requested_model": model,
         "max_output_tokens": max_output_tokens,
@@ -212,9 +239,13 @@ def request_parameters_for_model(
         "client_timeout_seconds": HOSTED_REQUEST_TIMEOUT_SECONDS,
         "client_max_retries": 0,
         "response_format": "json_schema",
-        "prompt_cache": {"mode": "explicit", "ttl": "30m"},
-        "prompt_cache_key": "sha256-of-layout-and-stable-prefix",
     }
+    if openai_supports_explicit_prompt_cache(model):
+        parameters.update({
+            "prompt_cache": {"mode": "explicit", "ttl": "30m"},
+            "prompt_cache_key": "sha256-of-layout-and-stable-prefix",
+        })
+    return parameters
 
 
 def metadata_value(value: object) -> object:
@@ -254,12 +285,12 @@ def _package_version(name: str) -> str | None:
         return None
 
 
-def estimate_input_tokens(request: StructuredRequest) -> int:
+def estimate_input_tokens(model: str, request: StructuredRequest) -> int:
     """Conservative local estimate used to choose initial chunk boundaries."""
 
     payload = json.dumps(
         {
-            "input": request.openai_input(),
+            "input": request.openai_input(model),
             "text": request.text_config(),
             "reasoning": {"effort": OPENAI_REASONING_EFFORT},
         },
@@ -317,7 +348,7 @@ def count_input_tokens(model: str, request: StructuredRequest) -> int:
         client = _token_counter_client("openai", key)
         response = client.responses.input_tokens.count(  # type: ignore[attr-defined]
             model=model,
-            input=request.openai_input(),
+            input=request.openai_input(model),
             reasoning={"effort": OPENAI_REASONING_EFFORT},
             text={"format": request.text_config()["format"]},
             truncation="disabled",
@@ -375,7 +406,7 @@ def count_input_tokens(model: str, request: StructuredRequest) -> int:
         value = content_tokens + schema_reservation
         provider = "Gemini"
     else:
-        return estimate_input_tokens(request)
+        return estimate_input_tokens(model, request)
     if type(value) is not int or value <= 0:
         raise RuntimeError(
             f"{provider} token counter returned an invalid count: {value!r}"
@@ -465,14 +496,13 @@ def generate_structured(
         max_retries=0,
     ).responses.create(
         model=model,
-        input=request_value.openai_input(),
+        input=request_value.openai_input(model),
         max_output_tokens=request_value.max_output_tokens,
         reasoning={"effort": OPENAI_REASONING_EFFORT},
         text=request_value.text_config(),
-        prompt_cache_options={"mode": "explicit", "ttl": "30m"},
-        prompt_cache_key=request_value.prompt_cache_key(),
         truncation="disabled",
         store=False,
+        **openai_prompt_cache_arguments(model, request_value),
     )
     if not response.output_text:
         raise RuntimeError("OpenAI returned an empty response")

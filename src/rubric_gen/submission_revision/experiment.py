@@ -15,7 +15,11 @@ from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
+from rubric_gen.submission_revision.rubric_bank import CompleteRubric, RubricBankPolicy
+from rubric_gen.submission_revision.evolution import (
+    MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
+    MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
+)
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
 from rubric_gen.submission_revision.judging.models import safe_basename
@@ -200,6 +204,8 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
+    condition_prompts: list[PromptProfile] = []
+    condition_policies: list[RubricBankPolicy] = []
     for condition in conditions:
         if not isinstance(condition, dict) or set(condition) != {
             "condition_id", "prompt", "rubric_policy"
@@ -217,13 +223,27 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         if type(rubric_policy) is not str:
             raise ValueError("condition rubric_policy must be a string")
         condition_ids.append(condition_id)
-        PromptProfile(prompt)
-        RubricBankPolicy(rubric_policy)
+        condition_prompts.append(PromptProfile(prompt))
+        condition_policies.append(RubricBankPolicy(rubric_policy))
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):
         raise ValueError("condition IDs must be unique portable identifiers")
+    if (
+        len(condition_policies) != len(RubricBankPolicy)
+        or set(condition_policies) != set(RubricBankPolicy)
+    ):
+        raise ValueError(
+            "conditions must contain exactly one arm for each rubric policy"
+        )
+    if len(set(condition_prompts)) != 1:
+        raise ValueError("all three rubric-policy arms must use one shared prompt")
     _validate_protocol(payload["protocol"])
+    _validate_master_rubrics(
+        tasks_dir,
+        tuple(tasks),
+        str(payload["protocol"]["rubric_name"]),
+    )
     _validate_rubric_paraphrases(payload["rubric_paraphrases"])
     contract.validate_review(payload["protocol"]["review"])
     audit = payload["outcome_audit"]
@@ -263,6 +283,22 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError("outcome_audit models must be a list of strings")
     if type(audit["primary_rule"]) is not str:
         raise ValueError("outcome_audit primary_rule must be a string")
+    protocol = payload["protocol"]
+    feedback_policy = FeedbackPolicy(str(protocol["feedback_policy"]))
+    semantic_judge_model = protocol["rubric_semantic_judge_model"]
+    excluded_semantic_judge_models = {
+        protocol["rubric_proposer_model"],
+        protocol["judge_model"],
+        protocol["solver"]["model"],
+        *audit_models,
+    }
+    if feedback_policy is FeedbackPolicy.SIMULATED_USER:
+        excluded_semantic_judge_models.add(protocol["feedback_simulator"]["model"])
+    if semantic_judge_model in excluded_semantic_judge_models:
+        raise ValueError(
+            "rubric semantic judge must differ from the solver, rubric proposer, "
+            "submission judge, feedback simulator, and every outcome-audit model"
+        )
     expected_audit = outcome_audit_protocol(
         models=tuple(audit_models),
         primary_rule=audit["primary_rule"],
@@ -345,6 +381,23 @@ def _validate_rubric_paraphrases(value: object) -> None:
         raise ValueError("rubric paraphrase retries must be non-negative")
 
 
+def _validate_master_rubrics(
+    tasks_dir: Path,
+    task_ids: tuple[str, ...],
+    rubric_name: str,
+) -> None:
+    """Reject invalid master rubrics before any experiment stage runs."""
+
+    for task_id in task_ids:
+        rubric_path = tasks_dir / task_id / "tests" / rubric_name
+        if rubric_path.is_symlink() or not rubric_path.is_file():
+            raise ValueError(f"master rubric is missing or symlinked: {rubric_path}")
+        try:
+            CompleteRubric.from_content(rubric_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as exc:
+            raise ValueError(f"master rubric is invalid for {task_id}: {exc}") from exc
+
+
 def _derived_experiment_id(payload: dict[str, Any]) -> str:
     """Derive one readable identity from the experiment's semantic YAML."""
 
@@ -373,6 +426,10 @@ def _validate_protocol(protocol: object) -> None:
         "judge_max_retries", "rubric_name", "review", "max_review_chars",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",
+        "rubric_semantic_judge_model",
+        "rubric_semantic_judge_max_calls_per_assignment",
+        "rubric_semantic_judge_max_request_bytes_per_call",
+        "rubric_semantic_judge_max_output_tokens_per_call",
     }
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
@@ -406,9 +463,35 @@ def _validate_protocol(protocol: object) -> None:
         type(max_review_chars) is not int or max_review_chars < 1
     ):
         raise ValueError("max_review_chars must be null or a positive integer")
-    for name in ("rubric_proposer_model",):
+    for name in ("rubric_proposer_model", "rubric_semantic_judge_model"):
         if type(protocol[name]) is not str or not protocol[name].strip():
             raise ValueError(f"{name} must be nonempty")
+    if protocol["rubric_semantic_judge_model"] == protocol["rubric_proposer_model"]:
+        raise ValueError("rubric semantic judge must differ from the rubric proposer")
+    if (
+        type(protocol["rubric_semantic_judge_max_calls_per_assignment"]) is not int
+        or protocol["rubric_semantic_judge_max_calls_per_assignment"]
+        != protocol["revision_rounds"]
+    ):
+        raise ValueError(
+            "rubric semantic judge call cap must equal revision_rounds"
+        )
+    if (
+        type(protocol["rubric_semantic_judge_max_request_bytes_per_call"])
+        is not int
+        or not 1
+        <= protocol["rubric_semantic_judge_max_request_bytes_per_call"]
+        <= MAX_SEMANTIC_REVIEW_REQUEST_BYTES
+    ):
+        raise ValueError("rubric semantic judge request-byte cap is invalid")
+    if (
+        type(protocol["rubric_semantic_judge_max_output_tokens_per_call"])
+        is not int
+        or not 1
+        <= protocol["rubric_semantic_judge_max_output_tokens_per_call"]
+        <= MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS
+    ):
+        raise ValueError("rubric semantic judge output-token cap is invalid")
     if (
         type(protocol["rubric_proposer_max_retries"]) is not int
         or protocol["rubric_proposer_max_retries"] < 0

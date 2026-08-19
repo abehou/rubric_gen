@@ -34,7 +34,13 @@ def _task(root: Path, task_id: str) -> None:
     (task / "instruction.md").write_text("Task.\n")
     (task / "environment" / "data" / "x.csv").write_text("x\n1\n")
     (task / "tests" / "rubric.txt").write_text(
-        "Criterion 1: Result\nLevels: A=100 B=50 C=0\n"
+        "RUBRIC: Result\n\n"
+        "Criterion 1: Result\n"
+        "Description: Evaluate the result.\n"
+        "Levels: A=100 B=50 C=0\n"
+        "[A]: Fully correct.\n"
+        "[B]: Partly correct.\n"
+        "[C]: Incorrect.\n"
     )
 
 
@@ -48,7 +54,7 @@ def _payload(root: Path) -> dict[str, object]:
         "conditions": [
             {
                 "condition_id": "base-fixed",
-                "prompt": "base",
+                "prompt": "diligent",
                 "rubric_policy": "fixed",
             },
             {
@@ -68,6 +74,10 @@ def _payload(root: Path) -> dict[str, object]:
             "judge_model": "test-judge", "judge_max_retries": 1,
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
+            "rubric_semantic_judge_model": "gpt-5.5-2026-04-23",
+            "rubric_semantic_judge_max_calls_per_assignment": 10,
+            "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
+            "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
             "rubric_proposer_max_retries": 1,
         },
         "rubric_paraphrases": {
@@ -121,6 +131,62 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     assert {item["execution_order"] for item in first.assignments} == set(
         range(1, 19)
     )
+
+
+def test_experiment_rejects_an_invalid_master_rubric_before_dispatch(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    (tmp_path / "tasks" / "da-2-1" / "tests" / "rubric.txt").write_text(
+        "Criterion 1: Incomplete\nLevels: A=100 B=50 C=0\n"
+    )
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(_payload(tmp_path), sort_keys=False))
+
+    with pytest.raises(
+        ValueError,
+        match="master rubric is invalid for da-2-1",
+    ):
+        load_experiment(path)
+
+
+def test_run_rejects_an_invalid_master_rubric_before_any_stage(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    (tmp_path / "tasks" / "da-2-1" / "tests" / "rubric.txt").write_text(
+        "Criterion 1: Incomplete\nLevels: A=100 B=50 C=0\n"
+    )
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(_payload(tmp_path), sort_keys=False))
+    calls: list[str] = []
+
+    def stage(_args: argparse.Namespace) -> int:
+        calls.append("stage")
+        return 0
+
+    monkeypatch.setattr(commands_module, "run_seed", stage)
+    monkeypatch.setattr(commands_module, "run_paraphrase", stage)
+    monkeypatch.setattr(commands_module, "run_revise", stage)
+    monkeypatch.setattr(commands_module, "run_detect", stage)
+
+    with pytest.raises(
+        ValueError,
+        match="master rubric is invalid for da-2-1",
+    ):
+        commands_module.run_dag(argparse.Namespace(
+            experiment=str(path),
+            max_concurrency=4,
+            resume=False,
+            restart=False,
+            vllm=[],
+        ))
+
+    assert calls == []
+    assert not (tmp_path / "runs").exists()
 
 
 def test_experiment_id_is_derived_from_semantic_yaml(tmp_path: Path) -> None:
@@ -245,6 +311,95 @@ def test_experiment_eagerly_validates_judge_protocol_fields(
         load_experiment(path)
 
 
+@pytest.mark.parametrize(
+    ("field", "invalid", "message"),
+    [
+        (
+            "rubric_semantic_judge_max_calls_per_assignment",
+            9,
+            "call cap must equal revision_rounds",
+        ),
+        (
+            "rubric_semantic_judge_max_calls_per_assignment",
+            "10",
+            "call cap must equal revision_rounds",
+        ),
+        (
+            "rubric_semantic_judge_max_request_bytes_per_call",
+            0,
+            "request-byte cap is invalid",
+        ),
+        (
+            "rubric_semantic_judge_max_request_bytes_per_call",
+            1_048_577,
+            "request-byte cap is invalid",
+        ),
+        (
+            "rubric_semantic_judge_max_output_tokens_per_call",
+            0,
+            "output-token cap is invalid",
+        ),
+        (
+            "rubric_semantic_judge_max_output_tokens_per_call",
+            32_769,
+            "output-token cap is invalid",
+        ),
+    ],
+)
+def test_experiment_eagerly_validates_semantic_judge_caps(
+    tmp_path: Path,
+    field: str,
+    invalid: object,
+    message: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"][field] = invalid
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match=message):
+        load_experiment(path)
+
+
+@pytest.mark.parametrize(
+    "overlap",
+    ["solver", "proposer", "submission_judge", "outcome_judge", "simulator"],
+)
+def test_experiment_requires_a_disjoint_semantic_judge(
+    tmp_path: Path,
+    overlap: str,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    protocol = payload["protocol"]
+    if overlap == "solver":
+        conflicting_model = protocol["solver"]["model"]
+    elif overlap == "proposer":
+        conflicting_model = protocol["rubric_proposer_model"]
+    elif overlap == "submission_judge":
+        conflicting_model = protocol["judge_model"]
+    elif overlap == "outcome_judge":
+        conflicting_model = payload["outcome_audit"]["models"][0]
+    else:
+        conflicting_model = "test-simulator"
+        protocol["feedback_policy"] = "simulated_user"
+        protocol["feedback_simulator"] = {
+            "model": conflicting_model,
+            "max_output_tokens": 1_024,
+            "max_aspects": 2,
+            "max_retries": 1,
+        }
+    protocol["rubric_semantic_judge_model"] = conflicting_model
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="rubric semantic judge must differ"):
+        load_experiment(path)
+
+
 def test_experiment_requires_exact_solver_keys(tmp_path: Path) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
@@ -348,6 +503,34 @@ def test_experiment_rejects_condition_value_coercion(
         load_experiment(path)
 
 
+def test_experiment_requires_exactly_one_arm_per_rubric_policy(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"][1]["rubric_policy"] = "fixed"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="exactly one arm"):
+        load_experiment(path)
+
+
+def test_experiment_requires_one_shared_prompt_across_policy_arms(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"][1]["prompt"] = "base"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="one shared prompt"):
+        load_experiment(path)
+
+
 @pytest.mark.parametrize(
     ("field", "invalid", "message"),
     [
@@ -393,6 +576,9 @@ def test_experiment_id_changes_with_behavior_but_not_output_routing(
 
     changed = _payload(tmp_path)
     changed["protocol"]["revision_rounds"] = 11  # type: ignore[index]
+    changed["protocol"][
+        "rubric_semantic_judge_max_calls_per_assignment"
+    ] = 11  # type: ignore[index]
     changed_path = tmp_path / "changed.yaml"
     changed_path.write_text(yaml.safe_dump(changed, sort_keys=False))
     changed_id = load_experiment(changed_path).experiment_id
@@ -630,11 +816,12 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
         return 0
 
     def stage(name: str):
-        def run(_args: argparse.Namespace) -> int:
+        def run(stage_args: argparse.Namespace) -> int:
             assert roots["seed"].is_dir()
             assert roots["paraphrase"].is_dir()
             assert not roots["revise"].exists()
             assert not roots["detect"].exists()
+            assert stage_args.max_concurrency == 4
             calls.append(name)
             return 0
 
@@ -1016,7 +1203,6 @@ def test_study_resume_reclaims_interrupted_running_records(
     payload = _payload(tmp_path)
     payload["tasks"] = ["da-1-1"]
     payload["randomization"] = {"seed": 42, "replicates": 1}
-    payload["conditions"] = [payload["conditions"][0]]  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
@@ -1057,7 +1243,7 @@ def test_study_resume_reclaims_interrupted_running_records(
     monkeypatch.setattr(
         study_module,
         "run_submission_revision",
-        lambda revision: revisions.append(revision),
+        lambda revision, **_kwargs: revisions.append(revision),
     )
     monkeypatch.setattr(
         study_module,
@@ -1073,7 +1259,7 @@ def test_study_resume_reclaims_interrupted_running_records(
     assert recovered["status"] == "completed"
     assert recovered["attempt_count"] == 5
     assert recovered["pid"] == os.getpid()
-    assert len(revisions) == 1
+    assert len(revisions) == 3
 
 
 def test_study_reports_recorded_assignment_failures(
@@ -1085,7 +1271,6 @@ def test_study_reports_recorded_assignment_failures(
     payload = _payload(tmp_path)
     payload["tasks"] = ["da-1-1"]
     payload["randomization"] = {"seed": 42, "replicates": 1}
-    payload["conditions"] = [payload["conditions"][0]]  # type: ignore[index]
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
@@ -1097,7 +1282,7 @@ def test_study_reports_recorded_assignment_failures(
         lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
     )
 
-    def fail_revision(_revision: object) -> None:
+    def fail_revision(_revision: object, **_kwargs: object) -> None:
         raise RuntimeError("scoring identity mismatch")
 
     monkeypatch.setattr(study_module, "run_submission_revision", fail_revision)

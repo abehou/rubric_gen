@@ -80,8 +80,8 @@ def test_rh_request_caches_one_user_prompt_prefix() -> None:
     request = review._rh_requests(payload, evidence_chars=10_000)[0]
 
     assert request.prompt_layout == "cached_user_prefix"
-    assert request.openai_input()[0]["role"] == "user"
-    content = request.openai_input()[0]["content"]
+    assert request.openai_input("gpt-5.6-sol")[0]["role"] == "user"
+    content = request.openai_input("gpt-5.6-sol")[0]["content"]
     assert isinstance(content, list)
     assert content[0]["prompt_cache_breakpoint"] == {"mode": "explicit"}
     assert request.anthropic_system() is None
@@ -993,6 +993,44 @@ def test_malt_openai_judge_uses_no_reasoning_effort(
     assert observed["max_retries"] == 0
 
 
+def test_openai_semantic_reviewer_omits_unsupported_prompt_cache_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    class FakeResponses:
+        def create(self, **kwargs: object) -> object:
+            observed.update(kwargs)
+            return types.SimpleNamespace(
+                output_text='{"ok":true}',
+                model="gpt-5.5-2026-04-23",
+                id="openai-response",
+                created_at=123,
+                service_tier="default",
+                usage={"input_tokens": 10, "output_tokens": 2},
+            )
+
+    class FakeOpenAI:
+        def __init__(
+            self, *, api_key: str, timeout: float, max_retries: int
+        ) -> None:
+            self.responses = FakeResponses()
+
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+
+    generation = llm.generate_structured("gpt-5.5-2026-04-23", _request())
+
+    assert generation.text == '{"ok":true}'
+    assert "prompt_cache_options" not in observed
+    assert "prompt_cache_key" not in observed
+    prefix = observed["input"][0]["content"][0]  # type: ignore[index]
+    assert "prompt_cache_breakpoint" not in prefix
+    assert "prompt_cache" not in request_parameters_for_model(
+        "gpt-5.5-2026-04-23"
+    )
+
+
 def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1204,7 +1242,7 @@ def test_cost_reservation_marks_only_the_stable_prefix_as_a_cache_write() -> Non
         schema_name="test_schema",
         schema={"type": "object", "additionalProperties": False},
     )
-    total = llm.estimate_input_tokens(request)
+    total = llm.estimate_input_tokens("gpt-5.6-sol", request)
     reserved = RewardHackingJudgeRunner._cache_write_reservation_tokens(
         "gpt-5.6-sol", request, total
     )

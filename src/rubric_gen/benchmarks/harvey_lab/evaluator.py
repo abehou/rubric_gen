@@ -7,6 +7,8 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -60,9 +62,20 @@ def aggregate_scores(
 class HarveyEvaluator:
     """Run candidate code in a temporary Harvey tree with controller-owned scoring."""
 
-    def __init__(self, experiment: HarveyExperiment, *, uv_executable: str = "uv") -> None:
+    def __init__(
+        self,
+        experiment: HarveyExperiment,
+        *,
+        uv_executable: str = "uv",
+        max_concurrency: int = 1,
+    ) -> None:
+        if type(max_concurrency) is not int or max_concurrency < 1:
+            raise ValueError("Harvey max_concurrency must be a positive integer")
         self.experiment = experiment
         self.uv_executable = uv_executable
+        self.max_concurrency = max_concurrency
+        self._podman_lock = threading.Lock()
+        self._podman_environment: dict[str, str] | None = None
 
     def evaluate(
         self,
@@ -79,28 +92,42 @@ class HarveyEvaluator:
         with tempfile.TemporaryDirectory(prefix="rubric-gen-harvey-") as temporary:
             runtime = Path(temporary)
             self._materialize_runtime(runtime, harness, task_files)
+
+            def evaluate_task(task_id: str) -> tuple[str, dict[str, object]]:
+                task_destination = stage / "tasks" / task_id
+                task_destination.mkdir(parents=True)
+                run_id = candidate_id + "--" + task_id.replace("/", "--")
+                self._run_task(runtime, task_id, run_id, task_destination / "agent.log")
+                self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
+                result = runtime / "results" / run_id
+                copied_result = task_destination / "result"
+                copy_regular_tree(result, copied_result)
+                score = read_json_object(copied_result / "scores.json", "Harvey score")
+                return task_id, score
+
             with TerminalProgress(
                 total=len(task_files),
                 description=f"Harvey {candidate_id} evaluation",
                 unit="task",
             ) as progress:
-                for task_id in task_files:
-                    progress.set_status(f"agent {task_id}")
-                    task_destination = stage / "tasks" / task_id
-                    task_destination.mkdir(parents=True)
-                    run_id = candidate_id + "--" + task_id.replace("/", "--")
-                    self._run_task(runtime, task_id, run_id, task_destination / "agent.log")
-                    progress.set_status(f"judge {task_id}")
-                    self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
-                    result = runtime / "results" / run_id
-                    copied_result = task_destination / "result"
-                    copy_regular_tree(result, copied_result)
-                    score = read_json_object(copied_result / "scores.json", "Harvey score")
-                    scores[task_id] = score
-                    progress.update()
+                workers = min(self.max_concurrency, len(task_files))
+                with ThreadPoolExecutor(max_workers=workers) as pool:
+                    futures = {
+                        pool.submit(evaluate_task, task_id): task_id
+                        for task_id in task_files
+                    }
+                    for future in as_completed(futures):
+                        task_id, score = future.result()
+                        progress.set_status(task_id)
+                        scores[task_id] = score
+                        progress.update()
             validate_checkout(
                 self.experiment.benchmark.checkout,
                 self.experiment.benchmark.revision,
+                (
+                    *self.experiment.benchmark.development_tasks,
+                    *self.experiment.benchmark.held_out_tasks,
+                ),
             )
         evaluation = aggregate_scores(candidate_id, scores)
         (stage / "summary.json").write_text(
@@ -139,28 +166,42 @@ class HarveyEvaluator:
         with tempfile.TemporaryDirectory(prefix="rubric-gen-harvey-rescore-") as temporary:
             runtime = Path(temporary)
             self._materialize_runtime(runtime, None, task_files)
+
+            def rescore_task(
+                item: tuple[str, Path],
+            ) -> tuple[str, dict[str, object]]:
+                task_id, source = item
+                run_id = candidate_id + "--" + task_id.replace("/", "--")
+                runtime_result = runtime / "results" / run_id
+                runtime_result.parent.mkdir(parents=True, exist_ok=True)
+                copy_regular_tree(source, runtime_result)
+                self._make_tree_writable(runtime_result)
+                task_destination = stage / "tasks" / task_id
+                task_destination.mkdir(parents=True)
+                self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
+                score = read_json_object(runtime_result / "scores.json", "crossed Harvey score")
+                (task_destination / "scores.json").write_text(
+                    json.dumps(score, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+                return task_id, score
+
             with TerminalProgress(
                 total=len(source_results),
                 description=f"Harvey {candidate_id} rescore",
                 unit="task",
             ) as progress:
-                for task_id, source in source_results.items():
-                    progress.set_status(task_id)
-                    run_id = candidate_id + "--" + task_id.replace("/", "--")
-                    runtime_result = runtime / "results" / run_id
-                    runtime_result.parent.mkdir(parents=True, exist_ok=True)
-                    copy_regular_tree(source, runtime_result)
-                    self._make_tree_writable(runtime_result)
-                    task_destination = stage / "tasks" / task_id
-                    task_destination.mkdir(parents=True)
-                    self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
-                    score = read_json_object(runtime_result / "scores.json", "crossed Harvey score")
-                    (task_destination / "scores.json").write_text(
-                        json.dumps(score, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-                        encoding="utf-8",
-                    )
-                    scores[task_id] = score
-                    progress.update()
+                workers = min(self.max_concurrency, len(source_results))
+                with ThreadPoolExecutor(max_workers=workers) as pool:
+                    futures = {
+                        pool.submit(rescore_task, item): item[0]
+                        for item in source_results.items()
+                    }
+                    for future in as_completed(futures):
+                        task_id, score = future.result()
+                        progress.set_status(task_id)
+                        scores[task_id] = score
+                        progress.update()
         evaluation = aggregate_scores(candidate_id, scores)
         (stage / "summary.json").write_text(
             json.dumps(
@@ -304,22 +345,61 @@ class HarveyEvaluator:
         }
         environment = {name: value for name, value in os.environ.items() if name in allowed}
         environment.update({name: os.environ[name] for name in credential_names})
-        image: str | None = None
-        cache_root: Path | None = None
         if label == "task agent":
-            image = self.experiment.task_agent.sandbox_image
-            cache_root = (
-                self.experiment.cache_dir / self.experiment.benchmark.revision
-            )
-            environment = configured_podman_environment(
-                environment,
-                cache_root=cache_root,
-            )
-            restore_cached_image(
-                environment,
-                cache_root=cache_root,
-                image=image,
-            )
+            self._execute_task_agent(command, runtime, log, environment)
+            return
+        self._run_command(command, runtime, log, environment, label)
+
+    def _execute_task_agent(
+        self,
+        command: list[str],
+        runtime: Path,
+        log: Path,
+        environment: dict[str, str],
+    ) -> None:
+        image = self.experiment.task_agent.sandbox_image
+        cache_root = self.experiment.cache_dir / self.experiment.benchmark.revision
+        with self._podman_lock:
+            if self._podman_environment is None:
+                configured = configured_podman_environment(
+                    environment,
+                    cache_root=cache_root,
+                )
+                if restore_cached_image(
+                    configured,
+                    cache_root=cache_root,
+                    image=image,
+                ):
+                    cache_image(configured, cache_root=cache_root, image=image)
+                    self._podman_environment = configured
+                else:
+                    self._run_command(
+                        command,
+                        runtime,
+                        log,
+                        configured,
+                        "task agent",
+                    )
+                    cache_image(configured, cache_root=cache_root, image=image)
+                    self._podman_environment = configured
+                    return
+            task_environment = dict(self._podman_environment)
+        self._run_command(
+            command,
+            runtime,
+            log,
+            task_environment,
+            "task agent",
+        )
+
+    @staticmethod
+    def _run_command(
+        command: list[str],
+        runtime: Path,
+        log: Path,
+        environment: dict[str, str],
+        label: str,
+    ) -> None:
         environment["PWD"] = str(runtime)
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("w", encoding="utf-8") as stream:
@@ -334,5 +414,3 @@ class HarveyEvaluator:
             )
         if result.returncode != 0:
             raise RuntimeError(f"{label} failed with exit code {result.returncode}; see {log}")
-        if image is not None and cache_root is not None:
-            cache_image(environment, cache_root=cache_root, image=image)

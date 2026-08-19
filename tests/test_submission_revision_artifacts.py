@@ -83,6 +83,34 @@ def test_solution_snapshot_excludes_dependency_directories(tmp_path: Path) -> No
     assert all(not (snapshot / name).exists() for name in (".venv", "venv", "packages"))
 
 
+def test_solution_snapshot_excludes_nested_caches_and_agent_temp(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    package = workspace / "submission" / "package"
+    cache = package / "__pycache__"
+    nested_data = package / "data"
+    temporary = workspace / ".agent-tmp"
+    cache.mkdir(parents=True)
+    nested_data.mkdir()
+    temporary.mkdir()
+    (package / "module.py").write_text("VALUE = 1\n")
+    (cache / "module.pyc").write_bytes(b"bytecode-1")
+    (nested_data / "config.json").write_text("{}\n")
+    (temporary / "smoke.out").write_text("temporary\n")
+
+    first_digest = solution_tree_sha256(workspace)
+    (cache / "module.pyc").write_bytes(b"bytecode-2")
+    (temporary / "smoke.out").write_text("changed\n")
+    snapshot = tmp_path / "snapshot"
+    copy_solution_workspace(workspace, snapshot)
+
+    assert solution_tree_sha256(workspace) == first_digest
+    assert not (snapshot / ".agent-tmp").exists()
+    assert not (snapshot / "submission" / "package" / "__pycache__").exists()
+    assert (snapshot / "submission" / "package" / "data" / "config.json").is_file()
+
+
 def test_solution_snapshot_excludes_marker_identified_virtualenv(
     tmp_path: Path,
 ) -> None:

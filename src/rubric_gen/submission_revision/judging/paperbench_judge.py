@@ -18,7 +18,9 @@ from rubric_gen.submission_revision.judging.scoring import (
     parse_score_normalization_maximum,
 )
 
-from .autorubric_judge import provider_and_litellm_model
+from rubric_gen.submission_revision.judging.autorubric_judge import (
+    provider_and_litellm_model,
+)
 
 
 PAPERBENCH_ENGINE_IDENTITY = {

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import stat
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -113,44 +116,60 @@ class CodexHarnessDesigner:
         expected_input_sha256: str,
         candidate_harnesses: dict[str, Path],
     ) -> DesignedCandidate:
+        state_root = self._agent_state_root()
         run_dir.mkdir(parents=True, exist_ok=True)
         attempt_streams: list[Path] = []
         attempt_records: list[dict[str, object]] = []
         exit_code = 1
         validation_error: str | None = None
         for attempt in range(1, self.config.retries + 2):
-            attempt_dir = run_dir / "attempts" / f"attempt-{attempt:03d}"
-            attempt_dir.mkdir(parents=True)
-            prompt = DESIGNER_PROMPT if attempt == 1 else (
-                "Continue the harness-design task in this workspace. The prior "
-                "attempt did not leave valid final artifacts. Correct this validation "
-                f"error: {validation_error or 'missing proposal.json or candidate/harness'}. "
-                "Finish proposal.json and candidate/harness now without asking questions."
+            state = Path(
+                tempfile.mkdtemp(
+                    prefix="rubric-gen-harvey-designer-",
+                    dir=state_root,
+                )
             )
-            paths = RunPaths(
-                provider="codex",
-                run_dir=attempt_dir,
-                workspace_dir=workspace,
-                prompt_path=attempt_dir / "prompt.txt",
-                policy_path=attempt_dir / "no-web-policy.toml",
-                stream_path=attempt_dir / "trajectory.stream.jsonl",
-                status_path=attempt_dir / "status.json",
-            )
-            runner = AgentRunner(
-                AgentRunConfig(
+            try:
+                self._validate_agent_state(
+                    state,
+                    state_root,
+                    require_private_mode=True,
+                )
+                attempt_dir = run_dir / "attempts" / f"attempt-{attempt:03d}"
+                attempt_dir.mkdir(parents=True)
+                prompt = DESIGNER_PROMPT if attempt == 1 else (
+                    "Continue the harness-design task in this workspace. The prior "
+                    "attempt did not leave valid final artifacts. Correct this validation "
+                    f"error: {validation_error or 'missing proposal.json or candidate/harness'}. "
+                    "Finish proposal.json and candidate/harness now without asking questions."
+                )
+                paths = RunPaths(
                     provider="codex",
-                    model=self.config.model,
-                    reasoning_effort=self.config.reasoning_effort,
-                    service_tier=self.config.service_tier,
-                    retries=0,
-                    timeout_seconds=self.config.timeout_seconds,
-                    quiet=False,
-                ),
-                prompt=prompt,
-                output_errors=RegularFileOutputs(("proposal.json",)),
-            )
-            runner.ensure_executable()
-            process_exit = runner.stream(paths)
+                    run_dir=attempt_dir,
+                    workspace_dir=workspace,
+                    prompt_path=attempt_dir / "prompt.txt",
+                    policy_path=attempt_dir / "no-web-policy.toml",
+                    stream_path=attempt_dir / "trajectory.stream.jsonl",
+                    status_path=attempt_dir / "status.json",
+                    state_dir=state,
+                )
+                runner = AgentRunner(
+                    AgentRunConfig(
+                        provider="codex",
+                        model=self.config.model,
+                        reasoning_effort=self.config.reasoning_effort,
+                        service_tier=self.config.service_tier,
+                        retries=0,
+                        timeout_seconds=self.config.timeout_seconds,
+                        quiet=False,
+                    ),
+                    prompt=prompt,
+                    output_errors=RegularFileOutputs(("proposal.json",)),
+                )
+                runner.ensure_executable()
+                process_exit = runner.stream(paths)
+            finally:
+                self._remove_agent_state(state, state_root)
             errors = runner.trajectory_errors(paths.stream_path)
             output_error = not (workspace / "proposal.json").is_file() or not (
                 workspace / "candidate" / "harness"
@@ -221,6 +240,97 @@ class CodexHarnessDesigner:
             service_tier=self.config.service_tier,
         ).fields()
         return DesignedCandidate(parent, harness, proposal, digest, trajectory, cost)
+
+    @staticmethod
+    def _agent_state_root() -> Path:
+        configured = os.environ.get("SLURM_TMPDIR")
+        if not configured:
+            raise RuntimeError(
+                "Harvey designer requires SLURM_TMPDIR for node-local agent state"
+            )
+        root = Path(configured)
+        if not root.is_absolute():
+            raise RuntimeError(
+                f"Harvey designer SLURM_TMPDIR must be absolute: {root}"
+            )
+        try:
+            details = root.lstat()
+        except OSError as exc:
+            raise RuntimeError(
+                f"Harvey designer SLURM_TMPDIR is not accessible: {root}"
+            ) from exc
+        if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
+            raise RuntimeError(
+                f"Harvey designer SLURM_TMPDIR must be a regular directory: {root}"
+            )
+        if details.st_uid != os.getuid():
+            raise RuntimeError(
+                f"Harvey designer SLURM_TMPDIR must be owned by this user: {root}"
+            )
+        if stat.S_IMODE(details.st_mode) != stat.S_IRWXU:
+            raise RuntimeError(
+                f"Harvey designer SLURM_TMPDIR must have mode 0700: {root}"
+            )
+        try:
+            resolved = root.resolve(strict=True)
+        except OSError as exc:
+            raise RuntimeError(
+                f"Harvey designer SLURM_TMPDIR cannot be resolved: {root}"
+            ) from exc
+        if resolved != root:
+            raise RuntimeError(
+                "Harvey designer SLURM_TMPDIR must not contain symbolic-link "
+                f"components: {root}"
+            )
+        return root
+
+    @staticmethod
+    def _validate_agent_state(
+        state: Path,
+        root: Path,
+        *,
+        require_private_mode: bool,
+    ) -> None:
+        if not state.is_absolute() or state.parent != root:
+            raise RuntimeError(
+                f"Harvey designer agent state escaped SLURM_TMPDIR: {state}"
+            )
+        try:
+            details = state.lstat()
+        except OSError as exc:
+            raise RuntimeError(
+                f"Harvey designer agent state is not accessible: {state}"
+            ) from exc
+        if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
+            raise RuntimeError(
+                f"Harvey designer agent state must be a regular directory: {state}"
+            )
+        if details.st_uid != os.getuid():
+            raise RuntimeError(
+                f"Harvey designer agent state must be owned by this user: {state}"
+            )
+        if require_private_mode and stat.S_IMODE(details.st_mode) != stat.S_IRWXU:
+            raise RuntimeError(
+                f"Harvey designer agent state must have mode 0700: {state}"
+            )
+        try:
+            resolved = state.resolve(strict=True)
+        except OSError as exc:
+            raise RuntimeError(
+                f"Harvey designer agent state cannot be resolved: {state}"
+            ) from exc
+        if resolved != state or not resolved.is_relative_to(root):
+            raise RuntimeError(
+                f"Harvey designer agent state escaped SLURM_TMPDIR: {state}"
+            )
+
+    @classmethod
+    def _remove_agent_state(cls, state: Path, root: Path) -> None:
+        if not os.path.lexists(state):
+            return
+        cls._validate_agent_state(state, root, require_private_mode=False)
+        state.chmod(stat.S_IRWXU)
+        shutil.rmtree(state)
 
     @staticmethod
     def _validate_artifacts(
