@@ -155,9 +155,9 @@ weights. The proposer never chooses points or weights.
 Each update uses two proposer calls. The first call finds uncovered differences
 in three blinded artifact pairs. The second call turns recurring differences
 into general criteria. Each criterion must cite at least two pair IDs. A
-separate model reviews every proposed criterion. It checks task relevance,
-generality, evidence support, evaluability, and duplication. A rejected or
-uncertain review stops the update.
+separate call reviews every proposed criterion with the same Luna model. It
+checks task relevance, generality, evidence support, evaluability, and
+duplication. A rejected or uncertain review stops the update.
 
 The online condition compares the current artifact with the prior artifact,
 the initial artifact, and a midpoint artifact. Sealed seed artifacts fill any
@@ -197,11 +197,11 @@ separate and explicit.
 
 | Role | Model | Reasoning | Calls |
 |---|---|---|---:|
-| Solver | GPT-5.6 Luna | high | One solver run per revision turn |
+| Solver | GPT-5.6 Luna | low | One solver run per revision turn |
 | Rubric paraphraser | GPT-5.6 Luna | none; low text verbosity | Four variants per task; up to two retries each |
-| Difference finder | GPT-5.6 Luna | high; low text verbosity | One per rubric update, plus up to five validation retries |
-| Criterion writer | GPT-5.6 Luna | high; low text verbosity | One per rubric update, plus up to five validation retries |
-| Criterion reviewer | GPT-5.5, pinned `gpt-5.5-2026-04-23` | high; low text verbosity | One per rubric update |
+| Difference finder | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
+| Criterion writer | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
+| Criterion reviewer | GPT-5.6 Luna | low; low text verbosity | One per rubric update |
 | In-loop rubric grader | GPT-5.6 Luna | none | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | Claude Opus 5 | low effort | Five full-rubric calls per artifact and rubric |

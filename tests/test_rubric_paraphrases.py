@@ -111,7 +111,7 @@ def _experiment(
             "solver": {
                 "provider": "codex",
                 "model": "test-model",
-                "reasoning_effort": "high",
+                "reasoning_effort": "low",
                 "service_tier": None,
                 "executable": None,
                 "retries": 1,

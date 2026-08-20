@@ -54,9 +54,9 @@ and one shared solver prompt.
 - `online_elicitation` uses three bounded live-history pairs.
 
 Each update uses one difference-finding call, one criterion-writing call, and
-one independent review call. The two elicitation arms use the same models,
-prompts, call limits, criterion cap, score split, and update schedule. The only
-planned evidence difference is sealed versus live artifact pairs.
+one separate fail-closed review call. The two elicitation arms use the same
+models, prompts, call limits, criterion cap, score split, and update schedule.
+The only planned evidence difference is sealed versus live artifact pairs.
 
 Offline-minus-fixed measures the total effect of static criterion elicitation.
 Online-minus-offline measures assignment to live-history elicitation. It also
@@ -323,9 +323,10 @@ The pairwise test selects trajectory extremes with a noisy five-call mean. This
 selection can exaggerate the observed score gap. The result tests agreement
 with the operational rubric ordering. It is not an unbiased quality estimate.
 
-The criterion gate uses a separate reviewer model, not an independent semantic
-oracle. It can share vendor and model-family blind spots with other roles. It
-can reject visible defects, but it cannot prove that a criterion is correct.
+The criterion gate uses the same Luna model as the proposer in a separate call.
+It is not an independent semantic oracle. It can share the proposer's blind
+spots. It can reject visible defects, but it cannot prove that a criterion is
+correct.
 All three online pairs share the current artifact. Support from two pairs is
 therefore not independent replication.
 

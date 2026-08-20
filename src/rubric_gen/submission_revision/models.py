@@ -126,27 +126,6 @@ class SubmissionRevisionConfig:
         ):
             if type(model) is not str or not model.strip():
                 raise ValueError(f"{name} must be nonempty")
-        if self.rubric_semantic_judge_model == self.rubric_proposer_model:
-            raise ValueError(
-                "rubric semantic judge must differ from the rubric proposer"
-            )
-        if self.rubric_semantic_judge_model == self.agent.model:
-            raise ValueError("rubric semantic judge must differ from the solver")
-        if (
-            self.judge_model is not None
-            and self.rubric_semantic_judge_model == self.judge_model
-        ):
-            raise ValueError(
-                "rubric semantic judge must differ from the submission judge"
-            )
-        if (
-            self.feedback_simulator is not None
-            and self.rubric_semantic_judge_model
-            == self.feedback_simulator.model
-        ):
-            raise ValueError(
-                "rubric semantic judge must differ from the feedback simulator"
-            )
         if (
             type(self.rubric_semantic_judge_max_calls) is not int
             or self.rubric_semantic_judge_max_calls

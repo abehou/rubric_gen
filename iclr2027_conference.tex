@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment compares three single-rubric regimes: fixed, offline elicitation from sealed pairs, and online elicitation from live history. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate model to review them. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether holistic pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
+Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment compares three single-rubric regimes: fixed, offline elicitation from sealed pairs, and online elicitation from live history. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate fail-closed call to review them. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether holistic pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
 
 \end{abstract}
 
@@ -71,7 +71,7 @@ equally. The program fixes this rule. The proposer cannot choose weights.
 Each update uses three blinded artifact pairs $\mathcal P_{ij}^t$. The first
 model stage finds task-relevant differences that the current rubric does not
 cover. The second stage turns recurring differences into general criteria. A
-criterion must cite support from at least two pairs. A separate model rejects a
+criterion must cite support from at least two pairs. A separate review call rejects a
 criterion that is redundant, task-specific to one artifact, unevaluable, or
 poorly supported. This review is an audit, not a semantic proof.
 All online pairs share the current artifact, so two-pair support is not
@@ -333,9 +333,10 @@ semantic rejection. A write-ahead ledger binds every provider call and resume.
 The difference finder sees the task, current rubric, and three blinded pairs.
 The criterion writer sees the task, current rubric, and found differences. The
 reviewer sees those inputs and the proposed criteria. None receives scores or
-newer/older labels. The reviewer is separate from the proposer, solver, in-loop
-judge, simulator, and outcome panel. It can still share model-family or vendor
-blind spots, so we treat its decision as an audit rather than ground truth.
+newer/older labels. The reviewer uses the same Luna model as the proposer,
+solver, in-loop judge, and simulator. It uses a separate prompt and call. The
+outcome panel uses different models. We treat this review as an audit rather
+than ground truth.
 
 \paragraph{Outcome evaluation.}
 The sealed holdout set $\mathcal{R}_j^{-}$ is created before the trials and is

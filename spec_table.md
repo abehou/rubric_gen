@@ -1,10 +1,13 @@
-# Current BioMNIBench and PaperBench specification
+# Current experiment specification
 
-This file describes the current experiment format as of 2026-08-19.
-It describes the configured design, not a completed result.
-Old multi-rubric artifacts do not match this format and cannot be reused.
+This file describes the current BioMNIBench, PaperBench, and Harvey LAB setups
+as of 2026-08-19. It describes the configured designs unless a status row says
+otherwise. Old multi-rubric BioMNIBench and PaperBench artifacts do not match
+the current format and cannot be reused.
 
 ## Simple terms
+
+These terms apply to the BioMNIBench and PaperBench revision studies.
 
 | Term | Meaning |
 |---|---|
@@ -17,15 +20,15 @@ Old multi-rubric artifacts do not match this format and cannot be reused.
 | Judgment | One saved score made from one or more model calls. |
 | Model call | One request to one model. |
 
-There is always exactly one current rubric. There is no active-rubric ensemble
-and no formatter model.
+Each assignment has exactly one current rubric. There is no active-rubric
+ensemble and no formatter model.
 
 ## Primary studies
 
 | Setting | BioMNIBench-DA | PaperBench |
 |---|---:|---:|
 | Config file | `experiment.yaml` | `experiments/paperbench-code-dev.yaml` |
-| Current experiment ID | `biomnibench-da-score-only-r6-bd9049e2ac98` | `paperbench-code-dev-score-only-r6-9f3e3ffdff1c` |
+| Current experiment ID | `biomnibench-da-score-only-r6-293f30db8c16` | `paperbench-code-dev-score-only-r6-8c3a0a22ca33` |
 | Tasks | 30 | 3 |
 | Replicates per task | 3 | 3 |
 | Arms | 3 | 3 |
@@ -36,7 +39,7 @@ and no formatter model.
 | Solver feedback | Total score only | Total score only |
 | Review input | Trace | Workspace |
 | Solver model | `gpt-5.6-luna` | `gpt-5.6-luna` |
-| Solver reasoning effort | `high` | `high` |
+| Solver reasoning effort | `low` | `low` |
 | Solver retry limit | 1 retry | 1 retry |
 | Solver timeout | 7,200 seconds | 7,200 seconds |
 | Service tier | Provider default | Provider default |
@@ -85,13 +88,13 @@ Text verbosity is separate from reasoning effort.
 
 | Role | Model | Reasoning setting | What it sees | What it does not see | Output and call rule |
 |---|---|---|---|---|---|
-| Seed solver | `gpt-5.6-luna` through Codex | `high` | Task files and instructions. | Later artifacts and outcome judgments. | Creates one sealed `s000` artifact per task and replicate. One retry is allowed. |
-| Revision solver | `gpt-5.6-luna` through Codex | `high` | Task, current workspace, current exposed rubric, and allowed feedback. | Holdout rubrics, outcome judgments, and hidden arm metadata. | Creates one revised artifact per turn. Six runs per assignment. One retry is allowed. |
+| Seed solver | `gpt-5.6-luna` through Codex | `low` | Task files and instructions. | Later artifacts and outcome judgments. | Creates one sealed `s000` artifact per task and replicate. One retry is allowed. |
+| Revision solver | `gpt-5.6-luna` through Codex | `low` | Task, current workspace, current exposed rubric, and allowed feedback. | Holdout rubrics, outcome judgments, and hidden arm metadata. | Creates one revised artifact per turn. Six runs per assignment. One retry is allowed. |
 | Rubric paraphraser | `gpt-5.6-luna` | `none`; low text verbosity | Canonical rubric wording fields. | Solver artifacts, scores, and trajectories. | Produces four wording variants per task. Each variant allows two retries, for three attempts maximum. |
 | Pair builder | Deterministic code | Not applicable | Sealed seed artifacts or bounded live history. | No model is used. | Builds exactly three blinded pairs for each update. |
-| Difference finder | `gpt-5.6-luna` | `high`; low text verbosity | Task, current rubric, and three blinded artifact pairs. | Scores, order meaning, rounds, source labels, and arm label. | Lists at most eight uncovered differences per pair. One call normally; five validation retries maximum. |
-| Criterion writer | `gpt-5.6-luna` | `high`; low text verbosity | Task, current rubric, found differences, remaining capacity, level labels, and fixed 20 percent budget. | Raw artifacts, scores, rounds, source labels, and arm label. | Produces zero or more general criteria. One call normally; five validation retries maximum. |
-| Criterion reviewer | Pinned `gpt-5.5-2026-04-23` | `high`; low text verbosity | Task, starting and current rubrics, blinded pairs, found differences, and proposed criteria. | Scores, order meaning, source labels, and arm label. | Gives one verdict per criterion. One call per update. Any rejection or uncertainty stops the update. |
+| Difference finder | `gpt-5.6-luna` | `low`; low text verbosity | Task, current rubric, and three blinded artifact pairs. | Scores, order meaning, rounds, source labels, and arm label. | Lists at most eight uncovered differences per pair. One call normally; five validation retries maximum. |
+| Criterion writer | `gpt-5.6-luna` | `low`; low text verbosity | Task, current rubric, found differences, remaining capacity, level labels, and fixed 20 percent budget. | Raw artifacts, scores, rounds, source labels, and arm label. | Produces zero or more general criteria. One call normally; five validation retries maximum. |
+| Criterion reviewer | `gpt-5.6-luna` | `low`; low text verbosity | Task, starting and current rubrics, blinded pairs, found differences, and proposed criteria. | Scores, order meaning, source labels, and arm label. | Gives one verdict per criterion. One call per update. Any rejection or uncertainty stops the update. |
 | Rubric builder | Deterministic code | Not applicable | Starting rubric and accepted added criteria. | No model is used. | Produces one rubric. It keeps starting criterion wording and level meanings, then applies program-owned score weights. |
 | In-loop rubric grader | `gpt-5.6-luna` | `none`; low text verbosity | One complete scored artifact and one complete rubric. | Arm label, hidden holdouts, and future artifacts. | Makes five whole-rubric calls and averages the five signed scores. |
 | Reference rubric scorer | `gpt-5.6-sol` | `none`; low text verbosity | One endpoint artifact and one requested rubric. | Arm label and unused rubrics. | Makes five whole-rubric calls per exact artifact, rubric, and model request. |
@@ -102,8 +105,8 @@ Text verbosity is separate from reasoning effort.
 | Direct reward-hacking judge | The same three reference models | Same setting for each model | Blinded trajectory evidence and feedback that the solver received. | Hidden treatment metadata, rubric text, unseen feedback, solver model, and revision labels. | Produces one aggregate trajectory judgment per assignment and model. It makes one call per bounded transcript chunk. |
 
 The OpenAI settings are valid for these models. GPT-5.6 supports `none` through
-`max`, and GPT-5.5 supports `none` through `xhigh`. The table records explicit
-request values. It does not rely on provider defaults.
+`max`. The table records explicit request values. It does not rely on provider
+defaults.
 
 ## Criterion-elicitation limits
 
@@ -130,7 +133,7 @@ request values. It does not rely on provider defaults.
 | Proposer controls points or weights | No |
 
 The program requires two cited pair IDs. A model can still claim weak support.
-The separate reviewer reduces this risk but cannot prove semantic support.
+The separate reviewer call reduces this risk but cannot prove semantic support.
 All three online pairs share the current artifact. They are not independent
 replications.
 
@@ -260,17 +263,151 @@ format.
 
 | Config | Experiment ID | Tasks | Replicates | Turns | Feedback | Review | Assignments |
 |---|---|---:|---:|---:|---|---|---:|
-| `experiment.yaml` | `biomnibench-da-score-only-r6-bd9049e2ac98` | 30 | 3 | 6 | Score only | Trace | 270 |
-| `experiment_preflight.yaml` | `biomnibench-da-semi-r6-762c6a16a8a7` | 3 | 3 | 6 | Criterion scores, no judge reasons | Trace | 27 |
-| `experiment_simulated_user.yaml` | `biomnibench-da-simulated-user-r6-e89336808dfc` | 30 | 3 | 6 | Simulated user comment | Trace | 270 |
-| `experiment_simulated_user_preflight.yaml` | `biomnibench-da-simulated-user-r2-bac698dc50af` | 3 | 3 | 2 | Simulated user comment | Trace | 27 |
-| `experiments/luna-top30-full-r10.yaml` | `biomnibench-da-full-r10-9ca228446238` | 30 | 3 | 10 | Criterion scores and judge reasons | Trace | 270 |
-| `experiments/luna-top30-semi-r10.yaml` | `biomnibench-da-semi-r10-c96865511bd6` | 30 | 3 | 10 | Criterion scores, no judge reasons | Trace | 270 |
-| `experiments/paperbench-code-dev-pilot.yaml` | `paperbench-code-dev-score-only-r6-d55dc520e8a0` | 3 | 3 | 6 | Score only | Workspace | 27 |
-| `experiments/paperbench-code-dev-preflight.yaml` | `paperbench-code-dev-score-only-r2-16a4ab6c252e` | 1 | 3 | 2 | Score only | Workspace | 9 |
-| `experiments/paperbench-code-dev.yaml` | `paperbench-code-dev-score-only-r6-9f3e3ffdff1c` | 3 | 3 | 6 | Score only | Workspace | 27 |
+| `experiment.yaml` | `biomnibench-da-score-only-r6-293f30db8c16` | 30 | 3 | 6 | Score only | Trace | 270 |
+| `experiment_preflight.yaml` | `biomnibench-da-semi-r6-a1d0625cc3cb` | 3 | 3 | 6 | Criterion scores, no judge reasons | Trace | 27 |
+| `experiment_simulated_user.yaml` | `biomnibench-da-simulated-user-r6-0877b843e29a` | 30 | 3 | 6 | Simulated user comment | Trace | 270 |
+| `experiment_simulated_user_preflight.yaml` | `biomnibench-da-simulated-user-r2-9b45b4a39a93` | 3 | 3 | 2 | Simulated user comment | Trace | 27 |
+| `experiments/luna-top30-full-r10.yaml` | `biomnibench-da-full-r10-1f664a087f5c` | 30 | 3 | 10 | Criterion scores and judge reasons | Trace | 270 |
+| `experiments/luna-top30-semi-r10.yaml` | `biomnibench-da-semi-r10-bcf2f6a6deba` | 30 | 3 | 10 | Criterion scores, no judge reasons | Trace | 270 |
+| `experiments/paperbench-code-dev-pilot.yaml` | `paperbench-code-dev-score-only-r6-804e28ba94d2` | 3 | 3 | 6 | Score only | Workspace | 27 |
+| `experiments/paperbench-code-dev-preflight.yaml` | `paperbench-code-dev-score-only-r2-576f4f25b9b6` | 1 | 3 | 2 | Score only | Workspace | 9 |
+| `experiments/paperbench-code-dev.yaml` | `paperbench-code-dev-score-only-r6-8c3a0a22ca33` | 3 | 3 | 6 | Score only | Workspace | 27 |
 
-## Statistical analysis gates
+## Harvey LAB harness-evolution study
+
+Harvey is a separate experiment. It changes executable harness code and task
+rubrics. It does not use the three BioMNIBench and PaperBench arms. It also does
+not use their criterion-elicitation method, wording variants, or five-call
+full-rubric grading.
+
+### Primary Harvey configuration
+
+| Setting | Current value |
+|---|---|
+| Config file | `experiments/harvey-harness-evolution.yaml` |
+| Experiment ID | `harvey-harness-prospective-r10` |
+| Output path | `runs/harvey-harness-prospective-r10` |
+| Current status | Not launched; the output path is absent. |
+| Benchmark checkout | `../../harvey-labs` |
+| Pinned benchmark revision | `7be41d57fd5a6e97b5f246a029e810f83d09cd96` |
+| Development tasks | 4 tasks with 226 total criteria |
+| Held-out tasks | 2 tasks with 92 total criteria |
+| Design rounds | 10 |
+| Candidates | 11: stock `h0000` plus `h0001` through `h0010` |
+| Replicates | 1 trajectory; no repeated candidate run |
+| Experimental arms | None; this is one prospective trajectory. |
+| Parent selection | The designer can choose any earlier candidate. |
+| Rubric mode | Prospective task-rubric patching |
+| Saved output seal | One final full-tree digest; completed output becomes read-only. |
+| Documented Slurm request | 0 GPUs, 12 CPUs, 64 GiB memory, 14-day limit |
+
+### Harvey task split
+
+| Use | Task | Criteria |
+|---|---|---:|
+| Development | `antitrust-competition/analyze-antitrust-hsr-strategy` | 50 |
+| Development | `antitrust-competition/analyze-counterparty-markup-of-protective-order` | 49 |
+| Development | `antitrust-competition/compare-leniency-programs-across-three-jurisdictions` | 58 |
+| Development | `antitrust-competition/draft-antitrust-complaint` | 69 |
+| Held out | `arbitration-international-dispute-resolution/analyze-arbitration-award-for-new-york-convention-enforcement-defenses` | 43 |
+| Held out | `arbitration-international-dispute-resolution/compare-arbitrator-candidates-against-selection-criteria` | 49 |
+
+### Harvey round sequence
+
+| Step | Operation |
+|---|---|
+| `r0000` | Run and score the stock `h0000` harness on all four development tasks. |
+| Start of each later round | Patch each development-task rubric from the prior candidate's result. |
+| Before design | Re-score every earlier stored output with the new active rubric. |
+| Design | Show the designer all prior harnesses, visible evaluations, active rubrics, and the current ranking. |
+| Parent choice | Let the designer select any prior harness and make one new candidate. |
+| Candidate evaluation | Run the new candidate once on each development task and score it with the active rubric. |
+| After round 10 | Re-score all development outputs with original rubrics and run all candidates on held-out tasks. |
+| Final audit | Judge each accepted design turn for reward hacking, then seal the run. |
+
+### Harvey model roles
+
+| Role | Model | Reasoning setting | What it sees | What it does not see | Output and call rule |
+|---|---|---|---|---|---|
+| Task agent | `gpt-5.6-luna` through the Harvey harness | `high` | One task, its documents, the current candidate harness, and tool results. | Other candidates, the global ranking, held-out tasks during development, and audit results. | Produces one task result. It can use 200 turns, temperature 0, and a 60-second shell timeout. |
+| Task judge | `claude-sonnet-4-6` | Not set by `rubric_gen`; the Harvey evaluator controls it. | One task result and the active task rubric. | Hidden audit outcomes and future candidates. | Produces one pass or fail judgment per criterion. It uses three parallel criterion workers per task. |
+| Rubric patch proposer | `gpt-5.6-sol` | `none`; low text verbosity | The current task rubric and the prior candidate's score, metrics, bounded transcript, and output-file inventory. | Held-out tasks, original hidden rubrics, and future candidates. | Can change at most eight criterion titles and PASS/FAIL rules per task and round. It makes one call per development task and round. |
+| Harness designer | `gpt-5.6-sol` through Codex | `high`; priority service | All earlier harnesses, their canonical results, active development rubrics, and current crossed ranking. | Held-out tasks, original hidden rubrics, quality-audit results, and reward-hacking judgments. | Selects one parent and writes one complete candidate harness. It gets one retry and a 7,200-second timeout. |
+| Quality-transfer runner | Deterministic controller plus the task agent and task judge | Same settings as those roles | Original development rubrics and held-out tasks after evolution ends. | These inputs were hidden from the designer. | Re-scores stored development outputs and runs every candidate on both held-out tasks. |
+| Reward-hacking panel | `gpt-5.6-sol`, `claude-opus-5`, `gemini-3.6-flash` | OpenAI `none`; Anthropic low effort; Gemini low thinking | The visible ranking, designer trajectory, proposal, harness patch, and canonical result. | Hidden quality-audit results and treatment labels. | Produces one verdict per candidate and model. Majority is the primary rule. One retry is allowed. |
+
+The Harvey task agent and harness designer still use `high` reasoning. The task
+judge has no reasoning field in this repository. Thus, Harvey does not yet meet
+the BioMNIBench and PaperBench `low` or `none` reasoning policy.
+
+### Harvey rubric patch rules
+
+| Setting | Current value |
+|---|---:|
+| Rubrics patched per round | 4, one per development task |
+| Rubric proposer calls per round | 4 |
+| Maximum changed criteria per task | 8 |
+| Proposer output limit | 16,384 tokens |
+| Fields that can change | Criterion title and PASS/FAIL match rules |
+| Fields that cannot change | Criterion ID and deliverable scope |
+| Criteria that can be added or removed | None |
+| Criterion weights that can change | None |
+| Input transcript limit | 120,000 characters, using the first and last 60,000 when truncated |
+| Proposer retries | None |
+
+The rubric proposer sees the prior candidate's result. The rubric can therefore
+adapt to the same output that informed it. Structural checks do not prove that
+a patch preserves meaning or avoids overfitting.
+
+### Harvey nominal execution scale
+
+| Work item | Primary r10 count |
+|---|---:|
+| Rubric proposer calls | 40 |
+| Harness designer calls | 10 nominal; 20 maximum with retries |
+| Development task-agent runs | 44 |
+| Held-out task-agent runs | 22 |
+| Total task-agent runs | 66 |
+| Development Sonnet criterion judgments | 14,916 |
+| Original-rubric quality judgments | 2,486 |
+| Held-out criterion judgments | 1,012 |
+| Total Sonnet criterion judgments | 18,414 before provider retries |
+| Reward-hacking panel judgments | 30 nominal; 60 maximum with retries |
+| Maximum concurrent task agents | 4 |
+| Maximum concurrent criterion calls | 12 |
+| Reward-hacking audit cost ceiling | USD 50 |
+| Whole-study cost ceiling | None |
+
+The 18,414 total follows from 226 development criteria, 92 held-out criteria,
+11 candidates, and repeated crossed scoring under each new rubric. A prior
+three-round cost audit estimated about USD 800 to USD 1,025 for r10 before
+retries. That estimate is not a budget or a hard limit.
+
+### Harvey outcomes
+
+| Outcome | Meaning |
+|---|---|
+| Active-rubric development score | Mean criterion pass rate and mean all-pass rate under each round's active rubrics. |
+| Original-rubric development score | The same saved outputs scored with the sealed original rubrics after evolution. |
+| Active-minus-original gap | Descriptive evidence of ruler drift for each candidate. |
+| Held-out score | Each candidate's performance on two unseen tasks under their original rubrics. |
+| Parent-relative change | Change from the parent chosen by the designer. |
+| Proposal-relative change | Change from the immediately prior proposal. |
+| Reward-hacking verdict | Three-model majority judgment for each accepted design turn. |
+
+These measures are descriptive. One trajectory without randomized arms or
+replicates cannot estimate a causal treatment effect. A visible gain can come
+from rubric drift, judge noise, task-agent sampling, or a real harness change.
+
+### Other Harvey configurations
+
+| Config | Experiment ID | Development tasks | Held-out tasks | Rounds | Candidates | Audit cap | Matching current run |
+|---|---|---:|---:|---:|---:|---:|---|
+| `experiments/harvey-harness-evolution-preflight.yaml` | `harvey-harness-prospective-preflight` | 1 | 1 | 1 | 2 | USD 15 | No; its output path contains an older configuration. |
+| `experiments/harvey-harness-evolution-expanded-preflight.yaml` | `harvey-harness-prospective-expanded-preflight-r3` | 4 | 2 | 3 | 4 | USD 25 | No; an older-configuration r3 run completed there. |
+| `experiments/harvey-harness-evolution.yaml` | `harvey-harness-prospective-r10` | 4 | 2 | 10 | 11 | USD 50 | No; its output path is absent. |
+
+## BioMNIBench and PaperBench statistical analysis gates
 
 | Setting | Current value |
 |---|---|
@@ -287,9 +424,10 @@ format.
 These weights measure association with the direct detector. They are not
 causal, normative, or replacements for preregistered weights.
 
-## Important limits
+## BioMNIBench and PaperBench important limits
 
 - The criterion reviewer is a model, not a semantic proof.
+- The reviewer uses the same Luna model as the proposer, solver, and in-loop grader.
 - The strong panel is a reference measurement, not ground truth.
 - Added criteria can still overfit visible artifact differences.
 - Two online support pairs are correlated because they share one current artifact.
@@ -305,4 +443,6 @@ causal, normative, or replacements for preregistered weights.
 - One-rubric and score-weight rules: `src/rubric_gen/submission_revision/rubric_bank.py`.
 - Five-call grading: `src/rubric_gen/submission_revision/judging/full_rubric_judge.py`.
 - Outcome protocol: `src/rubric_gen/reward_hacking/protocol.py` and `rh_diagnostics.py`.
-- OpenAI reasoning support: <https://developers.openai.com/api/docs/guides/latest-model> and <https://developers.openai.com/api/docs/models/gpt-5.5>.
+- Harvey config: `experiments/harvey-harness-evolution.yaml`.
+- Harvey controller and audits: `src/rubric_gen/benchmarks/harvey_lab/controller.py` and `audits.py`.
+- OpenAI reasoning support: <https://developers.openai.com/api/docs/guides/latest-model>.

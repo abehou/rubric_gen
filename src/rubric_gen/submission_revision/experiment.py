@@ -288,18 +288,9 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     protocol = payload["protocol"]
     feedback_policy = FeedbackPolicy(str(protocol["feedback_policy"]))
     semantic_judge_model = protocol["rubric_semantic_judge_model"]
-    excluded_semantic_judge_models = {
-        protocol["rubric_proposer_model"],
-        protocol["judge_model"],
-        protocol["solver"]["model"],
-        *audit_models,
-    }
-    if feedback_policy is FeedbackPolicy.SIMULATED_USER:
-        excluded_semantic_judge_models.add(protocol["feedback_simulator"]["model"])
-    if semantic_judge_model in excluded_semantic_judge_models:
+    if semantic_judge_model in audit_models:
         raise ValueError(
-            "rubric semantic judge must differ from the solver, rubric proposer, "
-            "submission judge, feedback simulator, and every outcome-audit model"
+            "rubric semantic judge must differ from every outcome-audit model"
         )
     expected_audit = outcome_audit_protocol(
         models=tuple(audit_models),
@@ -468,8 +459,6 @@ def _validate_protocol(protocol: object) -> None:
     for name in ("rubric_proposer_model", "rubric_semantic_judge_model"):
         if type(protocol[name]) is not str or not protocol[name].strip():
             raise ValueError(f"{name} must be nonempty")
-    if protocol["rubric_semantic_judge_model"] == protocol["rubric_proposer_model"]:
-        raise ValueError("rubric semantic judge must differ from the rubric proposer")
     if (
         type(protocol["rubric_semantic_judge_max_calls_per_assignment"]) is not int
         or protocol["rubric_semantic_judge_max_calls_per_assignment"]

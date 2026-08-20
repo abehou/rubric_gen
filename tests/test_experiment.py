@@ -70,11 +70,11 @@ def _payload(root: Path) -> dict[str, object]:
         ],
         "protocol": {
             "revision_rounds": 10, "feedback_policy": "semi",
-            "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "minimal", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
+            "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "low", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
             "judge_model": "test-judge", "judge_max_retries": 1,
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
-            "rubric_semantic_judge_model": "gpt-5.5-2026-04-23",
+            "rubric_semantic_judge_model": "gpt-5.6-luna",
             "rubric_semantic_judge_max_calls_per_assignment": 9,
             "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
             "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
@@ -365,9 +365,9 @@ def test_experiment_eagerly_validates_semantic_judge_caps(
 
 @pytest.mark.parametrize(
     "overlap",
-    ["solver", "proposer", "submission_judge", "outcome_judge", "simulator"],
+    ["solver", "proposer", "submission_judge", "simulator"],
 )
-def test_experiment_requires_a_disjoint_semantic_judge(
+def test_experiment_allows_a_shared_semantic_judge_model(
     tmp_path: Path,
     overlap: str,
 ) -> None:
@@ -381,8 +381,6 @@ def test_experiment_requires_a_disjoint_semantic_judge(
         conflicting_model = protocol["rubric_proposer_model"]
     elif overlap == "submission_judge":
         conflicting_model = protocol["judge_model"]
-    elif overlap == "outcome_judge":
-        conflicting_model = payload["outcome_audit"]["models"][0]
     else:
         conflicting_model = "test-simulator"
         protocol["feedback_policy"] = "simulated_user"
@@ -396,7 +394,28 @@ def test_experiment_requires_a_disjoint_semantic_judge(
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
-    with pytest.raises(ValueError, match="rubric semantic judge must differ"):
+    loaded = load_experiment(path)
+    assert (
+        loaded.protocol["rubric_semantic_judge_model"]
+        == conflicting_model
+    )
+
+
+def test_experiment_keeps_semantic_judge_outside_outcome_panel(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    protocol = payload["protocol"]
+    protocol["rubric_semantic_judge_model"] = payload["outcome_audit"]["models"][0]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(
+        ValueError,
+        match="rubric semantic judge must differ from every outcome-audit model",
+    ):
         load_experiment(path)
 
 
