@@ -14,6 +14,7 @@ from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 
 
 DEFAULT_JUDGE_MODEL = "gpt-5.6-luna"
+JUDGMENT_REPEATS = 5
 RUBRIC_PATH_SOURCE = "rubric-path"
 SCORE_INPUT_ATTESTATION_KEYS = {
     "review_input_sha256",
@@ -38,7 +39,7 @@ SCORE_VALIDATION_KEYS = {
     "raw_score",
     "reported_score",
     "score_matches_reported",
-    "selected_levels",
+    "criterion_level_votes",
     "criterion_scores",
     "rubric_source",
     "rubric_set_id",
@@ -56,10 +57,9 @@ _SAFE_BASENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 
 class GradingEngine(str, Enum):
-    """The one preregistered scoring instrument for each benchmark."""
+    """The one scoring instrument used by all submission benchmarks."""
 
-    AUTORUBRIC_CRITERION = "autorubric-criterion"
-    PAPERBENCH_STRUCTURED = "paperbench-structured"
+    FULL_RUBRIC_STRUCTURED = "full-rubric-structured"
 
 
 def grading_engine_for_benchmark(
@@ -68,10 +68,11 @@ def grading_engine_for_benchmark(
     """Return the fixed engine. No selector or runtime fallback exists."""
 
     resolved = SubmissionBenchmarkId(benchmark)
-    if resolved is SubmissionBenchmarkId.BIOMNIBENCH_DA:
-        return GradingEngine.AUTORUBRIC_CRITERION
-    if resolved is SubmissionBenchmarkId.PAPERBENCH_CODE_DEV:
-        return GradingEngine.PAPERBENCH_STRUCTURED
+    if resolved in {
+        SubmissionBenchmarkId.BIOMNIBENCH_DA,
+        SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
+    }:
+        return GradingEngine.FULL_RUBRIC_STRUCTURED
     raise ValueError(f"no grading engine is registered for {resolved.value}")
 
 

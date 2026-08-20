@@ -6,11 +6,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from rubric_gen.benchmarks import SubmissionBenchmarkId
-from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
-
-from .autorubric_judge import autorubric_cost_shape, validate_autorubric_cost_shape
 from .models import GradingEngine, grading_engine_for_benchmark
-from .paperbench_judge import paperbench_cost_shape
+from .full_rubric_judge import full_rubric_cost_shape
 
 
 @dataclass(frozen=True)
@@ -55,40 +52,24 @@ def preflight_judge_dispatches(
     for dispatch in dispatches:
         if not isinstance(dispatch, JudgeDispatchInput):
             raise TypeError("judge dispatch stage contains an invalid job")
-        if engine is GradingEngine.AUTORUBRIC_CRITERION:
-            rubric = parse_autorubric_rubric(dispatch.rubric_text)
-            shape = autorubric_cost_shape(
-                rubric,
-                review_text=dispatch.review_text,
-                answer_text=dispatch.answer_text,
-            )
-            validate_autorubric_cost_shape(shape)
-            shape_json = shape.as_json()
-            calls += shape.criterion_calls
-            request_bytes += shape.total_prompt_bytes
-            output_tokens += shape.total_output_tokens
-            largest_request_bytes_per_call = max(
-                largest_request_bytes_per_call,
-                shape.largest_prompt_bytes,
-            )
-            request_byte_measurement = "system-plus-user-prompt-text"
-        else:
-            shape = paperbench_cost_shape(
-                dispatch.rubric_text,
-                review_text=dispatch.review_text,
-                answer_text=dispatch.answer_text,
-            )
-            shape_json = shape.as_json()
-            calls += shape.calls
-            request_bytes += shape.total_request_content_bytes
-            output_tokens += shape.total_output_tokens
-            largest_request_bytes_per_call = max(
-                largest_request_bytes_per_call,
-                shape.request_content_bytes_per_call,
-            )
-            request_byte_measurement = (
-                "system-plus-canonical-json-payload-plus-canonical-schema"
-            )
+        if engine is not GradingEngine.FULL_RUBRIC_STRUCTURED:
+            raise ValueError(f"unsupported grading engine: {engine.value}")
+        shape = full_rubric_cost_shape(
+            dispatch.rubric_text,
+            review_text=dispatch.review_text,
+            answer_text=dispatch.answer_text,
+        )
+        shape_json = shape.as_json()
+        calls += shape.calls
+        request_bytes += shape.total_request_content_bytes
+        output_tokens += shape.total_output_tokens
+        largest_request_bytes_per_call = max(
+            largest_request_bytes_per_call,
+            shape.request_content_bytes_per_call,
+        )
+        request_byte_measurement = (
+            "system-plus-canonical-json-payload-plus-canonical-schema"
+        )
         shapes.append(shape_json)
 
     if not shapes:

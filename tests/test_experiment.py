@@ -58,14 +58,14 @@ def _payload(root: Path) -> dict[str, object]:
                 "rubric_policy": "fixed",
             },
             {
-                "condition_id": "diligent-nonadaptive-replacement",
+                "condition_id": "diligent-offline-elicitation",
                 "prompt": "diligent",
-                "rubric_policy": "nonadaptive_replacement",
+                "rubric_policy": "offline_elicitation",
             },
             {
-                "condition_id": "diligent-adaptive-replacement",
+                "condition_id": "diligent-online-elicitation",
                 "prompt": "diligent",
-                "rubric_policy": "adaptive_replacement",
+                "rubric_policy": "online_elicitation",
             },
         ],
         "protocol": {
@@ -75,7 +75,7 @@ def _payload(root: Path) -> dict[str, object]:
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
             "rubric_semantic_judge_model": "gpt-5.5-2026-04-23",
-            "rubric_semantic_judge_max_calls_per_assignment": 10,
+            "rubric_semantic_judge_max_calls_per_assignment": 9,
             "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
             "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
             "rubric_proposer_max_retries": 1,
@@ -316,13 +316,13 @@ def test_experiment_eagerly_validates_judge_protocol_fields(
     [
         (
             "rubric_semantic_judge_max_calls_per_assignment",
-            9,
-            "call cap must equal revision_rounds",
+            8,
+            "call cap must equal revision_rounds minus one",
         ),
         (
             "rubric_semantic_judge_max_calls_per_assignment",
-            "10",
-            "call cap must equal revision_rounds",
+            "9",
+            "call cap must equal revision_rounds minus one",
         ),
         (
             "rubric_semantic_judge_max_request_bytes_per_call",
@@ -578,7 +578,7 @@ def test_experiment_id_changes_with_behavior_but_not_output_routing(
     changed["protocol"]["revision_rounds"] = 11  # type: ignore[index]
     changed["protocol"][
         "rubric_semantic_judge_max_calls_per_assignment"
-    ] = 11  # type: ignore[index]
+    ] = 10  # type: ignore[index]
     changed_path = tmp_path / "changed.yaml"
     changed_path.write_text(yaml.safe_dump(changed, sort_keys=False))
     changed_id = load_experiment(changed_path).experiment_id
@@ -1202,7 +1202,7 @@ def test_study_resume_reclaims_interrupted_running_records(
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
     payload["tasks"] = ["da-1-1"]
-    payload["randomization"] = {"seed": 42, "replicates": 1}
+    payload["randomization"] = {"seed": 42, "replicates": 3}
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
@@ -1259,7 +1259,7 @@ def test_study_resume_reclaims_interrupted_running_records(
     assert recovered["status"] == "completed"
     assert recovered["attempt_count"] == 5
     assert recovered["pid"] == os.getpid()
-    assert len(revisions) == 3
+    assert len(revisions) == 9
 
 
 def test_study_reports_recorded_assignment_failures(
@@ -1270,7 +1270,7 @@ def test_study_reports_recorded_assignment_failures(
     _task(tmp_path, "da-1-1")
     payload = _payload(tmp_path)
     payload["tasks"] = ["da-1-1"]
-    payload["randomization"] = {"seed": 42, "replicates": 1}
+    payload["randomization"] = {"seed": 42, "replicates": 3}
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)

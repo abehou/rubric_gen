@@ -9,6 +9,7 @@ import stat
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import replace
+from numbers import Real
 from pathlib import Path
 from statistics import pstdev
 from typing import Any, Iterator
@@ -216,7 +217,8 @@ class SubmissionJudgeRunner:
                 record["score"]
                 for record in task_records
                 if record.get("status") in {"completed", "skipped"}
-                and type(record.get("score")) is int
+                and not isinstance(record.get("score"), bool)
+                and isinstance(record.get("score"), Real)
             ]
             scores.extend(task_scores)
             task_normalized_scores = [
@@ -527,11 +529,9 @@ class SubmissionJudgeRunner:
     def find_judge(self, task_dir: Path) -> Path:
         self._tests_dir(task_dir)
         engine = grading_engine_for_benchmark(self.config.benchmark)
-        judge_name = (
-            "autorubric_judge.py"
-            if engine is GradingEngine.AUTORUBRIC_CRITERION
-            else "paperbench_judge.py"
-        )
+        if engine is not GradingEngine.FULL_RUBRIC_STRUCTURED:
+            raise SystemExit(f"Unsupported grading engine: {engine.value}")
+        judge_name = "full_rubric_judge.py"
         centralized = Path(__file__).with_name(judge_name)
         if centralized.is_symlink() or not centralized.is_file():
             raise SystemExit(

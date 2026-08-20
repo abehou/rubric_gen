@@ -1,7 +1,7 @@
 """Strict AutoRubric adapter for repository submission rubrics.
 
 AutoRubric uses normalized option values to aggregate ordinal judge votes. This
-module keeps the repository's signed integer points as the authoritative score.
+module recomputes signed rubric scores and averages five complete repeats.
 """
 
 from __future__ import annotations
@@ -14,8 +14,10 @@ import textwrap
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, is_dataclass
 from importlib.metadata import version as distribution_version
+from statistics import pstdev
 from typing import Any
 
+from rubric_gen.submission_revision.judging.models import JUDGMENT_REPEATS
 from rubric_gen.submission_revision.judging.scoring import (
     JudgeScoreValidationError,
     parse_rubric_levels_strict,
@@ -30,6 +32,7 @@ AUTORUBRIC_CODE_IDENTITY = {
     "grader": "CriterionGrader",
     "report": "EnsembleEvaluationReport",
     "scale_type": "ordinal",
+    "aggregation": "five-repeat-arithmetic-mean-signed-points",
     "auto_na_option": False,
     "prompt": "hardened-untrusted-artifact",
 }
@@ -138,17 +141,18 @@ class AuthoritativeRubric:
 class ConvertedAutoRubricReport:
     """Validated AutoRubric output in the repository evaluation shape."""
 
-    score: int
+    score: float
     normalized_score: float
-    raw_score: int
-    selected_levels: dict[str, str]
-    criterion_scores: dict[str, int]
+    raw_score: float
+    criterion_level_votes: dict[str, tuple[str, ...]]
+    criterion_scores: dict[str, float]
     evaluation: dict[str, object]
-    reward: dict[str, int]
+    reward: dict[str, float]
     raw_report: dict[str, object]
     usage: dict[str, int] | None
     completion_cost: float | None
     agreement: dict[str, object]
+    dispersion: dict[str, object]
 
 
 _CRITERION_LINE = re.compile(
@@ -405,11 +409,17 @@ def convert_ensemble_report(
             f"AutoRubric ensemble criteria do not match rubric: {detail}"
         )
 
-    selected_levels: dict[str, str] = {}
-    criterion_scores: dict[str, int] = {}
+    expected_judge_ids = tuple(
+        f"repeat-{index}" for index in range(1, JUDGMENT_REPEATS + 1)
+    )
+    criterion_level_votes: dict[str, tuple[str, ...]] = {}
+    criterion_scores: dict[str, float] = {}
     evaluation_criteria: dict[str, object] = {}
     criterion_agreement: dict[str, float] = {}
-    default_judge_values: list[float] = []
+    judge_values: dict[str, list[float]] = {
+        judge_id: [] for judge_id in expected_judge_ids
+    }
+    repeat_raw_scores = [0.0] * JUDGMENT_REPEATS
     for criterion in rubric.criteria:
         item = by_criterion[criterion.criterion_id]
         _validate_report_criterion(criterion, _field(item, "criterion"))
@@ -443,49 +453,69 @@ def convert_ensemble_report(
             raise AutoRubricAdapterError(
                 f"{criterion.criterion_id} mixes binary and multi-choice votes"
             )
-        if len(votes) != 1:
+        if len(votes) != JUDGMENT_REPEATS:
             raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} must contain exactly one judge vote"
+                f"{criterion.criterion_id} must contain exactly "
+                f"{JUDGMENT_REPEATS} judge votes"
             )
-        vote = votes[0]
-        judge_id = _field(vote, "judge_id")
-        if judge_id != "default":
+        if tuple(_field(vote, "judge_id") for vote in votes) != expected_judge_ids:
             raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} vote must come from the configured default judge"
+                f"{criterion.criterion_id} vote identities or order changed"
             )
-        if _field(vote, "error") is not None:
-            raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} vote from default contains an error"
-            )
-        vote_level = _validate_verdict(
-            criterion,
-            vote,
-            context=f"{criterion.criterion_id} vote from default",
-            require_na=True,
-        )
-        vote_weight = _field(vote, "weight")
-        if (
-            type(vote_weight) not in (int, float)
-            or isinstance(vote_weight, bool)
-            or not math.isfinite(float(vote_weight))
-            or float(vote_weight) != 1.0
+        vote_levels: list[AuthoritativeLevel] = []
+        vote_reasons: list[str] = []
+        for repeat_index, (judge_id, vote) in enumerate(
+            zip(expected_judge_ids, votes, strict=True)
         ):
-            raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} default vote weight must be 1.0"
+            if _field(vote, "error") is not None:
+                raise AutoRubricAdapterError(
+                    f"{criterion.criterion_id} vote from {judge_id} contains an error"
+                )
+            vote_level = _validate_verdict(
+                criterion,
+                vote,
+                context=f"{criterion.criterion_id} vote from {judge_id}",
+                require_na=True,
             )
-        vote_reason = _field(vote, "reason")
-        if type(vote_reason) is not str or not vote_reason.strip():
-            raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} default vote reason must be nonempty"
+            vote_weight = _field(vote, "weight")
+            if (
+                type(vote_weight) not in (int, float)
+                or isinstance(vote_weight, bool)
+                or not math.isfinite(float(vote_weight))
+                or float(vote_weight) != 1.0
+            ):
+                raise AutoRubricAdapterError(
+                    f"{criterion.criterion_id} {judge_id} vote weight must be 1.0"
+                )
+            vote_reason = _field(vote, "reason")
+            if type(vote_reason) is not str or not vote_reason.strip():
+                raise AutoRubricAdapterError(
+                    f"{criterion.criterion_id} {judge_id} vote reason must be nonempty"
+                )
+            _validate_shuffle_order(
+                _field(vote, "shuffle_order"),
+                option_count=len(criterion.levels),
+                context=f"{criterion.criterion_id} {judge_id} vote",
             )
-        _validate_shuffle_order(
-            _field(vote, "shuffle_order"),
-            option_count=len(criterion.levels),
-            context=f"{criterion.criterion_id} default vote",
+            vote_levels.append(vote_level)
+            vote_reasons.append(vote_reason)
+            judge_values[judge_id].append(vote_level.normalized_value)
+            repeat_raw_scores[repeat_index] += vote_level.points
+
+        mean_normalized_value = (
+            math.fsum(level.normalized_value for level in vote_levels)
+            / JUDGMENT_REPEATS
         )
-        if vote_level is not selected_level:
+        expected_selected_level = min(
+            criterion.levels,
+            key=lambda level: (
+                abs(level.normalized_value - mean_normalized_value),
+                level.normalized_value,
+            ),
+        )
+        if selected_level is not expected_selected_level:
             raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} final verdict differs from its default vote"
+                f"{criterion.criterion_id} final verdict does not match mean aggregation"
             )
         aggregated_value = _finite_fraction(
             _field(verdict, "aggregated_value"),
@@ -493,33 +523,43 @@ def convert_ensemble_report(
         )
         if not math.isclose(
             aggregated_value,
-            vote_level.normalized_value,
+            mean_normalized_value,
             abs_tol=1e-12,
         ):
             raise AutoRubricAdapterError(
-                f"{criterion.criterion_id} final aggregate differs from its default vote"
+                f"{criterion.criterion_id} final aggregate differs from its vote mean"
             )
-        default_judge_values.append(vote_level.normalized_value)
 
         agreement = _finite_fraction(
             _field(item, "agreement"),
             f"{criterion.criterion_id} agreement",
         )
-        if agreement != 1.0:
+        expected_agreement = sum(
+            level is selected_level for level in vote_levels
+        ) / JUDGMENT_REPEATS
+        if not math.isclose(agreement, expected_agreement, abs_tol=1e-12):
             raise AutoRubricAdapterError(
                 f"{criterion.criterion_id} agreement does not match its votes"
             )
         criterion_agreement[criterion.criterion_id] = agreement
-        selected_levels[criterion.criterion_id] = selected_level.label
-        criterion_scores[criterion.criterion_id] = selected_level.points
+        level_votes = tuple(level.label for level in vote_levels)
+        mean_points = (
+            math.fsum(level.points for level in vote_levels) / JUDGMENT_REPEATS
+        )
+        criterion_level_votes[criterion.criterion_id] = level_votes
+        criterion_scores[criterion.criterion_id] = mean_points
         reason = _field(item, "final_reason")
         if type(reason) is not str or not reason.strip():
             raise AutoRubricAdapterError(
                 f"{criterion.criterion_id} final reason must be nonempty"
             )
         evaluation_criteria[criterion.criterion_id] = {
-            "level": selected_level.label,
-            "reason": reason,
+            "level_votes": list(level_votes),
+            "mean_points": mean_points,
+            "reason": " | ".join(
+                f"repeat-{index}: {vote_reason}"
+                for index, vote_reason in enumerate(vote_reasons, start=1)
+            ),
         }
 
     reported_mean = _finite_fraction(
@@ -533,33 +573,49 @@ def convert_ensemble_report(
         )
 
     judge_scores = _field(report, "judge_scores")
-    if not isinstance(judge_scores, Mapping) or set(judge_scores) != {"default"}:
-        raise AutoRubricAdapterError(
-            "AutoRubric judge scores must contain only the configured default judge"
-        )
-    reported_judge_score = _finite_fraction(
-        judge_scores["default"],
-        "AutoRubric default judge score",
-    )
-    expected_judge_score = sum(default_judge_values) / len(default_judge_values)
-    if not math.isclose(
-        reported_judge_score,
-        expected_judge_score,
-        abs_tol=1e-12,
+    if not isinstance(judge_scores, Mapping) or set(judge_scores) != set(
+        expected_judge_ids
     ):
         raise AutoRubricAdapterError(
-            "AutoRubric default judge score does not match its votes"
+            "AutoRubric judge scores do not match the five configured repeats"
         )
+    for judge_id in expected_judge_ids:
+        reported_judge_score = _finite_fraction(
+            judge_scores[judge_id],
+            f"AutoRubric {judge_id} score",
+        )
+        expected_judge_score = math.fsum(judge_values[judge_id]) / len(
+            judge_values[judge_id]
+        )
+        if not math.isclose(
+            reported_judge_score,
+            expected_judge_score,
+            abs_tol=1e-12,
+        ):
+            raise AutoRubricAdapterError(
+                f"AutoRubric {judge_id} score does not match its votes"
+            )
 
-    raw_score = sum(criterion_scores.values())
-    if rubric.normalization_maximum is None:
-        score = raw_score
-        normalized_score = raw_score / 100
-    else:
-        score = round(raw_score * 100 / rubric.normalization_maximum)
-        normalized_score = raw_score / rubric.normalization_maximum
-    score = max(0, min(100, score))
-    normalized_score = max(0.0, min(1.0, normalized_score))
+    denominator = rubric.normalization_maximum or 100
+    repeat_scores = [
+        max(0.0, min(100.0, raw_score * 100 / denominator))
+        for raw_score in repeat_raw_scores
+    ]
+    raw_score = math.fsum(repeat_raw_scores) / JUDGMENT_REPEATS
+    score = math.fsum(repeat_scores) / JUDGMENT_REPEATS
+    normalized_score = score / 100
+    dispersion = {
+        "repeat_scores": repeat_scores,
+        "repeat_raw_scores": repeat_raw_scores,
+        "mean_score": score,
+        "score_stddev": pstdev(repeat_scores),
+        "min_score": min(repeat_scores),
+        "max_score": max(repeat_scores),
+        "score_range": max(repeat_scores) - min(repeat_scores),
+        "exact_criterion_agreement": sum(
+            len(set(votes)) == 1 for votes in criterion_level_votes.values()
+        ) / len(criterion_level_votes),
+    }
 
     usage = _usage(_field(report, "token_usage", default=None))
     completion_cost = _optional_nonnegative_float(
@@ -570,16 +626,15 @@ def convert_ensemble_report(
         "total_score": score,
         "criteria": evaluation_criteria,
         "reasoning": (
-            "The repository recomputed signed points from each validated AutoRubric "
-            "selection. AutoRubric's normalized aggregate is diagnostic only because "
-            "per-criterion normalization removes absolute and signed point magnitudes."
+            "The repository recomputed each repeat from signed rubric points and "
+            "used the arithmetic mean of five complete criterion judgments."
         ),
     }
     return ConvertedAutoRubricReport(
         score=score,
         normalized_score=normalized_score,
         raw_score=raw_score,
-        selected_levels=selected_levels,
+        criterion_level_votes=criterion_level_votes,
         criterion_scores=criterion_scores,
         evaluation=evaluation,
         reward={"score": score},
@@ -587,6 +642,7 @@ def convert_ensemble_report(
         usage=usage,
         completion_cost=completion_cost,
         agreement={"mean": reported_mean, "criteria": criterion_agreement},
+        dispersion=dispersion,
     )
 
 

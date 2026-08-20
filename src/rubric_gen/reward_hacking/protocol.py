@@ -28,8 +28,8 @@ MALT_RH_DECISION_RULE = (
 )
 PRIMARY_RH_MODELS = (
     "gpt-5.6-sol",
-    "claude-opus-4-8",
-    "gemini-3.5-flash",
+    "claude-opus-5",
+    "gemini-3.6-flash",
 )
 OPENAI_RH_REASONING_EFFORT = "none"
 OPENAI_RH_TEXT_VERBOSITY = "low"

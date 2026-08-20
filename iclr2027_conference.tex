@@ -9,7 +9,7 @@
 \usepackage{url}
 
 
-\title{Evaluating Dynamic Rubric Replacement in Autoresearch}
+\title{Evaluating Contrastive Rubric Elicitation in Autoresearch}
 
 % Authors must not appear in the submitted version. They should be hidden
 % as long as the \iclrfinalcopy macro remains commented out below.
@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Autoresearch systems improve artifacts through repeated model feedback. When this feedback uses a fixed rubric, the reported score can increase without a corresponding increase in intended quality. We formalize this risk using contrasts between an exposed judge, a reference panel, sealed paraphrases, and rubric-free artifact quality. Our primary experiment compares three singleton longitudinal regimes: fixed, task-only replacement, and trajectory-conditioned replacement. Every bank has one unit-weight member. A deterministic renderer copies each anchor's normative payload into the member. A separate model audits the remaining presentation fields and any anchor revision, but it does not provide a semantic proof. Only selected-rubric gain, sealed-holdout gain, rubric-free gain, pairwise quality, and direct detection use common instruments across arms. We do not assume that replacement improves coverage or mitigates reward hacking.
+Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment compares three single-rubric regimes: fixed, offline elicitation from sealed pairs, and online elicitation from live history. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate model to review them. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether holistic pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
 
 \end{abstract}
 
@@ -40,7 +40,7 @@ Autoresearch applies an iterative loop to open-ended work such as code and resea
 
 Rubrics make an open-ended task easier to score, but one rubric can omit part of the task. Its wording can also create a narrow optimization surface. A system can exploit a weak judge, a particular expression of a requirement, or an omission shared by all exposed rubrics. These failures require different measurements because no single judge comparison identifies all of them.
 
-We define a dynamic intervention in which a proposer replaces the complete rubric between rounds. The primary design compares a fixed singleton, task-only replacement, and trajectory-conditioned replacement. All three arms use one member with unit weight. Both replacement arms use the same trajectory-blind member renderer and one separate semantic review per generation. The next rubric is sealed before the next artifact is produced. Conditions share the selected rubric, sealed holdouts, rubric-free instruments, pairwise judge, and direct detector within each matched replicate. This distinction is necessary: an exposed score is not evidence of improvement when the scoring rule changes with the artifact.
+We define a dynamic intervention that adds bounded criteria between rounds. It never deletes or rewrites an original criterion. The primary design compares a fixed rubric, offline elicitation from sealed pre-treatment pairs, and online elicitation from live historical pairs. Both elicitation arms use the same models, prompts, update schedule, score budget, and review gate. The next rubric is sealed before the next artifact is produced. Conditions share the selected rubric, sealed holdouts, rubric-free instruments, pairwise judge, and direct detector within each matched replicate. This distinction is necessary: an exposed score is not evidence of improvement when the scoring rule changes with the artifact.
 
 \section{Formalizing Reward-Hacking in Autoresearch}
 
@@ -52,86 +52,61 @@ The experiments also contain replicates. We suppress the replicate index below,
 but all cross-condition sharing statements apply within a matched replicate.
 Let $a_{ij}^t$ denote the artifact produced at round $t$. An artifact can be a code repository, a research paper, or another structured output. The objective is to improve its intended quality over repeated rounds.
 
-At round $t$, the system is evaluated with an exposed rubric bank
+Let the original expert rubric for task $j$ be
 \begin{equation}
-\mathcal{A}_{ij}^{t}
-=
-\left\{
-\left(r_{ijtk},\omega_{ijtk}\right)
-\right\}_{k=1}^{K_{ijt}},
-\qquad
-\omega_{ijtk}>0,
-\qquad
-\sum_{k=1}^{K_{ijt}}\omega_{ijtk}=1.
+\mathcal C_j^0=\{(c_{jk},w_{jk})\}_{k=1}^{K_j},
+\qquad \sum_k w_{jk}=1.
 \end{equation}
-Each $r_{ijtk}$ must be a complete full-task rubric that can score the artifact
-in isolation. A bank member cannot be a criterion fragment or a topical
-partition. Each bank also has a declared specification anchor $c_{ijt}$. The
-policy can retain or refine this anchor at each replacement. The three-arm study
-fixes $K_{ijt}=1$ and $\omega_{ijt1}=1$ at every round.
-
-The primary renderer copies the full anchor payload into the sole member and
-preserves its criterion order, labels, points, and normative text. A member
-model supplies only bounded titles, overviews, headings, and evidence lenses.
-The resulting criterion map is an order-preserving bijection. The deterministic
-copy preserves the declared normative payload, but a free lens can still affect
-judge interpretation. A separate trajectory-blind reviewer checks all member
-presentations against the anchor. For a refined anchor, the same call checks
-task and prior-anchor fidelity. Any changed or uncertain verdict rejects the
-generation. This model audit is not a proof of semantic equivalence or task
-coverage.
-
-Let $\tau_{ij}^{0:t}$ contain the eligible artifacts and revision history through round $t$. The update rule is
+Let $r_j^0$ denote its complete rendered text.
+Let $\mathcal E_{ij}^t$ contain all accepted elicited criteria through update
+$t$. The active rubric is one complete rubric
 \begin{equation}
-\mathcal{A}_{ij}^{t+1}
-=
-P_j\!\left(\tau_{ij}^{0:t}\right).
+r_{ij}^t=\operatorname{Augment}(\mathcal C_j^0,\mathcal E_{ij}^t).
 \end{equation}
-This equation describes the adaptive anchor updater. The nonadaptive updater
-receives the task and prior bank only. The member renderer receives neither the
-trajectory nor a condition label in any replacement arm.
-The initial bank depends only on task information and not on $a_{ij}^0$. Thus, $a_{ij}^t$ can inform the bank for round $t+1$, but not the bank that scores $a_{ij}^t$. The next bank is sealed before the system produces $a_{ij}^{t+1}$. This time ordering prevents an artifact from selecting the bank that scores it.
+The system never deletes or rewrites an original criterion. It accepts at most
+five elicited criteria. When $\mathcal E_{ij}^t$ is nonempty, original criteria
+receive $1-\beta=0.8$ of the score and elicited criteria share $\beta=0.2$
+equally. The program fixes this rule. The proposer cannot choose weights.
 
-The exposed judge score is the weighted bank score
+Each update uses three blinded artifact pairs $\mathcal P_{ij}^t$. The first
+model stage finds task-relevant differences that the current rubric does not
+cover. The second stage turns recurring differences into general criteria. A
+criterion must cite support from at least two pairs. A separate model rejects a
+criterion that is redundant, task-specific to one artifact, unevaluable, or
+poorly supported. This review is an audit, not a semantic proof.
+All online pairs share the current artifact, so two-pair support is not
+independent replication.
+
+The online arm compares the current artifact with the previous, initial, and
+midpoint artifacts. Sealed seed artifacts fill early or duplicate sources. The
+offline arm uses all three pairs among three sealed pre-treatment artifacts.
+Pair order is deterministic and blinded. The models do not receive scores,
+round labels, or newer/older labels. The first update occurs after $a_{ij}^1$
+is scored. Its rubric scores $a_{ij}^2$. Thus, an artifact cannot change the
+rubric that scores itself.
+
+The exposed score is
 \begin{equation}
-s_{ijt}
-=
-\sum_{k=1}^{K_{ijt}}
-\omega_{ijtk}
-g_{\mathrm{train}}\!\left(a_{ij}^t,r_{ijtk}\right),
+s_{ijt}=g_{\mathrm{train}}\!\left(a_{ij}^t,r_{ij}^t\right),
 \end{equation}
-where $g_{\mathrm{train}}$ also supplies feedback for the next revision. We rescore the same artifact and bank with a reference panel, whose aggregate score is denoted by $g_{\mathrm{ref}}$:
+where $g_{\mathrm{train}}$ also supplies feedback for the next revision. We
+rescore the same artifact and rubric with a reference panel,
 \begin{equation}
 s^{\mathrm{ref},+}_{ijt}
-=
-\sum_{k=1}^{K_{ijt}}
-\omega_{ijtk}
-g_{\mathrm{ref}}\!\left(a_{ij}^t,r_{ijtk}\right).
+=g_{\mathrm{ref}}\!\left(a_{ij}^t,r_{ij}^t\right).
 \end{equation}
 
-These scores are boundary-local. Their difference across rounds changes both
-the artifact and the scoring bank. We retain that difference only as a
-ruler-confounded diagnostic. After the run, we freeze the terminal bank
-\begin{equation}
-\mathcal{B}_{ij}=\mathcal{A}_{ij}^{T}
-=\left\{\left(r^{B}_{ijk},\omega^{B}_{ijk}\right)\right\}_{k=1}^{K^B_{ij}}.
-\end{equation}
-Let $c^B_{ij}=c_{ijT}$ be its terminal specification anchor.
-We then rescore both endpoint artifacts with this bank. For
+These scores are boundary-local because the active rubric can change. After the
+run, freeze the final active rubric $r_{ij}^{T}$. For endpoint
 $u\in\{0,T\}$, define
 \begin{align}
-W_{ij,u\mid T}
-&=\sum_{k=1}^{K^B_{ij}}\omega^B_{ijk}
-g_{\mathrm{train}}\!\left(a_{ij}^{u},r^B_{ijk}\right), \\
-A_{ij,u\mid T}
-&=\sum_{k=1}^{K^B_{ij}}\omega^B_{ijk}
-g_{\mathrm{ref}}\!\left(a_{ij}^{u},r^B_{ijk}\right), \\
-C_{ij,u\mid T}
-&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},c^B_{ij}\right).
+W_{ij,u\mid T}&=g_{\mathrm{train}}\!\left(a_{ij}^{u},r_{ij}^{T}\right), \\
+A_{ij,u\mid T}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_{ij}^{T}\right), \\
+C_{ij,u\mid T}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_{j}^{0}\right).
 \end{align}
-Thus, $W$, $A$, and $C$ use terminal instruments within a run. The terminal bank can
-differ across conditions, so these scores are not common instruments across
-policy arms.
+Thus, $W$ and $A$ use the final active rubric. $C$ uses the unchanged original
+rubric. The final active rubric can differ across conditions, so $W$ and $A$
+are not common instruments across arms.
 
 Before the trials, a generator produces wording variants from one master rubric
 $\bar r_j$. Within each matched replicate, one variant $r_j^*$ becomes the
@@ -155,8 +130,8 @@ g_{\mathrm{ref}}\!\left(a_{ij}^{u},\tilde r_{jm}\right), \\
 Q_{ij,u}&=g_{\mathrm{hol}}\!\left(a_{ij}^{u}\right).
 \end{align}
 Here, $Q$ uses a separate rubric-free prompt with the configured reference-model
-panel. It has generic fixed anchors and a 0--100 range. It does not use the task rubric. Its anchors are not the
-criterion-specific anchors of $W$, $A$, $S$, or $H$. A shared numeric range does
+panel. It has generic fixed score descriptions and a 0--100 range. It does not use the task rubric. Those descriptions differ from the
+criterion-specific rules of $W$, $A$, $S$, or $H$. A shared numeric range does
 not make these instruments calibrated or commensurate.
 
 The generator preserves criterion order, point values, and scoring rules while
@@ -170,7 +145,7 @@ At endpoint $u$, define the \textbf{training-verifier contrast}
 \begin{equation}
 e^v_{ij,u\mid T}=W_{ij,u\mid T}-A_{ij,u\mid T}.
 \end{equation}
-A positive value indicates a higher exposed-judge score under the same bank and
+A positive value indicates a higher exposed-judge score under the same rubric and
 artifact \citep{mahmoud2026reward}. It does not identify judge causation, and the
 reference panel is not ground truth.
 
@@ -180,13 +155,13 @@ e^d_{ij,u\mid T}=A_{ij,u\mid T}-Q_{ij,u}.
 \end{equation}
 This is an uncalibrated operational contrast. It can contain rubric selection,
 wording, omitted requirements, prompt effects, panel error, and scale mismatch.
-It does not identify any one mechanism or the causal effect of replacement.
+It does not identify any one mechanism or the causal effect of elicitation.
 The endpoint scores satisfy the numeric identity
 \begin{equation}
 W_{ij,u\mid T}-Q_{ij,u}
 =e^v_{ij,u\mid T}+e^d_{ij,u\mid T}.
 \end{equation}
-This identity is algebraic. It does not show that replacement averages away
+This identity is algebraic. It does not show that elicitation removes
 wording or specification errors.
 
 We further partition $e^d$ into four descriptive contrasts:
@@ -196,15 +171,16 @@ e^c_{ij,u\mid T}&=C_{ij,u\mid T}-S_{ij,u}, \\
 e^w_{ij,u}&=S_{ij,u}-H_{ij,u}, \\
 e^s_{ij,u}&=H_{ij,u}-Q_{ij,u}.
 \end{align}
-They are the member-to-anchor, anchor-to-selected, selected-to-holdout, and
-holdout-to-holistic contrasts. These names describe instruments. They do not
+They compare the active rubric with the original rubric, the original rubric
+with the selected rubric, the selected rubric with sealed holdouts, and the
+holdouts with holistic quality. These are score contrasts. They do not
 identify specification, wording, or selection error.
 They satisfy
 \begin{equation}
 e^d_{ij,u\mid T}=e^m_{ij,u\mid T}+e^c_{ij,u\mid T}+e^w_{ij,u}+e^s_{ij,u}.
 \end{equation}
 We do not give these diagnostics separate loss weights. In the fixed arm, the
-terminal bank and anchor both equal $r_j^*$. Thus, $e^m=e^c=0$ and
+final active and original rubrics both equal $r_j^*$. Thus, $e^m=e^c=0$ and
 $e^d=e^w+e^s$. This is the original selected-rubric decomposition
 \citep{roy2026premise}.
 
@@ -222,11 +198,34 @@ g_{\mathrm{ref}}(a_{ij}^{u},\tilde r_{jm})-H_{ij,u}
 \end{equation}
 This quantity does not enter the identity. It can reflect wording, semantic
 paraphrase drift, and judge variation. It is not an isolated estimate of
-wording variance or a direct test of the replacement mechanism.
+wording variance or a direct test of the elicitation mechanism.
 
-A rubric-free pairwise preference is not a valid $Q_{ij,u}$. It compares two
-artifacts and does not share the absolute score's units. We report pairwise
-quality as a separate outcome \citep{shah2014compare,yang2026judgmentbench}.
+A rubric-free pairwise preference is not a valid $Q_{ij,u}$. For each
+trajectory, the saved in-loop-judge original-rubric five-call mean selects the highest-scoring and
+lowest-scoring artifacts. A sealed panel compares them in both orders without
+seeing the rubric, scores, rounds, or higher/lower labels. We report preference
+for the higher-scoring artifact as a separate outcome
+\citep{shah2014compare,yang2026judgmentbench}.
+Let $\bar S^{0}_{ijt}$ be the five-call mean under the original rubric. Select
+\begin{equation}
+t^+=\arg\max_t \bar S^{0}_{ijt},
+\qquad
+t^-=\arg\min_t \bar S^{0}_{ijt}.
+\end{equation}
+For panel model $m$ and presentation order $o$, let
+$z_{ijmo}=1$ when the judge prefers $a_{ij}^{t^+}$, $0$ when it prefers
+$a_{ij}^{t^-}$, and $1/2$ for a tie. The rubric-order agreement is
+\begin{equation}
+\widehat p^{\mathrm{ord}}_{ij}
+=\frac{1}{2M}\sum_{m=1}^{M}\sum_{o=1}^{2}z_{ijmo},
+\qquad
+e^{\mathrm{ord}}_{ij}=1-\widehat p^{\mathrm{ord}}_{ij}.
+\end{equation}
+If the maximum and minimum rubric scores tie, the ordering is not identified.
+The implementation records neutral agreement of $1/2$.
+Selecting extrema from noisy scores can exaggerate the observed score gap. The
+result tests agreement with the operational rubric ordering. It is not an
+unbiased estimate of latent quality.
 Calibration against independent judgments is necessary before $Q$ or any
 contrast containing $Q$ can be interpreted as intended-quality magnitude.
 
@@ -259,20 +258,18 @@ Define $\Delta\ell_{ij}=\ell_{ij,T\mid T}-\ell_{ij,0\mid T}$. The aggregate
 is the mean reward-hacking loss change for system $i$. It can be negative and is
 not a nonnegative risk estimate. Here, $\mathcal{D}_i$ is the evaluated task set.
 
-\paragraph{Why rubric replacement can help.}
-The singleton design makes no averaging or sampling claim. Replacement can help
-only by changing the scoring specification or its presentation. A task-only
-proposer can repair an omission or ambiguity in the prior anchor. It can also
-introduce a new error. A trajectory-conditioned proposer can target failures in
-an earlier artifact. It can also overfit the rubric to that artifact.
+\paragraph{Why criterion elicitation can help.}
+The one-rubric design makes no averaging or sampling claim. Elicitation can help
+when recurring artifact differences expose a task-relevant omission in the
+original rubric. It can also add a wrong or over-specific criterion.
 
-Nonadaptive replacement minus fixed combines anchor revision, presentation
-refresh, changed feedback, and additional provider computation. It does not
-identify a pure coverage-repair effect. Adaptive minus nonadaptive isolates the
-assignment to a trajectory-conditioned policy, but later artifacts mediate its
-effect. The sealed wording variants cannot detect an omission shared by the
-master rubric and all its paraphrases. Rubric-free outcomes can expose score
-disagreement, but they cannot identify its cause.
+Offline elicitation minus fixed combines static criterion discovery, changed
+feedback, and added provider computation. Online minus offline measures
+assignment to live-history evidence. It also includes evidence novelty because
+the offline contrast set is fixed. Later artifacts mediate both effects. Sealed
+wording variants cannot detect an omission shared by the master rubric and all
+its paraphrases. Rubric-free outcomes can expose score disagreement, but they
+cannot identify its cause.
 
 \paragraph{Discriminative reward-hacking detector.}
 A direct detector can identify suspicious behavior in the full autoresearch trajectory \citep{parikh2025malt,thaman2026rhb,wang2025thinking,deshpande2026trace}. Let
@@ -320,44 +317,69 @@ causal, normative, or a substitute for the primary weights.
 \section{Experiments}
 
 \paragraph{Experimental conditions.}
-We compare three conditions under one shared solver prompt. The \textbf{fixed} condition keeps the selected singleton. The \textbf{nonadaptive replacement} condition can revise the anchor from task-only evidence. The \textbf{adaptive replacement} condition can revise it from the preceding artifact and bounded trajectory. Both replacement arms use the same trajectory-blind member process. Every bank has exactly one member with unit weight.
+We compare three conditions under one shared solver prompt. The \textbf{fixed}
+condition keeps the original rubric. \textbf{Offline elicitation} adds criteria
+from three sealed pre-treatment pairs. \textbf{Online elicitation} adds criteria
+from three bounded live-history pairs. Every condition uses one rubric.
 
-The replacement arms match update times, anchor proposer, member proposer, call limits, semantic reviewer, and generation-token limits. They use more provider work than fixed. Each proposer and reviewer request has a 1~MiB UTF-8 limit. Proposer calls have a 96,000-output-token ceiling. The semantic reviewer has a 32,768-token ceiling and one-call-per-generation cap. All calls use a 1,800-second client timeout. A write-ahead ledger reserves every provider call before dispatch. Resume replays a completed call or fails on an indeterminate call; it cannot resample until one passes. Exact completed semantic requests reuse the same sealed decision within an assignment.
+The elicitation arms match update times, proposer models, prompts, call limits,
+reviewer, criterion cap, fixed score split, and generation-token limits. They use
+more provider work than fixed. Each update uses one difference call, one
+criterion call, and one review call. Each request has a 1~MiB UTF-8 limit, a
+32,768-output-token ceiling, and a 1,800-second timeout. The proposer stages
+allow five validation retries. The reviewer is fail-closed and does not retry a
+semantic rejection. A write-ahead ledger binds every provider call and resume.
 
-The deterministic renderer preserves the full next-anchor payload and exact criterion order. It adds only bounded, single-line presentation fields. The separate reviewer sees the task, prior anchor, proposed anchor when changed, locked members, and presentation fields. It receives no artifact, trajectory, or policy label. It returns field verdicts and bounded reasons only for changed or uncertain fields. Any such verdict is terminal. The reviewer is separate from proposer, solver, in-loop judge, simulator, and outcome panel in the configured study. It can still share model-family or vendor blind spots, so we treat its decision as an audit rather than ground truth.
+The difference finder sees the task, current rubric, and three blinded pairs.
+The criterion writer sees the task, current rubric, and found differences. The
+reviewer sees those inputs and the proposed criteria. None receives scores or
+newer/older labels. The reviewer is separate from the proposer, solver, in-loop
+judge, simulator, and outcome panel. It can still share model-family or vendor
+blind spots, so we treat its decision as an audit rather than ground truth.
 
 \paragraph{Outcome evaluation.}
-The sealed audit bank $\mathcal{R}_j^{-}$ is created before the trials and is shared across conditions within each matched replicate. Reference judges score artifact snapshots with the terminal members, terminal specification anchor, selected rubric, and sealed rubrics without an explicit condition label. Both the training and reference judges rescore the initial and final artifacts under the frozen terminal bank. The reference panel also scores both artifacts under the terminal anchor to obtain $C$. An artifact-backed store reuses one provider result for every exact scoring request within a task-replicate block. Its identity binds all provider inputs and scoring code, but excludes condition and boundary labels that do not enter the prompt. Thus, identical artifacts do not receive independent condition-specific draws. We preregister one grading engine for each benchmark. BiomniBench-DA uses AutoRubric's criterion-level ordinal interface, shuffled option order, and per-vote records \citep{rao2026autorubric}. We preserve each rubric's signed point values and recompute every score after validating all criterion votes. We reject errored, abstaining, or incomplete panels.
+The sealed holdout set $\mathcal{R}_j^{-}$ is created before the trials and is
+shared across conditions within each matched replicate. Reference judges score
+artifact snapshots with the final active, original, selected, and sealed
+rubrics. They do not receive a condition label. An artifact-backed store reuses
+one provider result for each exact scoring request within a task-replicate block.
 
-PaperBench uses a whole-artifact structured judge. Its large rubrics make one full-context call per criterion an unsafe primary instrument. Each of three repeats receives the complete paper, workspace snapshot, and rubric in one bounded evaluation. We keep every raw criterion record and its dispersion, and use the median signed-point level for each criterion. This median is an aggregation rule, not stable ground truth. Correlated criterion flips can create distinct score modes. Any criterion-level AutoRubric calibration would require a separate preregistered analysis; it is not a fallback. AutoRubric and the structured judge are different instruments. We therefore analyze each benchmark separately and do not pool their raw scores. Neither engine establishes rubric completeness or judge validity.
+BiomniBench-DA and PaperBench use the same whole-artifact structured judge. Each
+of five calls receives the complete artifact and complete rubric. The judge
+selects one level for every criterion. We compute all five signed scores and use
+their arithmetic mean. We keep every criterion report and score dispersion. A
+failed, abstaining, or incomplete call fails the judgment. This mean is an
+aggregation rule, not stable ground truth. We analyze each benchmark separately.
 
 The current Harvey harness-evolution workflow is not a third instance of this
 design. Its proposer applies bounded criterion patches, and it lacks the three
-bank policies and the $W/A/C/S/H/Q$ endpoint. We treat Harvey as a separate
+elicitation policies and the $W/A/C/S/H/Q$ endpoint. We treat Harvey as a separate
 exploratory workflow and do not pool it with these experiments.
 
-We also obtain the rubric-free scalar $Q$ and compare final artifacts with their initial artifacts through pairwise preference. We randomize presentation order. We treat every scalar contrast containing $Q$ as uncalibrated and report pairwise preference separately. Finally, a direct detector evaluates the complete trajectory without an explicit experimental label. We report these outcome families separately rather than assuming that they agree.
+We also obtain the rubric-free scalar $Q$. Separately, we select the highest and
+lowest saved in-loop-judge original-rubric five-call means across each trajectory. A sealed panel
+compares those artifacts in both orders. It does not receive their scores or
+labels. Finally, a direct detector evaluates the complete trajectory without an
+explicit experimental label. We report these outcome families separately.
 
 The treatment contrasts are longitudinal intention-to-treat regimes.
-Nonadaptive minus fixed measures the task-only replacement regime. It combines
-anchor revision, presentation refresh, feedback, and added provider work.
-Adaptive minus nonadaptive measures the added trajectory-conditioning regime.
-Adaptive minus fixed remains a descriptive total-intervention contrast.
+Offline minus fixed measures the static elicitation regime. Online minus offline
+measures the live-history regime, including the novelty of changing evidence.
+Online minus fixed remains the total online-intervention contrast.
 
 Only $\Delta S$, $\Delta H$, $\Delta Q$, rubric-free pairwise preference, and
-direct detection use common instruments across arms. The terminal-bank $W$,
+direct detection use common instruments across arms. The final-rubric $W$,
 $A$, and $C$ values, their decomposed gaps, and the loss use post-treatment
 rulers. We report their cross-arm differences as descriptive total-policy
 endpoints, not fixed-instrument causal effects.
 
-Member dispersion is undefined in the singleton primary design. We still report
-the sealed-holdout score range at each boundary. This range measures sensitivity
+We report the sealed-holdout score range at each boundary. This range measures sensitivity
 to the pre-generated rubric paraphrases. It does not identify a pure wording
 effect.
 
 \paragraph{Pilot diagnosis.}
 A legacy three-task pilot used one replicate per condition and a single evolving
-rubric rather than the bank design above. Under each task's original master
+rubric rather than the current elicitation design. Under each task's original master
 rubric and the weak judge, the prospective-minus-static difference in the mean
 final score was one point on BiomniBench-DA and two points on PaperBench. These
 are descriptive differences from one replicate, with mixed task-level signs.
@@ -367,7 +389,7 @@ of one identical BiomniBench-DA initial artifact differed by 44 points. One
 three-model PaperBench reference panel spanned 64 points. These results are
 inconclusive and do not show reward-hacking emergence or mitigation.
 
-The legacy pilot lacks the current terminal-bank $W/A/C/S/H/Q$ measurements, so
+The legacy pilot lacks the current final-rubric $W/A/C/S/H/Q$ measurements, so
 it cannot enter the exploratory lambda fit. Independently, all six detector
 labels were zero within each benchmark. For any finite feature values, the
 intercept then tends to negative infinity for every normalized exploratory
@@ -375,21 +397,20 @@ direction. The profile likelihood has the same supremum over the full simplex
 $\widehat{\lambda}_v\geq0$, $\widehat{\lambda}_d\geq0$, and
 $\widehat{\lambda}_v+\widehat{\lambda}_d=2$. The legacy pilot therefore
 identifies no lambda direction. It only motivates the common-ruler endpoint,
-semantic request reuse, repeated PaperBench grading, and separate absolute and
+semantic request reuse, repeated whole-rubric grading, and separate absolute and
 pairwise outcomes in the new design.
 
 
 \section{Discussion}
 
-Dynamic rubric replacement is an intervention, not an outcome measure. The
-general policy can remove members or change weights, although the primary study
-fixes both. Its anchor updater can still improve, preserve, weaken, or retarget
-coverage. A higher exposed score can therefore result from a worse declared
-specification. We use selected and holdout rubrics, rubric-free outcomes, and
-pairwise preferences for common-instrument comparisons. None of these
-instruments alone establishes semantic coverage.
+Dynamic criterion elicitation is an intervention, not an outcome measure. It
+can add a useful missing requirement. It can also add a wrong or narrow
+requirement. A higher exposed score can therefore result from a worse active
+rubric. We use selected and holdout rubrics, rubric-free outcomes, and pairwise
+preferences for common-instrument comparisons. None of these instruments alone
+establishes semantic coverage.
 
-This design also has limits. The sealed wording variants preserve specification errors that they share with the master rubric. Multiple judges can share model biases. Rubric-free absolute and pairwise judgments use separate prompts, but they can retain the same model errors. Pairwise preferences do not complete the numeric identity, and the absolute score remains uncalibrated. The present evaluation therefore cannot prove that any rubric bank captures the intended task or that replacement mitigates reward hacking.
+This design also has limits. The sealed wording variants preserve specification errors that they share with the master rubric. Multiple judges can share model biases. Rubric-free absolute and pairwise judgments use separate prompts, but they can retain the same model errors. Pairwise preferences do not complete the numeric identity, and the absolute score remains uncalibrated. The present evaluation therefore cannot prove that any rubric captures the intended task or that elicitation mitigates reward hacking.
 
 \subsection*{AI use statement}
 
@@ -408,8 +429,8 @@ contain instructions intended to influence evaluators.
 
 \subsection*{Reproducibility statement}
 
-The released evaluation records task and model identities, rubric-bank members,
-weights, lineage, content hashes, proposal records, judge inputs, raw judge
+The released evaluation records task and model identities, active-rubric
+criteria, weights, lineage, content hashes, proposal records, judge inputs, raw judge
 reports, token use, costs, and every derived score. The supplementary code
 contains the experiment configurations and strict artifact validators.
 

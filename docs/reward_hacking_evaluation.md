@@ -5,94 +5,81 @@ The randomized condition assignment defines the treatment.
 
 ## Endpoint scores
 
-The current bank format requires one member with weight `1.0`. This rule applies
-to every arm and every generation.
+Every arm uses one rubric. The fixed arm keeps the original rubric. The two
+elicitation arms keep all original criteria and can add at most five criteria.
+The program fixes the score split at 80 percent original and 20 percent added.
 
-Each bank has one declared specification anchor. The renderer copies its full
-normative payload and exact criterion order into every member. The member model
-can supply only bounded presentation fields and evidence lenses. These fields
-can still influence a judge. A separate trajectory-blind reviewer checks them
-against the anchor. When the anchor changes, the same review call checks it
-against the task and prior anchor. A `changed` or `uncertain` verdict rejects the
-generation. This model audit does not prove semantic equivalence or task
-coverage. The deterministic text lock is the preservation guarantee for the
-declared normative payload.
-
-Freeze the terminal bank after revision. Rescore both the initial artifact and
-final artifact under this same bank. The evaluator also reference-scores the
-terminal bank's declared specification anchor against both endpoint artifacts.
+Freeze the final active rubric after revision. Rescore both the initial artifact
+and final artifact with this same rubric. The evaluator also scores both
+artifacts with the unchanged original rubric.
 For endpoint artifact `t` in `{0, T}`, define six scores on the same 0 to 100
 scale.
 
-- `W_t` is the weak-model aggregate under the frozen terminal bank.
-- `A_t` is the strong-panel aggregate under the same terminal bank and weights.
-- `C_t` is the strong-panel score under the terminal specification anchor.
+- `W_t` is the weak-model score under the frozen final rubric.
+- `A_t` is the strong-panel score under the same final rubric.
+- `C_t` is the strong-panel score under the unchanged original rubric.
 - `S_t` is the strong-panel score under the sealed selected rubric.
 - `H_t` is the mean strong-panel score under the sealed holdout rubrics.
 - `Q_t` is the strong-panel rubric-free holistic score.
 
-The configured in-loop judge model supplies both weak terminal-bank rescores.
+The configured in-loop judge model supplies both weak final-rubric rescores.
 Both are new evaluations. Neither reuses a persisted online score. A failed
 rescore fails the endpoint evaluation.
 
 The selected rubric is fixed before revision. The holdout rubrics stay sealed
-from the solver and proposer. The terminal bank is one common ruler for both
+from the solver and proposer. The final rubric is one common ruler for both
 endpoints within a run. It can differ across policy arms. The selected rubric,
 sealed holdouts, and rubric-free outcome are common across arms. Thus, only
 `selected_rubric_gain` ($\Delta S$), `sealed_holdout_bank_gain` ($\Delta H$),
 rubric-free quality gain ($\Delta Q$), pairwise preference, and direct detection
-use common outcome instruments. Terminal-bank $W$, $A$, $C$, component, and
+use common outcome instruments. Final-rubric $W$, $A$, $C$, component, and
 loss contrasts are descriptive total-policy endpoints. Their rulers can differ
 by arm.
 
 The evaluation also retains boundary-local online weak and strong scores. The
-initial scores use the initial bank. The final scores use the terminal bank.
+initial scores use the original rubric. The final scores use the final rubric.
 Their change mixes artifact change with ruler change. It is a secondary,
 ruler-confounded outcome.
 
-The evaluator scores each bank member separately. It then applies the exact
-floating-point weights from the immutable bank manifest. It also scores the
-terminal specification anchor as a separate reference request. Each assignment
-reference binds the bank hash, manifest hash, and anchor or member hash. Member
-references also bind the exact weight. The stage resume identity binds all
-assignment references. The online weak aggregate must also match its persisted
-member scores, dispatch preflight, and revision state.
+Each assignment reference binds the final-rubric hash, original-rubric hash,
+and exact score request. The stage resume identity binds all assignment
+references. The online weak score must match its persisted judgment, dispatch
+plan, and revision state.
 
-The randomized design uses three bank policies. It requires one condition per
-policy and one shared solver prompt.
+The randomized design uses three policies. It requires one condition per policy
+and one shared solver prompt.
 
-- `fixed` keeps the initial bank.
-- `nonadaptive_replacement` replaces the full bank without artifact evidence.
-- `adaptive_replacement` replaces the full bank using an earlier artifact.
+- `fixed` keeps the original rubric.
+- `offline_elicitation` uses three sealed pre-treatment artifact pairs.
+- `online_elicitation` uses three bounded live-history pairs.
 
-Both replacement arms use one anchor-proposer call, one trajectory-blind member
-call, one member, unit weight, the same update schedule, and one semantic-review
-call per generation. Nonadaptive-minus-fixed is the task-only replacement
-regime. This contrast combines anchor revision, presentation refresh, feedback,
-and additional provider computation. It does not identify a pure specification
-repair effect. Adaptive-minus-nonadaptive is the trajectory-conditioning
-regime. Both are longitudinal intention-to-treat contrasts. They include all
-downstream effects of earlier feedback. Adaptive-minus-fixed is the total
-adaptive-policy contrast. The design does not estimate rubric sampling or
-ensemble averaging.
+Each update uses one difference-finding call, one criterion-writing call, and
+one independent review call. The two elicitation arms use the same models,
+prompts, call limits, criterion cap, score split, and update schedule. The only
+planned evidence difference is sealed versus live artifact pairs.
 
-Each proposer and semantic-review request has a 1 MiB UTF-8 limit. Each proposer call has a
-96,000-output-token ceiling and a 1,800-second client timeout. A repair request
-includes all prior validation errors and only the immediately preceding rejected
-bank. The generation record keeps every rejected response. These limits permit
-large full-task banks. The semantic reviewer has a separate 32,768-token output
-ceiling and one-call-per-generation cap. A durable write-ahead ledger makes
-every dispatched call count. Resume cannot silently resample an indeterminate,
-malformed, or rejected result. These ceilings do not imply full usage.
+Offline-minus-fixed measures the total effect of static criterion elicitation.
+Online-minus-offline measures assignment to live-history elicitation. It also
+includes the novelty of changing live evidence because the offline pair set is
+fixed. Online-minus-fixed measures the total online policy effect. All three are
+longitudinal intention-to-treat contrasts.
+
+Each model request has a 1 MiB UTF-8 limit, a 32,768-output-token ceiling, and a
+1,800-second timeout. The two proposer stages allow five validation retries.
+The semantic reviewer gets one fail-closed call per update. A durable
+write-ahead ledger binds every call. Resume cannot silently resample an
+indeterminate provider result. These ceilings do not imply full usage.
 
 The absolute quality panel sees one artifact at a time. It scores that artifact
-against fixed task anchors without a criterion rubric. These scores define
+against fixed quality descriptions without a criterion rubric. These scores define
 `Q_0` and `Q_T`.
 
-A separate pairwise panel compares the initial and final artifacts. Each model
-sees both response orders. The analysis reports the final-artifact preference
-rate after it averages the two orders. Pairwise judgments never define `Q_t`
-and never enter the signed identity.
+A separate pairwise panel compares the highest and lowest saved in-loop-judge
+original-rubric five-call means across the complete trajectory. Each model sees both response
+orders. The panel does not see the rubric, scores, rounds, or higher/lower
+labels. The analysis reports preference for the higher-scoring artifact. A
+score tie contributes neutral agreement of 0.5. Pairwise judgments never define
+`Q_t` and never enter the signed identity.
 
 The evaluator reuses an exact semantic judgment across conditions. Its key
 contains the benchmark, task, replicate, snapshot content hash, rubric hash or
@@ -101,14 +88,14 @@ repeat or order. Mechanistic keys also bind exact review and answer hashes. Stru
 outcome keys bind the full schema and output-token contract. The key excludes
 condition IDs, run paths, rubric roles, and boundary labels. Boundary labels do
 not enter provider inputs. Thus, byte-identical requests can reuse across
-conditions or rounds within a task-replicate block. An anchor identical to a
-bank member or sealed rubric also reuses that judgment. The artifact-backed
+conditions or rounds within a task-replicate block. An original rubric identical
+to an active or sealed rubric also reuses that judgment. The artifact-backed
 store keeps one canonical provider result and validated aliases. This control
 prevents identical initial artifacts from receiving independent random scores.
 Process death after provider completion but before canonical publication can
 repeat that provider work. The store accepts only one canonical result.
-It does not make a stochastic judge ground truth. PaperBench output retains all
-three repeats and their dispersion.
+It does not make a stochastic judge ground truth. Both benchmarks retain all
+five repeats and their dispersion.
 
 Before it creates an output or calls a provider, each scoring stage preflights
 all deduplicated requests. The accepted plan records calls, request-content
@@ -117,7 +104,7 @@ The `detect` workflow accepts both scoring plans before it starts the direct
 detector or any provider call. A failed plan stops the workflow.
 Each provider-bound request recomputes its content hashes and cost shape
 immediately before dispatch. It must match the accepted stage plan exactly.
-The mechanistic preflight includes terminal specification-anchor requests. It
+The mechanistic preflight includes original-rubric requests. It
 streams full request inputs and retains only cost shapes. The stage fails if any
 total exceeds its configured hard cap. The manifest and summary contain the
 plan and cap values. These resource limits are not a dollar cost estimate.
@@ -128,11 +115,11 @@ Bytes are request-content bytes. Tokens are maximum output tokens.
 
 | Configuration group | Assignments | Mechanistic calls / bytes / tokens | Holistic calls / bytes / tokens |
 |---|---:|---:|---:|
-| BiomniBench main, simulated, and Luna | 270 | 552,960 / 144,955,146,240 / 2,264,924,160 | 6,480 / 9,059,696,640 / 26,542,080 |
-| BiomniBench preflights | 9 | 18,432 / 4,831,838,208 / 75,497,472 | 216 / 301,989,888 / 884,736 |
-| PaperBench pilot | 9 | 4,608 / 4,831,838,208 / 150,994,944 | 216 / 301,989,888 / 884,736 |
-| PaperBench preflight | 3 | 1,536 / 1,610,612,736 / 50,331,648 | 72 / 100,663,296 / 294,912 |
-| PaperBench full | 27 | 13,824 / 14,495,514,624 / 452,984,832 | 648 / 905,969,664 / 2,654,208 |
+| BiomniBench main, simulated, and Luna | 270 | 2,764,800 / 724,775,731,200 / 11,324,620,800 | 6,480 / 9,059,696,640 / 26,542,080 |
+| BiomniBench preflights | 27 | 92,160 / 24,159,191,040 / 377,487,360 | 216 / 301,989,888 / 884,736 |
+| PaperBench pilot | 27 | 7,680 / 8,053,063,680 / 251,658,240 | 216 / 301,989,888 / 884,736 |
+| PaperBench preflight | 9 | 2,560 / 2,684,354,560 / 83,886,080 | 72 / 100,663,296 / 294,912 |
+| PaperBench full | 27 | 23,040 / 24,159,191,040 / 754,974,720 | 648 / 905,969,664 / 2,654,208 |
 
 The assignment count is tasks times replicates times three policies. The cap
 derivation includes the configured outcome retry multiplier. It does not count
@@ -140,26 +127,19 @@ solver, proposer, semantic-reviewer, seed, paraphrase, or direct-detector calls.
 
 ## Rubric execution
 
-BiomniBench-DA uses the pinned AutoRubric criterion grader. It parses each complete
-rubric into forced-choice ordinal criteria. It shuffles option order with a
-content-bound seed. Automatic not-applicable options, repository result caching,
-and provider retries are disabled. Provider prompt-cache controls remain at their
-default settings and are recorded as such.
+BiomniBench-DA and PaperBench use the same whole-artifact structured judge. Each
+call contains the complete sealed artifact and complete rubric. The judge
+selects one level for every criterion.
 
-The BiomniBench-DA adapter keeps the rubric's signed point values authoritative. It
-validates every criterion vote and recomputes the score from selected levels.
-An errored, abstaining, unknown, or missing vote fails the full judgment. The
-repository then applies its outer retry policy. Artifacts retain the raw
-AutoRubric report, token usage, cost, and agreement data.
+The engine makes exactly five calls. It computes each complete signed score and
+uses their arithmetic mean. It retains all five criterion reports, scores,
+usage records, and dispersion. Temperature is zero. Provider retries and
+repository result caching are disabled. An error, abstention, missing criterion,
+unknown level, or incomplete response fails the judgment.
 
-PaperBench uses its whole-artifact structured judge. Each request contains the
-complete sealed submission snapshot and complete rubric. PaperBench does not
-fall back to criterion-level grading when that judgment fails.
-
-The analysis keeps BiomniBench-DA and PaperBench scores separate. Their grading
-engines and artifact contracts differ. Neither engine proves that a rubric is
-complete or that a judge is valid. Sealed snapshots, bank manifests, score
-attestation, and common outcome instruments remain authoritative.
+The analysis still keeps the two benchmarks separate because their tasks and
+rubrics differ. The common grading code does not prove rubric completeness or
+judge validity.
 
 ## Two-component identity
 
@@ -179,22 +159,22 @@ W_t - Q_t = verifier_exploitation_t + dynamic_rubric_gap_t
 Positive values show proxy inflation at that link. Negative values remain in
 the output because the signed identity requires them.
 
-The dynamic term is an operational gap. It is not an unbiased estimate of a
-single exploitation mechanism. The frozen terminal bank can depend on prior
-artifacts in an adaptive condition.
+The dynamic term is an operational gap. It is not an unbiased estimate of one
+exploitation mechanism. The final rubric can depend on prior artifacts in the
+online condition.
 
 ## Rubric diagnostics
 
 Four signed diagnostics partition the dynamic rubric gap.
 
 ```text
-member_to_anchor_t     = A_t - C_t
-anchor_to_selected_t   = C_t - S_t
+active_to_original_t   = A_t - C_t
+original_to_selected_t = C_t - S_t
 selected_to_holdout_t  = S_t - H_t
 holdout_to_holistic_t  = H_t - Q_t
 
-dynamic_rubric_gap_t = member_to_anchor_t
-                     + anchor_to_selected_t
+dynamic_rubric_gap_t = active_to_original_t
+                     + original_to_selected_t
                      + selected_to_holdout_t
                      + holdout_to_holistic_t
 ```
@@ -203,9 +183,9 @@ The evaluator verifies this identity. It reports each diagnostic and its
 final-minus-initial change. These diagnostics do not receive separate loss
 weights. Penalizing them again would count the dynamic gap twice.
 
-`member_to_anchor` measures the difference between the weighted member bank and
-its declared terminal anchor. `anchor_to_selected` measures the difference
-between the terminal anchor and the sealed selected rubric.
+`active_to_original` measures the difference between the final active rubric and
+the unchanged original rubric. `original_to_selected` compares that original
+rubric with the independently routed selected rubric.
 `selected_to_holdout` compares one selected wording with its sealed holdout
 wordings. `holdout_to_holistic` measures the remaining gap to the rubric-free
 score. These names describe score contrasts. They do not identify wording,
@@ -239,9 +219,9 @@ proxy-gain gap.
 Its positive part is an unweighted secondary risk measure. It differs from the
 change in positive-part loss.
 
-The output also reports the order-averaged pairwise final-artifact preference
-rate. This rate is a separate comparative outcome. It does not repair, replace,
-or calibrate the absolute quality scores.
+The output also reports order-averaged agreement with the saved in-loop-judge original-rubric score
+ordering. This rate is a separate comparative outcome. It does not repair,
+replace, or calibrate the absolute quality scores.
 
 Each holistic record retains the exact model response and its SHA-256 hash.
 Resume validation strictly decodes that response and compares it with the
@@ -339,11 +319,16 @@ arbitrary weights when the data do not identify them.
 The strong panel is a reference measurement, not ground truth. Shared model
 errors can affect all score contrasts.
 
-The semantic gate uses a separate reviewer model, not an independent semantic
-oracle. It can share vendor and model-family blind spots with other roles. The
-gate can reject visible drift, but it cannot mechanically prove that a refined
-anchor preserves the intended task or that a presentation is harmless.
+The pairwise test selects trajectory extremes with a noisy five-call mean. This
+selection can exaggerate the observed score gap. The result tests agreement
+with the operational rubric ordering. It is not an unbiased quality estimate.
 
-The evaluation uses endpoint change under the frozen terminal bank as its
+The criterion gate uses a separate reviewer model, not an independent semantic
+oracle. It can share vendor and model-family blind spots with other roles. It
+can reject visible defects, but it cannot prove that a criterion is correct.
+All three online pairs share the current artifact. Support from two pairs is
+therefore not independent replication.
+
+The evaluation uses endpoint change under the frozen final rubric as its
 primary unit. Intermediate rounds remain available for process analysis. They
 do not enter the primary estimand.

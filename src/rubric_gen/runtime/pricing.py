@@ -58,6 +58,11 @@ ANTHROPIC_PRICES_PER_MILLION = {
 }
 
 GEMINI_PRICES_PER_MILLION = {
+    "gemini-3.6-flash": {
+        "input": 1.50,
+        "cached": 0.15,
+        "output": 7.50,
+    },
     "gemini-3.5-flash": {
         "input": 1.5,
         "cached": 0.15,
@@ -84,6 +89,7 @@ HOSTED_PRICES_PER_MILLION = {
 # per-request context lengths. Use the published long-context tier for Pro,
 # which makes this estimate conservative for short requests.
 GEMINI_TERMINAL_PRICES_PER_MILLION = {
+    "gemini-3.6-flash": {"input": 1.50, "output": 7.50, "cached": 0.15},
     "gemini-3.1-pro-preview": {
         "input": 4.00,
         "output": 18.00,

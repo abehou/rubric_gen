@@ -52,11 +52,13 @@ def _artifacts(
 ) -> JudgeArtifacts:
     root.mkdir(parents=True)
     payloads = {
-        "reward.json": {"score": 43},
+        "reward.json": {"score": 43.0},
         "evaluation.json": {
-            "total_score": 43,
+            "total_score": 43.0,
             "paperbench_structured": {
-                "raw_reports": [{"repeat": 1}, {"repeat": 2}, {"repeat": 3}],
+                "raw_reports": [
+                    {"repeat": repeat_index} for repeat_index in range(1, 6)
+                ],
                 "dispersion": {"min_score": 43, "max_score": 64},
             },
         },
@@ -76,7 +78,7 @@ def _artifacts(
         "reward_sha256": sha256_file(root / "reward.json"),
         "evaluation_sha256": sha256_file(root / "evaluation.json"),
         "usage_sha256": sha256_file(root / "usage.json"),
-        "score": 43,
+        "score": 43.0,
     }
     (root / "score_validation.json").write_text(json.dumps(validation))
     return JudgeArtifacts(

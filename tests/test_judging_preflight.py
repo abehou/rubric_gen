@@ -27,7 +27,7 @@ Levels: A=1 B=0
 """
 
 
-def test_autorubric_stage_preflight_aggregates_different_artifacts() -> None:
+def test_biomni_stage_preflight_uses_five_full_rubric_calls() -> None:
     stage = preflight_judge_dispatches(
         SubmissionBenchmarkId.BIOMNIBENCH_DA,
         iter((
@@ -36,18 +36,18 @@ def test_autorubric_stage_preflight_aggregates_different_artifacts() -> None:
         )),
     )
 
-    assert stage["grading_engine"] == "autorubric-criterion"
+    assert stage["grading_engine"] == "full-rubric-structured"
     assert stage["dispatch_count"] == 2
-    assert stage["calls"] == 2
+    assert stage["calls"] == 10
     assert stage["request_bytes"] == sum(
-        shape["total_prompt_bytes"] for shape in stage["jobs"]
+        shape["total_request_content_bytes"] for shape in stage["jobs"]
     )
     assert stage["output_tokens"] == sum(
         shape["total_output_tokens"] for shape in stage["jobs"]
     )
 
 
-def test_paperbench_stage_preflight_includes_all_three_repeat_calls() -> None:
+def test_paperbench_stage_preflight_includes_all_five_repeat_calls() -> None:
     stage = preflight_judge_dispatches(
         SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
         (
@@ -56,9 +56,9 @@ def test_paperbench_stage_preflight_includes_all_three_repeat_calls() -> None:
         ),
     )
 
-    assert stage["grading_engine"] == "paperbench-structured"
+    assert stage["grading_engine"] == "full-rubric-structured"
     assert stage["dispatch_count"] == 2
-    assert stage["calls"] == 6
+    assert stage["calls"] == 10
     assert stage["request_bytes"] == sum(
         shape["total_request_content_bytes"] for shape in stage["jobs"]
     )

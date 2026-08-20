@@ -11,23 +11,27 @@ from rubric_gen.benchmarks.paperbench_code_dev.contract import (
     PAPERBENCH_CODE_DEV,
     PAPERBENCH_CODE_DEV_PROMPT,
 )
-from rubric_gen.submission_revision.judging.paperbench_judge import paperbench_payload
+from rubric_gen.submission_revision.judging.full_rubric_judge import (
+    full_rubric_payload,
+)
 from rubric_gen.submission_revision.judging.models import JudgeRunConfig, JudgeTarget
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 from rubric_gen.submission_revision.controller import SubmissionRevisionController
 from rubric_gen.submission_revision.artifacts import compact_historical_workspace
-from rubric_gen.submission_revision.evolution import _validated_complete_rubric
 import rubric_gen.submission_revision.evolution as evolution_module
+from rubric_gen.submission_revision.evolution import ArtifactContrast
 from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
+    ElicitedCriterion,
     RubricBank,
     RubricBankItem,
-    RubricBankPolicy,
     RubricLineage,
     identity_criterion_map,
+    render_augmented_rubric,
 )
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
     validate_judge_score,
@@ -102,11 +106,17 @@ def test_code_dev_rubric_uses_exact_official_binary_weights() -> None:
         rubric_levels=parse_rubric_levels_strict(rendered),
         evaluation={
             "criteria": {
-                "criterion_1": {"level": "B"},
-                "criterion_2": {"level": "A"},
+                "criterion_1": {
+                    "level_votes": ["B"] * 5,
+                    "mean_points": 0.0,
+                },
+                "criterion_2": {
+                    "level_votes": ["A"] * 5,
+                    "mean_points": 3.0,
+                },
             }
         },
-        reward={"score": 75},
+        reward={"score": 75.0},
         normalization_maximum=maximum,
     )
     assert score.raw_score == 3
@@ -249,22 +259,27 @@ def test_prepared_dataset_is_reproducible_and_pinned(tmp_path: Path) -> None:
 
 def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
     current, _, _ = render_code_dev_rubric(_rubric())
-    revised = current.replace("Criterion 1: Implement", "Criterion 1: Correctly implement")
+    original = CompleteRubric.from_content(current)
+    criterion = ElicitedCriterion.create(
+        title="Reproducible execution",
+        requirement="The implementation must include a reproducible execution path.",
+        level_descriptions=(
+            ("A", "A reproducible execution path is implemented."),
+            ("B", "No reproducible execution path is implemented."),
+        ),
+        support_pair_ids=("pair_1", "pair_2"),
+        source_generation=1,
+    )
 
-    assert _validated_complete_rubric(
-        revised,
-        normalization_maximum=4,
-        scoring_protocol="paperbench-code-dev",
-    ) == revised
-    with pytest.raises(ValueError, match="invalid level labels"):
-        _validated_complete_rubric(
-            revised.replace("Levels: A=1 B=0", "Levels: A=1 B=0 C=-1"),
-            normalization_maximum=4,
-            scoring_protocol="paperbench-code-dev",
-        )
+    revised, _ = render_augmented_rubric(original, (criterion,))
+    levels = parse_rubric_levels_strict(revised.content)
+    assert sum(values["A"] for values in levels.values()) == 4
+    assert all(set(values) == {"A", "B"} for values in levels.values())
+    assert "Implement code-a." in revised.content
+    assert "Reproducible execution" in revised.content
 
 
-def test_paperbench_split_proposer_preserves_fixed_normalization_contract() -> None:
+def test_paperbench_elicitation_uses_blinded_contrasts_and_fixed_weights() -> None:
     current, _, maximum = render_code_dev_rubric(_rubric())
 
     rubric = CompleteRubric.from_content(current)
@@ -281,38 +296,43 @@ def test_paperbench_split_proposer_preserves_fixed_normalization_contract() -> N
             identity_criterion_map(rubric),
         ),),
     )
-    anchor_evidence = evolution_module._anchor_proposer_evidence(
-        instruction="Replicate the paper.",
-        current_bank=bank,
-        policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
-        current_submission=None,
-        trajectory_context="",
-        repair_error="complete rubric changed its normalization directive",
-        rejected_attempts=(),
+    contrasts = tuple(
+        ArtifactContrast(
+            pair_id=f"pair_{index}",
+            artifact_a_id=f"hidden-a-{index}",
+            artifact_a_sha256=sha256_text(f"artifact a {index}"),
+            artifact_a=f"artifact a {index}",
+            artifact_b_id=f"hidden-b-{index}",
+            artifact_b_sha256=sha256_text(f"artifact b {index}"),
+            artifact_b=f"artifact b {index}",
+        )
+        for index in (1, 2, 3)
     )
-    member_evidence = evolution_module._member_proposer_evidence(
+    difference_evidence = evolution_module._difference_evidence(
         instruction="Replicate the paper.",
         current_bank=bank,
-        next_anchor=rubric,
-        repair_error=None,
-        rejected_attempts=(),
+        contrasts=contrasts,
+    )
+    criterion_evidence = evolution_module._criterion_evidence(
+        instruction="Replicate the paper.",
+        current_bank=bank,
+        difference_response={
+            "pairs": [
+                {"pair_id": f"pair_{index}", "differences": []}
+                for index in (1, 2, 3)
+            ]
+        },
+        remaining_capacity=5,
+        level_labels=("A", "B"),
     )
 
-    assert f"Score normalization maximum: {maximum}" in anchor_evidence
-    assert "<harness_anchor_contract>" in anchor_evidence
-    assert "scoring_protocol: paperbench-code-dev" in anchor_evidence
-    assert f"normalization_maximum: {maximum}" in anchor_evidence
-    assert (
-        "complete rubric changed its normalization directive"
-        in anchor_evidence
-    )
-    assert "<trajectory_blind_member_contract>" in member_evidence
-    assert "member_count: 1" in member_evidence
-    assert "member_weight: 1.0" in member_evidence
-    assert f"Score normalization maximum: {maximum}" in member_evidence
-    instructions = " ".join(evolution_module._member_instructions().split())
-    assert "copies every normative anchor clause" in instructions
-    assert "assigns unit weight" in instructions
+    assert f"Score normalization maximum: {maximum}" in difference_evidence
+    assert "hidden-a-1" not in difference_evidence
+    assert "hidden-b-1" not in difference_evidence
+    assert '"program_owned_reward_fraction":0.2' in criterion_evidence
+    instructions = " ".join(evolution_module._criterion_instructions().split())
+    assert "at least two distinct contrast pairs" in instructions
+    assert "Do not choose points or weights" in instructions
 
 
 def test_submission_evidence_uses_official_code_dev_file_types(tmp_path: Path) -> None:
@@ -410,22 +430,31 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
             identity_criterion_map(current_rubric),
         ),),
     )
-    proposed = evolution_module._anchor_proposer_evidence(
+    native_submission = render_submission_tree(workspace)
+    contrasts = tuple(
+        ArtifactContrast(
+            pair_id=f"pair_{index}",
+            artifact_a_id="hidden-current",
+            artifact_a_sha256=sha256_text(native_submission),
+            artifact_a=native_submission,
+            artifact_b_id=f"hidden-reference-{index}",
+            artifact_b_sha256=sha256_text(f"reference {index}"),
+            artifact_b=f"reference {index}",
+        )
+        for index in (1, 2, 3)
+    )
+    proposed = evolution_module._difference_evidence(
         instruction="TASK",
         current_bank=current_bank,
-        policy=RubricBankPolicy.ADAPTIVE_REPLACEMENT,
-        current_submission=render_submission_tree(workspace),
-        trajectory_context='{"events":[]}\n',
-        repair_error=None,
-        rejected_attempts=(),
+        contrasts=contrasts,
     )
 
     assert "native submission" in judged
     assert "NON-NATIVE ANSWER" not in judged
     assert "NON-NATIVE TRACE" not in judged
     assert "native submission" in proposed
-    assert "<current_answer>" not in proposed
-    payload = json.loads(paperbench_payload("RUBRIC", judged, ""))
+    assert "hidden-current" not in proposed
+    payload = json.loads(full_rubric_payload("RUBRIC", judged, ""))
     assert payload["rubric_text"] == "RUBRIC"
     assert payload["artifact_evidence"]["workspace_review"] == judged
     assert payload["artifact_evidence"]["final_answer"] is None
@@ -472,11 +501,11 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     )
     validation = tmp_path / "score-validation.json"
     validation.write_text(json.dumps({
-        "score": 100,
+        "score": 100.0,
         "normalized_score": 1.0,
-        "raw_score": 100,
-        "selected_levels": {"criterion_1": "A"},
-        "criterion_scores": {"criterion_1": 100},
+        "raw_score": 100.0,
+        "criterion_level_votes": {"criterion_1": ["A"] * 5},
+        "criterion_scores": {"criterion_1": 100.0},
         "rendered_rubric_sha256": rubric_sha256,
     }))
     captured: dict[str, object] = {}

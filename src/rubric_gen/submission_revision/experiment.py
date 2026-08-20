@@ -198,8 +198,10 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError("randomization requires seed and replicates")
     if type(randomization["seed"]) is not int:
         raise ValueError("randomization seed must be an integer")
-    if type(randomization["replicates"]) is not int or randomization["replicates"] < 1:
-        raise ValueError("replicates must be positive")
+    if type(randomization["replicates"]) is not int or randomization["replicates"] < 3:
+        raise ValueError(
+            "criterion elicitation requires at least three replicates"
+        )
     conditions = payload["conditions"]
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
@@ -471,10 +473,10 @@ def _validate_protocol(protocol: object) -> None:
     if (
         type(protocol["rubric_semantic_judge_max_calls_per_assignment"]) is not int
         or protocol["rubric_semantic_judge_max_calls_per_assignment"]
-        != protocol["revision_rounds"]
+        != max(0, protocol["revision_rounds"] - 1)
     ):
         raise ValueError(
-            "rubric semantic judge call cap must equal revision_rounds"
+            "rubric semantic reviewer call cap must equal revision_rounds minus one"
         )
     if (
         type(protocol["rubric_semantic_judge_max_request_bytes_per_call"])

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 from dataclasses import dataclass
+from numbers import Real
 from pathlib import Path
 from typing import Protocol
 
@@ -167,7 +168,11 @@ class FrozenRubricJudge:
         max_attempts = self.config.max_retries + 1
         for attempt_index in range(1, max_attempts + 1):
             record = runner.review_target(target)
-            if record.get("status") == "completed" and type(record.get("score")) is int:
+            if (
+                record.get("status") == "completed"
+                and not isinstance(record.get("score"), bool)
+                and isinstance(record.get("score"), Real)
+            ):
                 break
             self._archive_failed_attempt(
                 runner,

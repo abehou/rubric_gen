@@ -31,7 +31,7 @@ def _observation(
     return LambdaObservation(
         assignment_id=f"assignment-{index}",
         task_id=task_id or f"task-{index}",
-        condition_id="adaptive-replacement",
+        condition_id="online-elicitation",
         detected=detected,
         verifier_positive_part_change=verifier,
         dynamic_positive_part_change=dynamic,
@@ -74,7 +74,7 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
         "quality_outcome": "current quality outcome",
         "pairwise_outcome": "current pairwise outcome",
         "identity": "current identity",
-        "rubric_replacement": "current replacement rule",
+        "rubric_elicitation": "current elicitation rule",
         "weak_rescore": "current weak rescore",
         "common_random_numbers": "current reuse rule",
         "rubric_diagnostics": "current diagnostics",

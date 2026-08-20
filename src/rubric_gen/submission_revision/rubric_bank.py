@@ -1,4 +1,4 @@
-"""Immutable rubric banks and replacement-policy validation."""
+"""Immutable single-rubric generations and elicitation-policy validation."""
 
 from __future__ import annotations
 
@@ -26,8 +26,10 @@ from rubric_gen.submission_revision.autorubric import (
 
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 MAX_RUBRIC_BANK_ITEMS = 1
-MAX_PRESENTATION_TITLE_CHARS = 160
-MAX_PRESENTATION_BODY_CHARS = 500
+MAX_ELICITED_CRITERIA = 5
+ELICITED_REWARD_FRACTION = 0.20
+MAX_CRITERION_TITLE_CHARS = 160
+MAX_CRITERION_TEXT_CHARS = 1_000
 _SCORING_PROTOCOL_PREFIX = "Scoring protocol: "
 
 
@@ -114,11 +116,11 @@ class RubricLineage(str, Enum):
 
 
 class RubricBankPolicy(str, Enum):
-    """Define how an experiment changes its rubric bank."""
+    """Define how an experiment changes its single rubric."""
 
     FIXED = "fixed"
-    NONADAPTIVE_REPLACEMENT = "nonadaptive_replacement"
-    ADAPTIVE_REPLACEMENT = "adaptive_replacement"
+    OFFLINE_ELICITATION = "offline_elicitation"
+    ONLINE_ELICITATION = "online_elicitation"
 
 
 @dataclass(frozen=True)
@@ -195,7 +197,7 @@ def is_valid_single_line_text(
     )
 
 
-def _require_presentation_text(
+def _require_criterion_text(
     value: object,
     field_name: str,
     *,
@@ -213,111 +215,149 @@ def _require_presentation_text(
 
 
 @dataclass(frozen=True)
-class RubricCriterionPresentation:
-    """Store non-normative presentation text for one anchor criterion."""
+class ElicitedCriterion:
+    """Store one general criterion induced from blinded artifact contrasts."""
 
-    anchor_criterion_id: str
-    heading: str
-    lens: str
-
-    def __post_init__(self) -> None:
-        if (
-            type(self.anchor_criterion_id) is not str
-            or re.fullmatch(
-                r"criterion_[1-9][0-9]*", self.anchor_criterion_id
-            ) is None
-        ):
-            raise ValueError("criterion presentation has an invalid anchor ID")
-        _require_presentation_text(
-            self.heading,
-            "presentation heading",
-            max_chars=MAX_PRESENTATION_TITLE_CHARS,
-        )
-        _require_presentation_text(
-            self.lens,
-            "presentation lens",
-            max_chars=MAX_PRESENTATION_BODY_CHARS,
-        )
-
-    def as_dict(self) -> dict[str, str]:
-        """Return the canonical JSON representation."""
-
-        return {
-            "anchor_criterion_id": self.anchor_criterion_id,
-            "heading": self.heading,
-            "lens": self.lens,
-        }
-
-
-@dataclass(frozen=True)
-class RubricMemberPresentation:
-    """Store proposer-owned text that cannot replace anchor requirements."""
-
+    criterion_id: str
     title: str
-    overview: str
-    criteria: tuple[RubricCriterionPresentation, ...]
+    requirement: str
+    level_descriptions: tuple[tuple[str, str], ...]
+    support_pair_ids: tuple[str, ...]
+    source_generation: int
 
     def __post_init__(self) -> None:
-        _require_presentation_text(
+        if (
+            type(self.criterion_id) is not str
+            or re.fullmatch(r"elicited_[0-9a-f]{16}", self.criterion_id) is None
+        ):
+            raise ValueError("elicited criterion has an invalid ID")
+        _require_criterion_text(
             self.title,
-            "presentation title",
-            max_chars=MAX_PRESENTATION_TITLE_CHARS,
+            "elicited criterion title",
+            max_chars=MAX_CRITERION_TITLE_CHARS,
         )
-        _require_presentation_text(
-            self.overview,
-            "presentation overview",
-            max_chars=MAX_PRESENTATION_BODY_CHARS,
+        _require_criterion_text(
+            self.requirement,
+            "elicited criterion requirement",
+            max_chars=MAX_CRITERION_TEXT_CHARS,
         )
         if (
-            type(self.criteria) is not tuple
-            or not self.criteria
+            type(self.level_descriptions) is not tuple
+            or len(self.level_descriptions) < 2
             or any(
-                not isinstance(item, RubricCriterionPresentation)
-                for item in self.criteria
+                type(item) is not tuple
+                or len(item) != 2
+                or type(item[0]) is not str
+                or len(item[0]) != 1
+                or not item[0].isupper()
+                or not is_valid_single_line_text(
+                    item[1], max_chars=MAX_CRITERION_TEXT_CHARS
+                )
+                for item in self.level_descriptions
             )
         ):
-            raise ValueError(
-                "presentation criteria must contain criterion presentations"
+            raise ValueError("elicited criterion levels are invalid")
+        labels = tuple(label for label, _ in self.level_descriptions)
+        if labels != tuple(
+            chr(ord("A") + index) for index in range(len(labels))
+        ):
+            raise ValueError("elicited criterion level labels are not contiguous")
+        if (
+            type(self.support_pair_ids) is not tuple
+            or len(self.support_pair_ids) < 2
+            or len(set(self.support_pair_ids)) != len(self.support_pair_ids)
+            or any(
+                type(pair_id) is not str
+                or re.fullmatch(r"pair_[1-3]", pair_id) is None
+                for pair_id in self.support_pair_ids
             )
-        ids = [item.anchor_criterion_id for item in self.criteria]
-        if len(set(ids)) != len(ids):
-            raise ValueError("presentation repeats an anchor criterion")
+        ):
+            raise ValueError("elicited criterion needs two distinct contrast pairs")
+        _require_nonnegative_int(self.source_generation, "source_generation")
+        expected_id = "elicited_" + sha256_text(json.dumps(
+            {
+                "title": self.title,
+                "requirement": self.requirement,
+                "level_descriptions": self.level_descriptions,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ))[:16]
+        if self.criterion_id != expected_id:
+            raise ValueError("elicited criterion ID does not match its content")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        title: str,
+        requirement: str,
+        level_descriptions: tuple[tuple[str, str], ...],
+        support_pair_ids: tuple[str, ...],
+        source_generation: int,
+    ) -> "ElicitedCriterion":
+        payload = json.dumps(
+            {
+                "title": title,
+                "requirement": requirement,
+                "level_descriptions": level_descriptions,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return cls(
+            criterion_id="elicited_" + sha256_text(payload)[:16],
+            title=title,
+            requirement=requirement,
+            level_descriptions=level_descriptions,
+            support_pair_ids=support_pair_ids,
+            source_generation=source_generation,
+        )
 
     def as_dict(self) -> dict[str, object]:
-        """Return the canonical JSON representation."""
-
         return {
+            "criterion_id": self.criterion_id,
             "title": self.title,
-            "overview": self.overview,
-            "criteria": [item.as_dict() for item in self.criteria],
+            "requirement": self.requirement,
+            "level_descriptions": [
+                {"label": label, "description": description}
+                for label, description in self.level_descriptions
+            ],
+            "support_pair_ids": list(self.support_pair_ids),
+            "source_generation": self.source_generation,
         }
 
 
-def parse_rubric_member_presentation(value: object) -> RubricMemberPresentation:
-    """Parse one exact member-presentation object."""
-
+def parse_elicited_criterion(value: object) -> ElicitedCriterion:
     if not isinstance(value, dict) or set(value) != {
-        "title", "overview", "criteria"
+        "criterion_id",
+        "title",
+        "requirement",
+        "level_descriptions",
+        "support_pair_ids",
+        "source_generation",
     }:
-        raise ValueError("member presentation has invalid fields")
-    criteria = value.get("criteria")
-    if not isinstance(criteria, list):
-        raise ValueError("member presentation criteria must be a list")
-    parsed: list[RubricCriterionPresentation] = []
-    for item in criteria:
-        if not isinstance(item, dict) or set(item) != {
-            "anchor_criterion_id", "heading", "lens"
-        }:
-            raise ValueError("criterion presentation has invalid fields")
-        parsed.append(RubricCriterionPresentation(
-            anchor_criterion_id=item.get("anchor_criterion_id"),  # type: ignore[arg-type]
-            heading=item.get("heading"),  # type: ignore[arg-type]
-            lens=item.get("lens"),  # type: ignore[arg-type]
-        ))
-    return RubricMemberPresentation(
+        raise ValueError("elicited criterion has invalid fields")
+    raw_levels = value.get("level_descriptions")
+    if not isinstance(raw_levels, list):
+        raise ValueError("elicited criterion levels must be a list")
+    levels: list[tuple[str, str]] = []
+    for level in raw_levels:
+        if not isinstance(level, dict) or set(level) != {"label", "description"}:
+            raise ValueError("elicited criterion level has invalid fields")
+        levels.append((level["label"], level["description"]))  # type: ignore[arg-type]
+    raw_support = value.get("support_pair_ids")
+    if not isinstance(raw_support, list):
+        raise ValueError("elicited criterion support must be a list")
+    return ElicitedCriterion(
+        criterion_id=value.get("criterion_id"),  # type: ignore[arg-type]
         title=value.get("title"),  # type: ignore[arg-type]
-        overview=value.get("overview"),  # type: ignore[arg-type]
-        criteria=tuple(parsed),
+        requirement=value.get("requirement"),  # type: ignore[arg-type]
+        level_descriptions=tuple(levels),
+        support_pair_ids=tuple(raw_support),  # type: ignore[arg-type]
+        source_generation=value.get("source_generation"),  # type: ignore[arg-type]
     )
 
 
@@ -369,66 +409,179 @@ def _criterion_specific_requirement(
     return suffix.strip()
 
 
-def render_locked_rubric_member(
-    specification_anchor: CompleteRubric,
-    presentation: RubricMemberPresentation,
-) -> tuple[CompleteRubric, tuple[RubricCriterionMapping, ...]]:
-    """Render a member whose complete normative payload comes from its anchor."""
-
-    if not isinstance(specification_anchor, CompleteRubric):
-        raise ValueError("specification anchor must be a CompleteRubric")
-    if not isinstance(presentation, RubricMemberPresentation):
-        raise ValueError("presentation must be a RubricMemberPresentation")
-    parsed = parse_autorubric_rubric(specification_anchor.content)
-    anchor_by_id = {
-        criterion.criterion_id: criterion for criterion in parsed.criteria
-    }
-    presentation_ids = tuple(
-        item.anchor_criterion_id for item in presentation.criteria
+def _allocate_integer_mass(
+    weights: tuple[int, ...],
+    total: int,
+    minimums: tuple[int, ...],
+) -> tuple[int, ...]:
+    if (
+        not weights
+        or len(weights) != len(minimums)
+        or any(weight <= 0 for weight in weights)
+        or any(minimum < 1 for minimum in minimums)
+        or total < sum(minimums)
+    ):
+        raise ValueError("rubric point mass cannot satisfy its level contract")
+    remaining = total - sum(minimums)
+    weight_total = sum(weights)
+    floors = [remaining * weight // weight_total for weight in weights]
+    allocations = [
+        minimum + floor
+        for minimum, floor in zip(minimums, floors, strict=True)
+    ]
+    residual = total - sum(allocations)
+    order = sorted(
+        range(len(weights)),
+        key=lambda index: (
+            -(remaining * weights[index] % weight_total),
+            index,
+        ),
     )
-    anchor_ids = tuple(anchor_by_id)
-    if presentation_ids != anchor_ids:
-        missing = sorted(set(anchor_ids) - set(presentation_ids))
-        extra = sorted(set(presentation_ids) - set(anchor_ids))
-        raise ValueError(
-            "member presentation must preserve exact anchor criterion order; "
-            f"missing={missing}, extra={extra}"
-        )
+    for index in order[:residual]:
+        allocations[index] += 1
+    return tuple(allocations)
+
+
+def _scaled_level_points(levels: tuple[object, ...], new_maximum: int) -> tuple[int, ...]:
+    old_points = tuple(int(getattr(level, "points")) for level in levels)
+    positive_count = sum(point > 0 for point in old_points)
+    negative_count = sum(point < 0 for point in old_points)
+    if new_maximum < positive_count:
+        raise ValueError("scaled criterion has too little positive point mass")
+    values: list[int] = []
+    remaining_positive = positive_count
+    previous = new_maximum + 1
+    old_maximum = old_points[0]
+    for point in old_points:
+        if point > 0:
+            lower = remaining_positive
+            candidate = round(point * new_maximum / old_maximum)
+            value = min(previous - 1, max(lower, candidate))
+            values.append(value)
+            previous = value
+            remaining_positive -= 1
+        elif point == 0:
+            values.append(0)
+        else:
+            negative_rank = sum(value < 0 for value in values) + 1
+            old_floor = abs(old_points[-1]) or 1
+            magnitude = max(
+                negative_rank,
+                round(abs(point) * max(new_maximum, negative_count) / old_floor),
+            )
+            if values and values[-1] < 0:
+                magnitude = max(magnitude, abs(values[-1]) + 1)
+            values.append(-magnitude)
+    return tuple(values)
+
+
+def render_augmented_rubric(
+    original_rubric: CompleteRubric,
+    elicited_criteria: tuple[ElicitedCriterion, ...],
+) -> tuple[CompleteRubric, tuple[RubricCriterionMapping, ...]]:
+    """Render one rubric with fixed original text and bounded added criteria."""
+
+    if not isinstance(original_rubric, CompleteRubric):
+        raise ValueError("original_rubric must be a CompleteRubric")
+    if (
+        type(elicited_criteria) is not tuple
+        or len(elicited_criteria) > MAX_ELICITED_CRITERIA
+        or any(not isinstance(item, ElicitedCriterion) for item in elicited_criteria)
+    ):
+        raise ValueError("elicited_criteria has an invalid value")
+    if len({item.criterion_id for item in elicited_criteria}) != len(
+        elicited_criteria
+    ):
+        raise ValueError("elicited criteria repeat a content identity")
+    if not elicited_criteria:
+        return original_rubric, identity_criterion_map(original_rubric)
+
+    parsed = parse_autorubric_rubric(original_rubric.content)
+    protocol = _scoring_protocol(original_rubric.content)
+    required_labels = ("A", "B") if protocol is not None else ("A", "B", "C")
+    for criterion in elicited_criteria:
+        if tuple(label for label, _ in criterion.level_descriptions) != required_labels:
+            raise ValueError(
+                "elicited criterion levels do not match the rubric scoring protocol"
+            )
+    titles = [" ".join(item.title.casefold().split()) for item in elicited_criteria]
+    original_titles = {
+        " ".join(criterion.title.casefold().split()) for criterion in parsed.criteria
+    }
+    if len(set(titles)) != len(titles) or set(titles) & original_titles:
+        raise ValueError("elicited criteria contain duplicate criterion titles")
+
+    normalization_maximum = parsed.normalization_maximum or 100
+    elicited_mass = round(normalization_maximum * ELICITED_REWARD_FRACTION)
+    original_mass = normalization_maximum - elicited_mass
+    original_weights = tuple(criterion.levels[0].points for criterion in parsed.criteria)
+    original_minimums = tuple(
+        sum(level.points > 0 for level in criterion.levels)
+        for criterion in parsed.criteria
+    )
+    original_maxima = _allocate_integer_mass(
+        original_weights,
+        original_mass,
+        original_minimums,
+    )
+    elicited_maxima = _allocate_integer_mass(
+        tuple(1 for _ in elicited_criteria),
+        elicited_mass,
+        tuple(1 for _ in elicited_criteria),
+    )
 
     lines: list[str] = []
     if parsed.context:
         lines.extend((parsed.context, ""))
-    lines.extend((
-        f"Member presentation title: {presentation.title}",
-        f"Member presentation overview: {presentation.overview}",
-        "The presentation text is non-normative. The locked anchor text and "
-        "levels control every scoring decision.",
-        "",
-    ))
     criterion_map: list[RubricCriterionMapping] = []
-    for member_index, item in enumerate(presentation.criteria, start=1):
-        anchor_criterion = anchor_by_id[item.anchor_criterion_id]
-        member_id = f"criterion_{member_index}"
+    for index, (criterion, maximum) in enumerate(
+        zip(parsed.criteria, original_maxima, strict=True), start=1
+    ):
+        member_id = f"criterion_{index}"
         criterion_map.append(RubricCriterionMapping(
-            anchor_criterion_id=item.anchor_criterion_id,
+            anchor_criterion_id=criterion.criterion_id,
             member_criterion_id=member_id,
         ))
-        lines.append(f"Criterion {member_index}: {anchor_criterion.title}")
-        specific = _criterion_specific_requirement(anchor_criterion)
+        points = _scaled_level_points(criterion.levels, maximum)
+        lines.append(f"Criterion {index}: {criterion.title}")
+        specific = _criterion_specific_requirement(criterion)
         if specific:
             lines.append(specific)
-        lines.extend((
-            f"Locked anchor criterion: {item.anchor_criterion_id}",
-            f"Presentation heading (non-normative): {item.heading}",
-            f"Presentation lens (non-normative): {item.lens}",
+        lines.append(
             "Levels: " + " ".join(
-                f"{level.label}={level.points}"
-                for level in anchor_criterion.levels
+                f"{level.label}={point}"
+                for level, point in zip(criterion.levels, points, strict=True)
+            )
+        )
+        lines.extend(
+            f"[{level.label}]: {level.description}"
+            for level in criterion.levels
+        )
+        lines.append("")
+
+    offset = len(parsed.criteria)
+    for index, (criterion, maximum) in enumerate(
+        zip(elicited_criteria, elicited_maxima, strict=True), start=1
+    ):
+        number = offset + index
+        labels = tuple(label for label, _ in criterion.level_descriptions)
+        points = (
+            (maximum, 0)
+            if labels == ("A", "B")
+            else (maximum, 0, -maximum)
+        )
+        lines.extend((
+            f"Criterion {number}: {criterion.title}",
+            criterion.requirement,
+            f"Elicited criterion ID: {criterion.criterion_id}",
+            "Levels: " + " ".join(
+                f"{label}={point}"
+                for label, point in zip(labels, points, strict=True)
             ),
         ))
         lines.extend(
-            f"[{level.label}]: {level.description}"
-            for level in anchor_criterion.levels
+            f"[{label}]: {description}"
+            for label, description in criterion.level_descriptions
         )
         lines.append("")
     rubric = CompleteRubric.from_content("\n".join(lines).rstrip() + "\n")
@@ -439,8 +592,9 @@ def validate_rubric_criterion_map(
     specification_anchor: CompleteRubric,
     rubric: CompleteRubric,
     criterion_map: tuple[RubricCriterionMapping, ...],
+    elicited_criteria: tuple[ElicitedCriterion, ...],
 ) -> None:
-    """Require a total disjoint map with exact per-anchor point vectors."""
+    """Require the exact deterministic rendering of one augmented rubric."""
 
     if not isinstance(specification_anchor, CompleteRubric):
         raise ValueError("specification anchor must be a CompleteRubric")
@@ -451,32 +605,12 @@ def validate_rubric_criterion_map(
         or any(not isinstance(item, RubricCriterionMapping) for item in criterion_map)
     ):
         raise ValueError("criterion_map must contain RubricCriterionMapping values")
-    anchor_vectors = _rubric_point_vectors(specification_anchor)
-    member_vectors = _rubric_point_vectors(rubric)
-    mapped_anchor_ids = [item.anchor_criterion_id for item in criterion_map]
-    if mapped_anchor_ids != list(anchor_vectors):
-        raise ValueError(
-            "criterion map must preserve exact anchor criterion order"
-        )
-    covered: set[str] = set()
-    for expected_member_id, mapping in zip(member_vectors, criterion_map, strict=True):
-        target = mapping.member_criterion_id
-        if target != expected_member_id:
-            raise ValueError(
-                "criterion map must preserve exact member criterion order"
-            )
-        if target not in member_vectors:
-            raise ValueError("criterion map references an unknown member criterion")
-        if target in covered:
-            raise ValueError("criterion map reuses a member criterion")
-        covered.add(target)
-        anchor_vector = anchor_vectors[mapping.anchor_criterion_id]
-        if member_vectors[target] != anchor_vector:
-            raise ValueError(
-                "mapped criteria must preserve the anchor point vector exactly"
-            )
-    if covered != set(member_vectors):
-        raise ValueError("criterion map must include every member criterion exactly once")
+    expected_rubric, expected_map = render_augmented_rubric(
+        specification_anchor,
+        elicited_criteria,
+    )
+    if rubric != expected_rubric or criterion_map != expected_map:
+        raise ValueError("rubric differs from its deterministic augmentation")
 
 
 def rubric_bank_member_limits(
@@ -494,14 +628,14 @@ def rubric_bank_member_limits(
 
 @dataclass(frozen=True)
 class RubricBankItem:
-    """Assign a weight and lineage to one complete rubric."""
+    """Store the sole rubric and its cumulative elicited criteria."""
 
     rubric: CompleteRubric
     weight: float
     lineage: RubricLineage
     criterion_map: tuple[RubricCriterionMapping, ...]
     prior_content_sha256: str | None = None
-    presentation: RubricMemberPresentation | None = None
+    elicited_criteria: tuple[ElicitedCriterion, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.rubric, CompleteRubric):
@@ -525,15 +659,24 @@ class RubricBankItem:
             raise ValueError(
                 "criterion_map must contain RubricCriterionMapping values"
             )
-        if self.presentation is not None and not isinstance(
-            self.presentation, RubricMemberPresentation
-        ):
-            raise ValueError(
-                "presentation must be a RubricMemberPresentation or null"
+        if (
+            type(self.elicited_criteria) is not tuple
+            or len(self.elicited_criteria) > MAX_ELICITED_CRITERIA
+            or any(
+                not isinstance(criterion, ElicitedCriterion)
+                for criterion in self.elicited_criteria
             )
+        ):
+            raise ValueError("elicited_criteria has an invalid value")
+        if len({
+            criterion.criterion_id for criterion in self.elicited_criteria
+        }) != len(self.elicited_criteria):
+            raise ValueError("elicited_criteria contains duplicate criteria")
         if self.lineage is RubricLineage.NEW:
             if self.prior_content_sha256 is not None:
                 raise ValueError("a new rubric cannot reference a prior rubric")
+            if self.elicited_criteria:
+                raise ValueError("the initial rubric cannot contain elicited criteria")
             return
 
         prior_hash = _require_sha256(
@@ -549,7 +692,7 @@ class RubricBankItem:
 
 @dataclass(frozen=True)
 class RubricBank:
-    """Store one complete rubric bank for a generation round."""
+    """Store one task rubric for a generation round."""
 
     generation_round: int
     source_boundary: int | None
@@ -568,9 +711,9 @@ class RubricBank:
                 self.source_boundary,
                 "source_boundary",
             )
-            if source_boundary != generation_round - 1:
+            if source_boundary != generation_round:
                 raise ValueError(
-                    "source_boundary must equal the preceding generation round"
+                    "source_boundary must equal the elicitation generation round"
                 )
         if generation_round == 0 and self.source_boundary is not None:
             raise ValueError("the initial bank cannot have a source boundary")
@@ -586,22 +729,14 @@ class RubricBank:
             ):
                 raise ValueError("the initial specification anchor must have new lineage")
         else:
-            if self.specification_anchor_lineage is RubricLineage.NEW:
-                raise ValueError("a replacement specification anchor cannot have new lineage")
+            if self.specification_anchor_lineage is not RubricLineage.RETAINED:
+                raise ValueError("the original rubric must remain retained")
             prior_anchor_hash = _require_sha256(
                 self.prior_specification_anchor_sha256,
                 "prior_specification_anchor_sha256",
             )
-            if (
-                self.specification_anchor_lineage is RubricLineage.RETAINED
-                and prior_anchor_hash != self.specification_anchor.content_sha256
-            ):
-                raise ValueError("a retained specification anchor must keep its hash")
-            if (
-                self.specification_anchor_lineage is RubricLineage.REFINED
-                and prior_anchor_hash == self.specification_anchor.content_sha256
-            ):
-                raise ValueError("a refined specification anchor must change its hash")
+            if prior_anchor_hash != self.specification_anchor.content_sha256:
+                raise ValueError("the original rubric hash cannot change")
 
         minimum_items, maximum_items = rubric_bank_member_limits(
             self.specification_anchor,
@@ -639,10 +774,10 @@ class RubricBank:
                 or self.items[0].rubric != self.specification_anchor
                 or self.items[0].criterion_map
                 != identity_criterion_map(self.specification_anchor)
-                or self.items[0].presentation is not None
+                or self.items[0].elicited_criteria
             ):
                 raise ValueError(
-                    "the initial bank must contain its anchor with an identity map"
+                    "the initial bank must contain the unchanged original rubric"
                 )
 
         contracts = {
@@ -661,20 +796,8 @@ class RubricBank:
                 self.specification_anchor,
                 item.rubric,
                 item.criterion_map,
+                item.elicited_criteria,
             )
-            if generation_round > 0:
-                if item.presentation is None:
-                    raise ValueError(
-                        "each replacement member needs a locked presentation"
-                    )
-                rendered, rendered_map = render_locked_rubric_member(
-                    self.specification_anchor,
-                    item.presentation,
-                )
-                if rendered != item.rubric or rendered_map != item.criterion_map:
-                    raise ValueError(
-                        "replacement member differs from its locked anchor rendering"
-                    )
 
     @property
     def content_sha256(self) -> str:
@@ -687,6 +810,10 @@ class RubricBank:
                     "weight_hex": item.weight.hex(),
                     "criterion_map": [
                         mapping.as_dict() for mapping in item.criterion_map
+                    ],
+                    "elicited_criteria": [
+                        criterion.as_dict()
+                        for criterion in item.elicited_criteria
                     ],
                 }
                 for item in self.items
@@ -776,18 +903,11 @@ class RubricBank:
             prior_bank.specification_anchor.content_sha256
         ):
             raise ValueError("specification anchor lineage references the wrong prior hash")
-        anchor_changed = (
-            self.specification_anchor.content_sha256
-            != prior_bank.specification_anchor.content_sha256
-        )
-        if anchor_changed != (
-            self.specification_anchor_lineage is RubricLineage.REFINED
+        if (
+            self.specification_anchor != prior_bank.specification_anchor
+            or self.specification_anchor_lineage is not RubricLineage.RETAINED
         ):
-            raise ValueError("specification anchor lineage does not match its content")
-        if anchor_changed and any(
-            item.lineage is RubricLineage.RETAINED for item in self.items
-        ):
-            raise ValueError("a changed specification anchor forbids retained members")
+            raise ValueError("the original rubric cannot change")
 
         prior_by_hash = {
             item.rubric.content_sha256: item for item in prior_bank.items
@@ -815,12 +935,25 @@ class RubricBank:
                     raise ValueError("retained lineage changed the rubric content")
                 if item.criterion_map != prior_by_hash[prior_hash].criterion_map:
                     raise ValueError("a retained member must keep its criterion map")
-                if item.presentation != prior_by_hash[prior_hash].presentation:
-                    raise ValueError("a retained member must keep its presentation")
+                if (
+                    item.elicited_criteria
+                    != prior_by_hash[prior_hash].elicited_criteria
+                ):
+                    raise ValueError(
+                        "a retained rubric must keep its elicited criteria"
+                    )
             else:
                 if current_hash in prior_hashes:
                     raise ValueError(
                         "refined lineage must produce content absent from the prior bank"
+                    )
+                prior_criteria = prior_by_hash[prior_hash].elicited_criteria
+                if (
+                    item.elicited_criteria[:len(prior_criteria)] != prior_criteria
+                    or len(item.elicited_criteria) <= len(prior_criteria)
+                ):
+                    raise ValueError(
+                        "a refined rubric can only append elicited criteria"
                     )
         if any(
             len(lineages) > 1
@@ -830,11 +963,6 @@ class RubricBank:
             raise ValueError(
                 "multiple descendants of one prior rubric must all be refined"
             )
-        if (
-            self.generation_round == 1
-            and self.content_sha256 == prior_bank.content_sha256
-        ):
-            raise ValueError("the first replacement generation must change the bank")
 
 
 def canonical_rubric_bank_items(bank: RubricBank) -> tuple[RubricBankItem, ...]:
@@ -895,24 +1023,24 @@ class RubricBankSchedule:
             return
 
         if len(banks) < 2:
-            raise ValueError("a replacement policy must replace the initial bank")
-        replacement_banks = banks[1:]
+            raise ValueError("an elicitation policy must include an update")
+        elicited_banks = banks[1:]
         if any(
             bank.rubric_count != 1
             or tuple(item.weight for item in bank.items) != (1.0,)
-            for bank in replacement_banks
+            for bank in elicited_banks
         ):
             raise ValueError(
-                "the primary replacement schedule requires one unit-weight member"
+                "an elicitation schedule requires one unit-weight rubric"
             )
-        if self.policy is RubricBankPolicy.NONADAPTIVE_REPLACEMENT:
-            if any(bank.source_boundary is not None for bank in replacement_banks):
+        if self.policy is RubricBankPolicy.OFFLINE_ELICITATION:
+            if any(bank.source_boundary is not None for bank in elicited_banks):
                 raise ValueError(
-                    "a nonadaptive replacement cannot use an artifact boundary"
+                    "offline elicitation cannot use a live artifact boundary"
                 )
-        elif any(bank.source_boundary is None for bank in replacement_banks):
+        elif any(bank.source_boundary is None for bank in elicited_banks):
             raise ValueError(
-                "each adaptive replacement must use an earlier artifact boundary"
+                "each online elicitation update needs a live artifact boundary"
             )
 
 
@@ -926,20 +1054,20 @@ def _validate_policy_bank(policy: RubricBankPolicy, bank: RubricBank) -> None:
         or tuple(item.weight for item in bank.items) != (1.0,)
     ):
         raise ValueError(
-            "the primary replacement policy requires one unit-weight member"
+            "an elicitation policy requires one unit-weight rubric"
         )
-    if policy is RubricBankPolicy.NONADAPTIVE_REPLACEMENT:
+    if policy is RubricBankPolicy.OFFLINE_ELICITATION:
         if bank.source_boundary is not None:
             raise ValueError(
-                "a nonadaptive replacement cannot use an artifact boundary"
+                "offline elicitation cannot use a live artifact boundary"
             )
         return
     if bank.generation_round == 0:
         if bank.source_boundary is not None:
             raise ValueError("the initial adaptive bank cannot use a source boundary")
-    elif bank.source_boundary != bank.generation_round - 1:
+    elif bank.source_boundary != bank.generation_round:
         raise ValueError(
-            "an adaptive replacement must use the immediately preceding boundary"
+            "online elicitation must use the matching live artifact boundary"
         )
 
 
@@ -966,7 +1094,7 @@ _BANK_MEMBER_KEYS = frozenset({
     "lineage",
     "prior_content_sha256",
     "criterion_map",
-    "presentation",
+    "elicited_criteria",
     "path",
 })
 _CRITERION_MAPPING_KEYS = frozenset({
@@ -1034,10 +1162,10 @@ def persist_rubric_bank(
                 "criterion_map": [
                     mapping.as_dict() for mapping in item.criterion_map
                 ],
-                "presentation": (
-                    item.presentation.as_dict()
-                    if item.presentation is not None else None
-                ),
+                "elicited_criteria": [
+                    criterion.as_dict()
+                    for criterion in item.elicited_criteria
+                ],
                 "path": relative_path.as_posix(),
             })
         write_json_atomic(stage / "manifest.json", {
@@ -1218,15 +1346,18 @@ def _load_rubric_bank_directory(
                     anchor_criterion_id=mapping["anchor_criterion_id"],
                     member_criterion_id=mapping["member_criterion_id"],
                 ))
+            elicited_payload = member["elicited_criteria"]
+            if not isinstance(elicited_payload, list):
+                raise ValueError("member elicited criteria are invalid")
             item = RubricBankItem(
                 rubric=rubric,
                 weight=member["weight"],
                 lineage=RubricLineage(member["lineage"]),
                 criterion_map=tuple(criterion_map),
                 prior_content_sha256=member["prior_content_sha256"],
-                presentation=(
-                    parse_rubric_member_presentation(member["presentation"])
-                    if member["presentation"] is not None else None
+                elicited_criteria=tuple(
+                    parse_elicited_criterion(value)
+                    for value in elicited_payload
                 ),
             )
         except (OSError, UnicodeError, TypeError, ValueError) as exc:

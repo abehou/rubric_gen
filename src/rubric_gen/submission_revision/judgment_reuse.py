@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import math
 import os
 import re
 import shutil
@@ -12,6 +13,7 @@ import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from numbers import Real
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
@@ -475,7 +477,10 @@ class ExactJudgmentReuseStore:
             != request["review_text_sha256"]
             or sha256_file(destination / "judge_input_answer.txt")
             != request["answer_text_sha256"]
-            or type(validation.get("score")) is not int
+            or isinstance(validation.get("score"), bool)
+            or not isinstance(validation.get("score"), Real)
+            or not math.isfinite(float(validation["score"]))
+            or not 0 <= float(validation["score"]) <= 100
         ):
             raise RuntimeError("shared judgment score validation changed")
         return record

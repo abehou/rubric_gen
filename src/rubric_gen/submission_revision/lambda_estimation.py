@@ -43,7 +43,7 @@ _ESTIMAND_KEYS = frozenset({
     "quality_outcome",
     "pairwise_outcome",
     "identity",
-    "rubric_replacement",
+    "rubric_elicitation",
     "weak_rescore",
     "common_random_numbers",
     "rubric_diagnostics",

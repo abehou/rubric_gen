@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
+from numbers import Real
 from statistics import fmean, median
 from typing import Callable, Iterable, Iterator
 
@@ -690,8 +692,10 @@ def _completed_record(
     review_input_sha256 = validation.get("review_input_sha256")
     answer_input_sha256 = validation.get("answer_input_sha256")
     if (
-        type(score) is not int
-        or not 0 <= score <= 100
+        isinstance(score, bool)
+        or not isinstance(score, Real)
+        or not math.isfinite(float(score))
+        or not 0 <= float(score) <= 100
         or validation.get("effective_judge_model") != job.model
         or validation.get("rendered_rubric_sha256") != job.target.rubric_sha256
         or validation.get("review_mode") != job.target.review
@@ -706,7 +710,7 @@ def _completed_record(
     return {
         **_job_identity(job),
         "status": "completed",
-        "score": score,
+        "score": float(score),
         "scoring_identity": scoring_identity,
         "review_input_sha256": review_input_sha256,
         "answer_input_sha256": answer_input_sha256,
@@ -1196,8 +1200,10 @@ class OriginalRubricEnsembleRunner:
         if (
             record.get("status") != "completed"
             or _record_key(record) != job.key
-            or type(record.get("score")) is not int
-            or not 0 <= int(record["score"]) <= 100
+            or isinstance(record.get("score"), bool)
+            or not isinstance(record.get("score"), Real)
+            or not math.isfinite(float(record["score"]))
+            or not 0 <= float(record["score"]) <= 100
             or record.get("scoring_identity") != prepared.scoring_identity
             or record.get("review_input_sha256")
             != prepared.review_input_sha256

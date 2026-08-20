@@ -82,7 +82,7 @@ def test_scoring_identity_binds_endpoint_benchmark_and_engine(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     judge = _judge(tmp_path)
-    judge_source = tmp_path / "autorubric_judge.py"
+    judge_source = tmp_path / "full_rubric_judge.py"
     judge_source.write_text("fixed judge\n")
     runner = SimpleNamespace(
         find_judge=lambda _task_dir: judge_source,
@@ -97,7 +97,7 @@ def test_scoring_identity_binds_endpoint_benchmark_and_engine(
     assert set(identity) == set(SCORING_IDENTITY_KEYS)
     assert identity["judge_api_base"] is None
     assert identity["benchmark"] == "biomnibench-da"
-    assert identity["grading_engine"] == "autorubric-criterion"
+    assert identity["grading_engine"] == "full-rubric-structured"
 
 
 def test_explicit_rubric_path_has_one_canonical_source(tmp_path: Path) -> None:

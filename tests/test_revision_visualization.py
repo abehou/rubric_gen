@@ -125,7 +125,7 @@ def test_revision_report_separates_on_policy_and_fixed_scores(
         "revision_rounds": 1,
         "feedback_policy": "semi",
         "prompt": "base",
-        "rubric_policy": "adaptive_replacement",
+        "rubric_policy": "online_elicitation",
         "provider": "codex",
         "model": "solver",
         "judge_model": "judge",

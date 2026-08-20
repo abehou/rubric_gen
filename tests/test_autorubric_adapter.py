@@ -81,7 +81,7 @@ def report_for(rubric_text: str = RUBRIC) -> dict[str, object]:
         option_index = criterion.levels.index(level)
         votes = [
             {
-                "judge_id": "default",
+                "judge_id": f"repeat-{repeat_index}",
                 "selected_index": option_index,
                 "selected_label": level.display_label,
                 "value": level.normalized_value,
@@ -91,6 +91,7 @@ def report_for(rubric_text: str = RUBRIC) -> dict[str, object]:
                 "shuffle_order": list(reversed(range(len(criterion.levels)))),
                 "error": None,
             }
+            for repeat_index in range(1, 6)
         ]
         reports.append(
             {
@@ -129,7 +130,10 @@ def report_for(rubric_text: str = RUBRIC) -> dict[str, object]:
         "raw_score": 999.0,
         "llm_raw_score": 999.0,
         "report": reports,
-        "judge_scores": {"default": 0.25},
+        "judge_scores": {
+            f"repeat-{repeat_index}": 0.25
+            for repeat_index in range(1, 6)
+        },
         "mean_agreement": sum(agreements) / len(agreements),
         "cannot_assess_count": 0,
         "token_usage": {
@@ -281,16 +285,33 @@ def test_converter_uses_signed_points_and_exposes_report_metadata() -> None:
     raw = report_for()
     converted = convert_ensemble_report(parsed, raw)
 
-    assert converted.raw_score == 40
-    assert converted.score == 40
+    assert converted.raw_score == 40.0
+    assert converted.score == 40.0
     assert converted.normalized_score == 0.4
-    assert converted.selected_levels == {"criterion_1": "B", "criterion_2": "C"}
-    assert converted.criterion_scores == {"criterion_1": 50, "criterion_2": -10}
-    assert converted.reward == {"score": 40}
-    assert converted.evaluation["total_score"] == 40
+    assert converted.criterion_level_votes == {
+        "criterion_1": ("B",) * 5,
+        "criterion_2": ("C",) * 5,
+    }
+    assert converted.criterion_scores == {"criterion_1": 50.0, "criterion_2": -10.0}
+    assert converted.reward == {"score": 40.0}
+    assert converted.evaluation["total_score"] == 40.0
     assert converted.evaluation["criteria"] == {
-        "criterion_1": {"level": "B", "reason": "The panel selected this level."},
-        "criterion_2": {"level": "C", "reason": "The panel selected this level."},
+        "criterion_1": {
+            "level_votes": ["B"] * 5,
+            "mean_points": 50.0,
+            "reason": " | ".join(
+                f"repeat-{index}: Evidence supports this level."
+                for index in range(1, 6)
+            ),
+        },
+        "criterion_2": {
+            "level_votes": ["C"] * 5,
+            "mean_points": -10.0,
+            "reason": " | ".join(
+                f"repeat-{index}: Evidence supports this level."
+                for index in range(1, 6)
+            ),
+        },
     }
     assert converted.raw_report == raw
     assert converted.raw_report["score"] == 0.99
@@ -306,6 +327,35 @@ def test_converter_uses_signed_points_and_exposes_report_metadata() -> None:
         "mean": 1.0,
         "criteria": {"criterion_1": 1.0, "criterion_2": 1.0},
     }
+
+
+def test_converter_averages_five_scores_instead_of_using_snapped_verdict() -> None:
+    raw = report_for()
+    criterion = raw["report"][0]
+    for vote in criterion["multi_choice_votes"][:2]:
+        vote.update(
+            selected_index=0,
+            selected_label="[A]: Complete and correct.",
+            value=1.0,
+        )
+    criterion["final_multi_choice_verdict"]["aggregated_value"] = 0.7
+    criterion["agreement"] = 0.6
+    raw["mean_agreement"] = 0.8
+    raw["judge_scores"].update({"repeat-1": 0.5, "repeat-2": 0.5})
+
+    converted = convert_ensemble_report(parse_autorubric_rubric(RUBRIC), raw)
+
+    assert converted.criterion_level_votes["criterion_1"] == (
+        "A",
+        "A",
+        "B",
+        "B",
+        "B",
+    )
+    assert converted.criterion_scores == {"criterion_1": 70.0, "criterion_2": -10.0}
+    assert converted.dispersion["repeat_scores"] == [90.0, 90.0, 40.0, 40.0, 40.0]
+    assert converted.score == 60.0
+    assert converted.reward == {"score": 60.0}
 
 
 @pytest.mark.parametrize(
@@ -369,11 +419,11 @@ def test_converter_rejects_disagreement_metadata_that_differs_from_votes() -> No
                 value=1.0,
                 aggregated_value=1.0,
             ),
-            "final verdict differs",
+            "final verdict does not match mean aggregation",
         ),
         (
-            lambda report: report.update(judge_scores={"default": 0.9}),
-            "judge score does not match",
+            lambda report: report["judge_scores"].update(**{"repeat-1": 0.9}),
+            "repeat-1 score does not match",
         ),
     ),
 )

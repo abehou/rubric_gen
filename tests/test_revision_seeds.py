@@ -39,7 +39,7 @@ def _design(root: Path, task: Path) -> Experiment:
         {"condition_id": f"{prompt}--{rubric}", "prompt": prompt,
          "rubric_policy": rubric}
         for prompt in ("base", "anti-rh")
-        for rubric in ("fixed", "adaptive_replacement")
+        for rubric in ("fixed", "online_elicitation")
     ]
     assignments = []
     execution = 0
@@ -69,7 +69,7 @@ def _design(root: Path, task: Path) -> Experiment:
             "prompt_control": "base",
             "prompt_treatment": "anti-rh",
             "rubric_control": "fixed",
-            "rubric_treatment": "adaptive_replacement",
+            "rubric_treatment": "online_elicitation",
             "solver": {
                 "provider": "codex",
                 "model": "test-model",

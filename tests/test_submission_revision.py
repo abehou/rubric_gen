@@ -56,6 +56,7 @@ from rubric_gen.submission_revision.user_simulator import (
     SimulatedUserRequest,
 )
 from rubric_gen.submission_revision.evolution import (
+    ArtifactContrast,
     BankProposerOutput,
     RubricBankProposer,
     SemanticReviewerOutput,
@@ -70,14 +71,14 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankItem,
     RubricLineage,
     RubricBankPolicy,
+    ElicitedCriterion,
     identity_criterion_map,
-    parse_rubric_member_presentation,
-    render_locked_rubric_member,
+    render_augmented_rubric,
 )
 from rubric_gen.artifacts.hashing import sha256_text
 import rubric_gen.submission_revision.study as study_module
 import rubric_gen.submission_revision.controller as controller_module
-import rubric_gen.submission_revision.judging.paperbench_judge as paperbench_module
+import rubric_gen.submission_revision.judging.full_rubric_judge as full_rubric_module
 
 
 EXPERIMENT_ID = "test-experiment"
@@ -112,19 +113,41 @@ def _resolve_test_paraphrase(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(study_module, "resolve_paraphrase_selection", resolve)
 
 
+_TEST_SCORE_LEVELS = {
+    100: "A",
+    95: "B",
+    90: "C",
+    80: "D",
+    72: "E",
+    71: "F",
+    70: "G",
+    65: "H",
+    61: "I",
+    60: "J",
+    55: "K",
+    50: "L",
+    0: "M",
+}
+
+
 def _write_task(root: Path, task_id: str = "da-1-1") -> Path:
     task = root / "tasks" / task_id
     (task / "environment" / "data").mkdir(parents=True)
     (task / "tests").mkdir()
     (task / "instruction.md").write_text("Analyze the supplied table.\n")
     (task / "environment" / "data" / "values.csv").write_text("x\n1\n")
+    levels = " ".join(
+        f"{label}={points}" for points, label in _TEST_SCORE_LEVELS.items()
+    )
+    descriptions = "".join(
+        f"[{label}]: Evidence merits {points} points.\n"
+        for points, label in _TEST_SCORE_LEVELS.items()
+    )
     (task / "tests" / "rubric.txt").write_text(
         "Criterion 1: Correct result\n"
         "Description: Evaluate the reported result.\n"
-        "Levels: A=100 B=50 C=0\n"
-        "[A]: Correct and fully supported.\n"
-        "[B]: Partly correct with a material limitation.\n"
-        "[C]: Incorrect or unsupported.\n"
+        f"Levels: {levels}\n"
+        f"{descriptions}"
     )
     return task
 
@@ -158,93 +181,100 @@ def _write_seed_set(
     scoring_identity: dict[str, object] | None = None,
 ) -> Path:
     seed_set = root / "seeds"
-    seed_root = seed_set / "tasks" / task.name / "rep-001"
-    submission = seed_root / "submission"
-    workspace = submission / "workspace"
-    workspace.mkdir(parents=True, exist_ok=True)
-    (workspace / "answer.txt").write_text("seed-answer\n")
-    (workspace / "trace.md").write_text("seed-trace\n")
-    trajectory = submission / "trajectory.stream.jsonl"
-    trajectory.write_text('{"turn":-1}\n')
-    workspace_sha = solution_tree_sha256(workspace)
-    trajectory_sha = sha256_file(trajectory)
     instruction_sha = sha256_file(task / "instruction.md")
     data_sha = tree_sha256(task / "environment" / "data")
-    solution_sha = sha256_text(
-        f"{EXPERIMENT_ID}\n{task.name}\n1\n{instruction_sha}\n{data_sha}\n"
-        f"{workspace_sha}\n{trajectory_sha}\n"
-    )
-    (submission / "status.json").write_text(json.dumps({
-        "task": task.name,
-        "replicate": 1,
-        "experiment_id": EXPERIMENT_ID,
-        "workspace_dir": str(workspace),
-        "provider": "codex",
-        "session_id": None,
-        "submission_id": "s000",
-        "exit_code": 0,
-    }))
-    (submission / "snapshot.json").write_text(json.dumps({
-        "submission_id": "s000",
-        "session_id": None,
-        "workspace_sha256": workspace_sha,
-        "trajectory_sha256": trajectory_sha,
-    }))
-    judgment = seed_root / "initial_judgment"
-    judgment.mkdir()
-    (judgment / "judge_input_trace.md").write_text("seed-trace\n")
-    (judgment / "judge_input_answer.txt").write_text("seed-answer\n")
-    evaluation = judgment / "evaluation.json"
-    level = "A" if initial_score >= 80 else "B"
-    evaluation.write_text(json.dumps({
-        "criteria": {"criterion_1": {"level": level, "reason": "seed"}},
-        "reasoning": "seed",
-    }))
     identity = dict(scoring_identity or _identity(task))
-    validation = judgment / "score_validation.json"
-    usage = judgment / "usage.json"
-    usage.write_text('{"usage":{}}')
-    validation.write_text(json.dumps({
-        **identity,
-        "review_input_sha256": sha256_text("seed-trace\n"),
-        "answer_input_sha256": sha256_text("seed-answer\n"),
-        "task": task.name,
-        "run_identity": "seeded-run",
-        "repeat_index": 1,
-        "score": initial_score,
-        "normalized_score": initial_score / 100,
-        "raw_score": initial_score,
-        "selected_levels": {"criterion_1": level},
-        "criterion_scores": {"criterion_1": initial_score},
-        "evaluation_sha256": sha256_file(evaluation),
-    }))
-    judgment_sha = sha256_text(
-        f"{sha256_file(validation)}\n{sha256_file(evaluation)}\n{sha256_file(usage)}\n"
-        f"{json.dumps(identity, sort_keys=True, separators=(',', ':'))}\n"
-    )
-    (seed_root / "manifest.json").write_text(json.dumps({
-        "kind": SEED_KIND,
-        "experiment_id": EXPERIMENT_ID,
-        "task_id": task.name,
-        "replicate": 1,
-        "provider": "codex",
-        "requested_model": "test-model",
-        "instruction_sha256": instruction_sha,
-        "data_sha256": data_sha,
-        "workspace_sha256": workspace_sha,
-        "trajectory_sha256": trajectory_sha,
-        "score_validation_sha256": sha256_file(validation),
-        "evaluation_sha256": sha256_file(evaluation),
-        "usage_sha256": sha256_file(usage),
-        "scoring_identity": identity,
-        "judgment_sha256": judgment_sha,
-        "seed_sha256": sha256_text(f"{solution_sha}{judgment_sha}\n"),
-        "source_status": {
+    for replicate in (1, 2, 3):
+        seed_root = seed_set / "tasks" / task.name / f"rep-{replicate:03d}"
+        submission = seed_root / "submission"
+        workspace = submission / "workspace"
+        workspace.mkdir(parents=True, exist_ok=True)
+        answer = f"seed-answer-{replicate}\n"
+        trace = f"seed-trace-{replicate}\n"
+        (workspace / "answer.txt").write_text(answer)
+        (workspace / "trace.md").write_text(trace)
+        trajectory = submission / "trajectory.stream.jsonl"
+        trajectory.write_text(json.dumps({"turn": -1, "replicate": replicate}) + "\n")
+        workspace_sha = solution_tree_sha256(workspace)
+        trajectory_sha = sha256_file(trajectory)
+        solution_sha = sha256_text(
+            f"{EXPERIMENT_ID}\n{task.name}\n{replicate}\n{instruction_sha}\n{data_sha}\n"
+            f"{workspace_sha}\n{trajectory_sha}\n"
+        )
+        (submission / "status.json").write_text(json.dumps({
+            "task": task.name,
+            "replicate": replicate,
+            "experiment_id": EXPERIMENT_ID,
+            "workspace_dir": str(workspace),
             "provider": "codex",
+            "session_id": None,
+            "submission_id": "s000",
             "exit_code": 0,
-            "model": "test-model",
-        },
-    }))
+        }))
+        (submission / "snapshot.json").write_text(json.dumps({
+            "submission_id": "s000",
+            "session_id": None,
+            "workspace_sha256": workspace_sha,
+            "trajectory_sha256": trajectory_sha,
+        }))
+        judgment = seed_root / "initial_judgment"
+        judgment.mkdir()
+        (judgment / "judge_input_trace.md").write_text(trace)
+        (judgment / "judge_input_answer.txt").write_text(answer)
+        evaluation = judgment / "evaluation.json"
+        level = _TEST_SCORE_LEVELS[initial_score]
+        evaluation.write_text(json.dumps({
+            "criteria": {"criterion_1": {
+                "level_votes": [level] * 5,
+                "mean_points": float(initial_score),
+                "reason": "seed",
+            }},
+            "reasoning": "seed",
+        }))
+        validation = judgment / "score_validation.json"
+        usage = judgment / "usage.json"
+        usage.write_text('{"usage":{}}')
+        validation.write_text(json.dumps({
+            **identity,
+            "review_input_sha256": sha256_text(trace),
+            "answer_input_sha256": sha256_text(answer),
+            "task": task.name,
+            "run_identity": "seeded-run",
+            "repeat_index": 1,
+            "score": float(initial_score),
+            "normalized_score": initial_score / 100,
+            "raw_score": float(initial_score),
+            "criterion_level_votes": {"criterion_1": [level] * 5},
+            "criterion_scores": {"criterion_1": float(initial_score)},
+            "evaluation_sha256": sha256_file(evaluation),
+        }))
+        judgment_sha = sha256_text(
+            f"{sha256_file(validation)}\n{sha256_file(evaluation)}\n{sha256_file(usage)}\n"
+            f"{json.dumps(identity, sort_keys=True, separators=(',', ':'))}\n"
+        )
+        (seed_root / "manifest.json").write_text(json.dumps({
+            "kind": SEED_KIND,
+            "experiment_id": EXPERIMENT_ID,
+            "task_id": task.name,
+            "replicate": replicate,
+            "provider": "codex",
+            "requested_model": "test-model",
+            "instruction_sha256": instruction_sha,
+            "data_sha256": data_sha,
+            "workspace_sha256": workspace_sha,
+            "trajectory_sha256": trajectory_sha,
+            "score_validation_sha256": sha256_file(validation),
+            "evaluation_sha256": sha256_file(evaluation),
+            "usage_sha256": sha256_file(usage),
+            "scoring_identity": identity,
+            "judgment_sha256": judgment_sha,
+            "seed_sha256": sha256_text(f"{solution_sha}{judgment_sha}\n"),
+            "source_status": {
+                "provider": "codex",
+                "exit_code": 0,
+                "model": "test-model",
+            },
+        }))
     (seed_set / "manifest.json").write_text(json.dumps({
         "kind": SEED_SET_KIND,
     }))
@@ -278,7 +308,7 @@ def _config(
         optimizer_rubric_path=task / "tests" / "rubric.txt",
         master_rubric_name="rubric.txt",
         rubric_semantic_judge_model="semantic-model",
-        rubric_semantic_judge_max_calls=rounds,
+        rubric_semantic_judge_max_calls=max(0, rounds - 1),
         rubric_semantic_judge_max_request_bytes=1_048_576,
         rubric_semantic_judge_max_output_tokens=32_768,
         feedback_policy=FeedbackPolicy.FULL,
@@ -335,7 +365,7 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
             "benchmark": "biomnibench-da",
             "tasks_dir": str(task.parent.resolve()),
             "tasks": [task.name],
-            "randomization": {"seed": 1, "replicates": 1},
+            "randomization": {"seed": 1, "replicates": 3},
             "conditions": [
                 {
                     "condition_id": (
@@ -364,10 +394,10 @@ def test_expected_bank_generations_use_condition_metadata() -> None:
     assert _expected_bank_names(
         {
             "condition_id": "arbitrary-name",
-            "rubric_policy": "adaptive_replacement",
+            "rubric_policy": "online_elicitation",
         },
         3,
-    ) == ["bank-0000", "bank-0001", "bank-0002"]
+    ) == ["bank-0000", "bank-0001"]
     assert _expected_bank_names(
         {"condition_id": "misleading", "rubric_policy": "fixed"},
         3,
@@ -468,8 +498,13 @@ class FakeJudge:
         (output / "judge_input_trace.md").write_text(review_text)
         (output / "judge_input_answer.txt").write_text(answer_text)
         evaluation = output / "evaluation.json"
+        level = _TEST_SCORE_LEVELS[score]
         evaluation.write_text(json.dumps({
-            "criteria": {"criterion_1": {"level": "A", "reason": "checked"}},
+            "criteria": {"criterion_1": {
+                "level_votes": [level] * 5,
+                "mean_points": float(score),
+                "reason": "checked",
+            }},
             "reasoning": "checked",
         }))
         validation = output / "score_validation.json"
@@ -480,11 +515,11 @@ class FakeJudge:
             "task": submission_dir.parents[2].name,
             "run_identity": str(output),
             "repeat_index": 1,
-            "score": score,
+            "score": float(score),
             "normalized_score": score / 100,
-            "raw_score": score,
-            "selected_levels": {"criterion_1": "A"},
-            "criterion_scores": {"criterion_1": score},
+            "raw_score": float(score),
+            "criterion_level_votes": {"criterion_1": [level] * 5},
+            "criterion_scores": {"criterion_1": float(score)},
             "evaluation_sha256": sha256_file(evaluation),
         }))
         return JudgeArtifacts(validation, evaluation)
@@ -594,7 +629,7 @@ def test_scored_snapshot_restore_makes_only_the_live_copy_writable(
         make_tree_owner_writable(snapshot)
 
 
-def _singleton_replacement_proposer(
+def _criterion_elicitation_proposer(
     config: SubmissionRevisionConfig,
     *,
     run_proposer: Callable[..., BankProposerOutput] | None = None,
@@ -602,49 +637,23 @@ def _singleton_replacement_proposer(
     def propose(**kwargs) -> BankProposerOutput:
         stage = kwargs["stage"]
         schema = kwargs["response_schema"]
-        if stage == "anchor":
-            anchor = schema["properties"]["specification_anchor"]
-            prior_hash = anchor["properties"]["prior_content_sha256"]["enum"][0]
+        if stage == "differences":
             value: dict[str, object] = {
-                "specification_anchor": {
-                    "lineage": "retained",
-                    "prior_content_sha256": prior_hash,
-                    "rubric": None,
-                }
+                "pairs": [
+                    {
+                        "pair_id": f"pair_{index}",
+                        "differences": [{
+                            "summary": "The result uses different verification evidence.",
+                            "task_relevance": "Verification affects confidence in the result.",
+                        }],
+                    }
+                    for index in (1, 2, 3)
+                ]
             }
+        elif stage == "criteria":
+            value = {"criteria": []}
         else:
-            member_schema = schema["properties"]["members"]["items"]
-            prior_hashes = member_schema["properties"][
-                "prior_content_sha256"
-            ]["anyOf"][0]["enum"]
-            criteria = (
-                schema["properties"]["members"]["items"]["properties"]
-                ["presentation"]["anyOf"][0]["properties"]["criteria"]
-            )
-            criterion_ids = criteria["items"]["properties"]
-            criterion_ids = criterion_ids["anchor_criterion_id"]["enum"]
-
-            def presentation(label: str) -> dict[str, object]:
-                return {
-                    "title": f"{label} presentation",
-                    "overview": f"Inspect the full task through {label} evidence.",
-                    "criteria": [{
-                        "anchor_criterion_id": criterion_id,
-                        "heading": f"{label} {criterion_id}",
-                        "lens": f"Inspect concrete {label} evidence.",
-                    } for criterion_id in criterion_ids],
-                }
-
-            first_generation = "replacement_generation_round: 1" in kwargs[
-                "evidence"
-            ]
-            value = {"members": [{
-                "lineage": "new" if first_generation else "retained",
-                "prior_content_sha256": None if first_generation else prior_hashes[0],
-                "presentation": (
-                    presentation("complete") if first_generation else None
-                ),
-            }]}
+            raise AssertionError(f"unexpected proposer stage: {stage}")
         return BankProposerOutput(
             proposal_text=json.dumps(value),
             cost={
@@ -656,37 +665,32 @@ def _singleton_replacement_proposer(
                 "provider": "openai",
                 "requested_model": config.rubric_proposer_model,
                 "effective_model": config.rubric_proposer_model,
-                "response_id": "singleton-replacement",
+                "response_id": f"criterion-elicitation-{stage}",
                 "request_parameters": {"max_output_tokens": 96_000},
                 "usage": {"input_tokens": 10, "output_tokens": 20},
             },
         )
 
     def review(**kwargs) -> SemanticReviewerOutput:
-        members = kwargs["response_schema"]["properties"]["members"]
-        anchor_schema = kwargs["response_schema"]["properties"][
-            "anchor_fidelity"
+        criterion_schema = kwargs["response_schema"]["properties"][
+            "criterion_reviews"
         ]
-        anchor_properties = anchor_schema["properties"]
-        anchor_fidelity = (
-            {"status": "not_applicable"}
-            if "status" in anchor_properties
-            else {
-                "task_fidelity": "faithful",
-                "prior_anchor_fidelity": "faithful",
-                "issues": [],
-            }
-        )
-        value = {"anchor_fidelity": anchor_fidelity, "members": {}}
-        for member_hash, member_schema in members["properties"].items():
-            criterion_ids = member_schema["properties"]["criteria"]["required"]
-            value["members"][member_hash] = {
-                "overall": "equivalent",
-                "criteria": {
-                    criterion_id: "equivalent" for criterion_id in criterion_ids
-                },
-                "issues": [],
-            }
+        criterion_ids = criterion_schema["items"]["properties"][
+            "criterion_id"
+        ]["enum"]
+        if criterion_schema["maxItems"] == 0:
+            criterion_ids = []
+        value = {
+            "verdict": "accepted",
+            "criterion_reviews": [
+                {
+                    "criterion_id": criterion_id,
+                    "verdict": "accepted",
+                    "reason": "The criterion is general, relevant, and supported.",
+                }
+                for criterion_id in criterion_ids
+            ],
+        }
         return SemanticReviewerOutput(
             response_text=json.dumps(value),
             cost={
@@ -753,14 +757,14 @@ def test_controller_rejects_an_injected_bank_proposer_contract_mismatch(
     different: object,
 ) -> None:
     task = _write_task(tmp_path)
-    base = _config(tmp_path, task, rounds=1)
+    base = _config(tmp_path, task, rounds=2)
     config = replace(
         base,
-        condition_id="base-nonadaptive-replacement",
-        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
-        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+        condition_id="base-offline-elicitation",
+        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
+        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
-    proposer = _singleton_replacement_proposer(config)
+    proposer = _criterion_elicitation_proposer(config)
     setattr(proposer, field, different)
 
     with pytest.raises(ValueError, match="contract differs"):
@@ -781,9 +785,9 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
     base = _config(tmp_path, task, rounds=1)
     config = replace(
         base,
-        condition_id="base-adaptive-replacement",
-        assignment_id=f"{task.name}--rep-001--base-adaptive-replacement",
-        rubric_policy=RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+        condition_id="base-online-elicitation",
+        assignment_id=f"{task.name}--rep-001--base-online-elicitation",
+        rubric_policy=RubricBankPolicy.ONLINE_ELICITATION,
     )
     judge = FakeJudge(task, (0, 72), tmp_path / "judge")
     controller = SubmissionRevisionController(
@@ -791,7 +795,7 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
         RevisionDependencies(
             session=FakeSession(),
             judge=judge,
-            bank_proposer=_singleton_replacement_proposer(
+            bank_proposer=_criterion_elicitation_proposer(
                 config,
                 run_proposer=lambda **_kwargs: pytest.fail(
                     "this unit test must not propose a bank"
@@ -799,45 +803,44 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
             ),
         ),
     )
-    replacement_rubric = CompleteRubric.from_content(
-        controller.initial_bank.bank.items[0].rubric.content.replace(
-            "Correct result", "Independent result"
-        )
+    elicited = ElicitedCriterion.create(
+        title="Independent verification",
+        requirement="The solution must give reproducible verification evidence.",
+        level_descriptions=(
+            ("A", "The verification evidence is complete."),
+            ("B", "The verification evidence is partial."),
+            ("C", "The verification evidence is absent."),
+        ),
+        support_pair_ids=("pair_1", "pair_2"),
+        source_generation=1,
     )
-    replacement_presentation = parse_rubric_member_presentation({
-        "title": "replacement presentation",
-        "overview": "Inspect the complete replacement anchor.",
-        "criteria": [{
-            "anchor_criterion_id": "criterion_1",
-            "heading": "replacement result",
-            "lens": "Inspect complete result evidence.",
-        }],
-    })
-    replacement_member, replacement_map = render_locked_rubric_member(
-        replacement_rubric,
-        replacement_presentation,
+    active_rubric, criterion_map = render_augmented_rubric(
+        controller.initial_bank.bank.specification_anchor,
+        (elicited,),
     )
-    replacement_bank = RubricBank(
-        generation_round=2,
+    elicited_bank = RubricBank(
+        generation_round=1,
         source_boundary=1,
-        specification_anchor=replacement_rubric,
-        specification_anchor_lineage=RubricLineage.REFINED,
+        specification_anchor=controller.initial_bank.bank.specification_anchor,
+        specification_anchor_lineage=RubricLineage.RETAINED,
         prior_specification_anchor_sha256=(
             controller.initial_bank.bank.specification_anchor.content_sha256
         ),
         items=(
             RubricBankItem(
-                rubric=replacement_member,
+                rubric=active_rubric,
                 weight=1.0,
-                lineage=RubricLineage.NEW,
-                criterion_map=replacement_map,
-                prior_content_sha256=None,
-                presentation=replacement_presentation,
+                lineage=RubricLineage.REFINED,
+                criterion_map=criterion_map,
+                prior_content_sha256=(
+                    controller.initial_bank.bank.items[0].rubric.content_sha256
+                ),
+                elicited_criteria=(elicited,),
             ),
         ),
     )
     controller._active_bank_generation = lambda _turn: SimpleNamespace(  # type: ignore[method-assign]
-        bank=replacement_bank
+        bank=elicited_bank
     )
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
@@ -1114,7 +1117,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     preflight = bank_evaluation["dispatch_preflight"]
     assert preflight["bank_sha256"] == bank_evaluation["bank_sha256"]
     assert preflight["cost_shape"]["member_count"] == 1
-    assert preflight["cost_shape"]["criterion_calls"] == 1
+    assert preflight["cost_shape"]["calls"] == 5
     unexpected_bank_file = config.experiment_dir / "rubric-banks" / "unexpected"
     unexpected_bank_file.write_text("not a bank\n")
     with pytest.raises(RuntimeError, match="bank set is incomplete"):
@@ -1163,12 +1166,10 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
     master_path = task / "tests" / "rubric.txt"
     optimizer_path = tmp_path / "optimizer-rubric.txt"
     optimizer_path.write_text(
-        "Criterion 1: Independent result\n"
-        "Description: Evaluate the independent result.\n"
-        "Levels: A=100 B=50 C=0\n"
-        "[A]: Correct and fully supported.\n"
-        "[B]: Partly correct with a material limitation.\n"
-        "[C]: Incorrect or unsupported.\n"
+        master_path.read_text().replace(
+            "Criterion 1: Correct result",
+            "Criterion 1: Independent result",
+        )
     )
 
     def scoring_identity(
@@ -1240,9 +1241,14 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
             (output / "judge_input_trace.md").write_text(review_text)
             (output / "judge_input_answer.txt").write_text(answer_text)
             evaluation = output / "evaluation.json"
+            level = _TEST_SCORE_LEVELS[score]
             evaluation.write_text(json.dumps({
                 "criteria": {
-                    "criterion_1": {"level": "A", "reason": "checked"}
+                    "criterion_1": {
+                        "level_votes": [level] * 5,
+                        "mean_points": float(score),
+                        "reason": "checked",
+                    }
                 },
                 "reasoning": "checked",
             }))
@@ -1258,11 +1264,11 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
                 "task": self.task_name,
                 "run_identity": str(output),
                 "repeat_index": 1,
-                "score": score,
+                "score": float(score),
                 "normalized_score": score / 100,
-                "raw_score": score,
-                "selected_levels": {"criterion_1": "A"},
-                "criterion_scores": {"criterion_1": score},
+                "raw_score": float(score),
+                "criterion_level_votes": {"criterion_1": [level] * 5},
+                "criterion_scores": {"criterion_1": float(score)},
                 "reward_sha256": sha256_file(reward),
                 "evaluation_sha256": sha256_file(evaluation),
                 "usage_sha256": sha256_file(usage),
@@ -1412,7 +1418,7 @@ def test_paperbench_bank_preflight_failure_dispatches_no_member_judges(
     workspace_identity.update(
         {
             "benchmark": SubmissionBenchmarkId.PAPERBENCH_CODE_DEV.value,
-            "grading_engine": "paperbench-structured",
+            "grading_engine": "full-rubric-structured",
             "review_mode": "workspace",
         }
     )
@@ -1438,8 +1444,8 @@ def test_paperbench_bank_preflight_failure_dispatches_no_member_judges(
     )
     controller.reuse_seed_judgment = False
     monkeypatch.setattr(
-        paperbench_module,
-        "PAPERBENCH_MAX_REQUEST_CONTENT_BYTES_PER_CALL",
+        full_rubric_module,
+        "FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL",
         1,
     )
 
@@ -1456,24 +1462,24 @@ def test_paperbench_bank_preflight_failure_dispatches_no_member_judges(
     )
 
 
-def test_study_validates_every_replacement_generation_record(
+def test_study_validates_every_elicitation_generation_record(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
     base = _config(tmp_path, task, rounds=2)
     config = replace(
         base,
-        condition_id="base-nonadaptive-replacement",
-        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
-        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+        condition_id="base-offline-elicitation",
+        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
+        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
 
-    proposer = _singleton_replacement_proposer(config)
+    proposer = _criterion_elicitation_proposer(config)
     controller = SubmissionRevisionController(
         config,
         RevisionDependencies(
             session=FakeSession(),
-            judge=FakeJudge(task, (80, 90, 90, 90), tmp_path / "judge"),
+                judge=FakeJudge(task, (80,) + (90,) * 8, tmp_path / "judge"),
             bank_proposer=proposer,
         ),
     )
@@ -1503,14 +1509,14 @@ def test_study_validates_every_replacement_generation_record(
 
     controller._bank_member_runtime = runtime  # type: ignore[method-assign]
     controller.run()
-    second_generation = json.loads(
+    generation = json.loads(
         (
             config.experiment_dir
-            / "rubric-generations/bank-0002/generation.json"
+            / "rubric-generations/bank-0001/generation.json"
         ).read_text()
     )
-    assert second_generation["semantic_review"]["cost"]["cost_source"] == (
-        "exact-request-reuse"
+    assert generation["semantic_stage"][0]["cost"]["cost_source"] == (
+        "test-estimate"
     )
     assignment = {
         "assignment_id": config.assignment_id,
@@ -1548,9 +1554,9 @@ def test_study_validates_every_replacement_generation_record(
     )
     metadata_path.chmod(0o600)
     metadata = json.loads(metadata_path.read_text())
-    metadata["member_generation"]["request"]["model"] = "tampered-proposer"
+    metadata["context"]["proposer"]["model"] = "tampered-proposer"
     metadata_path.write_text(json.dumps(metadata))
-    with pytest.raises(RuntimeError, match="invalid complete-bank generation"):
+    with pytest.raises(RuntimeError, match="rubric generation file changed"):
         validate_completed_revision(
             config.experiment_dir,
             assignment,
@@ -1560,65 +1566,38 @@ def test_study_validates_every_replacement_generation_record(
         )
 
 
-def test_controller_scores_singleton_bank_exactly(
+def test_controller_scores_one_rubric_exactly(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
     base = _config(tmp_path, task, rounds=1)
     config = replace(
         base,
-        condition_id="base-nonadaptive-replacement",
-        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
-        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+        condition_id="base-offline-elicitation",
+        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
+        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
 
-    base_judge = FakeJudge(task, (0, 65), tmp_path / "base-judge")
+    base_judge = FakeJudge(task, (0, 65, 65), tmp_path / "base-judge")
     controller = SubmissionRevisionController(
         config,
         RevisionDependencies(
             session=FakeSession(),
             judge=base_judge,
-            bank_proposer=_singleton_replacement_proposer(config),
+            bank_proposer=_criterion_elicitation_proposer(config),
         ),
     )
-    member_judges: dict[str, FakeJudge] = {}
-    original_runtime = controller._bank_member_runtime
-
-    def runtime(item: RubricBankItem, generation_round: int):
-        rubric_hash = item.rubric.content_sha256
-        if rubric_hash == controller.initial_rubric.sha256:
-            return original_runtime(item, generation_round)
-        if rubric_hash not in member_judges:
-            identity = _identity(task)
-            identity.update({
-                "rubric_source": "rubric-path",
-                "rendered_rubric_sha256": rubric_hash,
-            })
-            score = 60
-            member_judges[rubric_hash] = FakeJudge(
-                task,
-                (0, score),
-                tmp_path / f"member-{len(member_judges)}",
-                identity=identity,
-            )
-        return (
-            controller._frozen_bank_member(item.rubric.content, rubric_hash),
-            member_judges[rubric_hash],
-        )
-
-    controller._bank_member_runtime = runtime  # type: ignore[method-assign]
     result = controller.run()
 
-    assert result.scores == (80, 60)
-    assert sorted(judge.calls for judge in member_judges.values()) == [1]
+    assert result.scores == (80, 65)
     evaluation = json.loads(
         (config.experiment_dir / "bank-evaluations" / "s001.json").read_text()
     )
-    assert evaluation["weighted_score"] == 60
+    assert evaluation["weighted_score"] == 65
     assert sorted(
         (member["weight"], member["score"])
         for member in evaluation["members"].values()
-    ) == [(1.0, 60)]
+    ) == [(1.0, 65)]
     validate_completed_revision(
         config.experiment_dir,
         {
@@ -1639,14 +1618,9 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
 ) -> None:
     task = _write_task(tmp_path)
     private_value = "expected-private-value-37-of-200"
-    (task / "tests" / "rubric.txt").write_text(
-        "Criterion 1: Correct result\n"
-        "Description: Evaluate the reported result.\n"
-        "Levels: A=100 B=50 C=0\n"
-        "[A]: Correct and fully supported.\n"
-        "[B]: Partly correct with a material limitation.\n"
-        "[C]: Incorrect or unsupported.\n"
-            f"Private reference: {private_value}.\n"
+    rubric_path = task / "tests" / "rubric.txt"
+    rubric_path.write_text(
+        rubric_path.read_text() + f"Private reference: {private_value}.\n"
     )
     simulator_config = SimulatedUserConfig(
         model="gpt-simulated-user",
@@ -2025,19 +1999,19 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     task = _write_task(tmp_path)
-    base = _config(tmp_path, task, rounds=1)
+    base = _config(tmp_path, task, rounds=2)
     config = replace(
         base,
-        condition_id="base-nonadaptive-replacement",
-        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
-        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+        condition_id="base-offline-elicitation",
+        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
+        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
     original_persist = controller_module.persist_rubric_bank
 
     class SimulatedCrash(RuntimeError):
         pass
 
-    def crash_before_replacement_bank(*args, **kwargs):
+    def crash_before_elicited_bank(*args, **kwargs):
         generation = args[1]
         if generation.bank.generation_round == 1:
             raise SimulatedCrash("crash after proposal sealing")
@@ -2046,22 +2020,26 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
     monkeypatch.setattr(
         controller_module,
         "persist_rubric_bank",
-        crash_before_replacement_bank,
+        crash_before_elicited_bank,
     )
     with pytest.raises(SimulatedCrash, match="after proposal sealing"):
         SubmissionRevisionController(
             config,
             RevisionDependencies(
                 session=FakeSession(),
-                judge=FakeJudge(task, (80,), tmp_path / "initial-judge"),
-                bank_proposer=_singleton_replacement_proposer(config),
+                judge=FakeJudge(
+                    task,
+                    (80,) + (90,) * 6,
+                    tmp_path / "initial-judge",
+                ),
+                bank_proposer=_criterion_elicitation_proposer(config),
             ),
         ).run()
 
     proposal = config.experiment_dir / "rubric-generations" / "bank-0001"
-    replacement = config.experiment_dir / "rubric-banks" / "bank-0001"
+    elicited_bank = config.experiment_dir / "rubric-banks" / "bank-0001"
     assert proposal.is_dir()
-    assert not replacement.exists()
+    assert not elicited_bank.exists()
     proposal_root = proposal.parent
     ledger_temp = (
         proposal_root
@@ -2089,13 +2067,26 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
         provider_calls += 1
         raise AssertionError("resume called the rubric proposer provider")
 
+    class ResumeJudge(FakeJudge):
+        def evaluate(
+            self, submission_dir: Path, attempt_id: str
+        ) -> JudgeArtifacts:
+            artifacts = self.validate(submission_dir, attempt_id)
+            if artifacts.score_validation_path.is_file():
+                return artifacts
+            return super().evaluate(submission_dir, attempt_id)
+
     resumed_session = FakeSession()
     resumed = SubmissionRevisionController(
         replace(config, resume=True),
         RevisionDependencies(
             session=resumed_session,
-            judge=FakeJudge(task, (80,), tmp_path / "resume-judge"),
-            bank_proposer=_singleton_replacement_proposer(
+            judge=ResumeJudge(
+                task,
+                (80,) + (90,) * 6,
+                tmp_path / "resume-judge",
+            ),
+            bank_proposer=_criterion_elicitation_proposer(
                 config,
                 run_proposer=reject_provider_call,
             ),
@@ -2113,21 +2104,20 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
         pass
 
     def stop_before_solver(_state, _workspace) -> None:
-        assert replacement.is_dir()
+        assert elicited_bank.is_dir()
         raise StopAfterReplay("proposal replay completed")
 
     resumed._run_solver_turn = stop_before_solver  # type: ignore[method-assign]
     with pytest.raises(StopAfterReplay, match="replay completed"):
         resumed.run()
 
-    assert replacement.is_dir()
+    assert elicited_bank.is_dir()
     assert not ledger_temp.exists()
     assert not rejection_temp.exists()
     assert not stage.exists()
     assert provider_calls == 0
     assert resumed_session.prompts == []
     assert resumed.dependencies.bank_proposer is not None
-    assert resumed.dependencies.bank_proposer._validated_semantic_outputs
 
 
 @pytest.mark.parametrize("kind", ["symlink", "fifo"])
@@ -2154,17 +2144,17 @@ def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
     assert os.path.lexists(residue)
 
 
-def test_resume_rejects_replacement_bank_without_sealed_proposal(
+def test_resume_rejects_elicited_bank_without_sealed_proposal(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     task = _write_task(tmp_path)
-    base = _config(tmp_path, task, rounds=1)
+    base = _config(tmp_path, task, rounds=2)
     config = replace(
         base,
-        condition_id="base-nonadaptive-replacement",
-        assignment_id=f"{task.name}--rep-001--base-nonadaptive-replacement",
-        rubric_policy=RubricBankPolicy.NONADAPTIVE_REPLACEMENT,
+        condition_id="base-offline-elicitation",
+        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
+        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
     original_persist = controller_module.persist_rubric_bank
 
@@ -2198,8 +2188,12 @@ def test_resume_rejects_replacement_bank_without_sealed_proposal(
             config,
             RevisionDependencies(
                 session=FakeSession(),
-                judge=FakeJudge(task, (80,), tmp_path / "initial-judge"),
-                bank_proposer=_singleton_replacement_proposer(config),
+                judge=FakeJudge(
+                    task,
+                    (80,) + (90,) * 6,
+                    tmp_path / "initial-judge",
+                ),
+                bank_proposer=_criterion_elicitation_proposer(config),
             ),
         ).run()
 
@@ -2223,14 +2217,18 @@ def test_resume_rejects_replacement_bank_without_sealed_proposal(
         raise AssertionError("resume called the rubric proposer provider")
 
     resumed_session = FakeSession()
-    resumed_judge = FakeJudge(task, (80,), tmp_path / "resume-judge")
+    resumed_judge = FakeJudge(
+        task,
+        (80,) + (90,) * 6,
+        tmp_path / "resume-judge",
+    )
     with pytest.raises(RuntimeError, match="no matching sealed proposal"):
         SubmissionRevisionController(
             replace(config, resume=True),
             RevisionDependencies(
                 session=resumed_session,
                 judge=resumed_judge,
-                bank_proposer=_singleton_replacement_proposer(
+                bank_proposer=_criterion_elicitation_proposer(
                     config,
                     run_proposer=reject_provider_call,
                 ),
@@ -2584,17 +2582,28 @@ Levels: A=40 B=20 C=0
     evaluation = tmp_path / "evaluation.json"
     evaluation.write_text(json.dumps({
         "criteria": {
-            "criterion_1": {"level": "A", "reason": "correct"},
-            "criterion_2": {"level": "B", "reason": "needs more evidence"},
+            "criterion_1": {
+                "level_votes": ["A"] * 5,
+                "mean_points": 60.0,
+                "reason": "correct",
+            },
+            "criterion_2": {
+                "level_votes": ["B"] * 5,
+                "mean_points": 20.0,
+                "reason": "needs more evidence",
+            },
         },
         "reasoning": "overall",
     }))
     validation.write_text(json.dumps({
-        "score": 80,
+        "score": 80.0,
         "normalized_score": 0.8,
-        "raw_score": 80,
-        "selected_levels": {"criterion_1": "A", "criterion_2": "B"},
-        "criterion_scores": {"criterion_1": 60, "criterion_2": 20},
+        "raw_score": 80.0,
+        "criterion_level_votes": {
+            "criterion_1": ["A"] * 5,
+            "criterion_2": ["B"] * 5,
+        },
+        "criterion_scores": {"criterion_1": 60.0, "criterion_2": 20.0},
         "rendered_rubric_sha256": rubric_sha,
         "evaluation_sha256": sha256_file(evaluation),
     }))
@@ -2636,7 +2645,7 @@ Levels: A=40 B=20 C=0
     assert "The evidence is hard to verify" in simulated.prompt
     assert "80/100" not in simulated.prompt
     assert "needs more evidence" not in simulated.prompt
-    assert '"selected_level"' not in simulated.prompt
+    assert '"level_votes"' not in simulated.prompt
     assert all(
         "under ./artifacts, not ./data" in item.prompt
         for item in (full, semi, score, simulated)
@@ -2652,29 +2661,18 @@ def test_bank_feedback_uses_the_singleton_member_score(
         "Levels: A=100 B=33 C=0\n"
         "[A]: Full.\n[B]: Partial.\n[C]: None.\n"
     )
-    presentation = parse_rubric_member_presentation({
-        "title": "Result presentation",
-        "overview": "Inspect the complete result.",
-        "criteria": [{
-            "anchor_criterion_id": "criterion_1",
-            "heading": "Result accuracy",
-            "lens": "Inspect concrete result evidence.",
-        }],
-    })
-    rubric, criterion_map = render_locked_rubric_member(anchor, presentation)
     bank = RubricBank(
-        generation_round=2,
+        generation_round=0,
         source_boundary=None,
         specification_anchor=anchor,
-        specification_anchor_lineage=RubricLineage.RETAINED,
-        prior_specification_anchor_sha256=anchor.content_sha256,
+        specification_anchor_lineage=RubricLineage.NEW,
+        prior_specification_anchor_sha256=None,
         items=(
             RubricBankItem(
-                rubric,
+                anchor,
                 1.0,
                 RubricLineage.NEW,
-                criterion_map,
-                presentation=presentation,
+                identity_criterion_map(anchor),
             ),
         ),
     )
@@ -2682,23 +2680,27 @@ def test_bank_feedback_uses_the_singleton_member_score(
     evaluation = tmp_path / "evaluation.json"
     validation = tmp_path / "validation.json"
     evaluation.write_text(json.dumps({
-        "criteria": {"criterion_1": {"level": "B", "reason": "checked"}},
+        "criteria": {"criterion_1": {
+            "level_votes": ["B"] * 5,
+            "mean_points": 33.0,
+            "reason": "checked",
+        }},
         "reasoning": "checked",
     }))
     validation.write_text(json.dumps({
-        "score": 33,
+        "score": 33.0,
         "normalized_score": 0.33,
-        "raw_score": 33,
-        "selected_levels": {"criterion_1": "B"},
-        "criterion_scores": {"criterion_1": 33},
-        "rendered_rubric_sha256": rubric.content_sha256,
+        "raw_score": 33.0,
+        "criterion_level_votes": {"criterion_1": ["B"] * 5},
+        "criterion_scores": {"criterion_1": 33.0},
+        "rendered_rubric_sha256": anchor.content_sha256,
         "evaluation_sha256": sha256_file(evaluation),
     }))
-    artifacts[rubric.content_sha256] = (validation, evaluation)
+    artifacts[anchor.content_sha256] = (validation, evaluation)
 
     projected = project_bank_feedback(bank, artifacts, FeedbackPolicy.SEMI)
 
     assert projected.score == 33
     assert projected.payload["score"] == 33
     assert "33/100" not in projected.prompt
-    assert set(projected.payload["members"]) == {rubric.content_sha256}
+    assert set(projected.payload["members"]) == {anchor.content_sha256}

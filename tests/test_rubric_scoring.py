@@ -24,19 +24,48 @@ def test_recomputation_applies_penalty_and_ignores_reported_criterion_scores() -
         rubric_levels=levels,
         evaluation={
             "criteria": {
-                "criterion_1": {"level": "B", "score": 100},
-                "criterion_2": {"level": "C", "score": 0},
+                "criterion_1": {
+                    "level_votes": ["B", "B", "B", "A", "A"],
+                    "mean_points": 70.0,
+                },
+                "criterion_2": {
+                    "level_votes": ["C", "C", "C", "A", "A"],
+                    "mean_points": -6.0,
+                },
             }
         },
-        reward={"score": 50},
+        reward={"score": 50.0},
     )
 
-    assert (result.raw_score, result.score) == (40, 40)
-    assert result.normalized_score == 0.4
-    assert result.reported_score == 50
+    assert (result.raw_score, result.score) == (64.0, 64.0)
+    assert result.normalized_score == 0.64
+    assert result.reported_score == 50.0
     assert not result.score_matches_reported
-    assert result.selected_levels == {"criterion_1": "B", "criterion_2": "C"}
-    assert result.criterion_scores == {"criterion_1": 50, "criterion_2": -10}
+    assert result.criterion_level_votes == {
+        "criterion_1": ("B", "B", "B", "A", "A"),
+        "criterion_2": ("C", "C", "C", "A", "A"),
+    }
+    assert result.criterion_scores == {"criterion_1": 70.0, "criterion_2": -6.0}
+
+
+def test_five_repeat_mean_is_not_rounded_to_an_integer() -> None:
+    result = validate_judge_score(
+        rubric_levels={"criterion_1": {"A": 2, "B": 0}},
+        evaluation={
+            "criteria": {
+                "criterion_1": {
+                    "level_votes": ["A", "A", "B", "B", "B"],
+                    "mean_points": 0.8,
+                }
+            }
+        },
+        reward={"score": 0.8},
+    )
+
+    assert result.score == 0.8
+    assert result.raw_score == 0.8
+    assert result.normalized_score == 0.008
+    assert result.score_matches_reported
 
 
 def test_parser_preserves_explicit_positive_and_negative_values() -> None:
@@ -114,11 +143,11 @@ def test_parser_rejects_empty_or_incomplete_rubrics(rubric: str) -> None:
 @pytest.mark.parametrize(
     "criteria",
     (
-        {"criterion_1": {"level": "A"}},
+        {"criterion_1": {"level_votes": ["A"] * 5, "mean_points": 100.0}},
         {
-            "criterion_1": {"level": "A"},
-            "criterion_2": {"level": "A"},
-            "criterion_3": {"level": "A"},
+            "criterion_1": {"level_votes": ["A"] * 5, "mean_points": 100.0},
+            "criterion_2": {"level_votes": ["A"] * 5, "mean_points": 0.0},
+            "criterion_3": {"level_votes": ["A"] * 5, "mean_points": 0.0},
         },
     ),
 )
@@ -129,45 +158,54 @@ def test_evaluation_criterion_keys_must_equal_rubric_keys(
         validate_judge_score(
             rubric_levels=parse_rubric_levels_strict(RUBRIC),
             evaluation={"criteria": criteria},
-            reward={"score": 100},
+            reward={"score": 100.0},
         )
 
 
 @pytest.mark.parametrize("level", ("D", "b", " B "))
-def test_unknown_or_inexact_selected_level_is_rejected(level: str) -> None:
+def test_unknown_or_inexact_level_vote_is_rejected(level: str) -> None:
     with pytest.raises(JudgeScoreValidationError):
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 10, "B": 0}},
-            evaluation={"criteria": {"criterion_1": {"level": level}}},
-            reward={"score": 0},
+            evaluation={"criteria": {"criterion_1": {
+                "level_votes": [level] * 5,
+                "mean_points": 0.0,
+            }}},
+            reward={"score": 0.0},
         )
 
 
 @pytest.mark.parametrize("level", (None, 1, True, 1.0))
-def test_non_string_selected_level_is_rejected(level: object) -> None:
+def test_non_string_level_vote_is_rejected(level: object) -> None:
     with pytest.raises(JudgeScoreValidationError):
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 10, "B": 0}},
-            evaluation={"criteria": {"criterion_1": {"level": level}}},
-            reward={"score": 0},
+            evaluation={"criteria": {"criterion_1": {
+                "level_votes": [level] * 5,
+                "mean_points": 0.0,
+            }}},
+            reward={"score": 0.0},
         )
 
 
-@pytest.mark.parametrize("reported_score", (True, 50.0, "50", -1, 101))
-def test_reward_score_requires_an_in_range_exact_integer(
+@pytest.mark.parametrize("reported_score", (True, "50", float("nan"), -1, 101))
+def test_reward_score_requires_an_in_range_finite_number(
     reported_score: object,
 ) -> None:
     with pytest.raises(JudgeScoreValidationError):
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 50}},
-            evaluation={"criteria": {"criterion_1": {"level": "A"}}},
+            evaluation={"criteria": {"criterion_1": {
+                "level_votes": ["A"] * 5,
+                "mean_points": 50.0,
+            }}},
             reward={"score": reported_score},
         )
 
 
 @pytest.mark.parametrize(
     "reward",
-    ({}, {"score": 50, "extra": 0}, [], None),
+    ({}, {"score": 50.0, "extra": 0}, [], None),
 )
 def test_reward_must_be_an_object_with_exactly_one_score_key(
     reward: object,
@@ -175,7 +213,10 @@ def test_reward_must_be_an_object_with_exactly_one_score_key(
     with pytest.raises(JudgeScoreValidationError):
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 50}},
-            evaluation={"criteria": {"criterion_1": {"level": "A"}}},
+            evaluation={"criteria": {"criterion_1": {
+                "level_votes": ["A"] * 5,
+                "mean_points": 50.0,
+            }}},
             reward=reward,
         )
 
@@ -183,19 +224,22 @@ def test_reward_must_be_an_object_with_exactly_one_score_key(
 @pytest.mark.parametrize(
     ("rubric", "reported_score", "expected_raw", "expected_score"),
     (
-        ("Criterion 1: Penalty\nLevels: A=-20\n", 0, -20, 0),
-        ("Criterion 1: Bonus\nLevels: A=120\n", 100, 120, 100),
+        ("Criterion 1: Penalty\nLevels: A=-20\n", 0.0, -20.0, 0.0),
+        ("Criterion 1: Bonus\nLevels: A=120\n", 100.0, 120.0, 100.0),
     ),
 )
 def test_authoritative_score_is_clamped_but_raw_score_is_preserved(
     rubric: str,
-    reported_score: int,
-    expected_raw: int,
-    expected_score: int,
+    reported_score: float,
+    expected_raw: float,
+    expected_score: float,
 ) -> None:
     result = validate_judge_score(
         rubric_levels=parse_rubric_levels_strict(rubric),
-        evaluation={"criteria": {"criterion_1": {"level": "A"}}},
+        evaluation={"criteria": {"criterion_1": {
+            "level_votes": ["A"] * 5,
+            "mean_points": expected_raw,
+        }}},
         reward={"score": reported_score},
     )
 
@@ -220,5 +264,5 @@ def test_malformed_evaluation_fails_closed(evaluation: object) -> None:
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 10}},
             evaluation=evaluation,
-            reward={"score": 10},
+            reward={"score": 10.0},
         )

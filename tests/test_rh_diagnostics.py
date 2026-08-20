@@ -41,11 +41,10 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankItem,
     RubricBankPolicy,
     RubricCriterionMapping,
-    RubricCriterionPresentation,
+    ElicitedCriterion,
     RubricLineage,
-    RubricMemberPresentation,
     persist_rubric_bank,
-    render_locked_rubric_member,
+    render_augmented_rubric,
     rubric_bank_directory,
 )
 
@@ -184,42 +183,40 @@ def _generation(
         )
     else:
         if prior_specification_anchor is None:
-            raise ValueError("replacement generation needs its prior anchor")
-        specification_anchor = complete_rubric(
-            f"specification anchor {generation_round}"
-        )
-        anchor_lineage = RubricLineage.REFINED
+            raise ValueError("elicitation generation needs its original rubric")
+        if len(weighted_contents) != 1 or weighted_contents[0][1] != 1.0:
+            raise ValueError("elicitation tests require one unit-weight rubric")
+        specification_anchor = prior_specification_anchor
+        anchor_lineage = RubricLineage.RETAINED
         prior_anchor_sha256 = prior_specification_anchor.content_sha256
-        replacement_items: list[RubricBankItem] = []
-        for content, weight in weighted_contents:
-            presentation = RubricMemberPresentation(
-                title=content,
-                overview=f"Review through the {content} presentation.",
-                criteria=(RubricCriterionPresentation(
-                    anchor_criterion_id="criterion_1",
-                    heading=content,
-                    lens=f"Apply the {content} lens.",
-                ),),
-            )
-            rubric, criterion_map = render_locked_rubric_member(
-                specification_anchor,
-                presentation,
-            )
-            replacement_items.append(RubricBankItem(
-                rubric=rubric,
-                weight=weight,
-                lineage=RubricLineage.NEW,
-                criterion_map=criterion_map,
-                presentation=presentation,
-            ))
-        items = tuple(sorted(
-            replacement_items,
-            key=lambda item: item.rubric.content_sha256,
-        ))
+        content, weight = weighted_contents[0]
+        criterion = ElicitedCriterion.create(
+            title=content,
+            requirement=f"Evaluate the general {content} requirement.",
+            level_descriptions=(
+                ("A", "The requirement is complete."),
+                ("B", "The requirement is partial."),
+                ("C", "The requirement is absent."),
+            ),
+            support_pair_ids=("pair_1", "pair_2"),
+            source_generation=generation_round,
+        )
+        rubric, criterion_map = render_augmented_rubric(
+            specification_anchor,
+            (criterion,),
+        )
+        items = (RubricBankItem(
+            rubric=rubric,
+            weight=weight,
+            lineage=RubricLineage.REFINED,
+            prior_content_sha256=specification_anchor.content_sha256,
+            criterion_map=criterion_map,
+            elicited_criteria=(criterion,),
+        ),)
     return RubricBankGeneration(
         bank=RubricBank(
             generation_round=generation_round,
-            source_boundary=(None if generation_round == 0 else generation_round - 1),
+            source_boundary=(None if generation_round == 0 else generation_round),
             specification_anchor=specification_anchor,
             specification_anchor_lineage=anchor_lineage,
             prior_specification_anchor_sha256=prior_anchor_sha256,
@@ -258,7 +255,7 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         assignment_id="assignment-1",
         task_id="da-1-1",
         replicate=1,
-        condition_id="diligent-adaptive-replacement",
+        condition_id="diligent-online-elicitation",
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         experiment_dir=tmp_path,
         task_dir=tmp_path,
@@ -269,6 +266,8 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         weak_final_score=95.25,
         initial_submission=tmp_path / "s000",
         final_submission=tmp_path / "s006",
+        submission_ids=("s000", "s006"),
+        fixed_original_scores=(40.0, 80.0),
         initial_bank_generation=initial_generation,
         final_bank_generation=final_generation,
         initial_bank_manifest_path=tmp_path / "bank-0000" / "manifest.json",
@@ -506,15 +505,15 @@ def test_mechanistic_summary_keeps_primary_component_and_rubric_diagnostics(
         "verifier_exploitation": 15.25,
     }
     assert summary["rubric_diagnostics"]["initial"] == {
-        "member_to_anchor": 0,
-        "anchor_to_selected": -5,
+        "active_to_original": 0,
+        "original_to_selected": -5,
         "selected_to_holdout": 0,
         "wording_sensitivity_standard_deviation": 20,
         "wording_sensitivity_range": 40,
     }
     assert summary["rubric_diagnostics"]["final"] == {
-        "member_to_anchor": 0,
-        "anchor_to_selected": 5,
+        "active_to_original": 0,
+        "original_to_selected": 5,
         "selected_to_holdout": 10,
         "wording_sensitivity_standard_deviation": 0,
         "wording_sensitivity_range": 0,
@@ -608,12 +607,12 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     persist_rubric_bank(
         tmp_path,
         target.initial_bank_generation,
-        RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+        RubricBankPolicy.ONLINE_ELICITATION,
     )
     persist_rubric_bank(
         tmp_path,
         target.final_bank_generation,
-        RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+        RubricBankPolicy.ONLINE_ELICITATION,
     )
     paraphrase_task = tmp_path / "paraphrases" / "tasks" / target.task_id
     paraphrase_task.mkdir(parents=True)
@@ -668,7 +667,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
             "effective_judge_model": kwargs["model"],
             "judge_api_base": kwargs["api_base"],
             "benchmark": target_arg.benchmark.value,
-            "grading_engine": "autorubric-criterion",
+            "grading_engine": "full-rubric-structured",
             "review_mode": target_arg.review,
             "max_review_chars": target_arg.max_review_chars,
             "rubric_source": "rubric-path",
@@ -693,7 +692,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
             "workspace_sha256": digest,
         }))
 
-    assert len(jobs) == 22
+    assert len(jobs) == 18
     assert len(bank_jobs) == 8
     assert len(anchor_jobs) == 4
     assert sum(len(job.bank_members) for job in jobs) == 10
@@ -783,7 +782,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
 
     assert plan["accepted"] is True
     assert plan["dispatch_count"] == len(unique_jobs)
-    assert plan["base_totals"]["calls"] == len(unique_jobs)
+    assert plan["base_totals"]["calls"] == 5 * len(unique_jobs)
 
 
 def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
@@ -801,12 +800,12 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
     persist_rubric_bank(
         tmp_path,
         initial_generation,
-        RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+        RubricBankPolicy.ONLINE_ELICITATION,
     )
     persist_rubric_bank(
         tmp_path,
         generation,
-        RubricBankPolicy.ADAPTIVE_REPLACEMENT,
+        RubricBankPolicy.ONLINE_ELICITATION,
     )
     scores = (60.5,)
     members = {
@@ -827,7 +826,7 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
             "generation_round": 1,
             "bank_sha256": generation.bank.content_sha256,
             "dispatch_preflight": {
-                "grading_engine": "autorubric-criterion",
+                "grading_engine": "full-rubric-structured",
                 "bank_sha256": generation.bank.content_sha256,
                 "member_sha256s": [
                     item.rubric.content_sha256
@@ -835,7 +834,7 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
                 ],
                 "review_text_sha256": "3" * 64,
                 "answer_text_sha256": "4" * 64,
-                "cost_shape": {"criterion_calls": 1},
+                "cost_shape": {"calls": 5},
             },
             "members": members,
             "weighted_score": 60.5,
@@ -906,10 +905,10 @@ def test_holistic_summary_separates_absolute_scores_from_pairwise_preference(
          "ordering": ordering,
          "verdict": {"preferred_response": preferred}}
         for model, ordering, preferred in (
-            ("strong-a", "initial-first", "response_B"),
-            ("strong-a", "final-first", "response_A"),
-            ("strong-b", "initial-first", "tie"),
-            ("strong-b", "final-first", "response_A"),
+            ("strong-a", "higher-first", "response_A"),
+            ("strong-a", "lower-first", "response_B"),
+            ("strong-b", "higher-first", "tie"),
+            ("strong-b", "lower-first", "response_B"),
         )
     ]
 
@@ -930,8 +929,156 @@ def test_holistic_summary_separates_absolute_scores_from_pairwise_preference(
     assert quality["final_panel_mean"] == 75
     assert quality["panel_mean_gain"] == 27.5
     assert summary["pairwise_preference"][
-        "panel_mean_final_preference_rate"
+        "rubric_order_agreement"
     ] == 0.875
+
+
+def test_pairwise_selects_highest_and_lowest_rubric_scores(
+    tmp_path: Path,
+) -> None:
+    target = replace(
+        _target(tmp_path),
+        submission_ids=("s000", "s001", "s002", "s003"),
+        fixed_original_scores=(60.0, 20.0, 90.0, 40.0),
+        final_submission=tmp_path / "s003",
+    )
+
+    pair = target.rubric_ordered_pair()
+
+    assert pair.higher_submission_id == "s002"
+    assert pair.lower_submission_id == "s001"
+    assert pair.higher_submission == tmp_path / "submissions" / "s002"
+    assert pair.lower_submission == tmp_path / "submissions" / "s001"
+    assert pair.score_gap == 70.0
+
+
+def test_pairwise_request_hides_rubric_scores_and_submission_labels(
+    tmp_path: Path,
+) -> None:
+    target = replace(
+        _target(tmp_path),
+        submission_ids=("s000", "s001", "s002"),
+        fixed_original_scores=(13.25, 91.75, 42.5),
+        final_submission=tmp_path / "s002",
+    )
+    (tmp_path / "instruction.md").write_text("Complete the task.\n")
+    for submission_id, text in (
+        ("s000", "low response"),
+        ("s001", "high response"),
+        ("s002", "middle response"),
+    ):
+        submission = (
+            target.initial_submission
+            if submission_id == "s000"
+            else target.final_submission
+            if submission_id == "s002"
+            else tmp_path / "submissions" / submission_id
+        )
+        workspace = submission / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "trace.md").write_text(f"{text}\n")
+        (workspace / "answer.txt").write_text("answer\n")
+
+    request = _pairwise_preference_request(
+        PairwisePreferenceJob(
+            target=target,
+            model="strong-a",
+            ordering="higher-first",
+            api_base=None,
+            implementation_identity=(
+                rh_diagnostics._holistic_implementation_identity()
+            ),
+        )
+    )
+    payload = json.loads(request.evidence)
+
+    assert set(payload) == {"response_A", "response_B", "task_instruction"}
+    assert "high response" in payload["response_A"]
+    assert "low response" in payload["response_B"]
+    for hidden in ("s000", "s001", "13.25", "91.75", "higher", "lower"):
+        assert hidden not in request.evidence
+
+
+def test_pairwise_zero_score_gap_is_neutral(
+    tmp_path: Path,
+) -> None:
+    target = replace(_target(tmp_path), fixed_original_scores=(50.0, 50.0))
+    absolute_records = [
+        {
+            "assignment_id": target.assignment_id,
+            "model": "strong-a",
+            "boundary": boundary,
+            "verdict": {"score": 50},
+        }
+        for boundary in ("initial", "final")
+    ]
+    pairwise_records = [
+        {
+            "assignment_id": target.assignment_id,
+            "model": "strong-a",
+            "ordering": ordering,
+            "verdict": {"preferred_response": preferred},
+        }
+        for ordering, preferred in (
+            ("higher-first", "response_A"),
+            ("lower-first", "response_B"),
+        )
+    ]
+
+    summary = _summarize_holistic_scores(
+        (target,),
+        absolute_records,
+        pairwise_records,
+        ("strong-a",),
+    )[0]["pairwise_preference"]
+
+    assert summary["panel_mean_higher_score_preference_rate"] == 1.0
+    assert summary["strict_rubric_order"] is False
+    assert summary["rubric_order_agreement"] == 0.5
+
+
+def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
+    tmp_path: Path,
+) -> None:
+    target = _target(tmp_path)
+    (tmp_path / "instruction.md").write_text("Complete the task.\n")
+    for index, submission in enumerate(
+        (target.initial_submission, target.final_submission),
+        start=1,
+    ):
+        workspace = submission / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "trace.md").write_text(f"trace {index}\n")
+        (workspace / "answer.txt").write_text("answer\n")
+        (submission / "snapshot.json").write_text(json.dumps({
+            "workspace_sha256": str(index) * 64,
+        }))
+    job = PairwisePreferenceJob(
+        target=target,
+        model="strong-a",
+        ordering="higher-first",
+        api_base=None,
+        implementation_identity=rh_diagnostics._holistic_implementation_identity(),
+    )
+
+    changed = replace(
+        job,
+        target=replace(target, fixed_original_scores=(40.0, 81.0)),
+    )
+
+    assert changed.key == job.key
+    judgment = {"verdict": {"preferred_response": "response_A"}}
+    original_reference = rh_diagnostics._pairwise_assignment_reference(
+        job,
+        judgment,
+    )
+    changed_reference = rh_diagnostics._pairwise_assignment_reference(
+        changed,
+        judgment,
+    )
+    assert original_reference["judgment_key"] == changed_reference["judgment_key"]
+    assert original_reference["higher_rubric_score"] == 80.0
+    assert changed_reference["higher_rubric_score"] == 81.0
 
 
 def test_two_component_decomposition_and_diagnostic_partition_telescope(
@@ -942,14 +1089,14 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
         "assignment_id": "assignment-1",
         "task_id": "da-1-1",
         "replicate": 1,
-        "condition_id": "diligent-adaptive-replacement",
+        "condition_id": "diligent-online-elicitation",
         "rubric_free_quality": {
             "initial_panel_mean": 47.5,
             "final_panel_mean": 75,
             "panel_mean_gain": 27.5,
         },
         "pairwise_preference": {
-            "panel_mean_final_preference_rate": 0.875,
+            "rubric_order_agreement": 0.875,
         },
     }
 
@@ -967,8 +1114,8 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
         "dynamic_rubric_gap": 12.5,
     }
     assert result["boundaries"]["initial"]["rubric_diagnostics"] == {
-        "member_to_anchor": 0,
-        "anchor_to_selected": -5,
+        "active_to_original": 0,
+        "original_to_selected": -5,
         "selected_to_holdout": 0,
         "holdout_to_holistic": 17.5,
         "wording_sensitivity_standard_deviation": 20,
@@ -979,8 +1126,8 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
         assert sum(
             boundary_result["rubric_diagnostics"][name]
             for name in (
-                "member_to_anchor",
-                "anchor_to_selected",
+                "active_to_original",
+                "original_to_selected",
                 "selected_to_holdout",
                 "holdout_to_holistic",
             )
@@ -991,8 +1138,8 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
         "dynamic_rubric_gap": -7.5,
     }
     assert result["rubric_diagnostic_changes"] == {
-        "member_to_anchor": 0,
-        "anchor_to_selected": 10,
+        "active_to_original": 0,
+        "original_to_selected": 10,
         "selected_to_holdout": 10,
         "holdout_to_holistic": -27.5,
         "wording_sensitivity_standard_deviation": -20,
@@ -1009,7 +1156,7 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
         "online_local_weak_gain": 14.75,
         "online_local_strong_gain": 15,
         "online_local_verifier_gap_change": -0.25,
-        "pairwise_final_preference_rate": 0.875,
+        "pairwise_rubric_order_agreement": 0.875,
     }
 
 
@@ -1028,7 +1175,7 @@ def test_dynamic_rubric_gap_rejects_a_broken_diagnostic_partition(
                     "final_panel_mean": 75,
                 },
                 "pairwise_preference": {
-                    "panel_mean_final_preference_rate": 0.875,
+                    "rubric_order_agreement": 0.875,
                 },
             },
             {
@@ -1050,7 +1197,7 @@ def test_condition_aggregates_keep_direct_detection_independent(
                 "final_panel_mean": 75,
             },
             "pairwise_preference": {
-                "panel_mean_final_preference_rate": 0.875,
+                "rubric_order_agreement": 0.875,
             },
         },
         {name: 1 for name in (
@@ -1063,7 +1210,7 @@ def test_condition_aggregates_keep_direct_detection_independent(
     result = _condition_aggregates([assignment])
 
     assert result["overall"]["direct_detection"]["rate"] == 1
-    assert result["diligent-adaptive-replacement"]["outcomes"][
+    assert result["diligent-online-elicitation"]["outcomes"][
         "reward_hacking_loss_change"
     ]["mean"] == -12.75
 
@@ -1074,7 +1221,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "assignment_id": "a",
             "task_id": "task-1",
             "replicate": 1,
-            "condition_id": "adaptive-replacement",
+            "condition_id": "online-elicitation",
             "outcomes": {
                 "terminal_bank_weak_gain": 11,
                 "selected_rubric_gain": 10,
@@ -1086,15 +1233,15 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "online_local_weak_gain": 12,
                 "online_local_strong_gain": 9,
                 "online_local_verifier_gap_change": 3,
-                "pairwise_final_preference_rate": 0.75,
+                "pairwise_rubric_order_agreement": 0.75,
             },
             "component_changes": {
                 "verifier_exploitation": 4,
                 "dynamic_rubric_gap": -1,
             },
             "rubric_diagnostic_changes": {
-                "member_to_anchor": 2,
-                "anchor_to_selected": 1,
+                "active_to_original": 2,
+                "original_to_selected": 1,
                 "selected_to_holdout": -1,
                 "holdout_to_holistic": -3,
                 "wording_sensitivity_standard_deviation": -3,
@@ -1117,15 +1264,15 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "online_local_weak_gain": 10,
                 "online_local_strong_gain": 4,
                 "online_local_verifier_gap_change": 6,
-                "pairwise_final_preference_rate": 0.5,
+                "pairwise_rubric_order_agreement": 0.5,
             },
             "component_changes": {
                 "verifier_exploitation": 1,
                 "dynamic_rubric_gap": 6,
             },
             "rubric_diagnostic_changes": {
-                "member_to_anchor": 0,
-                "anchor_to_selected": 0,
+                "active_to_original": 0,
+                "original_to_selected": 0,
                 "selected_to_holdout": 2,
                 "holdout_to_holistic": 4,
                 "wording_sensitivity_standard_deviation": 1,
@@ -1137,7 +1284,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
     contrast = _paired_condition_contrasts(assignments)[0]
 
     assert contrast["direction"] == "left-minus-right"
-    assert contrast["left_condition"] == "adaptive-replacement"
+    assert contrast["left_condition"] == "online-elicitation"
     assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
     assert contrast["paired_differences"][
         "sealed_holdout_bank_gain"
@@ -1247,7 +1394,7 @@ def test_holistic_request_json_encodes_untrusted_prompt_injection(
         PairwisePreferenceJob(
             target=target,
             model="strong-a",
-            ordering="initial-first",
+            ordering="higher-first",
             api_base=None,
             implementation_identity=(
                 rh_diagnostics._holistic_implementation_identity()
@@ -1324,7 +1471,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     pairwise = PairwisePreferenceJob(
         target=target,
         model="strong-a",
-        ordering="initial-first",
+        ordering="higher-first",
         api_base=None,
         implementation_identity=implementation_identity,
     )

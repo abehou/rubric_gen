@@ -17,6 +17,7 @@ from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
     parse_score_normalization_maximum,
 )
+from rubric_gen.submission_revision.judging.models import JUDGMENT_REPEATS
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.submission_revision.rubric_bank import (
@@ -192,9 +193,13 @@ def _validate_bank_members(value: object, policy: FeedbackPolicy) -> float:
             or not isinstance(weight, Real)
             or not math.isfinite(float(weight))
             or float(weight) <= 0
-            or type(member_score) is not int
-            or not 0 <= member_score <= 100
-            or type(member.get("raw_score")) is not int
+            or isinstance(member_score, bool)
+            or not isinstance(member_score, Real)
+            or not math.isfinite(float(member_score))
+            or not 0 <= float(member_score) <= 100
+            or isinstance(member.get("raw_score"), bool)
+            or not isinstance(member.get("raw_score"), Real)
+            or not math.isfinite(float(member["raw_score"]))
             or type(member.get("criteria")) is not dict
         ):
             raise ValueError("bank feedback contains invalid member values")
@@ -332,7 +337,7 @@ def _project_member_feedback(
     """Return the policy-specific view of one validated judge evaluation."""
 
     validation = _load_object(score_validation_path, "score validation")
-    score, raw_score, selected_levels, criterion_scores = _validate_score_record(
+    score, raw_score, criterion_level_votes, criterion_scores = _validate_score_record(
         validation,
         rubric_text,
         expected_rubric_sha256,
@@ -360,7 +365,7 @@ def _project_member_feedback(
         summaries = _validated_criterion_summaries(
             rubric_text,
             rubric_levels,
-            selected_levels,
+            criterion_level_votes,
             criterion_scores,
         )
         payload = {
@@ -370,11 +375,11 @@ def _project_member_feedback(
             "criteria": {
                 criterion_id: {
                     "title": summaries[criterion_id].title,
-                    "selected_level": selected_levels[criterion_id],
-                    "points": criterion_scores[criterion_id],
+                    "level_votes": list(criterion_level_votes[criterion_id]),
+                    "mean_points": criterion_scores[criterion_id],
                     "maximum_points": summaries[criterion_id].maximum_points,
                 }
-                for criterion_id in sorted(selected_levels)
+                for criterion_id in sorted(criterion_level_votes)
             },
         }
         return ProjectedFeedback(score=score, payload=payload, prompt="")
@@ -387,7 +392,7 @@ def _project_member_feedback(
         rubric_text=rubric_text,
         score=score,
         raw_score=raw_score,
-        selected_levels=selected_levels,
+        criterion_level_votes=criterion_level_votes,
         criterion_scores=criterion_scores,
         max_reason_chars=max_reason_chars,
     )
@@ -421,22 +426,29 @@ def _criterion_summaries(
 def _validated_criterion_summaries(
     rubric_text: str,
     rubric_levels: dict[str, dict[str, int]],
-    selected_levels: dict[str, str],
-    criterion_scores: dict[str, int],
+    criterion_level_votes: dict[str, tuple[str, ...]],
+    criterion_scores: dict[str, float],
 ) -> dict[str, _CriterionSummary]:
     summaries = _criterion_summaries(rubric_text, rubric_levels)
-    if set(summaries) != set(selected_levels) or set(rubric_levels) != set(
-        selected_levels
+    if set(summaries) != set(criterion_level_votes) or set(rubric_levels) != set(
+        criterion_level_votes
     ):
         raise ValueError(
             "rubric criterion summaries do not match validated score criteria"
         )
-    for criterion_id, selected_level in selected_levels.items():
-        if rubric_levels[criterion_id].get(selected_level) != criterion_scores[
-            criterion_id
-        ]:
+    for criterion_id, level_votes in criterion_level_votes.items():
+        expected_mean = (
+            math.fsum(rubric_levels[criterion_id][level] for level in level_votes)
+            / JUDGMENT_REPEATS
+        )
+        if not math.isclose(
+            expected_mean,
+            criterion_scores[criterion_id],
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
             raise ValueError(
-                "validated criterion score does not match the frozen rubric: "
+                "validated criterion mean does not match the frozen rubric: "
                 f"{criterion_id}"
             )
     return summaries
@@ -446,7 +458,7 @@ def _validate_score_record(
     validation: dict[str, object],
     rubric_text: str,
     expected_rubric_sha256: str,
-) -> tuple[int, int, dict[str, str], dict[str, int]]:
+) -> tuple[float, float, dict[str, tuple[str, ...]], dict[str, float]]:
     if (
         type(expected_rubric_sha256) is not str
         or len(expected_rubric_sha256) != 64
@@ -465,40 +477,63 @@ def _validate_score_record(
     ):
         raise ValueError("rubric_text does not match the frozen rubric identity")
 
-    score = _integer(validation, "score")
-    raw_score = _integer(validation, "raw_score")
+    score = _finite_number(validation, "score")
+    raw_score = _finite_number(validation, "raw_score")
     normalized_score = validation.get("normalized_score")
     if type(normalized_score) is not float or not 0.0 <= normalized_score <= 1.0:
         raise ValueError("score validation normalized_score must be between zero and one")
     if not 0 <= score <= 100:
         raise ValueError("score validation score must be between 0 and 100")
-    selected_levels = _string_map(validation, "selected_levels")
-    criterion_scores = _integer_map(validation, "criterion_scores")
-    if set(selected_levels) != set(criterion_scores):
+    criterion_level_votes = _level_vote_map(
+        validation, "criterion_level_votes"
+    )
+    criterion_scores = _number_map(validation, "criterion_scores")
+    if set(criterion_level_votes) != set(criterion_scores):
         raise ValueError(
-            "score validation selected_levels and criterion_scores must have "
+            "score validation criterion_level_votes and criterion_scores must have "
             "the same criteria"
         )
-    if raw_score != sum(criterion_scores.values()):
+    if not math.isclose(
+        raw_score,
+        math.fsum(criterion_scores.values()),
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
         raise ValueError("score validation raw_score does not match criterion scores")
+    rubric_levels = parse_rubric_levels_strict(rubric_text)
+    if set(rubric_levels) != set(criterion_level_votes):
+        raise ValueError("score validation criteria do not match the frozen rubric")
+    repeat_raw_scores = [
+        math.fsum(
+            rubric_levels[criterion_id][
+                criterion_level_votes[criterion_id][repeat_index]
+            ]
+            for criterion_id in rubric_levels
+        )
+        for repeat_index in range(JUDGMENT_REPEATS)
+    ]
     normalization_maximum = parse_score_normalization_maximum(rubric_text)
-    expected_score = (
-        round(raw_score * 100 / normalization_maximum)
-        if normalization_maximum is not None
-        else raw_score
+    expected_repeat_scores = (
+        max(
+            0.0,
+            min(100.0, repeat_raw * 100 / (normalization_maximum or 100)),
+        )
+        for repeat_raw in repeat_raw_scores
     )
-    if score != max(0, min(100, expected_score)):
-        raise ValueError("score validation score does not match raw_score")
-    expected_normalized_score = max(
-        0.0,
-        min(
-            1.0,
-            raw_score / (normalization_maximum or 100),
-        ),
-    )
-    if normalized_score != expected_normalized_score:
-        raise ValueError("score validation normalized_score does not match raw_score")
-    return score, raw_score, selected_levels, criterion_scores
+    expected_score = math.fsum(expected_repeat_scores) / JUDGMENT_REPEATS
+    if not math.isclose(score, expected_score, rel_tol=0.0, abs_tol=1e-12):
+        raise ValueError("score validation score does not match level votes")
+    expected_normalized_score = expected_score / 100
+    if not math.isclose(
+        normalized_score,
+        expected_normalized_score,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValueError(
+            "score validation normalized_score does not match level votes"
+        )
+    return score, raw_score, criterion_level_votes, criterion_scores
 
 
 def _project_full_payload(
@@ -506,10 +541,10 @@ def _project_full_payload(
     validation: dict[str, object],
     evaluation_path: Path,
     rubric_text: str,
-    score: int,
-    raw_score: int,
-    selected_levels: dict[str, str],
-    criterion_scores: dict[str, int],
+    score: float,
+    raw_score: float,
+    criterion_level_votes: dict[str, tuple[str, ...]],
+    criterion_scores: dict[str, float],
     max_reason_chars: int,
 ) -> dict[str, object]:
     evaluation_raw = evaluation_path.read_bytes()
@@ -529,7 +564,7 @@ def _project_full_payload(
         raise ValueError("evaluation.criteria must be a JSON object")
 
     criteria: dict[str, object] = {}
-    for criterion_id in sorted(selected_levels):
+    for criterion_id in sorted(criterion_level_votes):
         evaluation_criterion = evaluation_criteria.get(criterion_id)
         reason = (
             evaluation_criterion.get("reason", "")
@@ -537,8 +572,8 @@ def _project_full_payload(
             else ""
         )
         criteria[criterion_id] = {
-            "selected_level": selected_levels[criterion_id],
-            "points": criterion_scores[criterion_id],
+            "level_votes": list(criterion_level_votes[criterion_id]),
+            "mean_points": criterion_scores[criterion_id],
             "judge_reason": _bounded_text(reason, max_reason_chars),
         }
 
@@ -565,39 +600,52 @@ def _load_object(path: Path, context: str) -> dict[str, object]:
     return value
 
 
-def _integer(payload: dict[str, object], key: str) -> int:
+def _finite_number(payload: dict[str, object], key: str) -> float:
     value = payload.get(key)
-    if type(value) is not int:
-        raise ValueError(f"score validation {key} must be an integer")
-    return value
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, Real)
+        or not math.isfinite(float(value))
+    ):
+        raise ValueError(f"score validation {key} must be a finite number")
+    return float(value)
 
 
-def _string_map(payload: dict[str, object], key: str) -> dict[str, str]:
+def _level_vote_map(
+    payload: dict[str, object], key: str
+) -> dict[str, tuple[str, ...]]:
     value = payload.get(key)
     if type(value) is not dict or not value:
         raise ValueError(f"score validation {key} must be a non-empty object")
-    result: dict[str, str] = {}
+    result: dict[str, tuple[str, ...]] = {}
     for item_key, item_value in value.items():
         if (
             type(item_key) is not str
             or not item_key
-            or type(item_value) is not str
-            or not item_value
+            or type(item_value) is not list
+            or len(item_value) != JUDGMENT_REPEATS
+            or any(type(level) is not str or not level for level in item_value)
         ):
             raise ValueError(f"score validation {key} has an invalid entry")
-        result[item_key] = item_value
+        result[item_key] = tuple(item_value)
     return result
 
 
-def _integer_map(payload: dict[str, object], key: str) -> dict[str, int]:
+def _number_map(payload: dict[str, object], key: str) -> dict[str, float]:
     value = payload.get(key)
     if type(value) is not dict or not value:
         raise ValueError(f"score validation {key} must be a non-empty object")
-    result: dict[str, int] = {}
+    result: dict[str, float] = {}
     for item_key, item_value in value.items():
-        if type(item_key) is not str or not item_key or type(item_value) is not int:
+        if (
+            type(item_key) is not str
+            or not item_key
+            or isinstance(item_value, bool)
+            or not isinstance(item_value, Real)
+            or not math.isfinite(float(item_value))
+        ):
             raise ValueError(f"score validation {key} has an invalid entry")
-        result[item_key] = item_value
+        result[item_key] = float(item_value)
     return result
 
 

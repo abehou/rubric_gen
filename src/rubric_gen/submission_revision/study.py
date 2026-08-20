@@ -34,6 +34,9 @@ from rubric_gen.submission_revision.evolution import (
     RubricBankProposer,
     rubric_generation_implementation_identity,
 )
+from rubric_gen.submission_revision.contrasts import (
+    build_elicitation_contrasts,
+)
 from rubric_gen.submission_revision.judgment_reuse import (
     ExactJudgmentReuseStore,
     ExactSimulatorReuseStore,
@@ -726,13 +729,18 @@ def validate_completed_revision(
     else:
         expected_rubric_generations = [
             name
-            for index in range(1, expected_count)
+            for index in range(1, revision_rounds)
             for name in (
                 f"bank-{index:04d}",
                 f"bank-{index:04d}.provider-attempts.json",
             )
         ]
-        if (
+        if not expected_rubric_generations:
+            if os.path.lexists(rubric_generation_root):
+                raise RuntimeError(
+                    "a no-update elicitation arm has rubric generation artifacts"
+                )
+        elif (
             rubric_generation_root.is_symlink()
             or not rubric_generation_root.is_dir()
             or sorted(path.name for path in rubric_generation_root.iterdir())
@@ -824,7 +832,11 @@ def validate_completed_revision(
         if feedback.is_symlink() or not feedback.is_file():
             raise RuntimeError(f"missing feedback for {submission_id}")
         index = int(submission_id[1:])
-        generation_round = 0 if bank_policy is RubricBankPolicy.FIXED else index
+        generation_round = (
+            0
+            if bank_policy is RubricBankPolicy.FIXED
+            else max(0, index - 1)
+        )
         generation = load_rubric_bank(
             experiment_dir,
             generation_round,
@@ -837,28 +849,31 @@ def validate_completed_revision(
                 expected_policy=bank_policy,
             )
             generation.bank.validate_lineage(prior.bank)
-            adaptive = bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
-            source_submission = submissions / f"s{index - 1:03d}"
             assert generation_proposer is not None
-            validated_generation = generation_proposer.replace_bank(
+            validated_generation = generation_proposer.elicit_rubric(
                 instruction=instruction,
                 current_bank=prior.bank,
                 policy=bank_policy,
                 generation_round=generation_round,
                 output_dir=rubric_generation_root,
-                current_submission=(
-                    get_submission_benchmark(experiment.benchmark).render_submission(
-                        source_submission / "workspace"
-                    )
-                    if adaptive
+                contrasts=build_elicitation_contrasts(
+                    online=(
+                        bank_policy is RubricBankPolicy.ONLINE_ELICITATION
+                    ),
+                    seed_set=seed.root,
+                    task_dir=task_dir,
+                    experiment_dir=experiment_dir,
+                    benchmark=get_submission_benchmark(experiment.benchmark),
+                    provider=agent.provider,
+                    requested_model=agent.model,
+                    assignment_id=str(assignment["assignment_id"]),
+                    generation_round=generation_round,
+                ),
+                source_boundary=(
+                    generation_round
+                    if bank_policy is RubricBankPolicy.ONLINE_ELICITATION
                     else None
                 ),
-                trajectory_path=(
-                    source_submission / "trajectory.stream.jsonl"
-                    if adaptive
-                    else None
-                ),
-                source_boundary=index - 1 if adaptive else None,
             )
             if validated_generation != generation:
                 raise RuntimeError(
@@ -1026,7 +1041,12 @@ def validate_completed_revision(
                 validation_path,
                 "score validation",
             ).get("score")
-            if type(member_score) is not int:
+            if (
+                isinstance(member_score, bool)
+                or not isinstance(member_score, Real)
+                or not math.isfinite(float(member_score))
+                or not 0 <= float(member_score) <= 100
+            ):
                 raise RuntimeError("bank member score is invalid")
             score_by_member[rubric_hash] = float(member_score)
             bank_members[rubric_hash] = {
@@ -1184,7 +1204,10 @@ def _expected_bank_names(
     policy = RubricBankPolicy(str(condition_spec["rubric_policy"]))
     if policy is RubricBankPolicy.FIXED:
         return ["bank-0000"]
-    return [f"bank-{index:04d}" for index in range(submission_count)]
+    return [
+        f"bank-{index:04d}"
+        for index in range(max(1, submission_count - 1))
+    ]
 
 
 @contextmanager

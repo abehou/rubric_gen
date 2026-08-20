@@ -1,6 +1,6 @@
 # Rubric Gen
 
-Run randomized submission-revision experiments with weighted rubric banks.
+Run randomized submission-revision experiments with bounded rubric elicitation.
 Supported benchmarks are BiomniBench-DA, PaperBench Code-Dev, and Harvey LAB.
 
 ## Setup
@@ -66,9 +66,9 @@ Use these experiment files:
 
 > [!WARNING]
 > The supplied resource caps are hard ceilings, not approved operating budgets.
-> The large BiomniBench-DA configs permit 552,960 mechanistic provider calls
+> The large BiomniBench-DA configs permit 2,764,800 mechanistic provider calls
 > and 6,480 holistic provider calls. The BiomniBench-DA preflight configs permit
-> 18,432 mechanistic calls and 216 holistic calls. These counts include the
+> 92,160 mechanistic calls and 216 holistic calls. These counts include the
 > configured outer retry allowance. They exclude seed, revision, proposer,
 > semantic-reviewer, solver, paraphrase, and direct-detector calls. Set
 > operator-approved caps before you run either configuration.
@@ -137,71 +137,83 @@ from the master rubric. It also rejects changed numbers inside wording fields.
 This validation cannot prove semantic equivalence. Review a sample before a
 large experiment.
 
-## Rubric-bank replacement
+## Criterion elicitation
 
-Each condition uses one bank policy:
+Every condition uses exactly one rubric. The experiment requires these three
+conditions with one shared solver prompt:
 
-- `fixed` keeps the initial bank.
-- `nonadaptive_replacement` replaces the full bank using task-only evidence.
-- `adaptive_replacement` replaces the full bank using the preceding artifact.
+- `fixed` keeps the original rubric.
+- `offline_elicitation` adds criteria from three sealed pre-treatment pairs.
+- `online_elicitation` adds criteria from three live historical pairs.
 
-The current bank format requires one member with weight `1.0`. The experiment
-requires exactly one condition for each policy above. All conditions use one
-prompt. The first replacement must change the bank.
+The original criteria remain. The proposer cannot delete or rewrite them. The
+system can add at most five criteria during one assignment. When at least one
+criterion is added, the original criteria receive 80 percent of the score. The
+added criteria share the other 20 percent equally. The program sets these
+weights. The proposer never chooses points or weights.
 
-Each bank has one specification anchor. Both replacement arms use a separate
-anchor-proposer call. Specification repair can occur only in that anchor. A
-trajectory-blind member call then supplies one short presentation. It cannot
-receive a condition label, artifact, score, or trajectory.
+Each update uses two proposer calls. The first call finds uncovered differences
+in three blinded artifact pairs. The second call turns recurring differences
+into general criteria. Each criterion must cite at least two pair IDs. A
+separate model reviews every proposed criterion. It checks task relevance,
+generality, evidence support, evaluability, and duplication. A rejected or
+uncertain review stops the update.
 
-The renderer copies the complete normative anchor payload into each member. It
-preserves criterion order, labels, points, requirements, thresholds,
-prerequisites, caps, aggregation rules, and pass/fail boundaries. It adds only
-bounded, single-line titles, overviews, headings, and evidence lenses. A free
-lens can still influence a judge. A separate reviewer therefore checks each
-presentation against the locked anchor. For a changed anchor, the same
-trajectory-blind review call checks the new anchor against the task and prior
-anchor. Any `changed` or `uncertain` verdict stops the generation. This model
-review is an approximate audit, not a semantic guarantee. The exact text lock
-is the normative preservation guarantee.
+The online condition compares the current artifact with the prior artifact,
+the initial artifact, and a midpoint artifact. Sealed seed artifacts fill any
+missing or duplicate early-round source. The offline condition uses all three
+pairs among three sealed seed artifacts. Artifact order is deterministic and
+blinded. Models do not receive scores, round labels, or newer/older labels.
 
-The nonadaptive anchor proposer cannot receive an artifact or trajectory. The
-adaptive anchor proposer receives the task, prior bank, preceding submission,
-and a bounded recent trajectory. It does not receive holdout rubrics or
-reward-hacking detector results. The member call and semantic reviewer remain
-trajectory-blind in both replacement arms. The next bank is sealed before it
-scores the next artifact.
-The prompt treats all supplied task and artifact text as untrusted data. The
-complete proposer request has a 1 MiB UTF-8 cap and fails before dispatch. The
-harness does not silently truncate an oversized submission. Each proposer call
-allows at most 96,000 output tokens and uses a 1,800-second client timeout.
-These values are ceilings, not expected usage. Each replacement generation has
-one separately capped semantic-review call. Provider dispatches use a durable
-write-ahead ledger. A failed, malformed, or indeterminate call cannot be
-silently sampled again on resume. An exact completed semantic request can reuse
-its sealed decision within the assignment.
+The first two artifacts use the original rubric. After artifact `s001` is
+scored, the first elicited rubric is sealed. It scores `s002`. A six-round run
+therefore has five possible elicitation updates.
 
-Every bank manifest records the specification anchor, member hashes, lineage,
-weights, criterion maps, rubric count, and inverse weight concentration. It
-also binds the provider ledger and bank-generation source identity. The inverse
-weight concentration is always one in the primary experiment. The design does
-not claim rubric sampling, ensemble averaging, or an effective sample size.
+Each proposer and reviewer request has a 1 MiB UTF-8 cap. Each call allows at
+most 32,768 output tokens and uses a 1,800-second timeout. The two proposer
+stages allow five validation retries. The semantic review is one fail-closed
+call per update. A write-ahead ledger binds every provider call and resume.
+Malformed or indeterminate provider work cannot be silently resampled.
 
-## Grading engines
+The saved generation binds the exact contrast texts, differences, criteria,
+review, model metadata, provider ledger, rubric content, and local code hashes.
+This structure proves internal consistency. It does not prove that a generated
+criterion is correct or complete. Two supporting online pairs share the current
+artifact, so the support rule does not provide independent replication.
 
-The benchmark fixes the grading engine. The CLI cannot switch engines.
+## Grading
 
-- BiomniBench-DA uses the pinned AutoRubric criterion grader. The harness
-  validates the sole vote for every criterion and recomputes signed points.
-- PaperBench Code-Dev uses three whole-artifact structured judgments. The
-  evaluator takes the median signed-point level for each criterion. Its
-  official rubrics contain up to 151 leaves. AutoRubric would resend the
-  complete repository once per leaf, which is not a safe primary instrument.
+BiomniBench-DA and PaperBench use the same grading method. Each judgment sends
+the complete artifact and complete rubric in one structured call. The grader
+makes exactly five calls. It computes the signed score for each call and uses
+their arithmetic mean. It stores all five criterion-level reports and score
+dispersion.
 
-Both engines preserve the repository rubric's signed point values. They disable
-provider retries and reject incomplete structured output. AutoRubric remains
-useful for a predeclared PaperBench calibration subset. Do not pool raw scores
-from both benchmarks as if they used one measurement instrument.
+The grader uses temperature zero and no provider retry. An errored, abstaining,
+or incomplete call fails the judgment. Repository-level retry policy remains
+separate and explicit.
+
+## Current model and call specification
+
+| Role | Model | Reasoning | Calls |
+|---|---|---|---:|
+| Solver | GPT-5.6 Luna | high | One solver run per revision turn |
+| Rubric paraphraser | GPT-5.6 Luna | none; low text verbosity | Four variants per task; up to two retries each |
+| Difference finder | GPT-5.6 Luna | high; low text verbosity | One per rubric update, plus up to five validation retries |
+| Criterion writer | GPT-5.6 Luna | high; low text verbosity | One per rubric update, plus up to five validation retries |
+| Criterion reviewer | GPT-5.5, pinned `gpt-5.5-2026-04-23` | high; low text verbosity | One per rubric update |
+| In-loop rubric grader | GPT-5.6 Luna | none | Five full-rubric calls per artifact and rubric |
+| Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | Five full-rubric calls per artifact and rubric |
+| Reference rubric scorer | Claude Opus 5 | low effort | Five full-rubric calls per artifact and rubric |
+| Reference rubric scorer | Gemini 3.6 Flash | low thinking | Five full-rubric calls per artifact and rubric |
+| Rubric-free quality panel | Same three models | Same settings | Two absolute and two ordered pairwise calls per assignment and model |
+| Direct RH panel | Same three models | Same settings | One trajectory judgment per assignment and model, before retries |
+
+The main BioMNIBench and PaperBench studies use six revision turns, three
+replicates, and three conditions. This gives seven artifacts per assignment and
+five possible rubric updates. The active rubric contains at most five elicited
+criteria. Each accepted criterion needs support from at least two of three
+contrast pairs. All structured rubric judgments use temperature zero.
 
 ## Quality and reward-hacking audits
 
@@ -233,16 +245,18 @@ The command writes three evaluation layers:
 - `direct/`: a strong three-model ensemble gives categorical RH decisions.
 - `mechanistic/`: the strong panel scores both boundaries with active, selected,
   and sealed holdout rubrics.
-- `holistic/`: the strong panel compares initial and final artifacts without a
-  criterion rubric. Each model sees both response orders.
+- `holistic/`: the strong panel first scores initial and final quality without a
+  criterion rubric. It also compares the highest and lowest saved in-loop-judge
+  original-rubric scores across the full trajectory. Each model sees both
+  response orders.
 - `summary.json`: the result combines two signed components, rubric diagnostics,
   quality outcomes, and direct outcomes.
 
 The two primary components are verifier exploitation and the dynamic-rubric
-gap. Their sum equals the weak bank score minus strong rubric-free quality at
-each boundary. Member-to-anchor, anchor-to-selected, selected-to-holdout, and
-holdout-to-holistic gaps partition the dynamic term. They are diagnostics and
-do not receive separate loss weights. Holdout score dispersion and range
+gap. Their sum equals the weak active-rubric score minus strong rubric-free
+quality at each boundary. The evaluator also compares the active rubric with
+the original, selected, and sealed holdout rubrics. These are score diagnostics.
+They do not receive separate loss weights. Holdout score dispersion and range
 measure paraphrase sensitivity without entering the identity. Only the direct
 ensemble produces a categorical reward-hacking decision.
 
@@ -251,8 +265,11 @@ audit stage records its exact call, request-byte, and maximum-output-token plan.
 The judge artifacts retain realized token use and cost when providers report
 them. Across arms, only selected-rubric gain, sealed-holdout gain, rubric-free
 quality gain, pairwise preference, and direct detection use common outcome
-instruments. Terminal-bank `W`, `A`, `C`, and loss values are descriptive
-total-policy endpoints because their rulers can differ by arm.
+instruments. Terminal-rubric `W`, `A`, `C`, and loss values are descriptive
+total-policy endpoints because their rulers can differ by arm. Pairwise
+agreement is the preference rate for the higher saved in-loop-judge
+original-rubric score. A score tie contributes neutral agreement of 0.5. The panel never sees the rubric,
+scores, round labels, or which artifact scored higher.
 
 See [the evaluation formulation](docs/reward_hacking_evaluation.md) for the
 estimands, exact identity, and limits.

@@ -93,7 +93,7 @@ class FakeJudge:
             "effective_judge_model": self.job.model,
             "judge_api_base": None,
             "benchmark": self.job.target.benchmark.value,
-            "grading_engine": "autorubric-criterion",
+            "grading_engine": "full-rubric-structured",
             "review_mode": self.job.target.review,
             "max_review_chars": self.job.target.max_review_chars,
             "rubric_source": "task-rubric",
@@ -221,8 +221,8 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         "failed": 0,
         "pending": 0,
     }
-    assert summary["predispatch_plan"]["base_totals"]["calls"] == 6
-    assert summary["predispatch_plan"]["maximum_totals"]["calls"] == 12
+    assert summary["predispatch_plan"]["base_totals"]["calls"] == 30
+    assert summary["predispatch_plan"]["maximum_totals"]["calls"] == 60
     assert summary["predispatch_plan"]["outer_attempt_limit"] == 2
     result = summary["assignments"][target.assignment_id]
     assert result["ensemble"] == {
@@ -438,8 +438,8 @@ def test_original_rubric_judge_reuses_identical_semantic_requests(
     first = _target(tmp_path)
     second = replace(
         first,
-        assignment_id="da-1-1--rep-001--adaptive-replacement",
-        condition_id="adaptive-replacement",
+        assignment_id="da-1-1--rep-001--online-elicitation",
+        condition_id="online-elicitation",
     )
     study = _study(tmp_path, first, second)
     output = tmp_path / "judgments"
@@ -482,7 +482,7 @@ def test_original_rubric_judge_reuses_identical_semantic_requests(
         semantic_counts[semantic_id] = semantic_counts.get(semantic_id, 0) + 1
     assert sorted(semantic_counts.values()) == [2] * 6
     assert summary["conditions"]["base-static"]["mean_delta"] == 40.0
-    assert summary["conditions"]["adaptive-replacement"]["mean_delta"] == 40.0
+    assert summary["conditions"]["online-elicitation"]["mean_delta"] == 40.0
 
     validated: list[tuple[str, str, str]] = []
 

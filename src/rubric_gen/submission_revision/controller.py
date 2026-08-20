@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import os
 import json
 import secrets
@@ -12,6 +13,7 @@ import stat
 import tempfile
 from dataclasses import replace
 from pathlib import Path
+from numbers import Real
 
 from tqdm.auto import trange
 
@@ -81,6 +83,9 @@ from rubric_gen.submission_revision.judgment_reuse import (
 from rubric_gen.submission_revision.evolution import (
     RubricBankProposer,
     rubric_generation_implementation_identity,
+)
+from rubric_gen.submission_revision.contrasts import (
+    build_elicitation_contrasts,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -397,7 +402,7 @@ class SubmissionRevisionController:
             self.bank_policy is not RubricBankPolicy.FIXED
             and self.dependencies.bank_proposer is None
         ):
-            raise ValueError("a replacement policy requires a bank proposer")
+            raise ValueError("an elicitation policy requires a rubric proposer")
         if (
             self.bank_policy is not RubricBankPolicy.FIXED
             and self.dependencies.bank_proposer is not None
@@ -1279,9 +1284,10 @@ class SubmissionRevisionController:
                 raise RuntimeError("a fixed policy can contain only bank round 0")
             return
 
+        maximum_generation = self.config.revision_rounds - 1
         _remove_owned_rubric_generation_residue(
             proposal_root,
-            max_generation_round=self.config.revision_rounds,
+            max_generation_round=maximum_generation,
         )
         proposal_rounds, rejection_rounds, ledger_rounds = _rubric_generation_entries(
             proposal_root
@@ -1293,30 +1299,30 @@ class SubmissionRevisionController:
         )
         if not bank_rounds or bank_rounds[0] != 0:
             raise RuntimeError("rubric bank generations must start at round 0")
-        replacement_rounds = bank_rounds[1:]
-        if replacement_rounds != list(range(1, len(replacement_rounds) + 1)):
-            raise RuntimeError("rubric replacement generations are not contiguous")
+        elicitation_rounds = bank_rounds[1:]
+        if elicitation_rounds != list(range(1, len(elicitation_rounds) + 1)):
+            raise RuntimeError("rubric elicitation generations are not contiguous")
         if proposal_rounds != list(range(1, len(proposal_rounds) + 1)):
             raise RuntimeError("rubric proposal generations are not contiguous")
-        if proposal_rounds[: len(replacement_rounds)] != replacement_rounds:
+        if proposal_rounds[: len(elicitation_rounds)] != elicitation_rounds:
             raise RuntimeError(
                 "a persisted rubric bank has no matching sealed proposal"
             )
         if len(proposal_rounds) not in {
-            len(replacement_rounds),
-            len(replacement_rounds) + 1,
+            len(elicitation_rounds),
+            len(elicitation_rounds) + 1,
         }:
             raise RuntimeError(
                 "sealed rubric proposals are more than one bank ahead"
             )
-        if proposal_rounds and proposal_rounds[-1] > self.config.revision_rounds:
-            raise RuntimeError("rubric replacement generation exceeds the study length")
+        if proposal_rounds and proposal_rounds[-1] > maximum_generation:
+            raise RuntimeError("rubric elicitation generation exceeds the study length")
         if rejection_rounds:
             rejection_round = rejection_rounds[0]
             if (
-                proposal_rounds != replacement_rounds
-                or rejection_round != len(replacement_rounds) + 1
-                or rejection_round > self.config.revision_rounds
+                proposal_rounds != elicitation_rounds
+                or rejection_round != len(elicitation_rounds) + 1
+                or rejection_round > maximum_generation
             ):
                 raise RuntimeError(
                     "sealed semantic rejection is not the next terminal generation"
@@ -1332,52 +1338,38 @@ class SubmissionRevisionController:
             or terminal_ledgers
             and terminal_ledgers[0] != len(proposal_rounds) + 1
             or ledger_rounds
-            and ledger_rounds[-1] > self.config.revision_rounds
+            and ledger_rounds[-1] > maximum_generation
         ):
             raise RuntimeError("rubric provider attempt ledger schedule is invalid")
 
         proposer = self.dependencies.bank_proposer
         if proposer is None:
-            raise RuntimeError("replacement replay has no bank proposer")
-        proposer._clear_validated_semantic_outputs()
+            raise RuntimeError("elicitation replay has no rubric proposer")
         instruction = (self.task_dir / "instruction.md").read_text(
             encoding="utf-8"
         )
-        adaptive = self.bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
         for generation_round in ledger_rounds:
             prior = load_rubric_bank(
                 self.experiment_dir,
                 generation_round - 1,
                 expected_policy=self.bank_policy,
             )
-            source_submission = (
-                self.experiment_dir
-                / "submissions"
-                / f"s{generation_round - 1:03d}"
-            )
-            replayed = proposer.replace_bank(
+            replayed = proposer.elicit_rubric(
                 instruction=instruction,
                 current_bank=prior.bank,
                 policy=self.bank_policy,
                 generation_round=generation_round,
                 output_dir=proposal_root,
-                current_submission=(
-                    self.benchmark.render_submission(
-                        source_submission / "workspace"
-                    )
-                    if adaptive
+                contrasts=self._elicitation_contrasts(generation_round),
+                source_boundary=(
+                    generation_round
+                    if self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
                     else None
                 ),
-                trajectory_path=(
-                    source_submission / "trajectory.stream.jsonl"
-                    if adaptive
-                    else None
-                ),
-                source_boundary=generation_round - 1 if adaptive else None,
             )
             if generation_round in rejection_rounds:
                 raise RuntimeError("sealed semantic rejection was not enforced")
-            if generation_round <= len(replacement_rounds):
+            if generation_round <= len(elicitation_rounds):
                 persisted = load_rubric_bank(
                     self.experiment_dir,
                     generation_round,
@@ -1519,7 +1511,9 @@ class SubmissionRevisionController:
         )
         member_artifacts: dict[str, JudgeArtifacts] = {}
         for item in bank.items:
-            rubric, judge = self._bank_member_runtime(item, turn_index)
+            rubric, judge = self._bank_member_runtime(
+                item, bank.generation_round
+            )
             seed_reusable = (
                 turn_index == 0
                 and item.rubric.content_sha256 == self.initial_rubric.sha256
@@ -1623,26 +1617,20 @@ class SubmissionRevisionController:
         next_bank: dict[str, object] | None = None
         if (
             self.bank_policy is not RubricBankPolicy.FIXED
-            and turn_index < self.config.revision_rounds
+            and 1 <= turn_index < self.config.revision_rounds
         ):
             assert self.dependencies.bank_proposer is not None
-            adaptive = (
-                self.bank_policy is RubricBankPolicy.ADAPTIVE_REPLACEMENT
-            )
-            next_generation = self.dependencies.bank_proposer.replace_bank(
+            next_generation = self.dependencies.bank_proposer.elicit_rubric(
                 instruction=(self.task_dir / "instruction.md").read_text(),
                 current_bank=bank,
                 policy=self.bank_policy,
-                generation_round=turn_index + 1,
-                current_submission=(
-                    self.benchmark.render_submission(submission_dir / "workspace")
-                    if adaptive
+                generation_round=turn_index,
+                contrasts=self._elicitation_contrasts(turn_index),
+                source_boundary=(
+                    turn_index
+                    if self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
                     else None
                 ),
-                trajectory_path=(
-                    submission_dir / "trajectory.stream.jsonl" if adaptive else None
-                ),
-                source_boundary=turn_index if adaptive else None,
                 output_dir=self.experiment_dir / "rubric-generations",
             )
             next_generation.bank.validate_lineage(bank)
@@ -1714,7 +1702,12 @@ class SubmissionRevisionController:
                 "bank member score validation",
             )
             score = validation.get("score")
-            if type(score) is not int or not 0 <= score <= 100:
+            if (
+                isinstance(score, bool)
+                or not isinstance(score, Real)
+                or not math.isfinite(float(score))
+                or not 0 <= float(score) <= 100
+            ):
                 raise RuntimeError("bank member has an invalid score")
             if (
                 validation.get("review_input_sha256")
@@ -1943,7 +1936,9 @@ class SubmissionRevisionController:
 
     def _active_bank_generation(self, boundary: int) -> RubricBankGeneration:
         generation_round = (
-            0 if self.bank_policy is RubricBankPolicy.FIXED else boundary
+            0
+            if self.bank_policy is RubricBankPolicy.FIXED
+            else max(0, boundary - 1)
         )
         generation = load_rubric_bank(
             self.experiment_dir,
@@ -1958,6 +1953,21 @@ class SubmissionRevisionController:
             )
             generation.bank.validate_lineage(prior.bank)
         return generation
+
+    def _elicitation_contrasts(self, generation_round: int):
+        """Return the exact three blinded pairs for one rubric update."""
+
+        return build_elicitation_contrasts(
+            online=self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION,
+            seed_set=self.config.seed_run_dir,
+            task_dir=self.task_dir,
+            experiment_dir=self.experiment_dir,
+            benchmark=self.benchmark,
+            provider=self.config.agent.provider,
+            requested_model=self.config.agent.model,
+            assignment_id=self.config.assignment_id,
+            generation_round=generation_round,
+        )
 
     @staticmethod
     def _frozen_bank_member(text: str, rubric_sha256: str) -> FrozenRubric:
@@ -2014,9 +2024,14 @@ class SubmissionRevisionController:
                 "seeded master-rubric score validation",
             )
             score = validation.get("score")
-            if type(score) is not int or not 0 <= score <= 100:
+            if (
+                isinstance(score, bool)
+                or not isinstance(score, Real)
+                or not math.isfinite(float(score))
+                or not 0 <= float(score) <= 100
+            ):
                 raise RuntimeError("seeded master-rubric score is invalid")
-            return score
+            return float(score)
         if (
             active_bank.rubric_count == 1
             and active_bank.items[0].rubric.content_sha256
@@ -2075,9 +2090,14 @@ class SubmissionRevisionController:
                 "shared fixed-original score validation",
             )
             score = validation.get("score")
-            if type(score) is not int or not 0 <= score <= 100:
+            if (
+                isinstance(score, bool)
+                or not isinstance(score, Real)
+                or not math.isfinite(float(score))
+                or not 0 <= float(score) <= 100
+            ):
                 raise RuntimeError("shared fixed-original judgment has an invalid score")
-            return score
+            return float(score)
         attempt_id = fixed_original_attempt_id(
             self.config.assignment_id,
             submission_id,
@@ -2094,9 +2114,14 @@ class SubmissionRevisionController:
             "fixed-original score validation",
         )
         score = validation.get("score")
-        if type(score) is not int or not 0 <= score <= 100:
+        if (
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
+        ):
             raise RuntimeError("fixed-original judgment has an invalid score")
-        return score
+        return float(score)
 
     def _verify_round_scoring_identity(
         self,
@@ -2153,7 +2178,9 @@ class SubmissionRevisionController:
             bank = self._active_bank_generation(index).bank
             member_artifacts: dict[str, JudgeArtifacts] = {}
             for item in bank.items:
-                rubric, judge = self._bank_member_runtime(item, index)
+                rubric, judge = self._bank_member_runtime(
+                    item, bank.generation_round
+                )
                 seeded = (
                     index == 0
                     and item.rubric.content_sha256 == self.initial_rubric.sha256

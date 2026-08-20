@@ -14,11 +14,6 @@ from typing import Any
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
-from rubric_gen.submission_revision.autorubric import (
-    AUTORUBRIC_RELEASE,
-    AutoRubricAdapterError,
-    parse_autorubric_rubric,
-)
 from rubric_gen.submission_revision.rubrics.schema import canonical_json, load_json_strict
 
 from .artifacts import (
@@ -26,16 +21,9 @@ from .artifacts import (
     OpenOutputDirectory,
     TargetDirectoryIdentities,
 )
-from .autorubric_judge import (
-    AUTORUBRIC_PROVIDER_PARALLELISM,
-    AutoRubricCostShape,
-    autorubric_cost_shape,
-    build_run_spec,
-    deterministic_grading_seed,
-    records_from_raw_report,
-)
 from .models import (
     DEFAULT_JUDGE_MODEL,
+    JUDGMENT_REPEATS,
     SCORE_INPUT_ATTESTATION_KEYS,
     SCORE_VALIDATION_KEYS,
     JudgeAttempt,
@@ -45,15 +33,15 @@ from .models import (
     ResolvedRubric,
     grading_engine_for_benchmark,
 )
-from .paperbench_judge import (
-    PAPERBENCH_ENGINE_IDENTITY,
-    PAPERBENCH_INTERNAL_REPEATS,
-    PAPERBENCH_REQUEST_TIMEOUT_SECONDS,
-    PaperBenchJudgeError,
-    PaperBenchRunSpec,
-    build_paperbench_run_spec,
+from .full_rubric_judge import (
+    FULL_RUBRIC_ENGINE_IDENTITY,
+    FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
+    FullRubricJudgeError,
+    FullRubricRunSpec,
+    build_full_rubric_run_spec,
+    deterministic_grading_seed,
     records_from_raw_reports,
-    validate_usage_record as validate_paperbench_usage_record,
+    validate_usage_record as validate_full_rubric_usage_record,
 )
 from .scoring import (
     JudgeScoreValidationError,
@@ -64,7 +52,7 @@ from .scoring import (
 
 
 JUDGE_SUBPROCESS_TIMEOUT_SECONDS = int(
-    PAPERBENCH_INTERNAL_REPEATS * PAPERBENCH_REQUEST_TIMEOUT_SECONDS + 60
+    JUDGMENT_REPEATS * FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS + 60
 )
 
 
@@ -91,15 +79,6 @@ class JudgeExecutor:
         self._scorer_module_sha256 = scorer_module_sha256 or self.scorer_module_sha256
 
     @property
-    def criterion_parallelism(self) -> int:
-        """Limit criterion calls as task-level concurrency increases."""
-
-        return max(
-            1,
-            AUTORUBRIC_PROVIDER_PARALLELISM // max(1, self.config.max_concurrency),
-        )
-
-    @property
     def grading_engine(self) -> GradingEngine:
         """Return the benchmark-fixed engine. No runtime fallback is allowed."""
 
@@ -119,11 +98,7 @@ class JudgeExecutor:
         self.artifacts.validate_output_directory(output)
         if isinstance(rubric, Path):
             rubric = self.resolve_local_rubric(rubric)
-        expected_name = (
-            "autorubric_judge.py"
-            if self.grading_engine is GradingEngine.AUTORUBRIC_CRITERION
-            else "paperbench_judge.py"
-        )
+        expected_name = "full_rubric_judge.py"
         expected_judge = Path(__file__).with_name(expected_name)
         if judge_path.is_symlink() or not judge_path.is_file():
             raise SystemExit(f"Judge path must be a regular file: {judge_path}")
@@ -184,11 +159,6 @@ class JudgeExecutor:
             answer_path.write_text(answer_text, encoding="utf-8")
             execution = score_input_attestation["engine_execution"]
             assert type(execution) is dict
-            seed_key = (
-                "option_shuffle_seed"
-                if self.grading_engine is GradingEngine.AUTORUBRIC_CRITERION
-                else "engine_seed"
-            )
             command = [
                 sys.executable,
                 str(judge_path),
@@ -203,15 +173,8 @@ class JudgeExecutor:
                 "--model",
                 requested_model,
                 "--seed",
-                str(execution[seed_key]),
+                str(execution["engine_seed"]),
             ]
-            if self.grading_engine is GradingEngine.AUTORUBRIC_CRITERION:
-                command.extend(
-                    (
-                        "--criterion-parallelism",
-                        str(self.criterion_parallelism),
-                    )
-                )
             if self.config.base_url is not None:
                 command.extend(("--api-base", self.config.base_url))
             try:
@@ -339,121 +302,61 @@ class JudgeExecutor:
         if type(execution) is not dict:
             raise JudgeScoreValidationError("engine execution attestation is invalid")
         try:
-            if engine is GradingEngine.AUTORUBRIC_CRITERION:
-                if type(evaluation) is not dict or set(evaluation) != {
-                    "total_score",
-                    "criteria",
-                    "reasoning",
-                    "autorubric",
-                }:
-                    raise JudgeScoreValidationError(
-                        "AutoRubric evaluation record is invalid"
-                    )
-                metadata = evaluation["autorubric"]
-                if type(metadata) is not dict or set(metadata) != {
-                    "code_identity",
-                    "execution",
-                    "agreement",
-                    "completion_cost",
-                    "raw_report",
-                }:
-                    raise JudgeScoreValidationError(
-                        "AutoRubric evaluation metadata is invalid"
-                    )
-                if execution.get("autorubric_release") != AUTORUBRIC_RELEASE:
-                    raise JudgeScoreValidationError("AutoRubric release identity changed")
-                parsed_rubric = parse_autorubric_rubric(rubric.text)
-                cost_shape = AutoRubricCostShape.from_json(execution.get("cost_shape"))
-                spec = build_run_spec(
-                    parsed_rubric,
-                    requested_model=score_input_attestation[
-                        "effective_judge_model"
-                    ],
-                    api_base=score_input_attestation["judge_api_base"],
-                    seed=execution["option_shuffle_seed"],
-                    criterion_parallelism=execution["criterion_parallelism"],
-                    cost_shape=cost_shape,
+            if type(evaluation) is not dict or set(evaluation) != {
+                "total_score",
+                "criteria",
+                "reasoning",
+                "full_rubric_structured",
+            }:
+                raise JudgeScoreValidationError(
+                    "full-rubric structured evaluation record is invalid"
                 )
-                if spec.as_json() != execution or metadata["execution"] != execution:
-                    raise JudgeScoreValidationError(
-                        "AutoRubric execution contract changed"
-                    )
-                converted, expected_records = records_from_raw_report(
-                    parsed_rubric,
-                    metadata["raw_report"],
-                    spec,
+            metadata = evaluation["full_rubric_structured"]
+            if type(metadata) is not dict or set(metadata) != {
+                "code_identity",
+                "execution",
+                "raw_reports",
+                "dispersion",
+            }:
+                raise JudgeScoreValidationError(
+                    "full-rubric structured metadata is invalid"
                 )
-                rubric_levels = parsed_rubric.level_map
-                normalization_maximum = parsed_rubric.normalization_maximum
-                converted_score = converted.score
-                converted_normalized_score = converted.normalized_score
-                converted_raw_score = converted.raw_score
-                converted_levels = converted.selected_levels
-                converted_criterion_scores = converted.criterion_scores
-                engine_metrics: dict[str, object] = {
-                    "agreement": converted.agreement,
-                    "completion_cost": converted.completion_cost,
-                }
-            else:
-                if type(evaluation) is not dict or set(evaluation) != {
-                    "total_score",
-                    "criteria",
-                    "reasoning",
-                    "paperbench_structured",
-                }:
-                    raise JudgeScoreValidationError(
-                        "PaperBench structured evaluation record is invalid"
-                    )
-                metadata = evaluation["paperbench_structured"]
-                if type(metadata) is not dict or set(metadata) != {
-                    "code_identity",
-                    "execution",
-                    "raw_reports",
-                    "dispersion",
-                }:
-                    raise JudgeScoreValidationError(
-                        "PaperBench structured metadata is invalid"
-                    )
-                if metadata["code_identity"] != PAPERBENCH_ENGINE_IDENTITY:
-                    raise JudgeScoreValidationError(
-                        "PaperBench structured engine identity changed"
-                    )
-                spec = PaperBenchRunSpec.from_json(execution)
-                if (
-                    metadata["execution"] != execution
-                    or spec.requested_model
-                    != score_input_attestation["effective_judge_model"]
-                    or spec.api_base != score_input_attestation["judge_api_base"]
-                    or spec.rubric_bytes != len(rubric.text.encode("utf-8"))
-                    or spec.criterion_count
-                    != len(parse_rubric_levels_strict(rubric.text))
-                ):
-                    raise JudgeScoreValidationError(
-                        "PaperBench structured execution contract changed"
-                    )
-                call_usage = usage["calls"] if type(usage) is dict else None
-                expected_records = records_from_raw_reports(
-                    rubric_text=rubric.text,
-                    raw_reports=metadata["raw_reports"],
-                    spec=spec,
-                    call_usage=call_usage,
+            if metadata["code_identity"] != FULL_RUBRIC_ENGINE_IDENTITY:
+                raise JudgeScoreValidationError(
+                    "full-rubric structured engine identity changed"
                 )
-                validate_paperbench_usage_record(usage, spec)
-                rubric_levels = parse_rubric_levels_strict(rubric.text)
-                normalization_maximum = parse_score_normalization_maximum(rubric.text)
-                converted_score = expected_records.score
-                converted_normalized_score = expected_records.normalized_score
-                converted_raw_score = expected_records.raw_score
-                converted_levels = expected_records.selected_levels
-                converted_criterion_scores = expected_records.criterion_scores
-                engine_metrics = {"dispersion": expected_records.dispersion}
-        except (
-            AutoRubricAdapterError,
-            PaperBenchJudgeError,
-            TypeError,
-            ValueError,
-            KeyError,
-        ) as exc:
+            spec = FullRubricRunSpec.from_json(execution)
+            if (
+                metadata["execution"] != execution
+                or spec.requested_model
+                != score_input_attestation["effective_judge_model"]
+                or spec.api_base != score_input_attestation["judge_api_base"]
+                or spec.rubric_bytes != len(rubric.text.encode("utf-8"))
+                or spec.criterion_count
+                != len(parse_rubric_levels_strict(rubric.text))
+            ):
+                raise JudgeScoreValidationError(
+                    "full-rubric structured execution contract changed"
+                )
+            call_usage = usage["calls"] if type(usage) is dict else None
+            expected_records = records_from_raw_reports(
+                rubric_text=rubric.text,
+                raw_reports=metadata["raw_reports"],
+                spec=spec,
+                call_usage=call_usage,
+            )
+            validate_full_rubric_usage_record(usage, spec)
+            rubric_levels = parse_rubric_levels_strict(rubric.text)
+            normalization_maximum = parse_score_normalization_maximum(rubric.text)
+            converted_score = expected_records.score
+            converted_normalized_score = expected_records.normalized_score
+            converted_raw_score = expected_records.raw_score
+            converted_level_votes = expected_records.criterion_level_votes
+            converted_criterion_scores = expected_records.criterion_scores
+            engine_metrics: dict[str, object] = {
+                "dispersion": expected_records.dispersion
+            }
+        except (FullRubricJudgeError, TypeError, ValueError, KeyError) as exc:
             raise JudgeScoreValidationError(str(exc)) from exc
         if canonical_json(reward) != canonical_json(expected_records.reward):
             raise JudgeScoreValidationError(
@@ -477,7 +380,7 @@ class JudgeExecutor:
             validated.score != converted_score
             or validated.normalized_score != converted_normalized_score
             or validated.raw_score != converted_raw_score
-            or validated.selected_levels != converted_levels
+            or validated.criterion_level_votes != converted_level_votes
             or validated.criterion_scores != converted_criterion_scores
             or not validated.score_matches_reported
         ):
@@ -491,7 +394,10 @@ class JudgeExecutor:
             "raw_score": validated.raw_score,
             "reported_score": validated.reported_score,
             "score_matches_reported": validated.score_matches_reported,
-            "selected_levels": validated.selected_levels,
+            "criterion_level_votes": {
+                criterion_id: list(votes)
+                for criterion_id, votes in validated.criterion_level_votes.items()
+            },
             "criterion_scores": validated.criterion_scores,
             "rubric_source": rubric.source,
             "rubric_set_id": rubric.rubric_set_id,
@@ -551,11 +457,7 @@ class JudgeExecutor:
         review_sha256 = sha256_text(review_text)
         answer_sha256 = sha256_text(answer_text)
         engine = self.grading_engine
-        engine_release = (
-            AUTORUBRIC_RELEASE
-            if engine is GradingEngine.AUTORUBRIC_CRITERION
-            else PAPERBENCH_ENGINE_IDENTITY["engine"]
-        )
+        engine_release = FULL_RUBRIC_ENGINE_IDENTITY["engine"]
         seed = deterministic_grading_seed(
             rubric_sha256=rubric.rendered_rubric_sha256,
             review_sha256=review_sha256,
@@ -569,31 +471,15 @@ class JudgeExecutor:
             repeat_index=attempt.repeat_index,
         )
         try:
-            if engine is GradingEngine.AUTORUBRIC_CRITERION:
-                parsed_rubric = parse_autorubric_rubric(rubric.text)
-                cost_shape = autorubric_cost_shape(
-                    parsed_rubric,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                )
-                engine_execution = build_run_spec(
-                    parsed_rubric,
-                    requested_model=effective_judge_model,
-                    api_base=self.config.base_url,
-                    seed=seed,
-                    criterion_parallelism=self.criterion_parallelism,
-                    cost_shape=cost_shape,
-                ).as_json()
-            else:
-                engine_execution = build_paperbench_run_spec(
-                    rubric_text=rubric.text,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                    requested_model=effective_judge_model,
-                    api_base=self.config.base_url,
-                    seed=seed,
-                ).as_json()
-        except (AutoRubricAdapterError, PaperBenchJudgeError, ValueError) as exc:
+            engine_execution = build_full_rubric_run_spec(
+                rubric_text=rubric.text,
+                review_text=review_text,
+                answer_text=answer_text,
+                requested_model=effective_judge_model,
+                api_base=self.config.base_url,
+                seed=seed,
+            ).as_json()
+        except (FullRubricJudgeError, ValueError) as exc:
             raise JudgeScoreValidationError(str(exc)) from exc
         return {
             "review_input_sha256": review_sha256,
@@ -624,11 +510,10 @@ class JudgeExecutor:
             (f"judging/{name}", module_dir / name)
             for name in (
                 "artifacts.py",
-                "autorubric_judge.py",
                 "discovery.py",
                 "executor.py",
+                "full_rubric_judge.py",
                 "models.py",
-                "paperbench_judge.py",
                 "preflight.py",
                 "runner.py",
             )
