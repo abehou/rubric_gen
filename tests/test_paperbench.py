@@ -39,10 +39,12 @@ from rubric_gen.submission_revision.judging.scoring import (
 from rubric_gen.benchmarks.paperbench_code_dev.submission import render_submission_tree
 from rubric_gen.benchmarks.paperbench_code_dev.dataset import (
     PAPERBENCH_DEV_PAPERS,
+    PAPERBENCH_RESULTS_PAPERS,
     PAPERBENCH_REVISION,
-    prepare_paperbench_code_dev,
+    paperbench_papers,
+    prepare_paperbench_code_dataset,
     render_code_dev_rubric,
-    validate_paperbench_code_dev_dataset,
+    validate_paperbench_code_dataset,
 )
 
 
@@ -76,8 +78,11 @@ def _rubric() -> dict[str, object]:
     }
 
 
-def _source_tree(root: Path) -> Path:
-    for paper_id in PAPERBENCH_DEV_PAPERS:
+def _source_tree(
+    root: Path,
+    paper_ids: tuple[str, ...] = PAPERBENCH_DEV_PAPERS,
+) -> Path:
+    for paper_id in paper_ids:
         paper = root / "data" / "papers" / paper_id
         (paper / "assets" / "nested").mkdir(parents=True)
         (paper / "config.yaml").write_text(
@@ -232,13 +237,14 @@ def test_code_dev_rubric_rejects_duplicates_with_identical_ancestry() -> None:
 
 def test_prepared_dataset_is_reproducible_and_pinned(tmp_path: Path) -> None:
     destination = tmp_path / "prepared"
-    prepare_paperbench_code_dev(
+    prepare_paperbench_code_dataset(
         _source_tree(tmp_path / "source"),
         destination,
+        source_split="dev",
         revision=PAPERBENCH_REVISION,
     )
 
-    validate_paperbench_code_dev_dataset(destination)
+    validate_paperbench_code_dataset(destination, source_split="dev")
     assert (
         destination
         / PAPERBENCH_DEV_PAPERS[0]
@@ -254,7 +260,31 @@ def test_prepared_dataset_is_reproducible_and_pinned(tmp_path: Path) -> None:
     )
     rubric.write_text(rubric.read_text() + "tampered\n")
     with pytest.raises(ValueError, match="not reproducible"):
-        validate_paperbench_code_dev_dataset(destination)
+        validate_paperbench_code_dataset(destination, source_split="dev")
+
+
+def test_results_paper_set_is_the_exact_official_twenty_paper_set() -> None:
+    assert paperbench_papers("dev") == PAPERBENCH_DEV_PAPERS
+    assert paperbench_papers("all") == PAPERBENCH_RESULTS_PAPERS
+    assert len(PAPERBENCH_DEV_PAPERS) == 3
+    assert len(PAPERBENCH_RESULTS_PAPERS) == 20
+    assert not set(PAPERBENCH_DEV_PAPERS) & set(PAPERBENCH_RESULTS_PAPERS)
+
+
+def test_prepared_results_dataset_binds_the_official_all_split(
+    tmp_path: Path,
+) -> None:
+    destination = tmp_path / "prepared-all"
+    prepare_paperbench_code_dataset(
+        _source_tree(tmp_path / "source-all", PAPERBENCH_RESULTS_PAPERS),
+        destination,
+        source_split="all",
+        revision=PAPERBENCH_REVISION,
+    )
+
+    validate_paperbench_code_dataset(destination, source_split="all")
+    with pytest.raises(ValueError, match="pinned source split"):
+        validate_paperbench_code_dataset(destination, source_split="dev")
 
 
 def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
@@ -520,7 +550,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
 
     controller = object.__new__(SubmissionRevisionController)
     controller.config = SimpleNamespace(
-        feedback_policy=FeedbackPolicy.SIMULATED_USER,
+        feedback_policy=FeedbackPolicy.USER_SIMULATOR,
         experiment_id="paperbench-simulated-user-test",
         assignment_id="paper--rep-001--base-fixed",
         prompt_profile=PromptProfile.BASE,

@@ -56,7 +56,7 @@ separate proposal order from ancestry and can study reversion to a strong prior.
 Run the repository setup from the `rubric_gen` root:
 
 ```bash
-./scripts/setup_harvey
+HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${UID:?}" ./scripts/setup_harvey
 ```
 
 The command clones Harvey LAB at the revision in the experiment file and runs
@@ -67,7 +67,7 @@ unavailable, install both commands in the active Conda environment:
 
 ```bash
 conda install -c conda-forge pandoc podman
-./scripts/setup_harvey
+HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${UID:?}" ./scripts/setup_harvey
 ```
 
 On Linux, Podman's writable runtime and storage stay on the compute node.
@@ -79,26 +79,24 @@ The cache is separate for each Harvey revision and user ID. The wrapper enables
 Podman's single-user-ID mode only when the account has no subordinate ID range.
 
 Keep the Harvey checkout clean. Then edit the task split and models in the
-example configuration. Create a private node-local root before each local run.
-The designer requires this explicit `SLURM_TMPDIR` contract even outside Slurm.
+example configuration. Set `HARVEY_RUNTIME_ROOT` to one private node-local path.
+Harvey creates the directory if it does not exist.
 
 ```bash
-harvey_local_tmp="/tmp/rubric-gen-harvey-${UID:?}"
-mkdir -p "$harvey_local_tmp"
-chmod 700 "$harvey_local_tmp"
-env SLURM_TMPDIR="$harvey_local_tmp" uv run rubric-gen run \
-  --experiment experiments/harvey-harness-evolution.yaml \
-  --max-concurrency 12
+env HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${UID:?}" uv run rubric-gen run \
+  --experiment experiments/harvey-harness-evolution-dev3.yaml \
+  --max-concurrency 3
 ```
 
 The command runs harness evolution, the quality audit, and reward-hacking
 detection in sequence. It then writes `run-seal.json` and makes the full output
 tree read-only. The seal binds every other artifact path and byte to one digest.
 
-`--max-concurrency` bounds concurrent Harvey task runs and audit judgments.
-The full split has four development tasks, so it runs at most four task agents
-at once. Its judge uses three criterion workers per task. Thus, four concurrent
-task judges issue at most 12 criterion calls.
+`--max-concurrency` bounds concurrent Harvey task runs and audit judgments. The
+development tier has three tasks. Its judge uses three criterion workers per
+task. Thus, three concurrent task judges issue at most nine criterion calls.
+Use four task workers for the 20-task results tier. This gives at most 12
+concurrent criterion calls.
 
 On the NLP Slurm cluster, run the expanded three-round study first:
 
@@ -107,28 +105,30 @@ mkdir -p runs/logs
 env -u SLURM_CPU_BIND_LIST -u SLURM_CPU_BIND_TYPE \
   -u SLURM_CPU_BIND_VERBOSE SLURM_CPU_BIND=none \
   nlprun -g 0 -c 12 -r 64G -t 14-0 \
-  -n rubric-gen-harvey-expanded-r3 \
-  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-expanded-r3.out \
+  -n rubric-gen-harvey-dev3-r3 \
+  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-dev3-r3.out \
   -w /juice2/scr2/abehou/rubric_gen \
-  'harvey_local_tmp="/tmp/rubric-gen-harvey-${SLURM_JOB_ID:?}" && harvey_bulk_tmp="/juice2/u/nlp/data/abe_models/rubric_gen/runtime-tmp/harvey-${SLURM_JOB_ID}" && mkdir -p "$harvey_local_tmp" "$harvey_bulk_tmp" && chmod 700 "$harvey_local_tmp" "$harvey_bulk_tmp" && env SLURM_TMPDIR="$harvey_local_tmp" TMPDIR="$harvey_bulk_tmp" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution-expanded-preflight.yaml --max-concurrency 12'
+  'env HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${SLURM_JOB_ID:?}" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution-dev3.yaml --max-concurrency 3'
 ```
 
-Each job creates a dedicated bulk `TMPDIR` and a separate `SLURM_TMPDIR` under
-node-local `/tmp`. Harvey treats `SLURM_TMPDIR` as an explicit node-local storage
-contract because it cannot inspect the storage topology. The directory must be
-absolute, owned by the current user, mode `0700`, and free of symbolic-link
-components. Podman's writable store uses this directory because rootless Podman
-cannot use NFS.
+`HARVEY_RUNTIME_ROOT` is the single runtime-storage contract. Harvey cannot
+inspect storage topology, so the operator must select a node-local path. The
+directory must be absolute, owned by the current user, mode `0700`, and free of
+symbolic-link components. Harvey rejects an existing directory that violates
+this contract. Evaluator worktrees, task and judge temporary files, and Podman's
+writable store use this root. Rootless Podman cannot use NFS.
 
 The explicit `CODEX_HOME` supplies the designer credential source. Each design
-attempt creates one mode-`0700` state directory directly under `SLURM_TMPDIR`.
+attempt creates one mode-`0700` state directory directly under the runtime root.
 Harvey removes that directory in a `finally` block after a normal return or a
-Python exception. A forced process stop can leave node-local residue, so dispose
-of the job root after such a stop. Harvey does not put designer credentials
-under the bulk `TMPDIR` or the saved run tree.
+Python exception. A forced process stop can leave node-local residue. Remove the
+job root after such a stop. Harvey does not put designer credentials in the
+saved run tree.
 
-Start the full ten-round run only after the expanded study completes one round
-without task, image-cache, or judge errors:
+Start the 20-task results run only after the development study completes without
+task, image-cache, or judge errors. The results run has 83,479 nominal Sonnet
+criterion judgments and no whole-study cost ceiling. Estimate and approve its
+cost before submission.
 
 The `env` prefix removes CPU-binding masks inherited from the submitting Slurm
 allocation. A stale mask can fall outside the CPUs assigned to the new job.
@@ -137,13 +137,13 @@ allocation. A stale mask can fall outside the CPUs assigned to the new job.
 env -u SLURM_CPU_BIND_LIST -u SLURM_CPU_BIND_TYPE \
   -u SLURM_CPU_BIND_VERBOSE SLURM_CPU_BIND=none \
   nlprun -g 0 -c 12 -r 64G -t 14-0 \
-  -n rubric-gen-harvey-r10 \
-  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-r10-%j.out \
+  -n rubric-gen-harvey-results20-r10 \
+  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-results20-r10-%j.out \
   -w /juice2/scr2/abehou/rubric_gen \
-  'exec flock -n /juice2/scr2/abehou/rubric_gen/runs/.harvey-r10.lock bash -lc "if test -e /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-prospective-r10 || test -L /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-prospective-r10; then echo \"Harvey r10 output already exists\" >&2; exit 73; fi; harvey_local_tmp=\"/tmp/rubric-gen-harvey-\${SLURM_JOB_ID:?}\" && harvey_bulk_tmp=\"/juice2/u/nlp/data/abe_models/rubric_gen/runtime-tmp/harvey-\${SLURM_JOB_ID}\" && mkdir -p \"\$harvey_local_tmp\" \"\$harvey_bulk_tmp\" && chmod 700 \"\$harvey_local_tmp\" \"\$harvey_bulk_tmp\" && exec env SLURM_TMPDIR=\"\$harvey_local_tmp\" TMPDIR=\"\$harvey_bulk_tmp\" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution.yaml --max-concurrency 12"'
+  'exec flock -n /juice2/scr2/abehou/rubric_gen/runs/.harvey-results20-r10.lock bash -lc "if test -e /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-results20-r10 || test -L /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-results20-r10; then echo \"Harvey results output already exists\" >&2; exit 73; fi; exec env HARVEY_RUNTIME_ROOT=\"/tmp/rubric-gen-harvey-\${SLURM_JOB_ID:?}\" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution-results20.yaml --max-concurrency 4"'
 ```
 
-The job holds `runs/.harvey-r10.lock` for its full lifetime. A duplicate job
+The job holds `runs/.harvey-results20-r10.lock` for its full lifetime. A duplicate job
 exits before it can write run artifacts. The `%j` log suffix keeps Slurm logs
 separate if two submissions reach the queue.
 
@@ -151,6 +151,11 @@ Use `--resume` on an incomplete `run` only when its existing experiment identity
 and checkpoints match the configuration exactly. On a completed run, `--resume`
 validates the whole-run seal and exits without provider calls. A sealed run is
 immutable, so `judge` and `detect` cannot rerun after the full workflow completes.
+
+Canonical evaluation checkpoints each completed task. It also checkpoints the
+agent result before judging. A resumed run skips completed tasks and judges a
+saved agent result when one exists. The evaluator retries one Anthropic grammar
+compilation timeout. It preserves each failed judge log beside the final log.
 
 The post-run quality stage first re-scores every candidate's stored development output with the
 sealed original rubric. It then runs every candidate on all held-out tasks. Its

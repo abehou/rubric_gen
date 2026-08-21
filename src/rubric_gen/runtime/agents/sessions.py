@@ -156,7 +156,11 @@ class CliSolverSessionDriver:
                 attempts_dir / f"attempt-{attempt_index:03d}.prompt.txt"
             )
             attempt_prompt_path.write_text(attempt_prompt)
-            current_paths = replace(paths, stream_path=attempt_stream)
+            current_paths = replace(
+                paths,
+                prompt_path=attempt_prompt_path,
+                stream_path=attempt_stream,
+            )
             is_resume = resume or attempt_index > 1
             command = self._build_command(
                 current_paths,
@@ -309,12 +313,12 @@ class CliSolverSessionDriver:
 
         if provider in {"codex", "vllm"}:
             command = self.adapter.build_command(paths, self.config, prompt)
+            if command[-1] != "-":
+                raise RuntimeError("Codex adapter command must read its prompt from stdin")
             if resume:
-                if command[-1] != prompt:
-                    raise RuntimeError("Codex adapter command has an invalid prompt")
                 exec_index = command.index("exec")
                 command.insert(exec_index + 1, "resume")
-                command[-1:] = [session_id, prompt]
+                command[-1:] = [session_id, "-"]
             return command
 
         # Start from the ordinary adapter command so provider-native model,
@@ -348,13 +352,20 @@ class CliSolverSessionDriver:
         workspace = paths.workspace_dir.resolve()
         env["PWD"] = str(workspace)
         env.pop("OLDPWD", None)
-        with paths.stream_path.open("w") as log:
+        with (
+            paths.prompt_path.open() as prompt_input,
+            paths.stream_path.open("w") as log,
+        ):
             process = subprocess.Popen(
                 command,
                 cwd=workspace,
                 env=env,
                 text=True,
-                stdin=subprocess.DEVNULL,
+                stdin=(
+                    prompt_input
+                    if self.adapter.prompt_via_stdin
+                    else subprocess.DEVNULL
+                ),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,

@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment compares three single-rubric regimes: fixed, offline elicitation from sealed pairs, and online elicitation from live history. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate fail-closed call to review them. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether holistic pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
+Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment crosses four feedback policies with three single-rubric regimes: static, offline elicitation from sealed pairs, and online elicitation from live history. Every cell uses the base solver prompt. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate call to assign advisory semantic labels. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether holistic pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
 
 \end{abstract}
 
@@ -40,7 +40,7 @@ Autoresearch applies an iterative loop to open-ended work such as code and resea
 
 Rubrics make an open-ended task easier to score, but one rubric can omit part of the task. Its wording can also create a narrow optimization surface. A system can exploit a weak judge, a particular expression of a requirement, or an omission shared by all exposed rubrics. These failures require different measurements because no single judge comparison identifies all of them.
 
-We define a dynamic intervention that adds bounded criteria between rounds. It never deletes or rewrites an original criterion. The primary design compares a fixed rubric, offline elicitation from sealed pre-treatment pairs, and online elicitation from live historical pairs. Both elicitation arms use the same models, prompts, update schedule, score budget, and review gate. The next rubric is sealed before the next artifact is produced. Conditions share the selected rubric, sealed holdouts, rubric-free instruments, pairwise judge, and direct detector within each matched replicate. This distinction is necessary: an exposed score is not evidence of improvement when the scoring rule changes with the artifact.
+We define a dynamic intervention that adds bounded criteria between rounds. It never deletes or rewrites an original criterion. The primary design crosses full, semi, score-only, and user-simulator feedback with a static rubric, offline elicitation from sealed pre-treatment pairs, and online elicitation from live historical pairs. Every cell uses the base solver prompt. Both elicitation arms use the same models, prompts, update schedule, score budget, and review gate. The next rubric is sealed before the next artifact is produced. Conditions share the selected rubric, sealed holdouts, rubric-free instruments, pairwise judge, and direct detector within each matched replicate. This distinction is necessary: an exposed score is not evidence of improvement when the scoring rule changes with the artifact.
 
 \section{Formalizing Reward-Hacking in Autoresearch}
 
@@ -309,26 +309,38 @@ fitted direction when the labels have one class, the centered features lack
 rank two, the likelihood separates, or the fitted slope is zero. For
 uncertainty, we resample task clusters at least 2,000 times and use
 leave-one-task-out checks. We require at least ten tasks, including five event
-tasks and five non-event tasks. The current three-task PaperBench design cannot
-pass this gate, regardless of its number of conditions or replicates. Any fitted
-direction describes detector association within one benchmark. It is not
-causal, normative, or a substitute for the primary weights.
+tasks and five non-event tasks. The three-task development tier cannot pass
+this gate. The 20-task results tier can pass the task-count gate, but only if
+its observed labels also pass the event-diversity gate. Any fitted direction
+describes detector association within one benchmark. It is not causal,
+normative, or a substitute for the primary weights.
 
 \section{Experiments}
 
 \paragraph{Experimental conditions.}
-We compare three conditions under one shared solver prompt. The \textbf{fixed}
-condition keeps the original rubric. \textbf{Offline elicitation} adds criteria
-from three sealed pre-treatment pairs. \textbf{Online elicitation} adds criteria
-from three bounded live-history pairs. Every condition uses one rubric.
+We cross four feedback policies with three rubric conditions. The feedback
+policies are full feedback, semi feedback, score-only feedback, and a bounded
+user-simulator comment. The \textbf{static} condition keeps the original rubric.
+\textbf{Offline elicitation} adds criteria from three sealed pre-treatment pairs.
+\textbf{Online elicitation} adds criteria from three bounded live-history pairs.
+Every condition uses one rubric and the base solver prompt.
+
+Each benchmark has a three-task development tier and a 20-task results tier.
+Each tier is one 12-cell factorial experiment. We use three replicates and six
+revision turns in every cell. Thus, development has 108 assignments and results
+has 720 assignments per benchmark. PaperBench uses its official three-paper
+development split and official 20-paper all split. The BioMNIBench task sets are
+fixed project sets and are not official upstream splits.
 
 The elicitation arms match update times, proposer models, prompts, call limits,
 reviewer, criterion cap, fixed score split, and generation-token limits. They use
 more provider work than fixed. Each update uses one difference call, one
 criterion call, and one review call. Each request has a 1~MiB UTF-8 limit, a
 32,768-output-token ceiling, and a 1,800-second timeout. The proposer stages
-allow five validation retries. The reviewer is fail-closed and does not retry a
-semantic rejection. A write-ahead ledger binds every provider call and resume.
+allow five validation retries. The semantic auditor does not retry. Its verdicts
+are advisory, and every deterministically valid criterion enters the next
+rubric. An invalid or incomplete audit stops the assignment. A write-ahead
+ledger binds every provider call and resume.
 
 The difference finder sees the task, current rubric, and three blinded pairs.
 The criterion writer sees the task, current rubric, and found differences. The

@@ -321,9 +321,21 @@ def _config(
 
 def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
     agent = config.agent
+    simulator = config.feedback_simulator or SimulatedUserConfig(
+        model="test-simulator",
+        max_output_tokens=1_024,
+        max_aspects=2,
+        max_retries=1,
+    )
     protocol: dict[str, object] = {
         "revision_rounds": config.revision_rounds,
-        "feedback_policy": config.feedback_policy.value,
+        "prompt": config.prompt_profile.value,
+        "feedback_simulator": {
+            "model": simulator.model,
+            "max_output_tokens": simulator.max_output_tokens,
+            "max_aspects": simulator.max_aspects,
+            "max_retries": simulator.max_retries,
+        },
         "rubric_proposer_model": config.rubric_proposer_model,
         "rubric_proposer_max_retries": config.rubric_proposer_max_retries,
         "rubric_semantic_judge_model": config.rubric_semantic_judge_model,
@@ -351,13 +363,11 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
             "timeout_seconds": agent.timeout_seconds,
         },
     }
-    if config.feedback_simulator is not None:
-        protocol["feedback_simulator"] = {
-            "model": config.feedback_simulator.model,
-            "max_output_tokens": config.feedback_simulator.max_output_tokens,
-            "max_aspects": config.feedback_simulator.max_aspects,
-            "max_retries": config.feedback_simulator.max_retries,
-        }
+    rubric_slugs = {
+        RubricBankPolicy.FIXED: "static",
+        RubricBankPolicy.OFFLINE_ELICITATION: "offline-rubric",
+        RubricBankPolicy.ONLINE_ELICITATION: "online-rubric",
+    }
     return Experiment(
         task.parent / "experiment.yaml",
         {
@@ -370,13 +380,18 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
                 {
                     "condition_id": (
                         config.condition_id
-                        if policy is config.rubric_policy
-                        else f"test-{policy.value.replace('_', '-')}"
+                        if feedback_policy is config.feedback_policy
+                        and rubric_policy is config.rubric_policy
+                        else (
+                            f"{feedback_policy.value.replace('_', '-')}-"
+                            f"{rubric_slugs[rubric_policy]}"
+                        )
                     ),
-                    "prompt": config.prompt_profile.value,
-                    "rubric_policy": policy.value,
+                    "feedback_policy": feedback_policy.value,
+                    "rubric_policy": rubric_policy.value,
                 }
-                for policy in RubricBankPolicy
+                for feedback_policy in FeedbackPolicy
+                for rubric_policy in RubricBankPolicy
             ],
             "protocol": protocol,
             "rubric_paraphrases": {
@@ -681,7 +696,6 @@ def _criterion_elicitation_proposer(
         if criterion_schema["maxItems"] == 0:
             criterion_ids = []
         value = {
-            "verdict": "accepted",
             "criterion_reviews": [
                 {
                     "criterion_id": criterion_id,
@@ -1630,7 +1644,7 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
     )
     config = replace(
         _config(tmp_path, task, rounds=1),
-        feedback_policy=FeedbackPolicy.SIMULATED_USER,
+        feedback_policy=FeedbackPolicy.USER_SIMULATOR,
         feedback_simulator=simulator_config,
     )
     requests: list[SimulatedUserRequest] = []
@@ -2045,13 +2059,8 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
         proposal_root
         / ".bank-0001.provider-attempts.json.abcdefgh.tmp"
     )
-    rejection_temp = (
-        proposal_root
-        / ".bank-0001.semantic-rejection.json.abcdefgh.tmp"
-    )
     stage = proposal_root / ".bank-0001.abcdefgh"
     ledger_temp.write_text("partial ledger\n", encoding="utf-8")
-    rejection_temp.write_text("partial rejection\n", encoding="utf-8")
     stage.mkdir()
     (stage / "partial.json").write_text("{}\n", encoding="utf-8")
 
@@ -2113,7 +2122,6 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
 
     assert elicited_bank.is_dir()
     assert not ledger_temp.exists()
-    assert not rejection_temp.exists()
     assert not stage.exists()
     assert provider_calls == 0
     assert resumed_session.prompts == []
@@ -2142,6 +2150,17 @@ def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
         )
 
     assert os.path.lexists(residue)
+
+
+def test_resume_rejects_obsolete_semantic_rejection_artifact(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "rubric-generations"
+    root.mkdir()
+    (root / "bank-0001.semantic-rejection.json").write_text("{}\n")
+
+    with pytest.raises(RuntimeError, match="invalid entry"):
+        controller_module._rubric_generation_entries(root)
 
 
 def test_resume_rejects_elicited_bank_without_sealed_proposal(

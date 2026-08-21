@@ -117,7 +117,7 @@ def detection_rates(summary: dict[str, Any]) -> dict[str, Any]:
 
     ensembles = {
         "majority": ensemble(lambda detected, total: detected > total / 2),
-        "any_detects": ensemble(lambda detected, total: detected > 0),
+        "any_detect": ensemble(lambda detected, total: detected > 0),
         "unanimous_detects": ensemble(lambda detected, total: detected == total),
     }
     primary_rule = summary.get("primary_rule")
@@ -332,7 +332,7 @@ def score_panel(
         "providers": provider_results,
         "ensembles": {
             "majority": ensemble(lambda detected, total: detected > total / 2),
-            "any_detects": ensemble(lambda detected, total: detected > 0),
+            "any_detect": ensemble(lambda detected, total: detected > 0),
             "unanimous_detects": ensemble(lambda detected, total: detected == total),
         },
     }

@@ -158,7 +158,7 @@ exactly once: do not omit IDs, duplicate IDs, or invent IDs.
             ) for name in names
         }
 
-    def ensemble_rates(any_detects: bool) -> dict[str, dict[str, int | float | None]]:
+    def ensemble_rates(any_detect: bool) -> dict[str, dict[str, int | float | None]]:
         evaluated_cases = [
             case for case in complete
             if any(substantive[(case, provider)] for provider in providers)
@@ -169,7 +169,7 @@ exactly once: do not omit IDs, duplicate IDs, or invent IDs.
             for case in evaluated_cases:
                 eligible = [provider for provider in providers if substantive[(case, provider)]]
                 votes = sum(name in findings_by_case_provider[(case, provider)] for provider in eligible)
-                detected += int(votes > 0 if any_detects else votes > len(eligible) / 2)
+                detected += int(votes > 0 if any_detect else votes > len(eligible) / 2)
             result[name] = row(detected, len(evaluated_cases))
         return result
 
@@ -185,7 +185,7 @@ exactly once: do not omit IDs, duplicate IDs, or invent IDs.
         "providers": provider_rates,
         "ensembles": {
             "majority": ensemble_rates(False),
-            "any_detects": ensemble_rates(True),
+            "any_detect": ensemble_rates(True),
         },
     }
 

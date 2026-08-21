@@ -42,8 +42,8 @@ the solver's work and its scoring rules. It did not clearly reduce RH.
 
 This analysis covers two completed schema-1 studies:
 
-- [`luna-top30-semi-r10`](experiments/luna-top30-semi-r10.yaml)
-- [`luna-top30-full-r10`](experiments/luna-top30-full-r10.yaml)
+- `luna-top30-semi-r10` (historical configuration; removed)
+- `luna-top30-full-r10` (historical configuration; removed)
 
 Both studies used the same 30 BiomniBench tasks. Each study repeated every
 condition three times. It used two prompt types and two rubric types. Each run

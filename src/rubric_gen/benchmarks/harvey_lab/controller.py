@@ -30,6 +30,7 @@ from rubric_gen.benchmarks.harvey_lab.designer import (
 )
 from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator, aggregate_scores
 from rubric_gen.benchmarks.harvey_lab.rubrics import RubricProposal, TaskRubricProposer
+from rubric_gen.benchmarks.harvey_lab.runtime import ensure_runtime_root
 
 
 class Designer(Protocol):
@@ -142,14 +143,22 @@ class HarveyEvolutionController:
         self,
         experiment: HarveyExperiment,
         *,
+        runtime_root: Path,
         evaluator: Evaluator | None = None,
         designer: Designer | None = None,
         proposer: Proposer | None = None,
     ) -> None:
         self.experiment = experiment
         self.root = experiment.output_dir
-        self.evaluator = evaluator or HarveyEvaluator(experiment)
-        self.designer = designer or CodexHarnessDesigner(experiment.designer)
+        self.runtime_root = runtime_root
+        self.evaluator = evaluator or HarveyEvaluator(
+            experiment,
+            runtime_root=runtime_root,
+        )
+        self.designer = designer or CodexHarnessDesigner(
+            experiment.designer,
+            runtime_root=runtime_root,
+        )
         if proposer is not None:
             self.proposer = proposer
         elif experiment.rubric.mode == "prospective":
@@ -164,6 +173,7 @@ class HarveyEvolutionController:
             self.proposer = None
 
     def run(self, *, resume: bool = False) -> int:
+        ensure_runtime_root(self.runtime_root)
         self._initialize(resume=resume)
         with TerminalProgress(
             total=self.experiment.designer.rounds + 1,

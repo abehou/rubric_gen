@@ -40,7 +40,7 @@ def _run_paths(tmp_path: Path) -> RunPaths:
     )
 
 
-def test_one_shot_agent_subprocess_does_not_inherit_stdin(
+def test_one_shot_codex_agent_reads_explicit_prompt_stdin(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -54,7 +54,11 @@ def test_one_shot_agent_subprocess_does_not_inherit_stdin(
         prompt=BIOMNIBENCH_DA_PROMPT,
         output_errors=BIOMNIBENCH_DA.output_errors,
     )
-    monkeypatch.setattr(runner.adapter, "prepare_run", lambda *args: None)
+    monkeypatch.setattr(
+        runner.adapter,
+        "prepare_run",
+        lambda paths, _config, prompt: paths.prompt_path.write_text(prompt),
+    )
     monkeypatch.setattr(
         runner,
         "build_command",
@@ -70,15 +74,16 @@ def test_one_shot_agent_subprocess_does_not_inherit_stdin(
     monkeypatch.setattr(runners_module.subprocess, "Popen", recording_popen)
 
     assert runner.stream(paths) == 0
-    assert popen_kwargs[0]["stdin"] == subprocess.DEVNULL
+    assert popen_kwargs[0]["stdin"].name == str(paths.prompt_path)
     assert paths.stream_path.read_text() == "done\n"
 
 
-def test_persistent_agent_subprocess_does_not_inherit_stdin(
+def test_persistent_codex_agent_reads_explicit_prompt_stdin(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     paths = _run_paths(tmp_path)
+    paths.prompt_path.write_text("prompt from file")
     driver = CliSolverSessionDriver(
         AgentRunConfig(
             provider="codex",
@@ -100,8 +105,34 @@ def test_persistent_agent_subprocess_does_not_inherit_stdin(
         [sys.executable, "-c", "print('done')"],
         paths,
     ) == 0
-    assert popen_kwargs[0]["stdin"] == subprocess.DEVNULL
+    assert popen_kwargs[0]["stdin"].name == str(paths.prompt_path)
     assert paths.stream_path.read_text() == "done\n"
+
+
+def test_persistent_codex_agent_streams_prompt_larger_than_argument_limit(
+    tmp_path: Path,
+) -> None:
+    paths = _run_paths(tmp_path)
+    prompt = "x" * 145_155
+    paths.prompt_path.write_text(prompt)
+    driver = CliSolverSessionDriver(
+        AgentRunConfig(
+            provider="codex",
+            model="test-model",
+            quiet=True,
+        ),
+        contract=BIOMNIBENCH_DA,
+    )
+
+    assert driver._stream(
+        [
+            sys.executable,
+            "-c",
+            "import sys; print(len(sys.stdin.buffer.read()))",
+        ],
+        paths,
+    ) == 0
+    assert paths.stream_path.read_text() == "145155\n"
 
 
 class ScriptedSessionDriver(CliSolverSessionDriver):
@@ -197,7 +228,15 @@ def test_codex_persistent_session_has_no_network_or_web_override(
     assert "--strict-config" in command
     assert "--ignore-rules" in command
     assert "--search" not in command
+    assert command[-1] == "-"
+    assert "prompt" not in command
     assert not hasattr(driver.config, "allow_network")
+
+    resumed = driver._build_command(
+        paths, "follow-up", session_id="session-id", resume=True
+    )
+    assert resumed[-2:] == ["session-id", "-"]
+    assert "follow-up" not in resumed
 
 
 def test_agent_environment_uses_workspace_local_temporary_directory(
@@ -312,7 +351,8 @@ def test_codex_adapter_requests_schema_constrained_final_output(tmp_path: Path) 
     assert command[command.index("--output-last-message") + 1] == str(
         paths.output_last_message_path.resolve()
     )
-    assert command[-1] == "propose"
+    assert command[-1] == "-"
+    assert "propose" not in command
 
 
 def test_vllm_adapter_uses_codex_responses_without_hosted_credentials(
@@ -350,6 +390,8 @@ def test_vllm_adapter_uses_codex_responses_without_hosted_credentials(
     assert 'wire_api = "responses"' in controlled
     assert "stream_idle_timeout_ms = 123000" in controlled
     command = adapter.build_command(paths, config, "solve")
+    assert command[-1] == "-"
+    assert "solve" not in command
     assert command[command.index("--model") + 1] == "Qwen/Qwen3.6-27B"
     environment = adapter.build_environment(paths, config)
     assert "CODEX_API_KEY" not in environment

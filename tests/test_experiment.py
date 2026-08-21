@@ -44,6 +44,29 @@ def _task(root: Path, task_id: str) -> None:
     )
 
 
+def _factorial_conditions() -> list[dict[str, str]]:
+    feedback_policies = {
+        "full": "full",
+        "semi": "semi",
+        "score-only": "score_only",
+        "user-simulator": "user_simulator",
+    }
+    rubric_policies = {
+        "static": "fixed",
+        "offline-rubric": "offline_elicitation",
+        "online-rubric": "online_elicitation",
+    }
+    return [
+        {
+            "condition_id": f"{feedback_slug}-{rubric_slug}",
+            "feedback_policy": feedback_policy,
+            "rubric_policy": rubric_policy,
+        }
+        for feedback_slug, feedback_policy in feedback_policies.items()
+        for rubric_slug, rubric_policy in rubric_policies.items()
+    ]
+
+
 def _payload(root: Path) -> dict[str, object]:
     return {
         "kind": "rubric-gen-randomized-experiment",
@@ -51,25 +74,16 @@ def _payload(root: Path) -> dict[str, object]:
         "tasks_dir": "tasks",
         "tasks": ["da-1-1", "da-2-1"],
         "randomization": {"seed": 42, "replicates": 3},
-        "conditions": [
-            {
-                "condition_id": "base-fixed",
-                "prompt": "diligent",
-                "rubric_policy": "fixed",
-            },
-            {
-                "condition_id": "diligent-offline-elicitation",
-                "prompt": "diligent",
-                "rubric_policy": "offline_elicitation",
-            },
-            {
-                "condition_id": "diligent-online-elicitation",
-                "prompt": "diligent",
-                "rubric_policy": "online_elicitation",
-            },
-        ],
+        "conditions": _factorial_conditions(),
         "protocol": {
-            "revision_rounds": 10, "feedback_policy": "semi",
+            "revision_rounds": 10,
+            "prompt": "base",
+            "feedback_simulator": {
+                "model": "test-simulator",
+                "max_output_tokens": 1_024,
+                "max_aspects": 2,
+                "max_retries": 1,
+            },
             "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "low", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
             "judge_model": "test-judge", "judge_max_retries": 1,
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
@@ -87,7 +101,7 @@ def _payload(root: Path) -> dict[str, object]:
         },
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
-            "primary_rule": "majority",
+            "primary_rule": "any_detect",
             "loss_weights": {
                 "verifier_exploitation": 1,
                 "dynamic_rubric_gap": 1,
@@ -126,10 +140,10 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     first = load_experiment(path)
     second = load_experiment(path)
     assert first.assignments == second.assignments
-    assert len(first.assignments) == 2 * 3 * 3
+    assert len(first.assignments) == 2 * 3 * 12
     assert all("design_sha256" not in item for item in first.assignments)
     assert {item["execution_order"] for item in first.assignments} == set(
-        range(1, 19)
+        range(1, 73)
     )
 
 
@@ -202,7 +216,7 @@ def test_experiment_id_is_derived_from_semantic_yaml(tmp_path: Path) -> None:
     second = load_experiment(second_path)
 
     assert re.fullmatch(
-        r"biomnibench-da-semi-r10-[0-9a-f]{12}", first.experiment_id
+        r"biomnibench-da-factorial-r10-[0-9a-f]{12}", first.experiment_id
     )
     assert second.experiment_id == first.experiment_id
     assert Path(str(first.dag["revise"]["output_dir"])).name == first.experiment_id
@@ -284,6 +298,7 @@ def test_experiment_requires_positive_integer_stage_caps(
 @pytest.mark.parametrize(
     ("field", "invalid", "message"),
     [
+        ("prompt", 7, "protocol prompt"),
         ("judge_model", None, "judge_model"),
         ("judge_model", 7, "judge_model"),
         ("judge_max_retries", "1", "judge_max_retries"),
@@ -382,14 +397,7 @@ def test_experiment_allows_a_shared_semantic_judge_model(
     elif overlap == "submission_judge":
         conflicting_model = protocol["judge_model"]
     else:
-        conflicting_model = "test-simulator"
-        protocol["feedback_policy"] = "simulated_user"
-        protocol["feedback_simulator"] = {
-            "model": conflicting_model,
-            "max_output_tokens": 1_024,
-            "max_aspects": 2,
-            "max_retries": 1,
-        }
+        conflicting_model = protocol["feedback_simulator"]["model"]
     protocol["rubric_semantic_judge_model"] = conflicting_model
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
@@ -501,7 +509,7 @@ def test_experiment_rejects_solver_value_coercion(
     ("field", "invalid", "message"),
     [
         ("condition_id", 123, "condition_id"),
-        ("prompt", 123, "condition prompt"),
+        ("feedback_policy", 123, "condition feedback_policy"),
         ("rubric_policy", 123, "condition rubric_policy"),
     ],
 )
@@ -522,13 +530,13 @@ def test_experiment_rejects_condition_value_coercion(
         load_experiment(path)
 
 
-def test_experiment_requires_exactly_one_arm_per_rubric_policy(
+def test_experiment_requires_the_exact_feedback_by_rubric_factorial(
     tmp_path: Path,
 ) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    payload["conditions"][1]["rubric_policy"] = "fixed"
+    payload["conditions"].pop()
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
@@ -536,7 +544,19 @@ def test_experiment_requires_exactly_one_arm_per_rubric_policy(
         load_experiment(path)
 
 
-def test_experiment_requires_one_shared_prompt_across_policy_arms(
+def test_experiment_rejects_a_mislabeled_factorial_cell(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"][0]["condition_id"] = "wrong-label"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="condition_id must be 'full-static'"):
+        load_experiment(path)
+
+
+def test_experiment_rejects_obsolete_condition_level_prompts(
     tmp_path: Path,
 ) -> None:
     _task(tmp_path, "da-1-1")
@@ -546,7 +566,21 @@ def test_experiment_requires_one_shared_prompt_across_policy_arms(
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
-    with pytest.raises(ValueError, match="one shared prompt"):
+    with pytest.raises(ValueError, match="each condition requires"):
+        load_experiment(path)
+
+
+def test_experiment_rejects_obsolete_protocol_level_feedback_policy(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["protocol"]["feedback_policy"] = "full"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="protocol keys must be exactly"):
         load_experiment(path)
 
 
@@ -573,6 +607,18 @@ def test_experiment_rejects_outcome_audit_value_coercion(
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
     with pytest.raises(ValueError, match=message):
+        load_experiment(path)
+
+
+def test_experiment_rejects_the_removed_any_detects_rule(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["outcome_audit"]["primary_rule"] = "any_detects"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="primary RH rule is invalid"):
         load_experiment(path)
 
 
@@ -625,9 +671,39 @@ def test_experiment_rejects_manual_id_and_nonautomatic_output_paths(
         load_experiment(fixed_path)
 
 
-def test_paperbench_experiment_accepts_a_pinned_dev_subset(
+def test_paperbench_experiment_accepts_the_exact_pinned_dev_split(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_ids = (
+        "semantic-self-consistency",
+        "self-expansion",
+        "self-composing-policies",
+    )
+    for task_id in task_ids:
+        _task(tmp_path, task_id)
+        task = tmp_path / "tasks" / task_id
+        (task / "environment" / "data" / "paper.md").write_text("# Paper\n")
+        (task / "tests" / "paperbench.json").write_text("{}\n")
+    payload = _payload(tmp_path)
+    payload["benchmark"] = "paperbench-code-dev"
+    payload["tasks"] = list(task_ids)
+    payload["protocol"]["review"] = "workspace"  # type: ignore[index]
+    path = tmp_path / "paperbench.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    monkeypatch.setattr(
+        paperbench_contract_module,
+        "validate_paperbench_code_dataset",
+        lambda _path, *, source_split: None,
+    )
+
+    experiment = load_experiment(path)
+
+    assert experiment.task_ids == task_ids
+
+
+def test_paperbench_experiment_rejects_a_partial_official_split(
+    tmp_path: Path,
 ) -> None:
     task_id = "semantic-self-consistency"
     _task(tmp_path, task_id)
@@ -640,15 +716,9 @@ def test_paperbench_experiment_accepts_a_pinned_dev_subset(
     payload["protocol"]["review"] = "workspace"  # type: ignore[index]
     path = tmp_path / "paperbench.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
-    monkeypatch.setattr(
-        paperbench_contract_module,
-        "validate_paperbench_code_dev_dataset",
-        lambda _path: None,
-    )
 
-    experiment = load_experiment(path)
-
-    assert experiment.task_ids == (task_id,)
+    with pytest.raises(ValueError, match="official 3-paper dev split"):
+        load_experiment(path)
 
 
 def test_seed_stage_uses_one_shared_directory_without_an_owner_id(
@@ -699,7 +769,6 @@ def test_simulated_user_feedback_requires_and_loads_model_config(
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    payload["protocol"]["feedback_policy"] = "simulated_user"  # type: ignore[index]
     payload["protocol"]["feedback_simulator"] = {  # type: ignore[index]
         "model": "gpt-simulated-user",
         "max_output_tokens": 1_024,
@@ -710,12 +779,27 @@ def test_simulated_user_feedback_requires_and_loads_model_config(
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
     experiment = load_experiment(path)
-    config = experiment.feedback_simulator_config()
+    config = experiment.feedback_simulator_config("user_simulator")
 
     assert config is not None
     assert config.model == "gpt-simulated-user"
     assert config.max_output_tokens == 1_024
     assert config.max_aspects == 2
+    assert experiment.feedback_simulator_config("full") is None
+
+
+def test_experiment_rejects_the_removed_simulated_user_policy_name(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"][0]["feedback_policy"] = "simulated_user"  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    with pytest.raises(ValueError, match="simulated_user"):
+        load_experiment(path)
 
 
 def test_yaml_experiment_rejects_broken_dag(tmp_path: Path) -> None:
@@ -1278,7 +1362,7 @@ def test_study_resume_reclaims_interrupted_running_records(
     assert recovered["status"] == "completed"
     assert recovered["attempt_count"] == 5
     assert recovered["pid"] == os.getpid()
-    assert len(revisions) == 9
+    assert len(revisions) == 36
 
 
 def test_study_reports_recorded_assignment_failures(
@@ -1314,10 +1398,9 @@ def test_study_reports_recorded_assignment_failures(
     ))
 
     assert runner.run() == 1
-    assert (
-        "assignment failed: da-1-1--rep-001--base-fixed: "
-        "RuntimeError: scoring identity mismatch"
-    ) in capsys.readouterr().err
+    error = capsys.readouterr().err
+    assert "assignment failed: da-1-1--rep-" in error
+    assert "RuntimeError: scoring identity mismatch" in error
 
 
 def test_study_lease_rejects_a_concurrent_invocation(tmp_path: Path) -> None:

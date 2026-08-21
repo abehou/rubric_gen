@@ -111,11 +111,11 @@ class SubmissionRevisionConfig:
                 raise ValueError(f"{name} must be a non-negative integer")
         feedback_policy = FeedbackPolicy(self.feedback_policy)
         if (
-            feedback_policy is FeedbackPolicy.SIMULATED_USER
+            feedback_policy is FeedbackPolicy.USER_SIMULATOR
         ) != (self.feedback_simulator is not None):
             raise ValueError(
                 "feedback_simulator must be configured exactly when feedback_policy "
-                "is simulated_user"
+                "is user_simulator"
             )
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)

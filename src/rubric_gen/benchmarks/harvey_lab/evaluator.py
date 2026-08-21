@@ -28,6 +28,13 @@ from rubric_gen.benchmarks.harvey_lab.podman import (
     configured_podman_environment,
     restore_cached_image,
 )
+from rubric_gen.benchmarks.harvey_lab.runtime import (
+    ensure_runtime_directory,
+    ensure_runtime_root,
+)
+
+
+_TRANSIENT_JUDGE_ERRORS = ("Grammar compilation timed out.",)
 
 
 @dataclass(frozen=True)
@@ -66,12 +73,14 @@ class HarveyEvaluator:
         self,
         experiment: HarveyExperiment,
         *,
+        runtime_root: Path,
         uv_executable: str = "uv",
         max_concurrency: int = 1,
     ) -> None:
         if type(max_concurrency) is not int or max_concurrency < 1:
             raise ValueError("Harvey max_concurrency must be a positive integer")
         self.experiment = experiment
+        self.runtime_root = runtime_root
         self.uv_executable = uv_executable
         self.max_concurrency = max_concurrency
         self._podman_lock = threading.Lock()
@@ -85,24 +94,50 @@ class HarveyEvaluator:
         destination: Path,
     ) -> CandidateEvaluation:
         validate_regular_tree(harness, "candidate harness")
-        if destination.exists():
+        if os.path.lexists(destination):
             raise FileExistsError(f"candidate evaluation exists: {destination}")
-        stage = self._new_stage(destination)
+        stage = self._open_stage(destination)
         scores: dict[str, dict[str, object]] = {}
-        with tempfile.TemporaryDirectory(prefix="rubric-gen-harvey-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="rubric-gen-harvey-",
+            dir=ensure_runtime_root(self.runtime_root),
+        ) as temporary:
             runtime = Path(temporary)
             self._materialize_runtime(runtime, harness, task_files)
 
             def evaluate_task(task_id: str) -> tuple[str, dict[str, object]]:
                 task_destination = stage / "tasks" / task_id
-                task_destination.mkdir(parents=True)
+                task_destination.mkdir(parents=True, exist_ok=True)
+                agent_result = task_destination / "agent-result"
+                completed = self._completed_result_score(
+                    task_destination / "result",
+                    task_id,
+                )
+                if completed is not None:
+                    if os.path.lexists(agent_result):
+                        self._remove_owned_tree(agent_result)
+                    return task_id, completed
                 run_id = candidate_id + "--" + task_id.replace("/", "--")
-                self._run_task(runtime, task_id, run_id, task_destination / "agent.log")
+                runtime_result = runtime / "results" / run_id
+                if os.path.lexists(agent_result):
+                    self._validate_agent_result(agent_result, task_id)
+                    copy_regular_tree(agent_result, runtime_result)
+                    self._make_tree_writable(runtime_result)
+                else:
+                    self._run_task(
+                        runtime,
+                        task_id,
+                        run_id,
+                        task_destination / "agent.log",
+                    )
+                    self._validate_agent_result(runtime_result, task_id)
+                    self._publish_tree(runtime_result, agent_result)
                 self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
-                result = runtime / "results" / run_id
                 copied_result = task_destination / "result"
-                copy_regular_tree(result, copied_result)
+                self._publish_tree(runtime_result, copied_result)
                 score = read_json_object(copied_result / "scores.json", "Harvey score")
+                aggregate_scores(candidate_id, {task_id: score})
+                self._remove_owned_tree(agent_result)
                 return task_id, score
 
             with TerminalProgress(
@@ -159,11 +194,14 @@ class HarveyEvaluator:
     ) -> CandidateEvaluation:
         if set(source_results) != set(task_files):
             raise ValueError("crossed scoring needs one stored result per active task")
-        if destination.exists():
+        if os.path.lexists(destination):
             raise FileExistsError(f"crossed evaluation exists: {destination}")
-        stage = self._new_stage(destination)
+        stage = self._open_stage(destination)
         scores: dict[str, dict[str, object]] = {}
-        with tempfile.TemporaryDirectory(prefix="rubric-gen-harvey-rescore-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="rubric-gen-harvey-rescore-",
+            dir=ensure_runtime_root(self.runtime_root),
+        ) as temporary:
             runtime = Path(temporary)
             self._materialize_runtime(runtime, None, task_files)
 
@@ -171,19 +209,27 @@ class HarveyEvaluator:
                 item: tuple[str, Path],
             ) -> tuple[str, dict[str, object]]:
                 task_id, source = item
+                task_destination = stage / "tasks" / task_id
+                task_destination.mkdir(parents=True, exist_ok=True)
+                score_path = task_destination / "scores.json"
+                if os.path.lexists(score_path):
+                    score = read_json_object(score_path, "crossed Harvey score")
+                    aggregate_scores(candidate_id, {task_id: score})
+                    return task_id, score
                 run_id = candidate_id + "--" + task_id.replace("/", "--")
                 runtime_result = runtime / "results" / run_id
                 runtime_result.parent.mkdir(parents=True, exist_ok=True)
                 copy_regular_tree(source, runtime_result)
                 self._make_tree_writable(runtime_result)
-                task_destination = stage / "tasks" / task_id
-                task_destination.mkdir(parents=True)
                 self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
                 score = read_json_object(runtime_result / "scores.json", "crossed Harvey score")
-                (task_destination / "scores.json").write_text(
+                aggregate_scores(candidate_id, {task_id: score})
+                pending = task_destination / ".scores.json.pending"
+                pending.write_text(
                     json.dumps(score, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
                     encoding="utf-8",
                 )
+                os.replace(pending, score_path)
                 return task_id, score
 
             with TerminalProgress(
@@ -223,16 +269,60 @@ class HarveyEvaluator:
         os.replace(stage, destination)
         return evaluation
 
-    @staticmethod
-    def _new_stage(destination: Path) -> Path:
+    def _open_stage(self, destination: Path) -> Path:
         destination.parent.mkdir(parents=True, exist_ok=True)
         index = 1
+        latest: Path | None = None
         while True:
             stage = destination.parent / f".{destination.name}.attempt-{index:03d}"
-            if not stage.exists():
-                stage.mkdir()
-                return stage
+            if not os.path.lexists(stage):
+                break
+            validate_regular_tree(stage, "partial Harvey evaluation")
+            latest = stage
             index += 1
+        if latest is not None:
+            self._make_tree_writable(latest)
+            return latest
+        stage.mkdir()
+        return stage
+
+    @staticmethod
+    def _completed_result_score(
+        result: Path,
+        task_id: str,
+    ) -> dict[str, object] | None:
+        if not os.path.lexists(result):
+            return None
+        validate_regular_tree(result, f"completed Harvey result for {task_id}")
+        read_json_object(result / "metrics.json", "Harvey metrics")
+        transcript = result / "transcript.jsonl"
+        if transcript.is_symlink() or not transcript.is_file():
+            raise ValueError(f"Harvey result lacks a regular transcript: {result}")
+        score = read_json_object(result / "scores.json", "Harvey score")
+        aggregate_scores("checkpoint", {task_id: score})
+        return score
+
+    @staticmethod
+    def _validate_agent_result(result: Path, task_id: str) -> None:
+        validate_regular_tree(result, f"Harvey agent result for {task_id}")
+        read_json_object(result / "metrics.json", "Harvey metrics")
+        transcript = result / "transcript.jsonl"
+        if transcript.is_symlink() or not transcript.is_file():
+            raise ValueError(f"Harvey agent result lacks a regular transcript: {result}")
+
+    @classmethod
+    def _publish_tree(cls, source: Path, destination: Path) -> None:
+        pending = destination.with_name(f".{destination.name}.pending")
+        if os.path.lexists(pending):
+            cls._remove_owned_tree(pending)
+        copy_regular_tree(source, pending)
+        os.replace(pending, destination)
+
+    @classmethod
+    def _remove_owned_tree(cls, path: Path) -> None:
+        validate_regular_tree(path, "owned Harvey checkpoint")
+        cls._make_tree_writable(path)
+        shutil.rmtree(path)
 
     @staticmethod
     def _make_tree_writable(root: Path) -> None:
@@ -304,6 +394,7 @@ class HarveyEvaluator:
         ]
         if config.reasoning_effort is not None:
             command.extend(["--reasoning-effort", config.reasoning_effort])
+        self._archive_log(log)
         self._execute(command, runtime, log, config.credential_env, "task agent")
 
     def _score_task(self, runtime: Path, task_id: str, run_id: str, log: Path) -> None:
@@ -325,7 +416,34 @@ class HarveyEvaluator:
             "--parallel",
             str(config.parallel),
         ]
-        self._execute(command, runtime, log, config.credential_env, "Harvey judge")
+        for attempt in range(2):
+            self._archive_log(log)
+            try:
+                self._execute(command, runtime, log, config.credential_env, "Harvey judge")
+                return
+            except RuntimeError:
+                if attempt == 1 or not self._is_transient_judge_failure(log):
+                    raise
+
+    @staticmethod
+    def _is_transient_judge_failure(log: Path) -> bool:
+        try:
+            output = log.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return False
+        return any(message in output for message in _TRANSIENT_JUDGE_ERRORS)
+
+    @staticmethod
+    def _archive_log(log: Path) -> None:
+        if not log.exists():
+            return
+        index = 1
+        while True:
+            archived = log.with_name(f"{log.stem}.failed-{index:03d}{log.suffix}")
+            if not archived.exists():
+                os.replace(log, archived)
+                return
+            index += 1
 
     def _execute(
         self,
@@ -341,9 +459,12 @@ class HarveyEvaluator:
         allowed = {
             "PATH", "LANG", "LANGUAGE", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR",
             "NODE_EXTRA_CA_CERTS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
-            "UV_CACHE_DIR", "TMPDIR", "SLURM_TMPDIR",
+            "UV_CACHE_DIR",
         }
         environment = {name: value for name, value in os.environ.items() if name in allowed}
+        environment["TMPDIR"] = str(
+            ensure_runtime_directory(self.runtime_root, "tmp")
+        )
         environment.update({name: os.environ[name] for name in credential_names})
         if label == "task agent":
             self._execute_task_agent(command, runtime, log, environment)
@@ -364,6 +485,7 @@ class HarveyEvaluator:
                 configured = configured_podman_environment(
                     environment,
                     cache_root=cache_root,
+                    runtime_root=self.runtime_root,
                 )
                 if restore_cached_image(
                     configured,

@@ -226,8 +226,8 @@ def _audit(value: object) -> RewardHackingAudit:
         or cost <= 0
     ):
         raise ValueError("audit.max_cost_usd must be positive")
-    rule = _text(data.get("primary_rule", "majority"), "audit.primary_rule")
-    if rule not in {"majority", "any_detects", "unanimous_detects"}:
+    rule = _text(data.get("primary_rule", "any_detect"), "audit.primary_rule")
+    if rule not in {"majority", "any_detect", "unanimous_detects"}:
         raise ValueError("audit.primary_rule is invalid")
     return RewardHackingAudit(
         models=_string_tuple(data.get("models"), "audit.models"),

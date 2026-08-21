@@ -190,6 +190,28 @@ def test_program_reserves_exact_reward_mass_and_preserves_original_text() -> Non
     assert len(criterion_map) == 2
 
 
+def test_program_preserves_a_zero_maximum_penalty_criterion() -> None:
+    original = CompleteRubric.from_content(
+        _rubric().content
+        + "\nCriterion 3: Source reliability\n"
+        "Description: Ground claims in identifiable sources.\n"
+        "Levels: A=0 B=-5 C=-10\n"
+        "[A]: All claims are traceable.\n"
+        "[B]: Some claims lack clear support.\n"
+        "[C]: Claims rely on fabricated or missing sources.\n"
+    )
+
+    rendered, criterion_map = render_augmented_rubric(
+        original,
+        (_criterion(),),
+    )
+    parsed = parse_autorubric_rubric(rendered.content)
+
+    assert [item.levels[0].points for item in parsed.criteria] == [48, 32, 0, 20]
+    assert [level.points for level in parsed.criteria[2].levels] == [0, -5, -10]
+    assert len(criterion_map) == 3
+
+
 def test_paper_rubric_uses_the_same_bounded_augmentation() -> None:
     original = _rubric(paper=True)
     criterion = _criterion(paper=True)

@@ -1,0 +1,73 @@
+kind: rubric-gen-harvey-harness-evolution-experiment
+experiment_id: harvey-harness-results20-r10
+output_dir: ../runs/harvey-harness-results20-r10
+cache_dir: /juice2/u/nlp/data/abe_models/rubric_gen/cache/harvey-lab
+
+benchmark:
+  checkout: ../../harvey-labs
+  revision: 7be41d57fd5a6e97b5f246a029e810f83d09cd96
+  development_tasks:
+    - antitrust-competition/analyze-iss-antitrust-transaction-structure
+    - arbitration-international-dispute-resolution/analyze-arbitration-agreement-markup-analysis
+    - banking-finance/analyze-counterparty-markup-of-senior-secured-credit-facility-term-sheet
+    - bankruptcy-restructuring/analyze-counterparty-markup-of-plan-of-reorganization
+    - capital-markets/analyze-counterparty-markup-of-underwriting-agreement
+    - corporate-governance/analyze-compliance-program-gaps
+    - corporate-ma/analyze-change-of-control-provisions-across-targets-material-contracts
+    - data-privacy-cybersecurity/analyze-counterparty-markup-of-cross
+    - emerging-companies-venture-capital/analyze-counterparty-markup-of-bridge-loan-agreement
+    - employment-labor/analyze-counterparty-markup-of-executive-employment-agreement
+    - energy-natural-resources/analyze-counterparty-markup-of-concession-agreement
+    - environmental-esg/analyze-counterparty-markup-of-administrative-settlement-agreement
+    - funds-asset-management/analyze-counterparty-markup-of-investment-advisory-agreement
+    - healthcare-life-sciences/analyze-compliance-program-gaps
+    - immigration/compare-draft-eb
+    - insurance/analyze-counterparty-markup-of-reinsurance-treaty
+    - intellectual-property/analyze-counterparty-markup-of-contract-amendment
+    - international-trade-sanctions/analyze-counterparty-markup-of-mitigation-agreement
+    - litigation-dispute-resolution/analyze-counterparty-motion-to-dismiss
+    - real-estate/analyze-counterparty-markup-of-commercial-lease-agreement
+  held_out_tasks:
+    - arbitration-international-dispute-resolution/analyze-arbitration-award-for-new-york-convention-enforcement-defenses
+    - arbitration-international-dispute-resolution/compare-arbitrator-candidates-against-selection-criteria
+
+task_agent:
+  model: gpt-5.6-luna
+  max_turns: 200
+  temperature: 0.0
+  shell_timeout: 60
+  reasoning_effort: high
+  sandbox_image: lab-sandbox:latest
+  credential_env:
+    - OPENAI_API_KEY
+
+judge:
+  model: claude-sonnet-4-6
+  parallel: 3
+  credential_env:
+    - ANTHROPIC_API_KEY
+
+designer:
+  model: gpt-5.6-sol
+  rounds: 10
+  reasoning_effort: high
+  service_tier: priority
+  timeout_seconds: 7200
+  retries: 1
+
+rubric:
+  mode: prospective
+  proposer_model: gpt-5.6-sol
+  proposer_base_url: null
+  max_changes_per_task: 8
+  max_output_tokens: 16384
+
+audit:
+  models:
+    - gpt-5.6-sol
+    - claude-opus-5
+    - gemini-3.6-flash
+  max_concurrency: 12
+  max_retries: 1
+  max_cost_usd: 50.0
+  primary_rule: any_detect

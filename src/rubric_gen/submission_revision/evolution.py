@@ -286,22 +286,6 @@ class _ProductionResult:
     semantic: _StageResult
 
 
-class _SemanticRejected(ValueError):
-    def __init__(
-        self,
-        reason: str,
-        *,
-        difference: _StageResult,
-        criteria: _StageResult,
-        semantic: _StageResult,
-    ) -> None:
-        super().__init__(reason)
-        self.reason = reason
-        self.difference = difference
-        self.criteria = criteria
-        self.semantic = semantic
-
-
 class RubricBankProposer:
     """Elicit general missing criteria from three blinded artifact pairs."""
 
@@ -417,43 +401,16 @@ class RubricBankProposer:
         ledger_path = output_dir / (
             f"bank-{generation_round:04d}{_LEDGER_SUFFIX}"
         )
-        rejection_path = output_dir / (
-            f"bank-{generation_round:04d}.semantic-rejection.json"
+        result = self._produce(
+            instruction=instruction,
+            current_bank=current_bank,
+            policy=policy,
+            generation_round=generation_round,
+            source_boundary=source_boundary,
+            contrasts=contrasts,
+            context=context,
+            ledger_path=ledger_path,
         )
-        if os.path.lexists(generation_root) and os.path.lexists(rejection_path):
-            raise RuntimeError("rubric generation has two terminal artifacts")
-
-        try:
-            result = self._produce(
-                instruction=instruction,
-                current_bank=current_bank,
-                policy=policy,
-                generation_round=generation_round,
-                source_boundary=source_boundary,
-                contrasts=contrasts,
-                context=context,
-                ledger_path=ledger_path,
-            )
-        except _SemanticRejected as exc:
-            record = self._rejection_record(
-                context=context,
-                ledger_path=ledger_path,
-                rejection=exc,
-            )
-            if os.path.lexists(generation_root):
-                raise RuntimeError(
-                    "completed rubric generation now fails semantic review"
-                ) from exc
-            if os.path.lexists(rejection_path):
-                if self._read_exact_json(rejection_path) != record:
-                    raise RuntimeError("sealed semantic rejection changed") from exc
-            else:
-                write_json_atomic(rejection_path, record)
-            make_read_only(rejection_path)
-            make_read_only(ledger_path)
-            raise RuntimeError(
-                "criterion elicitation has a sealed semantic rejection"
-            ) from exc
 
         generation = RubricBankGeneration(
             bank=result.bank,
@@ -475,8 +432,6 @@ class RubricBankProposer:
             "semantic-review.json": result.semantic.raw_text,
             "generation.json": _canonical_json(metadata) + "\n",
         }
-        if os.path.lexists(rejection_path):
-            raise RuntimeError("accepted rubric generation has a rejection artifact")
         if os.path.lexists(generation_root):
             self._validate_generation_directory(generation_root, expected_files)
             make_read_only(ledger_path)
@@ -579,41 +534,6 @@ class RubricBankProposer:
             cursor=cursor,
         )
         assert isinstance(criteria.value, tuple)
-        all_criteria = (
-            current_bank.items[0].elicited_criteria + criteria.value
-        )
-        next_rubric, criterion_map = render_augmented_rubric(
-            current_bank.specification_anchor,
-            all_criteria,
-        )
-        prior_item = current_bank.items[0]
-        lineage = (
-            RubricLineage.RETAINED
-            if next_rubric == prior_item.rubric
-            else RubricLineage.REFINED
-        )
-        bank = RubricBank(
-            generation_round=generation_round,
-            source_boundary=(
-                source_boundary
-                if policy is RubricBankPolicy.ONLINE_ELICITATION
-                else None
-            ),
-            specification_anchor=current_bank.specification_anchor,
-            specification_anchor_lineage=RubricLineage.RETAINED,
-            prior_specification_anchor_sha256=(
-                current_bank.specification_anchor.content_sha256
-            ),
-            items=(RubricBankItem(
-                rubric=next_rubric,
-                weight=1.0,
-                lineage=lineage,
-                prior_content_sha256=prior_item.rubric.content_sha256,
-                criterion_map=criterion_map,
-                elicited_criteria=all_criteria,
-            ),),
-        )
-        bank.validate_lineage(current_bank)
         semantic_evidence = _semantic_evidence(
             instruction=instruction,
             current_bank=current_bank,
@@ -651,17 +571,10 @@ class RubricBankProposer:
                 criteria.value,
             )
         except ValueError as exc:
-            semantic = _StageResult(
-                raw_text=output.response_text,
-                value=None,
-                attempts=(semantic_attempt | {"validation_error": str(exc)},),
-            )
             self._require_ledger_consumed(ledger, cursor)
-            raise _SemanticRejected(
-                f"semantic review output is invalid: {exc}",
-                difference=difference,
-                criteria=criteria,
-                semantic=semantic,
+            make_read_only(ledger_path)
+            raise RuntimeError(
+                f"semantic review output is invalid: {exc}"
             ) from exc
         semantic = _StageResult(
             raw_text=output.response_text,
@@ -669,13 +582,41 @@ class RubricBankProposer:
             attempts=(semantic_attempt | {"validation_error": None},),
         )
         self._require_ledger_consumed(ledger, cursor)
-        if semantic_value["verdict"] != "accepted":
-            raise _SemanticRejected(
-                _semantic_rejection_reason(semantic_value),
-                difference=difference,
-                criteria=criteria,
-                semantic=semantic,
-            )
+        all_criteria = (
+            current_bank.items[0].elicited_criteria + criteria.value
+        )
+        next_rubric, criterion_map = render_augmented_rubric(
+            current_bank.specification_anchor,
+            all_criteria,
+        )
+        prior_item = current_bank.items[0]
+        lineage = (
+            RubricLineage.RETAINED
+            if next_rubric == prior_item.rubric
+            else RubricLineage.REFINED
+        )
+        bank = RubricBank(
+            generation_round=generation_round,
+            source_boundary=(
+                source_boundary
+                if policy is RubricBankPolicy.ONLINE_ELICITATION
+                else None
+            ),
+            specification_anchor=current_bank.specification_anchor,
+            specification_anchor_lineage=RubricLineage.RETAINED,
+            prior_specification_anchor_sha256=(
+                current_bank.specification_anchor.content_sha256
+            ),
+            items=(RubricBankItem(
+                rubric=next_rubric,
+                weight=1.0,
+                lineage=lineage,
+                prior_content_sha256=prior_item.rubric.content_sha256,
+                criterion_map=criterion_map,
+                elicited_criteria=all_criteria,
+            ),),
+        )
+        bank.validate_lineage(current_bank)
         return _ProductionResult(
             bank=bank,
             difference=difference,
@@ -1056,26 +997,6 @@ class RubricBankProposer:
         }
 
     @staticmethod
-    def _rejection_record(
-        *,
-        context: dict[str, object],
-        ledger_path: Path,
-        rejection: _SemanticRejected,
-    ) -> dict[str, object]:
-        return {
-            "kind": "criterion-elicitation-semantic-rejection",
-            "implementation_identity": rubric_generation_implementation_identity(),
-            "context": context,
-            "difference_proposal_sha256": sha256_text(
-                rejection.difference.raw_text
-            ),
-            "criterion_proposal_sha256": sha256_text(rejection.criteria.raw_text),
-            "semantic_review_sha256": sha256_text(rejection.semantic.raw_text),
-            "provider_ledger_sha256": sha256_file(ledger_path),
-            "reason": rejection.reason,
-        }
-
-    @staticmethod
     def _read_exact_json(path: Path) -> dict[str, object]:
         if path.is_symlink() or not path.is_file():
             raise RuntimeError(f"artifact is not a regular file: {path}")
@@ -1192,8 +1113,9 @@ not covered by the current rubric, and meaningfully supported by at least two
 distinct blinded contrast pairs. Reject trajectory-specific or stylistic criteria
 unless the task requires that style. Reject references to artifacts, pairs, scores,
 rounds, models, trajectories, or source-specific identifiers. Use `uncertain` when
-the evidence cannot establish a requirement. Accept the response only when every
-criterion is accepted. Return only the required JSON.
+the evidence cannot establish a requirement. Your verdicts are advisory labels.
+They do not control whether a deterministically valid criterion enters the rubric.
+Return only the required JSON.
 """
 
 
@@ -1287,7 +1209,6 @@ def _criterion_schema(
                             "type": "array",
                             "minItems": 2,
                             "maxItems": 3,
-                            "uniqueItems": True,
                             "items": {
                                 "type": "string",
                                 "enum": ["pair_1", "pair_2", "pair_3"],
@@ -1316,10 +1237,6 @@ def _semantic_schema(
     return {
         "type": "object",
         "properties": {
-            "verdict": {
-                "type": "string",
-                "enum": ["accepted", "rejected", "uncertain"],
-            },
             "criterion_reviews": {
                 "type": "array",
                 "minItems": len(criteria),
@@ -1345,7 +1262,7 @@ def _semantic_schema(
                 },
             },
         },
-        "required": ["verdict", "criterion_reviews"],
+        "required": ["criterion_reviews"],
         "additionalProperties": False,
     }
 
@@ -1523,14 +1440,11 @@ def _validated_criterion_response(
 def _validated_semantic_response(
     text: str,
     criteria: tuple[ElicitedCriterion, ...],
-) -> dict[str, object]:
+) -> tuple[dict[str, str], ...]:
     value = _load_json_object(text, "semantic review")
-    if set(value) != {"verdict", "criterion_reviews"}:
+    if set(value) != {"criterion_reviews"}:
         raise ValueError("semantic review has invalid fields")
-    verdict = value["verdict"]
     reviews = value["criterion_reviews"]
-    if verdict not in {"accepted", "rejected", "uncertain"}:
-        raise ValueError("semantic review verdict is invalid")
     if not isinstance(reviews, list) or len(reviews) != len(criteria):
         raise ValueError("semantic review has the wrong criterion count")
     canonical: list[dict[str, str]] = []
@@ -1549,27 +1463,7 @@ def _validated_semantic_response(
                 review["reason"], "semantic review reason", _MAX_CRITERION_TEXT_CHARS
             ),
         })
-    expected = (
-        "accepted"
-        if all(item["verdict"] == "accepted" for item in canonical)
-        else "uncertain"
-        if any(item["verdict"] == "uncertain" for item in canonical)
-        else "rejected"
-    )
-    if verdict != expected:
-        raise ValueError("semantic summary verdict disagrees with criterion verdicts")
-    return {"verdict": verdict, "criterion_reviews": canonical}
-
-
-def _semantic_rejection_reason(value: dict[str, object]) -> str:
-    reviews = value["criterion_reviews"]
-    assert isinstance(reviews, list)
-    failures = [
-        f"{item['criterion_id']}={item['verdict']}: {item['reason']}"
-        for item in reviews
-        if isinstance(item, dict) and item.get("verdict") != "accepted"
-    ]
-    return "semantic review rejected the proposed criteria: " + "; ".join(failures)
+    return tuple(canonical)
 
 
 def _required_level_labels(rubric: CompleteRubric) -> tuple[str, ...]:

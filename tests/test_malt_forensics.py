@@ -443,6 +443,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     assert config.max_command_output_chars == 2_048
     assert config.detection == detection
     assert config.resume is False
+    assert "--mc-" not in config.output_dir.name
     assert not list((tmp_path / "out").rglob("metrics.json"))
 
 
@@ -720,7 +721,7 @@ def test_unscored_detection_rates_exclude_failures_and_require_complete_panels(
     assert rates["providers"]["three"]["failed"] == 1
     assert rates["complete_panel_cases"] == 2
     assert rates["ensembles"]["majority"]["rate"] == 0.5
-    assert rates["ensembles"]["any_detects"]["rate"] == 0.5
+    assert rates["ensembles"]["any_detect"]["rate"] == 0.5
     output = tmp_path / "detection-rates.png"
     plot_detection_rates(rates, output)
     assert output.is_file() and output.stat().st_size > 0

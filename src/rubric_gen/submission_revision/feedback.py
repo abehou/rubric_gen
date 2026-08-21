@@ -32,7 +32,7 @@ class FeedbackPolicy(str, Enum):
     FULL = "full"
     SEMI = "semi"
     SCORE_ONLY = "score_only"
-    SIMULATED_USER = "simulated_user"
+    USER_SIMULATOR = "user_simulator"
 
 
 MAX_SIMULATED_USER_COMMENT_CHARS = 6_000
@@ -70,7 +70,7 @@ def render_feedback_prompt(
     resolved_profile = PromptProfile(prompt_profile)
     revision_action = get_submission_benchmark(benchmark).revision_action
 
-    if policy is FeedbackPolicy.SIMULATED_USER:
+    if policy is FeedbackPolicy.USER_SIMULATOR:
         if set(payload) != {"policy", "comment", "bank_sha256"}:
             raise ValueError("simulated-user feedback contains unexpected fields")
         comment = payload.get("comment")
@@ -229,7 +229,7 @@ def project_bank_feedback(
     """Project exact member evaluations and their weighted bank aggregate."""
 
     resolved_policy = FeedbackPolicy(policy)
-    if resolved_policy is FeedbackPolicy.SIMULATED_USER:
+    if resolved_policy is FeedbackPolicy.USER_SIMULATOR:
         raise ValueError("use project_bank_simulated_user_feedback")
     expected_hashes = {item.rubric.content_sha256 for item in bank.items}
     if set(artifacts) != expected_hashes:
@@ -297,7 +297,7 @@ def project_bank_simulated_user_feedback(
         scores[item.rubric.content_sha256] = score
     score = bank.aggregate(scores)
     payload: dict[str, object] = {
-        "policy": FeedbackPolicy.SIMULATED_USER.value,
+        "policy": FeedbackPolicy.USER_SIMULATOR.value,
         "comment": comment,
         "bank_sha256": bank.content_sha256,
     }
@@ -348,9 +348,9 @@ def _project_member_feedback(
     except ValueError as exc:
         raise ValueError(f"unsupported feedback policy: {policy}") from exc
 
-    if resolved_policy is FeedbackPolicy.SIMULATED_USER:
+    if resolved_policy is FeedbackPolicy.USER_SIMULATOR:
         raise ValueError(
-            "simulated_user feedback must be projected from a persisted LLM comment"
+            "user_simulator feedback must be projected from a persisted LLM comment"
         )
 
     if resolved_policy is FeedbackPolicy.SCORE_ONLY:

@@ -13,6 +13,7 @@ from rubric_gen.benchmarks.harvey_lab.artifacts import file_sha256, read_json_ob
 from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
 from rubric_gen.benchmarks.harvey_lab.controller import candidate_id, rubric_id
 from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
+from rubric_gen.benchmarks.harvey_lab.runtime import runtime_root_from_environment
 from rubric_gen.reward_hacking.runner import (
     RewardHackingJudgeConfig,
     RewardHackingJudgeRunner,
@@ -47,7 +48,10 @@ def run_quality_audit(
     evaluator: HarveyEvaluator | None = None,
 ) -> int:
     """Re-score visible outputs with original rubrics, then run held-out tasks."""
-    evaluator = evaluator or HarveyEvaluator(experiment)
+    evaluator = evaluator or HarveyEvaluator(
+        experiment,
+        runtime_root=runtime_root_from_environment(),
+    )
     count = _completed_candidate_count(experiment)
     root = experiment.output_dir / "audits" / "quality-transfer"
     original_tasks = {

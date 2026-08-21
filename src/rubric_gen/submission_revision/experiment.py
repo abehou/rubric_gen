@@ -30,6 +30,11 @@ from rubric_gen.artifacts.hashing import sha256_text
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 EXPERIMENT_ID_TOKEN = "{experiment_id}"
+_RUBRIC_POLICY_SLUGS = {
+    RubricBankPolicy.FIXED: "static",
+    RubricBankPolicy.OFFLINE_ELICITATION: "offline-rubric",
+    RubricBankPolicy.ONLINE_ELICITATION: "online-rubric",
+}
 _IDENTITY_KEYS = (
     "kind",
     "benchmark",
@@ -133,12 +138,11 @@ class Experiment:
 
     def feedback_simulator_config(
         self,
+        feedback_policy: FeedbackPolicy | str,
         *,
         vllm_endpoints: dict[str, str] | None = None,
     ) -> SimulatedUserConfig | None:
-        if FeedbackPolicy(str(self.protocol["feedback_policy"])) is not (
-            FeedbackPolicy.SIMULATED_USER
-        ):
+        if FeedbackPolicy(feedback_policy) is not FeedbackPolicy.USER_SIMULATOR:
             return None
         value = self.protocol["feedback_simulator"]
         assert isinstance(value, dict)
@@ -206,40 +210,53 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
-    condition_prompts: list[PromptProfile] = []
-    condition_policies: list[RubricBankPolicy] = []
+    condition_pairs: list[tuple[FeedbackPolicy, RubricBankPolicy]] = []
     for condition in conditions:
         if not isinstance(condition, dict) or set(condition) != {
-            "condition_id", "prompt", "rubric_policy"
+            "condition_id", "feedback_policy", "rubric_policy"
         }:
             raise ValueError(
-                "each condition requires condition_id, prompt, and rubric_policy"
+                "each condition requires condition_id, feedback_policy, and "
+                "rubric_policy"
             )
         condition_id = condition["condition_id"]
-        prompt = condition["prompt"]
+        feedback_policy = condition["feedback_policy"]
         rubric_policy = condition["rubric_policy"]
         if type(condition_id) is not str or not condition_id:
             raise ValueError("condition_id must be a nonempty string")
-        if type(prompt) is not str:
-            raise ValueError("condition prompt must be a string")
+        if type(feedback_policy) is not str:
+            raise ValueError("condition feedback_policy must be a string")
         if type(rubric_policy) is not str:
             raise ValueError("condition rubric_policy must be a string")
+        resolved_feedback = FeedbackPolicy(feedback_policy)
+        resolved_rubric = RubricBankPolicy(rubric_policy)
+        expected_id = (
+            f"{resolved_feedback.value.replace('_', '-')}-"
+            f"{_RUBRIC_POLICY_SLUGS[resolved_rubric]}"
+        )
+        if condition_id != expected_id:
+            raise ValueError(
+                f"condition_id must be {expected_id!r} for its policies"
+            )
         condition_ids.append(condition_id)
-        condition_prompts.append(PromptProfile(prompt))
-        condition_policies.append(RubricBankPolicy(rubric_policy))
+        condition_pairs.append((resolved_feedback, resolved_rubric))
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):
         raise ValueError("condition IDs must be unique portable identifiers")
+    expected_pairs = {
+        (feedback_policy, rubric_policy)
+        for feedback_policy in FeedbackPolicy
+        for rubric_policy in RubricBankPolicy
+    }
     if (
-        len(condition_policies) != len(RubricBankPolicy)
-        or set(condition_policies) != set(RubricBankPolicy)
+        len(condition_pairs) != len(expected_pairs)
+        or set(condition_pairs) != expected_pairs
     ):
         raise ValueError(
-            "conditions must contain exactly one arm for each rubric policy"
+            "conditions must contain exactly one arm for each feedback-policy "
+            "and rubric-policy pair"
         )
-    if len(set(condition_prompts)) != 1:
-        raise ValueError("all three rubric-policy arms must use one shared prompt")
     _validate_protocol(payload["protocol"])
     _validate_master_rubrics(
         tasks_dir,
@@ -286,7 +303,6 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     if type(audit["primary_rule"]) is not str:
         raise ValueError("outcome_audit primary_rule must be a string")
     protocol = payload["protocol"]
-    feedback_policy = FeedbackPolicy(str(protocol["feedback_policy"]))
     semantic_judge_model = protocol["rubric_semantic_judge_model"]
     if semantic_judge_model in audit_models:
         raise ValueError(
@@ -405,9 +421,8 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
     protocol = payload["protocol"]
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
-    feedback = str(protocol.get("feedback_policy", "invalid")).replace("_", "-")
     rounds = protocol.get("revision_rounds", "invalid")
-    experiment_id = f"{benchmark}-{feedback}-r{rounds}-{digest}"
+    experiment_id = f"{benchmark}-factorial-r{rounds}-{digest}"
     if not _ID.fullmatch(experiment_id):
         raise ValueError("derived experiment ID is invalid")
     return experiment_id
@@ -415,7 +430,8 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
 
 def _validate_protocol(protocol: object) -> None:
     base_keys = {
-        "revision_rounds", "feedback_policy", "solver", "judge_model",
+        "revision_rounds", "prompt", "feedback_simulator", "solver",
+        "judge_model",
         "judge_max_retries", "rubric_name", "review", "max_review_chars",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",
@@ -426,16 +442,13 @@ def _validate_protocol(protocol: object) -> None:
     }
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
-    if type(protocol.get("feedback_policy")) is not str:
-        raise ValueError("feedback_policy must be a string")
-    feedback_policy = FeedbackPolicy(protocol["feedback_policy"])
-    required = set(base_keys)
-    if feedback_policy is FeedbackPolicy.SIMULATED_USER:
-        required.add("feedback_simulator")
-    if set(protocol) != required:
-        raise ValueError(f"protocol keys must be exactly {sorted(required)}")
+    if set(protocol) != base_keys:
+        raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
     if type(protocol["revision_rounds"]) is not int or protocol["revision_rounds"] < 1:
         raise ValueError("revision_rounds must be positive")
+    if type(protocol["prompt"]) is not str:
+        raise ValueError("protocol prompt must be a string")
+    PromptProfile(protocol["prompt"])
     if protocol["review"] not in {"trace", "trajectory", "workspace"}:
         raise ValueError("review must be trace, trajectory, or workspace")
     if type(protocol["judge_model"]) is not str or not protocol[
@@ -521,25 +534,24 @@ def _validate_protocol(protocol: object) -> None:
         retries=solver["retries"],
         timeout_seconds=solver["timeout_seconds"],
     )
-    if feedback_policy is FeedbackPolicy.SIMULATED_USER:
-        simulator = protocol["feedback_simulator"]
-        simulator_keys = {
-            "model",
-            "max_output_tokens",
-            "max_aspects",
-            "max_retries",
-        }
-        if not isinstance(simulator, dict) or set(simulator) != simulator_keys:
-            raise ValueError(
-                "feedback_simulator keys must be exactly "
-                f"{sorted(simulator_keys)}"
-            )
-        SimulatedUserConfig(
-            model=simulator["model"],
-            max_output_tokens=simulator["max_output_tokens"],
-            max_aspects=simulator["max_aspects"],
-            max_retries=simulator["max_retries"],
+    simulator = protocol["feedback_simulator"]
+    simulator_keys = {
+        "model",
+        "max_output_tokens",
+        "max_aspects",
+        "max_retries",
+    }
+    if not isinstance(simulator, dict) or set(simulator) != simulator_keys:
+        raise ValueError(
+            "feedback_simulator keys must be exactly "
+            f"{sorted(simulator_keys)}"
         )
+    SimulatedUserConfig(
+        model=simulator["model"],
+        max_output_tokens=simulator["max_output_tokens"],
+        max_aspects=simulator["max_aspects"],
+        max_retries=simulator["max_retries"],
+    )
 
 
 def _randomized_assignments(payload: dict[str, Any]) -> list[dict[str, object]]:

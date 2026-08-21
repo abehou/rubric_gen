@@ -25,8 +25,8 @@ def test_resolve_project_path_uses_repository_root() -> None:
 
     assert PROJECT_ROOT == repository_root
     assert (
-        resolve_project_path("experiment_preflight.yaml")
-        == repository_root / "experiment_preflight.yaml"
+        resolve_project_path("experiments/biomnibench-dev3.yaml")
+        == repository_root / "experiments/biomnibench-dev3.yaml"
     )
 
 

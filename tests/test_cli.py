@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -49,16 +50,32 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
         encoding="utf-8",
     )
     experiment = SimpleNamespace(output_dir=tmp_path / "output")
+    runtime_root = tmp_path / "runtime"
+    monkeypatch.setenv("HARVEY_RUNTIME_ROOT", str(runtime_root))
     observed: dict[str, object] = {}
 
     class FakeEvaluator:
-        def __init__(self, value: object, *, max_concurrency: int) -> None:
+        def __init__(
+            self,
+            value: object,
+            *,
+            runtime_root: Path,
+            max_concurrency: int,
+        ) -> None:
             assert value is experiment
+            observed["runtime_root"] = runtime_root
             observed["max_concurrency"] = max_concurrency
 
     class FakeController:
-        def __init__(self, value: object, *, evaluator: object) -> None:
+        def __init__(
+            self,
+            value: object,
+            *,
+            runtime_root: Path,
+            evaluator: object,
+        ) -> None:
             observed["experiment"] = value
+            assert runtime_root == observed["runtime_root"]
             observed["evaluator"] = evaluator
 
         def run(self, *, resume: bool) -> int:
@@ -104,6 +121,7 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
         "evaluator": observed["evaluator"],
         "max_concurrency": 12,
         "resume": True,
+        "runtime_root": runtime_root,
         "stages": ["evolution", "quality", "detect", "seal"],
     }
 
@@ -119,6 +137,7 @@ def test_sealed_harvey_resume_verifies_without_provider_calls(
         encoding="utf-8",
     )
     experiment = SimpleNamespace(output_dir=tmp_path / "output")
+    monkeypatch.delenv("HARVEY_RUNTIME_ROOT", raising=False)
     observed: list[str] = []
 
     monkeypatch.setattr(unified_cli, "load_harvey_experiment", lambda _: experiment)
@@ -132,6 +151,11 @@ def test_sealed_harvey_resume_verifies_without_provider_calls(
         unified_cli,
         "HarveyEvaluator",
         lambda *_args, **_kwargs: pytest.fail("provider workflow was constructed"),
+    )
+    monkeypatch.setattr(
+        unified_cli,
+        "runtime_root_from_environment",
+        lambda: pytest.fail("sealed verification requested a runtime root"),
     )
 
     assert unified_cli.main([

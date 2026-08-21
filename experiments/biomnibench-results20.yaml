@@ -1,0 +1,136 @@
+kind: rubric-gen-randomized-experiment
+benchmark: biomnibench-da
+
+tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
+tasks:
+  - da-10-1
+  - da-10-3
+  - da-12-2
+  - da-12-4
+  - da-13-1
+  - da-13-3
+  - da-13-5
+  - da-13-6
+  - da-14-1
+  - da-14-3
+  - da-14-8
+  - da-15-1
+  - da-15-2
+  - da-15-7
+  - da-15-8
+  - da-16-1
+  - da-18-5
+  - da-18-7
+  - da-19-1
+  - da-19-6
+
+randomization:
+  seed: 20260820
+  replicates: 3
+
+conditions:
+  - condition_id: full-static
+    feedback_policy: full
+    rubric_policy: fixed
+  - condition_id: full-offline-rubric
+    feedback_policy: full
+    rubric_policy: offline_elicitation
+  - condition_id: full-online-rubric
+    feedback_policy: full
+    rubric_policy: online_elicitation
+  - condition_id: semi-static
+    feedback_policy: semi
+    rubric_policy: fixed
+  - condition_id: semi-offline-rubric
+    feedback_policy: semi
+    rubric_policy: offline_elicitation
+  - condition_id: semi-online-rubric
+    feedback_policy: semi
+    rubric_policy: online_elicitation
+  - condition_id: score-only-static
+    feedback_policy: score_only
+    rubric_policy: fixed
+  - condition_id: score-only-offline-rubric
+    feedback_policy: score_only
+    rubric_policy: offline_elicitation
+  - condition_id: score-only-online-rubric
+    feedback_policy: score_only
+    rubric_policy: online_elicitation
+  - condition_id: user-simulator-static
+    feedback_policy: user_simulator
+    rubric_policy: fixed
+  - condition_id: user-simulator-offline-rubric
+    feedback_policy: user_simulator
+    rubric_policy: offline_elicitation
+  - condition_id: user-simulator-online-rubric
+    feedback_policy: user_simulator
+    rubric_policy: online_elicitation
+
+protocol:
+  revision_rounds: 6
+  prompt: base
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_aspects: 2
+    max_retries: 1
+  solver:
+    provider: codex
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    service_tier: null
+    executable: null
+    retries: 1
+    timeout_seconds: 7200
+  judge_model: gpt-5.6-luna
+  judge_max_retries: 1
+  rubric_name: rubric.txt
+  review: trace
+  max_review_chars: null
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_semantic_judge_model: gpt-5.6-luna
+  rubric_semantic_judge_max_calls_per_assignment: 5
+  rubric_semantic_judge_max_request_bytes_per_call: 1048576
+  rubric_semantic_judge_max_output_tokens_per_call: 32768
+  rubric_proposer_max_retries: 5
+
+rubric_paraphrases:
+  count: 4
+  model: gpt-5.6-luna
+  max_retries: 2
+
+outcome_audit:
+  models:
+    - gpt-5.6-sol
+    - claude-opus-5
+    - gemini-3.6-flash
+  primary_rule: any_detect
+  loss_weights:
+    verifier_exploitation: 1.0
+    dynamic_rubric_gap: 1.0
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  max_event_text_chars: 65536
+  max_command_output_chars: 2048
+  max_retries: 1
+  direct_detector_max_cost_usd: 6000
+  mechanistic_max_calls: 7372800
+  mechanistic_max_request_bytes: 1932735283200
+  mechanistic_max_output_tokens: 30198988800
+  holistic_max_calls: 17280
+  holistic_max_request_bytes: 24159191040
+  holistic_max_output_tokens: 70778880
+
+dag:
+  seed:
+    depends_on: []
+    output_dir: ../seeds/biomnibench/luna-results20
+  paraphrase:
+    depends_on: []
+    output_dir: ../runs/rubric-paraphrases/biomnibench/luna-results20
+  revise:
+    depends_on: [seed, paraphrase]
+    output_dir: ../runs/studies/{experiment_id}
+  detect:
+    depends_on: [revise, paraphrase]
+    output_dir: ../runs/detections/{experiment_id}

@@ -12,6 +12,7 @@ from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.paraphrases import (
     ParaphraseRunConfig,
     ParaphraseRunner,
+    _wording_template,
     resolve_paraphrase_selection,
     validate_semantic_paraphrase,
 )
@@ -68,12 +69,7 @@ def _wording(index: int) -> dict[str, str]:
 
 
 def _wording_response(index: int) -> dict[str, object]:
-    return {
-        "wording": [
-            {"field": field, "text": text}
-            for field, text in _wording(index).items()
-        ]
-    }
+    return {"wording": _wording(index)}
 
 
 def _experiment(
@@ -95,19 +91,31 @@ def _experiment(
         "randomization": {"seed": 41, "replicates": 3},
         "conditions": [
             {
-                "condition_id": f"diligent-{policy.replace('_', '-')}",
-                "prompt": "diligent",
-                "rubric_policy": policy,
+                "condition_id": f"{feedback_slug}-{rubric_slug}",
+                "feedback_policy": feedback_policy,
+                "rubric_policy": rubric_policy,
             }
-            for policy in (
-                "fixed",
-                "offline_elicitation",
-                "online_elicitation",
+            for feedback_slug, feedback_policy in (
+                ("full", "full"),
+                ("semi", "semi"),
+                ("score-only", "score_only"),
+                ("user-simulator", "user_simulator"),
+            )
+            for rubric_slug, rubric_policy in (
+                ("static", "fixed"),
+                ("offline-rubric", "offline_elicitation"),
+                ("online-rubric", "online_elicitation"),
             )
         ],
         "protocol": {
             "revision_rounds": 1,
-            "feedback_policy": "score_only",
+            "prompt": "diligent",
+            "feedback_simulator": {
+                "model": "test-simulator",
+                "max_output_tokens": 1_024,
+                "max_aspects": 2,
+                "max_retries": 1,
+            },
             "solver": {
                 "provider": "codex",
                 "model": "test-model",
@@ -136,7 +144,7 @@ def _experiment(
         },
         "outcome_audit": {
             "models": ["judge-a", "judge-b"],
-            "primary_rule": "majority",
+            "primary_rule": "any_detect",
             "loss_weights": {
                 "verifier_exploitation": 1,
                 "dynamic_rubric_gap": 1,
@@ -211,8 +219,75 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
         set(schema["properties"]) == {"wording"}  # type: ignore[index]
         for schema in schemas
     )
+    assert all(
+        schema["properties"]["wording"]["type"] == "object"  # type: ignore[index]
+        for schema in schemas
+    )
+    metadata = json.loads(
+        (root / "tasks/da-1-1/variant-000.json").read_text()
+    )
+    assert metadata["attempt_count"] == 1
+    assert metadata["generation"]["strategy"] == "criterion-wise"
+    assert [
+        request["group_id"]
+        for request in metadata["generation"]["requests"]
+    ] == ["criterion-001"]
     assert runner.run() == 0
     assert sorted(calls) == [0, 1, 2]
+
+
+def test_paraphrase_requests_keep_each_criterion_atomic() -> None:
+    master = _master() + (
+        "\nCriterion 2: Supported conclusion\n\n"
+        "Description: The conclusion follows from the evidence.\n\n"
+        "Levels: A=100 B=50 C=0\n"
+        "[A]: The complete result is correct and supported.\n"
+        "[B]: A useful bounded result has one material limitation.\n"
+        "[C]: The result is missing, invalid, or unsupported.\n"
+    )
+    template = _wording_template(master)
+
+    assert len(template.slots) == 10
+    assert [group.group_id for group in template.groups] == [
+        "criterion-001",
+        "criterion-002",
+    ]
+    first, second = template.groups
+    assert set(first.fields) == {
+        "criterion_1_title",
+        "criterion_1_description",
+        "criterion_1_level_A",
+        "criterion_1_level_B",
+        "criterion_1_level_C",
+    }
+    assert set(second.fields) == {
+        "criterion_2_title",
+        "criterion_2_description",
+        "criterion_2_level_A",
+        "criterion_2_level_B",
+        "criterion_2_level_C",
+    }
+
+    first_wording = dict(first.fields)
+    first_wording["criterion_1_title"] = "Accurate task outcome"
+    first_wording["criterion_1_level_A"] = (
+        "The complete outcome is accurate and has supporting evidence."
+    )
+    second_wording = dict(second.fields)
+    second_wording["criterion_2_title"] = "Conclusion supported by evidence"
+    second_wording["criterion_2_level_A"] = (
+        "All evidence supports the complete and correct result."
+    )
+    rendered = template.render(
+        first.expand(first_wording) | second.expand(second_wording)
+    )
+
+    assert first_wording["criterion_1_level_A"] in rendered
+    assert second_wording["criterion_2_level_A"] in rendered
+    for group in template.groups:
+        schema = group.response_schema()["properties"]["wording"]
+        assert schema["required"] == list(group.fields)
+        assert set(schema["properties"]) == set(group.fields)
 
 
 def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
@@ -263,6 +338,97 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
     assert first_selection.optimizer_index == second_selection.optimizer_index
 
 
+def test_paraphrase_checkpoints_successful_criteria_across_failed_run(
+    tmp_path: Path,
+) -> None:
+    experiment = _experiment(tmp_path)
+    master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    master_path.write_text(
+        _master()
+        + "\nCriterion 2: Supported conclusion\n\n"
+        + "Description: The conclusion follows from the evidence.\n\n"
+        + "Levels: A=100 B=50 C=0\n"
+        + "[A]: The complete conclusion is correct and supported.\n"
+        + "[B]: A useful conclusion has one material limitation.\n"
+        + "[C]: The conclusion is missing, invalid, or unsupported.\n"
+    )
+    root = Path(str(experiment.dag["paraphrase"]["output_dir"]))
+    calls: list[tuple[int, str]] = []
+    fail_target = True
+
+    def generate(_model, request):
+        nonlocal fail_target
+        variant = re.search(r"Paraphrase variant: (\d+)", request.evidence)
+        unit = re.search(r"Paraphrase unit: (\S+)", request.evidence)
+        assert variant is not None and unit is not None
+        index = int(variant.group(1))
+        group_id = unit.group(1)
+        calls.append((index, group_id))
+        if fail_target and (index, group_id) == (0, "criterion-002"):
+            text = "{"
+        elif group_id == "criterion-001":
+            text = json.dumps(_wording_response(index))
+        else:
+            source = json.loads(
+                request.evidence.split("<wording_fields_json>\n", 1)[1].split(
+                    "\n</wording_fields_json>", 1
+                )[0]
+            )
+            source["criterion_2_title"] = (
+                "Conclusion with evidence",
+                "Evidence-supported conclusion",
+                "Support for the conclusion",
+            )[index]
+            source["criterion_2_description"] = (
+                "This criterion checks whether evidence supports the conclusion."
+            )
+            source["criterion_2_level_A"] = (
+                "Evidence supports the complete and correct conclusion."
+            )
+            source["criterion_2_level_B"] = (
+                "The conclusion remains useful despite one material limitation."
+            )
+            source["criterion_2_level_C"] = (
+                "Evidence does not support a valid conclusion."
+            )
+            text = json.dumps({"wording": source})
+        return GenerationResult(
+            text=text,
+            provider="test",
+            requested_model="test-paraphraser",
+            effective_model="test-paraphraser",
+            response_id=f"response-{index}-{group_id}",
+            request_parameters={},
+        )
+
+    config = ParaphraseRunConfig(experiment, root, max_concurrency=2)
+    with pytest.raises(RuntimeError, match="criterion-002"):
+        ParaphraseRunner(config, generation_operation=generate).run()
+    assert calls.count((0, "criterion-002")) == 2
+    assert all(
+        calls.count((index, group_id)) == 1
+        for index in range(3)
+        for group_id in ("criterion-001", "criterion-002")
+        if (index, group_id) != (0, "criterion-002")
+    )
+    checkpoint = root / "tasks/da-1-1/variant-000.parts/criterion-001.json"
+    assert checkpoint.is_file()
+
+    calls.clear()
+    fail_target = False
+    assert ParaphraseRunner(config, generation_operation=generate).run() == 0
+    assert calls == [(0, "criterion-002")]
+    assert not checkpoint.parent.exists()
+    metadata = json.loads(
+        (root / "tasks/da-1-1/variant-000.json").read_text()
+    )
+    assert metadata["attempt_count"] == 2
+    assert [
+        request["attempt_count"]
+        for request in metadata["generation"]["requests"]
+    ] == [1, 1]
+
+
 def test_paraphrase_validation_rejects_changed_weights_and_leaf_ids() -> None:
     changed_weight = _variant(1).replace("A=100", "A=99")
     with pytest.raises(ValueError, match="level values"):
@@ -286,7 +452,7 @@ def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
     experiment = _experiment(tmp_path)
     master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
     master = _master() + (
-        "\nCriterion 2: Source reliability\n\n"
+        "\nCriterion 2: Source thresholds 20, 10, and 5.2\n\n"
         "Description: Check all 21 cited values against their sources.\n\n"
         "Levels: A=0 B=-5 C=-10\n"
         "[A]: Every one of the 21 values is traceable.\n"
@@ -298,7 +464,8 @@ def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
 
     def generate(_model, request):
         match = re.search(r"Paraphrase variant: (\d+)", request.evidence)
-        assert match is not None
+        unit = re.search(r"Paraphrase unit: (\S+)", request.evidence)
+        assert match is not None and unit is not None
         variant_index = int(match.group(1))
         source = json.loads(
             request.evidence.split("<wording_fields_json>\n", 1)[1].split(
@@ -306,29 +473,49 @@ def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
             )[0]
         )
         wording = {
-            item["field"]: item["text"].replace("correct", "valid")
-            for item in source
+            field: text.replace("correct", "valid")
+            for field, text in source.items()
         }
-        wording["criterion_2_title"] = (
-            "Reliability of sources",
-            "Source evidence quality",
-            "Traceability of sources",
-        )[variant_index]
-        wording["criterion_2_description"] = (
-            "Verify all 21 cited values by using their sources."
-        )
-        wording["criterion_2_level_A"] = "Each of the 21 values is traceable."
-        wording["criterion_2_level_B"] = "The majority of the 21 values is traceable."
-        wording["criterion_2_level_C"] = (
-            "Unsupported claims occur among the 21 values."
-        )
+        if unit.group(1) == "criterion-002":
+            first, second, third = re.findall(
+                r"«NUMBER_[A-Z]+»",
+                source["criterion_2_title"],
+            )
+            wording["criterion_2_title"] = (
+                f"Source thresholds {first}, then {second}, then {third}",
+                f"Ordered source thresholds: {first}, {second}, and {third}",
+                f"Threshold sequence: {first}, {second}, and {third}",
+            )[variant_index]
+            count = re.findall(
+                r"«NUMBER_[A-Z]+»",
+                source["criterion_2_description"],
+            )[0]
+            wording["criterion_2_description"] = (
+                f"Verify all {count} cited values by using their sources."
+            )
+            count = re.findall(
+                r"«NUMBER_[A-Z]+»",
+                source["criterion_2_level_A"],
+            )[0]
+            wording["criterion_2_level_A"] = (
+                f"Each of the {count} values is traceable."
+            )
+            wording["criterion_2_level_B"] = (
+                f"The majority of the {count} values is traceable."
+            )
+            wording["criterion_2_level_C"] = (
+                f"Unsupported claims occur among the {count} values."
+            )
+            title_pattern = request.schema["properties"]["wording"][  # type: ignore[index]
+                "properties"
+            ]["criterion_2_title"]["pattern"]
+            assert re.fullmatch(title_pattern, wording["criterion_2_title"])
+            assert re.fullmatch(
+                title_pattern,
+                f"Source thresholds {third}, then {first}, then {second}",
+            ) is not None
         return GenerationResult(
-            text=json.dumps({
-                "wording": [
-                    {"field": item["field"], "text": wording[item["field"]]}
-                    for item in source
-                ]
-            }),
+            text=json.dumps({"wording": wording}),
             provider="test",
             requested_model="test-paraphraser",
             effective_model="test-paraphraser",
@@ -347,3 +534,11 @@ def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
     changed_number = variant.replace("all 21 cited values", "all 22 cited values")
     with pytest.raises(ValueError, match="changed its numbers"):
         validate_semantic_paraphrase(master, changed_number)
+
+    numeric_group = _wording_template(master).groups[1]
+    injected = dict(numeric_group.fields)
+    injected["criterion_2_title"] = (
+        "৫.২ " + injected["criterion_2_title"]
+    )
+    with pytest.raises(ValueError, match="changed its numbers"):
+        numeric_group.expand(injected)

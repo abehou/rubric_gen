@@ -1,4 +1,4 @@
-"""Load the pinned PaperBench dev split into the local revision-task format."""
+"""Load pinned PaperBench paper sets into the local Code-Dev task format."""
 
 from __future__ import annotations
 
@@ -25,6 +25,32 @@ PAPERBENCH_DEV_PAPERS = (
     "self-expansion",
     "self-composing-policies",
 )
+PAPERBENCH_RESULTS_PAPERS = (
+    "fre",
+    "mechanistic-understanding",
+    "bridging-data-gaps",
+    "test-time-model-adaptation",
+    "all-in-one",
+    "sequential-neural-score-estimation",
+    "robust-clip",
+    "what-will-my-model-forget",
+    "pinn",
+    "stay-on-topic-with-classifier-free-guidance",
+    "rice",
+    "sample-specific-masks",
+    "adaptive-pruning",
+    "sapg",
+    "lca-on-the-line",
+    "stochastic-interpolants",
+    "bbox",
+    "lbcs",
+    "bam",
+    "ftrl",
+)
+PAPERBENCH_PAPER_SETS = {
+    "dev": PAPERBENCH_DEV_PAPERS,
+    "all": PAPERBENCH_RESULTS_PAPERS,
+}
 PAPERBENCH_SCORING_PROTOCOL = "paperbench-code-dev"
 _UPSTREAM_BASE = "project/paperbench/data/papers"
 _LFS_PREFIX = b"version https://git-lfs.github.com/spec/v1\n"
@@ -37,15 +63,27 @@ _ROOT_FILES = (
 )
 
 
-def prepare_paperbench_code_dev(
+def paperbench_papers(source_split: str) -> tuple[str, ...]:
+    """Return one exact pinned PaperBench paper set."""
+
+    if type(source_split) is not str:
+        raise ValueError("PaperBench source split must be dev or all")
+    try:
+        return PAPERBENCH_PAPER_SETS[source_split]
+    except KeyError as exc:
+        raise ValueError("PaperBench source split must be dev or all") from exc
+
+
+def prepare_paperbench_code_dataset(
     source_root: Path,
     output_root: Path,
     *,
+    source_split: str,
     revision: str = PAPERBENCH_REVISION,
-    paper_ids: tuple[str, ...] = PAPERBENCH_DEV_PAPERS,
 ) -> Path:
     """Convert one hydrated upstream PaperBench tree into local task inputs."""
 
+    paper_ids = paperbench_papers(source_split)
     source = source_root.resolve()
     destination = output_root.expanduser().absolute()
     if os.path.lexists(destination):
@@ -64,6 +102,7 @@ def prepare_paperbench_code_dev(
                 papers_root / paper_id,
                 staging / paper_id,
                 paper_id=paper_id,
+                source_split=source_split,
                 revision=revision,
             )
             for paper_id in paper_ids
@@ -72,7 +111,7 @@ def prepare_paperbench_code_dev(
             "kind": "rubric-gen-paperbench-code-dev-dataset",
             "source_repository": PAPERBENCH_REPOSITORY,
             "source_revision": revision,
-            "source_split": "dev",
+            "source_split": source_split,
             "code_only": True,
             "paper_ids": list(paper_ids),
             "papers": records,
@@ -84,16 +123,18 @@ def prepare_paperbench_code_dev(
     return destination
 
 
-def download_paperbench_code_dev(
+def download_paperbench_code_dataset(
     output_root: Path,
     *,
+    source_split: str,
     revision: str = PAPERBENCH_REVISION,
 ) -> Path:
-    """Download the pinned upstream dev papers and convert them into tasks."""
+    """Download one pinned upstream paper set and convert it into tasks."""
 
-    with tempfile.TemporaryDirectory(prefix="paperbench-code-dev-source-") as raw:
+    paper_ids = paperbench_papers(source_split)
+    with tempfile.TemporaryDirectory(prefix="paperbench-code-source-") as raw:
         source = Path(raw)
-        for paper_id in PAPERBENCH_DEV_PAPERS:
+        for paper_id in paper_ids:
             paper = source / "data" / "papers" / paper_id
             paper.mkdir(parents=True)
             for name in _ROOT_FILES:
@@ -120,20 +161,22 @@ def download_paperbench_code_dev(
                     paper / "assets" / asset,
                     revision=revision,
                 )
-        return prepare_paperbench_code_dev(
+        return prepare_paperbench_code_dataset(
             source,
             output_root,
+            source_split=source_split,
             revision=revision,
         )
 
 
-def validate_paperbench_code_dev_dataset(
+def validate_paperbench_code_dataset(
     root: Path,
     *,
-    paper_ids: tuple[str, ...] = PAPERBENCH_DEV_PAPERS,
+    source_split: str,
 ) -> None:
-    """Validate one prepared dataset against the pinned official dev split."""
+    """Validate one prepared dataset against an exact pinned paper set."""
 
+    paper_ids = paperbench_papers(source_split)
     dataset = root.expanduser().absolute()
     if dataset.is_symlink() or not dataset.is_dir():
         raise ValueError(f"PaperBench dataset is missing or symlinked: {dataset}")
@@ -148,11 +191,13 @@ def validate_paperbench_code_dev_dataset(
         manifest["kind"] != "rubric-gen-paperbench-code-dev-dataset"
         or manifest["source_repository"] != PAPERBENCH_REPOSITORY
         or manifest["source_revision"] != PAPERBENCH_REVISION
-        or manifest["source_split"] != "dev"
+        or manifest["source_split"] != source_split
         or manifest["code_only"] is not True
         or manifest["paper_ids"] != list(paper_ids)
     ):
-        raise ValueError("PaperBench dataset manifest differs from the pinned dev split")
+        raise ValueError(
+            "PaperBench dataset manifest differs from the pinned source split"
+        )
     records = manifest["papers"]
     if type(records) is not list or len(records) != len(paper_ids):
         raise ValueError("PaperBench dataset manifest has invalid paper records")
@@ -162,7 +207,9 @@ def validate_paperbench_code_dev_dataset(
         if type(record) is dict and type(record.get("paper_id")) is str
     }
     if set(by_id) != set(paper_ids):
-        raise ValueError("PaperBench dataset paper records do not match the dev split")
+        raise ValueError(
+            "PaperBench dataset paper records do not match the source split"
+        )
     for paper_id in paper_ids:
         task = dataset / paper_id
         metadata_path = task / "tests" / "paperbench.json"
@@ -181,7 +228,7 @@ def validate_paperbench_code_dev_dataset(
             or metadata["paper_id"] != paper_id
             or metadata["source_repository"] != PAPERBENCH_REPOSITORY
             or metadata["source_revision"] != PAPERBENCH_REVISION
-            or metadata["source_split"] != "dev"
+            or metadata["source_split"] != source_split
             or metadata["code_only"] is not True
             or metadata["scoring_protocol"] != PAPERBENCH_SCORING_PROTOCOL
         ):
@@ -266,6 +313,7 @@ def _prepare_paper(
     destination: Path,
     *,
     paper_id: str,
+    source_split: str,
     revision: str,
 ) -> dict[str, object]:
     if source.is_symlink() or not source.is_dir():
@@ -317,7 +365,7 @@ def _prepare_paper(
         "title": title,
         "source_repository": PAPERBENCH_REPOSITORY,
         "source_revision": revision,
-        "source_split": "dev",
+        "source_split": source_split,
         "code_only": True,
         "code_development_leaf_count": leaf_count,
         "scoring_protocol": PAPERBENCH_SCORING_PROTOCOL,

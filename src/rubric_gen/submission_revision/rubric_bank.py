@@ -417,8 +417,9 @@ def _allocate_integer_mass(
     if (
         not weights
         or len(weights) != len(minimums)
-        or any(weight <= 0 for weight in weights)
-        or any(minimum < 1 for minimum in minimums)
+        or any(weight < 0 for weight in weights)
+        or not any(weights)
+        or any(minimum < 0 for minimum in minimums)
         or total < sum(minimums)
     ):
         raise ValueError("rubric point mass cannot satisfy its level contract")
@@ -444,14 +445,17 @@ def _allocate_integer_mass(
 
 def _scaled_level_points(levels: tuple[object, ...], new_maximum: int) -> tuple[int, ...]:
     old_points = tuple(int(getattr(level, "points")) for level in levels)
+    old_maximum = old_points[0]
+    if old_maximum == 0:
+        if new_maximum != 0:
+            raise ValueError("a penalty criterion cannot receive positive point mass")
+        return old_points
     positive_count = sum(point > 0 for point in old_points)
-    negative_count = sum(point < 0 for point in old_points)
     if new_maximum < positive_count:
         raise ValueError("scaled criterion has too little positive point mass")
     values: list[int] = []
     remaining_positive = positive_count
     previous = new_maximum + 1
-    old_maximum = old_points[0]
     for point in old_points:
         if point > 0:
             lower = remaining_positive
@@ -463,15 +467,12 @@ def _scaled_level_points(levels: tuple[object, ...], new_maximum: int) -> tuple[
         elif point == 0:
             values.append(0)
         else:
-            negative_rank = sum(value < 0 for value in values) + 1
-            old_floor = abs(old_points[-1]) or 1
-            magnitude = max(
-                negative_rank,
-                round(abs(point) * max(new_maximum, negative_count) / old_floor),
-            )
-            if values and values[-1] < 0:
-                magnitude = max(magnitude, abs(values[-1]) + 1)
-            values.append(-magnitude)
+            value = round(point * new_maximum / old_maximum)
+            if value >= 0 or (values and value >= values[-1]):
+                raise ValueError(
+                    "scaled criterion cannot preserve its negative level order"
+                )
+            values.append(value)
     return tuple(values)
 
 

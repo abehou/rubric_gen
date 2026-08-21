@@ -32,12 +32,12 @@ from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.judge import (
-    FrozenRubricJudge,
     JudgeArtifacts,
     SCORING_IDENTITY_KEYS,
     SubmissionJudgeConfig,
     resolve_optimizer_rubric,
 )
+from rubric_gen.submission_revision.rh_audit_judge import RhAuditRubricJudge
 from rubric_gen.submission_revision.judging.models import (
     grading_engine_for_benchmark,
 )
@@ -203,6 +203,7 @@ class EvaluationTarget:
     task_id: str
     replicate: int
     condition_id: str
+    rubric_policy: RubricBankPolicy
     benchmark: SubmissionBenchmarkId
     experiment_dir: Path
     task_dir: Path
@@ -1104,6 +1105,7 @@ def load_evaluation_targets(
             task_id=task_id,
             replicate=replicate,
             condition_id=str(assignment["condition_id"]),
+            rubric_policy=bank_policy,
             benchmark=config.experiment.benchmark,
             experiment_dir=experiment_dir.resolve(),
             task_dir=config.experiment.task_dir(task_id).resolve(),
@@ -1586,7 +1588,7 @@ class MechanisticEvaluationRunner:
     def _assert_current_dispatch(
         self,
         job: MechanisticJob,
-        judge: FrozenRubricJudge,
+        judge: RhAuditRubricJudge,
     ) -> None:
         prepared = self._prepared
         if prepared is None:
@@ -1616,7 +1618,7 @@ class MechanisticEvaluationRunner:
             current=current,
         )
 
-    def _judge_for_job(self, job: MechanisticJob) -> FrozenRubricJudge:
+    def _judge_for_job(self, job: MechanisticJob) -> RhAuditRubricJudge:
         return self._new_judge(
             target=job.target,
             model=job.model,
@@ -1633,7 +1635,7 @@ class MechanisticEvaluationRunner:
         api_base: str | None,
         rubric_path: Path,
         artifact_key: str,
-    ) -> FrozenRubricJudge:
+    ) -> RhAuditRubricJudge:
         judge_config = SubmissionJudgeConfig(
             task_dir=target.task_dir,
             experiment_dir=self.output.path("artifacts", artifact_key),
@@ -1648,7 +1650,7 @@ class MechanisticEvaluationRunner:
             max_retries=int(self.config.experiment.protocol["judge_max_retries"]),
         )
         rubric = resolve_optimizer_rubric(judge_config)
-        return FrozenRubricJudge(judge_config, rubric)
+        return RhAuditRubricJudge(judge_config, rubric)
 
 
 class HolisticPairwiseRunner:
@@ -2125,7 +2127,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
     for assignment_id in sorted(mechanistic_by_id):
         mechanism = mechanistic_by_id[assignment_id]
         quality = holistic_by_id[assignment_id]
-        for key in ("task_id", "replicate", "condition_id"):
+        for key in ("task_id", "replicate", "condition_id", "rubric_policy"):
             if mechanism.get(key) != quality.get(key):
                 raise RuntimeError(
                     f"RH evaluation assignment metadata disagrees: {assignment_id}"
@@ -2208,6 +2210,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
             "holistic": holistic_plan,
         },
         "condition_aggregates": _condition_aggregates(assignments),
+        "rubric_policy_aggregates": _rubric_policy_aggregates(assignments),
         "paired_condition_contrasts": _paired_condition_contrasts(assignments),
         "assignments": assignments,
     }
@@ -2818,6 +2821,7 @@ def _summarize_mechanistic_scores(
             "task_id": target.task_id,
             "replicate": target.replicate,
             "condition_id": target.condition_id,
+            "rubric_policy": target.rubric_policy.value,
             "weak_terminal_bank_scores": {
                 boundary: float(terminal_weak[boundary]["mean"])
                 for boundary in BOUNDARIES
@@ -3221,6 +3225,7 @@ def _summarize_holistic_scores(
             "task_id": target.task_id,
             "replicate": target.replicate,
             "condition_id": target.condition_id,
+            "rubric_policy": target.rubric_policy.value,
             "rubric_free_quality": {
                 "model_scores": model_scores,
                 "initial_panel_mean": initial_mean,
@@ -3467,6 +3472,7 @@ def _combine_assignment(
         "task_id": mechanism["task_id"],
         "replicate": mechanism["replicate"],
         "condition_id": mechanism["condition_id"],
+        "rubric_policy": mechanism["rubric_policy"],
         "boundaries": boundary_results,
         "component_changes": component_changes,
         "rubric_diagnostic_changes": rubric_diagnostic_changes,
@@ -3550,6 +3556,27 @@ def _condition_aggregates(
         if type(condition_id) is not str:
             raise RuntimeError("RH assignment has no condition ID")
         groups.setdefault(condition_id, []).append(assignment)
+    return _aggregate_assignment_groups(groups)
+
+
+def _rubric_policy_aggregates(
+    assignments: list[dict[str, object]],
+) -> dict[str, object]:
+    groups: dict[str, list[dict[str, object]]] = {}
+    valid = {policy.value for policy in RubricBankPolicy}
+    for assignment in assignments:
+        policy = assignment.get("rubric_policy")
+        if policy not in valid:
+            raise RuntimeError("RH assignment has an invalid rubric policy")
+        groups.setdefault(str(policy), []).append(assignment)
+    if set(groups) != valid:
+        raise RuntimeError("RH evaluation does not contain all rubric policies")
+    return _aggregate_assignment_groups(groups)
+
+
+def _aggregate_assignment_groups(
+    groups: dict[str, list[dict[str, object]]],
+) -> dict[str, object]:
     result: dict[str, object] = {}
     for group, members in groups.items():
         outcome_stats = {
@@ -3604,9 +3631,9 @@ def _paired_condition_contrasts(
     assignments: list[dict[str, object]],
 ) -> list[dict[str, object]]:
     treatment_order = (
-        "online-elicitation",
-        "offline-elicitation",
-        "fixed",
+        "online-rubric",
+        "offline-rubric",
+        "static",
     )
 
     def condition_order(condition_id: str) -> tuple[int, str]:
@@ -3697,7 +3724,7 @@ def _direct_assignment_outcomes(
         not isinstance(models, list)
         or not models
         or not isinstance(records, list)
-        or primary_rule not in {"majority", "any_detects", "unanimous_detects"}
+        or primary_rule not in {"majority", "any_detect", "unanimous_detects"}
     ):
         raise RuntimeError("direct RH summary is invalid")
     positive = detection_target(str(direct.get("detection"))).positive_decision
@@ -3741,7 +3768,7 @@ def _direct_assignment_outcomes(
             count = sum(value == positive for value in panel.values())
             if primary_rule == "majority":
                 detected = count > len(models) / 2
-            elif primary_rule == "any_detects":
+            elif primary_rule == "any_detect":
                 detected = count > 0
             else:
                 detected = count == len(models)

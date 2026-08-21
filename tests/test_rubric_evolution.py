@@ -146,14 +146,16 @@ def _criterion_value(
 def _semantic_output(
     schema: dict[str, object],
     *,
-    verdict: str = "accepted",
+    verdicts: tuple[str, ...] | None = None,
 ) -> SemanticReviewerOutput:
     item_schema = schema["properties"]["criterion_reviews"]["items"]  # type: ignore[index]
     criterion_ids = item_schema["properties"]["criterion_id"]["enum"]  # type: ignore[index]
     count = schema["properties"]["criterion_reviews"]["maxItems"]  # type: ignore[index]
     ids = criterion_ids[:count]
+    decisions = ("accepted",) * count if verdicts is None else verdicts
+    if len(decisions) != count:
+        raise ValueError("test semantic verdict count differs from the schema")
     response = {
-        "verdict": verdict,
         "criterion_reviews": [
             {
                 "criterion_id": criterion_id,
@@ -164,7 +166,7 @@ def _semantic_output(
                     else "The evidence does not establish a general criterion."
                 ),
             }
-            for criterion_id in ids
+            for criterion_id, verdict in zip(ids, decisions, strict=True)
         ],
     }
     return SemanticReviewerOutput(
@@ -237,6 +239,7 @@ def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
     assert "do not choose points or weights" in criterion
     assert "unseen solutions" in criterion
     assert "at least two" in semantic
+    assert "advisory labels" in semantic
     assert "outcome" not in difference + criterion + semantic
 
 
@@ -365,6 +368,35 @@ def test_criterion_needs_support_from_two_pairs_before_review(tmp_path: Path) ->
     assert calls == 2
 
 
+def test_criterion_schema_leaves_distinctness_to_local_validation() -> None:
+    schema = evolution_module._criterion_schema(3, ("A", "B", "C"))
+    support = schema["properties"]["criteria"]["items"]["properties"][  # type: ignore[index]
+        "support_pair_ids"
+    ]
+
+    assert "uniqueItems" not in support
+
+
+def test_criterion_rejects_duplicate_support_pairs_before_review(
+    tmp_path: Path,
+) -> None:
+    calls = 0
+
+    def propose(**kwargs):
+        nonlocal calls
+        calls += 1
+        if kwargs["stage"] == "differences":
+            return _proposer_output(_difference_value(), "differences")
+        return _proposer_output(
+            _criterion_value(support=["pair_1", "pair_1"]),
+            f"criteria-{calls}",
+        )
+
+    with pytest.raises(RuntimeError, match="failed validation"):
+        _replace(_proposer(propose, retries=0), tmp_path)
+    assert calls == 2
+
+
 def test_meta_conditioned_criterion_is_rejected_before_review(tmp_path: Path) -> None:
     def propose(**kwargs):
         if kwargs["stage"] == "differences":
@@ -398,7 +430,7 @@ def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
     assert difference_calls == 2
 
 
-def test_semantic_rejection_is_sealed_and_never_resampled(tmp_path: Path) -> None:
+def test_semantic_rejection_is_an_advisory_label(tmp_path: Path) -> None:
     calls = {"proposer": 0, "semantic": 0}
 
     def propose(**kwargs):
@@ -412,14 +444,18 @@ def test_semantic_rejection_is_sealed_and_never_resampled(tmp_path: Path) -> Non
 
     def reject(**kwargs):
         calls["semantic"] += 1
-        return _semantic_output(kwargs["response_schema"], verdict="rejected")
+        return _semantic_output(
+            kwargs["response_schema"],
+            verdicts=("rejected",),
+        )
 
-    with pytest.raises(RuntimeError, match="sealed semantic rejection"):
-        _replace(_proposer(propose, reject), tmp_path)
+    first = _replace(_proposer(propose, reject), tmp_path)
     assert calls == {"proposer": 2, "semantic": 1}
-    rejection = tmp_path / "bank-0001.semantic-rejection.json"
-    assert rejection.is_file()
-    assert rejection.stat().st_mode & 0o222 == 0
+    assert first.bank.items[0].rubric != _initial_bank().items[0].rubric
+    assert [
+        item.title for item in first.bank.items[0].elicited_criteria
+    ] == ["Robustness"]
+    assert (tmp_path / "bank-0001").is_dir()
 
     resumed_calls = 0
 
@@ -428,7 +464,78 @@ def test_semantic_rejection_is_sealed_and_never_resampled(tmp_path: Path) -> Non
         resumed_calls += 1
         raise AssertionError("provider must not run")
 
-    with pytest.raises(RuntimeError, match="sealed semantic rejection"):
+    second = _replace(_proposer(forbidden, forbidden), tmp_path)
+    assert second == first
+    assert resumed_calls == 0
+
+
+@pytest.mark.parametrize("advisory_verdict", ["rejected", "uncertain"])
+def test_semantic_review_labels_do_not_filter_valid_criteria(
+    tmp_path: Path,
+    advisory_verdict: str,
+) -> None:
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            return _proposer_output(_difference_value(), "differences")
+        first = _criterion_value()["criteria"][0]
+        second = {
+            "title": "Traceability",
+            "requirement": "Connect each result to reproducible evidence.",
+            "level_descriptions": [
+                {"label": "A", "description": "Complete and reproducible."},
+                {"label": "B", "description": "Partly reproducible."},
+                {"label": "C", "description": "Missing or unusable."},
+            ],
+            "support_pair_ids": ["pair_2", "pair_3"],
+        }
+        return _proposer_output(
+            {"criteria": [first, second]},
+            "criteria",
+        )
+
+    def review(**kwargs):
+        return _semantic_output(
+            kwargs["response_schema"],
+            verdicts=("accepted", advisory_verdict),
+        )
+
+    generation = _replace(_proposer(propose, review), tmp_path)
+
+    assert [
+        item.title for item in generation.bank.items[0].elicited_criteria
+    ] == ["Robustness", "Traceability"]
+    saved_review = json.loads(
+        (tmp_path / "bank-0001" / "semantic-review.json").read_text()
+    )
+    assert set(saved_review) == {"criterion_reviews"}
+    assert [
+        item["verdict"] for item in saved_review["criterion_reviews"]
+    ] == ["accepted", advisory_verdict]
+
+
+def test_invalid_semantic_review_is_terminal_and_never_resampled(
+    tmp_path: Path,
+) -> None:
+    def invalid_review(**_kwargs):
+        return SemanticReviewerOutput(
+            response_text=json.dumps({"criterion_reviews": []}),
+            cost=_cost(),
+            generation=_generation("semantic", "invalid-semantic-review"),
+        )
+
+    with pytest.raises(RuntimeError, match="wrong criterion count"):
+        _replace(_proposer(run_semantic=invalid_review), tmp_path)
+    ledger = tmp_path / "bank-0001.provider-attempts.json"
+    assert ledger.stat().st_mode & 0o222 == 0
+
+    resumed_calls = 0
+
+    def forbidden(**_kwargs):
+        nonlocal resumed_calls
+        resumed_calls += 1
+        raise AssertionError("provider must not run")
+
+    with pytest.raises(RuntimeError, match="wrong criterion count"):
         _replace(_proposer(forbidden, forbidden), tmp_path)
     assert resumed_calls == 0
 

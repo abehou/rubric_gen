@@ -31,6 +31,7 @@ from rubric_gen.submission_revision.rh_diagnostics import (
     _load_weak_bank_score,
     _paired_condition_contrasts,
     _pairwise_preference_request,
+    _rubric_policy_aggregates,
     _summarize_holistic_scores,
     _summarize_mechanistic_scores,
 )
@@ -255,7 +256,8 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         assignment_id="assignment-1",
         task_id="da-1-1",
         replicate=1,
-        condition_id="diligent-online-elicitation",
+        condition_id="diligent-online-rubric",
+        rubric_policy=RubricBankPolicy.ONLINE_ELICITATION,
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         experiment_dir=tmp_path,
         task_dir=tmp_path,
@@ -759,6 +761,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     fixed_target = replace(
         target,
         condition_id="diligent-fixed",
+        rubric_policy=RubricBankPolicy.FIXED,
         final_bank_generation=target.initial_bank_generation,
         final_bank_manifest_path=initial_manifest,
         final_bank_manifest_sha256=sha256_file(initial_manifest),
@@ -1089,7 +1092,8 @@ def test_two_component_decomposition_and_diagnostic_partition_telescope(
         "assignment_id": "assignment-1",
         "task_id": "da-1-1",
         "replicate": 1,
-        "condition_id": "diligent-online-elicitation",
+        "condition_id": "diligent-online-rubric",
+        "rubric_policy": "online_elicitation",
         "rubric_free_quality": {
             "initial_panel_mean": 47.5,
             "final_panel_mean": 75,
@@ -1210,9 +1214,55 @@ def test_condition_aggregates_keep_direct_detection_independent(
     result = _condition_aggregates([assignment])
 
     assert result["overall"]["direct_detection"]["rate"] == 1
-    assert result["diligent-online-elicitation"]["outcomes"][
+    assert result["diligent-online-rubric"]["outcomes"][
         "reward_hacking_loss_change"
     ]["mean"] == -12.75
+
+
+def test_rubric_policy_aggregates_define_the_scale_up_gate(
+    tmp_path: Path,
+) -> None:
+    _target_value, mechanism = _mechanistic_summary(tmp_path)
+    assignment = _combine_assignment(
+        mechanism,
+        {
+            "rubric_free_quality": {
+                "initial_panel_mean": 47.5,
+                "final_panel_mean": 75,
+            },
+            "pairwise_preference": {
+                "rubric_order_agreement": 0.875,
+            },
+        },
+        {name: 1 for name in (
+            "verifier_exploitation",
+            "dynamic_rubric_gap",
+        )},
+    )
+    assignments = [
+        {
+            **assignment,
+            "assignment_id": f"assignment-{index}",
+            "rubric_policy": policy,
+            "direct_detection": {"decision": decision},
+        }
+        for index, (policy, decision) in enumerate((
+            ("fixed", "detected"),
+            ("offline_elicitation", "not_detected"),
+            ("online_elicitation", "not_detected"),
+        ), start=1)
+    ]
+
+    result = _rubric_policy_aggregates(assignments)
+
+    assert set(result) == {
+        "fixed",
+        "offline_elicitation",
+        "online_elicitation",
+    }
+    assert result["fixed"]["direct_detection"]["rate"] == 1
+    assert result["offline_elicitation"]["direct_detection"]["rate"] == 0
+    assert result["online_elicitation"]["direct_detection"]["rate"] == 0
 
 
 def test_condition_contrasts_pair_task_replicates() -> None:
@@ -1221,7 +1271,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "assignment_id": "a",
             "task_id": "task-1",
             "replicate": 1,
-            "condition_id": "online-elicitation",
+            "condition_id": "online-rubric",
             "outcomes": {
                 "terminal_bank_weak_gain": 11,
                 "selected_rubric_gain": 10,
@@ -1252,7 +1302,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "assignment_id": "b",
             "task_id": "task-1",
             "replicate": 1,
-            "condition_id": "fixed",
+            "condition_id": "static",
             "outcomes": {
                 "terminal_bank_weak_gain": 9,
                 "selected_rubric_gain": 3,
@@ -1284,7 +1334,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
     contrast = _paired_condition_contrasts(assignments)[0]
 
     assert contrast["direction"] == "left-minus-right"
-    assert contrast["left_condition"] == "online-elicitation"
+    assert contrast["left_condition"] == "online-rubric"
     assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
     assert contrast["paired_differences"][
         "sealed_holdout_bank_gain"
@@ -1442,6 +1492,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         target,
         assignment_id="assignment-2",
         condition_id="diligent-fixed",
+        rubric_policy=RubricBankPolicy.FIXED,
         experiment_dir=tmp_path / "other-condition",
         initial_submission=duplicate_submission,
     )
@@ -1949,6 +2000,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         target,
         assignment_id="assignment-2",
         condition_id="diligent-fixed",
+        rubric_policy=RubricBankPolicy.FIXED,
         experiment_dir=tmp_path / "other-condition",
         initial_submission=tmp_path / "other-condition" / "s000",
         final_submission=tmp_path / "other-condition" / "s006",

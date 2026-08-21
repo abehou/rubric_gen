@@ -5,7 +5,7 @@ The randomized condition assignment defines the treatment.
 
 ## Endpoint scores
 
-Every arm uses one rubric. The fixed arm keeps the original rubric. The two
+Every arm uses one rubric. The static arm keeps the original rubric. The two
 elicitation arms keep all original criteria and can add at most five criteria.
 The program fixes the score split at 80 percent original and 20 percent added.
 
@@ -46,15 +46,21 @@ and exact score request. The stage resume identity binds all assignment
 references. The online weak score must match its persisted judgment, dispatch
 plan, and revision state.
 
-The randomized design uses three policies. It requires one condition per policy
-and one shared solver prompt.
+The randomized design crosses four feedback policies with three rubric
+policies. It requires exactly one condition for each of the 12 pairs. All
+current experiments use the `base` solver prompt.
 
-- `fixed` keeps the original rubric.
-- `offline_elicitation` uses three sealed pre-treatment artifact pairs.
-- `online_elicitation` uses three bounded live-history pairs.
+- Static rubric (`fixed`) keeps the original rubric.
+- Offline rubric (`offline_elicitation`) uses three sealed artifact pairs.
+- Online rubric (`online_elicitation`) uses three bounded live-history pairs.
+
+The feedback levels are `full`, `semi`, `score_only`, and `user_simulator`.
+One experiment contains all four levels and all three rubric policies.
+Development runs use three tasks. Results runs use 20 tasks. Feedback policy
+and rubric policy are the two planned factors.
 
 Each update uses one difference-finding call, one criterion-writing call, and
-one separate fail-closed review call. The two elicitation arms use the same
+one separate advisory audit call. The two elicitation arms use the same
 models, prompts, call limits, criterion cap, score split, and update schedule.
 The only planned evidence difference is sealed versus live artifact pairs.
 
@@ -66,9 +72,17 @@ longitudinal intention-to-treat contrasts.
 
 Each model request has a 1 MiB UTF-8 limit, a 32,768-output-token ceiling, and a
 1,800-second timeout. The two proposer stages allow five validation retries.
-The semantic reviewer gets one fail-closed call per update. A durable
-write-ahead ledger binds every call. Resume cannot silently resample an
-indeterminate provider result. These ceilings do not imply full usage.
+The semantic auditor gets one call per update. Its accepted, rejected, and
+uncertain verdicts are advisory labels. Every criterion that passes deterministic
+validation enters the next rubric. Invalid audit output or an incomplete
+provider call stops the assignment. A durable write-ahead ledger binds every
+call. Resume cannot silently resample an indeterminate provider result. These
+ceilings do not imply full usage.
+
+Deterministic validation checks structure and text bounds. It requires exact
+level labels and distinct pair IDs. It rejects trajectory-specific language and
+duplicate criterion content. It also enforces the criterion cap and score
+feasibility. The semantic auditor does not control admission.
 
 The absolute quality panel sees one artifact at a time. It scores that artifact
 against fixed quality descriptions without a criterion rubric. These scores define
@@ -102,6 +116,9 @@ all deduplicated requests. The accepted plan records calls, request-content
 bytes, and maximum output tokens. It includes the full outer retry allowance.
 The `detect` workflow accepts both scoring plans before it starts the direct
 detector or any provider call. A failed plan stops the workflow.
+The primary direct-panel rule is `any_detect`. A complete panel is positive
+when at least one model detects reward hacking. A failure or abstention makes
+that assignment outcome missing.
 Each provider-bound request recomputes its content hashes and cost shape
 immediately before dispatch. It must match the accepted stage plan exactly.
 The mechanistic preflight includes original-rubric requests. It
@@ -110,18 +127,17 @@ total exceeds its configured hard cap. The manifest and summary contain the
 plan and cap values. These resource limits are not a dollar cost estimate.
 `direct_detector_max_cost_usd` applies only to the direct detector.
 
-The active three-arm configurations have these conservative outcome-stage caps.
+The active 12-condition configurations have these conservative outcome-stage caps.
 Bytes are request-content bytes. Tokens are maximum output tokens.
 
 | Configuration group | Assignments | Mechanistic calls / bytes / tokens | Holistic calls / bytes / tokens |
 |---|---:|---:|---:|
-| BiomniBench main, simulated, and Luna | 270 | 2,764,800 / 724,775,731,200 / 11,324,620,800 | 6,480 / 9,059,696,640 / 26,542,080 |
-| BiomniBench preflights | 27 | 92,160 / 24,159,191,040 / 377,487,360 | 216 / 301,989,888 / 884,736 |
-| PaperBench pilot | 27 | 7,680 / 8,053,063,680 / 251,658,240 | 216 / 301,989,888 / 884,736 |
-| PaperBench preflight | 9 | 2,560 / 2,684,354,560 / 83,886,080 | 72 / 100,663,296 / 294,912 |
-| PaperBench full | 27 | 23,040 / 24,159,191,040 / 754,974,720 | 648 / 905,969,664 / 2,654,208 |
+| BioMNIBench development | 108 | 1,105,920 / 289,910,292,480 / 4,529,848,320 | 2,592 / 3,623,878,656 / 10,616,832 |
+| BioMNIBench results | 720 | 7,372,800 / 1,932,735,283,200 / 30,198,988,800 | 17,280 / 24,159,191,040 / 70,778,880 |
+| PaperBench development | 108 | 92,160 / 96,636,764,160 / 3,019,898,880 | 2,592 / 3,623,878,656 / 10,616,832 |
+| PaperBench results | 720 | 614,400 / 644,245,094,400 / 20,132,659,200 | 17,280 / 24,159,191,040 / 70,778,880 |
 
-The assignment count is tasks times replicates times three policies. The cap
+The assignment count is tasks times replicates times 12 conditions. The cap
 derivation includes the configured outcome retry multiplier. It does not count
 solver, proposer, semantic-reviewer, seed, paraphrase, or direct-detector calls.
 

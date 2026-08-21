@@ -169,15 +169,14 @@ def _numbered_bank_directories(
 
 def _rubric_generation_entries(
     root: Path,
-) -> tuple[list[int], list[int], list[int]]:
-    """Return generation, rejection, and provider-ledger rounds."""
+) -> tuple[list[int], list[int]]:
+    """Return generation and provider-ledger rounds."""
 
     if not os.path.lexists(root):
-        return [], [], []
+        return [], []
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError("rubric generation root is invalid")
     rounds: list[int] = []
-    rejection_rounds: list[int] = []
     ledger_rounds: list[int] = []
     for path in root.iterdir():
         name = path.name
@@ -191,18 +190,6 @@ def _rubric_generation_entries(
             rounds.append(int(name[5:]))
             continue
         prefix = "bank-"
-        suffix = ".semantic-rejection.json"
-        digits = name[len(prefix):-len(suffix)] if (
-            name.startswith(prefix) and name.endswith(suffix)
-        ) else ""
-        if (
-            not path.is_symlink()
-            and path.is_file()
-            and len(digits) == 4
-            and digits.isdigit()
-        ):
-            rejection_rounds.append(int(digits))
-            continue
         ledger_suffix = ".provider-attempts.json"
         ledger_digits = name[len(prefix):-len(ledger_suffix)] if (
             name.startswith(prefix) and name.endswith(ledger_suffix)
@@ -218,23 +205,15 @@ def _rubric_generation_entries(
         raise RuntimeError("rubric generation root contains an invalid entry")
     if len(set(rounds)) != len(rounds):
         raise RuntimeError("rubric generation root contains duplicate rounds")
-    if len(rejection_rounds) > 1:
-        raise RuntimeError("rubric generation has multiple semantic rejections")
-    if set(rounds) & set(rejection_rounds):
-        raise RuntimeError("rubric generation round has conflicting artifacts")
     if len(set(ledger_rounds)) != len(ledger_rounds):
         raise RuntimeError("rubric generation root contains duplicate ledgers")
-    finalized = set(rounds) | set(rejection_rounds)
-    if not finalized <= set(ledger_rounds):
+    if not set(rounds) <= set(ledger_rounds):
         raise RuntimeError("rubric generation lacks its provider attempt ledger")
-    return sorted(rounds), sorted(rejection_rounds), sorted(ledger_rounds)
+    return sorted(rounds), sorted(ledger_rounds)
 
 
 _LEDGER_ATOMIC_TEMP = re.compile(
     r"^\.bank-([0-9]{4})\.provider-attempts\.json\.[a-z0-9_]{8}\.tmp$"
-)
-_SEMANTIC_REJECTION_ATOMIC_TEMP = re.compile(
-    r"^\.bank-([0-9]{4})\.semantic-rejection\.json\.[a-z0-9_]{8}\.tmp$"
 )
 _GENERATION_STAGING_DIRECTORY = re.compile(
     r"^\.bank-([0-9]{4})\.[a-z0-9_]{8}$"
@@ -256,13 +235,12 @@ def _remove_owned_rubric_generation_residue(
     changed = False
     for path in sorted(root.iterdir(), key=lambda item: item.name):
         ledger_match = _LEDGER_ATOMIC_TEMP.fullmatch(path.name)
-        rejection_match = _SEMANTIC_REJECTION_ATOMIC_TEMP.fullmatch(path.name)
         stage_match = _GENERATION_STAGING_DIRECTORY.fullmatch(path.name)
-        match = ledger_match or rejection_match or stage_match
+        match = ledger_match or stage_match
         if match is None or not 1 <= int(match.group(1)) <= max_generation_round:
             continue
         path_stat = os.lstat(path)
-        if ledger_match is not None or rejection_match is not None:
+        if ledger_match is not None:
             if not stat.S_ISREG(path_stat.st_mode):
                 raise RuntimeError(
                     "rubric generation temporary path is not a regular file"
@@ -432,10 +410,10 @@ class SubmissionRevisionController:
             )
         ):
             raise ValueError("bank proposer contract differs from revision config")
-        if FeedbackPolicy(config.feedback_policy) is FeedbackPolicy.SIMULATED_USER:
+        if FeedbackPolicy(config.feedback_policy) is FeedbackPolicy.USER_SIMULATOR:
             if self.dependencies.feedback_simulator is None:
                 raise ValueError(
-                    "simulated_user feedback requires a feedback simulator"
+                    "user_simulator feedback requires a feedback simulator"
                 )
             assert config.feedback_simulator is not None
             if (
@@ -447,7 +425,7 @@ class SubmissionRevisionController:
                 )
         elif self.dependencies.feedback_simulator is not None:
             raise ValueError(
-                "feedback simulator dependency is only valid for simulated_user"
+                "feedback simulator dependency is only valid for user_simulator"
             )
         self.master_judge = self.dependencies.master_judge or self.dependencies.judge
         reported_scoring_identity = self.dependencies.judge.scoring_identity()
@@ -1289,7 +1267,7 @@ class SubmissionRevisionController:
             proposal_root,
             max_generation_round=maximum_generation,
         )
-        proposal_rounds, rejection_rounds, ledger_rounds = _rubric_generation_entries(
+        proposal_rounds, ledger_rounds = _rubric_generation_entries(
             proposal_root
         )
         bank_rounds = _numbered_bank_directories(
@@ -1317,22 +1295,10 @@ class SubmissionRevisionController:
             )
         if proposal_rounds and proposal_rounds[-1] > maximum_generation:
             raise RuntimeError("rubric elicitation generation exceeds the study length")
-        if rejection_rounds:
-            rejection_round = rejection_rounds[0]
-            if (
-                proposal_rounds != elicitation_rounds
-                or rejection_round != len(elicitation_rounds) + 1
-                or rejection_round > maximum_generation
-            ):
-                raise RuntimeError(
-                    "sealed semantic rejection is not the next terminal generation"
-                )
         expected_ledger_rounds = list(range(1, len(ledger_rounds) + 1))
         if ledger_rounds != expected_ledger_rounds:
             raise RuntimeError("rubric provider attempt ledgers are not contiguous")
-        terminal_ledgers = sorted(
-            set(ledger_rounds) - set(proposal_rounds) - set(rejection_rounds)
-        )
+        terminal_ledgers = sorted(set(ledger_rounds) - set(proposal_rounds))
         if (
             len(terminal_ledgers) > 1
             or terminal_ledgers
@@ -1367,8 +1333,6 @@ class SubmissionRevisionController:
                     else None
                 ),
             )
-            if generation_round in rejection_rounds:
-                raise RuntimeError("sealed semantic rejection was not enforced")
             if generation_round <= len(elicitation_rounds):
                 persisted = load_rubric_bank(
                     self.experiment_dir,
@@ -1379,7 +1343,10 @@ class SubmissionRevisionController:
                     raise RuntimeError(
                         "rubric generation disagrees with the persisted bank"
                     )
-            elif generation_round in proposal_rounds or generation_round in terminal_ledgers:
+            elif (
+                generation_round in proposal_rounds
+                or generation_round in terminal_ledgers
+            ):
                 persist_rubric_bank(
                     self.experiment_dir,
                     replayed,
@@ -1748,7 +1715,7 @@ class SubmissionRevisionController:
         allow_generation: bool,
     ):
         policy = FeedbackPolicy(self.config.feedback_policy)
-        if policy is not FeedbackPolicy.SIMULATED_USER:
+        if policy is not FeedbackPolicy.USER_SIMULATOR:
             return project_bank_feedback(
                 bank,
                 {

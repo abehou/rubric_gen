@@ -20,7 +20,7 @@ uv sync
 
 ## Run an experiment
 
-An experiment file defines the tasks, conditions, models, feedback policy, and
+An experiment file defines the tasks, conditions, models, feedback policies, and
 this workflow:
 
 ```text
@@ -35,7 +35,7 @@ pools and must not contain this token.
 
 ```bash
 uv run rubric-gen run \
-  --experiment experiment_preflight.yaml \
+  --experiment experiments/biomnibench-dev3.yaml \
   --max-concurrency 3 \
   --resume
 ```
@@ -46,44 +46,52 @@ and sealed paraphrases. It replaces revision and detection outputs.
 Run one stage when needed:
 
 ```bash
-uv run rubric-gen seed --experiment experiment.yaml --max-concurrency 3
-uv run rubric-gen paraphrase --experiment experiment.yaml --max-concurrency 3
-uv run rubric-gen revise --experiment experiment.yaml --max-concurrency 3 --resume
-uv run rubric-gen detect --experiment experiment.yaml --max-concurrency 3 --resume
+uv run rubric-gen seed --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3
+uv run rubric-gen paraphrase --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3
+uv run rubric-gen revise --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3 --resume
+uv run rubric-gen detect --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3 --resume
 ```
 
 Submission experiments accept only the current format. Old experiment and
 study artifacts are intentionally rejected. Generate fresh artifacts with the
 current workflow.
 
-Use these experiment files:
+BioMNIBench and PaperBench have two task tiers. The development tier has three
+tasks. The results tier has 20 tasks. Each tier crosses four feedback policies
+with three rubric policies. All 12 cells use the `base` solver prompt.
 
-| Benchmark | Small run | Larger run |
+| Benchmark | Development tier | Results tier |
 |---|---|---|
-| BiomniBench-DA | `experiment_preflight.yaml` | `experiment.yaml` |
-| PaperBench Code-Dev | `experiments/paperbench-code-dev-preflight.yaml` | `experiments/paperbench-code-dev-pilot.yaml` or `experiments/paperbench-code-dev.yaml` |
-| Harvey LAB | `experiments/harvey-harness-evolution-preflight.yaml` | `experiments/harvey-harness-evolution.yaml` |
+| BiomniBench-DA | `experiments/biomnibench-dev3.yaml` | `experiments/biomnibench-results20.yaml` |
+| PaperBench Code-Dev | `experiments/paperbench-dev3.yaml` | `experiments/paperbench-results20.yaml` |
+| Harvey LAB | `experiments/harvey-harness-evolution-dev3.yaml` | `experiments/harvey-harness-evolution-results20.yaml` |
+
+Harvey is not part of the 4-by-3 factorial. Its runner changes harness code and
+task rubrics in one trajectory. It uses the unmodified Harvey task prompt.
 
 > [!WARNING]
 > The supplied resource caps are hard ceilings, not approved operating budgets.
-> The large BiomniBench-DA configs permit 2,764,800 mechanistic provider calls
-> and 6,480 holistic provider calls. The BiomniBench-DA preflight configs permit
-> 92,160 mechanistic calls and 216 holistic calls. These counts include the
+> The BioMNIBench results config permits 7,372,800 mechanistic calls and 17,280
+> holistic calls. The PaperBench results config permits 614,400 mechanistic
+> calls and 17,280 holistic calls. These counts include the
 > configured outer retry allowance. They exclude seed, revision, proposer,
 > semantic-reviewer, solver, paraphrase, and direct-detector calls. Set
-> operator-approved caps before you run either configuration.
-
-The repository also contains larger top-30 configurations
-`experiments/luna-top30-semi-r10.yaml` and
-`experiments/luna-top30-full-r10.yaml`.
+> operator-approved budgets before any results run.
 
 ## PaperBench data
 
-Install the pinned three-paper Code-Dev dataset:
+Install the pinned three-paper development set:
 
 ```bash
-uv run python download_paperbench.py \
-  "${BULK%/}/rubric_gen/data/paperbench-code-dev"
+uv run python download_paperbench.py dev \
+  "${BULK%/}/rubric_gen/data/paperbench-code-dev-contextualized"
+```
+
+Install the pinned official 20-paper `all` set for results:
+
+```bash
+uv run python download_paperbench.py all \
+  "${BULK%/}/rubric_gen/data/paperbench-code-all-contextualized"
 ```
 
 PaperBench submissions are source repositories under `submission`. The loader
@@ -101,19 +109,22 @@ Harvey uses its own pinned environment and needs `pandoc` and `podman`.
 
 ```bash
 uv sync
-./scripts/setup_harvey
+HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${UID:?}" ./scripts/setup_harvey
 ```
+
+Use the same private node-local `HARVEY_RUNTIME_ROOT` for each unsealed Harvey
+run and `judge` command.
 
 See [docs/harvey_harness_evolution.md](docs/harvey_harness_evolution.md).
 
 ## Feedback policies
 
-Set `protocol.feedback_policy` to one of these values:
+Each `conditions` entry sets `feedback_policy` to one of these values:
 
 - `full`
 - `semi`
 - `score_only`
-- `simulated_user`
+- `user_simulator`
 
 The shared pool contains several sealed rubric-paraphrase sets. Each set has
 one rubric for every available task. A replicate selects one complete set before
@@ -139,12 +150,12 @@ large experiment.
 
 ## Criterion elicitation
 
-Every condition uses exactly one rubric. The experiment requires these three
-conditions with one shared solver prompt:
+Every condition uses exactly one rubric. Each experiment requires these three
+rubric policies with the shared `base` solver prompt:
 
-- `fixed` keeps the original rubric.
-- `offline_elicitation` adds criteria from three sealed pre-treatment pairs.
-- `online_elicitation` adds criteria from three live historical pairs.
+- Static rubric (`fixed`) keeps the original rubric.
+- Offline rubric (`offline_elicitation`) adds criteria from three sealed pairs.
+- Online rubric (`online_elicitation`) adds criteria from three live pairs.
 
 The original criteria remain. The proposer cannot delete or rewrite them. The
 system can add at most five criteria during one assignment. When at least one
@@ -155,9 +166,15 @@ weights. The proposer never chooses points or weights.
 Each update uses two proposer calls. The first call finds uncovered differences
 in three blinded artifact pairs. The second call turns recurring differences
 into general criteria. Each criterion must cite at least two pair IDs. A
-separate call reviews every proposed criterion with the same Luna model. It
-checks task relevance, generality, evidence support, evaluability, and
-duplication. A rejected or uncertain review stops the update.
+separate call audits every proposed criterion with the same Luna model. It
+labels task relevance, generality, evidence support, evaluability, and
+duplication. These labels are advisory. Every criterion that passes deterministic
+validation enters the next rubric.
+
+Deterministic validation checks the response schema and text bounds. It requires
+exact level labels and two distinct pair IDs. It rejects trajectory-specific
+language and duplicate criterion content. It also enforces the five-criterion
+cap and score feasibility. It does not decide semantic novelty or quality.
 
 The online condition compares the current artifact with the prior artifact,
 the initial artifact, and a midpoint artifact. Sealed seed artifacts fill any
@@ -171,8 +188,9 @@ therefore has five possible elicitation updates.
 
 Each proposer and reviewer request has a 1 MiB UTF-8 cap. Each call allows at
 most 32,768 output tokens and uses a 1,800-second timeout. The two proposer
-stages allow five validation retries. The semantic review is one fail-closed
-call per update. A write-ahead ledger binds every provider call and resume.
+stages allow five validation retries. The semantic audit makes one call per
+update and does not retry. Invalid audit output or an incomplete provider call
+stops the assignment. A write-ahead ledger binds every provider call and resume.
 Malformed or indeterminate provider work cannot be silently resampled.
 
 The saved generation binds the exact contrast texts, differences, criteria,
@@ -189,9 +207,10 @@ makes exactly five calls. It computes the signed score for each call and uses
 their arithmetic mean. It stores all five criterion-level reports and score
 dispersion.
 
-The grader uses temperature zero and no provider retry. An errored, abstaining,
-or incomplete call fails the judgment. Repository-level retry policy remains
-separate and explicit.
+The grader uses temperature zero when the provider supports that field. It
+omits the deprecated field for Claude Opus 5. It uses no provider retry. An
+errored, abstaining, or incomplete call fails the judgment. Repository-level
+retry policy remains separate and explicit.
 
 ## Current model and call specification
 
@@ -201,7 +220,7 @@ separate and explicit.
 | Rubric paraphraser | GPT-5.6 Luna | none; low text verbosity | Four variants per task; up to two retries each |
 | Difference finder | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
 | Criterion writer | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
-| Criterion reviewer | GPT-5.6 Luna | low; low text verbosity | One per rubric update |
+| Criterion auditor | GPT-5.6 Luna | low; low text verbosity | One per rubric update |
 | In-loop rubric grader | GPT-5.6 Luna | none | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | Claude Opus 5 | low effort | Five full-rubric calls per artifact and rubric |
@@ -209,11 +228,13 @@ separate and explicit.
 | Rubric-free quality panel | Same three models | Same settings | Two absolute and two ordered pairwise calls per assignment and model |
 | Direct RH panel | Same three models | Same settings | One trajectory judgment per assignment and model, before retries |
 
-The main BioMNIBench and PaperBench studies use six revision turns, three
-replicates, and three conditions. This gives seven artifacts per assignment and
-five possible rubric updates. The active rubric contains at most five elicited
-criteria. Each accepted criterion needs support from at least two of three
-contrast pairs. All structured rubric judgments use temperature zero.
+Development studies use three tasks. Results studies use 20 tasks. All use six
+revision turns, three replicates, and 12 factorial conditions. Each development
+experiment has 108 assignments. Each results experiment has 720 assignments.
+The active rubric contains at most five elicited criteria. Each accepted
+criterion needs support from at least two of three contrast pairs. Structured
+rubric judgments use temperature zero when supported and omit the deprecated
+field for Claude Opus 5.
 
 ## Quality and reward-hacking audits
 
@@ -221,8 +242,8 @@ Score initial and final submissions against the original rubric:
 
 ```bash
 uv run rubric-gen judge \
-  --experiment experiments/luna-top30-semi-r10.yaml \
-  --output-dir runs/biomnibench-judgments/luna-top30-semi-r10-original-rubric \
+  --experiment experiments/biomnibench-dev3.yaml \
+  --output-dir runs/biomnibench-judgments/dev3-original-rubric \
   --max-concurrency 3 \
   --resume
 ```
@@ -235,7 +256,7 @@ Run the configured reward-hacking (RH) audit:
 
 ```bash
 uv run rubric-gen detect \
-  --experiment experiments/luna-top30-semi-r10.yaml \
+  --experiment experiments/biomnibench-dev3.yaml \
   --max-concurrency 3 \
   --resume
 ```
@@ -251,6 +272,10 @@ The command writes three evaluation layers:
   response orders.
 - `summary.json`: the result combines two signed components, rubric diagnostics,
   quality outcomes, and direct outcomes.
+
+The primary direct rule is `any_detect`. A complete panel is positive when at
+least one model detects reward hacking. A failed or abstaining model makes that
+assignment outcome missing.
 
 The two primary components are verifier exploitation and the dynamic-rubric
 gap. Their sum equals the weak active-rubric score minus strong rubric-free
@@ -286,7 +311,7 @@ Route a configured model to an OpenAI-compatible vLLM server:
 
 ```bash
 uv run rubric-gen run \
-  --experiment experiment.yaml \
+  --experiment experiments/biomnibench-dev3.yaml \
   --vllm "http://HOST:PORT/v1::MODEL"
 ```
 

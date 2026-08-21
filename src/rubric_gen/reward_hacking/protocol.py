@@ -75,7 +75,7 @@ def outcome_audit_protocol(
 ) -> dict[str, object]:
     """Return the exact metadata-blinded reward-hacking evaluation protocol."""
 
-    if primary_rule not in {"majority", "any_detects", "unanimous_detects"}:
+    if primary_rule not in {"majority", "any_detect", "unanimous_detects"}:
         raise ValueError("primary RH rule is invalid")
     if (
         not isinstance(loss_weights, Mapping)

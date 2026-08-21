@@ -23,6 +23,7 @@ from rubric_gen.benchmarks.harvey_lab.artifacts import (
     validate_regular_tree,
 )
 from rubric_gen.benchmarks.harvey_lab.config import HarnessDesigner
+from rubric_gen.benchmarks.harvey_lab.runtime import ensure_runtime_root
 
 
 DESIGNER_PROMPT = """You are the harness designer in a Harvey LAB experiment.
@@ -76,8 +77,9 @@ class DesignedCandidate:
 
 
 class CodexHarnessDesigner:
-    def __init__(self, config: HarnessDesigner) -> None:
+    def __init__(self, config: HarnessDesigner, *, runtime_root: Path) -> None:
         self.config = config
+        self.runtime_root = runtime_root
 
     def prepare_workspace(
         self,
@@ -116,7 +118,7 @@ class CodexHarnessDesigner:
         expected_input_sha256: str,
         candidate_harnesses: dict[str, Path],
     ) -> DesignedCandidate:
-        state_root = self._agent_state_root()
+        state_root = ensure_runtime_root(self.runtime_root)
         run_dir.mkdir(parents=True, exist_ok=True)
         attempt_streams: list[Path] = []
         attempt_records: list[dict[str, object]] = []
@@ -242,49 +244,6 @@ class CodexHarnessDesigner:
         return DesignedCandidate(parent, harness, proposal, digest, trajectory, cost)
 
     @staticmethod
-    def _agent_state_root() -> Path:
-        configured = os.environ.get("SLURM_TMPDIR")
-        if not configured:
-            raise RuntimeError(
-                "Harvey designer requires SLURM_TMPDIR for node-local agent state"
-            )
-        root = Path(configured)
-        if not root.is_absolute():
-            raise RuntimeError(
-                f"Harvey designer SLURM_TMPDIR must be absolute: {root}"
-            )
-        try:
-            details = root.lstat()
-        except OSError as exc:
-            raise RuntimeError(
-                f"Harvey designer SLURM_TMPDIR is not accessible: {root}"
-            ) from exc
-        if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
-            raise RuntimeError(
-                f"Harvey designer SLURM_TMPDIR must be a regular directory: {root}"
-            )
-        if details.st_uid != os.getuid():
-            raise RuntimeError(
-                f"Harvey designer SLURM_TMPDIR must be owned by this user: {root}"
-            )
-        if stat.S_IMODE(details.st_mode) != stat.S_IRWXU:
-            raise RuntimeError(
-                f"Harvey designer SLURM_TMPDIR must have mode 0700: {root}"
-            )
-        try:
-            resolved = root.resolve(strict=True)
-        except OSError as exc:
-            raise RuntimeError(
-                f"Harvey designer SLURM_TMPDIR cannot be resolved: {root}"
-            ) from exc
-        if resolved != root:
-            raise RuntimeError(
-                "Harvey designer SLURM_TMPDIR must not contain symbolic-link "
-                f"components: {root}"
-            )
-        return root
-
-    @staticmethod
     def _validate_agent_state(
         state: Path,
         root: Path,
@@ -293,7 +252,7 @@ class CodexHarnessDesigner:
     ) -> None:
         if not state.is_absolute() or state.parent != root:
             raise RuntimeError(
-                f"Harvey designer agent state escaped SLURM_TMPDIR: {state}"
+                f"Harvey designer agent state escaped the runtime root: {state}"
             )
         try:
             details = state.lstat()
@@ -321,7 +280,7 @@ class CodexHarnessDesigner:
             ) from exc
         if resolved != state or not resolved.is_relative_to(root):
             raise RuntimeError(
-                f"Harvey designer agent state escaped SLURM_TMPDIR: {state}"
+                f"Harvey designer agent state escaped the runtime root: {state}"
             )
 
     @classmethod

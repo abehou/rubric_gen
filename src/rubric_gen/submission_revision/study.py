@@ -273,6 +273,7 @@ class StudyRunner:
     ) -> SubmissionRevisionConfig:
         protocol = self.experiment.protocol
         condition = self.experiment.condition(str(assignment["condition_id"]))
+        feedback_policy = FeedbackPolicy(str(condition["feedback_policy"]))
         selection = resolve_paraphrase_selection(
             self.paraphrase_root,
             self.experiment,
@@ -300,11 +301,12 @@ class StudyRunner:
             rubric_proposer_max_retries=int(
                 protocol["rubric_proposer_max_retries"]
             ),
-            feedback_policy=FeedbackPolicy(str(protocol["feedback_policy"])),
+            feedback_policy=feedback_policy,
             feedback_simulator=self.experiment.feedback_simulator_config(
+                feedback_policy,
                 vllm_endpoints=self.config.vllm_endpoints
             ),
-            prompt_profile=PromptProfile(str(condition["prompt"])),
+            prompt_profile=PromptProfile(str(protocol["prompt"])),
             rubric_policy=RubricBankPolicy(str(condition["rubric_policy"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             rubric_proposer_base_url=self.config.vllm_endpoints.get(
@@ -459,10 +461,11 @@ def validate_completed_revision(
     manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
     state = read_json_object(experiment_dir / "state.json", "revision state")
     protocol = experiment.protocol
-    policy = FeedbackPolicy(str(protocol["feedback_policy"]))
     condition_spec = experiment.condition(str(assignment["condition_id"]))
+    policy = FeedbackPolicy(str(condition_spec["feedback_policy"]))
     endpoints = vllm_endpoints or {}
     simulator_config = experiment.feedback_simulator_config(
+        policy,
         vllm_endpoints=endpoints
     )
     simulator = (
@@ -620,8 +623,8 @@ def validate_completed_revision(
         "service_tier": agent.service_tier,
         "solver_base_url": agent.base_url,
         "turn_timeout_seconds": agent.timeout_seconds,
-        "feedback_policy": protocol["feedback_policy"],
-        "prompt": condition_spec["prompt"],
+        "feedback_policy": condition_spec["feedback_policy"],
+        "prompt": protocol["prompt"],
         "rubric_policy": condition_spec["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_base_url": endpoints.get(
@@ -776,7 +779,7 @@ def validate_completed_revision(
     ):
         raise RuntimeError("revision bank evaluation set is incomplete")
     generation_root = experiment_dir / "feedback-generations"
-    if policy is FeedbackPolicy.SIMULATED_USER:
+    if policy is FeedbackPolicy.USER_SIMULATOR:
         expected_generations = [
             f"{submission_id}.json" for submission_id in expected_ids
         ]
@@ -789,9 +792,9 @@ def validate_completed_revision(
             raise RuntimeError("simulated-user generation set is incomplete")
     elif os.path.lexists(generation_root):
         raise RuntimeError(
-            "feedback-generations is only valid for simulated_user feedback"
+            "feedback-generations is only valid for user_simulator feedback"
         )
-    prompt_profile = PromptProfile(str(condition_spec["prompt"]))
+    prompt_profile = PromptProfile(str(protocol["prompt"]))
     generation_proposer = (
         None
         if bank_policy is RubricBankPolicy.FIXED
@@ -951,7 +954,7 @@ def validate_completed_revision(
                     f"{submission_id}/{rubric_hash}"
                 )
             member_artifacts[rubric_hash] = (validation_path, evaluation_path)
-        if policy is FeedbackPolicy.SIMULATED_USER:
+        if policy is FeedbackPolicy.USER_SIMULATOR:
             assert simulator is not None
             generation_path = generation_root / f"{submission_id}.json"
             if generation_path.is_symlink() or not generation_path.is_file():

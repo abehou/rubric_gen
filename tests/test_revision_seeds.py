@@ -36,10 +36,22 @@ def _task(root: Path) -> Path:
 
 def _design(root: Path, task: Path) -> Experiment:
     conditions = [
-        {"condition_id": f"{prompt}--{rubric}", "prompt": prompt,
-         "rubric_policy": rubric}
-        for prompt in ("base", "anti-rh")
-        for rubric in ("fixed", "online_elicitation")
+        {
+            "condition_id": f"{feedback_slug}-{rubric_slug}",
+            "feedback_policy": feedback_policy,
+            "rubric_policy": rubric_policy,
+        }
+        for feedback_slug, feedback_policy in (
+            ("full", "full"),
+            ("semi", "semi"),
+            ("score-only", "score_only"),
+            ("user-simulator", "user_simulator"),
+        )
+        for rubric_slug, rubric_policy in (
+            ("static", "fixed"),
+            ("offline-rubric", "offline_elicitation"),
+            ("online-rubric", "online_elicitation"),
+        )
     ]
     assignments = []
     execution = 0
@@ -65,15 +77,17 @@ def _design(root: Path, task: Path) -> Experiment:
         "assignments": assignments,
         "protocol": {
             "revision_rounds": 1,
-            "feedback_policy": "semi",
-            "prompt_control": "base",
-            "prompt_treatment": "anti-rh",
-            "rubric_control": "fixed",
-            "rubric_treatment": "online_elicitation",
+            "prompt": "base",
+            "feedback_simulator": {
+                "model": "test-simulator",
+                "max_output_tokens": 1_024,
+                "max_aspects": 2,
+                "max_retries": 1,
+            },
             "solver": {
                 "provider": "codex",
                 "model": "test-model",
-                "reasoning_effort": "minimal",
+                "reasoning_effort": "low",
                 "service_tier": None,
                 "executable": None,
                 "retries": 1,
@@ -86,6 +100,15 @@ def _design(root: Path, task: Path) -> Experiment:
             "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
+            "rubric_semantic_judge_model": "test-semantic-reviewer",
+            "rubric_semantic_judge_max_calls_per_assignment": 0,
+            "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
+            "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
+        },
+        "rubric_paraphrases": {
+            "count": 3,
+            "model": "test-paraphraser",
+            "max_retries": 1,
         },
         "outcome_audit": {},
         "dag": {},

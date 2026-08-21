@@ -17,6 +17,7 @@ from rubric_gen.runtime.agents.policy import NO_WEB_POLICY
 class AgentAdapter(ABC):
     name: str
     default_executable: str
+    prompt_via_stdin = False
 
     def executable(self, config: AgentRunConfig) -> str:
         return config.executable or self.default_executable
@@ -169,6 +170,7 @@ class ClaudeAdapter(AgentAdapter):
 class CodexAdapter(AgentAdapter):
     name = "codex"
     default_executable = "codex"
+    prompt_via_stdin = True
 
     def install_hint(self) -> str:
         return "Install Codex CLI with `npm install -g @openai/codex` or the official installer."
@@ -208,7 +210,7 @@ class CodexAdapter(AgentAdapter):
                 "--output-last-message",
                 str(paths.output_last_message_path.resolve()),
             ])
-        command.append(prompt)
+        command.append("-")
         return command
 
     def prepare_run(

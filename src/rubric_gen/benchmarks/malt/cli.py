@@ -284,7 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--primary-rule",
-        choices=("majority", "any_detects", "unanimous_detects"),
+        choices=("majority", "any_detect", "unanimous_detects"),
         default=None,
         help="Configured ensemble rule.",
     )
@@ -338,7 +338,7 @@ def run(args: argparse.Namespace) -> int:
         DEFAULT_PANEL_MAX_COST_USD if args.max_cost_usd is None else args.max_cost_usd
     )
     args.execution = "standard" if args.execution is None else args.execution
-    args.primary_rule = "majority" if args.primary_rule is None else args.primary_rule
+    args.primary_rule = "any_detect" if args.primary_rule is None else args.primary_rule
     args.max_retries = 1 if args.max_retries is None else args.max_retries
 
     inputs = (

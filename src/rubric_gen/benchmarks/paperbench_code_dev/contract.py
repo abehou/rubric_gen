@@ -14,7 +14,8 @@ from rubric_gen.benchmarks.base import (
 from rubric_gen.benchmarks.paperbench_code_dev.submission import render_submission_tree
 from rubric_gen.benchmarks.paperbench_code_dev.dataset import (
     PAPERBENCH_DEV_PAPERS,
-    validate_paperbench_code_dev_dataset,
+    PAPERBENCH_RESULTS_PAPERS,
+    validate_paperbench_code_dataset,
 )
 
 
@@ -81,11 +82,19 @@ class PaperBenchCodeDev(SubmissionBenchmark):
     required_review = "workspace"
 
     def validate_dataset(self, tasks_dir: Path, task_ids: tuple[str, ...]) -> None:
-        if not set(task_ids).issubset(PAPERBENCH_DEV_PAPERS):
+        if task_ids == PAPERBENCH_DEV_PAPERS:
+            source_split = "dev"
+        elif task_ids == PAPERBENCH_RESULTS_PAPERS:
+            source_split = "all"
+        else:
             raise ValueError(
-                "PaperBench Code-Dev tasks must come from the pinned official dev split"
+                "PaperBench Code-Dev tasks must equal the official 3-paper dev "
+                "split or the official 20-paper all split"
             )
-        validate_paperbench_code_dev_dataset(tasks_dir)
+        validate_paperbench_code_dataset(
+            tasks_dir,
+            source_split=source_split,
+        )
 
     def required_task_paths(self, task_dir: Path) -> tuple[Path, ...]:
         return super().required_task_paths(task_dir) + (

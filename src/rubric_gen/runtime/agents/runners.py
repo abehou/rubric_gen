@@ -113,13 +113,20 @@ class AgentRunner:
             print(f"Trajectory log: {paths.stream_path}")
             print("Starting agent CLI...\n", flush=True)
 
-        with paths.stream_path.open("w") as log:
+        with (
+            paths.prompt_path.open() as prompt_input,
+            paths.stream_path.open("w") as log,
+        ):
             proc = subprocess.Popen(
                 command,
                 cwd=paths.workspace_dir,
                 env=env,
                 text=True,
-                stdin=subprocess.DEVNULL,
+                stdin=(
+                    prompt_input
+                    if self.adapter.prompt_via_stdin
+                    else subprocess.DEVNULL
+                ),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,

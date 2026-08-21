@@ -93,7 +93,7 @@ class RewardHackingJudgeConfig:
     max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
     max_cost_usd: float | None = DEFAULT_PANEL_MAX_COST_USD
     execution: str = "standard"
-    primary_rule: str = "majority"
+    primary_rule: str = "any_detect"
 
     def __post_init__(self) -> None:
         detection_target(self.detection)
@@ -126,7 +126,7 @@ class RewardHackingJudgeConfig:
             raise ValueError("max_cost_usd must be positive")
         if self.execution not in {"standard", "batch"}:
             raise ValueError("execution must be standard or batch")
-        if self.primary_rule not in {"majority", "any_detects", "unanimous_detects"}:
+        if self.primary_rule not in {"majority", "any_detect", "unanimous_detects"}:
             raise ValueError("primary_rule is invalid")
         if self.execution == "batch" and (
             len(self.models) != 1

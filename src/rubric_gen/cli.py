@@ -23,6 +23,7 @@ from rubric_gen.benchmarks.harvey_lab.config import (
 )
 from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController
 from rubric_gen.benchmarks.harvey_lab.evaluator import HarveyEvaluator
+from rubric_gen.benchmarks.harvey_lab.runtime import runtime_root_from_environment
 from rubric_gen.benchmarks.harvey_lab.seal import (
     harvey_run_seal_exists,
     seal_harvey_run,
@@ -67,13 +68,17 @@ def _run(args: argparse.Namespace) -> int:
         raise FileExistsError(
             f"Harvey run is sealed; use --resume to verify it: {experiment.output_dir}"
         )
+    runtime_root = runtime_root_from_environment()
     evaluator = HarveyEvaluator(
         experiment,
+        runtime_root=runtime_root,
         max_concurrency=args.max_concurrency,
     )
-    status = HarveyEvolutionController(experiment, evaluator=evaluator).run(
-        resume=args.resume
-    )
+    status = HarveyEvolutionController(
+        experiment,
+        runtime_root=runtime_root,
+        evaluator=evaluator,
+    ).run(resume=args.resume)
     if status:
         return status
     judgments = (
@@ -122,10 +127,12 @@ def _judge(args: argparse.Namespace) -> int:
         if harvey_run_seal_exists(experiment.output_dir):
             validate_harvey_run_seal(experiment)
             raise ValueError("sealed Harvey runs are immutable")
+        runtime_root = runtime_root_from_environment()
         return run_quality_audit(
             experiment,
             evaluator=HarveyEvaluator(
                 experiment,
+                runtime_root=runtime_root,
                 max_concurrency=args.max_concurrency,
             ),
         )

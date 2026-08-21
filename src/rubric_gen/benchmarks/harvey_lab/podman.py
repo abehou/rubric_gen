@@ -12,16 +12,20 @@ import shutil
 import stat
 import subprocess
 import sys
-import tempfile
 from collections.abc import Mapping
 from pathlib import Path
+
+from rubric_gen.benchmarks.harvey_lab.runtime import (
+    ensure_runtime_directory,
+    ensure_runtime_root,
+)
 
 
 def configured_podman_environment(
     source: Mapping[str, str] | None = None,
     *,
     cache_root: Path,
-    temporary_root: Path | None = None,
+    runtime_root: Path,
     uid: int | None = None,
     username: str | None = None,
     subuid_path: Path = Path("/etc/subuid"),
@@ -36,20 +40,22 @@ def configured_podman_environment(
     uv_cache = shared / "uv"
     _ensure_private_directory(uv_cache, "Harvey UV cache")
     environment["UV_CACHE_DIR"] = str(uv_cache)
+    local_root = ensure_runtime_root(runtime_root)
+    environment["TMPDIR"] = str(
+        ensure_runtime_directory(local_root, "tmp")
+    )
+    environment.pop("SLURM_TMPDIR", None)
     if sys.platform != "linux":
         return environment
 
     resolved_username = (
         pwd.getpwuid(resolved_uid).pw_name if username is None else username
     )
-    local_root = temporary_root or _temporary_root(environment)
-    podman_root = local_root / f"rubric-gen-podman-{resolved_uid}"
-    configured_runtime = environment.get("XDG_RUNTIME_DIR")
-    runtime = (
-        Path(configured_runtime)
-        if configured_runtime and _usable_runtime_directory(Path(configured_runtime))
-        else podman_root / "runtime"
+    podman_root = ensure_runtime_directory(
+        local_root,
+        f"rubric-gen-podman-{resolved_uid}",
     )
+    runtime = podman_root / "runtime"
     data = podman_root / "data"
     podman_home = podman_root / "home"
     config = podman_home / ".config"
@@ -259,15 +265,6 @@ def _write_atomic_json(path: Path, value: dict[str, object]) -> None:
     os.replace(temporary, path)
 
 
-def _temporary_root(environment: Mapping[str, str]) -> Path:
-    configured = environment.get("SLURM_TMPDIR") or environment.get("TMPDIR")
-    root = Path(configured) if configured else Path(tempfile.gettempdir())
-    if not root.is_absolute():
-        raise ValueError(f"Podman temporary root must be absolute: {root}")
-    root.mkdir(parents=True, exist_ok=True)
-    return root.resolve()
-
-
 def _ensure_private_directory(path: Path, label: str) -> None:
     if not path.is_absolute():
         raise ValueError(f"{label} directory must be absolute: {path}")
@@ -277,20 +274,6 @@ def _ensure_private_directory(path: Path, label: str) -> None:
     if not path.is_dir():
         raise ValueError(f"{label} path is not a directory: {path}")
     path.chmod(stat.S_IRWXU)
-
-
-def _usable_runtime_directory(path: Path) -> bool:
-    try:
-        details = path.lstat()
-    except OSError:
-        return False
-    return (
-        path.is_absolute()
-        and stat.S_ISDIR(details.st_mode)
-        and not stat.S_ISLNK(details.st_mode)
-        and details.st_uid == os.getuid()
-        and os.access(path, os.W_OK | os.X_OK)
-    )
 
 
 def _has_subordinate_ids(path: Path, identifiers: set[str]) -> bool:
