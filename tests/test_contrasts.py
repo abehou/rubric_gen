@@ -42,141 +42,109 @@ def _seed_resolver(root: Path):
     return resolve_seed
 
 
-def test_offline_contrasts_use_all_three_sealed_pairs_and_hide_sources(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        contrast_module,
-        "resolve_seed",
-        _seed_resolver(tmp_path),
-    )
-
-    contrasts = contrast_module.build_offline_contrasts(
-        seed_set=tmp_path / "seeds",
-        task_dir=tmp_path / "task",
-        benchmark=_Benchmark(),  # type: ignore[arg-type]
-        provider="codex",
-        requested_model="gpt-5.6-luna",
-        assignment_id="assignment-1",
-        generation_round=2,
-    )
-
-    source_pairs = {
-        frozenset((item.artifact_a_id, item.artifact_b_id))
-        for item in contrasts
+def _arguments(tmp_path: Path) -> dict[str, object]:
+    return {
+        "seed_set": tmp_path / "seeds",
+        "task_dir": tmp_path / "task",
+        "benchmark": _Benchmark(),
+        "provider": "codex",
+        "requested_model": "gpt-5.6-luna",
+        "assignment_id": "assignment-1",
     }
-    assert source_pairs == {
-        frozenset(("sealed-seed:rep-001", "sealed-seed:rep-002")),
-        frozenset(("sealed-seed:rep-001", "sealed-seed:rep-003")),
-        frozenset(("sealed-seed:rep-002", "sealed-seed:rep-003")),
-    }
-    assert [item.pair_id for item in contrasts] == [
-        "pair_1",
-        "pair_2",
-        "pair_3",
-    ]
-    assert all(
-        set(item.model_record()) == {"pair_id", "artifact_a", "artifact_b"}
-        for item in contrasts
-    )
 
 
-def test_online_contrasts_use_previous_initial_and_midpoint(
+def test_offline_history_uses_three_sealed_artifacts_once(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        contrast_module,
-        "resolve_seed",
-        _seed_resolver(tmp_path),
-    )
-    experiment = tmp_path / "experiment"
-    for index in range(6):
-        _workspace(
-            experiment / "submissions",
-            f"s{index:03d}",
-            f"live {index}\n",
-        )
+    monkeypatch.setattr(contrast_module, "resolve_seed", _seed_resolver(tmp_path))
 
-    contrasts = contrast_module.build_online_contrasts(
-        seed_set=tmp_path / "seeds",
-        task_dir=tmp_path / "task",
-        experiment_dir=experiment,
-        benchmark=_Benchmark(),  # type: ignore[arg-type]
-        provider="codex",
-        requested_model="gpt-5.6-luna",
-        assignment_id="assignment-1",
-        generation_round=5,
+    history = contrast_module.build_offline_artifact_history(
+        **_arguments(tmp_path),  # type: ignore[arg-type]
     )
 
-    source_pairs = [
-        {item.artifact_a_id, item.artifact_b_id} for item in contrasts
-    ]
-    assert source_pairs == [
-        {"live:s005", "live:s004"},
-        {"live:s005", "live:s000"},
-        {"live:s005", "live:s002"},
-    ]
-
-
-def test_online_first_update_uses_sealed_sources_to_fill_history(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        contrast_module,
-        "resolve_seed",
-        _seed_resolver(tmp_path),
-    )
-    experiment = tmp_path / "experiment"
-    for index in range(2):
-        _workspace(
-            experiment / "submissions",
-            f"s{index:03d}",
-            f"live {index}\n",
-        )
-
-    contrasts = contrast_module.build_online_contrasts(
-        seed_set=tmp_path / "seeds",
-        task_dir=tmp_path / "task",
-        experiment_dir=experiment,
-        benchmark=_Benchmark(),  # type: ignore[arg-type]
-        provider="codex",
-        requested_model="gpt-5.6-luna",
-        assignment_id="assignment-1",
-        generation_round=1,
-    )
-
-    other_sources = []
-    for item in contrasts:
-        sources = {item.artifact_a_id, item.artifact_b_id}
-        assert "live:s001" in sources
-        other_sources.append(next(iter(sources - {"live:s001"})))
-    assert other_sources == [
-        "live:s000",
+    assert {item.source_id for item in history.artifacts} == {
         "sealed-seed:rep-001",
         "sealed-seed:rep-002",
+        "sealed-seed:rep-003",
+    }
+    assert len(history.artifacts) == 3
+    assert len(history.pairs) == 3
+    assert set(history.model_record()) == {"artifacts", "pairs"}
+    assert "source_id" not in str(history.model_record())
+
+
+def test_online_history_includes_every_prior_artifact_and_pair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contrast_module, "resolve_seed", _seed_resolver(tmp_path))
+    experiment = tmp_path / "experiment"
+    for index in range(6):
+        _workspace(experiment / "submissions", f"s{index:03d}", f"live {index}\n")
+
+    history = contrast_module.build_online_artifact_history(
+        experiment_dir=experiment,
+        generation_round=5,
+        **_arguments(tmp_path),  # type: ignore[arg-type]
+    )
+
+    assert {item.source_id for item in history.artifacts} == {
+        *(f"sealed-seed:rep-{index:03d}" for index in (1, 2, 3)),
+        *(f"live:s{index:03d}" for index in range(6)),
+    }
+    assert len(history.artifacts) == 9
+    assert len(history.pairs) == 36
+
+
+def test_online_first_update_does_not_repeat_current_as_every_pair_hub(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contrast_module, "resolve_seed", _seed_resolver(tmp_path))
+    experiment = tmp_path / "experiment"
+    for index in range(2):
+        _workspace(experiment / "submissions", f"s{index:03d}", f"live {index}\n")
+
+    history = contrast_module.build_online_artifact_history(
+        experiment_dir=experiment,
+        generation_round=1,
+        **_arguments(tmp_path),  # type: ignore[arg-type]
+    )
+    current_id = next(
+        item.artifact_id for item in history.artifacts if item.source_id == "live:s001"
+    )
+    current_pairs = [
+        pair for pair in history.pairs if current_id in pair.artifact_ids
     ]
 
+    assert len(history.artifacts) == 5
+    assert len(history.pairs) == 10
+    assert len(current_pairs) == 4
+    assert any(current_id not in pair.artifact_ids for pair in history.pairs)
 
-def test_blinded_pair_order_is_deterministic(tmp_path: Path) -> None:
-    left = contrast_module._Artifact("left", "left text\n")
-    right = contrast_module._Artifact("right", "right text\n")
-    first = contrast_module._blind_pair(
-        assignment_id="assignment-1",
+
+def test_blinded_artifact_ids_stay_stable_as_online_history_grows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contrast_module, "resolve_seed", _seed_resolver(tmp_path))
+    experiment = tmp_path / "experiment"
+    for index in range(3):
+        _workspace(experiment / "submissions", f"s{index:03d}", f"live {index}\n")
+    arguments = _arguments(tmp_path)
+    first = contrast_module.build_online_artifact_history(
+        experiment_dir=experiment,
         generation_round=1,
-        pair_id="pair_1",
-        left=left,
-        right=right,
+        **arguments,  # type: ignore[arg-type]
     )
-    second = contrast_module._blind_pair(
-        assignment_id="assignment-1",
-        generation_round=1,
-        pair_id="pair_1",
-        left=left,
-        right=right,
+    second = contrast_module.build_online_artifact_history(
+        experiment_dir=experiment,
+        generation_round=2,
+        **arguments,  # type: ignore[arg-type]
     )
 
-    assert first == second
-    assert {first.artifact_a_id, first.artifact_b_id} == {"left", "right"}
+    first_ids = {item.content_sha256: item.artifact_id for item in first.artifacts}
+    second_ids = {item.content_sha256: item.artifact_id for item in second.artifacts}
+    assert first_ids == {digest: second_ids[digest] for digest in first_ids}
+    assert set(first.pairs) < set(second.pairs)

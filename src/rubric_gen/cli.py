@@ -52,11 +52,16 @@ def _require_submission_experiment(args: argparse.Namespace) -> int:
 
 def _run(args: argparse.Namespace) -> int:
     if _experiment_kind(args.experiment) == EXPERIMENT_KIND:
+        if args.max_retries is not None:
+            raise ValueError("--max-retries supports only Harvey experiments")
         return run_dag(args)
     if args.restart:
         raise ValueError("Harvey run does not support --restart")
     if args.max_concurrency < 1:
         raise ValueError("--max-concurrency must be positive")
+    max_retries = 3 if args.max_retries is None else args.max_retries
+    if max_retries < 0:
+        raise ValueError("--max-retries must be non-negative")
     if args.vllm:
         raise ValueError("Harvey run does not support --vllm")
     experiment = load_harvey_experiment(resolve_project_path(args.experiment))
@@ -73,6 +78,7 @@ def _run(args: argparse.Namespace) -> int:
         experiment,
         runtime_root=runtime_root,
         max_concurrency=args.max_concurrency,
+        max_retries=max_retries,
     )
     status = HarveyEvolutionController(
         experiment,
@@ -123,6 +129,8 @@ def _judge(args: argparse.Namespace) -> int:
             raise ValueError("Harvey judge does not support --resume")
         if args.max_concurrency < 1:
             raise ValueError("--max-concurrency must be positive")
+        if args.max_retries < 0:
+            raise ValueError("--max-retries must be non-negative")
         experiment = load_harvey_experiment(resolve_project_path(args.experiment))
         if harvey_run_seal_exists(experiment.output_dir):
             validate_harvey_run_seal(experiment)
@@ -134,6 +142,7 @@ def _judge(args: argparse.Namespace) -> int:
                 experiment,
                 runtime_root=runtime_root,
                 max_concurrency=args.max_concurrency,
+                max_retries=args.max_retries,
             ),
         )
     if args.output_dir is None:
@@ -208,6 +217,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = subparsers.add_parser("run", help="Run an experiment workflow.")
     run.add_argument("--experiment", required=True)
     run.add_argument("--max-concurrency", type=int, default=1)
+    run.add_argument("--max-retries", type=int)
     continuation = run.add_mutually_exclusive_group()
     continuation.add_argument("--resume", action="store_true")
     continuation.add_argument("--restart", action="store_true")

@@ -151,6 +151,28 @@ def test_target_loader_passes_shared_judgment_root_to_revision_validation(
     assert observed["judgment_reuse_root"] == study / "shared-judgments"
 
 
+@pytest.mark.parametrize(
+    ("policy", "boundary", "expected_round"),
+    (
+        (RubricBankPolicy.FIXED, 0, 0),
+        (RubricBankPolicy.FIXED, 6, 0),
+        (RubricBankPolicy.OFFLINE_ELICITATION, 0, 1),
+        (RubricBankPolicy.OFFLINE_ELICITATION, 6, 1),
+        (RubricBankPolicy.ONLINE_ELICITATION, 0, 0),
+        (RubricBankPolicy.ONLINE_ELICITATION, 6, 5),
+    ),
+)
+def test_active_bank_round_matches_elicitation_schedule(
+    policy: RubricBankPolicy,
+    boundary: int,
+    expected_round: int,
+) -> None:
+    assert (
+        rh_diagnostics._active_bank_round(policy, boundary)
+        == expected_round
+    )
+
+
 def _generation(
     generation_round: int,
     weighted_contents: tuple[tuple[str, float], ...],
@@ -199,7 +221,10 @@ def _generation(
                 ("B", "The requirement is partial."),
                 ("C", "The requirement is absent."),
             ),
-            support_pair_ids=("pair_1", "pair_2"),
+            support_pair_ids=(
+                "pair_0000000000000001",
+                "pair_0000000000000002",
+            ),
             source_generation=generation_round,
         )
         rubric, criterion_map = render_augmented_rubric(

@@ -35,7 +35,7 @@ from rubric_gen.submission_revision.evolution import (
     rubric_generation_implementation_identity,
 )
 from rubric_gen.submission_revision.contrasts import (
-    build_elicitation_contrasts,
+    build_elicitation_artifact_history,
 )
 from rubric_gen.submission_revision.judgment_reuse import (
     ExactJudgmentReuseStore,
@@ -730,9 +730,14 @@ def validate_completed_revision(
                 "rubric-generations is invalid for a fixed rubric policy"
             )
     else:
+        generation_indices = (
+            range(1, 2)
+            if bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
+            else range(1, revision_rounds)
+        )
         expected_rubric_generations = [
             name
-            for index in range(1, revision_rounds)
+            for index in generation_indices
             for name in (
                 f"bank-{index:04d}",
                 f"bank-{index:04d}.provider-attempts.json",
@@ -838,7 +843,11 @@ def validate_completed_revision(
         generation_round = (
             0
             if bank_policy is RubricBankPolicy.FIXED
-            else max(0, index - 1)
+            else (
+                1
+                if bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
+                else max(0, index - 1)
+            )
         )
         generation = load_rubric_bank(
             experiment_dir,
@@ -859,7 +868,7 @@ def validate_completed_revision(
                 policy=bank_policy,
                 generation_round=generation_round,
                 output_dir=rubric_generation_root,
-                contrasts=build_elicitation_contrasts(
+                artifact_history=build_elicitation_artifact_history(
                     online=(
                         bank_policy is RubricBankPolicy.ONLINE_ELICITATION
                     ),
@@ -1207,6 +1216,8 @@ def _expected_bank_names(
     policy = RubricBankPolicy(str(condition_spec["rubric_policy"]))
     if policy is RubricBankPolicy.FIXED:
         return ["bank-0000"]
+    if policy is RubricBankPolicy.OFFLINE_ELICITATION:
+        return ["bank-0000", "bank-0001"]
     return [
         f"bank-{index:04d}"
         for index in range(max(1, submission_count - 1))

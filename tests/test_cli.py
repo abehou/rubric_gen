@@ -61,10 +61,12 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
             *,
             runtime_root: Path,
             max_concurrency: int,
+            max_retries: int,
         ) -> None:
             assert value is experiment
             observed["runtime_root"] = runtime_root
             observed["max_concurrency"] = max_concurrency
+            observed["max_retries"] = max_retries
 
     class FakeController:
         def __init__(
@@ -120,6 +122,7 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
         "experiment": experiment,
         "evaluator": observed["evaluator"],
         "max_concurrency": 12,
+        "max_retries": 3,
         "resume": True,
         "runtime_root": runtime_root,
         "stages": ["evolution", "quality", "detect", "seal"],
@@ -165,6 +168,23 @@ def test_sealed_harvey_resume_verifies_without_provider_calls(
         "--resume",
     ]) == 0
     assert observed == ["verified"]
+
+
+def test_submission_run_rejects_harvey_retry_option(tmp_path) -> None:
+    path = tmp_path / "submission.yaml"
+    path.write_text(
+        json.dumps({"kind": "rubric-gen-randomized-experiment"}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="only Harvey"):
+        unified_cli.main([
+            "run",
+            "--experiment",
+            str(path),
+            "--max-retries",
+            "3",
+        ])
 
 
 def test_detect_forwards_the_experiment_to_detection_suite(

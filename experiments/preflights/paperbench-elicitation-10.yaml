@@ -1,34 +1,27 @@
 kind: rubric-gen-randomized-experiment
 benchmark: paperbench-code-dev
 
-tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/paperbench-code-all-contextualized
+tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/paperbench-code-dev-contextualized
 tasks:
-  - fre
-  - mechanistic-understanding
-  - bridging-data-gaps
-  - test-time-model-adaptation
-  - all-in-one
-  - sequential-neural-score-estimation
-  - robust-clip
-  - what-will-my-model-forget
-  - pinn
-  - stay-on-topic-with-classifier-free-guidance
-  - rice
-  - sample-specific-masks
-  - adaptive-pruning
-  - sapg
-  - lca-on-the-line
-  - stochastic-interpolants
-  - bbox
-  - lbcs
-  - bam
-  - ftrl
+  - semantic-self-consistency
+  - self-expansion
+  - self-composing-policies
 
 randomization:
-  seed: 20260820
+  seed: 20260821
   replicates: 3
 
-assignment_selection: all
+assignment_selection:
+  - self-composing-policies--rep-001--full-online-rubric
+  - self-composing-policies--rep-001--semi-online-rubric
+  - self-composing-policies--rep-001--score-only-online-rubric
+  - self-composing-policies--rep-001--user-simulator-online-rubric
+  - self-composing-policies--rep-001--full-offline-rubric
+  - self-composing-policies--rep-002--full-online-rubric
+  - self-composing-policies--rep-002--semi-online-rubric
+  - self-composing-policies--rep-002--score-only-online-rubric
+  - self-composing-policies--rep-002--user-simulator-online-rubric
+  - self-composing-policies--rep-002--full-offline-rubric
 
 conditions:
   - condition_id: full-static
@@ -116,23 +109,23 @@ outcome_audit:
   max_command_output_chars: 2048
   max_retries: 1
   direct_detector_max_cost_usd: 6000
-  mechanistic_max_calls: 614400
-  mechanistic_max_request_bytes: 644245094400
-  mechanistic_max_output_tokens: 20132659200
-  holistic_max_calls: 17280
-  holistic_max_request_bytes: 24159191040
-  holistic_max_output_tokens: 70778880
+  mechanistic_max_calls: 92160
+  mechanistic_max_request_bytes: 96636764160
+  mechanistic_max_output_tokens: 3019898880
+  holistic_max_calls: 2592
+  holistic_max_request_bytes: 3623878656
+  holistic_max_output_tokens: 10616832
 
 dag:
   seed:
     depends_on: []
-    output_dir: ../seeds/paperbench/luna-results20
+    output_dir: ../../seeds/paperbench/luna-dev3
   paraphrase:
     depends_on: []
-    output_dir: ../runs/rubric-paraphrases/paperbench/luna-results20
+    output_dir: ../../runs/rubric-paraphrases/paperbench/luna-dev3
   revise:
     depends_on: [seed, paraphrase]
-    output_dir: ../runs/studies/{experiment_id}
+    output_dir: ../../runs/preflights/{experiment_id}
   detect:
     depends_on: [revise, paraphrase]
-    output_dir: ../runs/detections/{experiment_id}
+    output_dir: ../../runs/preflight-detections/{experiment_id}

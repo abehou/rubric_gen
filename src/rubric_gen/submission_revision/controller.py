@@ -85,7 +85,7 @@ from rubric_gen.submission_revision.evolution import (
     rubric_generation_implementation_identity,
 )
 from rubric_gen.submission_revision.contrasts import (
-    build_elicitation_contrasts,
+    build_elicitation_artifact_history,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -696,6 +696,32 @@ class SubmissionRevisionController:
         )
         self._persist_initial_bank()
         self._write_state(state)
+        if self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION:
+            self._compile_offline_bank()
+
+    def _compile_offline_bank(self) -> None:
+        """Compile the sole offline rubric before any treatment boundary."""
+
+        proposer = self.dependencies.bank_proposer
+        if proposer is None:
+            raise RuntimeError("offline elicitation has no rubric proposer")
+        generation = proposer.elicit_rubric(
+            instruction=(self.task_dir / "instruction.md").read_text(
+                encoding="utf-8"
+            ),
+            current_bank=self.initial_bank.bank,
+            policy=RubricBankPolicy.OFFLINE_ELICITATION,
+            generation_round=1,
+            artifact_history=self._elicitation_history(1),
+            source_boundary=None,
+            output_dir=self.experiment_dir / "rubric-generations",
+        )
+        generation.bank.validate_lineage(self.initial_bank.bank)
+        persist_rubric_bank(
+            self.experiment_dir,
+            generation,
+            RubricBankPolicy.OFFLINE_ELICITATION,
+        )
 
     def _materialize_seed(self, workspace: Path) -> None:
         source = self.seed.submission_dir / "workspace"
@@ -1262,7 +1288,11 @@ class SubmissionRevisionController:
                 raise RuntimeError("a fixed policy can contain only bank round 0")
             return
 
-        maximum_generation = self.config.revision_rounds - 1
+        maximum_generation = (
+            1
+            if self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
+            else self.config.revision_rounds - 1
+        )
         _remove_owned_rubric_generation_residue(
             proposal_root,
             max_generation_round=maximum_generation,
@@ -1275,6 +1305,21 @@ class SubmissionRevisionController:
             required=True,
             context="rubric bank",
         )
+        if (
+            self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
+            and bank_rounds == [0]
+            and not proposal_rounds
+            and not ledger_rounds
+        ):
+            self._compile_offline_bank()
+            proposal_rounds, ledger_rounds = _rubric_generation_entries(
+                proposal_root
+            )
+            bank_rounds = _numbered_bank_directories(
+                bank_root,
+                required=True,
+                context="rubric bank",
+            )
         if not bank_rounds or bank_rounds[0] != 0:
             raise RuntimeError("rubric bank generations must start at round 0")
         elicitation_rounds = bank_rounds[1:]
@@ -1326,7 +1371,7 @@ class SubmissionRevisionController:
                 policy=self.bank_policy,
                 generation_round=generation_round,
                 output_dir=proposal_root,
-                contrasts=self._elicitation_contrasts(generation_round),
+                artifact_history=self._elicitation_history(generation_round),
                 source_boundary=(
                     generation_round
                     if self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
@@ -1583,7 +1628,7 @@ class SubmissionRevisionController:
             _make_read_only(feedback_path)
         next_bank: dict[str, object] | None = None
         if (
-            self.bank_policy is not RubricBankPolicy.FIXED
+            self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
             and 1 <= turn_index < self.config.revision_rounds
         ):
             assert self.dependencies.bank_proposer is not None
@@ -1592,7 +1637,7 @@ class SubmissionRevisionController:
                 current_bank=bank,
                 policy=self.bank_policy,
                 generation_round=turn_index,
-                contrasts=self._elicitation_contrasts(turn_index),
+                artifact_history=self._elicitation_history(turn_index),
                 source_boundary=(
                     turn_index
                     if self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
@@ -1905,7 +1950,11 @@ class SubmissionRevisionController:
         generation_round = (
             0
             if self.bank_policy is RubricBankPolicy.FIXED
-            else max(0, boundary - 1)
+            else (
+                1
+                if self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
+                else max(0, boundary - 1)
+            )
         )
         generation = load_rubric_bank(
             self.experiment_dir,
@@ -1921,10 +1970,10 @@ class SubmissionRevisionController:
             generation.bank.validate_lineage(prior.bank)
         return generation
 
-    def _elicitation_contrasts(self, generation_round: int):
-        """Return the exact three blinded pairs for one rubric update."""
+    def _elicitation_history(self, generation_round: int):
+        """Return the complete blinded history for one rubric update."""
 
-        return build_elicitation_contrasts(
+        return build_elicitation_artifact_history(
             online=self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION,
             seed_set=self.config.seed_run_dir,
             task_dir=self.task_dir,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,11 +16,19 @@ from rubric_gen.submission_revision.judge import (
 )
 from rubric_gen.submission_revision.judging.full_rubric_judge import (
     FullRubricGeneration,
+    FullRubricJudgeError,
     records_from_raw_reports,
 )
 from rubric_gen.submission_revision.rh_audit_judge import (
+    RH_FULL_RUBRIC_ENGINE_IDENTITY,
+    RH_FULL_RUBRIC_SYSTEM_PROMPT,
     RhAuditRubricJudge,
     build_rh_full_rubric_run_spec,
+    grade_rh_full_rubric,
+    parse_rh_structured_output,
+    rh_full_rubric_cost_shape,
+    rh_full_rubric_payload,
+    rh_structured_output_schema,
 )
 
 
@@ -45,6 +54,112 @@ def _report() -> dict[str, object]:
     }
 
 
+def _wire_report() -> dict[str, object]:
+    return {
+        "criteria": [{
+            "level_index": 0,
+            "reason": "The artifact is complete.",
+        }],
+        "overall_reasoning": "The evidence satisfies the criterion.",
+    }
+
+
+def _many_criterion_rubric(count: int) -> str:
+    criteria = []
+    for index in range(1, count + 1):
+        criteria.append(
+            f"Criterion {index}: Implement item {index}.\n"
+            "Levels: A=1 B=0\n"
+            "[A]: Complete and correct.\n"
+            "[B]: Missing or incorrect.\n"
+        )
+    return (
+        "RH audit test rubric.\n"
+        f"Score normalization maximum: {count}\n\n"
+        + "\n".join(criteria)
+    )
+
+
+def test_compact_schema_and_payload_keep_rubric_values_out_of_grammar() -> None:
+    small_rubric = _many_criterion_rubric(2)
+    large_rubric = _many_criterion_rubric(151)
+    small = rh_full_rubric_cost_shape(
+        small_rubric,
+        review_text="workspace",
+        answer_text="",
+    )
+    large = rh_full_rubric_cost_shape(
+        large_rubric,
+        review_text="workspace",
+        answer_text="",
+    )
+
+    assert small.schema_bytes < 1_000
+    assert large.schema_bytes < 1_000
+    assert large.schema_bytes == small.schema_bytes
+    schema_text = json.dumps(rh_structured_output_schema())
+    assert "criterion_151" not in schema_text
+    assert '"level"' not in schema_text
+    payload = json.loads(rh_full_rubric_payload(large_rubric, "workspace", ""))
+    contracts = payload["criterion_contracts"]
+    assert [contract["criterion_id"] for contract in contracts] == [
+        f"criterion_{index}" for index in range(1, 152)
+    ]
+    assert contracts[0]["level_options"] == [
+        {"level_index": 0, "level": "A"},
+        {"level_index": 1, "level": "B"},
+    ]
+
+
+def test_compact_parser_uses_position_and_level_index() -> None:
+    levels = audit_module.parse_rubric_levels_strict(RUBRIC)
+    assert parse_rh_structured_output(json.dumps(_wire_report()), levels) == _report()
+
+    sparse_rubric = """RH audit sparse rubric.
+Score normalization maximum: 2
+
+Criterion 1: First.
+Levels: A=1 B=0
+[A]: Complete.
+[B]: Missing.
+
+Criterion 8: Second.
+Levels: C=1 D=0
+[C]: Complete.
+[D]: Missing.
+"""
+    sparse_levels = audit_module.parse_rubric_levels_strict(sparse_rubric)
+    sparse_wire = {
+        "criteria": [
+            {"level_index": 1, "reason": "The first item is missing."},
+            {"level_index": 0, "reason": "The second item is complete."},
+        ],
+        "overall_reasoning": "The two positions map to different labels.",
+    }
+    assert parse_rh_structured_output(
+        json.dumps(sparse_wire), sparse_levels
+    )["criteria"] == {
+        "criterion_1": {"level": "B", "reason": "The first item is missing."},
+        "criterion_8": {"level": "C", "reason": "The second item is complete."},
+    }
+
+    invalid_level_index = deepcopy(_wire_report())
+    invalid_level_index["criteria"][0]["level_index"] = 2
+    with pytest.raises(FullRubricJudgeError, match="invalid level index"):
+        parse_rh_structured_output(json.dumps(invalid_level_index), levels)
+
+    invalid_keys = deepcopy(_wire_report())
+    invalid_keys["criteria"][0]["criterion_id"] = "criterion_1"
+    with pytest.raises(FullRubricJudgeError, match="invalid keys"):
+        parse_rh_structured_output(json.dumps(invalid_keys), levels)
+
+    with pytest.raises(FullRubricJudgeError, match="criterion count"):
+        parse_rh_structured_output(
+            json.dumps({"criteria": [], "overall_reasoning": "Missing."}),
+            levels,
+        )
+
+
 def test_anthropic_audit_request_omits_deprecated_temperature(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -56,7 +171,7 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
             return SimpleNamespace(
                 content=[SimpleNamespace(
                     type="text",
-                    text=json.dumps(_report()),
+                    text=json.dumps(_wire_report()),
                 )],
                 model="claude-opus-5",
                 id="response-1",
@@ -80,10 +195,8 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     )
     generation = audit_module._generate_response(
         spec,
-        payload=audit_module.full_rubric_payload(RUBRIC, "workspace", ""),
-        schema=audit_module.structured_output_schema(
-            audit_module.parse_rubric_levels_strict(RUBRIC)
-        ),
+        payload=rh_full_rubric_payload(RUBRIC, "workspace", ""),
+        schema=rh_structured_output_schema(),
         repeat_index=0,
     )
 
@@ -91,8 +204,61 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     assert isinstance(request, dict)
     assert "temperature" not in request
     assert request["output_config"]["effort"] == "low"
+    assert request["system"] == RH_FULL_RUBRIC_SYSTEM_PROMPT
+    assert request["output_config"]["format"]["schema"] == (
+        rh_structured_output_schema()
+    )
     assert spec.as_json()["temperature"] is None
+    assert spec.as_json()["structured_output_contract"] == (
+        RH_FULL_RUBRIC_ENGINE_IDENTITY["structured_output"]
+    )
+    assert spec.schema_bytes < 1_000
     assert generation.request_parameters["temperature"] is None
+
+
+def test_rh_grading_normalizes_wire_reports_and_attests_engine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def generate(spec, *, payload, schema, repeat_index):
+        calls.append((payload, schema))
+        return FullRubricGeneration(
+            text=json.dumps(_wire_report()),
+            provider=spec.provider,
+            requested_model=spec.requested_model,
+            effective_model=spec.requested_model,
+            response_id=f"response-{repeat_index}",
+            request_parameters=audit_module._request_parameters(spec, repeat_index),
+            usage={"input_tokens": 1, "output_tokens": 1},
+        )
+
+    monkeypatch.setattr(audit_module, "_generate_response", generate)
+    records = grade_rh_full_rubric(
+        rubric_text=RUBRIC,
+        review_text="workspace",
+        answer_text="",
+        requested_model="claude-opus-5",
+        api_base=None,
+        seed=123,
+    )
+
+    assert len(calls) == 5
+    assert all(
+        json.loads(payload)["criterion_contracts"] == [{
+            "criterion_id": "criterion_1",
+            "level_options": [
+                {"level_index": 0, "level": "A"},
+                {"level_index": 1, "level": "B"},
+            ],
+        }]
+        for payload, _schema in calls
+    )
+    assert records.score == 100
+    structured = records.evaluation["full_rubric_structured"]
+    assert structured["raw_reports"] == [_report() for _index in range(5)]
+    assert structured["code_identity"] == RH_FULL_RUBRIC_ENGINE_IDENTITY
+    assert records.usage["code_identity"] == RH_FULL_RUBRIC_ENGINE_IDENTITY
 
 
 def test_audit_judge_publishes_and_resumes_sealed_artifacts(

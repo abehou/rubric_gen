@@ -129,10 +129,11 @@ class SubmissionRevisionConfig:
         if (
             type(self.rubric_semantic_judge_max_calls) is not int
             or self.rubric_semantic_judge_max_calls
-            != max(0, self.revision_rounds - 1)
+            != max(1, self.revision_rounds - 1)
         ):
             raise ValueError(
-                "rubric semantic reviewer call cap must equal revision_rounds minus one"
+                "rubric semantic reviewer call cap must cover offline compilation "
+                "and online updates"
             )
         if (
             type(self.rubric_semantic_judge_max_request_bytes) is not int

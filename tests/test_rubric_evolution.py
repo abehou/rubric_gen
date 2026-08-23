@@ -11,11 +11,12 @@ from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
 from rubric_gen.submission_revision.evolution import (
-    ArtifactContrast,
+    ArtifactHistory,
+    ArtifactPair,
     BankProposerOutput,
+    BlindedArtifact,
     RubricBankProposer,
     SemanticReviewerOutput,
-    validate_contrast_set,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -62,24 +63,28 @@ def _initial_bank() -> RubricBank:
     )
 
 
-def _contrast(pair_id: str, left: str, right: str) -> ArtifactContrast:
-    return ArtifactContrast(
-        pair_id=pair_id,
-        artifact_a_id=f"hidden:{pair_id}:left",
-        artifact_a_sha256=sha256_text(left),
-        artifact_a=left,
-        artifact_b_id=f"hidden:{pair_id}:right",
-        artifact_b_sha256=sha256_text(right),
-        artifact_b=right,
+def _history() -> ArtifactHistory:
+    contents = ("artifact one", "artifact two", "artifact three", "artifact four")
+    artifacts = tuple(
+        BlindedArtifact(
+            artifact_id=f"artifact_{index:016x}",
+            source_id=f"hidden:source:{index}",
+            content_sha256=sha256_text(content),
+            content=content,
+        )
+        for index, content in enumerate(contents, start=1)
     )
+    pairs = tuple(
+        ArtifactPair.create(artifacts[left].artifact_id, artifacts[right].artifact_id)
+        for left in range(len(artifacts))
+        for right in range(left + 1, len(artifacts))
+    )
+    return ArtifactHistory(artifacts=artifacts, pairs=pairs)
 
 
-def _contrasts() -> tuple[ArtifactContrast, ...]:
-    return validate_contrast_set((
-        _contrast("pair_1", "artifact one", "artifact two"),
-        _contrast("pair_2", "artifact three", "artifact four"),
-        _contrast("pair_3", "artifact five", "artifact six"),
-    ))
+def _support_pair_ids() -> list[str]:
+    history = _history()
+    return [history.pairs[0].pair_id, history.pairs[-1].pair_id]
 
 
 def _cost() -> dict[str, float | str | None]:
@@ -113,13 +118,13 @@ def _difference_value() -> dict[str, object]:
     return {
         "pairs": [
             {
-                "pair_id": f"pair_{index}",
+                "pair_id": pair.pair_id,
                 "differences": [{
                     "summary": "The artifacts handle robustness differently.",
                     "task_relevance": "Robustness affects the required result.",
                 }],
             }
-            for index in range(1, 4)
+            for pair in _history().pairs
         ]
     }
 
@@ -138,7 +143,7 @@ def _criterion_value(
                 {"label": "B", "description": "Partly correct."},
                 {"label": "C", "description": "Missing or incorrect."},
             ],
-            "support_pair_ids": support or ["pair_1", "pair_2"],
+            "support_pair_ids": support or _support_pair_ids(),
         }]
     }
 
@@ -146,27 +151,33 @@ def _criterion_value(
 def _semantic_output(
     schema: dict[str, object],
     *,
-    verdicts: tuple[str, ...] | None = None,
+    evidence: str,
+    drop_indices: tuple[int, ...] = (),
 ) -> SemanticReviewerOutput:
-    item_schema = schema["properties"]["criterion_reviews"]["items"]  # type: ignore[index]
-    criterion_ids = item_schema["properties"]["criterion_id"]["enum"]  # type: ignore[index]
-    count = schema["properties"]["criterion_reviews"]["maxItems"]  # type: ignore[index]
-    ids = criterion_ids[:count]
-    decisions = ("accepted",) * count if verdicts is None else verdicts
-    if len(decisions) != count:
-        raise ValueError("test semantic verdict count differs from the schema")
+    del schema
+    proposed = json.loads(evidence)["proposed_criteria"]
     response = {
-        "criterion_reviews": [
+        "actions": [
             {
-                "criterion_id": criterion_id,
-                "verdict": verdict,
+                "action": "drop" if index in drop_indices else "accept",
+                "source_criterion_ids": [criterion["criterion_id"]],
+                "title": None if index in drop_indices else criterion["title"],
+                "requirement": (
+                    None if index in drop_indices else criterion["requirement"]
+                ),
+                "level_descriptions": (
+                    None if index in drop_indices else criterion["level_descriptions"]
+                ),
+                "support_pair_ids": (
+                    None if index in drop_indices else criterion["support_pair_ids"]
+                ),
                 "reason": (
                     "The criterion is general and supported."
-                    if verdict == "accepted"
+                    if index not in drop_indices
                     else "The evidence does not establish a general criterion."
                 ),
             }
-            for criterion_id, verdict in zip(ids, decisions, strict=True)
+            for index, criterion in enumerate(proposed)
         ],
     }
     return SemanticReviewerOutput(
@@ -204,7 +215,10 @@ def _proposer(
         run_proposer=run_proposer or default_proposer,
         run_semantic_reviewer=(
             run_semantic
-            or (lambda **kwargs: _semantic_output(kwargs["response_schema"]))
+            or (lambda **kwargs: _semantic_output(
+                kwargs["response_schema"],
+                evidence=kwargs["evidence"],
+            ))
         ),
     )
 
@@ -221,7 +235,7 @@ def _replace(
         policy=policy,
         generation_round=1,
         output_dir=root,
-        contrasts=_contrasts(),
+        artifact_history=_history(),
         source_boundary=(
             1 if policy is RubricBankPolicy.ONLINE_ELICITATION else None
         ),
@@ -231,22 +245,28 @@ def _replace(
 def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
     difference = evolution_module._difference_instructions().lower()
     criterion = evolution_module._criterion_instructions().lower()
-    semantic = evolution_module._semantic_instructions().lower()
+    semantic = " ".join(evolution_module._editor_instructions().lower().split())
 
     assert "do not rank" in difference
-    assert "randomized order" in difference
-    assert "at least two" in criterion
+    assert "every unordered pair" in difference
+    assert "at least three artifacts" in criterion
+    assert "no one artifact" in criterion
     assert "do not choose points or weights" in criterion
     assert "unseen solutions" in criterion
-    assert "at least two" in semantic
-    assert "advisory labels" in semantic
+    assert "judge-visible" in criterion
+    assert "planned or unexecuted code" in criterion
+    assert "named but unseen file" in criterion
+    assert "evidence is absent or contradictory" in criterion
+    assert "cannot verify" in criterion
+    assert "accept, rewrite, merge, or drop" in semantic
+    assert "directly control" in semantic
     assert "outcome" not in difference + criterion + semantic
 
 
-def test_generation_identity_covers_the_contrast_and_scoring_code() -> None:
+def test_generation_identity_covers_history_and_scoring_code() -> None:
     assert set(evolution_module.rubric_generation_implementation_identity()) >= {
         "evolution_sha256",
-        "contrast_builder_sha256",
+        "artifact_history_builder_sha256",
         "rubric_bank_sha256",
         "bank_scoring_sha256",
         "full_rubric_judge_sha256",
@@ -255,24 +275,20 @@ def test_generation_identity_covers_the_contrast_and_scoring_code() -> None:
     }
 
 
-def test_contrast_set_requires_three_distinct_pairs() -> None:
-    with pytest.raises(ValueError, match="pair_1"):
-        validate_contrast_set((_contrasts()[0],))  # type: ignore[arg-type]
-    duplicate = _contrasts()[0]
-    with pytest.raises(ValueError, match="distinct"):
-        validate_contrast_set((
-            duplicate,
-            ArtifactContrast(
-                pair_id="pair_2",
-                artifact_a_id="x",
-                artifact_a_sha256=duplicate.artifact_a_sha256,
-                artifact_a=duplicate.artifact_a,
-                artifact_b_id="y",
-                artifact_b_sha256=duplicate.artifact_b_sha256,
-                artifact_b=duplicate.artifact_b,
-            ),
-            _contrasts()[2],
-        ))
+def test_artifact_history_requires_the_complete_pair_graph() -> None:
+    history = _history()
+    with pytest.raises(ValueError, match="complete pair graph"):
+        ArtifactHistory(history.artifacts, history.pairs[:-1])
+
+
+def test_support_rejects_repeated_edges_around_one_artifact() -> None:
+    history = _history()
+    hub = history.artifacts[0].artifact_id
+    hub_pairs = tuple(
+        pair.pair_id for pair in history.pairs if hub in pair.artifact_ids
+    )
+    with pytest.raises(ValueError, match="shared hub"):
+        history.validate_support(hub_pairs)
 
 
 @pytest.mark.parametrize(
@@ -306,7 +322,8 @@ def test_two_stage_elicitation_appends_one_criterion_and_keeps_one_rubric(
     assert bank.items[0].weight == 1.0
     assert bank.specification_anchor == _initial_bank().specification_anchor
     assert len(bank.items[0].elicited_criteria) == 1
-    assert [item.levels[0].points for item in parsed.criteria] == [48, 32, 20]
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 20]
+    assert parsed.normalization_maximum == 120
     assert generation.proposer_call_budget == 4
 
 
@@ -325,11 +342,16 @@ def test_only_difference_discovery_sees_raw_artifacts(tmp_path: Path) -> None:
 
     def review(**kwargs):
         reviewer_evidence.append(kwargs["evidence"])
-        return _semantic_output(kwargs["response_schema"])
+        return _semantic_output(
+            kwargs["response_schema"],
+            evidence=kwargs["evidence"],
+        )
 
     _replace(_proposer(propose, review), tmp_path)
     assert "artifact one" in proposer_evidence["differences"]
     assert "artifact one" not in proposer_evidence["criteria"]
+    assert '"blinded_pair_graph"' in proposer_evidence["criteria"]
+    assert _history().artifacts[0].artifact_id in proposer_evidence["criteria"]
     assert "artifact one" in reviewer_evidence[0]
     assert "hidden:pair" not in proposer_evidence["differences"]
     assert "hidden:pair" not in reviewer_evidence[0]
@@ -359,17 +381,21 @@ def test_criterion_needs_support_from_two_pairs_before_review(tmp_path: Path) ->
         if kwargs["stage"] == "differences":
             return _proposer_output(_difference_value(), "differences")
         return _proposer_output(
-            _criterion_value(support=["pair_1"]),
+            _criterion_value(support=_support_pair_ids()[:1]),
             f"criteria-{calls}",
         )
 
-    with pytest.raises(RuntimeError, match="failed validation"):
+    with pytest.raises(RuntimeError, match="failed after"):
         _replace(_proposer(propose, retries=0), tmp_path)
     assert calls == 2
 
 
 def test_criterion_schema_leaves_distinctness_to_local_validation() -> None:
-    schema = evolution_module._criterion_schema(3, ("A", "B", "C"))
+    schema = evolution_module._criterion_schema(
+        3,
+        ("A", "B", "C"),
+        _history(),
+    )
     support = schema["properties"]["criteria"]["items"]["properties"][  # type: ignore[index]
         "support_pair_ids"
     ]
@@ -388,11 +414,11 @@ def test_criterion_rejects_duplicate_support_pairs_before_review(
         if kwargs["stage"] == "differences":
             return _proposer_output(_difference_value(), "differences")
         return _proposer_output(
-            _criterion_value(support=["pair_1", "pair_1"]),
+            _criterion_value(support=[_support_pair_ids()[0]] * 2),
             f"criteria-{calls}",
         )
 
-    with pytest.raises(RuntimeError, match="failed validation"):
+    with pytest.raises(RuntimeError, match="failed after"):
         _replace(_proposer(propose, retries=0), tmp_path)
     assert calls == 2
 
@@ -402,7 +428,9 @@ def test_meta_conditioned_criterion_is_rejected_before_review(tmp_path: Path) ->
         if kwargs["stage"] == "differences":
             value = _difference_value()
         else:
-            value = _criterion_value(title="Artifact A score improvement")
+            value = _criterion_value(
+                title=f"{_history().artifacts[0].artifact_id} score improvement"
+            )
         return _proposer_output(value, kwargs["stage"])
 
     with pytest.raises(RuntimeError, match="trajectory-specific"):
@@ -430,7 +458,7 @@ def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
     assert difference_calls == 2
 
 
-def test_semantic_rejection_is_an_advisory_label(tmp_path: Path) -> None:
+def test_reviewer_drop_removes_the_criterion(tmp_path: Path) -> None:
     calls = {"proposer": 0, "semantic": 0}
 
     def propose(**kwargs):
@@ -446,15 +474,14 @@ def test_semantic_rejection_is_an_advisory_label(tmp_path: Path) -> None:
         calls["semantic"] += 1
         return _semantic_output(
             kwargs["response_schema"],
-            verdicts=("rejected",),
+            evidence=kwargs["evidence"],
+            drop_indices=(0,),
         )
 
     first = _replace(_proposer(propose, reject), tmp_path)
     assert calls == {"proposer": 2, "semantic": 1}
-    assert first.bank.items[0].rubric != _initial_bank().items[0].rubric
-    assert [
-        item.title for item in first.bank.items[0].elicited_criteria
-    ] == ["Robustness"]
+    assert first.bank.items[0].rubric == _initial_bank().items[0].rubric
+    assert first.bank.items[0].elicited_criteria == ()
     assert (tmp_path / "bank-0001").is_dir()
 
     resumed_calls = 0
@@ -469,10 +496,8 @@ def test_semantic_rejection_is_an_advisory_label(tmp_path: Path) -> None:
     assert resumed_calls == 0
 
 
-@pytest.mark.parametrize("advisory_verdict", ["rejected", "uncertain"])
-def test_semantic_review_labels_do_not_filter_valid_criteria(
+def test_reviewer_can_accept_one_criterion_and_drop_another(
     tmp_path: Path,
-    advisory_verdict: str,
 ) -> None:
     def propose(**kwargs):
         if kwargs["stage"] == "differences":
@@ -486,7 +511,7 @@ def test_semantic_review_labels_do_not_filter_valid_criteria(
                 {"label": "B", "description": "Partly reproducible."},
                 {"label": "C", "description": "Missing or unusable."},
             ],
-            "support_pair_ids": ["pair_2", "pair_3"],
+            "support_pair_ids": _support_pair_ids(),
         }
         return _proposer_output(
             {"criteria": [first, second]},
@@ -496,35 +521,134 @@ def test_semantic_review_labels_do_not_filter_valid_criteria(
     def review(**kwargs):
         return _semantic_output(
             kwargs["response_schema"],
-            verdicts=("accepted", advisory_verdict),
+            evidence=kwargs["evidence"],
+            drop_indices=(1,),
         )
 
     generation = _replace(_proposer(propose, review), tmp_path)
 
     assert [
         item.title for item in generation.bank.items[0].elicited_criteria
-    ] == ["Robustness", "Traceability"]
+    ] == ["Robustness"]
     saved_review = json.loads(
-        (tmp_path / "bank-0001" / "semantic-review.json").read_text()
+        (tmp_path / "bank-0001" / "criterion-edit.json").read_text()
     )
-    assert set(saved_review) == {"criterion_reviews"}
+    assert set(saved_review) == {"actions"}
+    assert [item["action"] for item in saved_review["actions"]] == [
+        "accept",
+        "drop",
+    ]
+
+
+def test_reviewer_rewrite_replaces_the_proposed_criterion(tmp_path: Path) -> None:
+    def review(**kwargs):
+        source = json.loads(kwargs["evidence"])["proposed_criteria"][0]
+        return SemanticReviewerOutput(
+            response_text=json.dumps({"actions": [{
+                "action": "rewrite",
+                "source_criterion_ids": [source["criterion_id"]],
+                "title": "Observable robustness evidence",
+                "requirement": source["requirement"],
+                "level_descriptions": source["level_descriptions"],
+                "support_pair_ids": source["support_pair_ids"],
+                "reason": "The new title states the observable scope.",
+            }]}),
+            cost=_cost(),
+            generation=_generation("semantic", "rewrite"),
+        )
+
+    generation = _replace(_proposer(run_semantic=review), tmp_path)
     assert [
-        item["verdict"] for item in saved_review["criterion_reviews"]
-    ] == ["accepted", advisory_verdict]
+        item.title for item in generation.bank.items[0].elicited_criteria
+    ] == ["Observable robustness evidence"]
 
 
-def test_invalid_semantic_review_is_terminal_and_never_resampled(
+def test_reviewer_rewrite_can_replace_support_from_the_full_history(
     tmp_path: Path,
 ) -> None:
-    def invalid_review(**_kwargs):
+    replacement_support = [
+        _history().pairs[1].pair_id,
+        _history().pairs[4].pair_id,
+    ]
+
+    def review(**kwargs):
+        source = json.loads(kwargs["evidence"])["proposed_criteria"][0]
         return SemanticReviewerOutput(
-            response_text=json.dumps({"criterion_reviews": []}),
+            response_text=json.dumps({"actions": [{
+                "action": "rewrite",
+                "source_criterion_ids": [source["criterion_id"]],
+                "title": source["title"],
+                "requirement": source["requirement"],
+                "level_descriptions": source["level_descriptions"],
+                "support_pair_ids": replacement_support,
+                "reason": "The full history supplies stronger non-hub support.",
+            }]}),
+            cost=_cost(),
+            generation=_generation("semantic", "replacement-support"),
+        )
+
+    generation = _replace(_proposer(run_semantic=review), tmp_path)
+    assert (
+        generation.bank.items[0].elicited_criteria[0].support_pair_ids
+        == tuple(replacement_support)
+    )
+
+
+def test_reviewer_merge_combines_two_proposals(tmp_path: Path) -> None:
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            return _proposer_output(_difference_value(), "differences")
+        first = _criterion_value()["criteria"][0]
+        second = dict(first)
+        second["title"] = "Perturbation evidence"
+        second["requirement"] = "Save direct evidence from a relevant perturbation."
+        return _proposer_output({"criteria": [first, second]}, "criteria")
+
+    def review(**kwargs):
+        proposed = json.loads(kwargs["evidence"])["proposed_criteria"]
+        first = proposed[0]
+        return SemanticReviewerOutput(
+            response_text=json.dumps({"actions": [{
+                "action": "merge",
+                "source_criterion_ids": [
+                    proposed[0]["criterion_id"],
+                    proposed[1]["criterion_id"],
+                ],
+                "title": "Robustness evidence",
+                "requirement": (
+                    "Test a task-relevant perturbation and save direct evidence."
+                ),
+                "level_descriptions": first["level_descriptions"],
+                "support_pair_ids": first["support_pair_ids"],
+                "reason": "The proposals express one overlapping requirement.",
+            }]}),
+            cost=_cost(),
+            generation=_generation("semantic", "merge"),
+        )
+
+    generation = _replace(_proposer(propose, review), tmp_path)
+    assert [
+        item.title for item in generation.bank.items[0].elicited_criteria
+    ] == ["Robustness evidence"]
+
+
+def test_invalid_semantic_review_retries_then_abandons_the_criterion(
+    tmp_path: Path,
+) -> None:
+    calls = 0
+
+    def invalid_review(**_kwargs):
+        nonlocal calls
+        calls += 1
+        return SemanticReviewerOutput(
+            response_text=json.dumps({"actions": []}),
             cost=_cost(),
             generation=_generation("semantic", "invalid-semantic-review"),
         )
 
-    with pytest.raises(RuntimeError, match="wrong criterion count"):
-        _replace(_proposer(run_semantic=invalid_review), tmp_path)
+    first = _replace(_proposer(run_semantic=invalid_review), tmp_path)
+    assert calls == 2
+    assert first.bank.items[0].elicited_criteria == ()
     ledger = tmp_path / "bank-0001.provider-attempts.json"
     assert ledger.stat().st_mode & 0o222 == 0
 
@@ -535,9 +659,41 @@ def test_invalid_semantic_review_is_terminal_and_never_resampled(
         resumed_calls += 1
         raise AssertionError("provider must not run")
 
-    with pytest.raises(RuntimeError, match="wrong criterion count"):
-        _replace(_proposer(forbidden, forbidden), tmp_path)
+    second = _replace(_proposer(forbidden, forbidden), tmp_path)
+    assert second == first
     assert resumed_calls == 0
+
+
+def test_invalid_editor_response_gets_exact_repair_retry(tmp_path: Path) -> None:
+    calls = 0
+
+    def review(**kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            value = {"actions": []}
+        else:
+            assert "prior editor response failed validation" in kwargs["evidence"]
+            evidence = json.loads(kwargs["evidence"].split("\n\n<repair>", 1)[0])
+            source = evidence["proposed_criteria"][0]
+            value = {"actions": [{
+                "action": "accept",
+                "source_criterion_ids": [source["criterion_id"]],
+                "title": source["title"],
+                "requirement": source["requirement"],
+                "level_descriptions": source["level_descriptions"],
+                "support_pair_ids": source["support_pair_ids"],
+                "reason": "The criterion is valid and supported.",
+            }]}
+        return SemanticReviewerOutput(
+            response_text=json.dumps(value),
+            cost=_cost(),
+            generation=_generation("semantic", f"editor-{calls}"),
+        )
+
+    generation = _replace(_proposer(run_semantic=review), tmp_path)
+    assert calls == 2
+    assert len(generation.bank.items[0].elicited_criteria) == 1
 
 
 def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> None:
@@ -556,7 +712,7 @@ def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> 
     assert all(path.stat().st_mode & 0o222 == 0 for path in generation_root.iterdir())
 
 
-def test_provider_failure_is_terminal_and_resume_does_not_resample(
+def test_provider_failure_retries_and_resume_does_not_add_calls(
     tmp_path: Path,
 ) -> None:
     calls = 0
@@ -566,12 +722,12 @@ def test_provider_failure_is_terminal_and_resume_does_not_resample(
         calls += 1
         raise ValueError("transport failed")
 
-    with pytest.raises(RuntimeError, match="resume cannot resample"):
+    with pytest.raises(RuntimeError, match="failed after 2 calls"):
         _replace(_proposer(fail), tmp_path)
-    assert calls == 1
-    with pytest.raises(RuntimeError, match="did not publish"):
+    assert calls == 2
+    with pytest.raises(RuntimeError, match="failed after 2 calls"):
         _replace(_proposer(fail), tmp_path)
-    assert calls == 1
+    assert calls == 2
 
 
 def test_out_of_order_ledger_prefix_fails_before_dispatch(tmp_path: Path) -> None:
@@ -604,7 +760,7 @@ def test_model_identity_mismatch_fails_closed(tmp_path: Path) -> None:
         output.generation["effective_model"] = "different"
         return output
 
-    with pytest.raises(RuntimeError, match="resume cannot resample"):
+    with pytest.raises(RuntimeError, match="failed after 2 calls"):
         _replace(_proposer(propose), tmp_path)
 
 
@@ -633,7 +789,7 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
             policy="offline_elicitation",  # type: ignore[arg-type]
             generation_round=1,
             output_dir=tmp_path,
-            contrasts=_contrasts(),
+            artifact_history=_history(),
         )
     with pytest.raises(ValueError, match="integer"):
         proposer.elicit_rubric(
@@ -642,7 +798,7 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
             policy=RubricBankPolicy.OFFLINE_ELICITATION,
             generation_round=True,
             output_dir=tmp_path,
-            contrasts=_contrasts(),
+            artifact_history=_history(),
         )
     assert calls == 0
 
@@ -657,7 +813,7 @@ def test_online_and_offline_boundaries_are_not_interchangeable(tmp_path: Path) -
             generation_round=1,
             source_boundary=1,
             output_dir=tmp_path / "offline",
-            contrasts=_contrasts(),
+            artifact_history=_history(),
         )
     with pytest.raises(ValueError, match="matching live boundary"):
         proposer.elicit_rubric(
@@ -667,7 +823,7 @@ def test_online_and_offline_boundaries_are_not_interchangeable(tmp_path: Path) -
             generation_round=1,
             source_boundary=None,
             output_dir=tmp_path / "online",
-            contrasts=_contrasts(),
+            artifact_history=_history(),
         )
 
 

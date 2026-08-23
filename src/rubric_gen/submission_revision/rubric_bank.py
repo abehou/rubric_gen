@@ -27,7 +27,7 @@ from rubric_gen.submission_revision.autorubric import (
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 MAX_RUBRIC_BANK_ITEMS = 1
 MAX_ELICITED_CRITERIA = 5
-ELICITED_REWARD_FRACTION = 0.20
+ADDED_CRITERIA_POINT_FRACTION = 0.20
 MAX_CRITERION_TITLE_CHARS = 160
 MAX_CRITERION_TEXT_CHARS = 1_000
 _SCORING_PROTOCOL_PREFIX = "Scoring protocol: "
@@ -216,7 +216,7 @@ def _require_criterion_text(
 
 @dataclass(frozen=True)
 class ElicitedCriterion:
-    """Store one general criterion induced from blinded artifact contrasts."""
+    """Store one general criterion induced from a blinded artifact history."""
 
     criterion_id: str
     title: str
@@ -268,11 +268,11 @@ class ElicitedCriterion:
             or len(set(self.support_pair_ids)) != len(self.support_pair_ids)
             or any(
                 type(pair_id) is not str
-                or re.fullmatch(r"pair_[1-3]", pair_id) is None
+                or re.fullmatch(r"pair_[0-9a-f]{16}", pair_id) is None
                 for pair_id in self.support_pair_ids
             )
         ):
-            raise ValueError("elicited criterion needs two distinct contrast pairs")
+            raise ValueError("elicited criterion needs two distinct artifact pairs")
         _require_nonnegative_int(self.source_generation, "source_generation")
         expected_id = "elicited_" + sha256_text(json.dumps(
             {
@@ -443,37 +443,36 @@ def _allocate_integer_mass(
     return tuple(allocations)
 
 
-def _scaled_level_points(levels: tuple[object, ...], new_maximum: int) -> tuple[int, ...]:
-    old_points = tuple(int(getattr(level, "points")) for level in levels)
-    old_maximum = old_points[0]
-    if old_maximum == 0:
-        if new_maximum != 0:
-            raise ValueError("a penalty criterion cannot receive positive point mass")
-        return old_points
-    positive_count = sum(point > 0 for point in old_points)
-    if new_maximum < positive_count:
-        raise ValueError("scaled criterion has too little positive point mass")
-    values: list[int] = []
-    remaining_positive = positive_count
-    previous = new_maximum + 1
-    for point in old_points:
-        if point > 0:
-            lower = remaining_positive
-            candidate = round(point * new_maximum / old_maximum)
-            value = min(previous - 1, max(lower, candidate))
-            values.append(value)
-            previous = value
-            remaining_positive -= 1
-        elif point == 0:
-            values.append(0)
+def _context_with_normalization_maximum(
+    context: str,
+    *,
+    new_maximum: int,
+) -> str:
+    """Return context with one authoritative percentage denominator."""
+
+    lines = context.splitlines()
+    normalization_prefix = "Score normalization maximum:"
+    normalization_pattern = re.compile(
+        r"^[ \t]*Score normalization maximum:[ \t]*[1-9]\d*[ \t]*$"
+    )
+    total_points_pattern = re.compile(r"^[ \t]*Total Points:[ \t]*\d+[ \t]*$")
+    output: list[str] = []
+    found_normalization = False
+    for line in lines:
+        if normalization_pattern.fullmatch(line):
+            if found_normalization:
+                raise ValueError("rubric has duplicate normalization directives")
+            output.append(f"{normalization_prefix} {new_maximum}")
+            found_normalization = True
+        elif total_points_pattern.fullmatch(line):
+            output.append(f"Total Points: {new_maximum}")
         else:
-            value = round(point * new_maximum / old_maximum)
-            if value >= 0 or (values and value >= values[-1]):
-                raise ValueError(
-                    "scaled criterion cannot preserve its negative level order"
-                )
-            values.append(value)
-    return tuple(values)
+            output.append(line)
+    if not found_normalization:
+        if output and output[-1]:
+            output.append("")
+        output.append(f"{normalization_prefix} {new_maximum}")
+    return "\n".join(output)
 
 
 def render_augmented_rubric(
@@ -512,46 +511,44 @@ def render_augmented_rubric(
     if len(set(titles)) != len(titles) or set(titles) & original_titles:
         raise ValueError("elicited criteria contain duplicate criterion titles")
 
-    normalization_maximum = parsed.normalization_maximum or 100
-    elicited_mass = round(normalization_maximum * ELICITED_REWARD_FRACTION)
-    original_mass = normalization_maximum - elicited_mass
-    original_weights = tuple(criterion.levels[0].points for criterion in parsed.criteria)
-    original_minimums = tuple(
-        sum(level.points > 0 for level in criterion.levels)
-        for criterion in parsed.criteria
-    )
-    original_maxima = _allocate_integer_mass(
-        original_weights,
-        original_mass,
-        original_minimums,
-    )
+    original_maximum = parsed.normalization_maximum or 100
+    added_point_budget = added_criteria_point_budget(original_rubric)
+    normalization_maximum = original_maximum + added_point_budget
     elicited_maxima = _allocate_integer_mass(
         tuple(1 for _ in elicited_criteria),
-        elicited_mass,
+        added_point_budget,
         tuple(1 for _ in elicited_criteria),
     )
 
     lines: list[str] = []
     if parsed.context:
-        lines.extend((parsed.context, ""))
+        lines.extend((
+            _context_with_normalization_maximum(
+                parsed.context,
+                new_maximum=normalization_maximum,
+            ),
+            "",
+        ))
+    else:
+        lines.extend((
+            f"Score normalization maximum: {normalization_maximum}",
+            "",
+        ))
     criterion_map: list[RubricCriterionMapping] = []
-    for index, (criterion, maximum) in enumerate(
-        zip(parsed.criteria, original_maxima, strict=True), start=1
-    ):
+    for index, criterion in enumerate(parsed.criteria, start=1):
         member_id = f"criterion_{index}"
         criterion_map.append(RubricCriterionMapping(
             anchor_criterion_id=criterion.criterion_id,
             member_criterion_id=member_id,
         ))
-        points = _scaled_level_points(criterion.levels, maximum)
         lines.append(f"Criterion {index}: {criterion.title}")
         specific = _criterion_specific_requirement(criterion)
         if specific:
             lines.append(specific)
         lines.append(
             "Levels: " + " ".join(
-                f"{level.label}={point}"
-                for level, point in zip(criterion.levels, points, strict=True)
+                f"{level.label}={level.points}"
+                for level in criterion.levels
             )
         )
         lines.extend(
@@ -587,6 +584,19 @@ def render_augmented_rubric(
         lines.append("")
     rubric = CompleteRubric.from_content("\n".join(lines).rstrip() + "\n")
     return rubric, tuple(criterion_map)
+
+
+def added_criteria_point_budget(original_rubric: CompleteRubric) -> int:
+    """Return the fixed positive-point budget for elicited criteria."""
+
+    if not isinstance(original_rubric, CompleteRubric):
+        raise ValueError("original_rubric must be a CompleteRubric")
+    parsed = parse_autorubric_rubric(original_rubric.content)
+    original_maximum = parsed.normalization_maximum or 100
+    return max(
+        1,
+        round(original_maximum * ADDED_CRITERIA_POINT_FRACTION),
+    )
 
 
 def validate_rubric_criterion_map(
@@ -781,17 +791,15 @@ class RubricBank:
                     "the initial bank must contain the unchanged original rubric"
                 )
 
-        contracts = {
-            _validate_complete_rubric(rubric.content)
+        protocols = {
+            _validate_complete_rubric(rubric.content)[0]
             for rubric in (
                 self.specification_anchor,
                 *(item.rubric for item in self.items),
             )
         }
-        if len(contracts) != 1:
-            raise ValueError(
-                "all bank members must use one normalization and scoring protocol"
-            )
+        if len(protocols) != 1:
+            raise ValueError("all bank members must use one scoring protocol")
         for item in self.items:
             validate_rubric_criterion_map(
                 self.specification_anchor,
@@ -851,7 +859,7 @@ class RubricBank:
     def normalization_maximum(self) -> int:
         """Return the bank-wide raw score maximum that maps to 100."""
 
-        _, maximum = _validate_complete_rubric(self.specification_anchor.content)
+        _, maximum = _validate_complete_rubric(self.items[0].rubric.content)
         return maximum
 
     @property
@@ -892,12 +900,9 @@ class RubricBank:
             raise ValueError("prior_bank must be a RubricBank")
         if prior_bank.generation_round != self.generation_round - 1:
             raise ValueError("prior_bank must be the immediately preceding generation")
-        if (
-            self.normalization_maximum != prior_bank.normalization_maximum
-            or self.scoring_protocol != prior_bank.scoring_protocol
-        ):
+        if self.scoring_protocol != prior_bank.scoring_protocol:
             raise ValueError(
-                "a specification anchor cannot change the bank scoring contract"
+                "a specification anchor cannot change the bank scoring protocol"
             )
 
         if self.prior_specification_anchor_sha256 != (
@@ -1035,6 +1040,10 @@ class RubricBankSchedule:
                 "an elicitation schedule requires one unit-weight rubric"
             )
         if self.policy is RubricBankPolicy.OFFLINE_ELICITATION:
+            if len(banks) != 2:
+                raise ValueError(
+                    "offline elicitation must contain one pre-treatment update"
+                )
             if any(bank.source_boundary is not None for bank in elicited_banks):
                 raise ValueError(
                     "offline elicitation cannot use a live artifact boundary"
@@ -1058,6 +1067,10 @@ def _validate_policy_bank(policy: RubricBankPolicy, bank: RubricBank) -> None:
             "an elicitation policy requires one unit-weight rubric"
         )
     if policy is RubricBankPolicy.OFFLINE_ELICITATION:
+        if bank.generation_round > 1:
+            raise ValueError(
+                "offline elicitation permits one pre-treatment update"
+            )
         if bank.source_boundary is not None:
             raise ValueError(
                 "offline elicitation cannot use a live artifact boundary"

@@ -56,7 +56,6 @@ from rubric_gen.submission_revision.user_simulator import (
     SimulatedUserRequest,
 )
 from rubric_gen.submission_revision.evolution import (
-    ArtifactContrast,
     BankProposerOutput,
     RubricBankProposer,
     SemanticReviewerOutput,
@@ -308,7 +307,7 @@ def _config(
         optimizer_rubric_path=task / "tests" / "rubric.txt",
         master_rubric_name="rubric.txt",
         rubric_semantic_judge_model="semantic-model",
-        rubric_semantic_judge_max_calls=max(0, rounds - 1),
+        rubric_semantic_judge_max_calls=max(1, rounds - 1),
         rubric_semantic_judge_max_request_bytes=1_048_576,
         rubric_semantic_judge_max_output_tokens=32_768,
         feedback_policy=FeedbackPolicy.FULL,
@@ -417,6 +416,10 @@ def test_expected_bank_generations_use_condition_metadata() -> None:
         {"condition_id": "misleading", "rubric_policy": "fixed"},
         3,
     ) == ["bank-0000"]
+    assert _expected_bank_names(
+        {"condition_id": "misleading", "rubric_policy": "offline_elicitation"},
+        7,
+    ) == ["bank-0000", "bank-0001"]
 
 
 class FakeSession:
@@ -653,16 +656,19 @@ def _criterion_elicitation_proposer(
         stage = kwargs["stage"]
         schema = kwargs["response_schema"]
         if stage == "differences":
+            pair_ids = schema["properties"]["pairs"]["items"]["properties"][
+                "pair_id"
+            ]["enum"]
             value: dict[str, object] = {
                 "pairs": [
                     {
-                        "pair_id": f"pair_{index}",
+                        "pair_id": pair_id,
                         "differences": [{
                             "summary": "The result uses different verification evidence.",
                             "task_relevance": "Verification affects confidence in the result.",
                         }],
                     }
-                    for index in (1, 2, 3)
+                    for pair_id in pair_ids
                 ]
             }
         elif stage == "criteria":
@@ -687,22 +693,19 @@ def _criterion_elicitation_proposer(
         )
 
     def review(**kwargs) -> SemanticReviewerOutput:
-        criterion_schema = kwargs["response_schema"]["properties"][
-            "criterion_reviews"
-        ]
-        criterion_ids = criterion_schema["items"]["properties"][
-            "criterion_id"
-        ]["enum"]
-        if criterion_schema["maxItems"] == 0:
-            criterion_ids = []
+        proposed = json.loads(kwargs["evidence"])["proposed_criteria"]
         value = {
-            "criterion_reviews": [
+            "actions": [
                 {
-                    "criterion_id": criterion_id,
-                    "verdict": "accepted",
+                    "action": "accept",
+                    "source_criterion_ids": [criterion["criterion_id"]],
+                    "title": criterion["title"],
+                    "requirement": criterion["requirement"],
+                    "level_descriptions": criterion["level_descriptions"],
+                    "support_pair_ids": criterion["support_pair_ids"],
                     "reason": "The criterion is general, relevant, and supported.",
                 }
-                for criterion_id in criterion_ids
+                for criterion in proposed
             ],
         }
         return SemanticReviewerOutput(
@@ -825,7 +828,10 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
             ("B", "The verification evidence is partial."),
             ("C", "The verification evidence is absent."),
         ),
-        support_pair_ids=("pair_1", "pair_2"),
+        support_pair_ids=(
+            "pair_0000000000000001",
+            "pair_0000000000000002",
+        ),
         source_generation=1,
     )
     active_rubric, criterion_map = render_augmented_rubric(
@@ -1529,9 +1535,7 @@ def test_study_validates_every_elicitation_generation_record(
             / "rubric-generations/bank-0001/generation.json"
         ).read_text()
     )
-    assert generation["semantic_stage"][0]["cost"]["cost_source"] == (
-        "test-estimate"
-    )
+    assert generation["criterion_edit_stage"] == []
     assignment = {
         "assignment_id": config.assignment_id,
         "task_id": task.name,
@@ -1604,9 +1608,22 @@ def test_controller_scores_one_rubric_exactly(
     result = controller.run()
 
     assert result.scores == (80, 65)
+    initial_evaluation = json.loads(
+        (config.experiment_dir / "bank-evaluations" / "s000.json").read_text()
+    )
     evaluation = json.loads(
         (config.experiment_dir / "bank-evaluations" / "s001.json").read_text()
     )
+    assert initial_evaluation["generation_round"] == 1
+    assert evaluation["generation_round"] == 1
+    assert initial_evaluation["bank_sha256"] == evaluation["bank_sha256"]
+    assert sorted(
+        path.name for path in (config.experiment_dir / "rubric-banks").iterdir()
+    ) == ["bank-0000", "bank-0001"]
+    assert sorted(
+        path.name
+        for path in (config.experiment_dir / "rubric-generations").iterdir()
+    ) == ["bank-0001", "bank-0001.provider-attempts.json"]
     assert evaluation["weighted_score"] == 65
     assert sorted(
         (member["weight"], member["score"])

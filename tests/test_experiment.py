@@ -74,6 +74,7 @@ def _payload(root: Path) -> dict[str, object]:
         "tasks_dir": "tasks",
         "tasks": ["da-1-1", "da-2-1"],
         "randomization": {"seed": 42, "replicates": 3},
+        "assignment_selection": "all",
         "conditions": _factorial_conditions(),
         "protocol": {
             "revision_rounds": 10,
@@ -145,6 +146,33 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     assert {item["execution_order"] for item in first.assignments} == set(
         range(1, 73)
     )
+
+
+def test_experiment_selects_exact_assignments_after_randomization(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    selected = [
+        "da-1-1--rep-001--full-static",
+        "da-2-1--rep-003--user-simulator-online-rubric",
+    ]
+    payload = _payload(tmp_path)
+    payload["assignment_selection"] = selected
+    path = tmp_path / "selected.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    experiment = load_experiment(path)
+
+    assert {item["assignment_id"] for item in experiment.assignments} == set(
+        selected
+    )
+    assert [item["execution_order"] for item in experiment.assignments] == [1, 2]
+
+    payload["assignment_selection"] = ["unknown-assignment"]
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    with pytest.raises(ValueError, match="unknown assignment IDs"):
+        load_experiment(path)
 
 
 def test_experiment_rejects_an_invalid_master_rubric_before_dispatch(
@@ -332,12 +360,12 @@ def test_experiment_eagerly_validates_judge_protocol_fields(
         (
             "rubric_semantic_judge_max_calls_per_assignment",
             8,
-            "call cap must equal revision_rounds minus one",
+            "call cap must cover offline compilation and online updates",
         ),
         (
             "rubric_semantic_judge_max_calls_per_assignment",
             "9",
-            "call cap must equal revision_rounds minus one",
+            "call cap must cover offline compilation and online updates",
         ),
         (
             "rubric_semantic_judge_max_request_bytes_per_call",

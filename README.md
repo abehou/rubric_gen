@@ -154,46 +154,47 @@ Every condition uses exactly one rubric. Each experiment requires these three
 rubric policies with the shared `base` solver prompt:
 
 - Static rubric (`fixed`) keeps the original rubric.
-- Offline rubric (`offline_elicitation`) adds criteria from three sealed pairs.
-- Online rubric (`online_elicitation`) adds criteria from three live pairs.
+- Offline rubric (`offline_elicitation`) compiles once from three sealed artifacts.
+- Online rubric (`online_elicitation`) uses every sealed and observed artifact.
 
 The original criteria remain. The proposer cannot delete or rewrite them. The
-system can add at most five criteria during one assignment. When at least one
-criterion is added, the original criteria receive 80 percent of the score. The
-added criteria share the other 20 percent equally. The program sets these
-weights. The proposer never chooses points or weights.
+system can add at most five criteria during one assignment. The program keeps
+every original point value. Added criteria share positive points equal to 20
+percent of the original maximum. The score is the raw total divided by the new
+positive-point maximum. Thus, 110 raw points from 120 available points produce
+91.67. The proposer never chooses points or weights.
 
-Each update uses two proposer calls. The first call finds uncovered differences
-in three blinded artifact pairs. The second call turns recurring differences
-into general criteria. Each criterion must cite at least two pair IDs. A
-separate call audits every proposed criterion with the same Luna model. It
-labels task relevance, generality, evidence support, evaluability, and
-duplication. These labels are advisory. Every criterion that passes deterministic
-validation enters the next rubric.
+Each update stores every artifact once under a stable blinded ID. It then gives
+the proposer the complete unordered pair graph. The first call finds uncovered
+differences. The second call turns recurring differences into general criteria.
+Support must span at least three artifacts. No artifact can occur in every
+supporting pair. A separate reviewer accepts, rewrites, merges, or drops each
+proposal. Only the reviewer's final criteria enter the next rubric.
 
-Deterministic validation checks the response schema and text bounds. It requires
-exact level labels and two distinct pair IDs. It rejects trajectory-specific
-language and duplicate criterion content. It also enforces the five-criterion
-cap and score feasibility. It does not decide semantic novelty or quality.
+Deterministic validation checks the response schema, text bounds, exact level
+labels, support graph, source coverage, and editor action. It rejects
+trajectory-specific language and duplicate criterion content. It also enforces
+the five-criterion cap and score feasibility.
 
-The online condition compares the current artifact with the prior artifact,
-the initial artifact, and a midpoint artifact. Sealed seed artifacts fill any
-missing or duplicate early-round source. The offline condition uses all three
-pairs among three sealed seed artifacts. Artifact order is deterministic and
-blinded. Models do not receive scores, round labels, or newer/older labels.
+The offline condition completes this process before the first treatment and
+then freezes its rubric. The online condition rebuilds the complete history
+graph at each eligible boundary. Sealed seed artifacts fill the initial history.
+The offline condition uses all three pairs among three sealed seed artifacts.
+Artifact order is deterministic and blinded. Models do not receive scores,
+round labels, or newer/older labels.
 
-The first two artifacts use the original rubric. After artifact `s001` is
-scored, the first elicited rubric is sealed. It scores `s002`. A six-round run
-therefore has five possible elicitation updates.
+The offline rubric scores every artifact, including `s000`. In the online arm,
+the original rubric scores `s000` and `s001`. The first online update is sealed
+after `s001` and scores `s002`. A six-round run has five online updates.
 
 Each proposer and reviewer request has a 1 MiB UTF-8 cap. Each call allows at
 most 32,768 output tokens and uses a 1,800-second timeout. The two proposer
-stages allow five validation retries. The semantic audit makes one call per
-update and does not retry. Invalid audit output or an incomplete provider call
+stages allow five validation retries. The editor makes one call per update and
+does not retry. Invalid editor output or an incomplete provider call
 stops the assignment. A write-ahead ledger binds every provider call and resume.
 Malformed or indeterminate provider work cannot be silently resampled.
 
-The saved generation binds the exact contrast texts, differences, criteria,
+The saved generation binds the exact artifact history, differences, criteria,
 review, model metadata, provider ledger, rubric content, and local code hashes.
 This structure proves internal consistency. It does not prove that a generated
 criterion is correct or complete. Two supporting online pairs share the current
@@ -220,7 +221,7 @@ retry policy remains separate and explicit.
 | Rubric paraphraser | GPT-5.6 Luna | none; low text verbosity | Four variants per task; up to two retries each |
 | Difference finder | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
 | Criterion writer | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
-| Criterion auditor | GPT-5.6 Luna | low; low text verbosity | One per rubric update |
+| Criterion editor | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five repair retries; invalid proposals are dropped after exhaustion |
 | In-loop rubric grader | GPT-5.6 Luna | none | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | Claude Opus 5 | low effort | Five full-rubric calls per artifact and rubric |
@@ -232,9 +233,19 @@ Development studies use three tasks. Results studies use 20 tasks. All use six
 revision turns, three replicates, and 12 factorial conditions. Each development
 experiment has 108 assignments. Each results experiment has 720 assignments.
 The active rubric contains at most five elicited criteria. Each accepted
-criterion needs support from at least two of three contrast pairs. Structured
+criterion needs non-hub support across at least three artifacts. Structured
 rubric judgments use temperature zero when supported and omit the deprecated
 field for Claude Opus 5.
+
+Run the targeted 20-assignment elicitation preflight as two revision studies:
+
+```bash
+uv run rubric-gen revise --experiment experiments/preflights/biomnibench-elicitation-10.yaml --max-concurrency 10
+uv run rubric-gen revise --experiment experiments/preflights/paperbench-elicitation-10.yaml --max-concurrency 10
+```
+
+The two preflight configurations select exact assignments from valid full
+factorial designs. Together they cover 16 online and four offline assignments.
 
 ## Quality and reward-hacking audits
 

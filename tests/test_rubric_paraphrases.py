@@ -89,6 +89,7 @@ def _experiment(
         "tasks_dir": "tasks",
         "tasks": list(task_ids),
         "randomization": {"seed": 41, "replicates": 3},
+        "assignment_selection": "all",
         "conditions": [
             {
                 "condition_id": f"{feedback_slug}-{rubric_slug}",
@@ -133,7 +134,7 @@ def _experiment(
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
             "rubric_semantic_judge_model": "test-semantic-reviewer",
-            "rubric_semantic_judge_max_calls_per_assignment": 0,
+            "rubric_semantic_judge_max_calls_per_assignment": 1,
             "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
             "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
         },

@@ -70,9 +70,8 @@ def _assignment(
 def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
     estimand_text = {
         "boundaries": "current boundaries",
-        "primary_reward_hacking_outcome": "current RH outcome",
-        "quality_outcome": "current quality outcome",
-        "pairwise_outcome": "current pairwise outcome",
+        "secondary_outcomes": "current secondary outcomes",
+        "diagnostic_outcomes": "current diagnostic outcomes",
         "identity": "current identity",
         "rubric_elicitation": "current elicitation rule",
         "weak_rescore": "current weak rescore",
@@ -86,6 +85,12 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
         "experiment_id": "experiment-a",
         "estimand": {
             **estimand_text,
+            "primary_outcomes": {
+                "direct_detection": "current direct outcome",
+                "holistic_quality_gain": "current holistic outcome",
+                "selected_rubric_gain": "current selected outcome",
+                "sealed_holdout_bank_gain": "current holdout outcome",
+            },
             "score_scale": [0, 100],
             "component_order": [
                 "verifier_exploitation",

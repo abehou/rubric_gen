@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
 import os
 import shutil
@@ -34,7 +35,29 @@ from rubric_gen.benchmarks.harvey_lab.runtime import (
 )
 
 
-_TRANSIENT_JUDGE_ERRORS = ("Grammar compilation timed out.",)
+_TRANSIENT_PROVIDER_ERRORS = (
+    "apiconnectionerror",
+    "apitimeouterror",
+    "connection reset by peer",
+    "httpx.connecterror",
+    "httpx.readtimeout",
+    "httpx.remoteprotocolerror",
+    "internalservererror",
+    "overloaded_error",
+    "ratelimiterror",
+    "rate_limit_error",
+    "serviceunavailableerror",
+    "temporarily unavailable",
+)
+_TRANSIENT_TASK_AGENT_ERRORS = (
+    *_TRANSIENT_PROVIDER_ERRORS,
+    "invalid_prompt",
+)
+_TRANSIENT_JUDGE_ERRORS = (
+    *_TRANSIENT_PROVIDER_ERRORS,
+    "grammar compilation timed out.",
+    "judge response truncated (stop_reason=max_tokens",
+)
 
 
 @dataclass(frozen=True)
@@ -76,13 +99,17 @@ class HarveyEvaluator:
         runtime_root: Path,
         uv_executable: str = "uv",
         max_concurrency: int = 1,
+        max_retries: int = 3,
     ) -> None:
         if type(max_concurrency) is not int or max_concurrency < 1:
             raise ValueError("Harvey max_concurrency must be a positive integer")
+        if type(max_retries) is not int or max_retries < 0:
+            raise ValueError("Harvey max_retries must be a non-negative integer")
         self.experiment = experiment
         self.runtime_root = runtime_root
         self.uv_executable = uv_executable
         self.max_concurrency = max_concurrency
+        self.max_retries = max_retries
         self._podman_lock = threading.Lock()
         self._podman_environment: dict[str, str] | None = None
 
@@ -394,8 +421,22 @@ class HarveyEvaluator:
         ]
         if config.reasoning_effort is not None:
             command.extend(["--reasoning-effort", config.reasoning_effort])
-        self._archive_log(log)
-        self._execute(command, runtime, log, config.credential_env, "task agent")
+        runtime_result = runtime / "results" / run_id
+
+        def reset_result() -> None:
+            if os.path.lexists(runtime_result):
+                self._remove_owned_tree(runtime_result)
+
+        self._execute_with_retries(
+            command,
+            runtime,
+            log,
+            config.credential_env,
+            "task agent",
+            operation=f"task agent for {task_id}",
+            transient_errors=_TRANSIENT_TASK_AGENT_ERRORS,
+            before_retry=reset_result,
+        )
 
     def _score_task(self, runtime: Path, task_id: str, run_id: str, log: Path) -> None:
         config = self.experiment.judge
@@ -416,22 +457,66 @@ class HarveyEvaluator:
             "--parallel",
             str(config.parallel),
         ]
-        for attempt in range(2):
+        score_path = runtime / "results" / run_id / "scores.json"
+
+        def clear_score() -> None:
+            if os.path.lexists(score_path):
+                if score_path.is_symlink() or not score_path.is_file():
+                    raise ValueError(
+                        f"Harvey score output is not a regular file: {score_path}"
+                    )
+                score_path.unlink()
+
+        clear_score()
+        self._execute_with_retries(
+            command,
+            runtime,
+            log,
+            config.credential_env,
+            "Harvey judge",
+            operation=f"judge for {task_id}",
+            transient_errors=_TRANSIENT_JUDGE_ERRORS,
+            before_retry=clear_score,
+        )
+
+    def _execute_with_retries(
+        self,
+        command: list[str],
+        runtime: Path,
+        log: Path,
+        credential_names: tuple[str, ...],
+        label: str,
+        *,
+        operation: str,
+        transient_errors: tuple[str, ...],
+        before_retry: Callable[[], None] | None = None,
+    ) -> None:
+        for attempt in range(self.max_retries + 1):
             self._archive_log(log)
             try:
-                self._execute(command, runtime, log, config.credential_env, "Harvey judge")
+                self._execute(command, runtime, log, credential_names, label)
                 return
             except RuntimeError:
-                if attempt == 1 or not self._is_transient_judge_failure(log):
+                if (
+                    attempt == self.max_retries
+                    or not self._is_transient_failure(log, transient_errors)
+                ):
                     raise
+                if before_retry is not None:
+                    before_retry()
+                print(
+                    f"Retrying Harvey {operation} after a transient failure "
+                    f"({attempt + 1}/{self.max_retries})",
+                    flush=True,
+                )
 
     @staticmethod
-    def _is_transient_judge_failure(log: Path) -> bool:
+    def _is_transient_failure(log: Path, messages: tuple[str, ...]) -> bool:
         try:
-            output = log.read_text(encoding="utf-8", errors="replace")
+            output = log.read_text(encoding="utf-8", errors="replace").casefold()
         except OSError:
             return False
-        return any(message in output for message in _TRANSIENT_JUDGE_ERRORS)
+        return any(message in output for message in messages)
 
     @staticmethod
     def _archive_log(log: Path) -> None:

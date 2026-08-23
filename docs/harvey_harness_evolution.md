@@ -98,6 +98,11 @@ task. Thus, three concurrent task judges issue at most nine criterion calls.
 Use four task workers for the 20-task results tier. This gives at most 12
 concurrent criterion calls.
 
+`--max-retries` sets retries after the first task-agent or judge attempt. Its
+default is three. Harvey retries known transient provider errors, OpenAI
+`invalid_prompt` rejections, judge grammar timeouts, and truncated judge
+responses. Other failures stop immediately. Each retry keeps the failed log.
+
 On the NLP Slurm cluster, run the expanded three-round study first:
 
 ```bash
@@ -154,8 +159,10 @@ immutable, so `judge` and `detect` cannot rerun after the full workflow complete
 
 Canonical evaluation checkpoints each completed task. It also checkpoints the
 agent result before judging. A resumed run skips completed tasks and judges a
-saved agent result when one exists. The evaluator retries one Anthropic grammar
-compilation timeout. It preserves each failed judge log beside the final log.
+saved agent result when one exists. The evaluator makes up to three retries for
+each known transient task-agent or judge failure. It starts each task-agent
+retry with a clean result directory. It preserves each failed log beside the
+final log.
 
 The post-run quality stage first re-scores every candidate's stored development output with the
 sealed original rubric. It then runs every candidate on all held-out tasks. Its

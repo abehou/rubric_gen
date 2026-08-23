@@ -1189,9 +1189,20 @@ def test_production_evaluator_resumes_canonical_and_crossed_task_checkpoints(
     assert not crossed_stage.exists()
 
 
-def test_harvey_judge_retries_only_grammar_compilation_timeout(
+@pytest.mark.parametrize(
+    "transient_message",
+    [
+        "Grammar compilation timed out.",
+        (
+            "Judge response truncated (stop_reason=max_tokens, "
+            "input_tokens=14617, max_tokens=16384)."
+        ),
+    ],
+)
+def test_harvey_judge_retries_configured_transient_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    transient_message: str,
 ) -> None:
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
@@ -1219,8 +1230,8 @@ def test_harvey_judge_retries_only_grammar_compilation_timeout(
         nonlocal calls
         calls += 1
         log.parent.mkdir(parents=True, exist_ok=True)
-        if calls == 1:
-            log.write_text("Grammar compilation timed out.", encoding="utf-8")
+        if calls <= 3:
+            log.write_text(transient_message, encoding="utf-8")
             raise RuntimeError("judge failed")
         log.write_text("success", encoding="utf-8")
 
@@ -1228,16 +1239,78 @@ def test_harvey_judge_retries_only_grammar_compilation_timeout(
     evaluator = HarveyEvaluator(
         experiment,
         runtime_root=tmp_path / "runtime",
+        max_retries=3,
     )
     log = tmp_path / "judge.log"
 
     evaluator._score_task(tmp_path, "area/task", "run", log)
 
-    assert calls == 2
+    assert calls == 4
     assert log.read_text(encoding="utf-8") == "success"
-    assert (tmp_path / "judge.failed-001.log").read_text(encoding="utf-8") == (
-        "Grammar compilation timed out."
+    for index in range(1, 4):
+        assert (tmp_path / f"judge.failed-{index:03d}.log").read_text(
+            encoding="utf-8"
+        ) == transient_message
+
+
+def test_harvey_task_agent_retries_invalid_prompt_from_clean_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "experiment.yaml"
+    source.write_text("fixture", encoding="utf-8")
+    experiment = HarveyExperiment(
+        source=source,
+        experiment_id="harvey-test",
+        output_dir=tmp_path / "output",
+        cache_dir=tmp_path / "cache",
+        benchmark=HarveyBenchmark(tmp_path / "checkout", "a" * 40, ("area/task",), ()),
+        task_agent=TaskAgent("agent", 10, 0.0, 10, None, "image", ("KEY",)),
+        judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
+        designer=HarnessDesigner("codex", 1, None, None, 10, 0),
+        rubric=RubricEvolution("static", None, None, 2, 4096),
+        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
     )
+    calls = 0
+    runtime_result = tmp_path / "results" / "run"
+
+    def execute(
+        command: list[str],
+        runtime: Path,
+        log: Path,
+        credential_names: tuple[str, ...],
+        label: str,
+    ) -> None:
+        nonlocal calls
+        calls += 1
+        assert label == "task agent"
+        if calls > 1:
+            assert not runtime_result.exists()
+        log.parent.mkdir(parents=True, exist_ok=True)
+        if calls <= 3:
+            runtime_result.mkdir(parents=True)
+            (runtime_result / "partial.txt").write_text("partial", encoding="utf-8")
+            log.write_text("'code': 'invalid_prompt'", encoding="utf-8")
+            raise RuntimeError("task agent failed")
+        log.write_text("success", encoding="utf-8")
+
+    monkeypatch.setattr(HarveyEvaluator, "_execute", staticmethod(execute))
+    evaluator = HarveyEvaluator(
+        experiment,
+        runtime_root=tmp_path / "runtime",
+        max_retries=3,
+    )
+    log = tmp_path / "agent.log"
+
+    evaluator._run_task(tmp_path, "area/task", "run", log)
+
+    assert calls == 4
+    assert log.read_text(encoding="utf-8") == "success"
+    assert not runtime_result.exists()
+    for index in range(1, 4):
+        assert (tmp_path / f"agent.failed-{index:03d}.log").read_text(
+            encoding="utf-8"
+        ) == "'code': 'invalid_prompt'"
 
 
 def test_production_evaluator_runs_independent_tasks_with_bounded_concurrency(

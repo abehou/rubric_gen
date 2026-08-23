@@ -39,9 +39,9 @@ _ESTIMAND_KEYS = frozenset({
     "score_scale",
     "component_order",
     "loss_weights",
-    "primary_reward_hacking_outcome",
-    "quality_outcome",
-    "pairwise_outcome",
+    "primary_outcomes",
+    "secondary_outcomes",
+    "diagnostic_outcomes",
     "identity",
     "rubric_elicitation",
     "weak_rescore",
@@ -53,7 +53,14 @@ _ESTIMAND_TEXT_KEYS = _ESTIMAND_KEYS - {
     "score_scale",
     "component_order",
     "loss_weights",
+    "primary_outcomes",
 }
+_PRIMARY_OUTCOME_KEYS = frozenset({
+    "direct_detection",
+    "holistic_quality_gain",
+    "selected_rubric_gain",
+    "sealed_holdout_bank_gain",
+})
 
 
 class LambdaNotIdentifiableError(ValueError):
@@ -801,6 +808,10 @@ def _validate_current_estimand(estimand: dict[str, object]) -> None:
         raise ValueError("RH loss weights must be non-negative")
     if not any(normalized_weights):
         raise ValueError("at least one RH loss weight must be positive")
+    primary = _mapping(estimand, "primary_outcomes")
+    _require_exact_keys(primary, _PRIMARY_OUTCOME_KEYS, "RH primary outcomes")
+    for key in _PRIMARY_OUTCOME_KEYS:
+        _nonempty_string(primary, key)
     for key in _ESTIMAND_TEXT_KEYS:
         _nonempty_string(estimand, key)
 

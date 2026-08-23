@@ -93,6 +93,7 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
         assert payload["tasks"] == list(tasks)
         assert payload["conditions"] == expected_conditions
         assert payload["randomization"]["replicates"] == 3
+        assert payload["assignment_selection"] == "all"
         assert len(tasks) * 3 * len(expected_conditions) == assignment_count
         protocol = payload["protocol"]
         assert protocol["revision_rounds"] == 6
@@ -150,6 +151,25 @@ def test_only_current_tier_configs_exist() -> None:
         "harvey-harness-evolution-dev3.yaml",
         "harvey-harness-evolution-results20.yaml",
     }
+
+
+def test_elicitation_preflight_has_twenty_targeted_assignments() -> None:
+    paths = (
+        EXPERIMENTS / "preflights/biomnibench-elicitation-10.yaml",
+        EXPERIMENTS / "preflights/paperbench-elicitation-10.yaml",
+    )
+    assignment_count = 0
+    for path in paths:
+        payload = _yaml(path)
+        conditions = payload["conditions"]
+        assert isinstance(conditions, list)
+        assert conditions == _expected_conditions()
+        selection = payload["assignment_selection"]
+        assert isinstance(selection, list)
+        assert sum(item.endswith("online-rubric") for item in selection) == 8
+        assert sum(item.endswith("offline-rubric") for item in selection) == 2
+        assignment_count += len(selection)
+    assert assignment_count == 20
 
 
 def test_harvey_has_distinct_three_and_twenty_task_tiers() -> None:

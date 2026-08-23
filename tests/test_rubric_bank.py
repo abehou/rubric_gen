@@ -8,8 +8,9 @@ import pytest
 
 from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
 from rubric_gen.submission_revision.rubric_bank import (
+    ADDED_CRITERIA_POINT_FRACTION,
+    added_criteria_point_budget,
     CompleteRubric,
-    ELICITED_REWARD_FRACTION,
     ElicitedCriterion,
     MAX_ELICITED_CRITERIA,
     RubricBank,
@@ -80,7 +81,10 @@ def _criterion(
         title=title,
         requirement="Test the solution under a task-relevant perturbation.",
         level_descriptions=levels,
-        support_pair_ids=("pair_1", "pair_3"),
+        support_pair_ids=(
+            "pair_0000000000000001",
+            "pair_0000000000000003",
+        ),
         source_generation=generation,
     )
 
@@ -161,7 +165,7 @@ def test_elicited_criterion_requires_two_distinct_support_pairs() -> None:
             title="A valid title",
             requirement="A valid general requirement.",
             level_descriptions=(("A", "Yes."), ("B", "No."), ("C", "Absent.")),
-            support_pair_ids=("pair_1",),
+            support_pair_ids=("pair_0000000000000001",),
             source_generation=1,
         )
 
@@ -173,21 +177,27 @@ def test_no_elicited_criterion_keeps_the_original_rubric_byte_exact() -> None:
     assert criterion_map == identity_criterion_map(original)
 
 
-def test_program_reserves_exact_reward_mass_and_preserves_original_text() -> None:
+def test_program_adds_points_and_preserves_original_points_and_text() -> None:
     original = _rubric()
     criterion = _criterion()
     rendered, criterion_map = render_augmented_rubric(original, (criterion,))
     parsed = parse_autorubric_rubric(rendered.content)
 
-    assert [item.levels[0].points for item in parsed.criteria] == [48, 32, 20]
-    assert sum(item.levels[0].points for item in parsed.criteria[:2]) == 80
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 20]
+    assert sum(item.levels[0].points for item in parsed.criteria[:2]) == 100
     assert parsed.criteria[2].levels[0].points == round(
-        100 * ELICITED_REWARD_FRACTION
+        100 * ADDED_CRITERIA_POINT_FRACTION
     )
+    assert parsed.normalization_maximum == 120
     assert "Produce the correct result." in rendered.content
     assert "Save reproducible evidence." in rendered.content
     assert criterion.criterion_id in rendered.content
     assert len(criterion_map) == 2
+
+
+def test_added_criteria_point_budget_uses_the_normalization_maximum() -> None:
+    assert added_criteria_point_budget(_rubric()) == 20
+    assert added_criteria_point_budget(_rubric(paper=True)) == 20
 
 
 def test_program_preserves_a_zero_maximum_penalty_criterion() -> None:
@@ -207,7 +217,7 @@ def test_program_preserves_a_zero_maximum_penalty_criterion() -> None:
     )
     parsed = parse_autorubric_rubric(rendered.content)
 
-    assert [item.levels[0].points for item in parsed.criteria] == [48, 32, 0, 20]
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0, 20]
     assert [level.points for level in parsed.criteria[2].levels] == [0, -5, -10]
     assert len(criterion_map) == 3
 
@@ -217,7 +227,8 @@ def test_paper_rubric_uses_the_same_bounded_augmentation() -> None:
     criterion = _criterion(paper=True)
     rendered, _ = render_augmented_rubric(original, (criterion,))
     parsed = parse_autorubric_rubric(rendered.content)
-    assert [item.levels[0].points for item in parsed.criteria] == [48, 32, 20]
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 20]
+    assert parsed.normalization_maximum == 120
     assert all(
         [level.label for level in item.levels] == ["A", "B"]
         for item in parsed.criteria

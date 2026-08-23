@@ -19,7 +19,11 @@ from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 from rubric_gen.submission_revision.controller import SubmissionRevisionController
 from rubric_gen.submission_revision.artifacts import compact_historical_workspace
 import rubric_gen.submission_revision.evolution as evolution_module
-from rubric_gen.submission_revision.evolution import ArtifactContrast
+from rubric_gen.submission_revision.evolution import (
+    ArtifactHistory,
+    ArtifactPair,
+    BlindedArtifact,
+)
 from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.rubric_bank import (
@@ -76,6 +80,29 @@ def _rubric() -> dict[str, object]:
             _leaf("analysis", 8, "Result Analysis"),
         ],
     }
+
+
+def _artifact_history(contents: tuple[str, ...]) -> ArtifactHistory:
+    artifacts = tuple(
+        BlindedArtifact(
+            artifact_id=f"artifact_{index:016x}",
+            source_id=f"hidden-source-{index}",
+            content_sha256=sha256_text(content),
+            content=content,
+        )
+        for index, content in enumerate(contents, start=1)
+    )
+    return ArtifactHistory(
+        artifacts=artifacts,
+        pairs=tuple(
+            ArtifactPair.create(
+                artifacts[left].artifact_id,
+                artifacts[right].artifact_id,
+            )
+            for left in range(len(artifacts))
+            for right in range(left + 1, len(artifacts))
+        ),
+    )
 
 
 def _source_tree(
@@ -297,19 +324,23 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
             ("A", "A reproducible execution path is implemented."),
             ("B", "No reproducible execution path is implemented."),
         ),
-        support_pair_ids=("pair_1", "pair_2"),
+        support_pair_ids=(
+            "pair_0000000000000001",
+            "pair_0000000000000002",
+        ),
         source_generation=1,
     )
 
     revised, _ = render_augmented_rubric(original, (criterion,))
     levels = parse_rubric_levels_strict(revised.content)
-    assert sum(values["A"] for values in levels.values()) == 4
+    assert sum(values["A"] for values in levels.values()) == 5
+    assert "Score normalization maximum: 5" in revised.content
     assert all(set(values) == {"A", "B"} for values in levels.values())
     assert "Implement code-a." in revised.content
     assert "Reproducible execution" in revised.content
 
 
-def test_paperbench_elicitation_uses_blinded_contrasts_and_fixed_weights() -> None:
+def test_paperbench_elicitation_uses_blinded_history_and_additive_points() -> None:
     current, _, maximum = render_code_dev_rubric(_rubric())
 
     rubric = CompleteRubric.from_content(current)
@@ -326,30 +357,22 @@ def test_paperbench_elicitation_uses_blinded_contrasts_and_fixed_weights() -> No
             identity_criterion_map(rubric),
         ),),
     )
-    contrasts = tuple(
-        ArtifactContrast(
-            pair_id=f"pair_{index}",
-            artifact_a_id=f"hidden-a-{index}",
-            artifact_a_sha256=sha256_text(f"artifact a {index}"),
-            artifact_a=f"artifact a {index}",
-            artifact_b_id=f"hidden-b-{index}",
-            artifact_b_sha256=sha256_text(f"artifact b {index}"),
-            artifact_b=f"artifact b {index}",
-        )
-        for index in (1, 2, 3)
+    history = _artifact_history(
+        tuple(f"artifact {index}" for index in range(1, 5))
     )
     difference_evidence = evolution_module._difference_evidence(
         instruction="Replicate the paper.",
         current_bank=bank,
-        contrasts=contrasts,
+        artifact_history=history,
     )
     criterion_evidence = evolution_module._criterion_evidence(
         instruction="Replicate the paper.",
         current_bank=bank,
+        artifact_history=history,
         difference_response={
             "pairs": [
-                {"pair_id": f"pair_{index}", "differences": []}
-                for index in (1, 2, 3)
+                {"pair_id": pair.pair_id, "differences": []}
+                for pair in history.pairs
             ]
         },
         remaining_capacity=5,
@@ -357,11 +380,12 @@ def test_paperbench_elicitation_uses_blinded_contrasts_and_fixed_weights() -> No
     )
 
     assert f"Score normalization maximum: {maximum}" in difference_evidence
-    assert "hidden-a-1" not in difference_evidence
-    assert "hidden-b-1" not in difference_evidence
-    assert '"program_owned_reward_fraction":0.2' in criterion_evidence
+    assert "hidden-source-1" not in difference_evidence
+    assert '"blinded_pair_graph"' in criterion_evidence
+    assert '"program_owned_added_positive_point_fraction":0.2' in criterion_evidence
+    assert '"program_owned_added_positive_point_budget":1' in criterion_evidence
     instructions = " ".join(evolution_module._criterion_instructions().split())
-    assert "at least two distinct contrast pairs" in instructions
+    assert "at least three artifacts" in instructions
     assert "Do not choose points or weights" in instructions
 
 
@@ -461,29 +485,20 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
         ),),
     )
     native_submission = render_submission_tree(workspace)
-    contrasts = tuple(
-        ArtifactContrast(
-            pair_id=f"pair_{index}",
-            artifact_a_id="hidden-current",
-            artifact_a_sha256=sha256_text(native_submission),
-            artifact_a=native_submission,
-            artifact_b_id=f"hidden-reference-{index}",
-            artifact_b_sha256=sha256_text(f"reference {index}"),
-            artifact_b=f"reference {index}",
-        )
-        for index in (1, 2, 3)
+    history = _artifact_history(
+        (native_submission, "reference 1", "reference 2", "reference 3")
     )
     proposed = evolution_module._difference_evidence(
         instruction="TASK",
         current_bank=current_bank,
-        contrasts=contrasts,
+        artifact_history=history,
     )
 
     assert "native submission" in judged
     assert "NON-NATIVE ANSWER" not in judged
     assert "NON-NATIVE TRACE" not in judged
     assert "native submission" in proposed
-    assert "hidden-current" not in proposed
+    assert "hidden-source-1" not in proposed
     payload = json.loads(full_rubric_payload("RUBRIC", judged, ""))
     assert payload["rubric_text"] == "RUBRIC"
     assert payload["artifact_evidence"]["workspace_review"] == judged

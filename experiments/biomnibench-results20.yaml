@@ -28,6 +28,8 @@ randomization:
   seed: 20260820
   replicates: 3
 
+assignment_selection: all
+
 conditions:
   - condition_id: full-static
     feedback_policy: full

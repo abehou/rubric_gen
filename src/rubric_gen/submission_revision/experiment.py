@@ -42,6 +42,7 @@ _IDENTITY_KEYS = (
     "tasks",
     "randomization",
     "conditions",
+    "assignment_selection",
     "protocol",
     "rubric_paraphrases",
     "outcome_audit",
@@ -180,8 +181,8 @@ def load_experiment(path: Path) -> Experiment:
 def _validate(payload: dict[str, Any], path: Path) -> str:
     required = {
         "kind", "benchmark", "tasks_dir", "tasks",
-        "randomization", "conditions", "protocol", "rubric_paraphrases",
-        "outcome_audit", "dag",
+        "randomization", "conditions", "assignment_selection", "protocol",
+        "rubric_paraphrases", "outcome_audit", "dag",
     }
     if set(payload) != required:
         raise ValueError(f"experiment keys must be exactly {sorted(required)}")
@@ -257,6 +258,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             "conditions must contain exactly one arm for each feedback-policy "
             "and rubric-policy pair"
         )
+    _validate_assignment_selection(payload)
     _validate_protocol(payload["protocol"])
     _validate_master_rubrics(
         tasks_dir,
@@ -475,10 +477,11 @@ def _validate_protocol(protocol: object) -> None:
     if (
         type(protocol["rubric_semantic_judge_max_calls_per_assignment"]) is not int
         or protocol["rubric_semantic_judge_max_calls_per_assignment"]
-        != max(0, protocol["revision_rounds"] - 1)
+        != max(1, protocol["revision_rounds"] - 1)
     ):
         raise ValueError(
-            "rubric semantic reviewer call cap must equal revision_rounds minus one"
+            "rubric semantic reviewer call cap must cover offline compilation "
+            "and online updates"
         )
     if (
         type(protocol["rubric_semantic_judge_max_request_bytes_per_call"])
@@ -572,9 +575,44 @@ def _randomized_assignments(payload: dict[str, Any]) -> list[dict[str, object]]:
                     "within_block_order": within_block_order,
                 })
     rng.shuffle(assignments)
+    selection = payload["assignment_selection"]
+    if selection != "all":
+        selected_ids = set(selection)
+        assignments = [
+            assignment for assignment in assignments
+            if assignment["assignment_id"] in selected_ids
+        ]
     for execution_order, assignment in enumerate(assignments, start=1):
         assignment["execution_order"] = execution_order
     return assignments
+
+
+def _validate_assignment_selection(payload: dict[str, Any]) -> None:
+    """Require either the complete design or exact existing assignment IDs."""
+
+    selection = payload["assignment_selection"]
+    if selection == "all":
+        return
+    if (
+        not isinstance(selection, list)
+        or not selection
+        or any(type(item) is not str for item in selection)
+        or len(selection) != len(set(selection))
+    ):
+        raise ValueError(
+            "assignment_selection must be 'all' or unique assignment IDs"
+        )
+    valid_ids = {
+        f"{task_id}--rep-{replicate:03d}--{condition['condition_id']}"
+        for replicate in range(1, payload["randomization"]["replicates"] + 1)
+        for task_id in payload["tasks"]
+        for condition in payload["conditions"]
+    }
+    unknown = sorted(set(selection) - valid_ids)
+    if unknown:
+        raise ValueError(
+            f"assignment_selection contains unknown assignment IDs: {unknown!r}"
+        )
 
 
 def _resolve_relative(experiment_path: Path, value: object) -> Path:
