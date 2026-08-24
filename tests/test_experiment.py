@@ -982,7 +982,8 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.direct_audit as direct_audit_module
-    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
+    import rubric_gen.submission_revision.rh_evaluation_report as report_module
+    import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
 
     experiment = SimpleNamespace(
         dag={
@@ -1002,7 +1003,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         return 1
 
     class MechanisticRunner:
-        def __init__(self, config: object) -> None:
+        def __init__(
+            self,
+            config: object,
+        ) -> None:
             configs.append(config)
 
         def preflight(self) -> None:
@@ -1013,7 +1017,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
             return 0
 
     class HolisticRunner:
-        def __init__(self, config: object) -> None:
+        def __init__(
+            self,
+            config: object,
+        ) -> None:
             configs.append(config)
 
         def preflight(self) -> None:
@@ -1026,17 +1033,17 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
     monkeypatch.setattr(direct_audit_module, "run_direct_audit", direct)
     monkeypatch.setattr(
-        diagnostics_module,
-        "MechanisticEvaluationRunner",
+        outcome_panel_module,
+        "ResilientMechanisticEvaluationRunner",
         MechanisticRunner,
     )
     monkeypatch.setattr(
-        diagnostics_module,
-        "HolisticPairwiseRunner",
+        outcome_panel_module,
+        "ResilientHolisticPairwiseRunner",
         HolisticRunner,
     )
     monkeypatch.setattr(
-        diagnostics_module,
+        report_module,
         "write_reward_hacking_evaluation",
         lambda _path: calls.append("combined"),
     )
@@ -1070,7 +1077,8 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.direct_audit as direct_audit_module
-    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
+    import rubric_gen.submission_revision.rh_evaluation_report as report_module
+    import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
 
     experiment = SimpleNamespace(
         dag={
@@ -1083,7 +1091,10 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     calls: list[str] = []
 
     class MechanisticRunner:
-        def __init__(self, _config: object) -> None:
+        def __init__(
+            self,
+            _config: object,
+        ) -> None:
             pass
 
         def preflight(self) -> None:
@@ -1094,7 +1105,10 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
             raise RuntimeError("strong judge unavailable")
 
     class HolisticRunner:
-        def __init__(self, _config: object) -> None:
+        def __init__(
+            self,
+            _config: object,
+        ) -> None:
             pass
 
         def preflight(self) -> None:
@@ -1111,17 +1125,17 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
         lambda _config: 0,
     )
     monkeypatch.setattr(
-        diagnostics_module,
-        "MechanisticEvaluationRunner",
+        outcome_panel_module,
+        "ResilientMechanisticEvaluationRunner",
         MechanisticRunner,
     )
     monkeypatch.setattr(
-        diagnostics_module,
-        "HolisticPairwiseRunner",
+        outcome_panel_module,
+        "ResilientHolisticPairwiseRunner",
         HolisticRunner,
     )
     monkeypatch.setattr(
-        diagnostics_module,
+        report_module,
         "write_reward_hacking_evaluation",
         lambda _path: calls.append("combined"),
     )
@@ -1147,7 +1161,8 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.direct_audit as direct_audit_module
-    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
+    import rubric_gen.submission_revision.rh_evaluation_report as report_module
+    import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
 
     experiment = SimpleNamespace(
         dag={
@@ -1160,7 +1175,10 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     calls: list[str] = []
 
     class MechanisticRunner:
-        def __init__(self, _config: object) -> None:
+        def __init__(
+            self,
+            _config: object,
+        ) -> None:
             pass
 
         def preflight(self) -> None:
@@ -1171,7 +1189,10 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             return 0
 
     class HolisticRunner:
-        def __init__(self, _config: object) -> None:
+        def __init__(
+            self,
+            _config: object,
+        ) -> None:
             pass
 
         def preflight(self) -> None:
@@ -1189,17 +1210,17 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
         lambda _config: calls.append("direct-provider") or 0,
     )
     monkeypatch.setattr(
-        diagnostics_module,
-        "MechanisticEvaluationRunner",
+        outcome_panel_module,
+        "ResilientMechanisticEvaluationRunner",
         MechanisticRunner,
     )
     monkeypatch.setattr(
-        diagnostics_module,
-        "HolisticPairwiseRunner",
+        outcome_panel_module,
+        "ResilientHolisticPairwiseRunner",
         HolisticRunner,
     )
     monkeypatch.setattr(
-        diagnostics_module,
+        report_module,
         "write_reward_hacking_evaluation",
         lambda _path: calls.append("combined"),
     )

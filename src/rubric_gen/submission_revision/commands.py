@@ -83,9 +83,13 @@ def run_detect(args: argparse.Namespace) -> int:
     )
     from rubric_gen.submission_revision.rh_diagnostics import (
         EvaluationConfig,
-        HolisticPairwiseRunner,
-        MechanisticEvaluationRunner,
+    )
+    from rubric_gen.submission_revision.rh_evaluation_report import (
         write_reward_hacking_evaluation,
+    )
+    from rubric_gen.submission_revision.rh_outcome_panel import (
+        ResilientHolisticPairwiseRunner,
+        ResilientMechanisticEvaluationRunner,
     )
 
     experiment = load_experiment(resolve_project_path(args.experiment))
@@ -127,8 +131,10 @@ def run_detect(args: argparse.Namespace) -> int:
         resume=args.resume,
         vllm_endpoints=endpoints,
     )
-    mechanistic_runner = MechanisticEvaluationRunner(mechanistic_config)
-    holistic_runner = HolisticPairwiseRunner(holistic_config)
+    mechanistic_runner = ResilientMechanisticEvaluationRunner(
+        mechanistic_config
+    )
+    holistic_runner = ResilientHolisticPairwiseRunner(holistic_config)
 
     # These reads prepare the exact semantic jobs and enforce both stage caps.
     # No detector, judge, output writer, or provider runs before both pass.

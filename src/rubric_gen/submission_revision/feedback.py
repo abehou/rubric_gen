@@ -48,6 +48,25 @@ class ProjectedFeedback:
 
 
 @dataclass(frozen=True)
+class ComposedMemberScore:
+    """Store one member's canonical base, learned penalty, and final score."""
+
+    canonical_original_score: float
+    elicited_penalty: float
+    score: float
+
+
+@dataclass(frozen=True)
+class ComposedBankScore:
+    """Store the canonical-base score composition for one rubric bank."""
+
+    canonical_original_score: float
+    weighted_elicited_penalty: float
+    score: float
+    members: dict[str, ComposedMemberScore]
+
+
+@dataclass(frozen=True)
 class _CriterionSummary:
     title: str
     maximum_points: int
@@ -181,13 +200,21 @@ def _validate_bank_members(value: object, policy: FeedbackPolicy) -> float:
             or not isinstance(member, dict)
         ):
             raise ValueError("bank feedback contains an invalid member")
-        expected = {"weight", "score", "raw_score", "criteria"}
+        expected = {
+            "weight",
+            "score",
+            "canonical_original_score",
+            "elicited_penalty",
+            "criteria",
+        }
         if policy is FeedbackPolicy.FULL:
             expected |= {"rubric_text", "overall_reasoning"}
         if set(member) != expected:
             raise ValueError("bank feedback contains invalid member fields")
         weight = member.get("weight")
         member_score = member.get("score")
+        canonical_original_score = member.get("canonical_original_score")
+        elicited_penalty = member.get("elicited_penalty")
         if (
             isinstance(weight, bool)
             or not isinstance(weight, Real)
@@ -197,9 +224,23 @@ def _validate_bank_members(value: object, policy: FeedbackPolicy) -> float:
             or not isinstance(member_score, Real)
             or not math.isfinite(float(member_score))
             or not 0 <= float(member_score) <= 100
-            or isinstance(member.get("raw_score"), bool)
-            or not isinstance(member.get("raw_score"), Real)
-            or not math.isfinite(float(member["raw_score"]))
+            or isinstance(canonical_original_score, bool)
+            or not isinstance(canonical_original_score, Real)
+            or not math.isfinite(float(canonical_original_score))
+            or not 0 <= float(canonical_original_score) <= 100
+            or isinstance(elicited_penalty, bool)
+            or not isinstance(elicited_penalty, Real)
+            or not math.isfinite(float(elicited_penalty))
+            or float(elicited_penalty) > 0
+            or not math.isclose(
+                float(member_score),
+                max(
+                    0.0,
+                    float(canonical_original_score) + float(elicited_penalty),
+                ),
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
             or type(member.get("criteria")) is not dict
         ):
             raise ValueError("bank feedback contains invalid member values")
@@ -222,11 +263,14 @@ def project_bank_feedback(
     artifacts: Mapping[str, tuple[Path, Path]],
     policy: FeedbackPolicy,
     *,
+    fixed_original_artifacts: tuple[Path, Path],
+    fixed_original_rubric_text: str,
+    fixed_original_rubric_sha256: str,
     max_reason_chars: int = 2_000,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
-    """Project exact member evaluations and their weighted bank aggregate."""
+    """Project canonical original feedback plus learned-criterion penalties."""
 
     resolved_policy = FeedbackPolicy(policy)
     if resolved_policy is FeedbackPolicy.USER_SIMULATOR:
@@ -234,8 +278,44 @@ def project_bank_feedback(
     expected_hashes = {item.rubric.content_sha256 for item in bank.items}
     if set(artifacts) != expected_hashes:
         raise ValueError("judge artifacts must match the rubric bank exactly")
+    composition = compose_bank_score(
+        bank,
+        {
+            rubric_hash: paths[0]
+            for rubric_hash, paths in artifacts.items()
+        },
+        _validated_fixed_original_score(
+            fixed_original_artifacts[0],
+            fixed_original_rubric_text,
+            fixed_original_rubric_sha256,
+        ),
+    )
+    if resolved_policy is FeedbackPolicy.SCORE_ONLY:
+        payload = {
+            "policy": resolved_policy.value,
+            "score": composition.score,
+            "bank_sha256": bank.content_sha256,
+        }
+        return ProjectedFeedback(
+            score=composition.score,
+            payload=payload,
+            prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
+        )
+
+    fixed_projection = _project_member_feedback(
+        fixed_original_artifacts[0],
+        fixed_original_artifacts[1],
+        fixed_original_rubric_text,
+        fixed_original_rubric_sha256,
+        resolved_policy,
+        max_reason_chars=max_reason_chars,
+        prompt_profile=prompt_profile,
+        benchmark=benchmark,
+    )
+    fixed_criteria = fixed_projection.payload.get("criteria")
+    if not isinstance(fixed_criteria, dict):
+        raise ValueError("fixed-original feedback lacks criterion details")
     member_payloads: dict[str, dict[str, object]] = {}
-    member_scores: dict[str, float] = {}
     for item in bank.items:
         rubric_hash = item.rubric.content_sha256
         validation_path, evaluation_path = artifacts[rubric_hash]
@@ -249,22 +329,49 @@ def project_bank_feedback(
             prompt_profile=prompt_profile,
             benchmark=benchmark,
         )
-        member_scores[rubric_hash] = projected.score
-        if resolved_policy is not FeedbackPolicy.SCORE_ONLY:
-            member = dict(projected.payload)
-            member.pop("policy")
-            member["weight"] = item.weight
-            member_payloads[rubric_hash] = member
-    score = bank.aggregate(member_scores)
+        active_criteria = projected.payload.get("criteria")
+        if not isinstance(active_criteria, dict):
+            raise ValueError("active feedback lacks criterion details")
+        merged_criteria: dict[str, object] = {}
+        original_member_ids: set[str] = set()
+        for mapping in item.criterion_map:
+            fixed_criterion = fixed_criteria.get(mapping.anchor_criterion_id)
+            if not isinstance(fixed_criterion, dict):
+                raise ValueError("fixed-original criterion mapping is incomplete")
+            if mapping.member_criterion_id not in active_criteria:
+                raise ValueError("active criterion mapping is incomplete")
+            merged_criteria[mapping.member_criterion_id] = fixed_criterion
+            original_member_ids.add(mapping.member_criterion_id)
+        elicited_ids = set(active_criteria) - original_member_ids
+        if len(elicited_ids) != len(item.elicited_criteria):
+            raise ValueError("active feedback has the wrong elicited criteria")
+        for criterion_id in sorted(elicited_ids):
+            merged_criteria[criterion_id] = active_criteria[criterion_id]
+
+        member_composition = composition.members[rubric_hash]
+        member: dict[str, object] = {
+            "weight": item.weight,
+            "score": member_composition.score,
+            "canonical_original_score": (
+                member_composition.canonical_original_score
+            ),
+            "elicited_penalty": member_composition.elicited_penalty,
+            "criteria": merged_criteria,
+        }
+        if resolved_policy is FeedbackPolicy.FULL:
+            member["rubric_text"] = item.rubric.content
+            member["overall_reasoning"] = fixed_projection.payload[
+                "overall_reasoning"
+            ]
+        member_payloads[rubric_hash] = member
     payload: dict[str, object] = {
         "policy": resolved_policy.value,
-        "score": score,
+        "score": composition.score,
         "bank_sha256": bank.content_sha256,
+        "members": member_payloads,
     }
-    if resolved_policy is not FeedbackPolicy.SCORE_ONLY:
-        payload["members"] = member_payloads
     return ProjectedFeedback(
-        score=score,
+        score=composition.score,
         payload=payload,
         prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
     )
@@ -275,6 +382,7 @@ def project_bank_simulated_user_feedback(
     score_validation_paths: Mapping[str, Path],
     comment: str,
     *,
+    fixed_original_score: float,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
@@ -283,29 +391,100 @@ def project_bank_simulated_user_feedback(
     expected_hashes = {item.rubric.content_sha256 for item in bank.items}
     if set(score_validation_paths) != expected_hashes:
         raise ValueError("score validations must match the rubric bank exactly")
-    scores: dict[str, float] = {}
-    for item in bank.items:
-        validation = _load_object(
-            score_validation_paths[item.rubric.content_sha256],
-            "score validation",
-        )
-        score, _, _, _ = _validate_score_record(
-            validation,
-            item.rubric.content,
-            item.rubric.content_sha256,
-        )
-        scores[item.rubric.content_sha256] = score
-    score = bank.aggregate(scores)
+    composition = compose_bank_score(
+        bank,
+        score_validation_paths,
+        fixed_original_score,
+    )
     payload: dict[str, object] = {
         "policy": FeedbackPolicy.USER_SIMULATOR.value,
         "comment": comment,
         "bank_sha256": bank.content_sha256,
     }
     return ProjectedFeedback(
-        score=score,
+        score=composition.score,
         payload=payload,
         prompt=render_feedback_prompt(payload, prompt_profile, benchmark),
     )
+
+
+def compose_bank_score(
+    bank: RubricBank,
+    score_validation_paths: Mapping[str, Path],
+    fixed_original_score: float,
+) -> ComposedBankScore:
+    """Add only elicited penalties to one canonical original score."""
+
+    if (
+        isinstance(fixed_original_score, bool)
+        or not isinstance(fixed_original_score, Real)
+        or not math.isfinite(float(fixed_original_score))
+        or not 0 <= float(fixed_original_score) <= 100
+    ):
+        raise ValueError("fixed_original_score must be between zero and 100")
+    fixed = float(fixed_original_score)
+    expected_hashes = {item.rubric.content_sha256 for item in bank.items}
+    if set(score_validation_paths) != expected_hashes:
+        raise ValueError("score validations must match the rubric bank exactly")
+
+    member_compositions: dict[str, ComposedMemberScore] = {}
+    member_scores: dict[str, float] = {}
+    member_penalties: dict[str, float] = {}
+    for item in bank.items:
+        rubric_hash = item.rubric.content_sha256
+        validation = _load_object(
+            score_validation_paths[rubric_hash],
+            "score validation",
+        )
+        _, _, _, criterion_scores = _validate_score_record(
+            validation,
+            item.rubric.content,
+            rubric_hash,
+        )
+        original_ids = {
+            mapping.member_criterion_id for mapping in item.criterion_map
+        }
+        if not original_ids <= set(criterion_scores):
+            raise ValueError("score validation lacks mapped original criteria")
+        elicited_ids = set(criterion_scores) - original_ids
+        if len(elicited_ids) != len(item.elicited_criteria):
+            raise ValueError("score validation has the wrong elicited criteria")
+        elicited_raw_penalty = math.fsum(
+            criterion_scores[criterion_id]
+            for criterion_id in elicited_ids
+        )
+        if elicited_raw_penalty > 1e-12:
+            raise ValueError("elicited criteria produced a positive score")
+        penalty = elicited_raw_penalty * 100 / bank.normalization_maximum
+        score = max(0.0, fixed + penalty)
+        member_compositions[rubric_hash] = ComposedMemberScore(
+            canonical_original_score=fixed,
+            elicited_penalty=penalty,
+            score=score,
+        )
+        member_scores[rubric_hash] = score
+        member_penalties[rubric_hash] = penalty
+
+    return ComposedBankScore(
+        canonical_original_score=fixed,
+        weighted_elicited_penalty=bank.aggregate(member_penalties),
+        score=bank.aggregate(member_scores),
+        members=member_compositions,
+    )
+
+
+def _validated_fixed_original_score(
+    validation_path: Path,
+    rubric_text: str,
+    rubric_sha256: str,
+) -> float:
+    validation = _load_object(validation_path, "fixed-original score validation")
+    score, _, _, _ = _validate_score_record(
+        validation,
+        rubric_text,
+        rubric_sha256,
+    )
+    return score
 
 
 def render_rubric_bank(bank: RubricBank) -> str:

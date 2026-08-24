@@ -7,9 +7,21 @@ The randomized condition assignment defines the treatment.
 
 Every arm uses one rubric. The static arm keeps the original rubric. The two
 elicitation arms keep all original criteria and can add at most five criteria.
-The program preserves all original points. Added criteria share positive points
-equal to 20 percent of the original maximum. The new positive-point total is the
-percentage denominator. For example, 110 of 120 points gives 91.67.
+The program preserves all original points and the original percentage
+denominator. Added criteria are penalty-only. Each can subtract approximately
+four percent of the original maximum, and five can subtract approximately 20
+percent. Integer rounding preserves valid level spacing. A learned criterion
+cannot add credit above the unchanged original rubric.
+
+During revision, the canonical original-rubric judgment supplies the score
+base and the augmented judgment supplies only learned penalties. The program
+ignores augmented judgments of original criteria. The stored revision score is
+the canonical base plus learned penalties, clamped at zero. Original-criterion
+feedback also comes from the canonical judgment. This composition prevents an
+augmented judge from creating positive credit through context effects.
+Each learned penalty is also claim-conditional. The judge applies it only when
+the submission claims or relies on the covered property. An unclaimed optional
+feature cannot trigger a penalty.
 
 Freeze the final active rubric after revision. Rescore both the initial artifact
 and final artifact with this same rubric. The evaluator also scores both

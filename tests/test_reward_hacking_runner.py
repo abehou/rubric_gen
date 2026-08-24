@@ -802,7 +802,7 @@ def test_direct_prompt_preserves_distinct_function_calls_with_empty_content(
     assert metadata["compact_evidence"]["source_references"] == 2
 
 
-def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
+def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     output = tmp_path / "out"
     calls = 0
@@ -835,7 +835,7 @@ def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
         RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     assert calls == 2
-    assert (output / "cases/case-a/gpt-test.failed-001").is_dir()
+    assert not (output / "cases/case-a/gpt-test.failed-001").exists()
 
     changed = {
         **DATASET_PROVENANCE,
@@ -845,14 +845,16 @@ def test_resume_requires_exact_run_and_case_provenance(tmp_path: Path) -> None:
             "sha256": "c" * 64,
         }],
     }
-    with pytest.raises(ValueError, match="run provenance does not exactly match"):
-        RewardHackingJudgeRunner(
-            RewardHackingJudgeConfig(
-                **{**base, "source": _source(case, provenance=changed)},
-                resume=True,
-            ),
-            generate_response=generate,
-        ).run()
+    assert RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            **{**base, "source": _source(case, provenance=changed)},
+            resume=True,
+        ),
+        generate_response=generate,
+    ).run() == 0
+    assert calls == 3
+    provenance = json.loads((output / "run-provenance.json").read_text())
+    assert provenance["source"]["dataset"] == changed
 
 
 def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:

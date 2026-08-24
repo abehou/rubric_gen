@@ -218,7 +218,8 @@ def validate_paperbench_code_dataset(
             raise ValueError(f"PaperBench task metadata differs from manifest: {paper_id}")
         required_metadata = {
             "kind", "paper_id", "title",
-            "source_repository", "source_revision", "source_split", "code_only",
+            "source_repository", "source_revision", "source_split",
+            "source_config_id", "code_only",
             "code_development_leaf_count", "scoring_protocol",
             "score_normalization_maximum", "paper_sha256",
             "source_rubric_sha256", "rendered_rubric_sha256",
@@ -229,6 +230,8 @@ def validate_paperbench_code_dataset(
             or metadata["source_repository"] != PAPERBENCH_REPOSITORY
             or metadata["source_revision"] != PAPERBENCH_REVISION
             or metadata["source_split"] != source_split
+            or type(metadata["source_config_id"]) is not str
+            or not metadata["source_config_id"]
             or metadata["code_only"] is not True
             or metadata["scoring_protocol"] != PAPERBENCH_SCORING_PROTOCOL
         ):
@@ -319,8 +322,9 @@ def _prepare_paper(
     if source.is_symlink() or not source.is_dir():
         raise ValueError(f"PaperBench paper directory is invalid: {source}")
     config = _yaml_mapping(_read_hydrated(source / "config.yaml"))
-    if config.get("id") != paper_id:
-        raise ValueError(f"PaperBench config ID differs from directory: {source}")
+    source_config_id = config.get("id")
+    if type(source_config_id) is not str or not source_config_id:
+        raise ValueError(f"PaperBench config has no ID: {source}")
     title = config.get("title")
     if type(title) is not str or not title.strip():
         raise ValueError(f"PaperBench paper has no title: {source}")
@@ -366,6 +370,7 @@ def _prepare_paper(
         "source_repository": PAPERBENCH_REPOSITORY,
         "source_revision": revision,
         "source_split": source_split,
+        "source_config_id": source_config_id,
         "code_only": True,
         "code_development_leaf_count": leaf_count,
         "scoring_protocol": PAPERBENCH_SCORING_PROTOCOL,
@@ -458,7 +463,7 @@ def _effective_leaves(
 def _criterion_titles(
     weighted: list[tuple[dict[str, Any], Fraction, tuple[str, ...]]],
 ) -> list[str]:
-    """Add the shortest distinct ancestor suffix to repeated leaf titles."""
+    """Add the shortest stable suffix that makes repeated titles distinct."""
 
     titles = [_single_line(node["requirements"]) for node, _, _ in weighted]
     groups: dict[str, list[int]] = {}
@@ -482,9 +487,15 @@ def _criterion_titles(
                 selected = candidates
                 break
         if selected is None:
-            raise ValueError(
-                "PaperBench duplicate leaves lack distinct ancestor context"
-            )
+            leaf_ids = [str(weighted[index][0]["id"]) for index in indices]
+            if len({_normalized_title(value) for value in leaf_ids}) != len(
+                leaf_ids
+            ):
+                raise ValueError(
+                    "PaperBench duplicate leaves lack distinct ancestor context "
+                    "and leaf IDs"
+                )
+            selected = [f"Leaf ID: {leaf_id}" for leaf_id in leaf_ids]
         for index, context in zip(indices, selected, strict=True):
             titles[index] = f"{titles[index]} [Context: {context}]"
 

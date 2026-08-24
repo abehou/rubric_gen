@@ -447,6 +447,109 @@ def test_paraphrase_validation_rejects_changed_weights_and_leaf_ids() -> None:
         validate_semantic_paraphrase(master, changed_id)
 
 
+def test_paraphrase_validation_rejects_duplicate_criterion_titles() -> None:
+    second_master = (
+        "\nCriterion 2: Evidence quality\n\n"
+        "Description: The evidence supports the result.\n\n"
+        "Levels: A=40 B=20 C=0\n"
+        "[A]: The evidence is complete.\n"
+        "[B]: The evidence is partial.\n"
+        "[C]: The evidence is absent.\n"
+    )
+    second_candidate = second_master.replace(
+        "Criterion 2: Evidence quality",
+        "Criterion 2: Accurate task result",
+    )
+
+    with pytest.raises(ValueError, match="duplicate criterion titles"):
+        validate_semantic_paraphrase(
+            _master() + second_master,
+            _variant(0) + second_candidate,
+        )
+
+
+def test_paraphrase_runner_repairs_only_the_colliding_title(
+    tmp_path: Path,
+) -> None:
+    experiment = _experiment(tmp_path)
+    master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    master_path.write_text(
+        _master()
+        + "\nCriterion 2: Evidence quality\n\n"
+        + "Description: The evidence supports the result.\n\n"
+        + "Levels: A=40 B=20 C=0\n"
+        + "[A]: The evidence is complete.\n"
+        + "[B]: The evidence is partial.\n"
+        + "[C]: The evidence is absent.\n"
+    )
+    root = Path(str(experiment.dag["paraphrase"]["output_dir"]))
+    calls: list[tuple[int, str, bool]] = []
+
+    def generate(_model, request):
+        variant = re.search(r"Paraphrase variant: (\d+)", request.evidence)
+        unit = re.search(r"Paraphrase unit: (\S+)", request.evidence)
+        assert variant is not None and unit is not None
+        index = int(variant.group(1))
+        group_id = unit.group(1)
+        is_repair = "duplicates criterion_1_title" in request.evidence
+        calls.append((index, group_id, is_repair))
+        if group_id == "criterion-001":
+            wording = _wording(index)
+        else:
+            wording = json.loads(
+                request.evidence.split("<wording_fields_json>\n", 1)[1].split(
+                    "\n</wording_fields_json>", 1
+                )[0]
+            )
+            wording["criterion_2_title"] = (
+                "Independent evidence conclusion"
+                if is_repair
+                else (
+                    "Accurate task result",
+                    "Evidence-supported conclusion",
+                    "Support for the conclusion",
+                )[index]
+            )
+            wording["criterion_2_description"] = (
+                "This criterion checks whether evidence supports the result."
+            )
+            wording["criterion_2_level_A"] = (
+                "Complete evidence supports the result."
+            )
+            wording["criterion_2_level_B"] = (
+                "Partial evidence supports the result."
+            )
+            wording["criterion_2_level_C"] = (
+                "No evidence supports the result."
+            )
+        return GenerationResult(
+            text=json.dumps({"wording": wording}),
+            provider="test",
+            requested_model="test-paraphraser",
+            effective_model="test-paraphraser",
+            response_id=f"response-{index}-{group_id}-{is_repair}",
+            request_parameters={},
+        )
+
+    assert ParaphraseRunner(
+        ParaphraseRunConfig(experiment, root, max_concurrency=2),
+        generation_operation=generate,
+    ).run() == 0
+    assert calls.count((0, "criterion-001", False)) == 1
+    assert calls.count((0, "criterion-002", False)) == 1
+    assert calls.count((0, "criterion-002", True)) == 1
+    variant = (root / "tasks/da-1-1/variant-000.txt").read_text()
+    assert "Criterion 2: Independent evidence conclusion" in variant
+    metadata = json.loads(
+        (root / "tasks/da-1-1/variant-000.json").read_text()
+    )
+    assert metadata["attempt_count"] == 3
+    assert [
+        request["attempt_count"]
+        for request in metadata["generation"]["requests"]
+    ] == [1, 2]
+
+
 def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
     tmp_path: Path,
 ) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from rubric_gen.submission_revision.judging.scoring import (
@@ -66,6 +68,33 @@ def test_five_repeat_mean_is_not_rounded_to_an_integer() -> None:
     assert result.raw_score == 0.8
     assert result.normalized_score == 0.008
     assert result.score_matches_reported
+
+
+def test_raw_score_uses_the_canonical_criterion_sum() -> None:
+    result = validate_judge_score(
+        rubric_levels={
+            "criterion_1": {"A": 1_000_001, "B": 0},
+            "criterion_2": {"A": 0, "B": -1_000_001},
+        },
+        evaluation={
+            "criteria": {
+                "criterion_1": {
+                    "level_votes": ["B", "B", "B", "B", "A"],
+                    "mean_points": 200_000.2,
+                },
+                "criterion_2": {
+                    "level_votes": ["A", "B", "B", "B", "B"],
+                    "mean_points": -800_000.8,
+                },
+            }
+        },
+        reward={"score": 0.0},
+    )
+
+    repeat_mean = math.fsum((0, -1_000_001, -1_000_001, -1_000_001, 0)) / 5
+    criterion_sum = math.fsum(result.criterion_scores.values())
+    assert repeat_mean != criterion_sum
+    assert result.raw_score == criterion_sum
 
 
 def test_parser_preserves_explicit_positive_and_negative_values() -> None:

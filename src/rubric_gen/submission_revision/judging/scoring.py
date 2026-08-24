@@ -216,7 +216,10 @@ def validate_judge_score(
         max(0.0, min(100.0, raw_score * 100 / denominator))
         for raw_score in repeat_raw_scores
     ]
-    raw_score = math.fsum(repeat_raw_scores) / JUDGMENT_REPEATS
+    # Use the same canonical decomposition persisted in score-validation
+    # records. Mathematically equivalent aggregation orders can differ by many
+    # ulps when a rubric has hundreds of criteria and signed learned points.
+    raw_score = math.fsum(criterion_scores.values())
     score = math.fsum(repeat_scores) / JUDGMENT_REPEATS
     normalized_score = score / 100
     return ValidatedJudgeScore(

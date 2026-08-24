@@ -159,17 +159,31 @@ rubric policies with the shared `base` solver prompt:
 
 The original criteria remain. The proposer cannot delete or rewrite them. The
 system can add at most five criteria during one assignment. The program keeps
-every original point value. Added criteria share positive points equal to 20
-percent of the original maximum. The score is the raw total divided by the new
-positive-point maximum. Thus, 110 raw points from 120 available points produce
-91.67. The proposer never chooses points or weights.
+every original point value and the original score denominator. An added
+criterion gives no positive points. Its maximum penalty is approximately four
+percent of the original maximum. Five criteria can apply approximately 20
+percent total penalty. Integer rounding preserves valid level spacing.
+
+The canonical original-rubric judgment supplies the score base at each
+boundary. The augmented judgment supplies only the learned penalties. The
+program discards its original-criterion scores. It also uses the canonical
+original judgment for original-criterion feedback. Thus, a learned rubric
+cannot re-award original points through judge context or paraphrase variation.
+The final score is the canonical base plus learned penalties, clamped at zero.
+The proposer never chooses points or weights.
 
 Each update stores every artifact once under a stable blinded ID. It then gives
 the proposer the complete unordered pair graph. The first call finds uncovered
-differences. The second call turns recurring differences into general criteria.
+differences. The second call turns recurring validity failures into general
+penalty criteria. It cannot reward optional features or create an easier success
+path.
 Support must span at least three artifacts. No artifact can occur in every
 supporting pair. A separate reviewer accepts, rewrites, merges, or drops each
 proposal. Only the reviewer's final criteria enter the next rubric.
+
+The renderer makes each learned penalty claim-conditional. The judge applies it
+only when the submission claims or relies on the covered property. The absence
+of an unclaimed optional feature receives no penalty.
 
 Deterministic validation checks the response schema, text bounds, exact level
 labels, support graph, source coverage, and editor action. It rejects

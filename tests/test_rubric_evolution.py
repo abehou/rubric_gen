@@ -228,9 +228,10 @@ def _replace(
     root: Path,
     *,
     policy: RubricBankPolicy = RubricBankPolicy.OFFLINE_ELICITATION,
+    instruction: str = "Solve the analysis task.",
 ):
     return proposer.elicit_rubric(
-        instruction="Solve the analysis task.",
+        instruction=instruction,
         current_bank=_initial_bank(),
         policy=policy,
         generation_round=1,
@@ -258,8 +259,11 @@ def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
     assert "named but unseen file" in criterion
     assert "evidence is absent or contradictory" in criterion
     assert "cannot verify" in criterion
+    assert "observed solution result" in criterion
+    assert "task or original rubric" in criterion
     assert "accept, rewrite, merge, or drop" in semantic
     assert "directly control" in semantic
+    assert "observed solution result" in semantic
     assert "outcome" not in difference + criterion + semantic
 
 
@@ -322,8 +326,9 @@ def test_two_stage_elicitation_appends_one_criterion_and_keeps_one_rubric(
     assert bank.items[0].weight == 1.0
     assert bank.specification_anchor == _initial_bank().specification_anchor
     assert len(bank.items[0].elicited_criteria) == 1
-    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 20]
-    assert parsed.normalization_maximum == 120
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0]
+    assert [level.points for level in parsed.criteria[-1].levels] == [0, -2, -4]
+    assert parsed.normalization_maximum == 100
     assert generation.proposer_call_budget == 4
 
 
@@ -356,6 +361,19 @@ def test_only_difference_discovery_sees_raw_artifacts(tmp_path: Path) -> None:
     assert "hidden:pair" not in proposer_evidence["differences"]
     assert "hidden:pair" not in reviewer_evidence[0]
     assert "score" not in proposer_evidence["differences"].lower()
+
+
+def test_editor_evidence_does_not_duplicate_the_original_rubric() -> None:
+    evidence = json.loads(evolution_module._editor_evidence(
+        instruction="Solve the analysis task.",
+        current_bank=_initial_bank(),
+        artifact_history=_history(),
+        difference_response=_difference_value(),
+        proposed_criteria=(),
+    ))
+
+    assert "original_rubric" not in evidence
+    assert evidence["current_rubric"] == _rubric().content
 
 
 def test_empty_criterion_list_retains_the_current_rubric(tmp_path: Path) -> None:
@@ -435,6 +453,106 @@ def test_meta_conditioned_criterion_is_rejected_before_review(tmp_path: Path) ->
 
     with pytest.raises(RuntimeError, match="trajectory-specific"):
         _replace(_proposer(propose, retries=0), tmp_path)
+
+
+def test_novel_numeric_target_is_rejected_before_review(tmp_path: Path) -> None:
+    reviews = 0
+
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            value = _difference_value()
+        else:
+            value = _criterion_value()
+            value["criteria"][0]["level_descriptions"][0]["description"] = (
+                "Reports an enrichment ratio of approximately 1.39-fold."
+            )
+        return _proposer_output(value, kwargs["stage"])
+
+    def review(**_kwargs):
+        nonlocal reviews
+        reviews += 1
+        raise AssertionError("numeric target must fail before semantic review")
+
+    with pytest.raises(RuntimeError, match=r"original rubric: 1\.39"):
+        _replace(_proposer(propose, review, retries=0), tmp_path)
+    assert reviews == 0
+
+
+def test_task_authorized_numeric_literal_is_accepted(tmp_path: Path) -> None:
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            value = _difference_value()
+        else:
+            value = _criterion_value()
+            value["criteria"][0]["requirement"] = (
+                "Apply the task-specified threshold of 0.05."
+            )
+        return _proposer_output(value, kwargs["stage"])
+
+    generation = _replace(
+        _proposer(propose),
+        tmp_path,
+        instruction="Solve the analysis task with a threshold of 0.05.",
+    )
+    assert (
+        generation.bank.items[0].elicited_criteria[0].requirement
+        == "Apply the task-specified threshold of 0.05."
+    )
+
+
+def test_numeric_looking_identifier_cannot_overflow_validation(
+    tmp_path: Path,
+) -> None:
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            value = _difference_value()
+        else:
+            value = _criterion_value()
+            value["criteria"][0]["requirement"] = (
+                "Preserve source identifier 17e905999814."
+            )
+        return _proposer_output(value, kwargs["stage"])
+
+    generation = _replace(
+        _proposer(propose),
+        tmp_path,
+        instruction="Use source identifier 17e905999814.",
+    )
+    assert (
+        generation.bank.items[0].elicited_criteria[0].requirement
+        == "Preserve source identifier 17e905999814."
+    )
+
+
+def test_editor_cannot_introduce_a_novel_numeric_target(tmp_path: Path) -> None:
+    calls = 0
+
+    def review(**kwargs):
+        nonlocal calls
+        calls += 1
+        source = json.loads(kwargs["evidence"].split("\n\n<repair>", 1)[0])[
+            "proposed_criteria"
+        ][0]
+        source["level_descriptions"][0]["description"] = (
+            "Reports an enrichment ratio of approximately 1.39-fold."
+        )
+        return SemanticReviewerOutput(
+            response_text=json.dumps({"actions": [{
+                "action": "rewrite",
+                "source_criterion_ids": [source["criterion_id"]],
+                "title": source["title"],
+                "requirement": source["requirement"],
+                "level_descriptions": source["level_descriptions"],
+                "support_pair_ids": source["support_pair_ids"],
+                "reason": "The rewritten criterion adds a quantitative target.",
+            }]}),
+            cost=_cost(),
+            generation=_generation("semantic", f"numeric-target-{calls}"),
+        )
+
+    generation = _replace(_proposer(run_semantic=review), tmp_path)
+    assert calls == 2
+    assert generation.bank.items[0].elicited_criteria == ()
 
 
 def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:

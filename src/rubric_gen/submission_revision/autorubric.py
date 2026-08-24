@@ -601,7 +601,7 @@ def convert_ensemble_report(
         max(0.0, min(100.0, raw_score * 100 / denominator))
         for raw_score in repeat_raw_scores
     ]
-    raw_score = math.fsum(repeat_raw_scores) / JUDGMENT_REPEATS
+    raw_score = math.fsum(criterion_scores.values())
     score = math.fsum(repeat_scores) / JUDGMENT_REPEATS
     normalized_score = score / 100
     dispersion = {

@@ -460,6 +460,27 @@ def _group_source_sha256(group: _WordingRequestGroup) -> str:
     ))
 
 
+def _duplicate_title_collisions(
+    groups: tuple[_WordingRequestGroup, ...],
+    results: dict[str, _GroupGeneration],
+) -> tuple[tuple[tuple[str, str, str], ...], ...]:
+    by_title: dict[str, list[tuple[str, str, str]]] = {}
+    for group in groups:
+        result = results[group.group_id]
+        for key, title in result.replacements.items():
+            if not key.endswith("_title"):
+                continue
+            normalized = " ".join(title.lower().split())
+            by_title.setdefault(normalized, []).append(
+                (group.group_id, key, title)
+            )
+    return tuple(
+        tuple(entries)
+        for entries in by_title.values()
+        if len(entries) > 1
+    )
+
+
 class ParaphraseRunner:
     def __init__(
         self,
@@ -710,6 +731,15 @@ class ParaphraseRunner:
             ) from errors[0]
 
         ordered_results = [results[group.group_id] for group in groups]
+        self._repair_duplicate_titles(
+            task_root=task_root,
+            task_id=task_id,
+            variant_index=variant_index,
+            groups=groups,
+            parts_root=parts_root,
+            results=results,
+        )
+        ordered_results = [results[group.group_id] for group in groups]
         replacements = {
             key: value
             for result in ordered_results
@@ -758,6 +788,79 @@ class ParaphraseRunner:
             make_read_only(metadata_path)
         self._remove_parts(parts_root)
 
+    def _repair_duplicate_titles(
+        self,
+        *,
+        task_root: Path,
+        task_id: str,
+        variant_index: int,
+        groups: tuple[_WordingRequestGroup, ...],
+        parts_root: Path,
+        results: dict[str, _GroupGeneration],
+    ) -> None:
+        request_pool = self._request_pool
+        if request_pool is None:
+            raise RuntimeError("paraphrase request pool is unavailable")
+        for _repair_round in range(self.max_retries + 1):
+            collisions = _duplicate_title_collisions(groups, results)
+            if not collisions:
+                return
+            repairs: dict[str, tuple[_WordingRequestGroup, str]] = {}
+            for collision in collisions:
+                first_group_id, first_key, duplicate_title = collision[0]
+                for group_id, key, _title in collision[1:]:
+                    group = next(
+                        item for item in groups if item.group_id == group_id
+                    )
+                    repairs[group_id] = (
+                        group,
+                        f"{key} duplicates {first_key} from {first_group_id}: "
+                        f"{json.dumps(duplicate_title, ensure_ascii=False)}. "
+                        "Return a distinct equivalent title that preserves the "
+                        "source title's distinguishing wording.",
+                    )
+
+            futures = {}
+            for group_id, (group, repair_error) in repairs.items():
+                checkpoint_path = parts_root / f"{group.group_id}.json"
+                if checkpoint_path.is_symlink() or (
+                    os.path.lexists(checkpoint_path)
+                    and not checkpoint_path.is_file()
+                ):
+                    raise RuntimeError(
+                        f"invalid rubric paraphrase checkpoint: {checkpoint_path}"
+                    )
+                if checkpoint_path.is_file():
+                    checkpoint_path.unlink()
+                futures[request_pool.submit(
+                    self._generate_group,
+                    task_root,
+                    task_id,
+                    variant_index,
+                    group,
+                    checkpoint_path,
+                    initial_repair_error=repair_error,
+                    attempt_offset=results[group_id].attempt_count,
+                )] = group_id
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+
+        collisions = _duplicate_title_collisions(groups, results)
+        fields = ", ".join(
+            key
+            for collision in collisions
+            for _group_id, key, _title in collision
+        )
+        for collision in collisions:
+            for group_id, _key, _title in collision[1:]:
+                checkpoint_path = parts_root / f"{group_id}.json"
+                if checkpoint_path.is_file() and not checkpoint_path.is_symlink():
+                    checkpoint_path.unlink()
+        raise ValueError(
+            "paraphrase contains duplicate criterion titles after repair: "
+            + fields
+        )
+
     def _generate_group(
         self,
         task_root: Path,
@@ -765,6 +868,9 @@ class ParaphraseRunner:
         variant_index: int,
         group: _WordingRequestGroup,
         checkpoint_path: Path,
+        *,
+        initial_repair_error: str | None = None,
+        attempt_offset: int = 0,
     ) -> _GroupGeneration:
         checkpoint = self._read_group_checkpoint(
             checkpoint_path,
@@ -774,7 +880,11 @@ class ParaphraseRunner:
         )
         if checkpoint is not None:
             return checkpoint
-        last_error: Exception | None = None
+        last_error: Exception | None = (
+            ValueError(initial_repair_error)
+            if initial_repair_error is not None
+            else None
+        )
         for attempt in range(1, self.max_retries + 2):
             request = _paraphrase_request(
                 task_id=task_id,
@@ -791,7 +901,7 @@ class ParaphraseRunner:
                 result = _GroupGeneration(
                     group_id=group.group_id,
                     replacements=group.expand(value["wording"]),
-                    attempt_count=attempt,
+                    attempt_count=attempt_offset + attempt,
                     prompt_sha256=sha256_text(
                         request.instructions + "\0" + request.evidence
                     ),
@@ -811,7 +921,7 @@ class ParaphraseRunner:
                     task_root,
                     variant_index,
                     group.group_id,
-                    attempt,
+                    attempt_offset + attempt,
                     exc,
                     generation,
                 )
@@ -1023,6 +1133,12 @@ def validate_semantic_paraphrase(master: str, candidate: str) -> str:
         raise ValueError("paraphrase changed its wording-field layout")
     if candidate_template.fixed_fragments != master_template.fixed_fragments:
         raise ValueError("paraphrase changed immutable rubric structure")
+    titles = [
+        " ".join(match.group("text").lower().split())
+        for match in _CRITERION_HEADER.finditer(candidate)
+    ]
+    if len(set(titles)) != len(titles):
+        raise ValueError("paraphrase contains duplicate criterion titles")
     for master_slot, candidate_slot in zip(
         master_template.slots,
         candidate_template.slots,

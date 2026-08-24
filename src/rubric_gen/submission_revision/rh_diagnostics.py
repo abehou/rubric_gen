@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import stat
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,7 +30,10 @@ from rubric_gen.runtime.llm import (
     generate_structured_vllm,
 )
 from rubric_gen.runtime.progress import TerminalProgress
-from rubric_gen.submission_revision.artifacts import read_json_object
+from rubric_gen.submission_revision.artifacts import (
+    make_tree_owner_writable,
+    read_json_object,
+)
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.judge import (
     JudgeArtifacts,
@@ -480,15 +484,35 @@ class _RhOutputStore:
                 allow_missing=False,
             )
             self.validate_tree()
-            manifest_path = self.regular_file("manifest.json")
-            manifest = read_json_object(manifest_path, "evaluation manifest")
+            try:
+                manifest_path = self.regular_file("manifest.json")
+                manifest = read_json_object(manifest_path, "evaluation manifest")
+            except RuntimeError:
+                if not resume:
+                    raise
+                self._replace(identity)
+                return
             if manifest != identity:
-                raise RuntimeError("evaluation resume identity changed")
+                if not resume:
+                    raise RuntimeError("evaluation resume identity changed")
+                self._replace(identity)
+                return
             if not resume and any(
                 path.name != "manifest.json" for path in self.root.iterdir()
             ):
                 raise FileExistsError(f"evaluation output is not empty: {self.root}")
             return
+        self._ensure_directory_path(self.root)
+        self.write_json(("manifest.json",), identity)
+
+    def _replace(self, identity: dict[str, object]) -> None:
+        self.validate_tree()
+        make_tree_owner_writable(self.root)
+        shutil.rmtree(self.root)
+        if os.path.lexists(self.root):
+            raise RuntimeError(
+                f"failed to replace incompatible RH output: {self.root}"
+            )
         self._ensure_directory_path(self.root)
         self.write_json(("manifest.json",), identity)
 
@@ -627,6 +651,16 @@ def _finite_score(value: object, label: str) -> float:
         or not 0 <= float(value) <= 100
     ):
         raise RuntimeError(f"{label} must be a finite score from 0 to 100")
+    return float(value)
+
+
+def _finite_number(value: object, label: str) -> float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, Real)
+        or not math.isfinite(float(value))
+    ):
+        raise RuntimeError(f"{label} must be a finite number")
     return float(value)
 
 
@@ -903,12 +937,15 @@ def _load_weak_bank_score(
         "bank_sha256",
         "dispatch_preflight",
         "members",
-        "weighted_score",
+        "canonical_original_score",
+        "weighted_elicited_penalty",
+        "score",
     }:
         raise RuntimeError("weak bank evaluation has invalid fields")
     bank = generation.bank
     if (
-        record.get("kind") != "weighted-rubric-bank-evaluation"
+        record.get("kind")
+        != "canonical-original-plus-elicited-penalty-evaluation"
         or record.get("submission_id") != submission_id
         or record.get("generation_round") != bank.generation_round
         or record.get("bank_sha256") != bank.content_sha256
@@ -945,6 +982,8 @@ def _load_weak_bank_score(
         member = members[member_hash]
         if not isinstance(member, dict) or set(member) != {
             "weight",
+            "judge_score",
+            "elicited_penalty",
             "score",
             "score_validation_sha256",
             "evaluation_sha256",
@@ -961,21 +1000,35 @@ def _load_weak_bank_score(
             digest = member.get(hash_key)
             if not _is_sha256(digest):
                 raise RuntimeError("weak bank evaluation member has an invalid hash")
+        _finite_score(member.get("judge_score"), "weak bank judge score")
+        penalty = _finite_number(
+            member.get("elicited_penalty"),
+            "weak bank elicited penalty",
+        )
+        if penalty > 0:
+            raise RuntimeError("weak bank elicited penalty is positive")
         member_scores[member_hash] = _finite_score(
             member.get("score"),
             "weak bank member score",
         )
     expected_score = bank.aggregate(member_scores)
-    weighted_score = _finite_score(
-        record.get("weighted_score"),
-        "weak weighted bank score",
+    canonical_score = _finite_score(
+        record.get("canonical_original_score"),
+        "weak canonical original score",
     )
-    if weighted_score != expected_score:
-        raise RuntimeError("weak bank evaluation weighted score is inconsistent")
+    weighted_penalty = _finite_number(
+        record.get("weighted_elicited_penalty"),
+        "weak weighted elicited penalty",
+    )
+    if weighted_penalty > 0:
+        raise RuntimeError("weak weighted elicited penalty is positive")
+    score = _finite_score(record.get("score"), "weak composed bank score")
+    if score != expected_score or score != max(0.0, canonical_score + weighted_penalty):
+        raise RuntimeError("weak bank composed score is inconsistent")
     normalized_state_score = _finite_score(state_score, "weak state score")
-    if normalized_state_score != weighted_score:
+    if normalized_state_score != score:
         raise RuntimeError("weak state score disagrees with bank evaluation")
-    return weighted_score
+    return score
 
 
 def load_evaluation_targets(
@@ -1852,19 +1905,7 @@ class HolisticPairwiseRunner:
                 models,
             ),
         }
-        summary_path = self.output.regular_file(
-            "summary.json",
-            allow_missing=True,
-        )
-        if os.path.lexists(summary_path):
-            existing = read_json_object(
-                summary_path,
-                "RH holistic completed summary",
-            )
-            if existing != summary:
-                raise RuntimeError("RH holistic completed summary changed")
-        else:
-            self.output.write_json(("summary.json",), summary)
+        self.output.write_json(("summary.json",), summary)
         return 0
 
     def _predispatch_plan(

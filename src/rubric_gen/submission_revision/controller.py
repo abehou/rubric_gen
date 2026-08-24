@@ -30,6 +30,7 @@ from rubric_gen.submission_revision.judging.models import (
 from rubric_gen.runtime.progress import PROGRESS_BAR_FORMAT
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
+    compose_bank_score,
     project_bank_feedback,
     project_bank_simulated_user_feedback,
 )
@@ -1582,6 +1583,15 @@ class SubmissionRevisionController:
             member_artifacts[item.rubric.content_sha256] = artifacts
         self._verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
+        fixed_original_score, fixed_original_artifacts = (
+            self._fixed_original_judgment(
+                submission_dir=submission_dir,
+                submission_id=submission_id,
+                turn_index=turn_index,
+                active_member_artifacts=member_artifacts,
+                allow_generation=True,
+            )
+        )
         feedback = self._project_boundary_feedback(
             artifacts=member_artifacts,
             bank=bank,
@@ -1589,14 +1599,17 @@ class SubmissionRevisionController:
             generation_round=bank.generation_round,
             submission_dir=submission_dir,
             allow_generation=True,
+            fixed_original_score=fixed_original_score,
+            fixed_original_artifacts=fixed_original_artifacts,
         )
         bank_evaluation = self._bank_evaluation_record(
             bank,
             member_artifacts,
             submission_id,
             dispatch_preflight,
+            fixed_original_score,
         )
-        if bank_evaluation["weighted_score"] != feedback.score:
+        if bank_evaluation["score"] != feedback.score:
             raise RuntimeError("bank evaluation and feedback scores disagree")
         bank_evaluation_path = (
             self.experiment_dir / "bank-evaluations" / f"{submission_id}.json"
@@ -1610,12 +1623,6 @@ class SubmissionRevisionController:
         else:
             _write_json_atomic(bank_evaluation_path, bank_evaluation)
             _make_read_only(bank_evaluation_path)
-        fixed_original_score = self._fixed_original_score(
-            submission_dir=submission_dir,
-            submission_id=submission_id,
-            turn_index=turn_index,
-            on_policy_score=feedback.score,
-        )
         feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
         if feedback_path.exists():
             if (
@@ -1674,8 +1681,8 @@ class SubmissionRevisionController:
                 "turn": turn_index,
                 "judge_attempt_id": attempt_id,
                 "score": feedback.score,
-                "on_policy_score": feedback.score,
                 "fixed_original_score": fixed_original_score,
+                "elicited_penalty": feedback.score - fixed_original_score,
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
                 "feedback_sha256": _sha256_file(feedback_path),
                 "bank_evaluation_sha256": _sha256_file(bank_evaluation_path),
@@ -1695,6 +1702,7 @@ class SubmissionRevisionController:
         artifacts: dict[str, JudgeArtifacts],
         submission_id: str,
         dispatch_preflight: dict[str, object],
+        fixed_original_score: float,
     ) -> dict[str, object]:
         if (
             dispatch_preflight.get("bank_sha256") != bank.content_sha256
@@ -1703,7 +1711,15 @@ class SubmissionRevisionController:
         ):
             raise RuntimeError("bank dispatch preflight has the wrong bank binding")
         members: dict[str, dict[str, object]] = {}
-        scores: dict[str, float] = {}
+        validation_paths = {
+            rubric_hash: artifact.score_validation_path
+            for rubric_hash, artifact in artifacts.items()
+        }
+        composition = compose_bank_score(
+            bank,
+            validation_paths,
+            fixed_original_score,
+        )
         for item in bank.items:
             rubric_hash = item.rubric.content_sha256
             member = artifacts.get(rubric_hash)
@@ -1730,23 +1746,29 @@ class SubmissionRevisionController:
                 raise RuntimeError(
                     "bank member score uses a different preflight payload"
                 )
-            scores[rubric_hash] = float(score)
+            member_composition = composition.members[rubric_hash]
             members[rubric_hash] = {
                 "weight": item.weight,
-                "score": score,
+                "judge_score": score,
+                "elicited_penalty": member_composition.elicited_penalty,
+                "score": member_composition.score,
                 "score_validation_sha256": _sha256_file(
                     member.score_validation_path
                 ),
                 "evaluation_sha256": _sha256_file(member.evaluation_path),
             }
         return {
-            "kind": "weighted-rubric-bank-evaluation",
+            "kind": "canonical-original-plus-elicited-penalty-evaluation",
             "submission_id": submission_id,
             "generation_round": bank.generation_round,
             "bank_sha256": bank.content_sha256,
             "dispatch_preflight": dispatch_preflight,
             "members": members,
-            "weighted_score": bank.aggregate(scores),
+            "canonical_original_score": composition.canonical_original_score,
+            "weighted_elicited_penalty": (
+                composition.weighted_elicited_penalty
+            ),
+            "score": composition.score,
         }
 
     def _project_boundary_feedback(
@@ -1758,6 +1780,8 @@ class SubmissionRevisionController:
         generation_round: int,
         submission_dir: Path,
         allow_generation: bool,
+        fixed_original_score: float,
+        fixed_original_artifacts: JudgeArtifacts,
     ):
         policy = FeedbackPolicy(self.config.feedback_policy)
         if policy is not FeedbackPolicy.USER_SIMULATOR:
@@ -1771,6 +1795,12 @@ class SubmissionRevisionController:
                     for rubric_hash, member in artifacts.items()
                 },
                 policy,
+                fixed_original_artifacts=(
+                    fixed_original_artifacts.score_validation_path,
+                    fixed_original_artifacts.evaluation_path,
+                ),
+                fixed_original_rubric_text=self.master_rubric.text,
+                fixed_original_rubric_sha256=self.master_rubric.sha256,
                 prompt_profile=self.config.prompt_profile,
                 benchmark=self.config.benchmark,
             )
@@ -1916,6 +1946,7 @@ class SubmissionRevisionController:
                 for rubric_hash, member in artifacts.items()
             },
             comment,
+            fixed_original_score=fixed_original_score,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
@@ -2018,37 +2049,22 @@ class SubmissionRevisionController:
         )
         return rubric, FrozenRubricJudge(config, rubric)
 
-    def _fixed_original_score(
+    def _fixed_original_judgment(
         self,
         *,
         submission_dir: Path,
         submission_id: str,
         turn_index: int,
-        on_policy_score: float,
-    ) -> float:
+        active_member_artifacts: dict[str, JudgeArtifacts],
+        allow_generation: bool,
+    ) -> tuple[float, JudgeArtifacts]:
         active_bank = self._active_bank_generation(turn_index).bank
+        seeded = False
         if turn_index == 0 and self.reuse_seed_master_judgment:
-            validation_path, _, _ = self.seed.judgment
-            self._verify_round_scoring_identity(
-                validation_path,
-                self.master_rubric,
-                self.master_judge,
-                seeded=True,
-            )
-            validation = _read_json_object(
-                validation_path,
-                "seeded master-rubric score validation",
-            )
-            score = validation.get("score")
-            if (
-                isinstance(score, bool)
-                or not isinstance(score, Real)
-                or not math.isfinite(float(score))
-                or not 0 <= float(score) <= 100
-            ):
-                raise RuntimeError("seeded master-rubric score is invalid")
-            return float(score)
-        if (
+            validation_path, evaluation_path, _ = self.seed.judgment
+            artifacts = JudgeArtifacts(validation_path, evaluation_path)
+            seeded = True
+        elif (
             active_bank.rubric_count == 1
             and active_bank.items[0].rubric.content_sha256
             == self.master_rubric.sha256
@@ -2057,8 +2073,10 @@ class SubmissionRevisionController:
                 or self.bank_policy is RubricBankPolicy.FIXED
             )
         ):
-            return on_policy_score
-        if self.judgment_reuse is not None:
+            artifacts = active_member_artifacts.get(self.master_rubric.sha256)
+            if artifacts is None:
+                raise RuntimeError("active bank lacks the master judgment")
+        elif self.judgment_reuse is not None:
             review_text, answer_text = self.master_judge.review_inputs(submission_dir)
             request = exact_judgment_request(
                 task_id=self.task_dir.name,
@@ -2073,57 +2091,59 @@ class SubmissionRevisionController:
                 submission_id,
                 self.master_rubric.sha256,
             )
-            reused = self.judgment_reuse.resolve(
-                request=request,
-                producer={
-                    "assignment_id": self.config.assignment_id,
-                    "condition_id": self.config.condition_id,
-                    "replicate": self.config.replicate,
-                    "submission_id": submission_id,
-                    "rubric_sha256": self.master_rubric.sha256,
-                    "judge_attempt_id": attempt_id,
-                },
-                generate=lambda: self.master_judge.evaluate(
-                    submission_dir,
-                    attempt_id,
-                ),
+            if allow_generation:
+                reused = self.judgment_reuse.resolve(
+                    request=request,
+                    producer={
+                        "assignment_id": self.config.assignment_id,
+                        "condition_id": self.config.condition_id,
+                        "replicate": self.config.replicate,
+                        "submission_id": submission_id,
+                        "rubric_sha256": self.master_rubric.sha256,
+                        "judge_attempt_id": attempt_id,
+                    },
+                    generate=lambda: self.master_judge.evaluate(
+                        submission_dir,
+                        attempt_id,
+                    ),
+                )
+                self.judgment_reuse.persist_alias(
+                    experiment_dir=self.experiment_dir,
+                    assignment_id=self.config.assignment_id,
+                    replicate=self.config.replicate,
+                    submission_id=submission_id,
+                    rubric_sha256=self.master_rubric.sha256,
+                    reused=reused,
+                )
+            else:
+                reused = self.judgment_reuse.validate_alias(
+                    self.experiment_dir
+                    / "judgment-aliases"
+                    / submission_id
+                    / (self.judgment_reuse.request_sha256(request) + ".json"),
+                    assignment_id=self.config.assignment_id,
+                    replicate=self.config.replicate,
+                    submission_id=submission_id,
+                    rubric_sha256=self.master_rubric.sha256,
+                    expected_request=request,
+                )
+            artifacts = reused.artifacts
+        else:
+            attempt_id = fixed_original_attempt_id(
+                self.config.assignment_id,
+                submission_id,
+                self.master_rubric.sha256,
             )
-            self.judgment_reuse.persist_alias(
-                experiment_dir=self.experiment_dir,
-                assignment_id=self.config.assignment_id,
-                replicate=self.config.replicate,
-                submission_id=submission_id,
-                rubric_sha256=self.master_rubric.sha256,
-                reused=reused,
+            artifacts = (
+                self.master_judge.evaluate(submission_dir, attempt_id)
+                if allow_generation
+                else self.master_judge.validate(submission_dir, attempt_id)
             )
-            self._verify_round_scoring_identity(
-                reused.artifacts.score_validation_path,
-                self.master_rubric,
-                self.master_judge,
-            )
-            validation = _read_json_object(
-                reused.artifacts.score_validation_path,
-                "shared fixed-original score validation",
-            )
-            score = validation.get("score")
-            if (
-                isinstance(score, bool)
-                or not isinstance(score, Real)
-                or not math.isfinite(float(score))
-                or not 0 <= float(score) <= 100
-            ):
-                raise RuntimeError("shared fixed-original judgment has an invalid score")
-            return float(score)
-        attempt_id = fixed_original_attempt_id(
-            self.config.assignment_id,
-            submission_id,
-            self.master_rubric.sha256,
-        )
-        artifacts = self.master_judge.evaluate(submission_dir, attempt_id)
         self._verify_round_scoring_identity(
             artifacts.score_validation_path,
             self.master_rubric,
             self.master_judge,
+            seeded=seeded,
         )
         validation = _read_json_object(
             artifacts.score_validation_path,
@@ -2137,7 +2157,7 @@ class SubmissionRevisionController:
             or not 0 <= float(score) <= 100
         ):
             raise RuntimeError("fixed-original judgment has an invalid score")
-        return float(score)
+        return float(score), artifacts
 
     def _verify_round_scoring_identity(
         self,
@@ -2243,6 +2263,15 @@ class SubmissionRevisionController:
                     seeded=seeded,
                 )
                 member_artifacts[item.rubric.content_sha256] = artifacts
+            expected_fixed_score, fixed_original_artifacts = (
+                self._fixed_original_judgment(
+                    submission_dir=submission_dir,
+                    submission_id=submission_id,
+                    turn_index=index,
+                    active_member_artifacts=member_artifacts,
+                    allow_generation=False,
+                )
+            )
             projected = self._project_boundary_feedback(
                 artifacts=member_artifacts,
                 bank=bank,
@@ -2250,6 +2279,8 @@ class SubmissionRevisionController:
                 generation_round=bank.generation_round,
                 submission_dir=submission_dir,
                 allow_generation=False,
+                fixed_original_score=expected_fixed_score,
+                fixed_original_artifacts=fixed_original_artifacts,
             )
             feedback = _read_json_object(
                 self.experiment_dir / "feedback" / f"{submission_id}.json",
@@ -2278,93 +2309,13 @@ class SubmissionRevisionController:
                     review_text=review_text,
                     answer_text=answer_text,
                 ),
+                expected_fixed_score,
             )
             if bank_evaluation != expected_bank_evaluation:
                 raise RuntimeError(
                     "stored bank evaluation disagrees with member artifacts"
                 )
-            fixed_score = state.fixed_original_scores[index]
-            if index == 0 and self.reuse_seed_master_judgment:
-                master_validation_path, _, _ = self.seed.judgment
-                self._verify_round_scoring_identity(
-                    master_validation_path,
-                    self.master_rubric,
-                    self.master_judge,
-                    seeded=True,
-                )
-                expected_fixed_score = _read_json_object(
-                    master_validation_path,
-                    "seeded master-rubric score validation",
-                ).get("score")
-            elif (
-                bank.rubric_count == 1
-                and bank.items[0].rubric.content_sha256
-                == self.master_rubric.sha256
-                and (
-                    index == 0
-                    or self.bank_policy is RubricBankPolicy.FIXED
-                )
-            ):
-                expected_fixed_score = projected.score
-            elif self.judgment_reuse is not None:
-                review_text, answer_text = self.master_judge.review_inputs(
-                    submission_dir
-                )
-                expected_request = exact_judgment_request(
-                    task_id=self.task_dir.name,
-                    replicate=self.config.replicate,
-                    rubric_sha256=self.master_rubric.sha256,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                    scoring_identity=self.master_judge.scoring_identity(),
-                )
-                alias_path = (
-                    self.experiment_dir
-                    / "judgment-aliases"
-                    / submission_id
-                    / (
-                        self.judgment_reuse.request_sha256(expected_request)
-                        + ".json"
-                    )
-                )
-                reused = self.judgment_reuse.validate_alias(
-                    alias_path,
-                    assignment_id=self.config.assignment_id,
-                    replicate=self.config.replicate,
-                    submission_id=submission_id,
-                    rubric_sha256=self.master_rubric.sha256,
-                    expected_request=expected_request,
-                )
-                self._verify_round_scoring_identity(
-                    reused.artifacts.score_validation_path,
-                    self.master_rubric,
-                    self.master_judge,
-                )
-                expected_fixed_score = _read_json_object(
-                    reused.artifacts.score_validation_path,
-                    "shared fixed-original score validation",
-                ).get("score")
-            else:
-                fixed_attempt_id = fixed_original_attempt_id(
-                    self.config.assignment_id,
-                    submission_id,
-                    self.master_rubric.sha256,
-                )
-                fixed_artifacts = self.master_judge.validate(
-                    submission_dir,
-                    fixed_attempt_id,
-                )
-                self._verify_round_scoring_identity(
-                    fixed_artifacts.score_validation_path,
-                    self.master_rubric,
-                    self.master_judge,
-                )
-                fixed_validation = _read_json_object(
-                    fixed_artifacts.score_validation_path,
-                    "fixed-original score validation",
-                )
-                expected_fixed_score = fixed_validation.get("score")
-            if expected_fixed_score != fixed_score:
+            if expected_fixed_score != state.fixed_original_scores[index]:
                 raise RuntimeError(
                     "stored fixed-original score disagrees with judge artifacts"
                 )

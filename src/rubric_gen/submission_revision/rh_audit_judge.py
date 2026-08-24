@@ -13,7 +13,10 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.submission_revision.artifacts import make_tree_read_only
+from rubric_gen.submission_revision.artifacts import (
+    make_tree_read_only,
+    remove_owned_evaluation_tree,
+)
 from rubric_gen.submission_revision.judge import (
     FrozenRubric,
     FrozenRubricJudge,
@@ -21,6 +24,7 @@ from rubric_gen.submission_revision.judge import (
     SubmissionJudgeConfig,
 )
 from rubric_gen.submission_revision.judging.full_rubric_judge import (
+    FULL_RUBRIC_MAX_CRITERIA,
     FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL,
     FULL_RUBRIC_MAX_TOTAL_REQUEST_CONTENT_BYTES,
     FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
@@ -46,7 +50,7 @@ from rubric_gen.submission_revision.judging.scoring import (
 RH_FULL_RUBRIC_ENGINE_IDENTITY = {
     "engine": "rh-full-rubric-structured",
     "aggregation": "five-repeat-arithmetic-mean-signed-points",
-    "structured_output": "ordered-level-index-records-json-schema",
+    "structured_output": "fixed-count-level-index-records-json-schema",
 }
 
 RH_FULL_RUBRIC_SYSTEM_PROMPT = """\
@@ -71,18 +75,36 @@ Return only the provider-enforced JSON schema. Do not calculate numerical points
 """
 
 
-def rh_structured_output_schema() -> dict[str, object]:
-    """Build a small schema whose grammar does not grow with the rubric."""
+def rh_structured_output_schema(
+    criterion_count: int,
+    maximum_level_count: int,
+) -> dict[str, object]:
+    """Build a small fixed-count schema without repeated rubric text."""
 
+    if (
+        type(criterion_count) is not int
+        or not 1 <= criterion_count <= FULL_RUBRIC_MAX_CRITERIA
+    ):
+        raise FullRubricJudgeError("RH audit criterion count is out of range")
+    if (
+        type(maximum_level_count) is not int
+        or not 1 <= maximum_level_count <= 26
+    ):
+        raise FullRubricJudgeError("RH audit level count is out of range")
     return {
         "type": "object",
         "properties": {
             "criteria": {
                 "type": "array",
+                "minItems": criterion_count,
+                "maxItems": criterion_count,
                 "items": {
                     "type": "object",
                     "properties": {
-                        "level_index": {"type": "integer"},
+                        "level_index": {
+                            "type": "integer",
+                            "enum": list(range(maximum_level_count)),
+                        },
                         "reason": {"type": "string"},
                     },
                     "required": ["level_index", "reason"],
@@ -212,7 +234,11 @@ def rh_full_rubric_cost_shape(
     payload_bytes = len(
         rh_full_rubric_payload(rubric_text, review_text, answer_text).encode("utf-8")
     )
-    schema_bytes = _canonical_json_bytes(rh_structured_output_schema())
+    rubric_levels = parse_rubric_levels_strict(rubric_text)
+    schema_bytes = _canonical_json_bytes(rh_structured_output_schema(
+        base.criterion_count,
+        max(len(levels) for levels in rubric_levels.values()),
+    ))
     request_bytes = (
         len(RH_FULL_RUBRIC_SYSTEM_PROMPT.encode("utf-8"))
         + payload_bytes
@@ -501,7 +527,10 @@ def grade_rh_full_rubric(
         seed=seed,
     )
     rubric_levels = parse_rubric_levels_strict(rubric_text)
-    schema = rh_structured_output_schema()
+    schema = rh_structured_output_schema(
+        len(rubric_levels),
+        max(len(levels) for levels in rubric_levels.values()),
+    )
     payload = rh_full_rubric_payload(rubric_text, review_text, answer_text)
     reports: list[dict[str, object]] = []
     usage: list[dict[str, object]] = []
@@ -602,11 +631,14 @@ class RhAuditRubricJudge:
 
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         root = self._evaluation_root(submission_dir, attempt_id)
-        if root.exists():
+        if os.path.lexists(root):
             try:
                 return self.validate(submission_dir, attempt_id)
             except (OSError, RuntimeError, ValueError):
-                self._archive_existing(root, "invalid")
+                remove_owned_evaluation_tree(
+                    root,
+                    self.experiment_dir / "evaluations",
+                )
         review_text, answer_text = self.review_inputs(submission_dir)
         identity = self.scoring_identity()
         model = str(identity["effective_judge_model"])
@@ -792,13 +824,6 @@ class RhAuditRubricJudge:
         if not isinstance(value, dict):
             raise RuntimeError(f"RH audit file is not an object: {path}")
         return value
-
-    @staticmethod
-    def _archive_existing(root: Path, label: str) -> None:
-        index = 1
-        while root.with_name(f"{root.name}.{label}-{index:03d}").exists():
-            index += 1
-        root.replace(root.with_name(f"{root.name}.{label}-{index:03d}"))
 
     @staticmethod
     def _write_failure(parent: Path, attempt: int, error: Exception) -> None:

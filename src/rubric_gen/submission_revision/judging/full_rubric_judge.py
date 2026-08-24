@@ -25,7 +25,7 @@ FULL_RUBRIC_ENGINE_IDENTITY = {
     "aggregation": "five-repeat-arithmetic-mean-signed-points",
     "structured_output": "exact-all-criteria-json-schema",
 }
-FULL_RUBRIC_MAX_CRITERIA = 200
+FULL_RUBRIC_MAX_CRITERIA = 1_000
 FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL = 1_000_000
 FULL_RUBRIC_MAX_TOTAL_REQUEST_CONTENT_BYTES = 5_000_000
 FULL_RUBRIC_MIN_OUTPUT_TOKENS = 4_096
@@ -760,7 +760,7 @@ def records_from_raw_reports(
             ),
         }
 
-    raw_score = math.fsum(repeat_raw_scores) / JUDGMENT_REPEATS
+    raw_score = math.fsum(criterion_scores.values())
     score = math.fsum(repeat_scores) / JUDGMENT_REPEATS
     normalized_score = score / 100
     dispersion = {

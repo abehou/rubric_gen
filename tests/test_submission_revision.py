@@ -865,11 +865,12 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
 
-    fixed_score = controller._fixed_original_score(
+    fixed_score, _ = controller._fixed_original_judgment(
         submission_dir=submission,
         submission_id="s001",
         turn_index=1,
-        on_policy_score=100,
+        active_member_artifacts={},
+        allow_generation=True,
     )
 
     assert fixed_score == 72
@@ -927,11 +928,12 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
 
-    fixed_score = controller._fixed_original_score(
+    fixed_score, _ = controller._fixed_original_judgment(
         submission_dir=submission,
         submission_id="s001",
         turn_index=1,
-        on_policy_score=90,
+        active_member_artifacts={},
+        allow_generation=True,
     )
 
     assert fixed_score == 72
@@ -1339,7 +1341,7 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
         judgment_reuse_root=shared_root,
     ).run()
 
-    assert first_result.scores == second_result.scores == (61, 71)
+    assert first_result.scores == second_result.scores == (80, 55)
     assert first_result.fixed_original_scores == (80, 55)
     assert second_result.fixed_original_scores == (80, 55)
     assert first_optimizer.calls == 2
@@ -1624,11 +1626,18 @@ def test_controller_scores_one_rubric_exactly(
         path.name
         for path in (config.experiment_dir / "rubric-generations").iterdir()
     ) == ["bank-0001", "bank-0001.provider-attempts.json"]
-    assert evaluation["weighted_score"] == 65
+    assert evaluation["score"] == 65
+    assert evaluation["canonical_original_score"] == 65
+    assert evaluation["weighted_elicited_penalty"] == 0
     assert sorted(
-        (member["weight"], member["score"])
+        (
+            member["weight"],
+            member["judge_score"],
+            member["elicited_penalty"],
+            member["score"],
+        )
         for member in evaluation["members"].values()
-    ) == [(1.0, 65)]
+    ) == [(1.0, 65, 0, 65)]
     validate_completed_revision(
         config.experiment_dir,
         {
@@ -2659,19 +2668,35 @@ Levels: A=40 B=20 C=0
     )
     artifacts = {rubric_sha: (validation, evaluation)}
     full = project_bank_feedback(
-        bank, artifacts, FeedbackPolicy.FULL
+        bank,
+        artifacts,
+        FeedbackPolicy.FULL,
+        fixed_original_artifacts=(validation, evaluation),
+        fixed_original_rubric_text=rubric,
+        fixed_original_rubric_sha256=rubric_sha,
     )
     semi = project_bank_feedback(
-        bank, artifacts, FeedbackPolicy.SEMI
+        bank,
+        artifacts,
+        FeedbackPolicy.SEMI,
+        fixed_original_artifacts=(validation, evaluation),
+        fixed_original_rubric_text=rubric,
+        fixed_original_rubric_sha256=rubric_sha,
     )
     score = project_bank_feedback(
-        bank, artifacts, FeedbackPolicy.SCORE_ONLY
+        bank,
+        artifacts,
+        FeedbackPolicy.SCORE_ONLY,
+        fixed_original_artifacts=(validation, evaluation),
+        fixed_original_rubric_text=rubric,
+        fixed_original_rubric_sha256=rubric_sha,
     )
     simulated = project_bank_simulated_user_feedback(
         bank,
         {rubric_sha: validation},
         "The evidence is hard to verify from the response. Please explain the "
         "key check and connect it to the conclusion.",
+        fixed_original_score=80,
     )
     assert "needs more evidence" in full.prompt
     assert '"title": "Evidence"' in semi.prompt
@@ -2734,9 +2759,122 @@ def test_bank_feedback_uses_the_singleton_member_score(
     }))
     artifacts[anchor.content_sha256] = (validation, evaluation)
 
-    projected = project_bank_feedback(bank, artifacts, FeedbackPolicy.SEMI)
+    projected = project_bank_feedback(
+        bank,
+        artifacts,
+        FeedbackPolicy.SEMI,
+        fixed_original_artifacts=(validation, evaluation),
+        fixed_original_rubric_text=anchor.content,
+        fixed_original_rubric_sha256=anchor.content_sha256,
+    )
 
     assert projected.score == 33
     assert projected.payload["score"] == 33
     assert "33/100" not in projected.prompt
     assert set(projected.payload["members"]) == {anchor.content_sha256}
+
+
+def test_bank_feedback_uses_canonical_score_plus_only_elicited_penalty(
+    tmp_path: Path,
+) -> None:
+    anchor = CompleteRubric.from_content(
+        "Criterion 1: Accuracy\nDescription: Evaluate accuracy.\n"
+        "Levels: A=100 B=60 C=0\n"
+        "[A]: Full.\n[B]: Partial.\n[C]: None.\n"
+    )
+    elicited = ElicitedCriterion.create(
+        title="Unsupported claim",
+        requirement="Claims must have inspectable evidence.",
+        level_descriptions=(
+            ("A", "All claims have evidence."),
+            ("B", "Some evidence is incomplete."),
+            ("C", "A material claim has no evidence."),
+        ),
+        support_pair_ids=(
+            "pair_0000000000000001",
+            "pair_0000000000000002",
+        ),
+        source_generation=1,
+    )
+    active, criterion_map = render_augmented_rubric(anchor, (elicited,))
+    bank = RubricBank(
+        generation_round=1,
+        source_boundary=1,
+        specification_anchor=anchor,
+        specification_anchor_lineage=RubricLineage.RETAINED,
+        prior_specification_anchor_sha256=anchor.content_sha256,
+        items=(RubricBankItem(
+            active,
+            1.0,
+            RubricLineage.REFINED,
+            criterion_map,
+            prior_content_sha256=anchor.content_sha256,
+            elicited_criteria=(elicited,),
+        ),),
+    )
+
+    fixed_evaluation = tmp_path / "fixed-evaluation.json"
+    fixed_evaluation.write_text(json.dumps({
+        "criteria": {"criterion_1": {
+            "level_votes": ["B"] * 5,
+            "mean_points": 60.0,
+            "reason": "The original requirement is only partial.",
+        }},
+        "reasoning": "Canonical original judgment.",
+    }))
+    fixed_validation = tmp_path / "fixed-validation.json"
+    fixed_validation.write_text(json.dumps({
+        "score": 60.0,
+        "normalized_score": 0.6,
+        "raw_score": 60.0,
+        "criterion_level_votes": {"criterion_1": ["B"] * 5},
+        "criterion_scores": {"criterion_1": 60.0},
+        "rendered_rubric_sha256": anchor.content_sha256,
+        "evaluation_sha256": sha256_file(fixed_evaluation),
+    }))
+
+    active_evaluation = tmp_path / "active-evaluation.json"
+    active_evaluation.write_text(json.dumps({
+        "criteria": {
+            "criterion_1": {
+                "level_votes": ["A"] * 5,
+                "mean_points": 100.0,
+                "reason": "The augmented judge incorrectly awarded full credit.",
+            },
+            "criterion_2": {
+                "level_votes": ["C"] * 5,
+                "mean_points": -4.0,
+                "reason": "A material claim lacks evidence.",
+            },
+        },
+        "reasoning": "Augmented judgment.",
+    }))
+    active_validation = tmp_path / "active-validation.json"
+    active_validation.write_text(json.dumps({
+        "score": 96.0,
+        "normalized_score": 0.96,
+        "raw_score": 96.0,
+        "criterion_level_votes": {
+            "criterion_1": ["A"] * 5,
+            "criterion_2": ["C"] * 5,
+        },
+        "criterion_scores": {"criterion_1": 100.0, "criterion_2": -4.0},
+        "rendered_rubric_sha256": active.content_sha256,
+        "evaluation_sha256": sha256_file(active_evaluation),
+    }))
+
+    projected = project_bank_feedback(
+        bank,
+        {active.content_sha256: (active_validation, active_evaluation)},
+        FeedbackPolicy.SEMI,
+        fixed_original_artifacts=(fixed_validation, fixed_evaluation),
+        fixed_original_rubric_text=anchor.content,
+        fixed_original_rubric_sha256=anchor.content_sha256,
+    )
+
+    member = projected.payload["members"][active.content_sha256]
+    assert projected.score == 56
+    assert member["canonical_original_score"] == 60
+    assert member["elicited_penalty"] == -4
+    assert member["criteria"]["criterion_1"]["mean_points"] == 60
+    assert member["criteria"]["criterion_2"]["mean_points"] == -4

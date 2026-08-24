@@ -9,6 +9,7 @@ import rubric_gen.submission_revision.rh_diagnostics as rh_diagnostics
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
+from rubric_gen.submission_revision.artifacts import make_tree_read_only
 from rubric_gen.submission_revision.paraphrases import ParaphraseSelection
 from rubric_gen.submission_revision.rh_diagnostics import (
     AbsoluteHolisticJob,
@@ -31,9 +32,11 @@ from rubric_gen.submission_revision.rh_diagnostics import (
     _load_weak_bank_score,
     _paired_condition_contrasts,
     _pairwise_preference_request,
-    _rubric_policy_aggregates,
     _summarize_holistic_scores,
     _summarize_mechanistic_scores,
+)
+from rubric_gen.submission_revision.rh_evaluation_report import (
+    _rubric_policy_aggregates,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -81,6 +84,26 @@ def test_rh_output_store_rejects_record_symlink_and_path_escape(
         store.regular_file("records", "absolute", "record.json")
     with pytest.raises(RuntimeError, match="component is unsafe"):
         store.path("records", "..", "outside.json")
+
+
+def test_rh_output_store_resume_replaces_incompatible_stage(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "output"
+    store = _RhOutputStore(root)
+    store.prepare({"kind": "old-stage"}, resume=False)
+    store.write_json(("records", "old.json"), {"score": 10})
+    make_tree = root / "sealed"
+    make_tree.mkdir()
+    (make_tree / "artifact.json").write_text("{}")
+    make_tree_read_only(make_tree)
+
+    store.prepare({"kind": "current-stage"}, resume=True)
+
+    assert json.loads((root / "manifest.json").read_text()) == {
+        "kind": "current-stage"
+    }
+    assert {path.name for path in root.iterdir()} == {"manifest.json"}
 
 
 def test_target_loader_passes_shared_judgment_root_to_revision_validation(
@@ -837,9 +860,11 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
     )
     scores = (60.5,)
     members = {
-        item.rubric.content_sha256: {
-            "weight": item.weight,
-            "score": score,
+            item.rubric.content_sha256: {
+                "weight": item.weight,
+                "judge_score": score,
+                "elicited_penalty": 0.0,
+                "score": score,
             "score_validation_sha256": "1" * 64,
             "evaluation_sha256": "2" * 64,
         }
@@ -849,7 +874,7 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
     evaluation_dir.mkdir()
     (evaluation_dir / "s000.json").write_text(
         json.dumps({
-            "kind": "weighted-rubric-bank-evaluation",
+                "kind": "canonical-original-plus-elicited-penalty-evaluation",
             "submission_id": "s000",
             "generation_round": 1,
             "bank_sha256": generation.bank.content_sha256,
@@ -863,10 +888,12 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
                 "review_text_sha256": "3" * 64,
                 "answer_text_sha256": "4" * 64,
                 "cost_shape": {"calls": 5},
-            },
-            "members": members,
-            "weighted_score": 60.5,
-        }),
+                },
+                "members": members,
+                "canonical_original_score": 60.5,
+                "weighted_elicited_penalty": 0.0,
+                "score": 60.5,
+            }),
         encoding="utf-8",
     )
 
@@ -1244,7 +1271,7 @@ def test_condition_aggregates_keep_direct_detection_independent(
     ]["mean"] == -12.75
 
 
-def test_rubric_policy_aggregates_define_the_scale_up_gate(
+def test_rubric_policy_aggregates_report_available_policies(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _mechanistic_summary(tmp_path)
@@ -1288,6 +1315,10 @@ def test_rubric_policy_aggregates_define_the_scale_up_gate(
     assert result["fixed"]["direct_detection"]["rate"] == 1
     assert result["offline_elicitation"]["direct_detection"]["rate"] == 0
     assert result["online_elicitation"]["direct_detection"]["rate"] == 0
+
+    partial = _rubric_policy_aggregates(assignments[1:])
+
+    assert set(partial) == {"offline_elicitation", "online_elicitation"}
 
 
 def test_condition_contrasts_pair_task_replicates() -> None:
@@ -2130,7 +2161,6 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         sha256_file(absolute_record_path)
     )
 
-    calls_before_resume = len(calls)
     rerouted = HolisticPairwiseRunner(
         EvaluationConfig(
             experiment=experiment,
@@ -2143,9 +2173,8 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         ),
         generation_operation=generate,
     )
-    with pytest.raises(RuntimeError, match="resume identity changed"):
-        rerouted.run()
-    assert len(calls) == calls_before_resume
+    assert rerouted.run() == 0
+    assert len(calls) == 8
 
     implementation_identity = rh_diagnostics._holistic_implementation_identity()
     with monkeypatch.context() as implementation_patch:
@@ -2168,14 +2197,9 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             ),
             generation_operation=generate,
         )
-        with pytest.raises(RuntimeError, match="resume identity changed"):
-            changed_implementation.run()
-    assert len(calls) == calls_before_resume
+        assert changed_implementation.run() == 0
+    assert len(calls) == 12
 
-    tampered_summary = json.loads((output / "summary.json").read_text())
-    assert tampered_summary["absolute_records"][0]["verdict"]["score"] == 10
-    tampered_summary["absolute_records"][0]["verdict"]["score"] = 90
-    (output / "summary.json").write_text(json.dumps(tampered_summary))
     same_identity_resume = HolisticPairwiseRunner(
         EvaluationConfig(
             experiment=experiment,
@@ -2187,9 +2211,17 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         ),
         generation_operation=generate,
     )
-    with pytest.raises(RuntimeError, match="completed summary changed"):
-        same_identity_resume.run()
-    assert len(calls) == calls_before_resume
+    assert same_identity_resume.run() == 0
+    assert len(calls) == 16
+
+    tampered_summary = json.loads((output / "summary.json").read_text())
+    assert tampered_summary["absolute_records"][0]["verdict"]["score"] == 10
+    tampered_summary["absolute_records"][0]["verdict"]["score"] = 90
+    (output / "summary.json").write_text(json.dumps(tampered_summary))
+    assert same_identity_resume.run() == 0
+    assert len(calls) == 16
+    repaired_summary = json.loads((output / "summary.json").read_text())
+    assert repaired_summary["absolute_records"][0]["verdict"]["score"] == 10
 
     rejected_output = tmp_path / "rejected-holistic-output"
     rejected_experiment = SimpleNamespace(

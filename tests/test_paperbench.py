@@ -233,7 +233,7 @@ def test_code_dev_rubric_uses_the_shortest_distinct_ancestor_suffix() -> None:
     )
 
 
-def test_code_dev_rubric_rejects_duplicates_with_identical_ancestry() -> None:
+def test_code_dev_rubric_uses_leaf_ids_for_identical_duplicate_ancestry() -> None:
     rubric = {
         "id": "root",
         "requirements": "Replicate the paper.",
@@ -255,11 +255,10 @@ def test_code_dev_rubric_rejects_duplicates_with_identical_ancestry() -> None:
         }],
     }
 
-    with pytest.raises(
-        ValueError,
-        match="duplicate leaves lack distinct ancestor context",
-    ):
-        render_code_dev_rubric(rubric)
+    rendered, _, _ = render_code_dev_rubric(rubric)
+
+    assert "Run ten random seeds. [Context: Leaf ID: leaf-a]" in rendered
+    assert "Run ten random seeds. [Context: Leaf ID: leaf-b]" in rendered
 
 
 def test_prepared_dataset_is_reproducible_and_pinned(tmp_path: Path) -> None:
@@ -302,14 +301,24 @@ def test_prepared_results_dataset_binds_the_official_all_split(
     tmp_path: Path,
 ) -> None:
     destination = tmp_path / "prepared-all"
+    source = _source_tree(tmp_path / "source-all", PAPERBENCH_RESULTS_PAPERS)
+    (source / "data/papers/stochastic-interpolants/config.yaml").write_text(
+        "id: stochastic-interpolant\n"
+        "title: Stochastic Interpolants with Data-Dependent Couplings\n"
+    )
     prepare_paperbench_code_dataset(
-        _source_tree(tmp_path / "source-all", PAPERBENCH_RESULTS_PAPERS),
+        source,
         destination,
         source_split="all",
         revision=PAPERBENCH_REVISION,
     )
 
     validate_paperbench_code_dataset(destination, source_split="all")
+    metadata = json.loads((
+        destination / "stochastic-interpolants/tests/paperbench.json"
+    ).read_text())
+    assert metadata["paper_id"] == "stochastic-interpolants"
+    assert metadata["source_config_id"] == "stochastic-interpolant"
     with pytest.raises(ValueError, match="pinned source split"):
         validate_paperbench_code_dataset(destination, source_split="dev")
 
@@ -333,14 +342,15 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
 
     revised, _ = render_augmented_rubric(original, (criterion,))
     levels = parse_rubric_levels_strict(revised.content)
-    assert sum(values["A"] for values in levels.values()) == 5
-    assert "Score normalization maximum: 5" in revised.content
+    assert sum(values["A"] for values in levels.values()) == 4
+    assert list(levels.values())[-1] == {"A": 0, "B": -1}
+    assert "Score normalization maximum: 4" in revised.content
     assert all(set(values) == {"A", "B"} for values in levels.values())
     assert "Implement code-a." in revised.content
     assert "Reproducible execution" in revised.content
 
 
-def test_paperbench_elicitation_uses_blinded_history_and_additive_points() -> None:
+def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
     current, _, maximum = render_code_dev_rubric(_rubric())
 
     rubric = CompleteRubric.from_content(current)
@@ -382,10 +392,10 @@ def test_paperbench_elicitation_uses_blinded_history_and_additive_points() -> No
     assert f"Score normalization maximum: {maximum}" in difference_evidence
     assert "hidden-source-1" not in difference_evidence
     assert '"blinded_pair_graph"' in criterion_evidence
-    assert '"program_owned_added_positive_point_fraction":0.2' in criterion_evidence
-    assert '"program_owned_added_positive_point_budget":1' in criterion_evidence
+    assert '"program_owned_penalty_points_per_criterion":1' in criterion_evidence
     instructions = " ".join(evolution_module._criterion_instructions().split())
     assert "at least three artifacts" in instructions
+    assert "Each new criterion is penalty-only" in instructions
     assert "Do not choose points or weights" in instructions
 
 
@@ -585,9 +595,14 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         bank=bank,
         submission_id="s000",
         generation_round=0,
-        submission_dir=submission_dir,
-        allow_generation=True,
-    )
+            submission_dir=submission_dir,
+            allow_generation=True,
+            fixed_original_score=100.0,
+            fixed_original_artifacts=SimpleNamespace(
+                score_validation_path=validation,
+                evaluation_path=validation,
+            ),
+        )
 
     rendered = str(captured["current_submission"])
     assert "## File: README.md" in rendered

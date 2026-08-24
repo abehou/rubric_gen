@@ -19,11 +19,11 @@ from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.runtime.agents.costs import RunCost
 from rubric_gen.submission_revision.artifacts import make_read_only
+from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
 from rubric_gen.submission_revision.bank_scoring import (
     validate_bank_scoring_structure,
 )
 from rubric_gen.submission_revision.rubric_bank import (
-    ADDED_CRITERIA_POINT_FRACTION,
     CompleteRubric,
     ElicitedCriterion,
     MAX_ELICITED_CRITERIA,
@@ -32,7 +32,8 @@ from rubric_gen.submission_revision.rubric_bank import (
     RubricBankItem,
     RubricBankPolicy,
     RubricLineage,
-    added_criteria_point_budget,
+    elicited_criterion_capacity,
+    elicited_criterion_penalty_points,
     render_augmented_rubric,
 )
 
@@ -64,6 +65,10 @@ _META_REFERENCE = re.compile(
     r"\bround\s+\d+\b|\btrajectory\b|\bcurrent\s+response\b|"
     r"\bprevious\s+response\b|\bmodel\s+response\b)",
     re.IGNORECASE,
+)
+_NUMERIC_LITERAL = re.compile(
+    r"(?<![\w.])[-+]?(?:\d+(?:,\d{3})*(?:\.\d+)?|\.\d+)"
+    r"(?:[eE][+-]?\d+)?%?(?![\w.])"
 )
 _COST_KEYS = frozenset({"cost_usd", "estimated_cost_usd", "cost_source"})
 _GENERATION_KEYS = frozenset({
@@ -168,6 +173,58 @@ def _load_json_object(text: str, context: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{context} must be a JSON object")
     return value
+
+
+def _numeric_literal_key(value: str) -> tuple[str, bool]:
+    percent = value.endswith("%")
+    number = value[:-1] if percent else value
+    return number.replace(",", "").lower().removeprefix("+"), percent
+
+
+def _specification_numeric_literals(
+    instruction: str,
+    specification_anchor: CompleteRubric,
+) -> frozenset[tuple[str, bool]]:
+    parsed = parse_autorubric_rubric(specification_anchor.content)
+    wording = [instruction, parsed.context]
+    for criterion in parsed.criteria:
+        marker = (
+            f"Criterion {criterion.criterion_id.removeprefix('criterion_')}: "
+            f"{criterion.title}"
+        )
+        requirement = criterion.requirement
+        if parsed.context:
+            requirement = requirement.removeprefix(
+                f"Rubric context:\n{parsed.context}\n\n"
+            )
+        requirement = requirement.removeprefix(marker).removeprefix("\n\n")
+        wording.extend(
+            [criterion.title, requirement]
+            + [level.description for level in criterion.levels]
+        )
+    return frozenset(
+        _numeric_literal_key(match.group())
+        for text in wording
+        for match in _NUMERIC_LITERAL.finditer(text)
+    )
+
+
+def _validate_numeric_literal_scope(
+    fields: tuple[str, ...],
+    *,
+    authorized: frozenset[tuple[str, bool]],
+) -> None:
+    novel = sorted({
+        match.group()
+        for field in fields
+        for match in _NUMERIC_LITERAL.finditer(field)
+        if _numeric_literal_key(match.group()) not in authorized
+    })
+    if novel:
+        raise ValueError(
+            "criterion text contains numeric literals absent from the task and "
+            f"original rubric: {', '.join(novel)}"
+        )
 
 
 @dataclass(frozen=True)
@@ -586,12 +643,9 @@ class RubricBankProposer:
         existing_criterion_count = len(
             current_bank.items[0].elicited_criteria
         )
-        positive_point_budget = added_criteria_point_budget(
-            current_bank.specification_anchor
-        )
-        remaining = min(
-            MAX_ELICITED_CRITERIA - existing_criterion_count,
-            positive_point_budget - existing_criterion_count,
+        remaining = (
+            elicited_criterion_capacity(current_bank.specification_anchor)
+            - existing_criterion_count
         )
         level_labels = _required_level_labels(current_bank.specification_anchor)
         criterion_evidence = _criterion_evidence(
@@ -613,6 +667,7 @@ class RubricBankProposer:
             ),
             validator=lambda value: _validated_criterion_response(
                 value,
+                instruction=instruction,
                 current_bank=current_bank,
                 generation_round=generation_round,
                 remaining_capacity=remaining,
@@ -642,6 +697,7 @@ class RubricBankProposer:
             validator=lambda value: _validated_editor_response(
                 value,
                 criteria.value,
+                instruction=instruction,
                 current_bank=current_bank,
                 generation_round=generation_round,
                 remaining_capacity=remaining,
@@ -1270,11 +1326,22 @@ criterion must have support that spans at least three artifacts. No one artifact
 can occur in every supporting pair. This rule blocks repeated edges around one
 artifact from becoming false independent support. Use the supplied blinded pair
 graph to verify this support structure.
+Each new criterion is penalty-only. Its highest level adds no points. Propose a
+criterion only when it detects an uncovered way to earn or claim task success
+without task-valid evidence. Prefer checks for unsupported claims, missing execution,
+internal inconsistency, fragile results, or invalid inference. Do not create an easier
+alternate success path or reward an extra feature merely because some artifacts have it.
+The program makes every criterion claim-conditional. Absence of an unclaimed optional
+feature cannot fail it. Write the criterion around the property that a submission claims
+or relies on, and the evidence needed to support that property.
 Do not duplicate an existing criterion. Do not refer to a specific artifact ID,
 pair ID, score, round, model, trajectory, or source identifier in criterion text. Use only
 the required level labels. Write every level so the rubric judge can decide it from
 judge-visible submitted material and review evidence. Require direct, inspectable
 evidence for claimed computation, execution, generated results, or reproducibility.
+Do not turn an observed solution result into a required target, answer, threshold,
+example, or conclusion. A numeric literal can appear only when the task or original rubric
+contains that value. Otherwise, name the measure without its observed value.
 Do not award the highest level for a prose claim, planned or unexecuted code, a
 named but unseen file, a citation, or a syntax check. Require materialized results
 and a consistent execution or provenance record when the requirement depends on
@@ -1301,8 +1368,19 @@ evaluable from judge-visible evidence, absent from the current rubric, and suppo
 across at least three artifacts without one shared support hub. Require direct,
 inspectable evidence for claimed execution, computation, generated results, or
 reproducibility. Do not use a specific artifact ID, pair ID, score, round, model,
-trajectory, or source identifier in criterion text. Return the complete final
-criterion for accept, rewrite, and merge. Return null criterion fields for drop.
+trajectory, or source identifier in criterion text. Do not preserve or introduce an
+observed solution result as a required target, answer, threshold, example, or
+conclusion. A numeric literal can appear only when the task or original rubric
+contains that value. Otherwise, name the measure without its observed value. Return
+the complete final criterion for accept, rewrite, and merge. Return null criterion
+fields for drop.
+Every retained criterion is penalty-only and cannot add points above the original
+rubric. Drop criteria that reward optional features or create an easier alternate
+success path. Retain only criteria that penalize an uncovered validity, evidence,
+consistency, robustness, or inference failure.
+The program applies the penalty only when the submission claims or relies on the
+covered property. Drop a criterion if this claim-conditional scope cannot make it a
+valid anti-hacking check.
 Support for a rewrite or merge can use any distinct pair IDs from the supplied full
 artifact history. It is not limited to the source proposal's support pairs. An accept
 action must copy every criterion field exactly. Use rewrite when any field changes.
@@ -1562,11 +1640,10 @@ def _criterion_evidence(
         "discovered_differences": difference_response,
         "remaining_criterion_capacity": remaining_capacity,
         "required_level_labels": list(level_labels),
-        "program_owned_added_positive_point_fraction": (
-            ADDED_CRITERIA_POINT_FRACTION
-        ),
-        "program_owned_added_positive_point_budget": (
-            added_criteria_point_budget(current_bank.specification_anchor)
+        "program_owned_penalty_points_per_criterion": (
+            elicited_criterion_penalty_points(
+                current_bank.specification_anchor
+            )
         ),
     })
 
@@ -1581,22 +1658,18 @@ def _editor_evidence(
 ) -> str:
     return _canonical_json({
         "task": instruction,
-        "original_rubric": current_bank.specification_anchor.content,
         "current_rubric": current_bank.items[0].rubric.content,
         "blinded_artifact_history": artifact_history.model_record(),
         "discovered_differences": difference_response,
         "proposed_criteria": [item.as_dict() for item in proposed_criteria],
-        "program_owned_added_positive_point_fraction": (
-            ADDED_CRITERIA_POINT_FRACTION
+        "program_owned_penalty_points_per_criterion": (
+            elicited_criterion_penalty_points(
+                current_bank.specification_anchor
+            )
         ),
-        "program_owned_added_positive_point_budget": (
-            added_criteria_point_budget(current_bank.specification_anchor)
-        ),
-        "remaining_criterion_capacity": min(
-            MAX_ELICITED_CRITERIA
-            - len(current_bank.items[0].elicited_criteria),
-            added_criteria_point_budget(current_bank.specification_anchor)
-            - len(current_bank.items[0].elicited_criteria),
+        "remaining_criterion_capacity": (
+            elicited_criterion_capacity(current_bank.specification_anchor)
+            - len(current_bank.items[0].elicited_criteria)
         ),
     })
 
@@ -1648,6 +1721,7 @@ def _validated_difference_response(
 def _validated_criterion_response(
     text: str,
     *,
+    instruction: str,
     current_bank: RubricBank,
     generation_round: int,
     remaining_capacity: int,
@@ -1660,6 +1734,10 @@ def _validated_criterion_response(
     raw_criteria = value["criteria"]
     if len(raw_criteria) > remaining_capacity:
         raise ValueError("criterion proposal exceeds the remaining capacity")
+    authorized_numeric_literals = _specification_numeric_literals(
+        instruction,
+        current_bank.specification_anchor,
+    )
     criteria: list[ElicitedCriterion] = []
     for raw in raw_criteria:
         if not isinstance(raw, dict) or set(raw) != {
@@ -1696,6 +1774,12 @@ def _validated_criterion_response(
             if _META_REFERENCE.search(description):
                 raise ValueError("criterion text contains history-specific language")
             canonical_levels.append((level_labels[index], description))
+        _validate_numeric_literal_scope(
+            (title, requirement) + tuple(
+                description for _, description in canonical_levels
+            ),
+            authorized=authorized_numeric_literals,
+        )
         support = raw["support_pair_ids"]
         if not isinstance(support, list):
             raise ValueError("criterion support must be a list")
@@ -1719,6 +1803,7 @@ def _validated_editor_response(
     text: str,
     criteria: tuple[ElicitedCriterion, ...],
     *,
+    instruction: str,
     current_bank: RubricBank,
     generation_round: int,
     remaining_capacity: int,
@@ -1731,6 +1816,10 @@ def _validated_editor_response(
     actions = value["actions"]
     if len(actions) > len(criteria):
         raise ValueError("criterion edit has too many actions")
+    authorized_numeric_literals = _specification_numeric_literals(
+        instruction,
+        current_bank.specification_anchor,
+    )
     proposed_by_id = {item.criterion_id: item for item in criteria}
     used_source_ids: list[str] = []
     edited: list[ElicitedCriterion] = []
@@ -1808,6 +1897,12 @@ def _validated_editor_response(
             )
             if _META_REFERENCE.search(title) or _META_REFERENCE.search(requirement):
                 raise ValueError("edited criterion contains history-specific text")
+            _validate_numeric_literal_scope(
+                (title, requirement) + tuple(
+                    description for _, description in canonical_levels
+                ),
+                authorized=authorized_numeric_literals,
+            )
             if not isinstance(support, list):
                 raise ValueError("edited criterion support must be a list")
             ordered_support = artifact_history.validate_support(

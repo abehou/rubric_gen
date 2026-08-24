@@ -96,10 +96,16 @@ def test_compact_schema_and_payload_keep_rubric_values_out_of_grammar() -> None:
 
     assert small.schema_bytes < 1_000
     assert large.schema_bytes < 1_000
-    assert large.schema_bytes == small.schema_bytes
-    schema_text = json.dumps(rh_structured_output_schema())
+    assert large.schema_bytes - small.schema_bytes < 10
+    schema = rh_structured_output_schema(877, 2)
+    schema_text = json.dumps(schema)
     assert "criterion_151" not in schema_text
     assert '"level"' not in schema_text
+    assert schema["properties"]["criteria"]["minItems"] == 877
+    assert schema["properties"]["criteria"]["maxItems"] == 877
+    assert schema["properties"]["criteria"]["items"]["properties"][
+        "level_index"
+    ]["enum"] == [0, 1]
     payload = json.loads(rh_full_rubric_payload(large_rubric, "workspace", ""))
     contracts = payload["criterion_contracts"]
     assert [contract["criterion_id"] for contract in contracts] == [
@@ -196,7 +202,7 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     generation = audit_module._generate_response(
         spec,
         payload=rh_full_rubric_payload(RUBRIC, "workspace", ""),
-        schema=rh_structured_output_schema(),
+        schema=rh_structured_output_schema(1, 2),
         repeat_index=0,
     )
 
@@ -206,7 +212,7 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     assert request["output_config"]["effort"] == "low"
     assert request["system"] == RH_FULL_RUBRIC_SYSTEM_PROMPT
     assert request["output_config"]["format"]["schema"] == (
-        rh_structured_output_schema()
+        rh_structured_output_schema(1, 2)
     )
     assert spec.as_json()["temperature"] is None
     assert spec.as_json()["structured_output_contract"] == (
@@ -324,11 +330,15 @@ def test_audit_judge_publishes_and_resumes_sealed_artifacts(
 
     monkeypatch.setattr(audit_module, "grade_rh_full_rubric", grade)
     attempt_id = "a" * 32
+    invalid_root = judge._evaluation_root(submission, attempt_id)
+    invalid_root.mkdir(parents=True)
+    (invalid_root / "obsolete.json").write_text("{}")
 
     first = judge.evaluate(submission, attempt_id)
     second = judge.evaluate(submission, attempt_id)
 
     assert calls == 1
+    assert not list(invalid_root.parent.glob(f"{attempt_id}.invalid-*"))
     assert first == second
     validation = json.loads(first.score_validation_path.read_text())
     assert validation["score"] == 100

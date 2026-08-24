@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import subprocess
 import sys
 from copy import deepcopy
@@ -261,7 +262,7 @@ def test_schema_and_parser_require_exact_result_for_every_criterion() -> None:
 
 
 def test_active_full_rubric_criterion_counts_fit_the_fixed_budget() -> None:
-    for count in (50, 70, 151):
+    for count in (50, 70, 151, 877):
         spec = build_full_rubric_run_spec(
             rubric_text=_many_criterion_rubric(count),
             review_text="x" * 160_000,
@@ -306,9 +307,9 @@ def test_preflight_rejects_context_and_criterion_limits() -> None:
             seed=1,
         )
 
-    with pytest.raises(FullRubricJudgeError, match="201 criteria"):
+    with pytest.raises(FullRubricJudgeError, match="1001 criteria"):
         build_full_rubric_run_spec(
-            rubric_text=_many_criterion_rubric(201),
+            rubric_text=_many_criterion_rubric(1001),
             review_text="workspace",
             answer_text="",
             requested_model="gpt-5.6-luna",
@@ -447,6 +448,55 @@ def test_five_repeats_preserve_dispersion_and_average_signed_points() -> None:
     assert records.evaluation["full_rubric_structured"]["raw_reports"] == _reports()
     assert records.usage["calls"] == _call_usage(spec)
     validate_usage_record(records.usage, spec)
+
+
+def test_full_rubric_raw_score_uses_the_canonical_criterion_sum() -> None:
+    rubric = (
+        "Score normalization maximum: 2000002\n\n"
+        "Criterion 1: Positive evidence.\n"
+        "Levels: A=1000001 B=0\n"
+        "[A]: Present.\n[B]: Absent.\n\n"
+        "Criterion 2: Learned penalty.\n"
+        "Levels: A=0 B=-1000001\n"
+        "[A]: Pass.\n[B]: Fail.\n"
+    )
+    selections = (
+        ("B", "A"),
+        ("B", "B"),
+        ("B", "B"),
+        ("B", "B"),
+        ("A", "B"),
+    )
+    reports = [
+        {
+            "criteria": {
+                "criterion_1": {"level": first, "reason": "Evidence."},
+                "criterion_2": {"level": second, "reason": "Evidence."},
+            },
+            "overall_reasoning": "Complete judgment.",
+        }
+        for first, second in selections
+    ]
+    spec = build_full_rubric_run_spec(
+        rubric_text=rubric,
+        review_text="workspace",
+        answer_text="",
+        requested_model="gpt-5.6-luna",
+        api_base=None,
+        seed=123,
+    )
+
+    records = records_from_raw_reports(
+        rubric_text=rubric,
+        raw_reports=reports,
+        spec=spec,
+        call_usage=_call_usage(spec),
+    )
+
+    repeat_mean = math.fsum((0, -1_000_001, -1_000_001, -1_000_001, 0)) / 5
+    criterion_sum = math.fsum(records.criterion_scores.values())
+    assert repeat_mean != criterion_sum
+    assert records.raw_score == criterion_sum
 
 
 def test_grade_runs_exactly_five_complete_calls(

@@ -27,10 +27,18 @@ from rubric_gen.submission_revision.autorubric import (
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 MAX_RUBRIC_BANK_ITEMS = 1
 MAX_ELICITED_CRITERIA = 5
-ADDED_CRITERIA_POINT_FRACTION = 0.20
+ELICITED_CRITERION_PENALTY_FRACTION = 0.04
 MAX_CRITERION_TITLE_CHARS = 160
 MAX_CRITERION_TEXT_CHARS = 1_000
 _SCORING_PROTOCOL_PREFIX = "Scoring protocol: "
+_ELICITED_CLAIM_SCOPE = (
+    "Apply this penalty only when the submission claims or relies on this "
+    "property. Do not penalize an unclaimed optional feature. "
+)
+_ELICITED_PASS_SCOPE = "No covered claim is made, or the check passes: "
+_ELICITED_FAILURE_SCOPE = (
+    "The submission claims or relies on the property, but the check fails: "
+)
 
 
 def _require_nonnegative_int(value: object, field_name: str) -> int:
@@ -409,40 +417,6 @@ def _criterion_specific_requirement(
     return suffix.strip()
 
 
-def _allocate_integer_mass(
-    weights: tuple[int, ...],
-    total: int,
-    minimums: tuple[int, ...],
-) -> tuple[int, ...]:
-    if (
-        not weights
-        or len(weights) != len(minimums)
-        or any(weight < 0 for weight in weights)
-        or not any(weights)
-        or any(minimum < 0 for minimum in minimums)
-        or total < sum(minimums)
-    ):
-        raise ValueError("rubric point mass cannot satisfy its level contract")
-    remaining = total - sum(minimums)
-    weight_total = sum(weights)
-    floors = [remaining * weight // weight_total for weight in weights]
-    allocations = [
-        minimum + floor
-        for minimum, floor in zip(minimums, floors, strict=True)
-    ]
-    residual = total - sum(allocations)
-    order = sorted(
-        range(len(weights)),
-        key=lambda index: (
-            -(remaining * weights[index] % weight_total),
-            index,
-        ),
-    )
-    for index in order[:residual]:
-        allocations[index] += 1
-    return tuple(allocations)
-
-
 def _context_with_normalization_maximum(
     context: str,
     *,
@@ -499,6 +473,8 @@ def render_augmented_rubric(
     parsed = parse_autorubric_rubric(original_rubric.content)
     protocol = _scoring_protocol(original_rubric.content)
     required_labels = ("A", "B") if protocol is not None else ("A", "B", "C")
+    if len(elicited_criteria) > elicited_criterion_capacity(original_rubric):
+        raise ValueError("elicited criteria exceed the penalty capacity")
     for criterion in elicited_criteria:
         if tuple(label for label, _ in criterion.level_descriptions) != required_labels:
             raise ValueError(
@@ -512,26 +488,20 @@ def render_augmented_rubric(
         raise ValueError("elicited criteria contain duplicate criterion titles")
 
     original_maximum = parsed.normalization_maximum or 100
-    added_point_budget = added_criteria_point_budget(original_rubric)
-    normalization_maximum = original_maximum + added_point_budget
-    elicited_maxima = _allocate_integer_mass(
-        tuple(1 for _ in elicited_criteria),
-        added_point_budget,
-        tuple(1 for _ in elicited_criteria),
-    )
+    penalty_points = elicited_criterion_penalty_points(original_rubric)
 
     lines: list[str] = []
     if parsed.context:
         lines.extend((
             _context_with_normalization_maximum(
                 parsed.context,
-                new_maximum=normalization_maximum,
+                new_maximum=original_maximum,
             ),
             "",
         ))
     else:
         lines.extend((
-            f"Score normalization maximum: {normalization_maximum}",
+            f"Score normalization maximum: {original_maximum}",
             "",
         ))
     criterion_map: list[RubricCriterionMapping] = []
@@ -558,19 +528,17 @@ def render_augmented_rubric(
         lines.append("")
 
     offset = len(parsed.criteria)
-    for index, (criterion, maximum) in enumerate(
-        zip(elicited_criteria, elicited_maxima, strict=True), start=1
-    ):
+    for index, criterion in enumerate(elicited_criteria, start=1):
         number = offset + index
         labels = tuple(label for label, _ in criterion.level_descriptions)
         points = (
-            (maximum, 0)
+            (0, -penalty_points)
             if labels == ("A", "B")
-            else (maximum, 0, -maximum)
+            else (0, -max(1, penalty_points // 2), -penalty_points)
         )
         lines.extend((
             f"Criterion {number}: {criterion.title}",
-            criterion.requirement,
+            _ELICITED_CLAIM_SCOPE + criterion.requirement,
             f"Elicited criterion ID: {criterion.criterion_id}",
             "Levels: " + " ".join(
                 f"{label}={point}"
@@ -578,7 +546,13 @@ def render_augmented_rubric(
             ),
         ))
         lines.extend(
-            f"[{label}]: {description}"
+            f"[{label}]: "
+            + (
+                _ELICITED_PASS_SCOPE
+                if label == "A"
+                else _ELICITED_FAILURE_SCOPE
+            )
+            + description
             for label, description in criterion.level_descriptions
         )
         lines.append("")
@@ -586,16 +560,40 @@ def render_augmented_rubric(
     return rubric, tuple(criterion_map)
 
 
-def added_criteria_point_budget(original_rubric: CompleteRubric) -> int:
-    """Return the fixed positive-point budget for elicited criteria."""
+def elicited_criterion_penalty_points(original_rubric: CompleteRubric) -> int:
+    """Return the fixed maximum penalty for each elicited criterion."""
 
     if not isinstance(original_rubric, CompleteRubric):
         raise ValueError("original_rubric must be a CompleteRubric")
     parsed = parse_autorubric_rubric(original_rubric.content)
     original_maximum = parsed.normalization_maximum or 100
+    minimum = 1 if _scoring_protocol(original_rubric.content) is not None else 2
     return max(
-        1,
-        round(original_maximum * ADDED_CRITERIA_POINT_FRACTION),
+        minimum,
+        round(original_maximum * ELICITED_CRITERION_PENALTY_FRACTION),
+    )
+
+
+def elicited_criterion_capacity(original_rubric: CompleteRubric) -> int:
+    """Return the criterion cap that keeps total penalties near 20 percent."""
+
+    if not isinstance(original_rubric, CompleteRubric):
+        raise ValueError("original_rubric must be a CompleteRubric")
+    parsed = parse_autorubric_rubric(original_rubric.content)
+    original_maximum = parsed.normalization_maximum or 100
+    penalty_points = elicited_criterion_penalty_points(original_rubric)
+    minimum = 1 if _scoring_protocol(original_rubric.content) is not None else 2
+    total_penalty = max(
+        minimum,
+        round(
+            original_maximum
+            * ELICITED_CRITERION_PENALTY_FRACTION
+            * MAX_ELICITED_CRITERIA
+        ),
+    )
+    return min(
+        MAX_ELICITED_CRITERIA,
+        max(1, round(total_penalty / penalty_points)),
     )
 
 

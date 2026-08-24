@@ -26,6 +26,7 @@ from rubric_gen.submission_revision.controller import (
 )
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
+    compose_bank_score,
     project_bank_feedback,
     project_bank_simulated_user_feedback,
 )
@@ -963,6 +964,90 @@ def validate_completed_revision(
                     f"{submission_id}/{rubric_hash}"
                 )
             member_artifacts[rubric_hash] = (validation_path, evaluation_path)
+
+        fixed_score = state["fixed_original_scores"][index]
+        same_base_and_master = (
+            initial_generation.bank.items[0].rubric.content_sha256
+            == selection.master_sha256
+        )
+        if index == 0 and seed_contract == master_contract:
+            fixed_validation_path, fixed_evaluation_path, _ = seed.judgment
+        elif same_base_and_master and (
+            index == 0 or bank_policy is RubricBankPolicy.FIXED
+        ):
+            try:
+                fixed_validation_path, fixed_evaluation_path = member_artifacts[
+                    selection.master_sha256
+                ]
+            except KeyError as exc:
+                raise RuntimeError(
+                    f"active bank lacks the master judgment: {submission_id}"
+                ) from exc
+        elif reuse_store is not None:
+            review_text, answer_text = master_judge.review_inputs(submission)
+            expected_request = exact_judgment_request(
+                task_id=str(assignment["task_id"]),
+                replicate=int(assignment["replicate"]),
+                rubric_sha256=selection.master_sha256,
+                review_text=review_text,
+                answer_text=answer_text,
+                scoring_identity=master_judge.scoring_identity(),
+            )
+            reused = reuse_store.validate_alias(
+                experiment_dir
+                / "judgment-aliases"
+                / submission_id
+                / (reuse_store.request_sha256(expected_request) + ".json"),
+                assignment_id=str(assignment["assignment_id"]),
+                replicate=int(assignment["replicate"]),
+                submission_id=submission_id,
+                rubric_sha256=selection.master_sha256,
+                expected_request=expected_request,
+            )
+            fixed_validation_path = reused.artifacts.score_validation_path
+            fixed_evaluation_path = reused.artifacts.evaluation_path
+        else:
+            fixed_attempt = fixed_original_attempt_id(
+                str(assignment["assignment_id"]),
+                submission_id,
+                selection.master_sha256,
+            )
+            fixed_root = (
+                experiment_dir
+                / "evaluations"
+                / submission_id
+                / selection.master_sha256
+                / fixed_attempt
+                / "run"
+                / "judges"
+                / str(protocol["review"])
+                / str(assignment["task_id"])
+            )
+            fixed_validation_path = fixed_root / "score_validation.json"
+            fixed_evaluation_path = fixed_root / "evaluation.json"
+        if (
+            fixed_validation_path.is_symlink()
+            or fixed_evaluation_path.is_symlink()
+            or not fixed_validation_path.is_file()
+            or not fixed_evaluation_path.is_file()
+        ):
+            raise RuntimeError(
+                f"fixed-original scoring artifacts are incomplete for "
+                f"{submission_id}"
+            )
+        fixed_validation = read_json_object(
+            fixed_validation_path,
+            "fixed-original score validation",
+        )
+        if (
+            fixed_validation.get("evaluation_sha256")
+            != sha256_file(fixed_evaluation_path)
+            or fixed_validation.get("score") != fixed_score
+        ):
+            raise RuntimeError(
+                f"fixed-original score disagrees with scoring artifacts: "
+                f"{submission_id}"
+            )
         if policy is FeedbackPolicy.USER_SIMULATOR:
             assert simulator is not None
             generation_path = generation_root / f"{submission_id}.json"
@@ -1033,6 +1118,7 @@ def validate_completed_revision(
                     for rubric_hash, paths in member_artifacts.items()
                 },
                 comment,
+                fixed_original_score=float(fixed_score),
                 prompt_profile=prompt_profile,
                 benchmark=experiment.benchmark,
             )
@@ -1041,10 +1127,25 @@ def validate_completed_revision(
                 bank,
                 member_artifacts,
                 policy,
+                fixed_original_artifacts=(
+                    fixed_validation_path,
+                    fixed_evaluation_path,
+                ),
+                fixed_original_rubric_text=selection.master_path.read_text(
+                    encoding="utf-8"
+                ),
+                fixed_original_rubric_sha256=selection.master_sha256,
                 prompt_profile=prompt_profile,
                 benchmark=experiment.benchmark,
             )
-        score_by_member: dict[str, float] = {}
+        composition = compose_bank_score(
+            bank,
+            {
+                rubric_hash: paths[0]
+                for rubric_hash, paths in member_artifacts.items()
+            },
+            float(fixed_score),
+        )
         bank_members: dict[str, dict[str, object]] = {}
         for item in bank.items:
             rubric_hash = item.rubric.content_sha256
@@ -1060,15 +1161,17 @@ def validate_completed_revision(
                 or not 0 <= float(member_score) <= 100
             ):
                 raise RuntimeError("bank member score is invalid")
-            score_by_member[rubric_hash] = float(member_score)
+            member_composition = composition.members[rubric_hash]
             bank_members[rubric_hash] = {
                 "weight": item.weight,
-                "score": member_score,
+                "judge_score": member_score,
+                "elicited_penalty": member_composition.elicited_penalty,
+                "score": member_composition.score,
                 "score_validation_sha256": sha256_file(validation_path),
                 "evaluation_sha256": sha256_file(evaluation_path),
             }
         expected_bank_evaluation = {
-            "kind": "weighted-rubric-bank-evaluation",
+            "kind": "canonical-original-plus-elicited-penalty-evaluation",
             "submission_id": submission_id,
             "generation_round": bank.generation_round,
             "bank_sha256": bank.content_sha256,
@@ -1085,7 +1188,11 @@ def validate_completed_revision(
                 ).read_text(encoding="utf-8"),
             ),
             "members": bank_members,
-            "weighted_score": bank.aggregate(score_by_member),
+            "canonical_original_score": composition.canonical_original_score,
+            "weighted_elicited_penalty": (
+                composition.weighted_elicited_penalty
+            ),
+            "score": composition.score,
         }
         if read_json_object(
             experiment_dir / "bank-evaluations" / f"{submission_id}.json",
@@ -1101,101 +1208,6 @@ def validate_completed_revision(
             raise RuntimeError(
                 f"feedback disagrees with scoring artifacts: {submission_id}"
             )
-        fixed_score = state["fixed_original_scores"][index]
-        same_base_and_master = (
-            initial_generation.bank.items[0].rubric.content_sha256
-            == selection.master_sha256
-        )
-        if index == 0 and seed_contract == master_contract:
-            master_validation_path, _, _ = seed.judgment
-            if read_json_object(
-                master_validation_path,
-                "seeded master-rubric score validation",
-            ).get("score") != fixed_score:
-                raise RuntimeError(
-                    f"fixed-original score disagrees with scoring artifacts: "
-                    f"{submission_id}"
-                )
-        elif same_base_and_master and (
-            index == 0 or bank_policy is RubricBankPolicy.FIXED
-        ):
-            if fixed_score != projected.score:
-                raise RuntimeError(
-                    f"fixed-original score disagrees with scoring artifacts: "
-                    f"{submission_id}"
-                )
-        elif reuse_store is not None:
-            review_text, answer_text = master_judge.review_inputs(submission)
-            expected_request = exact_judgment_request(
-                task_id=str(assignment["task_id"]),
-                replicate=int(assignment["replicate"]),
-                rubric_sha256=selection.master_sha256,
-                review_text=review_text,
-                answer_text=answer_text,
-                scoring_identity=master_judge.scoring_identity(),
-            )
-            reused = reuse_store.validate_alias(
-                experiment_dir
-                / "judgment-aliases"
-                / submission_id
-                / (reuse_store.request_sha256(expected_request) + ".json"),
-                assignment_id=str(assignment["assignment_id"]),
-                replicate=int(assignment["replicate"]),
-                submission_id=submission_id,
-                rubric_sha256=selection.master_sha256,
-                expected_request=expected_request,
-            )
-            if read_json_object(
-                reused.artifacts.score_validation_path,
-                "shared fixed-original score validation",
-            ).get("score") != fixed_score:
-                raise RuntimeError(
-                    "fixed-original score disagrees with shared scoring artifacts: "
-                    f"{submission_id}"
-                )
-        else:
-            original_rubric = selection.master_path
-            fixed_attempt = fixed_original_attempt_id(
-                str(assignment["assignment_id"]),
-                submission_id,
-                sha256_file(original_rubric),
-            )
-            fixed_root = (
-                experiment_dir
-                / "evaluations"
-                / submission_id
-                / sha256_file(original_rubric)
-                / fixed_attempt
-                / "run"
-                / "judges"
-                / str(protocol["review"])
-                / str(assignment["task_id"])
-            )
-            fixed_validation_path = fixed_root / "score_validation.json"
-            fixed_evaluation_path = fixed_root / "evaluation.json"
-            if (
-                fixed_validation_path.is_symlink()
-                or fixed_evaluation_path.is_symlink()
-                or not fixed_validation_path.is_file()
-                or not fixed_evaluation_path.is_file()
-            ):
-                raise RuntimeError(
-                    f"fixed-original scoring artifacts are incomplete for "
-                    f"{submission_id}"
-                )
-            fixed_validation = read_json_object(
-                fixed_validation_path,
-                "fixed-original score validation",
-            )
-            if (
-                fixed_validation.get("evaluation_sha256")
-                != sha256_file(fixed_evaluation_path)
-                or fixed_validation.get("score") != fixed_score
-            ):
-                raise RuntimeError(
-                    f"fixed-original score disagrees with scoring artifacts: "
-                    f"{submission_id}"
-                )
     expected_banks = _expected_bank_names(condition_spec, expected_count)
     bank_root = experiment_dir / "rubric-banks"
     if (

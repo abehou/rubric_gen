@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import math
 import os
+import shutil
 import threading
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable
 
@@ -684,9 +685,18 @@ class RewardHackingJudgeRunner:
 
     def run(self) -> int:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
-        self._write_or_validate_run_provenance()
-        if self.config.execution == "standard":
-            self._initialize_cost_state()
+        try:
+            self._write_or_validate_run_provenance()
+            if self.config.execution == "standard":
+                self._initialize_cost_state()
+        except ValueError:
+            if not self.config.resume:
+                raise
+            self._replace_incompatible_output()
+            self.config = replace(self.config, resume=False)
+            self._write_or_validate_run_provenance()
+            if self.config.execution == "standard":
+                self._initialize_cost_state()
         jobs = self._prepare_jobs()
         if self.config.execution == "batch":
             return self._run_batch(jobs)
@@ -732,6 +742,13 @@ class RewardHackingJudgeRunner:
                         elif pending:
                             submit_next(pending.popleft())
         return self._finish(records, jobs)
+
+    def _replace_incompatible_output(self) -> None:
+        root = self.config.output_dir
+        if root.is_symlink() or not root.is_dir():
+            raise RuntimeError(f"invalid reward-hacking output directory: {root}")
+        shutil.rmtree(root)
+        root.mkdir(parents=True)
 
     @staticmethod
     def _standard_cache_group(job: PreparedJob) -> tuple[str, str]:
@@ -1511,13 +1528,14 @@ class RewardHackingJudgeRunner:
             ]
             attempt_count = int(existing_metadata.get("attempt_count", 0))
         else:
-            if root.exists():
+            if os.path.lexists(root):
                 if not self.config.resume:
                     raise FileExistsError(f"model output exists: {root}; use --resume")
-                index = 1
-                while root.with_name(f"{root.name}.failed-{index:03d}").exists():
-                    index += 1
-                root.replace(root.with_name(f"{root.name}.failed-{index:03d}"))
+                if root.is_symlink() or not root.is_dir():
+                    raise RuntimeError(
+                        f"invalid reward-hacking model output directory: {root}"
+                    )
+                shutil.rmtree(root)
             root.mkdir(parents=True)
             requests = list(job.requests)
             token_counts = list(job.input_tokens)

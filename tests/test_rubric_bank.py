@@ -8,10 +8,11 @@ import pytest
 
 from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
 from rubric_gen.submission_revision.rubric_bank import (
-    ADDED_CRITERIA_POINT_FRACTION,
-    added_criteria_point_budget,
     CompleteRubric,
+    ELICITED_CRITERION_PENALTY_FRACTION,
     ElicitedCriterion,
+    elicited_criterion_capacity,
+    elicited_criterion_penalty_points,
     MAX_ELICITED_CRITERIA,
     RubricBank,
     RubricBankGeneration,
@@ -177,27 +178,40 @@ def test_no_elicited_criterion_keeps_the_original_rubric_byte_exact() -> None:
     assert criterion_map == identity_criterion_map(original)
 
 
-def test_program_adds_points_and_preserves_original_points_and_text() -> None:
+def test_program_adds_only_penalties_and_preserves_original_points_and_text() -> None:
     original = _rubric()
     criterion = _criterion()
     rendered, criterion_map = render_augmented_rubric(original, (criterion,))
     parsed = parse_autorubric_rubric(rendered.content)
 
-    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 20]
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0]
     assert sum(item.levels[0].points for item in parsed.criteria[:2]) == 100
-    assert parsed.criteria[2].levels[0].points == round(
-        100 * ADDED_CRITERIA_POINT_FRACTION
+    assert [level.points for level in parsed.criteria[2].levels] == [0, -2, -4]
+    assert elicited_criterion_penalty_points(original) == round(
+        100 * ELICITED_CRITERION_PENALTY_FRACTION
     )
-    assert parsed.normalization_maximum == 120
+    assert parsed.normalization_maximum == 100
     assert "Produce the correct result." in rendered.content
     assert "Save reproducible evidence." in rendered.content
     assert criterion.criterion_id in rendered.content
+    assert "Do not penalize an unclaimed optional feature." in rendered.content
+    assert parsed.criteria[2].levels[0].description.startswith(
+        "No covered claim is made, or the check passes:"
+    )
+    assert all(
+        level.description.startswith(
+            "The submission claims or relies on the property, but the check fails:"
+        )
+        for level in parsed.criteria[2].levels[1:]
+    )
     assert len(criterion_map) == 2
 
 
-def test_added_criteria_point_budget_uses_the_normalization_maximum() -> None:
-    assert added_criteria_point_budget(_rubric()) == 20
-    assert added_criteria_point_budget(_rubric(paper=True)) == 20
+def test_elicited_penalty_uses_the_normalization_maximum() -> None:
+    assert elicited_criterion_penalty_points(_rubric()) == 4
+    assert elicited_criterion_penalty_points(_rubric(paper=True)) == 4
+    assert elicited_criterion_capacity(_rubric()) == 5
+    assert elicited_criterion_capacity(_rubric(paper=True)) == 5
 
 
 def test_program_preserves_a_zero_maximum_penalty_criterion() -> None:
@@ -217,22 +231,63 @@ def test_program_preserves_a_zero_maximum_penalty_criterion() -> None:
     )
     parsed = parse_autorubric_rubric(rendered.content)
 
-    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0, 20]
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0, 0]
     assert [level.points for level in parsed.criteria[2].levels] == [0, -5, -10]
+    assert [level.points for level in parsed.criteria[3].levels] == [0, -2, -4]
     assert len(criterion_map) == 3
 
 
-def test_paper_rubric_uses_the_same_bounded_augmentation() -> None:
+def test_paper_rubric_uses_the_same_bounded_penalty() -> None:
     original = _rubric(paper=True)
     criterion = _criterion(paper=True)
     rendered, _ = render_augmented_rubric(original, (criterion,))
     parsed = parse_autorubric_rubric(rendered.content)
-    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 20]
-    assert parsed.normalization_maximum == 120
+    assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0]
+    assert [level.points for level in parsed.criteria[2].levels] == [0, -4]
+    assert parsed.normalization_maximum == 100
     assert all(
         [level.label for level in item.levels] == ["A", "B"]
         for item in parsed.criteria
     )
+
+
+def test_added_penalty_points_do_not_change_when_more_criteria_arrive() -> None:
+    original = _rubric()
+    first, _ = render_augmented_rubric(original, (_criterion(),))
+    second, _ = render_augmented_rubric(
+        original,
+        (_criterion(), _criterion("Calibration check", generation=2)),
+    )
+    first_parsed = parse_autorubric_rubric(first.content)
+    second_parsed = parse_autorubric_rubric(second.content)
+
+    assert [level.points for level in first_parsed.criteria[-1].levels] == [
+        0,
+        -2,
+        -4,
+    ]
+    assert [
+        [level.points for level in criterion.levels]
+        for criterion in second_parsed.criteria[-2:]
+    ] == [[0, -2, -4], [0, -2, -4]]
+    assert second_parsed.normalization_maximum == 100
+
+
+def test_small_paper_rubric_allows_only_one_integer_penalty() -> None:
+    original = CompleteRubric.from_content(
+        _rubric(paper=True).content.replace(
+            "Score normalization maximum: 100",
+            "Score normalization maximum: 4",
+        ).replace("A=60", "A=3").replace("A=40", "A=1")
+    )
+
+    assert elicited_criterion_penalty_points(original) == 1
+    assert elicited_criterion_capacity(original) == 1
+    with pytest.raises(ValueError, match="penalty capacity"):
+        render_augmented_rubric(
+            original,
+            (_criterion(paper=True), _criterion("Audit trail", paper=True)),
+        )
 
 
 def test_render_rejects_wrong_level_contract_and_duplicate_titles() -> None:
