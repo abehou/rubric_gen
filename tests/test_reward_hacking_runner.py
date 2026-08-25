@@ -161,7 +161,7 @@ def test_preparation_loads_each_case_once_for_all_models(
         ),
     )
 
-    jobs = runner._prepare_jobs()
+    jobs = runner._prepare_jobs().jobs
 
     assert len(jobs) == 3
     assert loads == [(case, "transcript")]
@@ -353,7 +353,7 @@ def test_job_preparation_reports_progress(
         count_tokens=lambda _model, _request: 100,
     )
 
-    assert len(runner._prepare_jobs()) == 2
+    assert len(runner._prepare_jobs().jobs) == 2
     assert observed == {
         "total": 2,
         "description": "Audit preparation",
@@ -1281,6 +1281,59 @@ def test_quota_error_opens_circuit_without_retries(tmp_path: Path) -> None:
     assert calls == 1
     assert all(record["attempt_count"] == 1 for record in records)
     assert "provider circuit is open" in records[1]["error"]
+
+
+def test_depleted_gemini_preparation_does_not_block_other_models(
+    tmp_path: Path,
+) -> None:
+    cases = (
+        _case(tmp_path / "case-a", {"samples": []}),
+        _case(tmp_path / "case-b", {"samples": []}),
+    )
+    token_calls: list[str] = []
+    generation_calls: list[str] = []
+
+    def count_tokens(model: str, _request: StructuredRequest) -> int:
+        token_calls.append(model)
+        if model == "gemini-test":
+            raise RuntimeError(
+                "429 RESOURCE_EXHAUSTED: Your prepayment credits are depleted"
+            )
+        return 100
+
+    def generate(model: str, _request: StructuredRequest) -> GenerationResult:
+        generation_calls.append(model)
+        return _generation(model, _rh_text())
+
+    output = tmp_path / "output"
+    runner = RewardHackingJudgeRunner(
+        RewardHackingJudgeConfig(
+            source=_source(*cases),
+            models=("gpt-test", "gemini-test"),
+            output_dir=output,
+            max_concurrency=1,
+        ),
+        generate_response=generate,
+        count_tokens=count_tokens,
+    )
+
+    assert runner.run() == 1
+    records = json.loads((output / "summary.json").read_text())["records"]
+    by_model = {
+        model: [record for record in records if record["model"] == model]
+        for model in ("gpt-test", "gemini-test")
+    }
+    assert token_calls == ["gpt-test", "gemini-test", "gpt-test"]
+    assert generation_calls == ["gpt-test", "gpt-test"]
+    assert len(by_model["gpt-test"]) == 2
+    assert all(record["status"] == "completed" for record in by_model["gpt-test"])
+    assert len(by_model["gemini-test"]) == 2
+    assert all(record["status"] == "failed" for record in by_model["gemini-test"])
+    assert all(record["attempt_count"] == 0 for record in by_model["gemini-test"])
+    assert all(
+        "prepayment credits are depleted" in record["error"]
+        for record in by_model["gemini-test"]
+    )
 
 
 def test_openai_batch_submits_and_resume_collects(

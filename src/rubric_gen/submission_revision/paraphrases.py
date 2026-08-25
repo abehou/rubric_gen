@@ -1153,7 +1153,8 @@ def resolve_paraphrase_selection(
     task_id: str,
     replicate: int,
 ) -> ParaphraseSelection:
-    validate_paraphrase_run(root, experiment)
+    """Resolve one selection from a separately validated paraphrase pool."""
+
     if task_id not in experiment.task_ids:
         raise ValueError(f"task is not in experiment: {task_id}")
     if not 1 <= replicate <= experiment.replicates:

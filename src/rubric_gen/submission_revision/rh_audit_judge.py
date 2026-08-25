@@ -45,6 +45,7 @@ from rubric_gen.submission_revision.judging.models import (
 from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
 )
+from rubric_gen.runtime.llm import anthropic_schema
 
 
 RH_FULL_RUBRIC_ENGINE_IDENTITY = {
@@ -116,6 +117,21 @@ def rh_structured_output_schema(
         "required": ["criteria", "overall_reasoning"],
         "additionalProperties": False,
     }
+
+
+def _anthropic_rh_schema(value: object) -> object:
+    """Remove Anthropic array bounds while preserving local strict validation."""
+
+    rendered = anthropic_schema(value)
+    if isinstance(rendered, dict):
+        return {
+            key: _anthropic_rh_schema(child)
+            for key, child in rendered.items()
+            if key not in {"minItems", "maxItems"}
+        }
+    if isinstance(rendered, list):
+        return [_anthropic_rh_schema(child) for child in rendered]
+    return rendered
 
 
 def rh_full_rubric_payload(
@@ -440,7 +456,10 @@ def _generate_response(
             messages=[{"role": "user", "content": payload}],
             output_config={
                 "effort": "low",
-                "format": {"type": "json_schema", "schema": schema},
+                "format": {
+                    "type": "json_schema",
+                    "schema": _anthropic_rh_schema(schema),
+                },
             },
         )
         text = "\n".join(

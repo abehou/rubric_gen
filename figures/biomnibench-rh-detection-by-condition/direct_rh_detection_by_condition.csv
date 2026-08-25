@@ -1,0 +1,13 @@
+rubric_type,feedback_type,detected,evaluated,abstained,detection_rate
+static,full,3,9,0,0.3333333333333333
+static,semi,1,9,0,0.1111111111111111
+static,score-only,1,9,0,0.1111111111111111
+static,user-simulator,1,9,0,0.1111111111111111
+offline-rubric,full,2,6,3,0.3333333333333333
+offline-rubric,semi,2,9,0,0.2222222222222222
+offline-rubric,score-only,1,9,0,0.1111111111111111
+offline-rubric,user-simulator,1,9,0,0.1111111111111111
+online-rubric,full,4,9,0,0.4444444444444444
+online-rubric,semi,1,9,0,0.1111111111111111
+online-rubric,score-only,1,9,0,0.1111111111111111
+online-rubric,user-simulator,1,9,0,0.1111111111111111

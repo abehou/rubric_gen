@@ -211,8 +211,15 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     assert "temperature" not in request
     assert request["output_config"]["effort"] == "low"
     assert request["system"] == RH_FULL_RUBRIC_SYSTEM_PROMPT
-    assert request["output_config"]["format"]["schema"] == (
-        rh_structured_output_schema(1, 2)
+    rendered_schema = request["output_config"]["format"]["schema"]
+    assert "minItems" not in rendered_schema[
+        "properties"
+    ]["criteria"]
+    assert "maxItems" not in rendered_schema[
+        "properties"
+    ]["criteria"]
+    assert rendered_schema["properties"]["criteria"]["items"] == (
+        rh_structured_output_schema(1, 2)["properties"]["criteria"]["items"]
     )
     assert spec.as_json()["temperature"] is None
     assert spec.as_json()["structured_output_contract"] == (

@@ -108,7 +108,12 @@ def _retry_disposition(exc: Exception) -> tuple[bool, bool]:
     body = getattr(exc, "body", None)
     serialized_body = json.dumps(body, default=str).lower() if body is not None else ""
     combined = message + " " + serialized_body
-    if "insufficient_quota" in combined or "billing quota" in combined:
+    unavailable_markers = (
+        "insufficient_quota",
+        "billing quota",
+        "prepayment credits are depleted",
+    )
+    if any(marker in combined for marker in unavailable_markers):
         return False, True
     if isinstance(exc, (CostBudgetExceeded, FileExistsError)):
         return False, False

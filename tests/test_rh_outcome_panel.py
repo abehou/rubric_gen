@@ -46,7 +46,7 @@ def test_mechanistic_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = ResilientMechanisticEvaluationRunner(_config(tmp_path))
+    runner = ResilientMechanisticEvaluationRunner(_config(tmp_path), ())
     jobs = tuple(_job(model) for model in (*MODELS, "weak"))
     runner._prepared = SimpleNamespace(
         targets=(SimpleNamespace(assignment_id="a-1"),),
@@ -112,7 +112,7 @@ def test_mechanistic_panel_replaces_obsolete_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = replace(_config(tmp_path), resume=True)
-    runner = ResilientMechanisticEvaluationRunner(config)
+    runner = ResilientMechanisticEvaluationRunner(config, ())
     jobs = tuple(_job(model) for model in (*MODELS, "weak"))
     runner._prepared = SimpleNamespace(
         targets=(SimpleNamespace(assignment_id="a-1"),),
@@ -165,7 +165,7 @@ def test_mechanistic_panel_fails_when_every_strong_judge_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = ResilientMechanisticEvaluationRunner(_config(tmp_path))
+    runner = ResilientMechanisticEvaluationRunner(_config(tmp_path), ())
     jobs = tuple(_job(model) for model in (*MODELS, "weak"))
     runner._prepared = SimpleNamespace(
         targets=(),
@@ -217,7 +217,7 @@ def test_holistic_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = ResilientHolisticPairwiseRunner(_config(tmp_path))
+    runner = ResilientHolisticPairwiseRunner(_config(tmp_path), ())
     absolute = tuple(_job(model, "absolute") for model in MODELS)
     pairwise = tuple(_job(model, "pairwise") for model in MODELS)
     runner._prepared = SimpleNamespace(

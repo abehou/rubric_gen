@@ -476,6 +476,7 @@ def validate_completed_revision(
     )
     agent = experiment.agent_config(vllm_endpoints=endpoints)
     task_dir = experiment.task_dir(str(assignment["task_id"])).resolve()
+    validate_paraphrase_run(paraphrase_run_dir, experiment)
     selection = resolve_paraphrase_selection(
         paraphrase_run_dir,
         experiment,

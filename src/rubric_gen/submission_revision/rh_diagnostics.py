@@ -66,7 +66,6 @@ from rubric_gen.submission_revision.rubric_bank import (
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 from rubric_gen.submission_revision.study import (
     resolve_study_experiment,
-    validate_completed_revision,
 )
 
 
@@ -1051,150 +1050,244 @@ def load_evaluation_targets(
         for record in study["records"]
         if isinstance(record, dict)
     }
-    targets: list[EvaluationTarget] = []
-    for assignment in config.experiment.assignments:
-        assignment_id = str(assignment["assignment_id"])
-        record = records.get(assignment_id)
-        if record is None or record.get("status") != "completed":
-            raise RuntimeError(f"study assignment is incomplete: {assignment_id}")
-        experiment_dir = resolve_study_experiment(
-            study_root,
-            record,
-            assignment,
-        )
-        validate_completed_revision(
-            experiment_dir,
-            assignment,
-            config.experiment,
-            Path(str(study["seed_run_dir"])),
+    assignments = config.experiment.assignments
+    selection_keys = {
+        (str(assignment["task_id"]), int(assignment["replicate"]))
+        for assignment in assignments
+    }
+    selections = {
+        key: resolve_paraphrase_selection(
             config.paraphrase_dir,
-            vllm_endpoints=config.vllm_endpoints,
-            judgment_reuse_root=study_root / "shared-judgments",
+            config.experiment,
+            *key,
         )
-        state = read_json_object(experiment_dir / "state.json", "revision state")
-        submission_ids = state.get("submission_ids")
-        scores = state.get("scores")
-        fixed_original_scores = state.get("fixed_original_scores")
-        if (
-            not isinstance(submission_ids, list)
-            or len(submission_ids) < 2
-            or any(type(value) is not str for value in submission_ids)
-            or not isinstance(scores, list)
-            or len(scores) != len(submission_ids)
-            or any(
-                isinstance(score, bool)
-                or not isinstance(score, Real)
-                or not math.isfinite(float(score))
-                or not 0 <= float(score) <= 100
-                for score in scores
-            )
-            or not isinstance(fixed_original_scores, list)
-            or len(fixed_original_scores) != len(submission_ids)
-            or any(
-                isinstance(score, bool)
-                or not isinstance(score, Real)
-                or not math.isfinite(float(score))
-                or not 0 <= float(score) <= 100
-                for score in fixed_original_scores
-            )
-        ):
-            raise RuntimeError(f"revision boundaries are invalid: {assignment_id}")
-        task_id = str(assignment["task_id"])
-        replicate = int(assignment["replicate"])
-        condition = config.experiment.condition(str(assignment["condition_id"]))
-        bank_policy = RubricBankPolicy(str(condition["rubric_policy"]))
-        initial_bank_round = _active_bank_round(bank_policy, 0)
-        final_bank_round = _active_bank_round(
-            bank_policy,
-            len(submission_ids) - 1,
-        )
-        selected_bank_generation = load_rubric_bank(
+        for key in sorted(selection_keys)
+    }
+    targets: list[EvaluationTarget | None] = [None] * len(assignments)
+    with TerminalProgress(
+        total=len(assignments),
+        description="RH target loading",
+        unit="assignment",
+    ) as progress:
+        futures = {}
+        with ThreadPoolExecutor(
+            max_workers=min(config.max_concurrency, len(assignments))
+        ) as pool:
+            for index, assignment in enumerate(assignments):
+                assignment_id = str(assignment["assignment_id"])
+                record = records.get(assignment_id)
+                if record is None or record.get("status") != "completed":
+                    raise RuntimeError(
+                        f"study assignment is incomplete: {assignment_id}"
+                    )
+                selection_key = (
+                    str(assignment["task_id"]),
+                    int(assignment["replicate"]),
+                )
+                future = pool.submit(
+                    _load_evaluation_target,
+                    config,
+                    study_root,
+                    assignment,
+                    record,
+                    selections[selection_key],
+                )
+                futures[future] = (index, assignment_id)
+            for future in as_completed(futures):
+                index, assignment_id = futures[future]
+                targets[index] = future.result()
+                progress.set_status(assignment_id)
+                progress.update()
+    if any(target is None for target in targets):
+        raise RuntimeError("RH target loading did not return every assignment")
+    return tuple(target for target in targets if target is not None)
+
+
+def _load_evaluation_target(
+    config: EvaluationConfig,
+    study_root: Path,
+    assignment: dict[str, object],
+    record: dict[str, object],
+    selection: ParaphraseSelection,
+) -> EvaluationTarget:
+    assignment_id = str(assignment["assignment_id"])
+    experiment_dir = resolve_study_experiment(
+        study_root,
+        record,
+        assignment,
+    )
+    state = _load_terminal_revision_state(
+        experiment_dir,
+        assignment,
+        config.experiment,
+    )
+    submission_ids = state["submission_ids"]
+    scores = state["scores"]
+    fixed_original_scores = state["fixed_original_scores"]
+    task_id = str(assignment["task_id"])
+    replicate = int(assignment["replicate"])
+    condition = config.experiment.condition(str(assignment["condition_id"]))
+    bank_policy = RubricBankPolicy(str(condition["rubric_policy"]))
+    initial_bank_round = _active_bank_round(bank_policy, 0)
+    final_bank_round = _active_bank_round(
+        bank_policy,
+        len(submission_ids) - 1,
+    )
+    bank_generations = {
+        generation_round: load_rubric_bank(
             experiment_dir,
+            generation_round,
+            expected_policy=bank_policy,
+        )
+        for generation_round in {
             0,
-            expected_policy=bank_policy,
-        )
-        initial_bank_generation = load_rubric_bank(
-            experiment_dir,
             initial_bank_round,
-            expected_policy=bank_policy,
-        )
-        final_bank_generation = load_rubric_bank(
-            experiment_dir,
             final_bank_round,
-            expected_policy=bank_policy,
-        )
-        initial_bank_manifest_path = (
-            rubric_bank_directory(experiment_dir, initial_bank_round)
-            / "manifest.json"
-        ).resolve()
-        final_bank_manifest_path = (
-            rubric_bank_directory(experiment_dir, final_bank_round)
-            / "manifest.json"
-        ).resolve()
-        selection = resolve_paraphrase_selection(
-            config.paraphrase_dir,
-            config.experiment,
-            task_id,
-            replicate,
-        )
-        initial_member_hashes = {
-            item.rubric.content_sha256
-            for item in selected_bank_generation.bank.items
         }
-        if selection.optimizer_sha256 not in initial_member_hashes:
-            raise RuntimeError(
-                "initial bank does not contain the selected rubric: "
-                f"{assignment_id}"
-            )
-        weak_initial_score = _load_weak_bank_score(
-            experiment_dir,
-            str(submission_ids[0]),
-            initial_bank_generation,
-            scores[0],
-            config.experiment.benchmark,
+    }
+    selected_bank_generation = bank_generations[0]
+    initial_bank_generation = bank_generations[initial_bank_round]
+    final_bank_generation = bank_generations[final_bank_round]
+    initial_bank_manifest_path = (
+        rubric_bank_directory(experiment_dir, initial_bank_round)
+        / "manifest.json"
+    ).resolve()
+    final_bank_manifest_path = (
+        rubric_bank_directory(experiment_dir, final_bank_round)
+        / "manifest.json"
+    ).resolve()
+    initial_member_hashes = {
+        item.rubric.content_sha256
+        for item in selected_bank_generation.bank.items
+    }
+    if selection.optimizer_sha256 not in initial_member_hashes:
+        raise RuntimeError(
+            "initial bank does not contain the selected rubric: "
+            f"{assignment_id}"
         )
-        weak_final_score = _load_weak_bank_score(
-            experiment_dir,
-            str(submission_ids[-1]),
-            final_bank_generation,
-            scores[-1],
-            config.experiment.benchmark,
+    weak_initial_score = _load_weak_bank_score(
+        experiment_dir,
+        str(submission_ids[0]),
+        initial_bank_generation,
+        scores[0],
+        config.experiment.benchmark,
+    )
+    weak_final_score = _load_weak_bank_score(
+        experiment_dir,
+        str(submission_ids[-1]),
+        final_bank_generation,
+        scores[-1],
+        config.experiment.benchmark,
+    )
+    return EvaluationTarget(
+        assignment_id=assignment_id,
+        task_id=task_id,
+        replicate=replicate,
+        condition_id=str(assignment["condition_id"]),
+        rubric_policy=bank_policy,
+        benchmark=config.experiment.benchmark,
+        experiment_dir=experiment_dir.resolve(),
+        task_dir=config.experiment.task_dir(task_id).resolve(),
+        review=str(config.experiment.protocol["review"]),
+        max_review_chars=config.experiment.protocol["max_review_chars"],  # type: ignore[arg-type]
+        weak_model=str(config.experiment.protocol["judge_model"]),
+        weak_initial_score=weak_initial_score,
+        weak_final_score=weak_final_score,
+        initial_submission=(
+            experiment_dir / "submissions" / str(submission_ids[0])
+        ).resolve(),
+        final_submission=(
+            experiment_dir / "submissions" / str(submission_ids[-1])
+        ).resolve(),
+        submission_ids=tuple(str(value) for value in submission_ids),
+        fixed_original_scores=tuple(
+            float(value) for value in fixed_original_scores
+        ),
+        initial_bank_generation=initial_bank_generation,
+        final_bank_generation=final_bank_generation,
+        initial_bank_manifest_path=initial_bank_manifest_path,
+        final_bank_manifest_path=final_bank_manifest_path,
+        initial_bank_manifest_sha256=sha256_file(initial_bank_manifest_path),
+        final_bank_manifest_sha256=sha256_file(final_bank_manifest_path),
+        selection=selection,
+    )
+
+
+def _load_terminal_revision_state(
+    experiment_dir: Path,
+    assignment: dict[str, object],
+    experiment: Experiment,
+) -> dict[str, object]:
+    """Load terminal revision metadata without scanning submission contents."""
+
+    if experiment_dir.is_symlink() or not experiment_dir.is_dir():
+        raise RuntimeError(
+            f"revision is not a regular directory: {experiment_dir}"
         )
-        targets.append(EvaluationTarget(
-            assignment_id=assignment_id,
-            task_id=task_id,
-            replicate=replicate,
-            condition_id=str(assignment["condition_id"]),
-            rubric_policy=bank_policy,
-            benchmark=config.experiment.benchmark,
-            experiment_dir=experiment_dir.resolve(),
-            task_dir=config.experiment.task_dir(task_id).resolve(),
-            review=str(config.experiment.protocol["review"]),
-            max_review_chars=config.experiment.protocol["max_review_chars"],  # type: ignore[arg-type]
-            weak_model=str(config.experiment.protocol["judge_model"]),
-            weak_initial_score=weak_initial_score,
-            weak_final_score=weak_final_score,
-            initial_submission=(
-                experiment_dir / "submissions" / str(submission_ids[0])
-            ).resolve(),
-            final_submission=(
-                experiment_dir / "submissions" / str(submission_ids[-1])
-            ).resolve(),
-            submission_ids=tuple(str(value) for value in submission_ids),
-            fixed_original_scores=tuple(
-                float(value) for value in fixed_original_scores
-            ),
-            initial_bank_generation=initial_bank_generation,
-            final_bank_generation=final_bank_generation,
-            initial_bank_manifest_path=initial_bank_manifest_path,
-            final_bank_manifest_path=final_bank_manifest_path,
-            initial_bank_manifest_sha256=sha256_file(
-                initial_bank_manifest_path
-            ),
-            final_bank_manifest_sha256=sha256_file(final_bank_manifest_path),
-            selection=selection,
-        ))
-    return tuple(targets)
+    manifest = read_json_object(
+        experiment_dir / "manifest.json",
+        "revision manifest",
+    )
+    state = read_json_object(experiment_dir / "state.json", "revision state")
+    manifest_identity = {
+        "kind": "rubric-gen-submission-revision-experiment",
+        "experiment_id": experiment.experiment_id,
+        "benchmark": str(experiment.benchmark),
+        "assignment_id": assignment.get("assignment_id"),
+        "condition_id": assignment.get("condition_id"),
+        "task_id": assignment.get("task_id"),
+        "replicate": assignment.get("replicate"),
+        "execution_order": assignment.get("execution_order"),
+        "live_workspace_removed": True,
+    }
+    if any(
+        manifest.get(key) != value
+        for key, value in manifest_identity.items()
+    ):
+        raise RuntimeError(f"revision identity is invalid: {experiment_dir}")
+    submission_ids = state.get("submission_ids")
+    scores = state.get("scores")
+    fixed_original_scores = state.get("fixed_original_scores")
+    if (
+        state.get("phase") != "completed"
+        or not isinstance(submission_ids, list)
+        or len(submission_ids) < 2
+        or any(type(value) is not str for value in submission_ids)
+        or submission_ids
+        != [f"s{index:03d}" for index in range(len(submission_ids))]
+        or state.get("next_turn_index") != len(submission_ids)
+        or manifest.get("submission_count") != len(submission_ids)
+        or state.get("session_id") != manifest.get("session_id")
+        or state.get("effective_solver_model")
+        != manifest.get("effective_solver_model")
+        or not isinstance(scores, list)
+        or len(scores) != len(submission_ids)
+        or any(
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
+            for score in scores
+        )
+        or not isinstance(fixed_original_scores, list)
+        or len(fixed_original_scores) != len(submission_ids)
+        or any(
+            isinstance(score, bool)
+            or not isinstance(score, Real)
+            or not math.isfinite(float(score))
+            or not 0 <= float(score) <= 100
+            for score in fixed_original_scores
+        )
+    ):
+        raise RuntimeError(f"revision boundaries are invalid: {experiment_dir}")
+    submissions = experiment_dir / "submissions"
+    if submissions.is_symlink() or not submissions.is_dir():
+        raise RuntimeError(f"revision submissions are invalid: {experiment_dir}")
+    for submission_id in submission_ids:
+        submission = submissions / submission_id
+        if submission.is_symlink() or not submission.is_dir():
+            raise RuntimeError(f"revision submission is missing: {submission}")
+    return state
 
 
 def _active_bank_round(
@@ -1211,8 +1304,13 @@ def _active_bank_round(
 
 
 class MechanisticEvaluationRunner:
-    def __init__(self, config: EvaluationConfig) -> None:
+    def __init__(
+        self,
+        config: EvaluationConfig,
+        targets: tuple[EvaluationTarget, ...],
+    ) -> None:
         self.config = config
+        self.targets = targets
         self.output = _RhOutputStore(config.output_dir)
         self.root = self.output.root
         self._prepared: _PreparedMechanisticEvaluation | None = None
@@ -1222,7 +1320,7 @@ class MechanisticEvaluationRunner:
 
         if self._prepared is not None:
             return
-        targets = load_evaluation_targets(self.config)
+        targets = self.targets
         jobs = self._jobs(targets)
         for job in jobs:
             _validate_mechanistic_job_bindings(job)
@@ -1331,40 +1429,50 @@ class MechanisticEvaluationRunner:
             raise RuntimeError("RH mechanistic jobs must use one benchmark")
         planned_identities: list[dict[str, object]] = []
 
-        def dispatches() -> Iterator[JudgeDispatchInput]:
-            for job in jobs:
-                judge = self._judge_for_job(job)
-                if judge.scoring_identity() != job.grading_identity:
-                    raise RuntimeError(
-                        "RH mechanistic grading identity changed before dispatch"
+        with TerminalProgress(
+            total=len(jobs),
+            description="RH mechanistic planning",
+            unit="judgment",
+        ) as progress:
+            def dispatches() -> Iterator[JudgeDispatchInput]:
+                for job in jobs:
+                    progress.set_status(job.target.assignment_id)
+                    judge = self._judge_for_job(job)
+                    if judge.scoring_identity() != job.grading_identity:
+                        raise RuntimeError(
+                            "RH mechanistic grading identity changed before "
+                            "dispatch"
+                        )
+                    review_text, answer_text = judge.review_inputs(
+                        job.submission
                     )
-                review_text, answer_text = judge.review_inputs(job.submission)
-                if (
-                    sha256_text(review_text) != job.review_input_sha256
-                    or sha256_text(answer_text) != job.answer_input_sha256
-                ):
-                    raise RuntimeError(
-                        "RH mechanistic request input changed before dispatch"
+                    if (
+                        sha256_text(review_text) != job.review_input_sha256
+                        or sha256_text(answer_text) != job.answer_input_sha256
+                    ):
+                        raise RuntimeError(
+                            "RH mechanistic request input changed before dispatch"
+                        )
+                    planned_identity = _mechanistic_plan_entry(
+                        job=job,
+                        judge=judge,
+                        review_text=review_text,
+                        answer_text=answer_text,
+                        shape={},
                     )
-                planned_identity = _mechanistic_plan_entry(
-                    job=job,
-                    judge=judge,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                    shape={},
-                )
-                planned_identity.pop("shape")
-                planned_identities.append(planned_identity)
-                yield JudgeDispatchInput(
-                    rubric_text=judge.rubric.text,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                )
+                    planned_identity.pop("shape")
+                    planned_identities.append(planned_identity)
+                    progress.update()
+                    yield JudgeDispatchInput(
+                        rubric_text=judge.rubric.text,
+                        review_text=review_text,
+                        answer_text=answer_text,
+                    )
 
-        engine_plan = preflight_judge_dispatches(
-            next(iter(benchmarks)),
-            dispatches(),
-        )
+            engine_plan = preflight_judge_dispatches(
+                next(iter(benchmarks)),
+                dispatches(),
+            )
         raw_shapes = engine_plan.pop("jobs")
         if not isinstance(raw_shapes, list) or len(raw_shapes) != len(jobs):
             raise RuntimeError("RH mechanistic predispatch shapes are invalid")
@@ -1730,11 +1838,13 @@ class HolisticPairwiseRunner:
     def __init__(
         self,
         config: EvaluationConfig,
+        targets: tuple[EvaluationTarget, ...],
         *,
         generation_operation: Callable[[str, StructuredRequest], GenerationResult]
         | None = None,
     ) -> None:
         self.config = config
+        self.targets = targets
         self.output = _RhOutputStore(config.output_dir)
         self.root = self.output.root
         self.generation_operation = generation_operation
@@ -1745,7 +1855,7 @@ class HolisticPairwiseRunner:
 
         if self._prepared is not None:
             return
-        targets = load_evaluation_targets(self.config)
+        targets = self.targets
         models = tuple(
             str(model) for model in self.config.experiment.outcome_audit["models"]
         )
@@ -1945,19 +2055,29 @@ class HolisticPairwiseRunner:
         request_bytes = 0
         output_tokens = 0
         largest_request_bytes = 0
-        for key, instrument, model, api_base, request in planned:
-            entry = _holistic_plan_entry(
-                key=key,
-                instrument=instrument,
-                model=model,
-                api_base=api_base,
-                request=request,
-            )
-            content_bytes = int(entry["request_bytes"])
-            request_bytes += content_bytes
-            output_tokens += int(entry["max_output_tokens"])
-            largest_request_bytes = max(largest_request_bytes, content_bytes)
-            jobs.append(entry)
+        with TerminalProgress(
+            total=len(planned),
+            description="RH holistic planning",
+            unit="judgment",
+        ) as progress:
+            for key, instrument, model, api_base, request in planned:
+                progress.set_status(key[:12])
+                entry = _holistic_plan_entry(
+                    key=key,
+                    instrument=instrument,
+                    model=model,
+                    api_base=api_base,
+                    request=request,
+                )
+                content_bytes = int(entry["request_bytes"])
+                request_bytes += content_bytes
+                output_tokens += int(entry["max_output_tokens"])
+                largest_request_bytes = max(
+                    largest_request_bytes,
+                    content_bytes,
+                )
+                jobs.append(entry)
+                progress.update()
         base = {
             "benchmark": next(iter(benchmarks)).value,
             "grading_engine": "structured-generation",

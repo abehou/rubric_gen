@@ -982,6 +982,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.direct_audit as direct_audit_module
+    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
     import rubric_gen.submission_revision.rh_evaluation_report as report_module
     import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
 
@@ -996,6 +997,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     calls: list[str] = []
     direct_configs: list[object] = []
     configs: list[object] = []
+    targets = (object(),)
 
     def direct(config: object) -> int:
         direct_configs.append(config)
@@ -1006,8 +1008,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         def __init__(
             self,
             config: object,
+            loaded_targets: object,
         ) -> None:
             configs.append(config)
+            assert loaded_targets is targets
 
         def preflight(self) -> None:
             calls.append("mechanistic-preflight")
@@ -1020,8 +1024,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         def __init__(
             self,
             config: object,
+            loaded_targets: object,
         ) -> None:
             configs.append(config)
+            assert loaded_targets is targets
 
         def preflight(self) -> None:
             calls.append("holistic-preflight")
@@ -1031,6 +1037,11 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "load_evaluation_targets",
+        lambda _config: calls.append("target-loading") or targets,
+    )
     monkeypatch.setattr(direct_audit_module, "run_direct_audit", direct)
     monkeypatch.setattr(
         outcome_panel_module,
@@ -1057,6 +1068,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
 
     assert status == 1
     assert calls == [
+        "target-loading",
         "mechanistic-preflight",
         "holistic-preflight",
         "direct",
@@ -1077,6 +1089,7 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.direct_audit as direct_audit_module
+    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
     import rubric_gen.submission_revision.rh_evaluation_report as report_module
     import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
 
@@ -1094,6 +1107,7 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
         def __init__(
             self,
             _config: object,
+            _targets: object,
         ) -> None:
             pass
 
@@ -1108,6 +1122,7 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
         def __init__(
             self,
             _config: object,
+            _targets: object,
         ) -> None:
             pass
 
@@ -1119,6 +1134,11 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "load_evaluation_targets",
+        lambda _config: (object(),),
+    )
     monkeypatch.setattr(
         direct_audit_module,
         "run_direct_audit",
@@ -1161,6 +1181,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.direct_audit as direct_audit_module
+    import rubric_gen.submission_revision.rh_diagnostics as diagnostics_module
     import rubric_gen.submission_revision.rh_evaluation_report as report_module
     import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
 
@@ -1178,6 +1199,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
         def __init__(
             self,
             _config: object,
+            _targets: object,
         ) -> None:
             pass
 
@@ -1192,6 +1214,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
         def __init__(
             self,
             _config: object,
+            _targets: object,
         ) -> None:
             pass
 
@@ -1204,6 +1227,11 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
+    monkeypatch.setattr(
+        diagnostics_module,
+        "load_evaluation_targets",
+        lambda _config: (object(),),
+    )
     monkeypatch.setattr(
         direct_audit_module,
         "run_direct_audit",

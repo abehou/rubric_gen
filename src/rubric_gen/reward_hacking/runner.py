@@ -167,6 +167,35 @@ class PreparedJob:
         )
 
 
+@dataclass(frozen=True)
+class PreparationFailure:
+    case: AuditCase
+    model: str
+    error_type: str
+    error: str
+
+    def record(self, max_retries: int) -> dict[str, object]:
+        return {
+            "case_id": self.case.case_id,
+            "source_kind": self.case.source_kind,
+            "source_path": str(self.case.path),
+            "provider": self.model,
+            "model": self.model,
+            "status": "failed",
+            "error_type": self.error_type,
+            "error": self.error,
+            "attempt_count": 0,
+            "max_retries": max_retries,
+            "retry_exhausted": False,
+        }
+
+
+@dataclass(frozen=True)
+class PreparedPanel:
+    jobs: tuple[PreparedJob, ...]
+    failures: tuple[PreparationFailure, ...]
+
+
 class RewardHackingJudgeRunner:
     def __init__(
         self, config: RewardHackingJudgeConfig,
@@ -561,10 +590,11 @@ class RewardHackingJudgeRunner:
             + output_tokens * output_price
         ) / 1_000_000
 
-    def _prepare_jobs(self) -> tuple[PreparedJob, ...]:
+    def _prepare_jobs(self) -> PreparedPanel:
         cases = sorted(self.config.source.cases, key=lambda case: case.sort_key)
         total = len(cases) * len(self.config.models)
-        jobs = []
+        jobs: list[PreparedJob] = []
+        unavailable: dict[str, tuple[str, str]] = {}
         with TerminalProgress(
             total=total,
             description="Audit preparation",
@@ -572,12 +602,41 @@ class RewardHackingJudgeRunner:
         ) as progress:
             for case in cases:
                 progress.set_status(f"loading {case.case_id}")
-                payload = self._payload(case)
+                payload = (
+                    self._payload(case)
+                    if len(unavailable) < len(self.config.models)
+                    else None
+                )
                 for model in self.config.models:
+                    if model in unavailable:
+                        progress.set_status(
+                            f"skipping {case.case_id} for unavailable {model}"
+                        )
+                        progress.update()
+                        continue
+                    assert payload is not None
                     progress.set_status(f"planning {case.case_id} for {model}")
-                    jobs.append(self._prepare_job(case, model, payload))
+                    try:
+                        jobs.append(self._prepare_job(case, model, payload))
+                    except Exception as exc:
+                        _retryable, opens_circuit = _retry_disposition(exc)
+                        if not opens_circuit:
+                            raise
+                        unavailable[model] = (type(exc).__name__, str(exc))
+                        jobs = [job for job in jobs if job.model != model]
                     progress.update()
-        return tuple(jobs)
+        failures = tuple(
+            PreparationFailure(
+                case=case,
+                model=model,
+                error_type=unavailable[model][0],
+                error=unavailable[model][1],
+            )
+            for case in cases
+            for model in self.config.models
+            if model in unavailable
+        )
+        return PreparedPanel(jobs=tuple(jobs), failures=failures)
 
     @staticmethod
     def _usage_tokens(generation: GenerationResult) -> dict[str, int] | None:
@@ -697,10 +756,17 @@ class RewardHackingJudgeRunner:
             self._write_or_validate_run_provenance()
             if self.config.execution == "standard":
                 self._initialize_cost_state()
-        jobs = self._prepare_jobs()
+        prepared = self._prepare_jobs()
+        jobs = prepared.jobs
+        preparation_failures = [
+            failure.record(self.config.max_retries)
+            for failure in prepared.failures
+        ]
         if self.config.execution == "batch":
+            if preparation_failures:
+                return self._finish(preparation_failures, jobs)
             return self._run_batch(jobs)
-        records: list[dict[str, object]] = []
+        records = preparation_failures
         with TerminalProgress(
             total=len(jobs), description="Reward-hacking model panel", unit="judgment"
         ) as progress:

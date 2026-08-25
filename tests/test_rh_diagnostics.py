@@ -106,7 +106,7 @@ def test_rh_output_store_resume_replaces_incompatible_stage(
     assert {path.name for path in root.iterdir()} == {"manifest.json"}
 
 
-def test_target_loader_passes_shared_judgment_root_to_revision_validation(
+def test_target_loader_uses_lightweight_terminal_state_validation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -158,20 +158,37 @@ def test_target_loader_passes_shared_judgment_root_to_revision_validation(
     class ValidationReached(Exception):
         pass
 
-    def validate(*_args, **kwargs) -> None:
-        observed.update(kwargs)
+    def load_terminal_state(
+        revision_dir: Path,
+        current_assignment: dict[str, object],
+        current_experiment: object,
+    ) -> dict[str, object]:
+        observed.update({
+            "revision_dir": revision_dir,
+            "assignment": current_assignment,
+            "experiment": current_experiment,
+        })
         raise ValidationReached
 
     monkeypatch.setattr(
         rh_diagnostics,
-        "validate_completed_revision",
-        validate,
+        "_load_terminal_revision_state",
+        load_terminal_state,
+    )
+    monkeypatch.setattr(
+        rh_diagnostics,
+        "resolve_paraphrase_selection",
+        lambda *_args: object(),
     )
 
     with pytest.raises(ValidationReached):
         rh_diagnostics.load_evaluation_targets(config)
-    assert observed["vllm_endpoints"] == {"judge": "http://judge.test/v1"}
-    assert observed["judgment_reuse_root"] == study / "shared-judgments"
+    assert observed == {
+        "revision_dir": experiment_dir,
+        "assignment": assignment,
+        "experiment": experiment,
+    }
+    assert not hasattr(rh_diagnostics, "validate_completed_revision")
 
 
 @pytest.mark.parametrize(
@@ -698,13 +715,16 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
         rubric_paraphrases={"count": 3},
         protocol={"judge_max_retries": 0},
     )
-    runner = MechanisticEvaluationRunner(EvaluationConfig(
-        experiment=experiment,
-        study_dir=tmp_path / "study",
-        paraphrase_dir=tmp_path / "paraphrases",
-        output_dir=tmp_path / "output",
-        max_concurrency=1,
-    ))
+    runner = MechanisticEvaluationRunner(
+        EvaluationConfig(
+            experiment=experiment,
+            study_dir=tmp_path / "study",
+            paraphrase_dir=tmp_path / "paraphrases",
+            output_dir=tmp_path / "output",
+            max_concurrency=1,
+        ),
+        (target,),
+    )
 
     def fake_new_judge(**kwargs) -> object:
         target_arg = kwargs["target"]
@@ -1717,13 +1737,16 @@ def test_mechanistic_resume_rejects_tampered_records(
             "holistic_max_output_tokens": 10_000,
         },
     )
-    runner = MechanisticEvaluationRunner(EvaluationConfig(
-        experiment=experiment,
-        study_dir=tmp_path / "study",
-        paraphrase_dir=tmp_path / "paraphrases",
-        output_dir=output,
-        max_concurrency=1,
-    ))
+    runner = MechanisticEvaluationRunner(
+        EvaluationConfig(
+            experiment=experiment,
+            study_dir=tmp_path / "study",
+            paraphrase_dir=tmp_path / "paraphrases",
+            output_dir=output,
+            max_concurrency=1,
+        ),
+        (target,),
+    )
     monkeypatch.setattr(
         runner,
         "_judge_for_job",
@@ -1823,6 +1846,7 @@ def test_holistic_resume_rejects_tampered_records(
             output_dir=output,
             max_concurrency=1,
         ),
+        (target,),
         generation_operation=lambda _model, _request: pytest.fail(
             "cached record attempted provider dispatch"
         ),
@@ -1883,6 +1907,7 @@ def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
             output_dir=output,
             max_concurrency=1,
         ),
+        (target,),
         generation_operation=generate,
     )
     runner._prepared = SimpleNamespace(
@@ -1959,13 +1984,16 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
             "mechanistic_max_output_tokens": 100_000,
         },
     )
-    runner = MechanisticEvaluationRunner(EvaluationConfig(
-        experiment=experiment,
-        study_dir=tmp_path / "study",
-        paraphrase_dir=tmp_path / "paraphrases",
-        output_dir=tmp_path / "mechanistic-output",
-        max_concurrency=1,
-    ))
+    runner = MechanisticEvaluationRunner(
+        EvaluationConfig(
+            experiment=experiment,
+            study_dir=tmp_path / "study",
+            paraphrase_dir=tmp_path / "paraphrases",
+            output_dir=tmp_path / "mechanistic-output",
+            max_concurrency=1,
+        ),
+        (target,),
+    )
     monkeypatch.setattr(runner, "_judge_for_job", lambda _job: fake_judge())
     runner._prepared = SimpleNamespace(
         predispatch_plan=runner._predispatch_plan((job,)),
@@ -2035,6 +2063,7 @@ def test_holistic_dispatch_rejects_task_changed_after_preflight(
             output_dir=tmp_path / "holistic-output",
             max_concurrency=1,
         ),
+        (target,),
         generation_operation=generate,
     )
     runner._prepared = SimpleNamespace(
@@ -2075,18 +2104,6 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             (submission / "snapshot.json").write_text(json.dumps({
                 "workspace_sha256": digest,
             }))
-    target_loads = 0
-
-    def load_targets(_config: object) -> tuple[EvaluationTarget, ...]:
-        nonlocal target_loads
-        target_loads += 1
-        return target, other
-
-    monkeypatch.setattr(
-        rh_diagnostics,
-        "load_evaluation_targets",
-        load_targets,
-    )
     calls: list[str] = []
 
     def generate(model: str, request: StructuredRequest) -> GenerationResult:
@@ -2126,15 +2143,14 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             output_dir=output,
             max_concurrency=2,
         ),
+        (target, other),
         generation_operation=generate,
     )
 
     runner.preflight()
-    assert target_loads == 1
     assert calls == []
     assert not output.exists()
     assert runner.run() == 0
-    assert target_loads == 1
     summary = json.loads((output / "summary.json").read_text())
     manifest = json.loads((output / "manifest.json").read_text())
     assert len(calls) == 4
@@ -2171,6 +2187,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             resume=True,
             vllm_endpoints={"strong-a": "http://127.0.0.1:8000/"},
         ),
+        (target, other),
         generation_operation=generate,
     )
     assert rerouted.run() == 0
@@ -2195,6 +2212,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
                 max_concurrency=2,
                 resume=True,
             ),
+            (target, other),
             generation_operation=generate,
         )
         assert changed_implementation.run() == 0
@@ -2209,6 +2227,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             max_concurrency=2,
             resume=True,
         ),
+        (target, other),
         generation_operation=generate,
     )
     assert same_identity_resume.run() == 0
@@ -2237,6 +2256,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             output_dir=rejected_output,
             max_concurrency=2,
         ),
+        (target, other),
         generation_operation=generate,
     )
     calls_before_rejection = len(calls)
