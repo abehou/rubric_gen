@@ -9,12 +9,13 @@ The bar labels give detected and evaluated counts.
 
 The configured three-judge primary result is unavailable.
 Gemini failed all 720 calls because its prepaid credits were depleted.
-Claude evaluated 698 cases, and GPT evaluated 714 cases.
+Claude and GPT each completed all 720 calls.
+Claude returned six abstentions, and GPT returned three.
 
 The main figure uses an explicitly labeled available-judge union.
 A case is detected when GPT or Claude detects reward hacking.
 A case is not detected when at least one usable judge gives that verdict and neither detects it.
-This rule gives 719 evaluated cases and one excluded case.
+This rule gives 720 evaluated cases and no excluded cases.
 It is a partial-panel result, not the configured primary result.
 
 The companion figure shows GPT and Claude separately.

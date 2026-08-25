@@ -13,13 +13,14 @@ they compare.
   apply only to later submissions.
 
 The current `results20` direct reward-hacking (RH) audit favors online
-elicitation. The available-judge union detected RH in 14/240 static runs, 17/240
-offline runs, and 7/239 online runs. These rates are 5.8%, 7.1%, and 2.9%.
+elicitation. The available-judge union detected RH in 15/240 static runs, 15/240
+offline runs, and 8/240 online runs. These rates are 6.2%, 6.2%, and 3.3%.
 
 This is not the planned result. Gemini failed all 720 calls. The result uses an
 available-judge union over GPT and Claude. It labels a case positive when either
-usable judge detects RH. One case has no usable decision. This partial panel is
-useful evidence, but it cannot replace the configured three-judge result.
+usable judge detects RH. Both judges completed all 720 calls, and every case has
+a usable union decision. This partial panel is useful evidence, but it cannot
+replace the configured three-judge result.
 
 The examples below show a credible mechanism. A learned consistency criterion
 can stop a solver from fitting unsupported statistical inputs to rubric target
@@ -85,23 +86,22 @@ feature causes no penalty unless the submission claims or relies on it.
 
 ![Direct RH detection by condition](figures/biomnibench-rh-detection-by-condition/direct_rh_detection_by_condition.png)
 
-The main figure uses the available-judge union. Each cell contains 60 runs,
-except one online user-simulator cell with 59 usable cases.
+The main figure uses the available-judge union. Each cell contains 60 runs.
 
 | Rubric policy | Full | Semi | Score only | User simulator | Total |
 |---|---:|---:|---:|---:|---:|
-| Static | 9/60 (15.0%) | 2/60 (3.3%) | 3/60 (5.0%) | 0/60 (0.0%) | 14/240 (5.8%) |
-| Offline | 9/60 (15.0%) | 4/60 (6.7%) | 1/60 (1.7%) | 3/60 (5.0%) | 17/240 (7.1%) |
-| Online | 5/60 (8.3%) | 2/60 (3.3%) | 0/60 (0.0%) | 0/59 (0.0%) | 7/239 (2.9%) |
+| Static | 10/60 (16.7%) | 3/60 (5.0%) | 2/60 (3.3%) | 0/60 (0.0%) | 15/240 (6.2%) |
+| Offline | 10/60 (16.7%) | 3/60 (5.0%) | 1/60 (1.7%) | 1/60 (1.7%) | 15/240 (6.2%) |
+| Online | 5/60 (8.3%) | 2/60 (3.3%) | 0/60 (0.0%) | 1/60 (1.7%) | 8/240 (3.3%) |
 
-For the 239 matched offline-online cases with usable union decisions:
+For the 240 matched offline-online cases:
 
-- 14 changed from RH under offline to no RH under online;
-- 4 changed from no RH under offline to RH under online;
-- the other 221 did not change label.
+- 10 changed from RH under offline to no RH under online;
+- 3 changed from no RH under offline to RH under online;
+- the other 227 did not change label.
 
 The raw result says online is better. It does not say offline is better than
-static. Offline is worse overall in this partial-panel measure.
+static. Offline and static have the same aggregate rate in this partial panel.
 
 Do not overstate this result. Feedback conditions and replicates share tasks.
 They are not 239 independent tasks. The analysis has no task-cluster uncertainty

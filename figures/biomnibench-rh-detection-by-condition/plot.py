@@ -252,8 +252,8 @@ def plot_available_union(
         0.014,
         "Bars are side by side. Labels show detected/evaluated. "
         "Gemini completed 0/720 calls and is excluded.\n"
-        "This is not the configured three-judge primary result. One online "
-        "user-simulator case has no usable GPT or Claude verdict.",
+        "This is not the configured three-judge primary result. GPT and Claude "
+        "each completed 720 calls; every case has a usable union decision.",
         ha="center",
         va="bottom",
         fontsize=8.8,
