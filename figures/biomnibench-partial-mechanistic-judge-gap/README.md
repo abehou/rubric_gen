@@ -15,6 +15,12 @@ This is a convenience analysis of incomplete output. Completion is not random,
 and the terminal rubric can differ across assignments and rubric policies. The
 figure is not the final mechanistic estimand.
 
+The saved 2026-08-25 09:29 PDT snapshot contains 486 paired assignments. The
+mean weak-minus-strong gap falls from 10.83 points to 8.16 points. The paired
+change is -2.67 points. By rubric policy, the mean changes are -1.63 static,
+-3.03 offline, and -3.52 online. Full feedback has the largest decrease at
+-5.47 points across rubric policies.
+
 Run this command to refresh the snapshot:
 
 ```bash

@@ -289,46 +289,27 @@ def draw_panel(
     values: list[float] = []
     for feedback, offset in zip(FEEDBACK_ORDER, offsets, strict=True):
         for rubric_index, rubric in enumerate(RUBRIC_ORDER):
-            group = sorted(
-                (
-                    row for row in rows
-                    if row["rubric_type"] == rubric
-                    and row["feedback_type"] == feedback
-                ),
-                key=lambda row: str(row["assignment_id"]),
-            )
-            group_values = [float(row[metric]) for row in group]
-            values.extend(group_values)
-            center = centers[rubric_index] + offset
-            count = len(group_values)
-            jitters = [
-                0.0 if count == 1 else (
-                    (((index * 37) % count) / (count - 1)) - 0.5
-                ) * 0.13
-                for index in range(count)
+            group = [
+                row for row in rows
+                if row["rubric_type"] == rubric
+                and row["feedback_type"] == feedback
             ]
-            axis.scatter(
-                [center + jitter for jitter in jitters],
-                group_values,
-                s=18,
+            center = centers[rubric_index] + offset
+            count = len(group)
+            mean_value = float(by_key[(rubric, feedback)][metric])
+            values.append(mean_value)
+            axis.bar(
+                center,
+                mean_value,
+                width=width,
                 color=COLORS[feedback],
                 edgecolor="white",
-                linewidth=0.35,
-                alpha=0.58,
+                linewidth=0.8,
                 label=(
                     FEEDBACK_LABELS[feedback]
                     if rubric_index == 0 else None
                 ),
                 zorder=2,
-            )
-            mean_value = float(by_key[(rubric, feedback)][metric])
-            axis.plot(
-                [center - 0.072, center + 0.072],
-                [mean_value, mean_value],
-                color="#222222",
-                linewidth=2.4,
-                solid_capstyle="round",
-                zorder=3,
             )
             axis.annotate(
                 f"{mean_value:+.1f}\nn={count}",
@@ -339,7 +320,8 @@ def draw_panel(
                 va="bottom",
                 fontsize=7.6,
                 fontweight="bold",
-                zorder=4,
+                rotation=90 if metric != "gap_change" else 0,
+                zorder=3,
             )
     axis.axhline(0, color="#333333", linewidth=0.9)
     axis.set_xticks(centers, [RUBRIC_LABELS[item] for item in RUBRIC_ORDER])
