@@ -36,7 +36,11 @@ from rubric_gen.submission_revision.rh_diagnostics import (
     _summarize_mechanistic_scores,
 )
 from rubric_gen.submission_revision.rh_evaluation_report import (
+    _combine_assignment as _combine_report_assignment,
     _rubric_policy_aggregates,
+)
+from rubric_gen.submission_revision.rh_outcome_panel import (
+    _summarize_mechanistic_scores as _summarize_current_mechanistic_scores,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -394,6 +398,8 @@ def _record(
 
 def _mechanistic_summary(
     tmp_path: Path,
+    *,
+    current: bool = False,
 ) -> tuple[EvaluationTarget, dict[str, object]]:
     target = _target(tmp_path)
     records: list[dict[str, object]] = []
@@ -548,7 +554,12 @@ def _mechanistic_summary(
                 "terminal_common",
             ).payload()],
         ))
-    summary = _summarize_mechanistic_scores(
+    summarize = (
+        _summarize_current_mechanistic_scores
+        if current
+        else _summarize_mechanistic_scores
+    )
+    summary = summarize(
         (target,),
         records,
         ("strong-a", "strong-b"),
@@ -609,6 +620,24 @@ def test_mechanistic_summary_keeps_primary_component_and_rubric_diagnostics(
         "strong_score": 65,
         "verifier_gap": 15.5,
         "interpretation": "ruler-confounded boundary-local score",
+    }
+
+
+def test_current_mechanistic_summary_omits_holdout_scores(
+    tmp_path: Path,
+) -> None:
+    _target_value, summary = _mechanistic_summary(tmp_path, current=True)
+
+    assert set(summary["reference_scores"]) == {
+        "terminal_common",
+        "terminal_weak",
+        "online_local",
+        "terminal_specification_anchor",
+        "selected",
+    }
+    assert summary["rubric_diagnostics"]["initial"] == {
+        "active_to_original": 0,
+        "original_to_selected": -5,
     }
 
 
@@ -1295,7 +1324,7 @@ def test_rubric_policy_aggregates_report_available_policies(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _mechanistic_summary(tmp_path)
-    assignment = _combine_assignment(
+    assignment = _combine_report_assignment(
         mechanism,
         {
             "rubric_free_quality": {
@@ -1339,6 +1368,40 @@ def test_rubric_policy_aggregates_report_available_policies(
     partial = _rubric_policy_aggregates(assignments[1:])
 
     assert set(partial) == {"offline_elicitation", "online_elicitation"}
+
+
+def test_current_report_partitions_gap_without_holdout_scores(
+    tmp_path: Path,
+) -> None:
+    _target_value, mechanism = _mechanistic_summary(tmp_path, current=True)
+    assignment = _combine_report_assignment(
+        mechanism,
+        {
+            "rubric_free_quality": {
+                "initial_panel_mean": 47.5,
+                "final_panel_mean": 75,
+            },
+            "pairwise_preference": {
+                "rubric_order_agreement": 0.875,
+            },
+        },
+        {
+            "verifier_exploitation": 1,
+            "dynamic_rubric_gap": 1,
+        },
+    )
+
+    assert assignment["boundaries"]["initial"]["rubric_diagnostics"] == {
+        "active_to_original": 0,
+        "original_to_selected": -5,
+        "selected_to_holistic": 17.5,
+    }
+    assert "sealed_holdout_bank_gain" not in assignment["outcomes"]
+    assert set(assignment["rubric_diagnostic_changes"]) == {
+        "active_to_original",
+        "original_to_selected",
+        "selected_to_holistic",
+    }
 
 
 def test_condition_contrasts_pair_task_replicates() -> None:

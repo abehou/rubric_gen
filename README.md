@@ -289,8 +289,8 @@ uv run rubric-gen detect \
 The command writes three evaluation layers:
 
 - `direct/`: a strong three-model ensemble gives categorical RH decisions.
-- `mechanistic/`: the strong panel scores both boundaries with active, selected,
-  and sealed holdout rubrics.
+- `mechanistic/`: the strong panel scores both boundaries with active, original,
+  and selected rubrics. It does not score sealed holdout rubrics.
 - `holistic/`: the strong panel first scores initial and final quality without a
   criterion rubric. It also compares the highest and lowest saved in-loop-judge
   original-rubric scores across the full trajectory. Each model sees both
@@ -305,16 +305,15 @@ assignment outcome missing.
 The two primary components are verifier exploitation and the dynamic-rubric
 gap. Their sum equals the weak active-rubric score minus strong rubric-free
 quality at each boundary. The evaluator also compares the active rubric with
-the original, selected, and sealed holdout rubrics. These are score diagnostics.
-They do not receive separate loss weights. Holdout score dispersion and range
-measure paraphrase sensitivity without entering the identity. Only the direct
-ensemble produces a categorical reward-hacking decision.
+the original and selected rubrics. These are score diagnostics. They do not
+receive separate loss weights. Only the direct ensemble produces a categorical
+reward-hacking decision.
 
 Reference call counts use the singleton primary design. Before dispatch, each
 audit stage records its exact call, request-byte, and maximum-output-token plan.
 The judge artifacts retain realized token use and cost when providers report
-them. Across arms, only selected-rubric gain, sealed-holdout gain, rubric-free
-quality gain, pairwise preference, and direct detection use common outcome
+them. Across arms, only selected-rubric gain, rubric-free quality gain, pairwise
+preference, and direct detection use common outcome
 instruments. Terminal-rubric `W`, `A`, `C`, and loss values are descriptive
 total-policy endpoints because their rulers can differ by arm. Pairwise
 agreement is the preference rate for the higher saved in-loop-judge

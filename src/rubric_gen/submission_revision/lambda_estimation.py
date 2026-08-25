@@ -59,7 +59,6 @@ _PRIMARY_OUTCOME_KEYS = frozenset({
     "direct_detection",
     "holistic_quality_gain",
     "selected_rubric_gain",
-    "sealed_holdout_bank_gain",
 })
 
 

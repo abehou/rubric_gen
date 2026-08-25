@@ -89,7 +89,6 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
                 "direct_detection": "current direct outcome",
                 "holistic_quality_gain": "current holistic outcome",
                 "selected_rubric_gain": "current selected outcome",
-                "sealed_holdout_bank_gain": "current holdout outcome",
             },
             "score_scale": [0, 100],
             "component_order": [
