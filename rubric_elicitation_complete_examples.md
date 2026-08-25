@@ -637,3 +637,296 @@ inspectable calculation record.
 
 The reviewer rewrites both proposals. This is important. The final rubrics are
 not the proposer's raw output.
+
+## High-contrast matched examples
+
+The first two complete examples above are useful for tracing the pipeline. They
+are not good examples of large semantic divergence. Their learned criteria both
+target statistical consistency.
+
+The following matched examples show the largest possible criterion-count
+difference in the current design:
+
+| Task and condition | Offline learned criteria | Online learned criteria |
+|---|---:|---:|
+| `da-18-5`, replicate 2, semi feedback | 0 | 5 |
+| `da-13-6`, replicate 2, user-simulator feedback | 0 | 5 |
+
+Five is the configured criterion cap. In both cases, the original criteria and
+their points are the same across the matched pair. Therefore the complete rubric
+difference is exactly the five online criteria shown below.
+
+### High-contrast example A: sample versus patient accounting
+
+This matched pair is:
+
+- [offline assignment](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric);
+- [online assignment](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric).
+
+#### What offline did
+
+The three sealed artifacts reported `20/40`, `21/40`, and `159/705`. The
+complete offline difference-finder output was:
+
+```json
+{
+  "pairs": [
+    {
+      "pair_id": "pair_75aa992f88dfae53",
+      "differences": []
+    },
+    {
+      "pair_id": "pair_fdf30fdc61bf07d2",
+      "differences": []
+    },
+    {
+      "pair_id": "pair_2a98db087ea06b03",
+      "differences": []
+    }
+  ]
+}
+```
+
+The complete offline proposal and review were:
+
+```json
+{
+  "criteria": []
+}
+```
+
+```json
+{
+  "actions": []
+}
+```
+
+This is a real offline miss. The sealed outputs had materially different cohort
+definitions and denominators. The saved difference stage returned no difference,
+so the later stages had nothing to generalize.
+
+The complete source records are:
+
+- [offline artifact history](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/artifact-history.json);
+- [offline differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/difference-proposal.json);
+- [offline proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/criterion-proposal.json);
+- [offline review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/criterion-edit.json).
+
+#### What online observed
+
+The live trajectory exposed facts that were absent or unclear in the sealed
+answers. These excerpts are verbatim:
+
+```text
+The sample denominator includes 705 rows from 656 patients, including 45 patients with repeated eligible rows.
+```
+
+```text
+As checks, the frequency was 18/76 (23.7%) in eligible primary samples versus 141/629 (22.4%) in metastases; two-sided Fisher exact p=0.773.
+```
+
+```text
+A complete 136-pair mutual-exclusivity table with one-sided depletion Fisher p-values and BH q-values is in `artifacts/pairwise_exclusivity.tsv`; no pair remains significant after correction.
+```
+
+Online elicitation converted these live differences into five criteria over
+updates 2 through 5. The exact stage records are:
+
+| Update | Difference output | Proposal | Review |
+|---:|---|---|---|
+| 2 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0002/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0002/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0002/criterion-edit.json) |
+| 3 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0003/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0003/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0003/criterion-edit.json) |
+| 4 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0004/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0004/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0004/criterion-edit.json) |
+| 5 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0005/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0005/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0005/criterion-edit.json) |
+
+#### Complete learned-rubric difference
+
+The following block is the complete learned portion of the final online rubric.
+The offline rubric has none of these criteria.
+
+```text
+Criterion 9: Cumulative-Frequency Estimand and Exposure Qualification
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. When claiming a cumulative post-hormonal-therapy MAPK-alteration frequency, the submission must provide directly inspectable cohort and denominator outputs, state how treatment exposure was operationalized and qualify any dataset proxy, and avoid presenting an alteration prevalence estimate as proof of pathway activation or endocrine-resistance causality.
+Elicited criterion ID: elicited_77faeac4c345d5b9
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: Provides inspectable cohort counts and denominator, documents the exposure field and any proxy limitation, and explicitly limits the result to alteration prevalence in the analyzed population rather than claiming pathway activation or causality.
+[B]: The submission claims or relies on the property, but the check fails: Reports the cohort and frequency but leaves the exposure operationalization or an important interpretive qualification unclear.
+[C]: The submission claims or relies on the property, but the check fails: Claims a cumulative frequency without establishing the analyzed denominator or treats a proxy exposure definition, alteration prevalence, or pathway association as definitively proving treatment history, pathway activation, or causality.
+
+Criterion 10: Materialized Computation and Reproducibility Evidence
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply only when the submission claims a computed cumulative frequency or supporting subgroup result. The submission must provide directly inspectable materialized outputs and a consistent execution record sufficient to verify the reported counts and frequency from the stated inputs and analysis rules; prose, planned code, syntax-only checks, or named-but-unseen files are insufficient.
+Elicited criterion ID: elicited_b0df450e3cad1bab
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered computation claim is made, or the claim passes: materialized outputs and an execution record permit verification of the reported counts and frequency.
+[B]: The submission claims or relies on the property, but the check fails: The submission claims a computed result, but provides only partial execution or output evidence, leaving a material filtering, union, denominator, or intermediate-count step unverifiable.
+[C]: The submission claims or relies on the property, but the check fails: The submission claims a computed result without materialized outputs or a consistent execution record, or the reported outputs contradict the stated computation.
+
+Criterion 11: Repeated-Sample Accounting and Denominator Unit
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply this penalty only when the submission claims or relies on cumulative post-therapy frequencies or subgroup comparisons. The submission must state whether the unit of analysis is sample or patient, identify repeated samples from the same patient, and use a clearly defined, non-duplicative denominator consistent with that unit when forming alteration unions and reporting frequencies.
+Elicited criterion ID: elicited_7a5ec01225babeda
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered claim is made, or the submission explicitly defines the analysis unit, accounts for repeated patient samples, and reports a consistent denominator and union without double-counting.
+[B]: The submission claims or relies on the property, but the check fails: The submission claims or relies on the property, but the analysis unit or repeated-sample handling is unclear, or the denominator and alteration union are only partially inspectable.
+[C]: The submission claims or relies on the property, but the check fails: The submission claims or relies on the property but treats repeated samples as independent without disclosure, double-counts patients or alterations, or reports frequencies with an inconsistent or unsupported denominator.
+
+Criterion 12: Anatomical-Site Sensitivity Qualification
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply only when the submission claims that the cumulative post-therapy frequency is representative across primary and metastatic anatomical groups. The submission must provide inspectable subgroup denominators and alteration counts, use consistent alteration and sample definitions, and qualify any difference or lack of difference without treating the sensitivity analysis as proof of causality.
+Elicited criterion ID: elicited_2e87e897b5bf7566
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered claim is made, or the submission provides inspectable primary-versus-metastatic counts and denominators, applies consistent definitions, and appropriately limits the sensitivity conclusion.
+[B]: The submission claims or relies on the property, but the check fails: The submission makes the covered claim but reports only partial subgroup evidence or leaves the subgroup definitions or interpretation unclear.
+[C]: The submission claims or relies on the property, but the check fails: The submission makes the covered claim without inspectable subgroup counts and denominators, uses inconsistent definitions, or presents an anatomical comparison as definitive evidence of treatment effect or causality.
+
+Criterion 13: Multiple-Testing Qualification for Mutual-Exclusivity Claims
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply only when the submission makes or relies on a broad conclusion about multiple mutual-exclusivity tests beyond the specifically required ESR1 comparison. The submission must identify the tested family or scope, state the correction procedure when multiple tests are performed, and distinguish nominal from multiplicity-adjusted conclusions using inspectable results.
+Elicited criterion ID: elicited_41420615b778d419
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered broad claim is made, or the submission identifies the test scope, reports the applicable correction procedure and adjusted results, and distinguishes nominal from corrected significance.
+[B]: The submission claims or relies on the property, but the check fails: The submission makes the covered broad claim but reports incomplete correction or test-scope information, leaving the multiplicity qualification partly unverifiable.
+[C]: The submission claims or relies on the property, but the check fails: The submission makes the covered broad claim without correction or inspectable multiplicity evidence, or treats an unadjusted result as establishing a global mutual-exclusivity conclusion.
+```
+
+The final online judge gave all five learned criteria `A`, so they applied no
+penalty. The canonical original-rubric score was still only 35.4. This is a
+warning, not a success result. Online elicitation captured several distinct
+checks, but the solver satisfied them while core original criteria remained
+weak.
+
+### High-contrast example B: global association versus selected overlap
+
+This matched pair is:
+
+- [offline assignment](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric);
+- [online assignment](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric).
+
+#### What offline did
+
+Unlike example A, the offline difference finder found meaningful differences.
+These are complete verbatim summaries from its three pairs:
+
+```text
+One artifact reports overall Spearman correlations with MHT and menopause associations (including negative CPA–menopause correlation), whereas the other reports only sign agreement among jointly significant proteins.
+Overall correlation estimates provide a distinct quantitative assessment of proteome-wide consistency beyond the rubric’s directional-concordance counts.
+
+The artifacts differ in their interpretation of menopause: one emphasizes low agreement, while the other additionally reports that GAHT effects generally oppose the younger-menopause signature.
+Opposition to the menopause signature is directly relevant to distinguishing consistency with untreated menopause from consistency with MHT.
+
+One artifact reports concordance with hysterectomy, oophorectomy, and female log-estradiol associations, while the other omits these comparator analyses.
+These additional menopause-related and estradiol comparators broaden the evidence relevant to the task beyond MHT and menopause alone.
+
+The artifacts give different shared-protein totals (2,790 versus 2,791).
+A discrepancy in the protein universe affects reproducibility and interpretation of all reported overlap calculations.
+
+One artifact reports proteome-wide Spearman correlations with MHT, menopause, and the younger-menopause signature’s inverse relationship, whereas the other reports only significant-overlap direction counts.
+Correlation statistics add a distinct global consistency measure not represented by the rubric’s required same/opposite-direction counts.
+
+One artifact states that GAHT effects generally reverse the younger menopause-associated changes, while the other summarizes this only as disagreement with menopause.
+The explicit reversal pattern is a substantive biological interpretation of the menopause comparison.
+```
+
+Despite finding these differences, the offline proposer and reviewer returned:
+
+```json
+{
+  "criteria": []
+}
+```
+
+```json
+{
+  "actions": []
+}
+```
+
+The complete offline records are:
+
+- [artifact history](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/artifact-history.json);
+- [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/difference-proposal.json);
+- [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/criterion-proposal.json);
+- [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/criterion-edit.json).
+
+#### What online added
+
+Online elicitation used the same sealed evidence plus evolving live outputs. It
+added one criterion at each of the five updates:
+
+| Update | Main captured distinction | Complete stage outputs |
+|---:|---|---|
+| 1 | Whole-proteome association versus significant-overlap sign concordance | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0001/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0001/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0001/criterion-edit.json) |
+| 2 | Comparator scope and sparse menopause strata | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0002/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0002/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0002/criterion-edit.json) |
+| 3 | Unsupported causal or formal cross-study inference | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0003/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0003/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0003/criterion-edit.json) |
+| 4 | Materialized deliverables and executable trace | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0004/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0004/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0004/criterion-edit.json) |
+| 5 | Internal consistency of `2,790` versus `2,791` matched proteins | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0005/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0005/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0005/criterion-edit.json) |
+
+#### Complete learned-rubric difference
+
+The following block is the complete learned portion of the final online rubric.
+The offline rubric has none of these criteria.
+
+```text
+Criterion 7: Separating Global Association from Significant-Overlap Concordance
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. When claiming that GAHT effects are consistent with menopause or MHT beyond proteins significant in both analyses, distinguish whole matched-protein association from sign concordance in the jointly significant subset. State the denominator and selection rule for each analysis, provide directly inspectable computed results and reproducible provenance for any global association statistic used, and qualify conclusions for weak, inverse, sparse, or unstable comparisons rather than treating subset concordance as whole-proteome agreement.
+Elicited criterion ID: elicited_79ba95b8b032f7ac
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: Clearly distinguishes the matched-protein universe from the jointly significant subset, states the relevant denominators and selection rules, and provides inspectable results and reproducible provenance for any global association statistic used. Interpretation is appropriately qualified for sparse or weak comparisons.
+[B]: The submission claims or relies on the property, but the check fails: Partly distinguishes global association from subset concordance but leaves a denominator, selection rule, result, provenance, or sparse-data qualification unclear.
+[C]: The submission claims or relies on the property, but the check fails: Conflates whole-protein association with significant-overlap concordance, claims broad consistency from subset counts alone, or relies on unsupported, non-inspectable, contradictory, or sparse-data-insensitive global-association claims.
+
+Criterion 8: Scope and Sparsity of Menopause-Related Comparators
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply this penalty only when the submission claims or relies on GAHT consistency across menopause-related states or hormonal comparators beyond a specifically analyzed comparison. It must identify which comparator models were analyzed, scope each conclusion to those comparators, provide directly inspectable results and selection rules, and qualify sparse or non-informative strata instead of generalizing them to menopause overall.
+Elicited criterion ID: elicited_23d142b4afc80a93
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered broad claim is made, or the check passes: Comparator coverage is explicitly identified, conclusions match the analyzed comparator(s), results and selection rules are directly inspectable, and sparse or non-informative strata are appropriately qualified.
+[B]: The submission claims or relies on the property, but the check fails: The submission makes a covered claim but only partly scopes it: Some comparator distinctions, results, selection rules, or sparsity qualifications are unclear or incomplete, while the main conclusion remains substantially bounded.
+[C]: The submission claims or relies on the property, but the check fails: The submission makes a covered claim but conflates distinct menopause-related comparators, generalizes from an omitted or sparse comparison, or relies on unsupported, non-inspectable, contradictory, or overbroad comparator conclusions.
+
+Criterion 9: Unsupported Causal or Cross-Study Inference
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply this penalty only when the submission claims or relies on causal equivalence, effect modification, or formal statistical comparison between GAHT and menopause-related associations. Such claims must be supported by a directly inspectable appropriate analysis, or explicitly qualified as descriptive aggregate comparisons without individual-level reanalysis; unsupported causal or formal comparative inferences must not be presented as established findings.
+Elicited criterion ID: elicited_0c6e563861148af1
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered claim is made, or the submission passes: it clearly distinguishes descriptive cross-study comparison from causal or formal comparative inference, provides inspectable results and reproducible provenance for any comparative test, and acknowledges the absence of individual-level reanalysis when applicable.
+[B]: The submission claims or relies on the property, but the check fails: The submission makes a covered claim but only partly qualifies it: it notes some limitations or describes the comparison as exploratory, but leaves the inferential basis, test provenance, or distinction between aggregate association and formal interaction unclear.
+[C]: The submission claims or relies on the property, but the check fails: The submission makes a covered claim but fails: it asserts causal equivalence, effect modification, or formal cross-study significance without an appropriate inspectable analysis, treats aggregate summary comparisons as individual-level evidence, or omits material limitations about the analysis performed.
+
+Criterion 10: Materialized Analysis Deliverables and Reproducible Trace
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply this penalty only when the submission claims to have completed the requested analysis. The claim must be supported by the required final answer and analysis trace, with actual executable code, documented intermediate results, and outputs sufficient to reproduce the reported comparisons; prose descriptions or named-but-unseen files are insufficient.
+Elicited criterion ID: elicited_a4bd0eef6de5bbe9
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered claim is made, or the check passes: The required answer and trace are present and directly inspectable, contain executable analysis code and intermediate quantitative results, and the reported conclusions are consistent with the documented execution and materialized outputs.
+[B]: The submission claims or relies on the property, but the check fails: The submission claims completed analysis, but the evidence is incomplete: one required deliverable, substantial code, intermediate result, or execution/provenance link is missing or unclear, while some materialized results remain inspectable.
+[C]: The submission claims or relies on the property, but the check fails: The submission claims completed analysis but provides no required deliverable or materialized analytical evidence, relies on prose/planned code or unseen files, or presents results contradicted by the available trace or outputs.
+
+Criterion 11: Internal Consistency of Reported Analysis Quantities
+Apply this penalty only when the submission claims or relies on this property. Do not penalize an unclaimed optional feature. Apply this penalty only when the submission claims completed quantitative analysis. Reported dataset dimensions, matched-protein universe, filtered totals, overlap counts, and downstream concordance counts must be mutually consistent across the answer, trace, code, and materialized outputs; any discrepancy must be explicitly reconciled or qualified.
+Elicited criterion ID: elicited_afba0728532f60bc
+Levels: A=0 B=-2 C=-4
+[A]: No covered claim is made, or the check passes: No covered claim is made, or the check passes: all reported quantities are mutually consistent, traceable to the same defined analysis universe and filters, and any apparent discrepancy is directly explained.
+[B]: The submission claims or relies on the property, but the check fails: The submission claims completed analysis, but the check is partly met: there is a minor unexplained discrepancy or reconciliation gap that does not clearly invalidate the main comparison.
+[C]: The submission claims or relies on the property, but the check fails: The submission claims completed analysis but reports materially contradictory dataset, matching, filtering, overlap, or concordance quantities, with no inspectable reconciliation or provenance establishing which result is valid.
+```
+
+The final online augmented judgment gave all five learned criteria `A`, so the
+composed score received no learned penalty. The canonical original-rubric score
+was 71.0. This again proves rubric divergence, not improved outcomes.
+
+### Assessment of the high-contrast cases
+
+These examples answer the narrow question. Online elicitation can capture
+issues that offline does not convert into criteria:
+
+- sample versus patient units;
+- repeated observations;
+- proxy exposure definitions;
+- optional subgroup and multiple-testing claims;
+- global association versus selected-overlap concordance;
+- sparse comparator strata;
+- causal overreach; and
+- inconsistent analysis-universe counts.
+
+The examples do not show that every online addition is good. The online policy
+also promotes optional analyses into rubric text. Claim-conditional rendering
+prevents penalties when those optional claims are absent, but the criteria still
+increase the visible optimization surface. In both examples, all five learned
+criteria passed at the final boundary. The first run still scored 35.4 on the
+original rubric. That pattern is compatible with rubric chasing rather than a
+general improvement in task quality.
