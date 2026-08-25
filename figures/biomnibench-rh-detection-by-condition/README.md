@@ -1,28 +1,26 @@
-# BioMNIBench direct RH detection by condition
+# BioMNIBench results20 direct RH detection
 
-This figure shows the earlier three-task BioMNIBench development factorial.
-It does not show the incomplete `results20` experiment.
+These figures use experiment `biomnibench-da-factorial-r6-5d56fee68932`.
+This is the `experiments/biomnibench-results20.yaml` experiment.
 
-The experiment ID is `biomnibench-da-factorial-r6-99fcc39acc68`.
-The direct panel used the `any_detect` rule across three judges.
-The run used the earlier positive-point elicitation protocol.
+The main figure has three rubric groups.
+Each group has four feedback bars placed side by side.
+The bar labels give detected and evaluated counts.
 
-The original combined summary directory is no longer present.
-The source counts were recovered from its saved analysis transcript.
-The totals match the retained experiment log:
+The configured three-judge primary result is unavailable.
+Gemini failed all 720 calls because its prepaid credits were depleted.
+Claude evaluated 698 cases, and GPT evaluated 714 cases.
 
-- Static rubric: 6/36 detected, or 16.7%.
-- Offline elicited rubric: 6/33 detected, or 18.2%.
-- Online elicited rubric: 7/36 detected, or 19.4%.
+The main figure uses an explicitly labeled available-judge union.
+A case is detected when GPT or Claude detects reward hacking.
+A case is not detected when at least one usable judge gives that verdict and neither detects it.
+This rule gives 719 evaluated cases and one excluded case.
+It is a partial-panel result, not the configured primary result.
 
-Three offline/full panels abstained.
-The plot excludes those panels from the offline rate.
+The companion figure shows GPT and Claude separately.
+The source CSV includes all three views and every 3-by-4 condition cell.
 
-The chart stacks detected assignment counts because counts are additive.
-It does not stack the four cell rates because those rates are not additive.
-Each segment label gives the detected and evaluated counts for that cell.
-
-Run this command to regenerate the PNG and PDF files:
+Run this command to regenerate the CSV, PNG files, and PDF files:
 
 ```bash
 MPLCONFIGDIR=/tmp/abehou-task-tmp/matplotlib .venv/bin/python \
