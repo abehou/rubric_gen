@@ -1403,6 +1403,92 @@ def test_production_evaluator_runs_independent_tasks_with_bounded_concurrency(
     assert set(result.task_scores) == set(tasks)
 
 
+def test_production_evaluator_stops_scheduling_after_fatal_task_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkout = tmp_path / "harvey"
+    _fake_checkout(checkout)
+    for index in range(2, 5):
+        shutil.copytree(
+            checkout / "tasks" / "area" / "task",
+            checkout / "tasks" / "area" / f"task-{index}",
+        )
+    subprocess.run(["git", "-C", str(checkout), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(checkout), "commit", "-qm", "four tasks"],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    tasks = ("area/task", "area/task-2", "area/task-3", "area/task-4")
+    source = tmp_path / "experiment.yaml"
+    source.write_text("fixture", encoding="utf-8")
+    experiment = HarveyExperiment(
+        source=source,
+        experiment_id="harvey-test",
+        output_dir=tmp_path / "output",
+        cache_dir=tmp_path / "cache",
+        benchmark=HarveyBenchmark(checkout, revision, tasks, ()),
+        task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
+        judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
+        designer=HarnessDesigner("codex", 1, None, None, 10, 0),
+        rubric=RubricEvolution("static", None, None, 2, 4096),
+        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+    )
+    task_agent_calls: list[str] = []
+    judge_calls: list[str] = []
+
+    def execute(
+        command: list[str],
+        runtime: Path,
+        log: Path,
+        credential_names: tuple[str, ...],
+        label: str,
+    ) -> None:
+        task_id = command[command.index("--task") + 1]
+        run_id = command[command.index("--run-id") + 1]
+        result = runtime / "results" / run_id
+        result.mkdir(parents=True, exist_ok=True)
+        log.parent.mkdir(parents=True, exist_ok=True)
+        if label == "task agent":
+            task_agent_calls.append(task_id)
+            (result / "output").mkdir()
+            (result / "output" / "memo.md").write_text("memo", encoding="utf-8")
+            (result / "metrics.json").write_text("{}", encoding="utf-8")
+            (result / "transcript.jsonl").write_text("{}\n", encoding="utf-8")
+            return
+        judge_calls.append(task_id)
+        log.write_text("credit balance is too low", encoding="utf-8")
+        raise RuntimeError("judge failed")
+
+    monkeypatch.setattr(HarveyEvaluator, "_execute", staticmethod(execute))
+    evaluator = HarveyEvaluator(
+        experiment,
+        runtime_root=tmp_path / "runtime",
+        uv_executable="uv-test",
+        max_concurrency=2,
+    )
+
+    with pytest.raises(RuntimeError, match="judge failed"):
+        evaluator.evaluate(
+            "h0000",
+            checkout / "harness",
+            {
+                task: checkout / "tasks" / task / "task.json"
+                for task in tasks
+            },
+            tmp_path / "canonical",
+        )
+
+    assert set(task_agent_calls) == set(tasks[:2])
+    assert set(judge_calls) == set(tasks[:2])
+
+
 def test_concurrent_task_agents_initialize_shared_podman_state_once(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

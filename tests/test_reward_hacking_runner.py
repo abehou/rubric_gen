@@ -821,7 +821,12 @@ def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> No
         RewardHackingJudgeConfig(**base), generate_response=generate
     ).run() == 0
     assert RewardHackingJudgeRunner(
-        RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
+        RewardHackingJudgeConfig(
+            **base,
+            resume=True,
+            max_concurrency=7,
+        ),
+        generate_response=generate,
     ).run() == 0
     assert calls == 1
     summary = json.loads((output / "summary.json").read_text())
@@ -829,6 +834,7 @@ def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> No
     assert summary["records"][0]["generation"]["effective_model"] == (
         "gpt-test-served"
     )
+    assert "max_concurrency" not in summary["run_provenance"]
 
     (output / "cases/case-a/gpt-test/responses.json").write_text("tampered")
     assert RewardHackingJudgeRunner(
@@ -1283,8 +1289,16 @@ def test_quota_error_opens_circuit_without_retries(tmp_path: Path) -> None:
     assert "provider circuit is open" in records[1]["error"]
 
 
-def test_depleted_gemini_preparation_does_not_block_other_models(
+@pytest.mark.parametrize(
+    "quota_message",
+    (
+        "429 RESOURCE_EXHAUSTED: Your prepayment credits are depleted",
+        "Your credit balance is too low to access the Anthropic API",
+    ),
+)
+def test_depleted_provider_preparation_does_not_block_other_models(
     tmp_path: Path,
+    quota_message: str,
 ) -> None:
     cases = (
         _case(tmp_path / "case-a", {"samples": []}),
@@ -1296,9 +1310,7 @@ def test_depleted_gemini_preparation_does_not_block_other_models(
     def count_tokens(model: str, _request: StructuredRequest) -> int:
         token_calls.append(model)
         if model == "gemini-test":
-            raise RuntimeError(
-                "429 RESOURCE_EXHAUSTED: Your prepayment credits are depleted"
-            )
+            raise RuntimeError(quota_message)
         return 100
 
     def generate(model: str, _request: StructuredRequest) -> GenerationResult:
@@ -1331,7 +1343,7 @@ def test_depleted_gemini_preparation_does_not_block_other_models(
     assert all(record["status"] == "failed" for record in by_model["gemini-test"])
     assert all(record["attempt_count"] == 0 for record in by_model["gemini-test"])
     assert all(
-        "prepayment credits are depleted" in record["error"]
+        quota_message in record["error"]
         for record in by_model["gemini-test"]
     )
 

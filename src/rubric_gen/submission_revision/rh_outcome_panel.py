@@ -22,7 +22,9 @@ PANEL_POLICY: dict[str, object] = {
 
 
 class _JudgeCircuitOpen(RuntimeError):
-    pass
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
 
 
 def _provider_circuit_reason(error: BaseException) -> str | None:
@@ -36,7 +38,11 @@ def _provider_circuit_reason(error: BaseException) -> str | None:
         if getattr(current, "status_code", None) == 429:
             return "provider-unavailable"
         text = str(current)
-        if "429 RESOURCE_EXHAUSTED" in text or "prepayment credits are depleted" in text:
+        if (
+            "429 RESOURCE_EXHAUSTED" in text
+            or "prepayment credits are depleted" in text
+            or "credit balance is too low" in text
+        ):
             return "provider-unavailable"
         if (
             "output_config.format.schema: For 'array' type, 'minItems' values "
@@ -64,7 +70,7 @@ def _failure_record(
     instrument: str | None = None,
 ) -> dict[str, object]:
     if isinstance(error, _JudgeCircuitOpen):
-        reason = "provider-circuit-open"
+        reason = error.reason
     elif (circuit_reason := _provider_circuit_reason(error)) is not None:
         reason = circuit_reason
     else:
@@ -117,6 +123,7 @@ def _prior_failures(
                 "provider-circuit-open",
                 "provider-schema-unsupported",
                 "provider-unavailable",
+                "judge-stage-incomplete",
                 "judge-failed",
             }
             or type(failure.get("error_type")) is not str
@@ -148,8 +155,12 @@ def _run_with_circuit(
     try:
         return operation()
     except Exception as error:
-        circuit_reason = _provider_circuit_reason(error)
-        if _is_judge_failure(error, failure_prefix) and circuit_reason is not None:
+        if _is_judge_failure(error, failure_prefix):
+            circuit_reason = (
+                "provider-circuit-open"
+                if _provider_circuit_reason(error) is not None
+                else "judge-stage-incomplete"
+            )
             with circuit_lock:
                 circuits.setdefault(model, circuit_reason)
         raise

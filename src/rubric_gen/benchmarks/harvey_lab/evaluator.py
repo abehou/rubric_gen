@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Iterator
 import json
 import os
 import shutil
@@ -12,6 +12,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.benchmarks.harvey_lab.artifacts import (
@@ -58,6 +59,37 @@ _TRANSIENT_JUDGE_ERRORS = (
     "grammar compilation timed out.",
     "judge response truncated (stop_reason=max_tokens",
 )
+
+_Input = TypeVar("_Input")
+_Output = TypeVar("_Output")
+
+
+def _bounded_map(
+    items: Iterable[_Input],
+    operation: Callable[[_Input], _Output],
+    max_workers: int,
+) -> Iterator[_Output]:
+    """Run one active window and stop scheduling after the first failure."""
+    remaining = iter(items)
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {}
+        for _ in range(max_workers):
+            try:
+                item = next(remaining)
+            except StopIteration:
+                break
+            futures[pool.submit(operation, item)] = item
+
+        while futures:
+            future = next(as_completed(futures))
+            del futures[future]
+            result = future.result()
+            yield result
+            try:
+                item = next(remaining)
+            except StopIteration:
+                continue
+            futures[pool.submit(operation, item)] = item
 
 
 @dataclass(frozen=True)
@@ -173,16 +205,14 @@ class HarveyEvaluator:
                 unit="task",
             ) as progress:
                 workers = min(self.max_concurrency, len(task_files))
-                with ThreadPoolExecutor(max_workers=workers) as pool:
-                    futures = {
-                        pool.submit(evaluate_task, task_id): task_id
-                        for task_id in task_files
-                    }
-                    for future in as_completed(futures):
-                        task_id, score = future.result()
-                        progress.set_status(task_id)
-                        scores[task_id] = score
-                        progress.update()
+                for task_id, score in _bounded_map(
+                    task_files,
+                    evaluate_task,
+                    workers,
+                ):
+                    progress.set_status(task_id)
+                    scores[task_id] = score
+                    progress.update()
             validate_checkout(
                 self.experiment.benchmark.checkout,
                 self.experiment.benchmark.revision,
@@ -265,16 +295,14 @@ class HarveyEvaluator:
                 unit="task",
             ) as progress:
                 workers = min(self.max_concurrency, len(source_results))
-                with ThreadPoolExecutor(max_workers=workers) as pool:
-                    futures = {
-                        pool.submit(rescore_task, item): item[0]
-                        for item in source_results.items()
-                    }
-                    for future in as_completed(futures):
-                        task_id, score = future.result()
-                        progress.set_status(task_id)
-                        scores[task_id] = score
-                        progress.update()
+                for task_id, score in _bounded_map(
+                    source_results.items(),
+                    rescore_task,
+                    workers,
+                ):
+                    progress.set_status(task_id)
+                    scores[task_id] = score
+                    progress.update()
         evaluation = aggregate_scores(candidate_id, scores)
         (stage / "summary.json").write_text(
             json.dumps(

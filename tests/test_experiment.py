@@ -1442,6 +1442,48 @@ def test_study_resume_reclaims_interrupted_running_records(
     assert len(revisions) == 36
 
 
+def test_study_resume_trusts_completed_records(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    payload = _payload(tmp_path)
+    payload["tasks"] = ["da-1-1"]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    output = tmp_path / "runs" / "revisions"
+    output.mkdir(parents=True)
+    runner = StudyRunner(StudyRunConfig(
+        experiment=experiment,
+        seed_run_dir=tmp_path / "runs" / "seeds",
+        paraphrase_run_dir=tmp_path / "runs" / "paraphrases",
+        output_dir=output,
+        max_concurrency=1,
+        resume=True,
+    ))
+    assignments = sorted(
+        experiment.assignments,
+        key=lambda item: int(item["execution_order"]),
+    )
+    manifest = runner._new_manifest(assignments)
+    for record in manifest["records"]:  # type: ignore[union-attr]
+        record["status"] = "completed"
+    runner._write_manifest(manifest)
+
+    def unexpected(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("resume revalidated a completed record")
+
+    monkeypatch.setattr(study_module, "validate_paraphrase_run", lambda *_: None)
+    monkeypatch.setattr(study_module, "validate_completed_revision", unexpected)
+    monkeypatch.setattr(study_module, "run_submission_revision", unexpected)
+
+    assert runner.run() == 0
+    finished = json.loads((output / "study.json").read_text())
+    assert finished["status"] == "completed"
+    assert {record["status"] for record in finished["records"]} == {"completed"}
+
+
 def test_study_reports_recorded_assignment_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

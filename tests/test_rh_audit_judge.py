@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
 from pathlib import Path
+import threading
 from types import SimpleNamespace
 
 import pytest
@@ -62,6 +64,27 @@ def _wire_report() -> dict[str, object]:
         }],
         "overall_reasoning": "The evidence satisfies the criterion.",
     }
+
+
+def _records(**kwargs):
+    spec = build_rh_full_rubric_run_spec(**kwargs)
+    usage = [
+        {
+            "provider": spec.provider,
+            "requested_model": spec.requested_model,
+            "effective_model": spec.requested_model,
+            "response_id": f"response-{index}",
+            "request_parameters": audit_module._request_parameters(spec, index),
+            "raw_usage": {"input_tokens": 1, "output_tokens": 1},
+        }
+        for index in range(5)
+    ]
+    return records_from_raw_reports(
+        rubric_text=RUBRIC,
+        raw_reports=[_report() for _index in range(5)],
+        spec=spec,
+        call_usage=usage,
+    )
 
 
 def _many_criterion_rubric(count: int) -> str:
@@ -314,26 +337,7 @@ def test_audit_judge_publishes_and_resumes_sealed_artifacts(
     def grade(**kwargs):
         nonlocal calls
         calls += 1
-        spec = build_rh_full_rubric_run_spec(**kwargs)
-        usage = [
-            {
-                "provider": spec.provider,
-                "requested_model": spec.requested_model,
-                "effective_model": spec.requested_model,
-                "response_id": f"response-{index}",
-                "request_parameters": audit_module._request_parameters(
-                    spec, index
-                ),
-                "raw_usage": {"input_tokens": 1, "output_tokens": 1},
-            }
-            for index in range(5)
-        ]
-        return records_from_raw_reports(
-            rubric_text=RUBRIC,
-            raw_reports=[_report() for _index in range(5)],
-            spec=spec,
-            call_usage=usage,
-        )
+        return _records(**kwargs)
 
     monkeypatch.setattr(audit_module, "grade_rh_full_rubric", grade)
     attempt_id = "a" * 32
@@ -351,3 +355,64 @@ def test_audit_judge_publishes_and_resumes_sealed_artifacts(
     assert validation["score"] == 100
     assert validation["engine_execution"]["temperature"] is None
     assert first.evaluation_path.is_file()
+
+
+def test_audit_judge_serializes_concurrent_exact_evaluations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_dir = tmp_path / "tasks" / "da-1-1"
+    task_dir.mkdir(parents=True)
+    rubric_path = tmp_path / "rubric.txt"
+    rubric_path.write_text(RUBRIC)
+    submission = tmp_path / "s000"
+    submission.mkdir()
+    config = SubmissionJudgeConfig(
+        task_dir=task_dir,
+        experiment_dir=tmp_path / "audit",
+        benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
+        review="trace",
+        judge_model="claude-opus-5",
+        rubric_name=None,
+        rubric_set=None,
+        rubric_path=rubric_path,
+        max_review_chars=None,
+        max_retries=1,
+    )
+    rubric = FrozenRubric(
+        text=RUBRIC,
+        sha256=sha256_text(RUBRIC),
+        source="rubric-path",
+        rubric_set_id=None,
+        rubric_id=None,
+        structured_rubric_sha256=None,
+        manifest_sha256=None,
+    )
+    judge = RhAuditRubricJudge(config, rubric)
+    judge._review_delegate = SimpleNamespace(
+        review_inputs=lambda _submission: ("workspace", "answer")
+    )
+    entered = threading.Event()
+    release = threading.Event()
+    calls = 0
+    calls_lock = threading.Lock()
+
+    def grade(**kwargs):
+        nonlocal calls
+        with calls_lock:
+            calls += 1
+        entered.set()
+        assert release.wait(timeout=5)
+        return _records(**kwargs)
+
+    monkeypatch.setattr(audit_module, "grade_rh_full_rubric", grade)
+    attempt_id = "b" * 32
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(judge.evaluate, submission, attempt_id)
+        assert entered.wait(timeout=5)
+        second = pool.submit(judge.evaluate, submission, attempt_id)
+        release.set()
+        results = (first.result(timeout=5), second.result(timeout=5))
+
+    assert calls == 1
+    assert results[0] == results[1]

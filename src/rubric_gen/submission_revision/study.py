@@ -140,22 +140,6 @@ class StudyRunner:
             record = _record_for(manifest, assignment_id)
             experiment = self._experiment_dir(assignment)
             if record.get("status") == "completed":
-                try:
-                    validate_completed_revision(
-                        experiment,
-                        assignment,
-                        self.experiment,
-                        self.seed_root,
-                        self.paraphrase_root,
-                        vllm_endpoints=self.config.vllm_endpoints,
-                        judgment_reuse_root=self.root / "shared-judgments",
-                    )
-                except Exception as exc:
-                    record.update({
-                        "status": "invalid",
-                        "error_type": type(exc).__name__,
-                        "error": str(exc),
-                    })
                 continue
             if record.get("status") == "invalid":
                 continue

@@ -112,6 +112,7 @@ def _retry_disposition(exc: Exception) -> tuple[bool, bool]:
         "insufficient_quota",
         "billing quota",
         "prepayment credits are depleted",
+        "credit balance is too low",
     )
     if any(marker in combined for marker in unavailable_markers):
         return False, True

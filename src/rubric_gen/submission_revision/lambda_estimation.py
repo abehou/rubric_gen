@@ -32,6 +32,8 @@ _SUMMARY_KEYS = frozenset({
     "predispatch_plans",
     "condition_aggregates",
     "paired_condition_contrasts",
+    "rubric_policy_coverage",
+    "rubric_policy_aggregates",
     "assignments",
 })
 _ESTIMAND_KEYS = frozenset({
@@ -159,6 +161,8 @@ def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
         "direct_ensemble",
         "predispatch_plans",
         "condition_aggregates",
+        "rubric_policy_coverage",
+        "rubric_policy_aggregates",
     ):
         _mapping(value, key)
     if type(value.get("paired_condition_contrasts")) is not list:

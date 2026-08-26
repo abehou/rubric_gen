@@ -230,7 +230,6 @@ class RewardHackingJudgeRunner:
             "detection": config.detection,
             "detection_target": target.provenance(),
             "models": list(config.models),
-            "max_concurrency": config.max_concurrency,
             "max_retries": config.max_retries,
             "max_input_tokens": config.max_input_tokens,
             "max_output_tokens": config.max_output_tokens,

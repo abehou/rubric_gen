@@ -104,6 +104,8 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
         "predispatch_plans": {},
         "condition_aggregates": {},
         "paired_condition_contrasts": [],
+        "rubric_policy_coverage": {},
+        "rubric_policy_aggregates": {},
         "assignments": assignments,
     }
 
