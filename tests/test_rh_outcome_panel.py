@@ -9,11 +9,11 @@ from types import SimpleNamespace
 import pytest
 
 import rubric_gen.submission_revision.rh_outcome_panel as panel_module
-from rubric_gen.submission_revision.rh_diagnostics import EvaluationConfig
+from rubric_gen.submission_revision.rh_protocol import EvaluationConfig
 from rubric_gen.submission_revision.rh_outcome_panel import (
+    HolisticPairwiseRunner,
+    MechanisticEvaluationRunner,
     PANEL_POLICY,
-    ResilientHolisticPairwiseRunner,
-    ResilientMechanisticEvaluationRunner,
 )
 
 
@@ -47,7 +47,7 @@ def test_mechanistic_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = ResilientMechanisticEvaluationRunner(_config(tmp_path), ())
+    runner = MechanisticEvaluationRunner(_config(tmp_path), ())
     jobs = tuple(_job(model) for model in (*MODELS, "weak"))
     runner._prepared = SimpleNamespace(
         targets=(SimpleNamespace(assignment_id="a-1"),),
@@ -82,7 +82,7 @@ def test_mechanistic_panel_uses_every_stage_complete_judge(
     )
     monkeypatch.setattr(runner, "_run_job", run_job)
     monkeypatch.setattr(
-        panel_module.rh,
+        panel_module.mechanistic,
         "_mechanistic_job_identity",
         lambda job: {"model": job.model, "assignment_id": "a-1"},
     )
@@ -113,7 +113,7 @@ def test_mechanistic_panel_replaces_obsolete_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = replace(_config(tmp_path), resume=True)
-    runner = ResilientMechanisticEvaluationRunner(config, ())
+    runner = MechanisticEvaluationRunner(config, ())
     jobs = tuple(_job(model) for model in (*MODELS, "weak"))
     runner._prepared = SimpleNamespace(
         targets=(SimpleNamespace(assignment_id="a-1"),),
@@ -145,7 +145,7 @@ def test_mechanistic_panel_replaces_obsolete_summary(
         },
     )
     monkeypatch.setattr(
-        panel_module.rh,
+        panel_module.mechanistic,
         "_mechanistic_job_identity",
         lambda job: {"model": job.model, "assignment_id": "a-1"},
     )
@@ -162,36 +162,25 @@ def test_mechanistic_panel_replaces_obsolete_summary(
     assert summary["available_models"] == list(MODELS)
 
 
-def test_mechanistic_panel_skips_holdouts_and_keeps_resume_records(
+def test_mechanistic_panel_keeps_resume_records(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = replace(_config(tmp_path), resume=True)
-    runner = ResilientMechanisticEvaluationRunner(config, ())
+    runner = MechanisticEvaluationRunner(config, ())
 
-    def job(
-        key: str,
-        model: str,
-        role: str | None = None,
-        *,
-        bank: bool = False,
-    ) -> SimpleNamespace:
+    def job(key: str, model: str) -> SimpleNamespace:
         return SimpleNamespace(
             key=key,
             model=model,
-            roles=(() if role is None else (SimpleNamespace(name=role),)),
-            bank_members=((object(),) if bank else ()),
-            specification_anchors=(),
         )
 
-    shared_holdout = job("shared", "gpt", "holdout")
-    selected = job("shared", "gpt", "selected")
-    pure_holdout = job("skip", "gpt", "holdout")
-    weak = job("weak", "weak", bank=True)
+    selected = job("selected", "gpt")
+    weak = job("weak", "weak")
     runner._prepared = SimpleNamespace(
         targets=(SimpleNamespace(assignment_id="a-1"),),
-        jobs=(shared_holdout, selected, pure_holdout, weak),
-        unique_jobs=(shared_holdout, pure_holdout, weak),
+        jobs=(selected, weak),
+        unique_jobs=(selected, weak),
         predispatch_plan={},
     )
     manifest = {
@@ -218,7 +207,7 @@ def test_mechanistic_panel_skips_holdouts_and_keeps_resume_records(
         ),
     )
     monkeypatch.setattr(
-        panel_module.rh,
+        panel_module.mechanistic,
         "_mechanistic_job_identity",
         lambda current: {
             "model": current.model,
@@ -233,19 +222,18 @@ def test_mechanistic_panel_skips_holdouts_and_keeps_resume_records(
     )
 
     assert runner.run() == 0
-    assert calls == ["shared", "weak"]
+    assert calls == ["selected", "weak"]
     assert (tmp_path / "output" / "records" / "sentinel.json").exists()
     summary = json.loads((tmp_path / "output" / "summary.json").read_text())
     assert summary["planned_semantic_judgment_count"] == 2
-    assert summary["skipped_holdout_semantic_judgment_count"] == 1
-    assert summary["skipped_holdout_assignment_reference_count"] == 2
+    assert summary["assignment_reference_count"] == 2
 
 
 def test_mechanistic_panel_fails_when_every_strong_judge_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = ResilientMechanisticEvaluationRunner(_config(tmp_path), ())
+    runner = MechanisticEvaluationRunner(_config(tmp_path), ())
     jobs = tuple(_job(model) for model in (*MODELS, "weak"))
     runner._prepared = SimpleNamespace(
         targets=(),
@@ -338,7 +326,7 @@ def test_holistic_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = ResilientHolisticPairwiseRunner(_config(tmp_path), ())
+    runner = HolisticPairwiseRunner(_config(tmp_path), ())
     absolute = tuple(_job(model, "absolute") for model in MODELS)
     pairwise = tuple(_job(model, "pairwise") for model in MODELS)
     runner._prepared = SimpleNamespace(
@@ -387,18 +375,18 @@ def test_holistic_panel_uses_every_stage_complete_judge(
         lambda job: run_job("pairwise", job),
     )
     monkeypatch.setattr(
-        panel_module.rh,
+        panel_module.holistic,
         "_absolute_assignment_reference",
         lambda job, _judgment: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(
-        panel_module.rh,
+        panel_module.holistic,
         "_pairwise_assignment_reference",
         lambda job, _judgment: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
-        panel_module.rh,
+        panel_module.holistic,
         "_summarize_holistic_scores",
         lambda _targets, _absolute, _pairwise, models: (
             observed_models.append(models) or [{"assignment_id": "a-1"}]

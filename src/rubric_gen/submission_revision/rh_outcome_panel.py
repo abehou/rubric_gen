@@ -5,12 +5,16 @@ from __future__ import annotations
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
 from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.progress import TerminalProgress
-from rubric_gen.submission_revision import rh_diagnostics as rh
+from rubric_gen.submission_revision import rh_protocol as rh
+from rubric_gen.submission_revision import rh_holistic as holistic
+from rubric_gen.submission_revision import rh_mechanistic as mechanistic
 from rubric_gen.submission_revision.artifacts import read_json_object
+from rubric_gen.submission_revision.rh_output_store import RhOutputStore
 
 
 PANEL_POLICY: dict[str, object] = {
@@ -87,7 +91,7 @@ def _failure_record(
 
 
 def _prior_failures(
-    output: rh._RhOutputStore,
+    output: RhOutputStore,
     *,
     expected_kind: str,
     instruments: frozenset[str] | None = None,
@@ -166,20 +170,151 @@ def _run_with_circuit(
         raise
 
 
-def _required_mechanistic_reference(job: object) -> bool:
-    """Return true when a job supports a current non-holdout estimand."""
 
-    if not all(
-        hasattr(job, name)
-        for name in ("roles", "bank_members", "specification_anchors")
-    ):
-        return True
-    if job.bank_members or job.specification_anchors:  # type: ignore[attr-defined]
-        return True
-    return any(
-        role.name == "selected"  # type: ignore[attr-defined]
-        for role in job.roles  # type: ignore[attr-defined]
+@dataclass
+class _MechanisticObservations:
+    selected: dict[tuple[str, int | None, str, str], float] = field(
+        default_factory=dict
     )
+    bank: dict[tuple[str, str, str, str], float] = field(default_factory=dict)
+    anchors: dict[tuple[str, str, str, str], float] = field(default_factory=dict)
+
+
+def _store_unique(
+    observations: dict[tuple[object, ...], float],
+    key: tuple[object, ...],
+    score: float,
+    label: str,
+) -> None:
+    if key in observations:
+        raise RuntimeError(f"duplicate RH {label} observation: {key}")
+    observations[key] = score
+
+
+def _mechanistic_record_context(
+    record: dict[str, object],
+) -> tuple[str, str, float, str]:
+    boundary = str(record["boundary"])
+    model = str(record["model"])
+    score = rh._finite_score(record.get("score"), "RH mechanistic score")
+    rubric_sha256 = record.get("rubric_sha256")
+    if not rh._is_sha256(rubric_sha256):
+        raise RuntimeError("RH mechanistic record has an invalid rubric hash")
+    return boundary, model, score, str(rubric_sha256)
+
+
+def _collect_bank_observations(
+    target: rh.EvaluationTarget,
+    record: dict[str, object],
+    context: tuple[str, str, float, str],
+    observations: _MechanisticObservations,
+) -> None:
+    boundary, model, score, rubric_sha256 = context
+    bindings = record.get("bank_members")
+    if not isinstance(bindings, list):
+        raise RuntimeError("RH bank-member bindings are invalid")
+    for binding in bindings:
+        if not isinstance(binding, dict):
+            raise RuntimeError("RH bank-member binding is invalid")
+        bank_role = binding.get("bank_role")
+        if bank_role == "terminal_common":
+            generation = target.final_bank_generation
+        elif bank_role == "online_local":
+            generation = target.bank_generation(boundary)
+        else:
+            raise RuntimeError("RH bank-member binding has an invalid role")
+        items = {
+            item.rubric.content_sha256: item for item in generation.bank.items
+        }
+        member_hash = binding.get("member_sha256")
+        if type(member_hash) is not str or member_hash not in items:
+            raise RuntimeError("RH bank-member binding is outside the bank")
+        if member_hash != rubric_sha256:
+            raise RuntimeError(
+                "RH bank-member binding does not match the judged rubric"
+            )
+        expected = mechanistic._expected_bank_binding(
+            target,
+            boundary,
+            items[member_hash],
+            str(bank_role),
+        ).payload()
+        if binding != expected:
+            raise RuntimeError("RH bank-member binding changed")
+        _store_unique(
+            observations.bank,
+            (str(bank_role), boundary, model, member_hash),
+            score,
+            "bank-member",
+        )
+
+
+def _collect_anchor_observations(
+    target: rh.EvaluationTarget,
+    record: dict[str, object],
+    context: tuple[str, str, float, str],
+    observations: _MechanisticObservations,
+) -> None:
+    boundary, model, score, rubric_sha256 = context
+    anchors = record.get("specification_anchors")
+    if not isinstance(anchors, list):
+        raise RuntimeError("RH specification-anchor bindings are invalid")
+    expected = mechanistic._expected_specification_anchor_binding(target).payload()
+    expected_hash = target.final_bank_generation.bank.specification_anchor.content_sha256
+    for anchor in anchors:
+        if (
+            not isinstance(anchor, dict)
+            or anchor != expected
+            or anchor.get("specification_anchor_sha256") != expected_hash
+            or expected_hash != rubric_sha256
+        ):
+            raise RuntimeError("RH specification-anchor binding changed")
+        _store_unique(
+            observations.anchors,
+            ("terminal_common", boundary, model, expected_hash),
+            score,
+            "specification-anchor",
+        )
+
+
+def _collect_selected_observations(
+    target: rh.EvaluationTarget,
+    record: dict[str, object],
+    context: tuple[str, str, float, str],
+    observations: _MechanisticObservations,
+) -> None:
+    boundary, model, score, rubric_sha256 = context
+    roles = record.get("rubric_roles")
+    if not isinstance(roles, list):
+        raise RuntimeError("RH mechanistic record has no rubric roles")
+    expected = {
+        "name": "selected",
+        "variant_index": target.selection.optimizer_index,
+    }
+    for role in roles:
+        if role != expected or rubric_sha256 != target.selection.optimizer_sha256:
+            raise RuntimeError(
+                "RH mechanistic rubric role does not match the judged rubric"
+            )
+        _store_unique(
+            observations.selected,
+            ("selected", target.selection.optimizer_index, boundary, model),
+            score,
+            "mechanistic",
+        )
+
+
+def _collect_mechanistic_observations(
+    target: rh.EvaluationTarget,
+    records: list[dict[str, object]],
+) -> _MechanisticObservations:
+    observations = _MechanisticObservations()
+    for record in records:
+        context = _mechanistic_record_context(record)
+        _collect_bank_observations(target, record, context, observations)
+        _collect_anchor_observations(target, record, context, observations)
+        _collect_selected_observations(target, record, context, observations)
+    return observations
 
 
 def _summarize_mechanistic_scores(
@@ -187,160 +322,59 @@ def _summarize_mechanistic_scores(
     records: list[dict[str, object]],
     models: tuple[str, ...],
 ) -> list[dict[str, object]]:
-    """Summarize the current mechanistic panel without holdout rubrics."""
+    """Summarize the selected and bank-based mechanistic panel."""
 
     by_assignment: dict[str, list[dict[str, object]]] = {}
     for record in records:
         by_assignment.setdefault(str(record["assignment_id"]), []).append(record)
     results: list[dict[str, object]] = []
     for target in targets:
-        observations: dict[tuple[str, int | None, str, str], float] = {}
-        bank_observations: dict[tuple[str, str, str, str], float] = {}
-        anchor_observations: dict[tuple[str, str, str, str], float] = {}
-        for record in by_assignment[target.assignment_id]:
-            boundary = str(record["boundary"])
-            model = str(record["model"])
-            score = rh._finite_score(record.get("score"), "RH mechanistic score")
-            rubric_sha256 = record.get("rubric_sha256")
-            if not rh._is_sha256(rubric_sha256):
-                raise RuntimeError("RH mechanistic record has an invalid rubric hash")
-
-            bank_members = record.get("bank_members")
-            if not isinstance(bank_members, list):
-                raise RuntimeError("RH bank-member bindings are invalid")
-            for bank_member in bank_members:
-                if not isinstance(bank_member, dict):
-                    raise RuntimeError("RH bank-member binding is invalid")
-                bank_role = bank_member.get("bank_role")
-                if bank_role == "terminal_common":
-                    generation = target.final_bank_generation
-                elif bank_role == "online_local":
-                    generation = target.bank_generation(boundary)
-                else:
-                    raise RuntimeError("RH bank-member binding has an invalid role")
-                items = {
-                    item.rubric.content_sha256: item
-                    for item in generation.bank.items
-                }
-                member_hash = bank_member.get("member_sha256")
-                if type(member_hash) is not str or member_hash not in items:
-                    raise RuntimeError("RH bank-member binding is outside the bank")
-                if member_hash != rubric_sha256:
-                    raise RuntimeError(
-                        "RH bank-member binding does not match the judged rubric"
-                    )
-                expected = rh._expected_bank_binding(
-                    target,
-                    boundary,
-                    items[member_hash],
-                    str(bank_role),
-                ).payload()
-                if bank_member != expected:
-                    raise RuntimeError("RH bank-member binding changed")
-                key = (str(bank_role), boundary, model, member_hash)
-                if key in bank_observations:
-                    raise RuntimeError(f"duplicate RH bank-member observation: {key}")
-                bank_observations[key] = score
-
-            anchors = record.get("specification_anchors")
-            if not isinstance(anchors, list):
-                raise RuntimeError("RH specification-anchor bindings are invalid")
-            for anchor in anchors:
-                if not isinstance(anchor, dict):
-                    raise RuntimeError("RH specification-anchor binding is invalid")
-                anchor_hash = anchor.get("specification_anchor_sha256")
-                expected_hash = (
-                    target.final_bank_generation.bank
-                    .specification_anchor.content_sha256
-                )
-                if (
-                    anchor.get("bank_role") != "terminal_common"
-                    or anchor_hash != expected_hash
-                    or anchor_hash != rubric_sha256
-                    or anchor
-                    != rh._expected_specification_anchor_binding(target).payload()
-                ):
-                    raise RuntimeError("RH specification-anchor binding changed")
-                key = ("terminal_common", boundary, model, str(anchor_hash))
-                if key in anchor_observations:
-                    raise RuntimeError(
-                        f"duplicate RH specification-anchor observation: {key}"
-                    )
-                anchor_observations[key] = score
-
-            roles = record.get("rubric_roles")
-            if not isinstance(roles, list):
-                raise RuntimeError("RH mechanistic record has no rubric roles")
-            for role in roles:
-                if (
-                    not isinstance(role, dict)
-                    or set(role) != {"name", "variant_index"}
-                    or type(role.get("name")) is not str
-                    or type(role.get("variant_index")) is not int
-                ):
-                    raise RuntimeError("RH mechanistic rubric role is invalid")
-                if role["name"] == "holdout":
-                    continue
-                if (
-                    role["name"] != "selected"
-                    or role["variant_index"] != target.selection.optimizer_index
-                    or rubric_sha256 != target.selection.optimizer_sha256
-                ):
-                    raise RuntimeError(
-                        "RH mechanistic rubric role does not match the judged rubric"
-                    )
-                key = (
-                    "selected",
-                    target.selection.optimizer_index,
-                    boundary,
-                    model,
-                )
-                if key in observations:
-                    raise RuntimeError(f"duplicate RH mechanistic observation: {key}")
-                observations[key] = score
-
+        observations = _collect_mechanistic_observations(
+            target,
+            by_assignment[target.assignment_id],
+        )
         terminal_common = {
-            boundary: rh._bank_score_panel(
+            boundary: mechanistic._bank_score_panel(
                 target,
                 boundary,
                 "terminal_common",
-                bank_observations,
+                observations.bank,
                 models,
             )
             for boundary in rh.BOUNDARIES
         }
         terminal_weak = {
-            boundary: rh._bank_score_panel(
+            boundary: mechanistic._bank_score_panel(
                 target,
                 boundary,
                 "terminal_common",
-                bank_observations,
+                observations.bank,
                 (target.weak_model,),
             )
             for boundary in rh.BOUNDARIES
         }
         online_local = {
-            boundary: rh._bank_score_panel(
+            boundary: mechanistic._bank_score_panel(
                 target,
                 boundary,
                 "online_local",
-                bank_observations,
+                observations.bank,
                 models,
             )
             for boundary in rh.BOUNDARIES
         }
         terminal_anchor = {
-            boundary: rh._specification_anchor_score_panel(
+            boundary: mechanistic._specification_anchor_score_panel(
                 target,
                 boundary,
-                anchor_observations,
+                observations.anchors,
                 models,
             )
             for boundary in rh.BOUNDARIES
         }
         selected = {
-            boundary: rh._score_panel(
-                observations,
+            boundary: mechanistic._score_panel(
+                observations.selected,
                 "selected",
                 target.selection.optimizer_index,
                 boundary,
@@ -405,7 +439,7 @@ def _summarize_mechanistic_scores(
     return results
 
 
-class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
+class MechanisticEvaluationRunner(mechanistic.MechanisticEvaluationStage):
     """Score with strong judges that complete every mechanistic job."""
 
     def run(self) -> int:
@@ -419,21 +453,11 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
         weak_model = str(self.config.experiment.protocol["judge_model"])
         manifest = self._manifest(prepared, models, weak_model)
         self.output.prepare(manifest, self.config.resume)
-        required_jobs = tuple(
-            job for job in prepared.jobs if _required_mechanistic_reference(job)
+        unique_jobs = prepared.unique_jobs
+        failures = _prior_failures(
+            self.output,
+            expected_kind=rh.MECHANISTIC_KIND,
         )
-        required_keys = {job.key for job in required_jobs}
-        unique_jobs = tuple(
-            job for job in prepared.unique_jobs if job.key in required_keys
-        )
-        failures = {
-            key: value
-            for key, value in _prior_failures(
-                self.output,
-                expected_kind=rh.MECHANISTIC_KIND,
-            ).items()
-            if key in required_keys
-        }
         jobs_by_key = {job.key: job for job in unique_jobs}
         if not set(failures) <= set(jobs_by_key):
             raise RuntimeError("RH mechanistic failure is outside the accepted plan")
@@ -507,14 +531,14 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
         included_models = set(available_models) | {weak_model}
         records = [
             {
-                **rh._mechanistic_job_identity(job),
+                **mechanistic._mechanistic_job_identity(job),
                 "judgment_key": job.key,
                 "score": judgments[job.key]["score"],
                 "attempt_id": judgments[job.key]["attempt_id"],
                 "validation_path": judgments[job.key]["validation_path"],
                 "evaluation_path": judgments[job.key]["evaluation_path"],
             }
-            for job in required_jobs
+            for job in prepared.jobs
             if job.model in included_models
         ]
         records.sort(key=rh._record_sort_key)
@@ -530,12 +554,8 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
             "failed_models": [
                 model for model in models if model not in available_models
             ],
-            "rubric_scope": "terminal-local-anchor-selected-no-holdouts",
-            "accepted_plan_semantic_judgment_count": len(prepared.unique_jobs),
+            "rubric_scope": "terminal-local-anchor-selected",
             "planned_semantic_judgment_count": len(unique_jobs),
-            "skipped_holdout_semantic_judgment_count": (
-                len(prepared.unique_jobs) - len(unique_jobs)
-            ),
             "successful_semantic_judgment_count": len(judgments),
             "used_semantic_judgment_count": len({
                 job.key
@@ -544,9 +564,6 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
             }),
             "failed_semantic_judgment_count": len(failure_records),
             "assignment_reference_count": len(records),
-            "skipped_holdout_assignment_reference_count": (
-                len(prepared.jobs) - len(required_jobs)
-            ),
             "judge_failures": failure_records,
             "records": records,
             "assignments": _summarize_mechanistic_scores(
@@ -563,7 +580,7 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
 
     def _manifest(
         self,
-        prepared: rh._PreparedMechanisticEvaluation,
+        prepared: rh.PreparedMechanisticEvaluation,
         models: tuple[str, ...],
         weak_model: str,
     ) -> dict[str, object]:
@@ -584,14 +601,14 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
             ),
             "assignment_reference_count": len(jobs),
             "assignment_reference_identity_sha256": (
-                rh._mechanistic_assignment_reference_sha256(jobs)
+                mechanistic._mechanistic_assignment_reference_sha256(jobs)
             ),
             "boundaries": list(rh.BOUNDARIES),
             "endpoint_bank": "frozen-terminal-bank",
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-route-engine-"
                 "implementation-repeat; terminal specification-anchor, bank-"
-                "member, selected, and holdout roles do not duplicate an exact "
+                "member, and selected roles do not duplicate an exact "
                 "semantic request"
             ),
             "loss_weights": self.config.experiment.outcome_audit["loss_weights"],
@@ -599,7 +616,7 @@ class ResilientMechanisticEvaluationRunner(rh.MechanisticEvaluationRunner):
         }
 
 
-class ResilientHolisticPairwiseRunner(rh.HolisticPairwiseRunner):
+class HolisticPairwiseRunner(holistic.HolisticEvaluationStage):
     """Score with strong judges that complete every rubric-free job."""
 
     def run(self) -> int:
@@ -703,12 +720,18 @@ class ResilientHolisticPairwiseRunner(rh.HolisticPairwiseRunner):
             raise RuntimeError("all configured RH holistic judges failed")
         available_set = set(available_models)
         absolute_records = [
-            rh._absolute_assignment_reference(job, absolute_judgments[job.key])
+            holistic._absolute_assignment_reference(
+                job,
+                absolute_judgments[job.key],
+            )
             for job in prepared.absolute_jobs
             if job.model in available_set
         ]
         pairwise_records = [
-            rh._pairwise_assignment_reference(job, pairwise_judgments[job.key])
+            holistic._pairwise_assignment_reference(
+                job,
+                pairwise_judgments[job.key],
+            )
             for job in prepared.pairwise_jobs
             if job.model in available_set
         ]
@@ -770,7 +793,7 @@ class ResilientHolisticPairwiseRunner(rh.HolisticPairwiseRunner):
                     for key in sorted(used_pairwise)
                 },
             },
-            "assignments": rh._summarize_holistic_scores(
+            "assignments": holistic._summarize_holistic_scores(
                 prepared.targets,
                 absolute_records,
                 pairwise_records,
@@ -785,7 +808,7 @@ class ResilientHolisticPairwiseRunner(rh.HolisticPairwiseRunner):
 
     def _manifest(
         self,
-        prepared: rh._PreparedHolisticEvaluation,
+        prepared: rh.PreparedHolisticEvaluation,
     ) -> dict[str, object]:
         return {
             "kind": rh.HOLISTIC_KIND,

@@ -17,7 +17,7 @@ from rubric_gen.submission_revision.lambda_estimation import (
     point_identifiability_issues,
     task_cluster_bootstrap,
 )
-from rubric_gen.submission_revision.rh_diagnostics import EVALUATION_KIND
+from rubric_gen.submission_revision.rh_protocol import EVALUATION_KIND
 
 
 def _observation(

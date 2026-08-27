@@ -21,6 +21,16 @@ import benchmarks. Callers must pass prompts, required outputs, and session rule
 It selects a submission benchmark through the registry. Its audit adapter converts
 completed revisions into blinded evidence sources.
 
+Reward-hacking evaluation uses focused modules inside `submission_revision`.
+
+- `rh_protocol.py` owns evaluation contracts, request identities, and limits.
+- `rh_evaluation_targets.py` loads completed study assignments.
+- `rh_mechanistic.py` owns rubric-based planning and artifact validation.
+- `rh_holistic.py` owns rubric-free planning and artifact validation.
+- `rh_outcome_panel.py` runs both model panels and applies failure policy.
+- `rh_evaluation_report.py` combines completed stage results.
+- `rh_output_store.py` owns secure stage output operations.
+
 `rubric_gen.reward_hacking` owns detector prompts, model-panel execution, costs,
 and aggregate metrics. The runner accepts one evidence source. It does not parse
 benchmark datasets or revision manifests.

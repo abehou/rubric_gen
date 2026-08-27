@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from rubric_gen.submission_revision.rh_diagnostics import EVALUATION_KIND
+from rubric_gen.submission_revision.rh_protocol import EVALUATION_KIND
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
 

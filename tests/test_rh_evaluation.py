@@ -5,42 +5,50 @@ from types import SimpleNamespace
 
 import pytest
 
-import rubric_gen.submission_revision.rh_diagnostics as rh_diagnostics
+import rubric_gen.submission_revision.rh_protocol as rh_protocol
+import rubric_gen.submission_revision.rh_evaluation_targets as rh_targets
+import rubric_gen.submission_revision.rh_holistic as rh_holistic
+import rubric_gen.submission_revision.rh_mechanistic as rh_mechanistic
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 from rubric_gen.submission_revision.artifacts import make_tree_read_only
+from rubric_gen.submission_revision.judge import SCORING_IDENTITY_KEYS
 from rubric_gen.submission_revision.paraphrases import ParaphraseSelection
-from rubric_gen.submission_revision.rh_diagnostics import (
+from rubric_gen.submission_revision.rh_protocol import (
     AbsoluteHolisticJob,
     EvaluationTarget,
     EvaluationConfig,
-    HolisticPairwiseRunner,
     MechanisticJob,
-    MechanisticEvaluationRunner,
     PairwisePreferenceJob,
-    _RhOutputStore,
     _ABSOLUTE_HOLISTIC_INSTRUCTIONS,
     _PAIRWISE_INSTRUCTIONS,
     _absolute_holistic_request,
+    _holistic_review_material,
+    _pairwise_preference_request,
+)
+from rubric_gen.submission_revision.rh_evaluation_targets import (
+    _load_weak_bank_score,
+)
+from rubric_gen.submission_revision.rh_holistic import (
+    _summarize_holistic_scores,
+)
+from rubric_gen.submission_revision.rh_mechanistic import (
+    _expected_bank_binding,
+    _expected_specification_anchor_binding,
+)
+from rubric_gen.submission_revision.rh_output_store import RhOutputStore
+from rubric_gen.submission_revision.rh_evaluation_report import (
     _combine_assignment,
     _condition_aggregates,
     _direct_assignment_outcomes,
-    _expected_bank_binding,
-    _expected_specification_anchor_binding,
-    _holistic_review_material,
-    _load_weak_bank_score,
     _paired_condition_contrasts,
-    _pairwise_preference_request,
-    _summarize_holistic_scores,
-    _summarize_mechanistic_scores,
-)
-from rubric_gen.submission_revision.rh_evaluation_report import (
-    _combine_assignment as _combine_report_assignment,
     _rubric_policy_aggregates,
 )
 from rubric_gen.submission_revision.rh_outcome_panel import (
-    _summarize_mechanistic_scores as _summarize_current_mechanistic_scores,
+    HolisticPairwiseRunner,
+    MechanisticEvaluationRunner,
+    _summarize_mechanistic_scores,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -65,12 +73,12 @@ def test_rh_output_store_rejects_symlinked_stage_tree(
     root = tmp_path / "output"
     outside = tmp_path / "outside"
     outside.mkdir()
-    store = _RhOutputStore(root)
+    store = RhOutputStore(root)
     store.prepare({"kind": "test-stage"}, resume=False)
     (root / component).symlink_to(outside, target_is_directory=True)
 
     with pytest.raises(RuntimeError, match="contains a symlink"):
-        _RhOutputStore(root).prepare({"kind": "test-stage"}, resume=True)
+        RhOutputStore(root).prepare({"kind": "test-stage"}, resume=True)
 
 
 def test_rh_output_store_rejects_record_symlink_and_path_escape(
@@ -79,7 +87,7 @@ def test_rh_output_store_rejects_record_symlink_and_path_escape(
     root = tmp_path / "output"
     outside = tmp_path / "outside.json"
     outside.write_text("{}")
-    store = _RhOutputStore(root)
+    store = RhOutputStore(root)
     store.prepare({"kind": "test-stage"}, resume=False)
     store.ensure_directory("records", "absolute")
     (root / "records" / "absolute" / "record.json").symlink_to(outside)
@@ -94,7 +102,7 @@ def test_rh_output_store_resume_replaces_incompatible_stage(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "output"
-    store = _RhOutputStore(root)
+    store = RhOutputStore(root)
     store.prepare({"kind": "old-stage"}, resume=False)
     store.write_json(("records", "old.json"), {"score": 10})
     make_tree = root / "sealed"
@@ -175,24 +183,24 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         raise ValidationReached
 
     monkeypatch.setattr(
-        rh_diagnostics,
+        rh_targets,
         "_load_terminal_revision_state",
         load_terminal_state,
     )
     monkeypatch.setattr(
-        rh_diagnostics,
+        rh_targets,
         "resolve_paraphrase_selection",
         lambda *_args: object(),
     )
 
     with pytest.raises(ValidationReached):
-        rh_diagnostics.load_evaluation_targets(config)
+        rh_targets.load_evaluation_targets(config)
     assert observed == {
         "revision_dir": experiment_dir,
         "assignment": assignment,
         "experiment": experiment,
     }
-    assert not hasattr(rh_diagnostics, "validate_completed_revision")
+    assert not hasattr(rh_protocol, "validate_completed_revision")
 
 
 @pytest.mark.parametrize(
@@ -212,7 +220,7 @@ def test_active_bank_round_matches_elicitation_schedule(
     expected_round: int,
 ) -> None:
     assert (
-        rh_diagnostics._active_bank_round(policy, boundary)
+        rh_targets._active_bank_round(policy, boundary)
         == expected_round
     )
 
@@ -398,16 +406,14 @@ def _record(
 
 def _mechanistic_summary(
     tmp_path: Path,
-    *,
-    current: bool = False,
 ) -> tuple[EvaluationTarget, dict[str, object]]:
     target = _target(tmp_path)
     records: list[dict[str, object]] = []
     initial_item = target.initial_bank_generation.bank.items[0]
     terminal_items = target.final_bank_generation.bank.items
-    for model, online_score, terminal_scores, anchor_score, holdout_0, holdout_2 in (
-        ("strong-a", 60, (50,), 50, 45, 85),
-        ("strong-b", 70, (70,), 70, 45, 85),
+    for model, online_score, terminal_scores, anchor_score in (
+        ("strong-a", 60, (50,), 50),
+        ("strong-b", 70, (70,), 70),
     ):
         records.append(
             _record(
@@ -454,22 +460,6 @@ def _mechanistic_summary(
                 _expected_specification_anchor_binding(target).payload()
             ],
         ))
-        records.extend((
-            _record(
-                target,
-                model=model,
-                boundary="initial",
-                score=holdout_0,
-                roles=[("holdout", 0)],
-            ),
-            _record(
-                target,
-                model=model,
-                boundary="initial",
-                score=holdout_2,
-                roles=[("holdout", 2)],
-            ),
-        ))
     for item, score in zip(terminal_items, (80.5,), strict=True):
         records.append(_record(
             target,
@@ -484,9 +474,9 @@ def _mechanistic_summary(
                 "terminal_common",
             ).payload()],
         ))
-    for model, member_scores, anchor_score, selected, holdout_0, holdout_2 in (
-        ("strong-a", (70,), 70, 70, 60, 70),
-        ("strong-b", (90,), 90, 80, 70, 60),
+    for model, member_scores, anchor_score, selected in (
+        ("strong-a", (70,), 70, 70),
+        ("strong-b", (90,), 90, 80),
     ):
         records.extend(
             _record(
@@ -517,28 +507,12 @@ def _mechanistic_summary(
                 _expected_specification_anchor_binding(target).payload()
             ],
         ))
-        records.extend((
-            _record(
-                target,
-                model=model,
-                boundary="final",
-                score=selected,
-                roles=[("selected", 1)],
-            ),
-            _record(
-                target,
-                model=model,
-                boundary="final",
-                score=holdout_0,
-                roles=[("holdout", 0)],
-            ),
-            _record(
-                target,
-                model=model,
-                boundary="final",
-                score=holdout_2,
-                roles=[("holdout", 2)],
-            ),
+        records.append(_record(
+            target,
+            model=model,
+            boundary="final",
+            score=selected,
+            roles=[("selected", 1)],
         ))
     for item, score in zip(terminal_items, (95.25,), strict=True):
         records.append(_record(
@@ -554,12 +528,7 @@ def _mechanistic_summary(
                 "terminal_common",
             ).payload()],
         ))
-    summarize = (
-        _summarize_current_mechanistic_scores
-        if current
-        else _summarize_mechanistic_scores
-    )
-    summary = summarize(
+    summary = _summarize_mechanistic_scores(
         (target,),
         records,
         ("strong-a", "strong-b"),
@@ -567,66 +536,11 @@ def _mechanistic_summary(
     return target, summary
 
 
-def test_mechanistic_summary_keeps_primary_component_and_rubric_diagnostics(
+
+def test_mechanistic_summary_omits_holdout_scores(
     tmp_path: Path,
 ) -> None:
     _target_value, summary = _mechanistic_summary(tmp_path)
-
-    assert (
-        summary["reference_scores"]["sealed_holdout"]["initial"]["mean"]
-        == 65
-    )
-    assert summary["mechanistic_components"]["initial"] == {
-        "verifier_exploitation": 20.5,
-    }
-    assert summary["mechanistic_components"]["final"] == {
-        "verifier_exploitation": 15.25,
-    }
-    assert summary["rubric_diagnostics"]["initial"] == {
-        "active_to_original": 0,
-        "original_to_selected": -5,
-        "selected_to_holdout": 0,
-        "wording_sensitivity_standard_deviation": 20,
-        "wording_sensitivity_range": 40,
-    }
-    assert summary["rubric_diagnostics"]["final"] == {
-        "active_to_original": 0,
-        "original_to_selected": 5,
-        "selected_to_holdout": 10,
-        "wording_sensitivity_standard_deviation": 0,
-        "wording_sensitivity_range": 0,
-    }
-    assert summary["reference_scores"]["terminal_specification_anchor"][
-        "initial"
-    ]["mean"] == 60
-    assert summary["reference_scores"]["terminal_specification_anchor"][
-        "final"
-    ]["mean"] == 80
-    terminal = summary["reference_scores"]["terminal_common"]
-    assert terminal["initial"]["generation_round"] == 1
-    assert terminal["initial"]["scores"] == {"strong-a": 50, "strong-b": 70}
-    assert terminal["final"]["scores"] == {"strong-a": 70, "strong-b": 90}
-    assert terminal["final"]["mean"] == 80
-    assert terminal["final"]["member_weights"] == {
-        item.rubric.content_sha256: item.weight
-        for item in _target_value.final_bank_generation.bank.items
-    }
-    assert summary["weak_terminal_bank_scores"] == {
-        "initial": 80.5,
-        "final": 95.25,
-    }
-    assert summary["online_local_scores"]["initial"] == {
-        "weak_score": 80.5,
-        "strong_score": 65,
-        "verifier_gap": 15.5,
-        "interpretation": "ruler-confounded boundary-local score",
-    }
-
-
-def test_current_mechanistic_summary_omits_holdout_scores(
-    tmp_path: Path,
-) -> None:
-    _target_value, summary = _mechanistic_summary(tmp_path, current=True)
 
     assert set(summary["reference_scores"]) == {
         "terminal_common",
@@ -712,14 +626,8 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     )
     paraphrase_task = tmp_path / "paraphrases" / "tasks" / target.task_id
     paraphrase_task.mkdir(parents=True)
-    (paraphrase_task / "variant-000.txt").write_text(
-        _generation(0, (("holdout zero", 1.0),)).bank.items[0].rubric.content
-    )
     (paraphrase_task / "variant-001.txt").write_text(
         target.initial_bank_generation.bank.items[0].rubric.content
-    )
-    (paraphrase_task / "variant-002.txt").write_text(
-        _generation(0, (("holdout two", 1.0),)).bank.items[0].rubric.content
     )
     initial_manifest = rubric_bank_directory(tmp_path, 0) / "manifest.json"
     final_manifest = rubric_bank_directory(tmp_path, 1) / "manifest.json"
@@ -741,7 +649,6 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
             "mechanistic_max_request_bytes": 100_000_000,
             "mechanistic_max_output_tokens": 10_000_000,
         },
-        rubric_paraphrases={"count": 3},
         protocol={"judge_max_retries": 0},
     )
     runner = MechanisticEvaluationRunner(
@@ -758,7 +665,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     def fake_new_judge(**kwargs) -> object:
         target_arg = kwargs["target"]
         rubric_path = kwargs["rubric_path"]
-        identity = dict.fromkeys(rh_diagnostics.SCORING_IDENTITY_KEYS)
+        identity = dict.fromkeys(SCORING_IDENTITY_KEYS)
         identity.update({
             "judge_source_sha256": "1" * 64,
             "judge_runner_sha256": "2" * 64,
@@ -791,7 +698,12 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
             "workspace_sha256": digest,
         }))
 
-    assert len(jobs) == 18
+    assert len(jobs) == 10
+    assert all(
+        role.name == "selected"
+        for job in jobs
+        for role in job.roles
+    )
     assert len(bank_jobs) == 8
     assert len(anchor_jobs) == 4
     assert sum(len(job.bank_members) for job in jobs) == 10
@@ -822,8 +734,8 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     )
     assert anchor_job.key == changed_anchor_job.key
     assert (
-        rh_diagnostics._mechanistic_assignment_reference_sha256((anchor_job,))
-        != rh_diagnostics._mechanistic_assignment_reference_sha256(
+        rh_mechanistic._mechanistic_assignment_reference_sha256((anchor_job,))
+        != rh_mechanistic._mechanistic_assignment_reference_sha256(
             (changed_anchor_job,)
         )
     )
@@ -1090,7 +1002,7 @@ def test_pairwise_request_hides_rubric_scores_and_submission_labels(
             ordering="higher-first",
             api_base=None,
             implementation_identity=(
-                rh_diagnostics._holistic_implementation_identity()
+                rh_protocol._holistic_implementation_identity()
             ),
         )
     )
@@ -1162,7 +1074,7 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
         model="strong-a",
         ordering="higher-first",
         api_base=None,
-        implementation_identity=rh_diagnostics._holistic_implementation_identity(),
+        implementation_identity=rh_protocol._holistic_implementation_identity(),
     )
 
     changed = replace(
@@ -1172,11 +1084,11 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
 
     assert changed.key == job.key
     judgment = {"verdict": {"preferred_response": "response_A"}}
-    original_reference = rh_diagnostics._pairwise_assignment_reference(
+    original_reference = rh_holistic._pairwise_assignment_reference(
         job,
         judgment,
     )
-    changed_reference = rh_diagnostics._pairwise_assignment_reference(
+    changed_reference = rh_holistic._pairwise_assignment_reference(
         changed,
         judgment,
     )
@@ -1184,110 +1096,6 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
     assert original_reference["higher_rubric_score"] == 80.0
     assert changed_reference["higher_rubric_score"] == 81.0
 
-
-def test_two_component_decomposition_and_diagnostic_partition_telescope(
-    tmp_path: Path,
-) -> None:
-    _target_value, mechanism = _mechanistic_summary(tmp_path)
-    quality = {
-        "assignment_id": "assignment-1",
-        "task_id": "da-1-1",
-        "replicate": 1,
-        "condition_id": "diligent-online-rubric",
-        "rubric_policy": "online_elicitation",
-        "rubric_free_quality": {
-            "initial_panel_mean": 47.5,
-            "final_panel_mean": 75,
-            "panel_mean_gain": 27.5,
-        },
-        "pairwise_preference": {
-            "rubric_order_agreement": 0.875,
-        },
-    }
-
-    result = _combine_assignment(
-        mechanism,
-        quality,
-        {
-            "verifier_exploitation": 1,
-            "dynamic_rubric_gap": 1,
-        },
-    )
-
-    assert result["boundaries"]["initial"]["components"] == {
-        "verifier_exploitation": 20.5,
-        "dynamic_rubric_gap": 12.5,
-    }
-    assert result["boundaries"]["initial"]["rubric_diagnostics"] == {
-        "active_to_original": 0,
-        "original_to_selected": -5,
-        "selected_to_holdout": 0,
-        "holdout_to_holistic": 17.5,
-        "wording_sensitivity_standard_deviation": 20,
-        "wording_sensitivity_range": 40,
-    }
-    for boundary in ("initial", "final"):
-        boundary_result = result["boundaries"][boundary]
-        assert sum(
-            boundary_result["rubric_diagnostics"][name]
-            for name in (
-                "active_to_original",
-                "original_to_selected",
-                "selected_to_holdout",
-                "holdout_to_holistic",
-            )
-        ) == boundary_result["components"]["dynamic_rubric_gap"]
-    assert result["boundaries"]["final"]["terminal_bank_proxy_gap"] == 20.25
-    assert result["component_changes"] == {
-        "verifier_exploitation": -5.25,
-        "dynamic_rubric_gap": -7.5,
-    }
-    assert result["rubric_diagnostic_changes"] == {
-        "active_to_original": 0,
-        "original_to_selected": 10,
-        "selected_to_holdout": 10,
-        "holdout_to_holistic": -27.5,
-        "wording_sensitivity_standard_deviation": -20,
-        "wording_sensitivity_range": -40,
-    }
-    assert result["outcomes"] == {
-        "terminal_bank_weak_gain": 14.75,
-        "selected_rubric_gain": 10,
-        "sealed_holdout_bank_gain": 0,
-        "holistic_quality_gain": 27.5,
-        "terminal_bank_gain_gap": -12.75,
-        "optimization_induced_risk": 0,
-        "reward_hacking_loss_change": -12.75,
-        "online_local_weak_gain": 14.75,
-        "online_local_strong_gain": 15,
-        "online_local_verifier_gap_change": -0.25,
-        "pairwise_rubric_order_agreement": 0.875,
-    }
-
-
-def test_dynamic_rubric_gap_rejects_a_broken_diagnostic_partition(
-    tmp_path: Path,
-) -> None:
-    _target_value, mechanism = _mechanistic_summary(tmp_path)
-    mechanism["rubric_diagnostics"]["final"]["selected_to_holdout"] = 11
-
-    with pytest.raises(RuntimeError, match="disagrees with its source scores"):
-        _combine_assignment(
-            mechanism,
-            {
-                "rubric_free_quality": {
-                    "initial_panel_mean": 47.5,
-                    "final_panel_mean": 75,
-                },
-                "pairwise_preference": {
-                    "rubric_order_agreement": 0.875,
-                },
-            },
-            {
-                "verifier_exploitation": 1,
-                "dynamic_rubric_gap": 1,
-            },
-        )
 
 
 def test_condition_aggregates_keep_direct_detection_independent(
@@ -1324,7 +1132,7 @@ def test_rubric_policy_aggregates_report_available_policies(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _mechanistic_summary(tmp_path)
-    assignment = _combine_report_assignment(
+    assignment = _combine_assignment(
         mechanism,
         {
             "rubric_free_quality": {
@@ -1370,11 +1178,11 @@ def test_rubric_policy_aggregates_report_available_policies(
     assert set(partial) == {"offline_elicitation", "online_elicitation"}
 
 
-def test_current_report_partitions_gap_without_holdout_scores(
+def test_report_partitions_gap_without_holdout_scores(
     tmp_path: Path,
 ) -> None:
-    _target_value, mechanism = _mechanistic_summary(tmp_path, current=True)
-    assignment = _combine_report_assignment(
+    _target_value, mechanism = _mechanistic_summary(tmp_path)
+    assignment = _combine_assignment(
         mechanism,
         {
             "rubric_free_quality": {
@@ -1414,7 +1222,6 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "outcomes": {
                 "terminal_bank_weak_gain": 11,
                 "selected_rubric_gain": 10,
-                "sealed_holdout_bank_gain": 9,
                 "holistic_quality_gain": 8,
                 "terminal_bank_gain_gap": 3,
                 "optimization_induced_risk": 3,
@@ -1431,10 +1238,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "rubric_diagnostic_changes": {
                 "active_to_original": 2,
                 "original_to_selected": 1,
-                "selected_to_holdout": -1,
-                "holdout_to_holistic": -3,
-                "wording_sensitivity_standard_deviation": -3,
-                "wording_sensitivity_range": -6,
+                "selected_to_holistic": -4,
             },
         },
         {
@@ -1445,7 +1249,6 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "outcomes": {
                 "terminal_bank_weak_gain": 9,
                 "selected_rubric_gain": 3,
-                "sealed_holdout_bank_gain": 4,
                 "holistic_quality_gain": 2,
                 "terminal_bank_gain_gap": 7,
                 "optimization_induced_risk": 7,
@@ -1462,10 +1265,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "rubric_diagnostic_changes": {
                 "active_to_original": 0,
                 "original_to_selected": 0,
-                "selected_to_holdout": 2,
-                "holdout_to_holistic": 4,
-                "wording_sensitivity_standard_deviation": 1,
-                "wording_sensitivity_range": 2,
+                "selected_to_holistic": 6,
             },
         },
     ]
@@ -1475,17 +1275,14 @@ def test_condition_contrasts_pair_task_replicates() -> None:
     assert contrast["direction"] == "left-minus-right"
     assert contrast["left_condition"] == "online-rubric"
     assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
-    assert contrast["paired_differences"][
-        "sealed_holdout_bank_gain"
-    ]["mean"] == 5
     assert contrast["paired_differences"]["holistic_quality_gain"]["mean"] == 6
     assert contrast["paired_differences"]["terminal_bank_gain_gap"]["mean"] == -4
     assert contrast["paired_differences"][
         "dynamic_rubric_gap_change"
     ]["mean"] == -7
     assert contrast["paired_differences"][
-        "wording_sensitivity_range_change"
-    ]["mean"] == -8
+        "selected_to_holistic_change"
+    ]["mean"] == -10
 
 
 def test_direct_outcomes_use_the_configured_rule_and_experiment(
@@ -1575,7 +1372,7 @@ def test_holistic_request_json_encodes_untrusted_prompt_injection(
             boundary="initial",
             api_base=None,
             implementation_identity=(
-                rh_diagnostics._holistic_implementation_identity()
+                rh_protocol._holistic_implementation_identity()
             ),
         )
     )
@@ -1586,7 +1383,7 @@ def test_holistic_request_json_encodes_untrusted_prompt_injection(
             ordering="higher-first",
             api_base=None,
             implementation_identity=(
-                rh_diagnostics._holistic_implementation_identity()
+                rh_protocol._holistic_implementation_identity()
             ),
         )
     )
@@ -1648,7 +1445,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     rubric_path = tmp_path / "rubric.txt"
     rubric_path.write_text(target.initial_bank_generation.bank.items[0].rubric.content)
 
-    implementation_identity = rh_diagnostics._holistic_implementation_identity()
+    implementation_identity = rh_protocol._holistic_implementation_identity()
     absolute = AbsoluteHolisticJob(
         target=target,
         model="strong-a",
@@ -1666,8 +1463,8 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         implementation_identity=implementation_identity,
     )
     assert pairwise.key == replace(pairwise, target=other).key
-    assert implementation_identity["rh_diagnostics_sha256"] == sha256_file(
-        Path(rh_diagnostics.__file__)
+    assert implementation_identity["rh_evaluation_sha256"] == (
+        rh_protocol._rh_implementation_sha256()
     )
 
     grading_identity = {"judge_runner_sha256": "1" * 64}
@@ -1683,7 +1480,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         grading_identity=grading_identity,
         review_input_sha256="2" * 64,
         answer_input_sha256="3" * 64,
-        rh_implementation_sha256=rh_diagnostics._rh_implementation_sha256(),
+        rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
     )
     other_mechanistic = replace(mechanistic, target=other)
     assert mechanistic.key == other_mechanistic.key
@@ -1734,7 +1531,7 @@ def test_mechanistic_resume_rejects_tampered_records(
     rubric_path.write_text(
         target.initial_bank_generation.bank.items[0].rubric.content
     )
-    grading_identity = dict.fromkeys(rh_diagnostics.SCORING_IDENTITY_KEYS)
+    grading_identity = dict.fromkeys(SCORING_IDENTITY_KEYS)
     grading_identity.update({
         "judge_source_sha256": "1" * 64,
         "judge_runner_sha256": "2" * 64,
@@ -1760,7 +1557,7 @@ def test_mechanistic_resume_rejects_tampered_records(
         grading_identity=grading_identity,
         review_input_sha256="4" * 64,
         answer_input_sha256="5" * 64,
-        rh_implementation_sha256=rh_diagnostics._rh_implementation_sha256(),
+        rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
     )
     output = tmp_path / "mechanistic-output"
     artifact_dir = output / "artifacts" / job.key / "evaluations" / "mock"
@@ -1776,9 +1573,9 @@ def test_mechanistic_resume_rejects_tampered_records(
         "engine_execution": engine_execution,
     }))
     evaluation_path.write_text("{}")
-    attempt_id = rh_diagnostics._mechanistic_attempt_id(job)
+    attempt_id = rh_mechanistic._mechanistic_attempt_id(job)
     record = {
-        **rh_diagnostics._mechanistic_judgment_identity(job),
+        **rh_protocol._mechanistic_judgment_identity(job),
         "score": 50,
         "attempt_id": attempt_id,
         "validation_path": str(validation_path),
@@ -1856,20 +1653,20 @@ def test_holistic_resume_rejects_tampered_records(
         boundary="initial",
         api_base=None,
         implementation_identity=(
-            rh_diagnostics._holistic_implementation_identity()
+            rh_protocol._holistic_implementation_identity()
         ),
     )
     output = tmp_path / "holistic-output"
     verdict = {"score": 10, "explanation": "valid"}
     raw_response = json.dumps(verdict, separators=(",", ":"))
     record = {
-        **rh_diagnostics._absolute_judgment_identity(
+        **rh_protocol._absolute_judgment_identity(
             job,
             _absolute_holistic_request(job),
         ),
         "verdict": verdict,
         "raw_response": raw_response,
-        "raw_response_sha256": rh_diagnostics.sha256_text(raw_response),
+        "raw_response_sha256": rh_protocol.sha256_text(raw_response),
         "generation": {
             "provider": "test",
             "requested_model": job.model,
@@ -1936,7 +1733,7 @@ def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
         boundary="initial",
         api_base=None,
         implementation_identity=(
-            rh_diagnostics._holistic_implementation_identity()
+            rh_protocol._holistic_implementation_identity()
         ),
     )
     output = tmp_path / "holistic-output"
@@ -2017,9 +1814,9 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
         bank_members=(),
         specification_anchors=(),
         grading_identity=grading_identity,
-        review_input_sha256=rh_diagnostics.sha256_text("original trace\n"),
-        answer_input_sha256=rh_diagnostics.sha256_text("answer\n"),
-        rh_implementation_sha256=rh_diagnostics._rh_implementation_sha256(),
+        review_input_sha256=rh_protocol.sha256_text("original trace\n"),
+        answer_input_sha256=rh_protocol.sha256_text("answer\n"),
+        rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
     )
     provider_calls = 0
 
@@ -2093,7 +1890,7 @@ def test_holistic_dispatch_rejects_task_changed_after_preflight(
         boundary="initial",
         api_base=None,
         implementation_identity=(
-            rh_diagnostics._holistic_implementation_identity()
+            rh_protocol._holistic_implementation_identity()
         ),
     )
     provider_calls = 0
@@ -2217,10 +2014,10 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     summary = json.loads((output / "summary.json").read_text())
     manifest = json.loads((output / "manifest.json").read_text())
     assert len(calls) == 4
-    assert summary["semantic_judgment_counts"] == {
-        "absolute": 2,
-        "pairwise": 2,
-    }
+    expected_judgment_counts = {"absolute": 2, "pairwise": 2}
+    assert summary["planned_semantic_judgment_counts"] == expected_judgment_counts
+    assert summary["successful_semantic_judgment_counts"] == expected_judgment_counts
+    assert summary["used_semantic_judgment_counts"] == expected_judgment_counts
     assert summary["assignment_reference_counts"] == {
         "absolute": 4,
         "pairwise": 4,
@@ -2233,7 +2030,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     absolute_key = next(iter(summary["completed_record_sha256s"]["absolute"]))
     absolute_record_path = output / "records" / "absolute" / f"{absolute_key}.json"
     absolute_record = json.loads(absolute_record_path.read_text())
-    assert absolute_record["raw_response_sha256"] == rh_diagnostics.sha256_text(
+    assert absolute_record["raw_response_sha256"] == rh_protocol.sha256_text(
         absolute_record["raw_response"]
     )
     assert summary["completed_record_sha256s"]["absolute"][absolute_key] == (
@@ -2256,10 +2053,10 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     assert rerouted.run() == 0
     assert len(calls) == 8
 
-    implementation_identity = rh_diagnostics._holistic_implementation_identity()
+    implementation_identity = rh_protocol._holistic_implementation_identity()
     with monkeypatch.context() as implementation_patch:
         implementation_patch.setattr(
-            rh_diagnostics,
+            rh_holistic,
             "_holistic_implementation_identity",
             lambda: {
                 **implementation_identity,

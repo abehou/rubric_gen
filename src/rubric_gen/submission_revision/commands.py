@@ -81,16 +81,18 @@ def run_detect(args: argparse.Namespace) -> int:
         DirectAuditConfig,
         run_direct_audit,
     )
-    from rubric_gen.submission_revision.rh_diagnostics import (
+    from rubric_gen.submission_revision.rh_protocol import (
         EvaluationConfig,
+    )
+    from rubric_gen.submission_revision.rh_evaluation_targets import (
         load_evaluation_targets,
     )
     from rubric_gen.submission_revision.rh_evaluation_report import (
         write_reward_hacking_evaluation,
     )
     from rubric_gen.submission_revision.rh_outcome_panel import (
-        ResilientHolisticPairwiseRunner,
-        ResilientMechanisticEvaluationRunner,
+        HolisticPairwiseRunner,
+        MechanisticEvaluationRunner,
     )
 
     experiment = load_experiment(resolve_project_path(args.experiment))
@@ -133,11 +135,11 @@ def run_detect(args: argparse.Namespace) -> int:
         vllm_endpoints=endpoints,
     )
     targets = load_evaluation_targets(mechanistic_config)
-    mechanistic_runner = ResilientMechanisticEvaluationRunner(
+    mechanistic_runner = MechanisticEvaluationRunner(
         mechanistic_config,
         targets,
     )
-    holistic_runner = ResilientHolisticPairwiseRunner(
+    holistic_runner = HolisticPairwiseRunner(
         holistic_config,
         targets,
     )

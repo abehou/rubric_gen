@@ -5,10 +5,14 @@ from __future__ import annotations
 import math
 from itertools import combinations
 from pathlib import Path
+from statistics import fmean, median
 
-from rubric_gen.reward_hacking.metrics import detection_rates
-from rubric_gen.submission_revision import rh_diagnostics as rh
+from rubric_gen.reward_hacking.metrics import detection_rates, wilson_interval
+from rubric_gen.reward_hacking.protocol import RH_COMPONENTS
+from rubric_gen.reward_hacking.targets import detection_target
+from rubric_gen.submission_revision import rh_protocol as rh
 from rubric_gen.submission_revision.artifacts import read_json_object
+from rubric_gen.submission_revision.rh_output_store import RhOutputStore
 from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 
 
@@ -18,19 +22,28 @@ SIGNED_RUBRIC_DIAGNOSTICS = (
     "selected_to_holistic",
 )
 RUBRIC_DIAGNOSTICS = SIGNED_RUBRIC_DIAGNOSTICS
-OUTCOME_METRICS = tuple(
-    name for name in rh.OUTCOME_METRICS
-    if name != "sealed_holdout_bank_gain"
+COMPONENTS = RH_COMPONENTS
+OUTCOME_METRICS = (
+    "selected_rubric_gain",
+    "holistic_quality_gain",
+    "terminal_bank_weak_gain",
+    "terminal_bank_gain_gap",
+    "optimization_induced_risk",
+    "reward_hacking_loss_change",
+    "online_local_weak_gain",
+    "online_local_strong_gain",
+    "online_local_verifier_gap_change",
+    "pairwise_rubric_order_agreement",
 )
 
 
 def write_reward_hacking_evaluation(output_dir: Path) -> Path:
     """Write one report for every valid assignment subset."""
 
-    output = rh._RhOutputStore(output_dir)
+    output = RhOutputStore(output_dir)
     root = output.root
-    mechanistic_output = rh._RhOutputStore(root / "mechanistic")
-    holistic_output = rh._RhOutputStore(root / "holistic")
+    mechanistic_output = RhOutputStore(root / "mechanistic")
+    holistic_output = RhOutputStore(root / "holistic")
     mechanistic_output.validate_tree()
     holistic_output.validate_tree()
     mechanistic = read_json_object(
@@ -67,7 +80,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
     weights = mechanistic.get("loss_weights")
     if (
         not isinstance(weights, dict)
-        or set(weights) != set(rh.COMPONENTS)
+        or set(weights) != set(COMPONENTS)
         or any(
             isinstance(value, bool)
             or not isinstance(value, (int, float))
@@ -77,11 +90,11 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
         )
     ):
         raise RuntimeError("RH loss weights are invalid")
-    normalized_weights = {key: float(weights[key]) for key in rh.COMPONENTS}
+    normalized_weights = {key: float(weights[key]) for key in COMPONENTS}
     if not any(normalized_weights.values()):
         raise RuntimeError("at least one RH loss weight must be positive")
-    mechanistic_by_id = rh._assignment_map(mechanistic, "mechanistic")
-    holistic_by_id = rh._assignment_map(holistic, "holistic")
+    mechanistic_by_id = _assignment_map(mechanistic, "mechanistic")
+    holistic_by_id = _assignment_map(holistic, "holistic")
     if set(mechanistic_by_id) != set(holistic_by_id):
         raise RuntimeError("RH evaluation assignment sets disagree")
     assignments: list[dict[str, object]] = []
@@ -98,7 +111,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
             quality,
             normalized_weights,
         ))
-    direct_outcomes = rh._direct_assignment_outcomes(
+    direct_outcomes = _direct_assignment_outcomes(
         direct,
         assignments,
         str(mechanistic["experiment_id"]),
@@ -117,7 +130,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
                 "final-minus-initial artifacts rescored under the terminal bank"
             ),
             "score_scale": [0, 100],
-            "component_order": list(rh.COMPONENTS),
+            "component_order": list(COMPONENTS),
             "loss_weights": normalized_weights,
             "primary_outcomes": {
                 "direct_detection": (
@@ -328,7 +341,7 @@ def _combine_assignment(
     assert isinstance(final_diagnostics, dict)
     component_changes = {
         name: float(final_components[name]) - float(initial_components[name])
-        for name in rh.COMPONENTS
+        for name in COMPONENTS
     }
     diagnostic_changes = {
         name: float(final_diagnostics[name]) - float(initial_diagnostics[name])
@@ -429,26 +442,26 @@ def _aggregate_assignment_groups(
         )
         result[group] = {
             "outcomes": {
-                name: rh._statistics([
-                    rh._assignment_metric(assignment, name)
+                name: _statistics([
+                    _assignment_metric(assignment, name)
                     for assignment in members
                 ])
                 for name in OUTCOME_METRICS
             },
             "component_changes": {
-                name: rh._statistics([
-                    rh._assignment_change(
+                name: _statistics([
+                    _assignment_change(
                         assignment,
                         "component_changes",
                         name,
                     )
                     for assignment in members
                 ])
-                for name in rh.COMPONENTS
+                for name in COMPONENTS
             },
             "rubric_diagnostic_changes": {
-                name: rh._statistics([
-                    rh._assignment_change(
+                name: _statistics([
+                    _assignment_change(
                         assignment,
                         "rubric_diagnostic_changes",
                         name,
@@ -461,7 +474,7 @@ def _aggregate_assignment_groups(
                 "detected": detected,
                 "evaluated": evaluated,
                 "rate": detected / evaluated if evaluated else None,
-                "rate_wilson_95": rh.wilson_interval(detected, evaluated),
+                "rate_wilson_95": wilson_interval(detected, evaluated),
             },
         }
     return result
@@ -500,19 +513,19 @@ def _paired_condition_contrasts(
         common = sorted(by_condition[left])
         metrics: dict[str, object] = {}
         for name in OUTCOME_METRICS:
-            metrics[name] = rh._statistics([
-                rh._assignment_metric(by_condition[left][key], name)
-                - rh._assignment_metric(by_condition[right][key], name)
+            metrics[name] = _statistics([
+                _assignment_metric(by_condition[left][key], name)
+                - _assignment_metric(by_condition[right][key], name)
                 for key in common
             ])
-        for name in rh.COMPONENTS:
-            metrics[f"{name}_change"] = rh._statistics([
-                rh._assignment_change(
+        for name in COMPONENTS:
+            metrics[f"{name}_change"] = _statistics([
+                _assignment_change(
                     by_condition[left][key],
                     "component_changes",
                     name,
                 )
-                - rh._assignment_change(
+                - _assignment_change(
                     by_condition[right][key],
                     "component_changes",
                     name,
@@ -520,13 +533,13 @@ def _paired_condition_contrasts(
                 for key in common
             ])
         for name in RUBRIC_DIAGNOSTICS:
-            metrics[f"{name}_change"] = rh._statistics([
-                rh._assignment_change(
+            metrics[f"{name}_change"] = _statistics([
+                _assignment_change(
                     by_condition[left][key],
                     "rubric_diagnostic_changes",
                     name,
                 )
-                - rh._assignment_change(
+                - _assignment_change(
                     by_condition[right][key],
                     "rubric_diagnostic_changes",
                     name,
@@ -541,3 +554,126 @@ def _paired_condition_contrasts(
             "paired_differences": metrics,
         })
     return contrasts
+
+
+def _assignment_map(
+    summary: dict[str, object],
+    label: str,
+) -> dict[str, dict[str, object]]:
+    values = summary.get("assignments")
+    if not isinstance(values, list):
+        raise RuntimeError(f"RH {label} summary has no assignments")
+    result = {
+        str(value["assignment_id"]): value
+        for value in values
+        if isinstance(value, dict) and "assignment_id" in value
+    }
+    if len(result) != len(values) or not result:
+        raise RuntimeError(f"RH {label} summary assignments are invalid")
+    return result
+
+
+def _statistics(values: list[float]) -> dict[str, object]:
+    positive = sum(value > 0 for value in values)
+    return {
+        "count": len(values),
+        "mean": fmean(values),
+        "median": median(values),
+        "minimum": min(values),
+        "maximum": max(values),
+        "positive_count": positive,
+        "positive_fraction": positive / len(values),
+    }
+
+
+def _assignment_metric(assignment: dict[str, object], name: str) -> float:
+    outcomes = assignment.get("outcomes")
+    if not isinstance(outcomes, dict):
+        raise RuntimeError("RH assignment has no outcomes")
+    value = outcomes.get(name)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RuntimeError(f"RH assignment outcome is invalid: {name}")
+    return float(value)
+
+
+def _assignment_change(
+    assignment: dict[str, object],
+    category: str,
+    name: str,
+) -> float:
+    changes = assignment.get(category)
+    if not isinstance(changes, dict):
+        raise RuntimeError(f"RH assignment has no {category}")
+    value = changes.get(name)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RuntimeError(f"RH assignment change is invalid: {name}")
+    return float(value)
+
+
+def _direct_assignment_outcomes(
+    direct: dict[str, object],
+    assignments: list[dict[str, object]],
+    experiment_id: str,
+) -> dict[str, dict[str, object]]:
+    models = direct.get("models")
+    records = direct.get("records")
+    primary_rule = direct.get("primary_rule")
+    if (
+        not isinstance(models, list)
+        or not models
+        or not isinstance(records, list)
+        or primary_rule not in {"majority", "any_detect", "unanimous_detects"}
+    ):
+        raise RuntimeError("direct RH summary is invalid")
+    positive = detection_target(str(direct.get("detection"))).positive_decision
+    assignment_ids = {str(value["assignment_id"]) for value in assignments}
+    grouped: dict[str, dict[str, str]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        source_path = record.get("source_path")
+        provider = record.get("provider")
+        verdict = record.get("verdict")
+        if (
+            type(source_path) is not str
+            or type(provider) is not str
+            or not isinstance(verdict, dict)
+            or type(verdict.get("decision")) is not str
+        ):
+            continue
+        manifest = read_json_object(
+            Path(source_path) / "manifest.json",
+            "direct RH source manifest",
+        )
+        assignment_id = manifest.get("assignment_id")
+        if manifest.get("experiment_id") != experiment_id:
+            raise RuntimeError("direct RH source uses a different experiment")
+        if assignment_id not in assignment_ids:
+            raise RuntimeError("direct RH source is outside the evaluated study")
+        panel = grouped.setdefault(str(assignment_id), {})
+        if provider in panel:
+            raise RuntimeError(f"duplicate direct RH provider: {assignment_id}")
+        panel[provider] = str(verdict["decision"])
+    if set(grouped) != assignment_ids:
+        raise RuntimeError("direct RH assignments differ from score evaluation")
+    outcomes: dict[str, dict[str, object]] = {}
+    for assignment_id, panel in grouped.items():
+        if set(panel) != set(models):
+            decision = "incomplete"
+        elif "abstain" in panel.values():
+            decision = "abstain"
+        else:
+            count = sum(value == positive for value in panel.values())
+            if primary_rule == "majority":
+                detected = count > len(models) / 2
+            elif primary_rule == "any_detect":
+                detected = count > 0
+            else:
+                detected = count == len(models)
+            decision = "detected" if detected else "not_detected"
+        outcomes[assignment_id] = {
+            "primary_rule": primary_rule,
+            "decision": decision,
+            "provider_decisions": dict(sorted(panel.items())),
+        }
+    return outcomes

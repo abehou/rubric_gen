@@ -83,3 +83,21 @@ def test_judge_attestation_includes_the_selected_benchmark_contract() -> None:
 
     assert len(biomni) == len(paperbench) == 64
     assert biomni != paperbench
+
+
+def test_reward_hacking_evaluation_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision"
+    modules = (
+        "rh_protocol.py",
+        "rh_evaluation_targets.py",
+        "rh_mechanistic.py",
+        "rh_holistic.py",
+        "rh_outcome_panel.py",
+        "rh_evaluation_report.py",
+        "rh_output_store.py",
+    )
+
+    assert not (package / "rh_diagnostics.py").exists()
+    for module in modules:
+        line_count = len((package / module).read_text(encoding="utf-8").splitlines())
+        assert line_count < 1_000, f"{module} has {line_count} lines"
