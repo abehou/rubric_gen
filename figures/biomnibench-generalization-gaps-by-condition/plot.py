@@ -18,6 +18,8 @@ SUMMARY_PATH = (
 )
 CSV_PATH = FIGURE_ROOT / "generalization_gap_changes_by_condition.csv"
 WEAK_OUTPUT_STEM = FIGURE_ROOT / "weak_to_strong_gap_change_by_condition"
+WEAK_INITIAL_OUTPUT_STEM = FIGURE_ROOT / "weak_to_strong_initial_gap_by_condition"
+WEAK_FINAL_OUTPUT_STEM = FIGURE_ROOT / "weak_to_strong_final_gap_by_condition"
 STRONG_OUTPUT_STEM = FIGURE_ROOT / "strong_to_holistic_gap_change_by_condition"
 
 RUBRIC_ORDER = ("static", "offline-rubric", "online-rubric")
@@ -45,6 +47,8 @@ COLORS = {
     "user-simulator": "#CC79A7",
 }
 METRICS = (
+    "weak_to_strong_initial_gap",
+    "weak_to_strong_final_gap",
     "weak_to_strong_gap_change",
     "active_strong_to_holistic_gap_change",
     "common_strong_to_holistic_gap_change",
@@ -88,19 +92,35 @@ def load_rows() -> list[dict[str, object]]:
         )
         component_changes = assignment["component_changes"]
         rubric_changes = assignment["rubric_diagnostic_changes"]
+        boundaries = assignment["boundaries"]
         if not isinstance(component_changes, dict) or not isinstance(
             rubric_changes, dict
-        ):
+        ) or not isinstance(boundaries, dict):
             raise RuntimeError("gap summary contains invalid change records")
+        initial = boundaries.get("initial")
+        final = boundaries.get("final")
+        if not isinstance(initial, dict) or not isinstance(final, dict):
+            raise RuntimeError("gap summary contains invalid boundaries")
+        initial_components = initial.get("components")
+        final_components = final.get("components")
+        if not isinstance(initial_components, dict) or not isinstance(
+            final_components, dict
+        ):
+            raise RuntimeError("gap summary contains invalid boundary components")
+        initial_gap = float(initial_components["verifier_exploitation"])
+        final_gap = float(final_components["verifier_exploitation"])
+        gap_change = float(component_changes["verifier_exploitation"])
+        if not np.isclose(final_gap - initial_gap, gap_change, atol=1e-9, rtol=0):
+            raise RuntimeError("weak-to-strong gap change disagrees with boundaries")
         row: dict[str, object] = {
             "assignment_id": str(assignment["assignment_id"]),
             "task_id": str(assignment["task_id"]),
             "replicate": int(assignment["replicate"]),
             "rubric_type": rubric,
             "feedback_type": feedback,
-            "weak_to_strong_gap_change": float(
-                component_changes["verifier_exploitation"]
-            ),
+            "weak_to_strong_initial_gap": initial_gap,
+            "weak_to_strong_final_gap": final_gap,
+            "weak_to_strong_gap_change": gap_change,
             "active_strong_to_holistic_gap_change": float(
                 component_changes["dynamic_rubric_gap"]
             ),
@@ -309,6 +329,51 @@ def plot_weak_to_strong(aggregates: list[dict[str, object]]) -> None:
     figure.savefig(WEAK_OUTPUT_STEM.with_suffix(".pdf"), facecolor="white")
 
 
+def plot_weak_to_strong_boundary(
+    aggregates: list[dict[str, object]],
+    *,
+    metric: str,
+    boundary_label: str,
+    output_stem: Path,
+) -> None:
+    figure, axis = plt.subplots(figsize=(10.4, 6.4))
+    draw_grouped_bars(
+        axis,
+        aggregates,
+        metric,
+        ylabel="Weak − strong gap (points)",
+    )
+    axis.set_title(
+        "BioMNIBench results20: weak-to-strong gap by condition\n"
+        f"{boundary_label} boundary · W − A",
+        fontsize=14,
+        fontweight="bold",
+        pad=54,
+    )
+    axis.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.12),
+        ncol=4,
+        frameon=False,
+        title="Feedback type",
+    )
+    figure.text(
+        0.5,
+        0.014,
+        "Bars show 60-assignment means. Whiskers are task-clustered 95% "
+        "bootstrap intervals from 20 tasks and 3 replicates.\n"
+        "Positive values mean the weak judge scored higher. "
+        "Strong = mean(GPT-5.6 Sol, Claude Opus 5); Gemini was unavailable.",
+        ha="center",
+        va="bottom",
+        fontsize=8.8,
+        color="#444444",
+    )
+    figure.subplots_adjust(top=0.76, bottom=0.20, left=0.10, right=0.98)
+    figure.savefig(output_stem.with_suffix(".png"), dpi=240, facecolor="white")
+    figure.savefig(output_stem.with_suffix(".pdf"), facecolor="white")
+
+
 def plot_strong_to_holistic(aggregates: list[dict[str, object]]) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(15.2, 6.3), sharey=True)
     draw_grouped_bars(
@@ -365,6 +430,18 @@ def main() -> None:
     aggregates = aggregate(load_rows())
     write_csv(aggregates)
     plot_weak_to_strong(aggregates)
+    plot_weak_to_strong_boundary(
+        aggregates,
+        metric="weak_to_strong_initial_gap",
+        boundary_label="Initial",
+        output_stem=WEAK_INITIAL_OUTPUT_STEM,
+    )
+    plot_weak_to_strong_boundary(
+        aggregates,
+        metric="weak_to_strong_final_gap",
+        boundary_label="Final",
+        output_stem=WEAK_FINAL_OUTPUT_STEM,
+    )
     plot_strong_to_holistic(aggregates)
 
 

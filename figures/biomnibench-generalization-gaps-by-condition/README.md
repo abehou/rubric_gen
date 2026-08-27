@@ -10,6 +10,8 @@ The whiskers are task-clustered 95% percentile-bootstrap intervals.
 
 The weak-to-strong figure plots the final-minus-initial change in `W - A`.
 Negative values mean that the weak judge's score advantage decreased.
+Separate companion figures show the initial and final `W - A` gaps.
+Positive values mean that the weak judge gives the higher score.
 
 The strong-to-holistic figure has two panels.
 The first plots the active terminal-rubric change in `A - Q`.
