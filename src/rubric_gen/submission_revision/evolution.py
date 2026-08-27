@@ -28,7 +28,6 @@ from rubric_gen.submission_revision.rubric_bank import (
     ElicitedCriterion,
     MAX_ELICITED_CRITERIA,
     RubricBank,
-    RubricBankGeneration,
     RubricBankItem,
     RubricBankPolicy,
     RubricLineage,
@@ -36,6 +35,7 @@ from rubric_gen.submission_revision.rubric_bank import (
     elicited_criterion_penalty_points,
     render_augmented_rubric,
 )
+from rubric_gen.submission_revision.rubric_bank_lifecycle import RubricBankGeneration
 
 
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
@@ -105,6 +105,9 @@ def rubric_generation_implementation_identity() -> dict[str, str]:
     paths = {
         "evolution_sha256": Path(__file__),
         "rubric_bank_sha256": package_root / "rubric_bank.py",
+        "rubric_bank_lifecycle_sha256": (
+            package_root / "rubric_bank_lifecycle.py"
+        ),
         "autorubric_sha256": package_root / "autorubric.py",
         "bank_scoring_sha256": package_root / "bank_scoring.py",
         "artifact_history_builder_sha256": package_root / "contrasts.py",

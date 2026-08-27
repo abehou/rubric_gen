@@ -12,9 +12,9 @@ from .artifacts import (
 from rubric_gen.artifacts.serialization import write_json_atomic
 from .judge import SCORING_IDENTITY_KEYS
 from .models import RevisionState
-from .rubric_bank import (
+from .rubric_bank import RubricBankPolicy
+from .rubric_bank_lifecycle import (
     RubricBankGeneration,
-    RubricBankPolicy,
     load_rubric_bank,
     persist_rubric_bank,
 )

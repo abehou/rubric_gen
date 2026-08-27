@@ -21,6 +21,14 @@ import benchmarks. Callers must pass prompts, required outputs, and session rule
 It selects a submission benchmark through the registry. Its audit adapter converts
 completed revisions into blinded evidence sources.
 
+Rubric-bank code has two ownership layers.
+
+- `rubric_bank.py` owns domain models, rendering, aggregation, and lineage rules.
+- `rubric_bank_lifecycle.py` owns schedules and immutable generation storage.
+
+Judge execution also uses explicit ownership. `judging/runner.py` coordinates the
+workflow. It calls `judging/artifacts.py` and `judging/executor.py` directly.
+
 Reward-hacking evaluation uses focused modules inside `submission_revision`.
 
 - `rh_protocol.py` owns evaluation contracts, request identities, and limits.

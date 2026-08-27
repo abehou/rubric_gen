@@ -3,23 +3,20 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import stat
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import contextmanager
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from numbers import Real
 from pathlib import Path
 from statistics import pstdev
-from typing import Any, Iterator
+from typing import Any
 
 from rubric_gen.benchmarks import get_submission_benchmark
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.judging.artifacts import (
     JudgeArtifactStore,
-    OpenOutputDirectory as _OpenOutputDirectory,
     TargetDirectoryIdentities as _TargetDirectoryIdentities,
 )
 from rubric_gen.submission_revision.judging.discovery import JudgeTargetDiscovery
@@ -38,8 +35,87 @@ from rubric_gen.submission_revision.rubrics.bundles import (
     RubricBundleError,
     resolve_rubric_bundle,
 )
-from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
+_COMPLETED_STATUSES = frozenset({"completed", "skipped"})
+
+
+@dataclass(frozen=True)
+class _TaskScoreSummary:
+    record: dict[str, Any]
+    scores: tuple[Real, ...]
+    normalized_scores: tuple[float, ...]
+
+
+def _average(values: tuple[Real, ...], digits: int) -> float | None:
+    return round(sum(values) / len(values), digits) if values else None
+
+
+def _score_stddev(values: tuple[Real, ...]) -> float | None:
+    if not values:
+        return None
+    return round(pstdev(values), 4) if len(values) > 1 else 0.0
+
+
+def _combined_status(records: tuple[dict[str, Any], ...]) -> str:
+    statuses = {record.get("status") for record in records}
+    for status in ("failed", "planned", "completed"):
+        if status in statuses:
+            return status
+    if statuses == {"skipped"}:
+        return "skipped"
+    return str(records[-1].get("status") or "unknown")
+
+
+def _summarize_task(
+    task: str,
+    records: list[dict[str, Any]],
+) -> _TaskScoreSummary:
+    ordered = tuple(sorted(
+        records,
+        key=lambda item: int(item.get("repeat_index") or 1),
+    ))
+    scores = tuple(
+        record["score"]
+        for record in ordered
+        if record.get("status") in _COMPLETED_STATUSES
+        and not isinstance(record.get("score"), bool)
+        and isinstance(record.get("score"), Real)
+    )
+    normalized_scores = tuple(
+        record["normalized_score"]
+        for record in ordered
+        if record.get("status") in _COMPLETED_STATUSES
+        and type(record.get("normalized_score")) is float
+    )
+    first = ordered[0]
+    return _TaskScoreSummary(
+        scores=scores,
+        normalized_scores=normalized_scores,
+        record={
+            "task": task,
+            "status": _combined_status(ordered),
+            "score": scores[0] if len(ordered) == 1 and scores else None,
+            "normalized_score": (
+                normalized_scores[0]
+                if len(ordered) == 1 and normalized_scores
+                else None
+            ),
+            "scores": list(scores),
+            "normalized_scores": list(normalized_scores),
+            "mean_score": _average(scores, 4),
+            "mean_normalized_score": _average(normalized_scores, 8),
+            "score_stddev": _score_stddev(scores),
+            "min_score": min(scores) if scores else None,
+            "max_score": max(scores) if scores else None,
+            "scored_repeats": len(scores),
+            "total_repeats": len(ordered),
+            "output_dir": first.get("output_dir"),
+            "reward": first.get("reward"),
+            "evaluation": first.get("evaluation"),
+            "stdout": first.get("stdout"),
+            "attempts": list(ordered),
+        },
+    )
 
 class SubmissionJudgeRunner:
     def __init__(self, config: JudgeRunConfig) -> None:
@@ -58,11 +134,11 @@ class SubmissionJudgeRunner:
         self.executor = JudgeExecutor(
             config,
             self.artifacts,
-            validate_target=lambda target: self.validate_target_identity(target),
-            target_identities=lambda target: self._target_directory_identities(target),
-            resolve_local_rubric=lambda path: self.resolved_local_rubric(path),
-            judge_runner_sha256=lambda: self.judge_runner_sha256(),
-            scorer_module_sha256=lambda: self.scorer_module_sha256(),
+            validate_target=self.validate_target_identity,
+            target_identities=self._target_directory_identities,
+            resolve_local_rubric=self.resolved_local_rubric,
+            judge_runner_sha256=self.judge_runner_sha256,
+            scorer_module_sha256=self.scorer_module_sha256,
         )
 
     @property
@@ -76,22 +152,6 @@ class SubmissionJudgeRunner:
     @property
     def summary_path(self) -> Path:
         return self.scores_path
-
-    def _validated_task_id(self, task: object) -> str:
-        return self.discovery.validated_task_id(task)
-
-    def _canonical_task_dir(
-        self, task: object, status_task_dir: object | None = None
-    ) -> Path:
-        return self.discovery.canonical_task_dir(task, status_task_dir)
-
-    def _validated_workspace(
-        self, workspace: Path, *, expected: Path | tuple[Path, ...]
-    ) -> Path:
-        return self.discovery.validated_workspace(workspace, expected=expected)
-
-    def _expected_workspace_dir(self, run_dir: Path) -> Path:
-        return self.discovery.expected_workspace_dir(run_dir)
 
     def validate_target_identity(self, target: JudgeTarget) -> None:
         self.discovery.validate_target_identity(target)
@@ -201,73 +261,22 @@ class SubmissionJudgeRunner:
         return self.review_target(attempt.target, attempt.repeat_index)
 
     def score_summary(self, records: list[dict[str, Any]]) -> dict[str, Any]:
-        by_task: dict[str, list[dict[str, Any]]] = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for record in records:
-            task = str(record.get("task"))
-            by_task.setdefault(task, []).append(record)
-
-        tasks = []
-        scores = []
-        normalized_scores = []
-        for task, task_records in sorted(by_task.items()):
-            task_records = sorted(
-                task_records, key=lambda item: int(item.get("repeat_index") or 1)
-            )
-            task_scores = [
-                record["score"]
-                for record in task_records
-                if record.get("status") in {"completed", "skipped"}
-                and not isinstance(record.get("score"), bool)
-                and isinstance(record.get("score"), Real)
-            ]
-            scores.extend(task_scores)
-            task_normalized_scores = [
-                record["normalized_score"]
-                for record in task_records
-                if record.get("status") in {"completed", "skipped"}
-                and type(record.get("normalized_score")) is float
-            ]
-            normalized_scores.extend(task_normalized_scores)
-            first = task_records[0]
-            tasks.append(
-                {
-                    "task": task,
-                    "status": self.combined_status(task_records),
-                    "score": task_scores[0]
-                    if len(task_records) == 1 and task_scores
-                    else None,
-                    "normalized_score": task_normalized_scores[0]
-                    if len(task_records) == 1 and task_normalized_scores
-                    else None,
-                    "scores": task_scores,
-                    "normalized_scores": task_normalized_scores,
-                    "mean_score": round(sum(task_scores) / len(task_scores), 4)
-                    if task_scores
-                    else None,
-                    "mean_normalized_score": round(
-                        sum(task_normalized_scores) / len(task_normalized_scores), 8
-                    ) if task_normalized_scores else None,
-                    "score_stddev": round(pstdev(task_scores), 4)
-                    if len(task_scores) > 1
-                    else 0.0
-                    if task_scores
-                    else None,
-                    "min_score": min(task_scores) if task_scores else None,
-                    "max_score": max(task_scores) if task_scores else None,
-                    "scored_repeats": len(task_scores),
-                    "total_repeats": len(task_records),
-                    "output_dir": first.get("output_dir"),
-                    "reward": first.get("reward"),
-                    "evaluation": first.get("evaluation"),
-                    "stdout": first.get("stdout"),
-                    "attempts": task_records,
-                }
-            )
-        average = round(sum(scores) / len(scores), 4) if scores else None
-        normalized_average = (
-            round(sum(normalized_scores) / len(normalized_scores), 8)
-            if normalized_scores else None
+            grouped.setdefault(str(record.get("task")), []).append(record)
+        task_summaries = tuple(
+            _summarize_task(task, task_records)
+            for task, task_records in sorted(grouped.items())
         )
+        scores = tuple(
+            score for summary in task_summaries for score in summary.scores
+        )
+        normalized_scores = tuple(
+            score
+            for summary in task_summaries
+            for score in summary.normalized_scores
+        )
+        tasks = [summary.record for summary in task_summaries]
         return {
             "benchmark": self.config.benchmark.value,
             "grading_engine": grading_engine_for_benchmark(
@@ -279,29 +288,15 @@ class SubmissionJudgeRunner:
             "max_concurrency": self.job_count,
             "total_tasks": len(tasks),
             "total_attempts": len(records),
-            "scored_tasks": sum(1 for task in tasks if task["scored_repeats"] > 0),
+            "scored_tasks": sum(
+                task["scored_repeats"] > 0 for task in tasks
+            ),
             "scored_attempts": len(scores),
-            "average_score": average,
-            "average_normalized_score": normalized_average,
-            "score_stddev": round(pstdev(scores), 4)
-            if len(scores) > 1
-            else 0.0
-            if scores
-            else None,
+            "average_score": _average(scores, 4),
+            "average_normalized_score": _average(normalized_scores, 8),
+            "score_stddev": _score_stddev(scores),
             "tasks": tasks,
         }
-
-    def combined_status(self, records: list[dict[str, Any]]) -> str:
-        statuses = {record.get("status") for record in records}
-        if statuses == {"skipped"}:
-            return "skipped"
-        if "failed" in statuses:
-            return "failed"
-        if "planned" in statuses:
-            return "planned"
-        if "completed" in statuses:
-            return "completed"
-        return str(records[-1].get("status") or "unknown")
 
     def print_score_summary(self, summary: dict[str, Any]) -> None:
         print(f"Judge scores ({summary['review']})")
@@ -347,7 +342,7 @@ class SubmissionJudgeRunner:
             judge_source = judge_path.read_bytes()
         except (OSError, UnicodeError):
             return None
-        score_input_attestation = self.score_input_attestation(
+        score_input_attestation = self.executor.score_input_attestation(
             attempt=attempt,
             rubric=rubric,
             judge_source=judge_source,
@@ -359,13 +354,13 @@ class SubmissionJudgeRunner:
             return None
         identities = self._target_directory_identities(target)
         try:
-            with self._open_output_directory(
+            with self.artifacts.open_output_directory(
                 target.output_root,
                 output_dir,
                 expected_root_identity=identities.output_root,
                 create=False,
             ) as output:
-                validation = self.valid_score_validation(
+                validation = self.executor.valid_score_validation(
                     rubric,
                     score_input_attestation,
                     output=output,
@@ -417,15 +412,19 @@ class SubmissionJudgeRunner:
             **self.rubric_record(rubric),
         }
         identities = self._target_directory_identities(target)
-        with self._open_output_directory(
+        with self.artifacts.open_output_directory(
             target.output_root,
             output_dir,
             expected_root_identity=identities.output_root,
         ) as output:
             if self.config.save_input_copies:
-                self._write_output_text(output, "judge_input_trace.md", review_text)
-                self._write_output_text(output, "judge_input_answer.txt", answer_text)
-            result = self._execute_judge_with_output(
+                self.artifacts.write_output_text(
+                    output, "judge_input_trace.md", review_text
+                )
+                self.artifacts.write_output_text(
+                    output, "judge_input_answer.txt", answer_text
+                )
+            result = self.executor.execute_with_output(
                 judge_path,
                 rubric,
                 output,
@@ -436,78 +435,12 @@ class SubmissionJudgeRunner:
         return {**base_record, **result}
 
     def output_dir(self, target: JudgeTarget, repeat_index: int = 1) -> Path:
-        self._validated_task_id(target.task)
-        base = target.output_root / "judges" / self.config.review / target.task
-        if self.repeat_count == 1:
-            return self._safe_output_path(target.output_root, base)
-        return self._safe_output_path(
-            target.output_root, base / f"repeat-{repeat_index:02d}"
+        self.discovery.validated_task_id(target.task)
+        return self.artifacts.output_dir(
+            target,
+            repeat_count=self.repeat_count,
+            repeat_index=repeat_index,
         )
-
-    def _safe_output_path(self, output_root: Path, candidate: Path) -> Path:
-        return self.artifacts.safe_output_path(output_root, candidate)
-
-    def _directory_open_flags(self) -> int:
-        return self.artifacts.directory_open_flags()
-
-    def _directory_fd_identity(self, fd: int) -> tuple[int, int]:
-        return self.artifacts.directory_fd_identity(fd)
-
-    def _validate_directory_fd(
-        self,
-        fd: int,
-        path: Path,
-        context: str,
-        expected_identity: tuple[int, int] | None = None,
-    ) -> None:
-        self.artifacts.validate_directory_fd(
-            fd, path, context, expected_identity
-        )
-
-    def _open_directory_fd(self, path: Path, context: str) -> int:
-        return self.artifacts.open_directory_fd(path, context)
-
-    @contextmanager
-    def _open_output_directory(
-        self,
-        output_root: Path,
-        output_dir: Path,
-        *,
-        expected_root_identity: tuple[int, int],
-        create: bool = True,
-    ) -> Iterator[_OpenOutputDirectory]:
-        self._safe_output_path(output_root, output_dir)
-        with self.artifacts.open_output_directory(
-            output_root,
-            output_dir,
-            expected_root_identity=expected_root_identity,
-            create=create,
-        ) as output:
-            self._safe_output_path(output_root, output_dir)
-            yield output
-
-    def _validate_output_directory(self, output: _OpenOutputDirectory) -> None:
-        self.artifacts.validate_output_directory(output)
-
-    def _read_output_bytes(
-        self, output: _OpenOutputDirectory, name: str
-    ) -> bytes:
-        return self.artifacts.read_output_bytes(output, name)
-
-    def _write_output_text(
-        self, output: _OpenOutputDirectory, name: str, text: str
-    ) -> None:
-        self.artifacts.write_output_text(output, name, text)
-
-    def _write_output_bytes(
-        self, output: _OpenOutputDirectory, name: str, payload: bytes
-    ) -> None:
-        self.artifacts.write_output_bytes(output, name, payload)
-
-    def _unlink_output_file(
-        self, output: _OpenOutputDirectory, name: str
-    ) -> None:
-        self.artifacts.unlink_output_file(output, name)
 
     def _tests_dir(self, task_dir: Path) -> Path:
         if task_dir.is_symlink() or not task_dir.is_dir():
@@ -579,7 +512,7 @@ class SubmissionJudgeRunner:
             text=bundle.rendered_text,
             path=path,
             structured_rubric_sha256=bundle.rubric_sha256,
-            rendered_rubric_sha256=self.sha256_text(bundle.rendered_text),
+            rendered_rubric_sha256=hashlib.sha256(bundle.rendered_text.encode("utf-8")).hexdigest(),
             rubric_id=bundle.rubric_id,
             rubric_set_id=bundle.rubric_set_id,
             source="rubric-set",
@@ -598,7 +531,7 @@ class SubmissionJudgeRunner:
             text=text,
             path=path,
             structured_rubric_sha256=None,
-            rendered_rubric_sha256=self.sha256_text(text),
+            rendered_rubric_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
             rubric_id=None,
             rubric_set_id=None,
             source="task-local",
@@ -620,16 +553,6 @@ class SubmissionJudgeRunner:
             "manifest_sha256": rubric.manifest_sha256,
         }
 
-    def _stable_artifact_signature(self, value: os.stat_result) -> tuple[int, ...]:
-        return (
-            value.st_dev,
-            value.st_ino,
-            value.st_mode,
-            value.st_size,
-            value.st_mtime_ns,
-            value.st_ctime_ns,
-        )
-
     def _read_review_artifact(
         self,
         root: Path,
@@ -642,9 +565,9 @@ class SubmissionJudgeRunner:
         artifact_path = root_path / name
         owns_root_fd = root_fd is None
         if root_fd is None:
-            root_fd = self._open_directory_fd(root_path, "Reviewed artifact parent")
+            root_fd = self.artifacts.open_directory_fd(root_path, "Reviewed artifact parent")
         else:
-            self._validate_directory_fd(
+            self.artifacts.validate_directory_fd(
                 root_fd,
                 root_path,
                 "Reviewed artifact parent",
@@ -697,8 +620,8 @@ class SubmissionJudgeRunner:
                     f"Reviewed artifact changed while being read: {artifact_path}"
                 ) from exc
             if (
-                self._stable_artifact_signature(before)
-                != self._stable_artifact_signature(after)
+                self.artifacts.stable_artifact_signature(before)
+                != self.artifacts.stable_artifact_signature(after)
                 or not stat.S_ISREG(named_after.st_mode)
                 or (after.st_dev, after.st_ino)
                 != (named_after.st_dev, named_after.st_ino)
@@ -706,7 +629,7 @@ class SubmissionJudgeRunner:
                 raise SystemExit(
                     f"Reviewed artifact changed while being read: {artifact_path}"
                 )
-            self._validate_directory_fd(
+            self.artifacts.validate_directory_fd(
                 root_fd,
                 root_path,
                 "Reviewed artifact parent",
@@ -731,13 +654,13 @@ class SubmissionJudgeRunner:
     def review_inputs(self, target: JudgeTarget) -> tuple[str, str]:
         identities = self._target_directory_identities(target)
         workspace_path = target.workspace_dir.expanduser().absolute()
-        workspace_fd = self._open_directory_fd(
+        workspace_fd = self.artifacts.open_directory_fd(
             workspace_path,
             "Reviewed artifact workspace",
         )
         run_fd: int | None = None
         try:
-            self._validate_directory_fd(
+            self.artifacts.validate_directory_fd(
                 workspace_fd,
                 workspace_path,
                 "Reviewed artifact workspace",
@@ -750,11 +673,11 @@ class SubmissionJudgeRunner:
                         f"trajectory path disagrees with run layout: {target.trajectory_path}"
                     )
                 run_path = target.run_dir.expanduser().absolute()
-                run_fd = self._open_directory_fd(
+                run_fd = self.artifacts.open_directory_fd(
                     run_path,
                     "Reviewed artifact run",
                 )
-                self._validate_directory_fd(
+                self.artifacts.validate_directory_fd(
                     run_fd,
                     run_path,
                     "Reviewed artifact run",
@@ -787,14 +710,14 @@ class SubmissionJudgeRunner:
                     self.benchmark.answer_artifact,
                     root_fd=workspace_fd,
                 )
-            self._validate_directory_fd(
+            self.artifacts.validate_directory_fd(
                 workspace_fd,
                 workspace_path,
                 "Reviewed artifact workspace",
                 identities.workspace,
             )
             if run_fd is not None:
-                self._validate_directory_fd(
+                self.artifacts.validate_directory_fd(
                     run_fd,
                     target.run_dir.expanduser().absolute(),
                     "Reviewed artifact run",
@@ -849,105 +772,6 @@ class SubmissionJudgeRunner:
             self.benchmark.answer_artifact,
         )
 
-    def execute_judge(
-        self,
-        judge_path: Path,
-        rubric: ResolvedRubric | Path,
-        output_dir: Path,
-        review_text: str,
-        answer_text: str,
-        *,
-        attempt: JudgeAttempt,
-    ) -> dict[str, Any]:
-        self.validate_target_identity(attempt.target)
-        identities = self._target_directory_identities(attempt.target)
-        with self._open_output_directory(
-            attempt.target.output_root,
-            output_dir,
-            expected_root_identity=identities.output_root,
-        ) as output:
-            return self._execute_judge_with_output(
-                judge_path,
-                rubric,
-                output,
-                review_text,
-                answer_text,
-                attempt=attempt,
-            )
-
-    def _execute_judge_with_output(
-        self,
-        judge_path: Path,
-        rubric: ResolvedRubric | Path,
-        output: _OpenOutputDirectory,
-        review_text: str,
-        answer_text: str,
-        *,
-        attempt: JudgeAttempt,
-    ) -> dict[str, Any]:
-        return self.executor.execute_with_output(
-            judge_path,
-            rubric,
-            output,
-            review_text,
-            answer_text,
-            attempt=attempt,
-        )
-
-    def build_score_validation(
-        self,
-        rubric: ResolvedRubric,
-        reward_path: Path,
-        evaluation_path: Path,
-        usage_path: Path,
-        score_input_attestation: dict[str, Any],
-    ) -> dict[str, Any]:
-        return self.executor.build_score_validation(
-            rubric, reward_path, evaluation_path, usage_path, score_input_attestation
-        )
-
-    def _build_score_validation_from_bytes(
-        self,
-        rubric: ResolvedRubric,
-        reward_raw: bytes,
-        evaluation_raw: bytes,
-        usage_raw: bytes,
-        score_input_attestation: dict[str, Any],
-    ) -> dict[str, Any]:
-        return self.executor.build_score_validation_from_bytes(
-            rubric, reward_raw, evaluation_raw, usage_raw, score_input_attestation
-        )
-
-    def valid_score_validation(
-        self,
-        rubric: ResolvedRubric,
-        score_input_attestation: dict[str, Any],
-        *,
-        output: _OpenOutputDirectory,
-    ) -> dict[str, Any] | None:
-        return self.executor.valid_score_validation(
-            rubric, score_input_attestation, output=output
-        )
-
-    def score_input_attestation(
-        self,
-        *,
-        attempt: JudgeAttempt,
-        rubric: ResolvedRubric,
-        judge_source: bytes,
-        review_text: str,
-        answer_text: str,
-        effective_judge_model: str,
-    ) -> dict[str, Any]:
-        return self.executor.score_input_attestation(
-            attempt=attempt,
-            rubric=rubric,
-            judge_source=judge_source,
-            review_text=review_text,
-            answer_text=answer_text,
-            effective_judge_model=effective_judge_model,
-        )
-
     def judge_runner_sha256(self) -> str:
         return self._judge_runner_sha256
 
@@ -956,20 +780,6 @@ class SubmissionJudgeRunner:
 
     def judge_model(self, env: dict[str, str] | None = None) -> str:
         return self.executor.judge_model(env)
-
-    def load_json(self, path: Path) -> object:
-        return load_json_strict(path.read_text(encoding="utf-8"))
-
-    def sha256_file(self, path: Path) -> str:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-
-    def sha256_text(self, text: str) -> str:
-        return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-    def read_text(self, path: Path) -> str:
-        if not path.is_file():
-            return ""
-        return self.truncate(path.read_text(errors="replace"))
 
     def truncate(self, text: str) -> str:
         max_chars = self.config.max_review_chars
@@ -983,14 +793,6 @@ class SubmissionJudgeRunner:
             + text[-tail:]
         )
 
-    def _read_json(self, path: Path) -> dict[str, Any]:
-        if not path.is_file():
-            return {}
-        try:
-            data = json.loads(path.read_text())
-        except json.JSONDecodeError:
-            return {}
-        return data if isinstance(data, dict) else {}
 
 
 class JudgeProgress(TerminalProgress):

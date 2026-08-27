@@ -53,14 +53,16 @@ from rubric_gen.submission_revision.rh_outcome_panel import (
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
     RubricBank,
-    RubricBankGeneration,
     RubricBankItem,
     RubricBankPolicy,
     RubricCriterionMapping,
     ElicitedCriterion,
     RubricLineage,
-    persist_rubric_bank,
     render_augmented_rubric,
+)
+from rubric_gen.submission_revision.rubric_bank_lifecycle import (
+    RubricBankGeneration,
+    persist_rubric_bank,
     rubric_bank_directory,
 )
 

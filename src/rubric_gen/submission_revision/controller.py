@@ -91,11 +91,13 @@ from rubric_gen.submission_revision.contrasts import (
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
     RubricBank,
-    RubricBankGeneration,
     RubricBankItem,
     RubricBankPolicy,
     RubricLineage,
     identity_criterion_map,
+)
+from rubric_gen.submission_revision.rubric_bank_lifecycle import (
+    RubricBankGeneration,
     load_rubric_bank,
     persist_rubric_bank,
     rubric_bank_directory,

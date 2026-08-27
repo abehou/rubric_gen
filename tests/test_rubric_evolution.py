@@ -272,6 +272,7 @@ def test_generation_identity_covers_history_and_scoring_code() -> None:
         "evolution_sha256",
         "artifact_history_builder_sha256",
         "rubric_bank_sha256",
+        "rubric_bank_lifecycle_sha256",
         "bank_scoring_sha256",
         "full_rubric_judge_sha256",
         "judge_models_sha256",

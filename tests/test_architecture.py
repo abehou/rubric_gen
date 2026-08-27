@@ -101,3 +101,19 @@ def test_reward_hacking_evaluation_modules_remain_focused() -> None:
     for module in modules:
         line_count = len((package / module).read_text(encoding="utf-8").splitlines())
         assert line_count < 1_000, f"{module} has {line_count} lines"
+
+
+def test_rubric_bank_and_judge_runner_modules_remain_focused() -> None:
+    submission_revision = SOURCE_ROOT / "submission_revision"
+    modules = (
+        submission_revision / "rubric_bank.py",
+        submission_revision / "rubric_bank_lifecycle.py",
+        submission_revision / "judging" / "runner.py",
+    )
+
+    for module in modules:
+        line_count = len(module.read_text(encoding="utf-8").splitlines())
+        assert line_count < 1_000, f"{module.name} has {line_count} lines"
+
+    domain_source = modules[0].read_text(encoding="utf-8")
+    assert "rubric_bank_lifecycle" not in domain_source

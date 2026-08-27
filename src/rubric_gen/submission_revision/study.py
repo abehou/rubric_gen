@@ -59,10 +59,8 @@ from rubric_gen.submission_revision.artifacts import (
     tree_sha256,
     verify_submission_snapshot,
 )
-from rubric_gen.submission_revision.rubric_bank import (
-    RubricBankPolicy,
-    load_rubric_bank,
-)
+from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
+from rubric_gen.submission_revision.rubric_bank_lifecycle import load_rubric_bank
 from rubric_gen.submission_revision.seeds import resolve_seed
 from rubric_gen.submission_revision.paraphrases import (
     resolve_paraphrase_selection,

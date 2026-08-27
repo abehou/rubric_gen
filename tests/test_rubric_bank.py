@@ -15,17 +15,19 @@ from rubric_gen.submission_revision.rubric_bank import (
     elicited_criterion_penalty_points,
     MAX_ELICITED_CRITERIA,
     RubricBank,
-    RubricBankGeneration,
     RubricBankItem,
     RubricBankPolicy,
-    RubricBankSchedule,
     RubricLineage,
     identity_criterion_map,
-    load_rubric_bank,
     parse_elicited_criterion,
-    persist_rubric_bank,
     render_augmented_rubric,
     validate_rubric_criterion_map,
+)
+from rubric_gen.submission_revision.rubric_bank_lifecycle import (
+    RubricBankGeneration,
+    RubricBankSchedule,
+    load_rubric_bank,
+    persist_rubric_bank,
 )
 
 

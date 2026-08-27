@@ -26,9 +26,9 @@ from rubric_gen.submission_revision.rh_protocol import (
     _finite_score,
     _is_sha256,
 )
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
+from rubric_gen.submission_revision.rubric_bank_lifecycle import (
     RubricBankGeneration,
-    RubricBankPolicy,
     load_rubric_bank,
     rubric_bank_directory,
 )
