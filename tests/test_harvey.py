@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import threading
+from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -25,8 +26,18 @@ from rubric_gen.benchmarks.harvey_lab.config import (
     load_experiment,
 )
 from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController, build_ranking
+from rubric_gen.benchmarks.harvey_lab.cached_judge import (
+    CachedAnthropicJudge,
+    JudgeUsage,
+    score_criteria,
+    split_cached_prompt,
+)
 from rubric_gen.benchmarks.harvey_lab.designer import DESIGNER_PROMPT, CodexHarnessDesigner, DesignedCandidate
-from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
+from rubric_gen.benchmarks.harvey_lab.evaluator import (
+    CandidateEvaluation,
+    HarveyEvaluator,
+    validate_harvey_score,
+)
 from rubric_gen.benchmarks.harvey_lab.podman import (
     cache_image,
     configured_podman_environment,
@@ -61,6 +72,57 @@ def _task() -> dict[str, object]:
                 "match_criteria": "PASS if the memo gives advice. FAIL otherwise.",
             },
         ],
+    }
+
+
+def _score(
+    n_passed: int = 1,
+    n_criteria: int = 2,
+    *,
+    run_id: str = "run",
+    task: str = "area/task",
+) -> dict[str, object]:
+    all_pass = n_passed == n_criteria
+    criteria = [
+        {
+            "id": f"C-{index + 1:03d}",
+            "title": f"Criterion {index + 1}",
+            "verdict": "pass" if index < n_passed else "fail",
+            "reasoning": "Evidence.",
+        }
+        for index in range(n_criteria)
+    ]
+    return {
+        "score": 1.0 if all_pass else 0.0,
+        "max_score": 1.0,
+        "summary": f"{n_passed}/{n_criteria} criteria passed.",
+        "all_pass": all_pass,
+        "n_criteria": n_criteria,
+        "n_passed": n_passed,
+        "criteria_results": criteria,
+        "run_id": run_id,
+        "task": task,
+        "judge_model": "claude-sonnet-4-6",
+        "scored_at": "2026-08-27T00:00:00+00:00",
+        "judge_usage": {
+            "requests": n_criteria,
+            "input_tokens": 100,
+            "cache_creation_input_tokens": 1_000,
+            "cache_read_input_tokens": max(n_criteria - 1, 0) * 1_000,
+            "output_tokens": 20,
+        },
+        "task_agent_usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "wall_clock_seconds": 0,
+        },
+        "doc_coverage": {
+            "documents_read": 0,
+            "total_documents": 0,
+            "documents_skipped": 0,
+            "documents_read_list": [],
+            "documents_skipped_list": [],
+        },
     }
 
 
@@ -110,6 +172,108 @@ def test_load_harvey_experiment_resolves_paths_and_modes(tmp_path: Path) -> None
     assert experiment.designer.rounds == 2
     assert experiment.task_agent.model == "gpt-5.6-luna"
     assert experiment.audit.max_cost_usd is None
+
+
+def test_cached_judge_preserves_prompt_and_marks_shared_prefix() -> None:
+    template = (
+        "Task: {task_description}\nOutput: {agent_output}\n"
+        "Criterion: {criterion_title}\n{match_criteria}\n"
+        '{{"verdict":"pass","reasoning":"why"}}'
+    )
+    prefix, suffix = split_cached_prompt(
+        template,
+        task_description="Review",
+        agent_output="Memo",
+        criterion_title="Correct advice",
+        match_criteria="PASS when correct.",
+    )
+    calls: list[dict[str, object]] = []
+
+    class Messages:
+        def create(self, **arguments: object) -> object:
+            calls.append(arguments)
+            return SimpleNamespace(
+                usage=SimpleNamespace(
+                    input_tokens=40,
+                    cache_creation_input_tokens=1_000,
+                    cache_read_input_tokens=0,
+                    output_tokens=12,
+                ),
+                stop_reason="end_turn",
+                content=[SimpleNamespace(
+                    type="text",
+                    text='{"verdict":"pass","reasoning":"Supported."}',
+                )],
+            )
+
+    verdict, reasoning, usage = CachedAnthropicJudge(
+        "claude-sonnet-4-6",
+        SimpleNamespace(messages=Messages()),
+    ).evaluate(prefix, suffix)
+
+    assert prefix + suffix == template.format(
+        task_description="Review",
+        agent_output="Memo",
+        criterion_title="Correct advice",
+        match_criteria="PASS when correct.",
+    )
+    content = calls[0]["messages"][0]["content"]  # type: ignore[index]
+    assert content[0]["text"] == prefix
+    assert content[0]["cache_control"] == {"type": "ephemeral"}
+    assert content[1] == {"type": "text", "text": suffix}
+    assert verdict == "pass"
+    assert reasoning == "Supported."
+    assert usage == JudgeUsage(
+        requests=1,
+        input_tokens=40,
+        cache_creation_input_tokens=1_000,
+        cache_read_input_tokens=0,
+        output_tokens=12,
+    )
+
+
+def test_cached_scoring_warms_each_output_scope_before_parallel_calls() -> None:
+    criteria = [
+        {
+            "id": f"C-{index:03d}",
+            "title": f"Check {index}",
+            "match_criteria": "PASS when supported.",
+            "deliverables": ["memo.md"],
+        }
+        for index in range(1, 6)
+    ]
+    calls: list[tuple[str, str]] = []
+
+    class Judge:
+        def evaluate(self, prefix: str, suffix: str) -> tuple[str, str, JudgeUsage]:
+            calls.append((prefix, suffix))
+            return "pass", "Supported.", JudgeUsage(requests=1)
+
+    results, usage = score_criteria(
+        criteria,
+        task_description="Review",
+        output_for=lambda scope: "Memo" if scope == (("memo.md",), False) else "",
+        prompt_template=(
+            "Task {task_description}\nOutput {agent_output}\n"
+            "Criterion {criterion_title}\n{match_criteria}"
+        ),
+        judge=Judge(),  # type: ignore[arg-type]
+        parallel=3,
+    )
+
+    assert len(calls) == 5
+    assert "Check 1" in calls[0][1]
+    assert len({prefix for prefix, _ in calls}) == 1
+    assert [result.id for result in results] == [f"C-{index:03d}" for index in range(1, 6)]
+    assert usage.requests == 5
+
+
+def test_current_harvey_score_rejects_uncached_usage_artifact() -> None:
+    old = _score()
+    del old["judge_usage"]
+
+    with pytest.raises(ValueError, match="invalid fields"):
+        validate_harvey_score(old, "Harvey score")
 
 
 def test_static_harvey_experiment_rejects_proposer(tmp_path: Path) -> None:
@@ -754,11 +918,7 @@ class _FakeEvaluator:
         value = 0.25 if identifier == "h0000" else 0.75
         scores = {}
         for task_id in task_files:
-            score = {
-                "n_passed": int(value * 4),
-                "n_criteria": 4,
-                "all_pass": value == 1,
-            }
+            score = _score(int(value * 4), 4, run_id=identifier, task=task_id)
             scores[task_id] = score
             result = destination / "tasks" / task_id / "result"
             (result / "output").mkdir(parents=True)
@@ -778,7 +938,7 @@ class _FakeEvaluator:
         destination: Path,
     ) -> CandidateEvaluation:
         scores = {
-            task_id: {"n_passed": 2, "n_criteria": 4, "all_pass": False}
+            task_id: _score(2, 4, run_id=identifier, task=task_id)
             for task_id in task_files
         }
         evaluation = CandidateEvaluation(identifier, scores, 0.5, 0.0)
@@ -1033,9 +1193,10 @@ def test_production_evaluator_uses_runtime_modules_and_rescores_read_only_output
             (result / "metrics.json").write_text("{}", encoding="utf-8")
             (result / "transcript.jsonl").write_text("{}\n", encoding="utf-8")
         else:
-            assert command[4:7] == ["python", "-m", "evaluation.run_eval"]
+            assert command[4] == "python"
+            assert Path(command[5]).name == "cached_judge.py"
             (result / "scores.json").write_text(
-                json.dumps({"n_passed": 1, "n_criteria": 2, "all_pass": False}),
+                json.dumps(_score(run_id=run_id)),
                 encoding="utf-8",
             )
 
@@ -1125,7 +1286,7 @@ def test_production_evaluator_resumes_canonical_and_crossed_task_checkpoints(
             log.write_text("deterministic judge failure", encoding="utf-8")
             raise RuntimeError("judge failed")
         (result / "scores.json").write_text(
-            json.dumps({"n_passed": 1, "n_criteria": 2, "all_pass": False}),
+            json.dumps(_score(run_id=run_id, task=task_id)),
             encoding="utf-8",
         )
 
@@ -1169,7 +1330,7 @@ def test_production_evaluator_resumes_canonical_and_crossed_task_checkpoints(
     saved_task = crossed_stage / "tasks" / "area" / "task"
     saved_task.mkdir(parents=True)
     (saved_task / "scores.json").write_text(
-        json.dumps({"n_passed": 2, "n_criteria": 2, "all_pass": True}),
+        json.dumps(_score(2, 2)),
         encoding="utf-8",
     )
 
@@ -1378,7 +1539,7 @@ def test_production_evaluator_runs_independent_tasks_with_bounded_concurrency(
             (result / "transcript.jsonl").write_text("{}\n", encoding="utf-8")
         else:
             (result / "scores.json").write_text(
-                json.dumps({"n_passed": 1, "n_criteria": 2, "all_pass": False}),
+                json.dumps(_score(run_id=run_id)),
                 encoding="utf-8",
             )
 

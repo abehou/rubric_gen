@@ -1,6 +1,6 @@
 kind: rubric-gen-harvey-harness-evolution-experiment
-experiment_id: harvey-harness-dev3-r3
-output_dir: ../runs/harvey-harness-dev3-r3
+experiment_id: harvey-harness-dev3-prompt-cache-r3
+output_dir: ../runs/harvey-harness-dev3-prompt-cache-r3
 cache_dir: /juice2/u/nlp/data/abe_models/rubric_gen/cache/harvey-lab
 
 benchmark:

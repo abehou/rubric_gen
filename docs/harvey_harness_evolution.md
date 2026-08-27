@@ -98,6 +98,22 @@ task. Thus, three concurrent task judges issue at most nine criterion calls.
 Use four task workers for the 20-task results tier. This gives at most 12
 concurrent criterion calls.
 
+The judge sends the same one-criterion prompt used by the pinned Harvey
+evaluator. It marks the shared task-output prefix for Anthropic's five-minute
+prompt cache. It completes one criterion per output scope before it starts the
+remaining parallel calls. This warm request prevents the first concurrent calls
+from racing to create the same cache entry. Scores now store `judge_usage` and
+`task_agent_usage` separately. The current validator rejects prior score files
+that mislabeled task-agent tokens as judge cost.
+
+Anthropic charges a five-minute cache write at 1.25 times the base input rate.
+It charges a cache read at 0.1 times the base input rate. The 20-task rubric has
+one output scope and a mean of 53.55 criteria per task. The repeated-prefix
+input charge is therefore about 8.23 times smaller before uncached criterion
+text and output tokens. The total judge-cost target is at least five times
+smaller, but only realized usage can confirm it. See [Anthropic prompt-caching
+pricing](https://platform.claude.com/docs/en/about-claude/pricing#prompt-caching).
+
 `--max-retries` sets retries after the first task-agent or judge attempt. Its
 default is three. Harvey retries known transient provider errors, OpenAI
 `invalid_prompt` rejections, judge grammar timeouts, and truncated judge
@@ -110,8 +126,8 @@ mkdir -p runs/logs
 env -u SLURM_CPU_BIND_LIST -u SLURM_CPU_BIND_TYPE \
   -u SLURM_CPU_BIND_VERBOSE SLURM_CPU_BIND=none \
   nlprun -g 0 -c 12 -r 64G -t 14-0 \
-  -n rubric-gen-harvey-dev3-r3 \
-  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-dev3-r3.out \
+  -n rubric-gen-harvey-dev3-prompt-cache-r3 \
+  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-dev3-prompt-cache-r3.out \
   -w /juice2/scr2/abehou/rubric_gen \
   'env HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${SLURM_JOB_ID:?}" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution-dev3.yaml --max-concurrency 3'
 ```
@@ -132,8 +148,9 @@ saved run tree.
 
 Start the 20-task results run only after the development study completes without
 task, image-cache, or judge errors. The results run has 83,479 nominal Sonnet
-criterion judgments and no whole-study cost ceiling. Estimate and approve its
-cost before submission.
+criterion judgments and no whole-study cost ceiling. The explicit prompt cache
+reduces repeated-prefix charges but does not reduce the request count. Estimate
+and approve the remaining cost before submission.
 
 The `env` prefix removes CPU-binding masks inherited from the submitting Slurm
 allocation. A stale mask can fall outside the CPUs assigned to the new job.
@@ -142,15 +159,15 @@ allocation. A stale mask can fall outside the CPUs assigned to the new job.
 env -u SLURM_CPU_BIND_LIST -u SLURM_CPU_BIND_TYPE \
   -u SLURM_CPU_BIND_VERBOSE SLURM_CPU_BIND=none \
   nlprun -g 0 -c 12 -r 64G -t 14-0 \
-  -n rubric-gen-harvey-results20-r10 \
-  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-results20-r10-%j.out \
+  -n rubric-gen-harvey-results20-prompt-cache-r10 \
+  -o /juice2/scr2/abehou/rubric_gen/runs/logs/harvey-results20-prompt-cache-r10-%j.out \
   -w /juice2/scr2/abehou/rubric_gen \
-  'exec flock -n /juice2/scr2/abehou/rubric_gen/runs/.harvey-results20-r10.lock bash -lc "if test -e /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-results20-r10 || test -L /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-results20-r10; then echo \"Harvey results output already exists\" >&2; exit 73; fi; exec env HARVEY_RUNTIME_ROOT=\"/tmp/rubric-gen-harvey-\${SLURM_JOB_ID:?}\" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution-results20.yaml --max-concurrency 4"'
+  'exec flock -n /juice2/scr2/abehou/rubric_gen/runs/.harvey-results20-prompt-cache-r10.lock bash -lc "if test -e /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-results20-prompt-cache-r10 || test -L /juice2/scr2/abehou/rubric_gen/runs/harvey-harness-results20-prompt-cache-r10; then echo \"Harvey results output already exists\" >&2; exit 73; fi; exec env HARVEY_RUNTIME_ROOT=\"/tmp/rubric-gen-harvey-\${SLURM_JOB_ID:?}\" CODEX_HOME=/sailhome/abehou/.codex uv run --frozen rubric-gen run --experiment experiments/harvey-harness-evolution-results20.yaml --max-concurrency 4"'
 ```
 
-The job holds `runs/.harvey-results20-r10.lock` for its full lifetime. A duplicate job
-exits before it can write run artifacts. The `%j` log suffix keeps Slurm logs
-separate if two submissions reach the queue.
+The job holds `runs/.harvey-results20-prompt-cache-r10.lock` for its full
+lifetime. A duplicate job exits before it can write run artifacts. The `%j` log
+suffix keeps Slurm logs separate if two submissions reach the queue.
 
 Use `--resume` on an incomplete `run` only when its existing experiment identity
 and checkpoints match the configuration exactly. On a completed run, `--resume`

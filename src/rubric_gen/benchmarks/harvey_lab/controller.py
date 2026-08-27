@@ -28,7 +28,13 @@ from rubric_gen.benchmarks.harvey_lab.designer import (
     DesignedCandidate,
     copy_designed_candidate,
 )
-from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator, aggregate_scores
+from rubric_gen.benchmarks.harvey_lab.evaluator import (
+    CandidateEvaluation,
+    HarveyEvaluator,
+    aggregate_scores,
+    read_harvey_score,
+    validate_harvey_score,
+)
 from rubric_gen.benchmarks.harvey_lab.rubrics import RubricProposal, TaskRubricProposer
 from rubric_gen.benchmarks.harvey_lab.runtime import ensure_runtime_root
 
@@ -91,7 +97,11 @@ def _evaluation_from_summary(path: Path) -> CandidateEvaluation:
         type(key) is not str or not isinstance(item, dict) for key, item in tasks.items()
     ):
         raise ValueError(f"invalid candidate evaluation summary: {path}")
-    return aggregate_scores(candidate, tasks)  # type: ignore[arg-type]
+    validated = {
+        task_id: validate_harvey_score(score, f"Harvey score for {task_id}")
+        for task_id, score in tasks.items()
+    }
+    return aggregate_scores(candidate, validated)
 
 
 def build_ranking(
@@ -344,7 +354,7 @@ class HarveyEvolutionController:
 
     def _rubric_observation(self, candidate_index: int, task_id: str) -> dict[str, object]:
         result = self._canonical_dir(candidate_index) / "tasks" / task_id / "result"
-        score = read_json_object(result / "scores.json", "Harvey score")
+        score = read_harvey_score(result / "scores.json", "Harvey score")
         metrics = read_json_object(result / "metrics.json", "Harvey metrics")
         transcript_path = result / "transcript.jsonl"
         transcript = transcript_path.read_text(encoding="utf-8", errors="replace")

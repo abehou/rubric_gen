@@ -344,10 +344,10 @@ full-rubric grading.
 | Setting | Current value |
 |---|---|
 | Development config | `experiments/harvey-harness-evolution-dev3.yaml` |
-| Development experiment ID | `harvey-harness-dev3-r3` |
+| Development experiment ID | `harvey-harness-dev3-prompt-cache-r3` |
 | Results config | `experiments/harvey-harness-evolution-results20.yaml` |
-| Results experiment ID | `harvey-harness-results20-r10` |
-| Current status | Neither current-format tier has started. |
+| Results experiment ID | `harvey-harness-results20-prompt-cache-r10` |
+| Current status | Neither prompt-cached tier has started. The uncached results run stopped during `h0009`. |
 | Benchmark checkout | `../../harvey-labs` |
 | Pinned benchmark revision | `7be41d57fd5a6e97b5f246a029e810f83d09cd96` |
 | Minimal development tier | 3 tasks, 157 criteria, 3 design rounds |
@@ -418,7 +418,7 @@ three development tasks and both held-out tasks. Harvey does not define this
 | Role | Model | Reasoning setting | What it sees | What it does not see | Output and call rule |
 |---|---|---|---|---|---|
 | Task agent | `gpt-5.6-luna` through the Harvey harness | `high` | One task, its documents, the current candidate harness, and tool results. | Other candidates, the global ranking, held-out tasks during development, and audit results. | Produces one task result. It can use 200 turns, temperature 0, and a 60-second shell timeout. |
-| Task judge | `claude-sonnet-4-6` | Not set by `rubric_gen`; the Harvey evaluator controls it. | One task result and the active task rubric. | Hidden audit outcomes and future candidates. | Produces one pass or fail judgment per criterion. It uses three parallel criterion workers per task. |
+| Task judge | `claude-sonnet-4-6` | Not set by `rubric_gen`; the Harvey evaluator controls it. | One task result and the active task rubric. | Hidden audit outcomes and future candidates. | Produces one pass or fail judgment per criterion. It warms one explicit five-minute prompt-cache entry per output scope, then uses three parallel criterion workers. |
 | Rubric patch proposer | `gpt-5.6-sol` | `none`; low text verbosity | The current task rubric and the prior candidate's score, metrics, bounded transcript, and output-file inventory. | Held-out tasks, original hidden rubrics, and future candidates. | Can change at most eight criterion titles and PASS/FAIL rules per task and round. It makes one call per development task and round. |
 | Harness designer | `gpt-5.6-sol` through Codex | `high`; priority service | All earlier harnesses, their canonical results, active development rubrics, and current crossed ranking. | Held-out tasks, original hidden rubrics, quality-audit results, and reward-hacking judgments. | Selects one parent and writes one complete candidate harness. It gets one retry and a 7,200-second timeout. |
 | Quality-transfer runner | Deterministic controller plus the task agent and task judge | Same settings as those roles | Original development rubrics and held-out tasks after evolution ends. | These inputs were hidden from the designer. | Re-scores stored development outputs and runs every candidate on both held-out tasks. |
@@ -427,6 +427,11 @@ three development tasks and both held-out tasks. Harvey does not define this
 The Harvey task agent and harness designer still use `high` reasoning. The task
 judge has no reasoning field in this repository. Thus, Harvey does not yet meet
 the BioMNIBench and PaperBench `low` or `none` reasoning policy.
+
+Each score stores criterion-judge tokens in `judge_usage`. It stores the task
+agent's earlier generation tokens in `task_agent_usage`. The current validator
+rejects uncached score artifacts that used the old, incorrect `cost` field.
+That field copied task-agent metrics and did not measure Sonnet judge usage.
 
 ### Harvey rubric patch rules
 
@@ -463,14 +468,18 @@ a patch preserves meaning or avoids overfitting.
 | Reward-hacking panel judgments | 30 nominal; 60 maximum with retries |
 | Recommended maximum concurrent task agents | 4 |
 | Corresponding maximum concurrent criterion calls | 12 |
+| Prompt-cache repeated-prefix input reduction | 8.23 times nominal for the results rubric; total judge cost can differ |
 | Reward-hacking audit cost ceiling | USD 50 |
 | Whole-study cost ceiling | None |
 
 The 83,479 total follows from 1,071 development criteria, 92 held-out criteria,
-11 candidates, and repeated crossed scoring under each new rubric. This scale
-is much larger than the completed three-task run. The configuration has no
-whole-study cost ceiling. Do not launch it without a separate cost estimate and
-an approved budget.
+11 candidates, and repeated crossed scoring under each new rubric. The request
+count does not change. Each current results task has one output scope and a mean
+of 53.55 criteria. One 1.25-times cache write plus 52.55 reads at 0.1 times gives
+an 8.23-times reduction for the repeated prefix. Uncached criterion text and
+output tokens reduce the total factor. The configuration has no whole-study
+cost ceiling. Do not launch it without a separate cost estimate and an approved
+budget.
 
 ### Harvey outcomes
 
@@ -492,8 +501,8 @@ from rubric drift, judge noise, task-agent sampling, or a real harness change.
 
 | Config | Experiment ID | Development tasks | Held-out tasks | Rounds | Candidates | Audit cap | Matching current run |
 |---|---|---:|---:|---:|---:|---:|---|
-| `experiments/harvey-harness-evolution-dev3.yaml` | `harvey-harness-dev3-r3` | 3 | 2 | 3 | 4 | USD 25 | No |
-| `experiments/harvey-harness-evolution-results20.yaml` | `harvey-harness-results20-r10` | 20 | 2 | 10 | 11 | USD 50 | No |
+| `experiments/harvey-harness-evolution-dev3.yaml` | `harvey-harness-dev3-prompt-cache-r3` | 3 | 2 | 3 | 4 | USD 25 | No |
+| `experiments/harvey-harness-evolution-results20.yaml` | `harvey-harness-results20-prompt-cache-r10` | 20 | 2 | 10 | 11 | USD 50 | No |
 
 ## BioMNIBench and PaperBench statistical analysis gates
 

@@ -100,6 +100,171 @@ class CandidateEvaluation:
     mean_all_pass: float
 
 
+_HARVEY_SCORE_KEYS = {
+    "score",
+    "max_score",
+    "summary",
+    "all_pass",
+    "n_criteria",
+    "n_passed",
+    "criteria_results",
+    "run_id",
+    "task",
+    "judge_model",
+    "scored_at",
+    "judge_usage",
+    "task_agent_usage",
+    "doc_coverage",
+}
+_JUDGE_USAGE_KEYS = {
+    "requests",
+    "input_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+    "output_tokens",
+}
+_TASK_AGENT_USAGE_KEYS = {
+    "input_tokens",
+    "output_tokens",
+    "wall_clock_seconds",
+}
+
+
+def _validate_harvey_task_values(score: dict[str, object], label: str) -> tuple[int, int]:
+    passed, count = score.get("n_passed"), score.get("n_criteria")
+    if (
+        type(passed) is not int
+        or type(count) is not int
+        or count < 1
+        or not 0 <= passed <= count
+    ):
+        raise ValueError(f"{label} has invalid criterion counts")
+    all_pass = score.get("all_pass")
+    numeric_score, max_score = score.get("score"), score.get("max_score")
+    if (
+        type(all_pass) is not bool
+        or all_pass != (passed == count)
+        or isinstance(numeric_score, bool)
+        or not isinstance(numeric_score, (int, float))
+        or float(numeric_score) != (1.0 if all_pass else 0.0)
+        or isinstance(max_score, bool)
+        or not isinstance(max_score, (int, float))
+        or float(max_score) != 1.0
+    ):
+        raise ValueError(f"{label} has invalid task score values")
+    return passed, count
+
+
+def _validate_harvey_criteria(
+    criteria: object,
+    *,
+    expected_count: int,
+    expected_passed: int,
+    label: str,
+) -> None:
+    if not isinstance(criteria, list) or len(criteria) != expected_count:
+        raise ValueError(f"{label} has invalid criteria_results")
+    seen: set[str] = set()
+    observed_passed = 0
+    for criterion in criteria:
+        if not isinstance(criterion, dict) or set(criterion) != {
+            "id", "title", "verdict", "reasoning"
+        }:
+            raise ValueError(f"{label} has an invalid criterion result")
+        criterion_id = criterion.get("id")
+        if (
+            type(criterion_id) is not str
+            or not criterion_id.strip()
+            or criterion_id in seen
+            or type(criterion.get("title")) is not str
+            or not str(criterion["title"]).strip()
+            or criterion.get("verdict") not in {"pass", "fail"}
+            or type(criterion.get("reasoning")) is not str
+        ):
+            raise ValueError(f"{label} has an invalid criterion result")
+        seen.add(criterion_id)
+        observed_passed += int(criterion["verdict"] == "pass")
+    if observed_passed != expected_passed:
+        raise ValueError(f"{label} criterion verdicts do not match n_passed")
+
+
+def _validate_harvey_usage(
+    value: object,
+    *,
+    keys: set[str],
+    label: str,
+    integral: bool,
+) -> dict[str, object]:
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ValueError(f"{label} is invalid")
+    for item in value.values():
+        valid_type = type(item) is int if integral else (
+            not isinstance(item, bool) and isinstance(item, (int, float))
+        )
+        if not valid_type or item < 0:
+            raise ValueError(f"{label} is invalid")
+    return value
+
+
+def _validate_harvey_coverage(value: object, label: str) -> None:
+    keys = {
+        "documents_read",
+        "total_documents",
+        "documents_skipped",
+        "documents_read_list",
+        "documents_skipped_list",
+    }
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ValueError(f"{label} has invalid doc_coverage")
+    for key in ("documents_read", "total_documents", "documents_skipped"):
+        if type(value[key]) is not int or value[key] < 0:
+            raise ValueError(f"{label} has invalid doc_coverage")
+    for key in ("documents_read_list", "documents_skipped_list"):
+        if not isinstance(value[key], list) or any(
+            type(item) is not str for item in value[key]
+        ):
+            raise ValueError(f"{label} has invalid doc_coverage")
+
+
+def validate_harvey_score(
+    score: dict[str, object],
+    label: str,
+) -> dict[str, object]:
+    """Validate the one current Harvey score artifact structure."""
+    if set(score) != _HARVEY_SCORE_KEYS:
+        raise ValueError(f"{label} has invalid fields")
+    passed, count = _validate_harvey_task_values(score, label)
+    for key in ("summary", "run_id", "task", "judge_model", "scored_at"):
+        if type(score.get(key)) is not str or not str(score[key]).strip():
+            raise ValueError(f"{label} has invalid {key}")
+    _validate_harvey_criteria(
+        score.get("criteria_results"),
+        expected_count=count,
+        expected_passed=passed,
+        label=label,
+    )
+    judge_usage = _validate_harvey_usage(
+        score.get("judge_usage"),
+        keys=_JUDGE_USAGE_KEYS,
+        label=f"{label} judge_usage",
+        integral=True,
+    )
+    if judge_usage["requests"] < count:
+        raise ValueError(f"{label} has too few judge requests")
+    _validate_harvey_usage(
+        score.get("task_agent_usage"),
+        keys=_TASK_AGENT_USAGE_KEYS,
+        label=f"{label} task_agent_usage",
+        integral=False,
+    )
+    _validate_harvey_coverage(score.get("doc_coverage"), label)
+    return score
+
+
+def read_harvey_score(path: Path, label: str) -> dict[str, object]:
+    return validate_harvey_score(read_json_object(path, label), label)
+
+
 def aggregate_scores(
     candidate_id: str, scores: dict[str, dict[str, object]]
 ) -> CandidateEvaluation:
@@ -194,7 +359,7 @@ class HarveyEvaluator:
                 self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
                 copied_result = task_destination / "result"
                 self._publish_tree(runtime_result, copied_result)
-                score = read_json_object(copied_result / "scores.json", "Harvey score")
+                score = read_harvey_score(copied_result / "scores.json", "Harvey score")
                 aggregate_scores(candidate_id, {task_id: score})
                 self._remove_owned_tree(agent_result)
                 return task_id, score
@@ -270,7 +435,7 @@ class HarveyEvaluator:
                 task_destination.mkdir(parents=True, exist_ok=True)
                 score_path = task_destination / "scores.json"
                 if os.path.lexists(score_path):
-                    score = read_json_object(score_path, "crossed Harvey score")
+                    score = read_harvey_score(score_path, "crossed Harvey score")
                     aggregate_scores(candidate_id, {task_id: score})
                     return task_id, score
                 run_id = candidate_id + "--" + task_id.replace("/", "--")
@@ -279,7 +444,9 @@ class HarveyEvaluator:
                 copy_regular_tree(source, runtime_result)
                 self._make_tree_writable(runtime_result)
                 self._score_task(runtime, task_id, run_id, task_destination / "judge.log")
-                score = read_json_object(runtime_result / "scores.json", "crossed Harvey score")
+                score = read_harvey_score(
+                    runtime_result / "scores.json", "crossed Harvey score"
+                )
                 aggregate_scores(candidate_id, {task_id: score})
                 pending = task_destination / ".scores.json.pending"
                 pending.write_text(
@@ -353,7 +520,7 @@ class HarveyEvaluator:
         transcript = result / "transcript.jsonl"
         if transcript.is_symlink() or not transcript.is_file():
             raise ValueError(f"Harvey result lacks a regular transcript: {result}")
-        score = read_json_object(result / "scores.json", "Harvey score")
+        score = read_harvey_score(result / "scores.json", "Harvey score")
         aggregate_scores("checkpoint", {task_id: score})
         return score
 
@@ -474,8 +641,7 @@ class HarveyEvaluator:
             "--project",
             str(self.experiment.benchmark.checkout),
             "python",
-            "-m",
-            "evaluation.run_eval",
+            str(Path(__file__).with_name("cached_judge.py").resolve()),
             "--run-id",
             run_id,
             "--task",
