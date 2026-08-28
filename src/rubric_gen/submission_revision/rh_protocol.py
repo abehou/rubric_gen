@@ -23,8 +23,10 @@ from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     FULL_RUBRIC_ENGINE_IDENTITY,
 )
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
-from rubric_gen.submission_revision.rubric_bank_lifecycle import RubricBankGeneration
+from rubric_gen.submission_revision.rubric_generation import (
+    RubricGeneration,
+    RubricPolicy,
+)
 
 
 MECHANISTIC_KIND = "rubric-gen-rh-mechanistic-evaluation"
@@ -136,7 +138,7 @@ class EvaluationTarget:
     task_id: str
     replicate: int
     condition_id: str
-    rubric_policy: RubricBankPolicy
+    rubric_policy: RubricPolicy
     benchmark: SubmissionBenchmarkId
     experiment_dir: Path
     task_dir: Path
@@ -149,12 +151,12 @@ class EvaluationTarget:
     final_submission: Path
     submission_ids: tuple[str, ...]
     fixed_original_scores: tuple[float, ...]
-    initial_bank_generation: RubricBankGeneration
-    final_bank_generation: RubricBankGeneration
-    initial_bank_manifest_path: Path
-    final_bank_manifest_path: Path
-    initial_bank_manifest_sha256: str
-    final_bank_manifest_sha256: str
+    initial_generation: RubricGeneration
+    final_generation: RubricGeneration
+    initial_manifest_path: Path
+    final_manifest_path: Path
+    initial_manifest_sha256: str
+    final_manifest_sha256: str
     selection: ParaphraseSelection
 
     def rubric_ordered_pair(self) -> RubricOrderedPair:
@@ -198,25 +200,25 @@ class EvaluationTarget:
             return self.final_submission
         raise ValueError(f"invalid evaluation boundary: {boundary}")
 
-    def bank_generation(self, boundary: str) -> RubricBankGeneration:
+    def generation(self, boundary: str) -> RubricGeneration:
         if boundary == "initial":
-            return self.initial_bank_generation
+            return self.initial_generation
         if boundary == "final":
-            return self.final_bank_generation
+            return self.final_generation
         raise ValueError(f"invalid evaluation boundary: {boundary}")
 
-    def bank_manifest_path(self, boundary: str) -> Path:
+    def generation_manifest_path(self, boundary: str) -> Path:
         if boundary == "initial":
-            return self.initial_bank_manifest_path
+            return self.initial_manifest_path
         if boundary == "final":
-            return self.final_bank_manifest_path
+            return self.final_manifest_path
         raise ValueError(f"invalid evaluation boundary: {boundary}")
 
-    def bank_manifest_sha256(self, boundary: str) -> str:
+    def generation_manifest_sha256(self, boundary: str) -> str:
         if boundary == "initial":
-            return self.initial_bank_manifest_sha256
+            return self.initial_manifest_sha256
         if boundary == "final":
-            return self.final_bank_manifest_sha256
+            return self.final_manifest_sha256
         raise ValueError(f"invalid evaluation boundary: {boundary}")
 
     def weak_score(self, boundary: str) -> float:
@@ -237,44 +239,22 @@ class RubricRole:
 
 
 @dataclass(frozen=True)
-class BankMemberBinding:
-    bank_role: str
+class GenerationBinding:
+    role: str
     generation_round: int
-    bank_sha256: str
-    bank_manifest_path: Path
-    bank_manifest_sha256: str
-    member_sha256: str
-    weight: float
+    generation_sha256: str
+    manifest_path: Path
+    manifest_sha256: str
+    rubric_sha256: str
 
     def payload(self) -> dict[str, object]:
         return {
-            "bank_role": self.bank_role,
+            "role": self.role,
             "generation_round": self.generation_round,
-            "bank_sha256": self.bank_sha256,
-            "bank_manifest_path": str(self.bank_manifest_path.resolve()),
-            "bank_manifest_sha256": self.bank_manifest_sha256,
-            "member_sha256": self.member_sha256,
-            "weight": self.weight,
-        }
-
-
-@dataclass(frozen=True)
-class SpecificationAnchorBinding:
-    bank_role: str
-    generation_round: int
-    bank_sha256: str
-    bank_manifest_path: Path
-    bank_manifest_sha256: str
-    specification_anchor_sha256: str
-
-    def payload(self) -> dict[str, object]:
-        return {
-            "bank_role": self.bank_role,
-            "generation_round": self.generation_round,
-            "bank_sha256": self.bank_sha256,
-            "bank_manifest_path": str(self.bank_manifest_path.resolve()),
-            "bank_manifest_sha256": self.bank_manifest_sha256,
-            "specification_anchor_sha256": self.specification_anchor_sha256,
+            "generation_sha256": self.generation_sha256,
+            "manifest_path": str(self.manifest_path.resolve()),
+            "manifest_sha256": self.manifest_sha256,
+            "rubric_sha256": self.rubric_sha256,
         }
 
 
@@ -286,8 +266,7 @@ class MechanisticJob:
     boundary: str
     rubric_path: Path
     roles: tuple[RubricRole, ...]
-    bank_members: tuple[BankMemberBinding, ...]
-    specification_anchors: tuple[SpecificationAnchorBinding, ...]
+    generation_bindings: tuple[GenerationBinding, ...]
     grading_identity: dict[str, object]
     review_input_sha256: str
     answer_input_sha256: str

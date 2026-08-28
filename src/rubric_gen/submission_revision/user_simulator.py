@@ -12,9 +12,8 @@ from rubric_gen.submission_revision.feedback import (
     MAX_SIMULATED_USER_COMMENT_CHARS,
 )
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
-from rubric_gen.submission_revision.rubric_bank import (
-    RubricBank,
-    canonical_rubric_bank_items,
+from rubric_gen.submission_revision.rubric_generation import (
+    RubricGeneration,
 )
 
 
@@ -161,12 +160,12 @@ class SimulatedUserFeedback:
         submission_id: str,
         generation_round: int,
         instruction: str,
-        bank: RubricBank,
+        generation: RubricGeneration,
         current_submission: str,
     ) -> dict[str, object]:
-        if bank.generation_round != generation_round:
-            raise ValueError("simulated-user bank has the wrong generation round")
-        criterion_ids, private_bank_text = _bank_criteria(bank)
+        if generation.generation_round != generation_round:
+            raise ValueError("simulated-user rubric has the wrong generation round")
+        criterion_ids, private_rubric_text = _rubric_criteria(generation)
         if not criterion_ids:
             raise ValueError("simulated-user rubric has no criteria")
         maximum_aspects = _maximum_aspects(
@@ -178,7 +177,7 @@ class SimulatedUserFeedback:
             try:
                 selection_request = _selection_request(
                     instruction=instruction,
-                    rubric_text=private_bank_text,
+                    rubric_text=private_rubric_text,
                     current_submission=current_submission,
                     criterion_ids=criterion_ids,
                     max_aspects=maximum_aspects,
@@ -214,7 +213,7 @@ class SimulatedUserFeedback:
                     "assignment_id": assignment_id,
                     "submission_id": submission_id,
                     "generation_round": generation_round,
-                    "bank_sha256": bank.content_sha256,
+                    "generation_sha256": generation.generation_sha256,
                     "simulator": self.identity(),
                     "attempt_count": attempt,
                     "output": output,
@@ -227,7 +226,7 @@ class SimulatedUserFeedback:
                     assignment_id=assignment_id,
                     submission_id=submission_id,
                     generation_round=generation_round,
-                    bank=bank,
+                    generation=generation,
                 )
                 return record
             except Exception as exc:
@@ -246,7 +245,7 @@ class SimulatedUserFeedback:
         assignment_id: str,
         submission_id: str,
         generation_round: int,
-        bank: RubricBank,
+        generation: RubricGeneration,
     ) -> str:
         expected_keys = {
             "kind",
@@ -254,7 +253,7 @@ class SimulatedUserFeedback:
             "assignment_id",
             "submission_id",
             "generation_round",
-            "bank_sha256",
+            "generation_sha256",
             "simulator",
             "attempt_count",
             "output",
@@ -269,8 +268,8 @@ class SimulatedUserFeedback:
             or record.get("assignment_id") != assignment_id
             or record.get("submission_id") != submission_id
             or record.get("generation_round") != generation_round
-            or record.get("bank_sha256") != bank.content_sha256
-            or bank.generation_round != generation_round
+            or record.get("generation_sha256") != generation.generation_sha256
+            or generation.generation_round != generation_round
             or record.get("simulator") != self.identity()
             or type(attempt_count) is not int
             or not 1 <= attempt_count <= self.config.max_retries + 1
@@ -278,7 +277,7 @@ class SimulatedUserFeedback:
             raise ValueError("simulated-user generation has invalid identity")
         self._validate_generation_provenance(record.get("selection_generation"))
         self._validate_generation_provenance(record.get("comment_generation"))
-        criterion_ids, _ = _bank_criteria(bank)
+        criterion_ids, _ = _rubric_criteria(generation)
         output = record.get("output")
         if type(output) is not dict:
             raise ValueError("simulated-user generation has invalid output")
@@ -326,27 +325,13 @@ class SimulatedUserFeedback:
             raise ValueError("simulated-user generation has invalid provenance")
 
 
-def _bank_criteria(bank: RubricBank) -> tuple[tuple[str, ...], str]:
-    """Return member-namespaced criterion IDs and private bank evidence."""
+def _rubric_criteria(generation: RubricGeneration) -> tuple[tuple[str, ...], str]:
+    """Return criterion IDs and private complete-rubric evidence."""
 
-    criterion_ids: list[str] = []
-    parts: list[str] = []
-    for item in canonical_rubric_bank_items(bank):
-        rubric_hash = item.rubric.content_sha256
-        member_criteria = tuple(parse_rubric_levels_strict(item.rubric.content))
-        if not member_criteria:
-            raise ValueError("simulated-user bank member has no criteria")
-        criterion_ids.extend(
-            f"{rubric_hash}:{criterion_id}"
-            for criterion_id in member_criteria
-        )
-        parts.extend((
-            f"Member SHA-256: {rubric_hash}",
-            f"Weight: {item.weight:.17g}",
-            item.rubric.content.rstrip(),
-            "",
-        ))
-    return tuple(sorted(criterion_ids)), "\n".join(parts).rstrip() + "\n"
+    criterion_ids = tuple(parse_rubric_levels_strict(generation.rubric.content))
+    if not criterion_ids:
+        raise ValueError("simulated-user rubric has no criteria")
+    return criterion_ids, generation.rubric.content
 
 
 def _selection_request(

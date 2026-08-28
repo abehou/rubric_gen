@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import pstdev
 
@@ -28,16 +27,6 @@ FULL_RUBRIC_MIN_OUTPUT_TOKENS = 4_096
 FULL_RUBRIC_MAX_OUTPUT_TOKENS = 32_768
 FULL_RUBRIC_OUTPUT_TOKENS_PER_CRITERION = 128
 FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS = 300.0
-FULL_RUBRIC_MAX_BANK_MEMBERS = 1
-FULL_RUBRIC_MAX_BANK_CALLS = (
-    FULL_RUBRIC_MAX_BANK_MEMBERS * JUDGMENT_REPEATS
-)
-FULL_RUBRIC_MAX_BANK_REQUEST_CONTENT_BYTES = (
-    FULL_RUBRIC_MAX_BANK_CALLS * FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL
-)
-FULL_RUBRIC_MAX_BANK_OUTPUT_TOKENS = (
-    FULL_RUBRIC_MAX_BANK_CALLS * FULL_RUBRIC_MAX_OUTPUT_TOKENS
-)
 
 FULL_RUBRIC_SYSTEM_PROMPT = """\
 You are the fixed full-rubric evaluation judge.
@@ -491,65 +480,25 @@ def full_rubric_cost_shape(
     )
 
 
-def preflight_full_rubric_bank(
-    rubric_texts: Sequence[str],
+def preflight_full_rubric_generation(
+    rubric_text: str,
     *,
     review_text: str,
     answer_text: str,
 ) -> dict[str, object]:
-    """Atomically validate a complete FullRubric bank without provider access."""
+    """Validate one complete FullRubric generation without provider access."""
 
-    if isinstance(rubric_texts, (str, bytes, bytearray)) or not rubric_texts:
-        raise FullRubricJudgeError(
-            "FullRubric bank must contain at least one rubric text"
-        )
-    if len(rubric_texts) > FULL_RUBRIC_MAX_BANK_MEMBERS:
-        raise FullRubricJudgeError(
-            f"FullRubric bank has {len(rubric_texts)} members; the limit is "
-            f"{FULL_RUBRIC_MAX_BANK_MEMBERS}"
-        )
-    member_shapes = [
-        full_rubric_cost_shape(
-            rubric_text,
-            review_text=review_text,
-            answer_text=answer_text,
-        )
-        for rubric_text in rubric_texts
-    ]
-    calls = sum(shape.calls for shape in member_shapes)
-    total_request_content_bytes = sum(
-        shape.total_request_content_bytes for shape in member_shapes
+    shape = full_rubric_cost_shape(
+        rubric_text,
+        review_text=review_text,
+        answer_text=answer_text,
     )
-    total_output_tokens = sum(shape.total_output_tokens for shape in member_shapes)
-    if calls > FULL_RUBRIC_MAX_BANK_CALLS:
-        raise FullRubricJudgeError(
-            f"FullRubric bank requires {calls} calls; the limit is "
-            f"{FULL_RUBRIC_MAX_BANK_CALLS}"
-        )
-    if total_request_content_bytes > FULL_RUBRIC_MAX_BANK_REQUEST_CONTENT_BYTES:
-        raise FullRubricJudgeError(
-            "FullRubric bank request content totals "
-            f"{total_request_content_bytes} bytes; the limit is "
-            f"{FULL_RUBRIC_MAX_BANK_REQUEST_CONTENT_BYTES}"
-        )
-    if total_output_tokens > FULL_RUBRIC_MAX_BANK_OUTPUT_TOKENS:
-        raise FullRubricJudgeError(
-            f"FullRubric bank output budget is {total_output_tokens} tokens; the "
-            f"limit is {FULL_RUBRIC_MAX_BANK_OUTPUT_TOKENS}"
-        )
     return {
-        "members": [shape.as_json() for shape in member_shapes],
-        "member_count": len(member_shapes),
-        "calls": calls,
-        "total_request_content_bytes": total_request_content_bytes,
-        "total_output_tokens": total_output_tokens,
+        "rubric": shape.as_json(),
+        "calls": shape.calls,
+        "total_request_content_bytes": shape.total_request_content_bytes,
+        "total_output_tokens": shape.total_output_tokens,
         "limits": {
-            "max_bank_members": FULL_RUBRIC_MAX_BANK_MEMBERS,
-            "max_bank_calls": FULL_RUBRIC_MAX_BANK_CALLS,
-            "max_bank_request_content_bytes": (
-                FULL_RUBRIC_MAX_BANK_REQUEST_CONTENT_BYTES
-            ),
-            "max_bank_output_tokens": FULL_RUBRIC_MAX_BANK_OUTPUT_TOKENS,
             "max_criteria_per_rubric": FULL_RUBRIC_MAX_CRITERIA,
             "max_request_content_bytes_per_call": (
                 FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL

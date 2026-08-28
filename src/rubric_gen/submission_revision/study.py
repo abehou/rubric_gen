@@ -25,7 +25,7 @@ from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.models import SubmissionRevisionConfig
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.prompts import PromptProfile
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
+from rubric_gen.submission_revision.rubric_generation import RubricPolicy
 from rubric_gen.submission_revision import study_layout, study_validation
 
 
@@ -279,7 +279,7 @@ class StudyRunner:
                 vllm_endpoints=self.config.vllm_endpoints,
             ),
             prompt_profile=PromptProfile(str(protocol["prompt"])),
-            rubric_policy=RubricBankPolicy(str(condition["rubric_policy"])),
+            rubric_policy=RubricPolicy(str(condition["rubric_policy"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             rubric_proposer_base_url=self.config.vllm_endpoints.get(
                 str(protocol["rubric_proposer_model"])

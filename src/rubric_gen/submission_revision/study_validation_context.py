@@ -27,10 +27,12 @@ from rubric_gen.submission_revision.judge import (
 )
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
-from rubric_gen.submission_revision.rubric_bank_lifecycle import (
-    RubricBankGeneration,
-    load_rubric_bank,
+from rubric_gen.submission_revision.rubric_generation import (
+    RubricGeneration,
+    RubricPolicy,
+)
+from rubric_gen.submission_revision.rubric_generation_store import (
+    load_rubric_generation,
 )
 from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.submission_revision.store import (
@@ -42,7 +44,7 @@ from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 
 @dataclass(frozen=True)
 class ScoringSetup:
-    initial_generation: RubricBankGeneration
+    initial_generation: RubricGeneration
     judge_config: SubmissionJudgeConfig
     initial_rubric: FrozenRubric
     initial_judge: FrozenRubricJudge
@@ -59,7 +61,7 @@ class ValidationContext:
     protocol: dict[str, object]
     condition: dict[str, object]
     policy: FeedbackPolicy
-    bank_policy: RubricBankPolicy
+    rubric_policy: RubricPolicy
     endpoints: dict[str, str]
     simulator: SimulatedUserFeedback | None
     agent: AgentRunConfig
@@ -117,7 +119,7 @@ def build_validation_context(
     seed_identity = seed.manifest.get("scoring_identity")
     if not isinstance(seed_identity, dict):
         raise RuntimeError("revision seed has invalid scoring identity")
-    manifest_identity = manifest.get("initial_member_scoring_identity")
+    manifest_identity = manifest.get("initial_scoring_identity")
     if not isinstance(manifest_identity, dict):
         raise RuntimeError("revision manifest has invalid scoring identity")
     seed_contract = extract_seed_scoring_contract(
@@ -138,7 +140,7 @@ def build_validation_context(
         raise RuntimeError("revision seed and judge use different execution contracts")
     revision_rounds = int(protocol["revision_rounds"])
     expected_ids = tuple(f"s{index:03d}" for index in range(revision_rounds + 1))
-    bank_policy = RubricBankPolicy(str(condition["rubric_policy"]))
+    rubric_policy = RubricPolicy(str(condition["rubric_policy"]))
     scoring = _build_scoring_setup(
         experiment_dir,
         experiment,
@@ -146,7 +148,7 @@ def build_validation_context(
         endpoints,
         task_dir,
         selection,
-        bank_policy,
+        rubric_policy,
     )
     if (
         scoring.initial_rubric.sha256 != selection.optimizer_sha256
@@ -164,7 +166,7 @@ def build_validation_context(
         protocol=protocol,
         condition=condition,
         policy=policy,
-        bank_policy=bank_policy,
+        rubric_policy=rubric_policy,
         endpoints=endpoints,
         simulator=simulator,
         agent=agent,
@@ -187,19 +189,17 @@ def _build_scoring_setup(
     endpoints: dict[str, str],
     task_dir: Path,
     selection: ParaphraseSelection,
-    bank_policy: RubricBankPolicy,
+    rubric_policy: RubricPolicy,
 ) -> ScoringSetup:
-    initial_generation = load_rubric_bank(
+    initial_generation = load_rubric_generation(
         experiment_dir,
         0,
-        expected_policy=bank_policy,
+        expected_policy=rubric_policy,
     )
     if (
-        initial_generation.bank.rubric_count != 1
-        or initial_generation.bank.items[0].rubric.content_sha256
-        != selection.optimizer_sha256
+        initial_generation.rubric.content_sha256 != selection.optimizer_sha256
     ):
-        raise RuntimeError("initial rubric bank differs from randomized selection")
+        raise RuntimeError("initial rubric differs from randomized selection")
     max_review_chars = protocol["max_review_chars"]
     if max_review_chars is not None and type(max_review_chars) is not int:
         raise RuntimeError("experiment max_review_chars is invalid")
@@ -312,9 +312,13 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "judge_base_url": context.endpoints.get(str(protocol["judge_model"])),
         "max_review_chars": protocol["max_review_chars"],
         "initial_rubric_path": str(context.selection.optimizer_path.resolve()),
-        "initial_bank_sha256": scoring.initial_generation.bank.content_sha256,
-        "initial_bank_member_count": scoring.initial_generation.bank.rubric_count,
-        "initial_member_scoring_identity": scoring.initial_judge.scoring_identity(),
+        "initial_generation_sha256": (
+            scoring.initial_generation.generation_sha256
+        ),
+        "initial_rubric_sha256": (
+            scoring.initial_generation.rubric.content_sha256
+        ),
+        "initial_scoring_identity": scoring.initial_judge.scoring_identity(),
         "master_rubric_name": protocol["rubric_name"],
         "master_rubric_sha256": context.selection.master_sha256,
         "instruction_sha256": sha256_file(context.task_dir / "instruction.md"),

@@ -10,7 +10,7 @@ import rubric_gen.submission_revision.evolution_protocol as protocol_module
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
     ArtifactPair,
@@ -20,13 +20,10 @@ from rubric_gen.submission_revision.evolution_provider import (
     ProviderContract,
     StructuredProviderOutput,
 )
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
-    RubricBank,
-    RubricBankItem,
-    RubricBankPolicy,
-    RubricLineage,
-    identity_criterion_map,
+    RubricGeneration,
+    RubricPolicy,
 )
 
 
@@ -48,20 +45,14 @@ def _rubric() -> CompleteRubric:
     )
 
 
-def _initial_bank() -> RubricBank:
+def _initial_generation() -> RubricGeneration:
     rubric = _rubric()
-    return RubricBank(
+    return RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=rubric,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(RubricBankItem(
-            rubric=rubric,
-            weight=1.0,
-            lineage=RubricLineage.NEW,
-            criterion_map=identity_criterion_map(rubric),
-        ),),
+        rubric=rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
 
 
@@ -195,7 +186,7 @@ def _proposer(
     *,
     retries: int = 1,
     semantic_calls: int = 5,
-) -> RubricBankProposer:
+) -> RubricProposer:
     counters = {"differences": 0, "criteria": 0}
 
     def default_proposer(**kwargs):
@@ -204,7 +195,7 @@ def _proposer(
         value = _difference_value() if stage == "differences" else _criterion_value()
         return _proposer_output(value, f"{stage}-{counters[stage]}")
 
-    return RubricBankProposer(
+    return RubricProposer(
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         model="proposer",
         base_url=None,
@@ -226,21 +217,22 @@ def _proposer(
 
 
 def _replace(
-    proposer: RubricBankProposer,
+    proposer: RubricProposer,
     root: Path,
     *,
-    policy: RubricBankPolicy = RubricBankPolicy.OFFLINE_ELICITATION,
+    policy: RubricPolicy = RubricPolicy.OFFLINE_ELICITATION,
     instruction: str = "Solve the analysis task.",
 ):
     return proposer.elicit_rubric(
         instruction=instruction,
-        current_bank=_initial_bank(),
+        original_rubric=_rubric(),
+        current_generation=_initial_generation(),
         policy=policy,
         generation_round=1,
         output_dir=root,
         artifact_history=_history(),
         source_boundary=(
-            1 if policy is RubricBankPolicy.ONLINE_ELICITATION else None
+            1 if policy is RubricPolicy.ONLINE_ELICITATION else None
         ),
     )
 
@@ -311,13 +303,13 @@ def test_support_rejects_repeated_edges_around_one_artifact() -> None:
 @pytest.mark.parametrize(
     "policy",
     [
-        RubricBankPolicy.OFFLINE_ELICITATION,
-        RubricBankPolicy.ONLINE_ELICITATION,
+        RubricPolicy.OFFLINE_ELICITATION,
+        RubricPolicy.ONLINE_ELICITATION,
     ],
 )
 def test_two_stage_elicitation_appends_one_criterion_and_keeps_one_rubric(
     tmp_path: Path,
-    policy: RubricBankPolicy,
+    policy: RubricPolicy,
 ) -> None:
     calls: list[tuple[str, str]] = []
 
@@ -331,14 +323,11 @@ def test_two_stage_elicitation_appends_one_criterion_and_keeps_one_rubric(
         return _proposer_output(value, f"proposal-{len(calls)}")
 
     generation = _replace(_proposer(propose), tmp_path, policy=policy)
-    bank = generation.bank
-    parsed = parse_autorubric_rubric(bank.items[0].rubric.content)
+    parsed = parse_autorubric_rubric(generation.rubric.content)
 
     assert [stage for stage, _ in calls] == ["differences", "criteria"]
-    assert bank.rubric_count == 1
-    assert bank.items[0].weight == 1.0
-    assert bank.specification_anchor == _initial_bank().specification_anchor
-    assert len(bank.items[0].elicited_criteria) == 1
+    assert generation.generation_round == 1
+    assert len(generation.elicited_criteria) == 1
     assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0]
     assert [level.points for level in parsed.criteria[-1].levels] == [0, -2, -4]
     assert parsed.normalization_maximum == 100
@@ -379,7 +368,8 @@ def test_only_difference_discovery_sees_raw_artifacts(tmp_path: Path) -> None:
 def test_editor_evidence_does_not_duplicate_the_original_rubric() -> None:
     evidence = json.loads(protocol_module.editor_evidence(
         instruction="Solve the analysis task.",
-        current_bank=_initial_bank(),
+        original_rubric=_rubric(),
+        current_generation=_initial_generation(),
         artifact_history=_history(),
         difference_response=_difference_value(),
         proposed_criteria=(),
@@ -399,8 +389,7 @@ def test_empty_criterion_list_retains_the_current_rubric(tmp_path: Path) -> None
         return _proposer_output(value, kwargs["stage"])
 
     generation = _replace(_proposer(propose), tmp_path)
-    assert generation.bank.items[0].rubric == _initial_bank().items[0].rubric
-    assert generation.bank.items[0].lineage is RubricLineage.RETAINED
+    assert generation.rubric == _initial_generation().rubric
 
 
 def test_criterion_needs_support_from_two_pairs_before_review(tmp_path: Path) -> None:
@@ -508,7 +497,7 @@ def test_task_authorized_numeric_literal_is_accepted(tmp_path: Path) -> None:
         instruction="Solve the analysis task with a threshold of 0.05.",
     )
     assert (
-        generation.bank.items[0].elicited_criteria[0].requirement
+        generation.elicited_criteria[0].requirement
         == "Apply the task-specified threshold of 0.05."
     )
 
@@ -532,7 +521,7 @@ def test_numeric_looking_identifier_cannot_overflow_validation(
         instruction="Use source identifier 17e905999814.",
     )
     assert (
-        generation.bank.items[0].elicited_criteria[0].requirement
+        generation.elicited_criteria[0].requirement
         == "Preserve source identifier 17e905999814."
     )
 
@@ -565,7 +554,7 @@ def test_editor_cannot_introduce_a_novel_numeric_target(tmp_path: Path) -> None:
 
     generation = _replace(_proposer(run_semantic=review), tmp_path)
     assert calls == 2
-    assert generation.bank.items[0].elicited_criteria == ()
+    assert generation.elicited_criteria == ()
 
 
 def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
@@ -611,9 +600,9 @@ def test_reviewer_drop_removes_the_criterion(tmp_path: Path) -> None:
 
     first = _replace(_proposer(propose, reject), tmp_path)
     assert calls == {"proposer": 2, "semantic": 1}
-    assert first.bank.items[0].rubric == _initial_bank().items[0].rubric
-    assert first.bank.items[0].elicited_criteria == ()
-    assert (tmp_path / "bank-0001").is_dir()
+    assert first.rubric == _initial_generation().rubric
+    assert first.elicited_criteria == ()
+    assert (tmp_path / "rubric-generations" / "generation-0001").is_dir()
 
     resumed_calls = 0
 
@@ -659,10 +648,10 @@ def test_reviewer_can_accept_one_criterion_and_drop_another(
     generation = _replace(_proposer(propose, review), tmp_path)
 
     assert [
-        item.title for item in generation.bank.items[0].elicited_criteria
+        item.title for item in generation.elicited_criteria
     ] == ["Robustness"]
     saved_review = json.loads(
-        (tmp_path / "bank-0001" / "criterion-edit.json").read_text()
+        (tmp_path / "rubric-generations" / "generation-0001" / "criterion-edit.json").read_text()
     )
     assert set(saved_review) == {"actions"}
     assert [item["action"] for item in saved_review["actions"]] == [
@@ -690,7 +679,7 @@ def test_reviewer_rewrite_replaces_the_proposed_criterion(tmp_path: Path) -> Non
 
     generation = _replace(_proposer(run_semantic=review), tmp_path)
     assert [
-        item.title for item in generation.bank.items[0].elicited_criteria
+        item.title for item in generation.elicited_criteria
     ] == ["Observable robustness evidence"]
 
 
@@ -720,7 +709,7 @@ def test_reviewer_rewrite_can_replace_support_from_the_full_history(
 
     generation = _replace(_proposer(run_semantic=review), tmp_path)
     assert (
-        generation.bank.items[0].elicited_criteria[0].support_pair_ids
+        generation.elicited_criteria[0].support_pair_ids
         == tuple(replacement_support)
     )
 
@@ -759,7 +748,7 @@ def test_reviewer_merge_combines_two_proposals(tmp_path: Path) -> None:
 
     generation = _replace(_proposer(propose, review), tmp_path)
     assert [
-        item.title for item in generation.bank.items[0].elicited_criteria
+        item.title for item in generation.elicited_criteria
     ] == ["Robustness evidence"]
 
 
@@ -779,7 +768,7 @@ def test_invalid_semantic_review_retries_then_abandons_the_criterion(
 
     first = _replace(_proposer(run_semantic=invalid_review), tmp_path)
     assert calls == 2
-    assert first.bank.items[0].elicited_criteria == ()
+    assert first.elicited_criteria == ()
 
     resumed_calls = 0
 
@@ -822,7 +811,7 @@ def test_invalid_editor_response_gets_exact_repair_retry(tmp_path: Path) -> None
 
     generation = _replace(_proposer(run_semantic=review), tmp_path)
     assert calls == 2
-    assert len(generation.bank.items[0].elicited_criteria) == 1
+    assert len(generation.elicited_criteria) == 1
 
 
 def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> None:
@@ -837,7 +826,7 @@ def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> 
     second = _replace(_proposer(forbidden, forbidden), tmp_path)
     assert second == first
     assert calls == 0
-    generation_root = tmp_path / "bank-0001"
+    generation_root = tmp_path / "rubric-generations" / "generation-0001"
     assert all(path.stat().st_mode & 0o200 for path in generation_root.iterdir())
 
 
@@ -876,10 +865,10 @@ def test_model_identity_mismatch_fails_closed(tmp_path: Path) -> None:
 
 def test_generation_file_tampering_fails_closed(tmp_path: Path) -> None:
     _replace(_proposer(), tmp_path)
-    proposal = tmp_path / "bank-0001" / "criterion-proposal.json"
+    proposal = tmp_path / "rubric-generations" / "generation-0001" / "criterion-proposal.json"
     proposal.chmod(0o600)
     proposal.write_text(json.dumps({"criteria": []}))
-    with pytest.raises(RuntimeError, match="generation changed"):
+    with pytest.raises(RuntimeError, match="file hash changed"):
         _replace(_proposer(), tmp_path)
 
 
@@ -895,7 +884,8 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="elicitation policy"):
         proposer.elicit_rubric(
             instruction="Solve.",
-            current_bank=_initial_bank(),
+            original_rubric=_rubric(),
+        current_generation=_initial_generation(),
             policy="offline_elicitation",  # type: ignore[arg-type]
             generation_round=1,
             output_dir=tmp_path,
@@ -904,8 +894,9 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="integer"):
         proposer.elicit_rubric(
             instruction="Solve.",
-            current_bank=_initial_bank(),
-            policy=RubricBankPolicy.OFFLINE_ELICITATION,
+            original_rubric=_rubric(),
+        current_generation=_initial_generation(),
+            policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=True,
             output_dir=tmp_path,
             artifact_history=_history(),
@@ -918,8 +909,9 @@ def test_online_and_offline_boundaries_are_not_interchangeable(tmp_path: Path) -
     with pytest.raises(ValueError, match="cannot use a live boundary"):
         proposer.elicit_rubric(
             instruction="Solve.",
-            current_bank=_initial_bank(),
-            policy=RubricBankPolicy.OFFLINE_ELICITATION,
+            original_rubric=_rubric(),
+        current_generation=_initial_generation(),
+            policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=1,
             source_boundary=1,
             output_dir=tmp_path / "offline",
@@ -928,8 +920,9 @@ def test_online_and_offline_boundaries_are_not_interchangeable(tmp_path: Path) -
     with pytest.raises(ValueError, match="matching live boundary"):
         proposer.elicit_rubric(
             instruction="Solve.",
-            current_bank=_initial_bank(),
-            policy=RubricBankPolicy.ONLINE_ELICITATION,
+            original_rubric=_rubric(),
+        current_generation=_initial_generation(),
+            policy=RubricPolicy.ONLINE_ELICITATION,
             generation_round=1,
             source_boundary=None,
             output_dir=tmp_path / "online",

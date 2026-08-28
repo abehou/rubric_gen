@@ -32,10 +32,10 @@ example.
 
 ### Source files
 
-- [Generation provenance](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/generation.json)
-- [Rubric-bank manifest](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-banks/bank-0001/manifest.json)
-- [Specification anchor](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-banks/bank-0001/specification-anchor.txt)
-- [Final rendered rubric](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-banks/bank-0001/members/4b7b41fb5fb221028aa1d15ea595227d345b484b548f3e9e9f24713940f63bfb.txt)
+- [Generation provenance](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/evolution.json)
+- [Rubric generation manifest](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/manifest.json)
+- [Initial rubric](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0000/rubric.txt)
+- [Final rendered rubric](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/rubric.txt)
 
 This generation ran before the live trajectory. It used three sealed
 pre-treatment artifacts and all three possible pairs.
@@ -43,7 +43,7 @@ pre-treatment artifacts and all three possible pairs.
 ### 1. Complete artifact history
 
 Source:
-[`artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/artifact-history.json)
+[`artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/artifact-history.json)
 
 ```json
 {
@@ -97,7 +97,7 @@ Source:
 ### 2. Complete difference-finder output
 
 Source:
-[`difference-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/difference-proposal.json)
+[`difference-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/difference-proposal.json)
 
 ```json
 {
@@ -148,7 +148,7 @@ Source:
 ### 3. Complete criterion-proposer output
 
 Source:
-[`criterion-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/criterion-proposal.json)
+[`criterion-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/criterion-proposal.json)
 
 ```json
 {
@@ -183,7 +183,7 @@ Source:
 ### 4. Complete semantic-reviewer output
 
 Source:
-[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/criterion-edit.json)
+[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/criterion-edit.json)
 
 ```json
 {
@@ -297,10 +297,10 @@ Levels: A=0 B=-2 C=-4
 
 ### Source files
 
-- [Generation provenance](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0003/generation.json)
-- [Rubric-bank manifest](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-banks/bank-0003/manifest.json)
-- [Specification anchor](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-banks/bank-0003/specification-anchor.txt)
-- [Final rendered rubric](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-banks/bank-0003/members/4bab977dcca4da44d9c8e64edccf389747bfb1cd08947a620a51eb40445e054b.txt)
+- [Generation provenance](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/evolution.json)
+- [Rubric generation manifest](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/manifest.json)
+- [Initial rubric](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0000/rubric.txt)
+- [Final rendered rubric](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/rubric.txt)
 
 This is online update 3, sealed after `s003` and used to score `s004`.
 Updates 1 and 2 proposed no criterion. `s001`, `s002`, and `s003` had identical
@@ -309,7 +309,7 @@ rendered content. Content deduplication kept one live artifact, `live:s001`.
 ### 1. Complete artifact history
 
 Source:
-[`artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0003/artifact-history.json)
+[`artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/artifact-history.json)
 
 ```json
 {
@@ -390,7 +390,7 @@ Source:
 ### 2. Complete difference-finder output
 
 Source:
-[`difference-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0003/difference-proposal.json)
+[`difference-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/difference-proposal.json)
 
 ```json
 {
@@ -476,7 +476,7 @@ Source:
 ### 3. Complete criterion-proposer output
 
 Source:
-[`criterion-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0003/criterion-proposal.json)
+[`criterion-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/criterion-proposal.json)
 
 ```json
 {
@@ -511,7 +511,7 @@ Source:
 ### 4. Complete semantic-reviewer output
 
 Source:
-[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0003/criterion-edit.json)
+[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/criterion-edit.json)
 
 ```json
 {
@@ -707,10 +707,10 @@ so the later stages had nothing to generalize.
 
 The complete source records are:
 
-- [offline artifact history](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/artifact-history.json);
-- [offline differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/difference-proposal.json);
-- [offline proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/criterion-proposal.json);
-- [offline review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/bank-0001/criterion-edit.json).
+- [offline artifact history](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/generation-0001/artifact-history.json);
+- [offline differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/generation-0001/difference-proposal.json);
+- [offline proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/generation-0001/criterion-proposal.json);
+- [offline review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-offline-rubric/rubric-generations/generation-0001/criterion-edit.json).
 
 #### What online observed
 
@@ -734,10 +734,10 @@ updates 2 through 5. The exact stage records are:
 
 | Update | Difference output | Proposal | Review |
 |---:|---|---|---|
-| 2 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0002/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0002/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0002/criterion-edit.json) |
-| 3 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0003/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0003/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0003/criterion-edit.json) |
-| 4 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0004/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0004/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0004/criterion-edit.json) |
-| 5 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0005/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0005/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/bank-0005/criterion-edit.json) |
+| 2 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0002/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0002/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0002/criterion-edit.json) |
+| 3 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0003/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0003/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0003/criterion-edit.json) |
+| 4 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0004/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0004/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0004/criterion-edit.json) |
+| 5 | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0005/difference-proposal.json) | [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0005/criterion-proposal.json) | [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-18-5/rep-002/semi-online-rubric/rubric-generations/generation-0005/criterion-edit.json) |
 
 #### Complete learned-rubric difference
 
@@ -840,10 +840,10 @@ Despite finding these differences, the offline proposer and reviewer returned:
 
 The complete offline records are:
 
-- [artifact history](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/artifact-history.json);
-- [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/difference-proposal.json);
-- [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/criterion-proposal.json);
-- [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/bank-0001/criterion-edit.json).
+- [artifact history](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/generation-0001/artifact-history.json);
+- [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/generation-0001/difference-proposal.json);
+- [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/generation-0001/criterion-proposal.json);
+- [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-offline-rubric/rubric-generations/generation-0001/criterion-edit.json).
 
 #### What online added
 
@@ -852,11 +852,11 @@ added one criterion at each of the five updates:
 
 | Update | Main captured distinction | Complete stage outputs |
 |---:|---|---|
-| 1 | Whole-proteome association versus significant-overlap sign concordance | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0001/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0001/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0001/criterion-edit.json) |
-| 2 | Comparator scope and sparse menopause strata | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0002/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0002/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0002/criterion-edit.json) |
-| 3 | Unsupported causal or formal cross-study inference | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0003/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0003/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0003/criterion-edit.json) |
-| 4 | Materialized deliverables and executable trace | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0004/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0004/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0004/criterion-edit.json) |
-| 5 | Internal consistency of `2,790` versus `2,791` matched proteins | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0005/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0005/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/bank-0005/criterion-edit.json) |
+| 1 | Whole-proteome association versus significant-overlap sign concordance | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0001/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0001/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0001/criterion-edit.json) |
+| 2 | Comparator scope and sparse menopause strata | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0002/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0002/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0002/criterion-edit.json) |
+| 3 | Unsupported causal or formal cross-study inference | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0003/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0003/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0003/criterion-edit.json) |
+| 4 | Materialized deliverables and executable trace | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0004/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0004/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0004/criterion-edit.json) |
+| 5 | Internal consistency of `2,790` versus `2,791` matched proteins | [differences](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0005/difference-proposal.json), [proposal](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0005/criterion-proposal.json), [review](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-13-6/rep-002/user-simulator-online-rubric/rubric-generations/generation-0005/criterion-edit.json) |
 
 #### Complete learned-rubric difference
 

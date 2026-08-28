@@ -26,7 +26,6 @@ from rubric_gen.submission_revision.artifacts import (
     write_live_root_sentinel as _write_live_root_sentinel,
 )
 from rubric_gen.submission_revision.controller_recovery_artifacts import (
-    numbered_bank_directories,
     remove_owned_rubric_generation_residue,
     rubric_generation_entries,
 )
@@ -38,10 +37,9 @@ from rubric_gen.submission_revision.models import (
     RevisionState as _RevisionState,
     SubmissionRevisionConfig,
 )
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
-from rubric_gen.submission_revision.rubric_bank_lifecycle import (
-    load_rubric_bank,
-    persist_rubric_bank,
+from rubric_gen.submission_revision.rubric_generation import RubricPolicy
+from rubric_gen.submission_revision.rubric_generation_store import (
+    load_rubric_generation,
 )
 from rubric_gen.submission_revision.seeds import ResolvedSeed
 from rubric_gen.submission_revision.store import RevisionStore
@@ -69,7 +67,7 @@ class RevisionRecovery:
         experiment_dir: Path,
         task_dir: Path,
         dependencies: RevisionDependencies,
-        bank_policy: RubricBankPolicy,
+        rubric_policy: RubricPolicy,
         scoring_identity: dict[str, object],
         seed: ResolvedSeed,
         store: RevisionStore,
@@ -81,7 +79,7 @@ class RevisionRecovery:
         self.experiment_dir = experiment_dir
         self.task_dir = task_dir
         self.dependencies = dependencies
-        self.bank_policy = bank_policy
+        self.rubric_policy = rubric_policy
         self.scoring_identity = scoring_identity
         self.seed = seed
         self.store = store
@@ -103,7 +101,7 @@ class RevisionRecovery:
         for key, value in self.experiment_identity.items():
             if manifest.get(key) != value:
                 raise RuntimeError(f"resume configuration changed: {key}")
-        if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
+        if manifest.get("initial_scoring_identity") != self.scoring_identity:
             raise RuntimeError("resume scoring identity changed")
         workspace_value = manifest.get("live_workspace_dir")
         if type(workspace_value) is not str or not workspace_value:
@@ -136,7 +134,7 @@ class RevisionRecovery:
                 raise
             _remove_tree(live_root, self.experiment_dir)
             live_root = relocated_root
-        self.store.verify_initial_bank()
+        self.store.verify_initial_generation()
         self.scoring.verify_canonical_task_inputs()
         state = self.store.read_state()
         if state.phase is _RevisionPhase.COMPLETED:
@@ -698,112 +696,77 @@ class RevisionRecovery:
                 raise RuntimeError("live workspace changed after the last boundary")
         self._validate_rubric_generation_replay()
         self.scoring.validate_latest_boundary(state)
-        if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
+        if manifest.get("initial_scoring_identity") != self.scoring_identity:
             raise RuntimeError("revision manifest has the wrong scoring identity")
 
     def _validate_rubric_generation_replay(self) -> None:
         """Replay every sealed proposal before any resumed dispatch."""
 
-        proposal_root = self.experiment_dir / "rubric-generations"
-        bank_root = self.experiment_dir / "rubric-banks"
-        if self.bank_policy is RubricBankPolicy.FIXED:
-            if os.path.lexists(proposal_root):
-                raise RuntimeError("a fixed policy cannot contain rubric generations")
-            if numbered_bank_directories(
-                bank_root,
-                required=True,
-                context="rubric bank",
-            ) != [0]:
-                raise RuntimeError("a fixed policy can contain only bank round 0")
+        generation_root = self.experiment_dir / "rubric-generations"
+        if self.rubric_policy is RubricPolicy.FIXED:
+            if rubric_generation_entries(generation_root) != [0]:
+                raise RuntimeError("a fixed policy can contain only generation 0")
             return
 
         maximum_generation = (
             1
-            if self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
+            if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
             else self.config.revision_rounds - 1
         )
         remove_owned_rubric_generation_residue(
-            proposal_root,
+            generation_root,
             max_generation_round=maximum_generation,
         )
-        proposal_rounds = rubric_generation_entries(proposal_root)
-        bank_rounds = numbered_bank_directories(
-            bank_root,
-            required=True,
-            context="rubric bank",
-        )
+        generation_rounds = rubric_generation_entries(generation_root)
         if (
-            self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
-            and bank_rounds == [0]
-            and not proposal_rounds
+            self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
+            and generation_rounds == [0]
         ):
-            self.scoring.compile_offline_bank()
-            proposal_rounds = rubric_generation_entries(proposal_root)
-            bank_rounds = numbered_bank_directories(
-                bank_root,
-                required=True,
-                context="rubric bank",
-            )
-        if not bank_rounds or bank_rounds[0] != 0:
-            raise RuntimeError("rubric bank generations must start at round 0")
-        elicitation_rounds = bank_rounds[1:]
-        if elicitation_rounds != list(range(1, len(elicitation_rounds) + 1)):
-            raise RuntimeError("rubric elicitation generations are not contiguous")
-        if proposal_rounds != list(range(1, len(proposal_rounds) + 1)):
-            raise RuntimeError("rubric proposal generations are not contiguous")
-        if proposal_rounds[: len(elicitation_rounds)] != elicitation_rounds:
-            raise RuntimeError(
-                "a persisted rubric bank has no matching sealed proposal"
-            )
-        if len(proposal_rounds) not in {
-            len(elicitation_rounds),
-            len(elicitation_rounds) + 1,
-        }:
-            raise RuntimeError(
-                "sealed rubric proposals are more than one bank ahead"
-            )
-        if proposal_rounds and proposal_rounds[-1] > maximum_generation:
+            self.scoring.compile_offline_rubric()
+            generation_rounds = rubric_generation_entries(generation_root)
+        if not generation_rounds or generation_rounds[0] != 0:
+            raise RuntimeError("rubric generations must start at round 0")
+        if generation_rounds != list(range(len(generation_rounds))):
+            raise RuntimeError("rubric generations are not contiguous")
+        if generation_rounds[-1] > maximum_generation:
             raise RuntimeError("rubric elicitation generation exceeds the study length")
-        proposer = self.dependencies.bank_proposer
+        proposer = self.dependencies.rubric_proposer
         if proposer is None:
             raise RuntimeError("elicitation replay has no rubric proposer")
         instruction = (self.task_dir / "instruction.md").read_text(
             encoding="utf-8"
         )
-        for generation_round in proposal_rounds:
-            prior = load_rubric_bank(
+        original_rubric = load_rubric_generation(
+            self.experiment_dir,
+            0,
+            expected_policy=self.rubric_policy,
+        ).rubric
+        for generation_round in generation_rounds[1:]:
+            prior = load_rubric_generation(
                 self.experiment_dir,
                 generation_round - 1,
-                expected_policy=self.bank_policy,
+                expected_policy=self.rubric_policy,
             )
             replayed = proposer.elicit_rubric(
                 instruction=instruction,
-                current_bank=prior.bank,
-                policy=self.bank_policy,
+                original_rubric=original_rubric,
+                current_generation=prior,
+                policy=self.rubric_policy,
                 generation_round=generation_round,
-                output_dir=proposal_root,
-                    artifact_history=self.scoring.elicitation_history(
-                        generation_round
-                    ),
+                output_dir=self.experiment_dir,
+                artifact_history=self.scoring.elicitation_history(
+                    generation_round
+                ),
                 source_boundary=(
                     generation_round
-                    if self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
+                    if self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
                     else None
                 ),
             )
-            if generation_round <= len(elicitation_rounds):
-                persisted = load_rubric_bank(
-                    self.experiment_dir,
-                    generation_round,
-                    expected_policy=self.bank_policy,
-                )
-                if replayed != persisted:
-                    raise RuntimeError(
-                        "rubric generation disagrees with the persisted bank"
-                    )
-            else:
-                persist_rubric_bank(
-                    self.experiment_dir,
-                    replayed,
-                    self.bank_policy,
-                )
+            persisted = load_rubric_generation(
+                self.experiment_dir,
+                generation_round,
+                expected_policy=self.rubric_policy,
+            )
+            if replayed != persisted:
+                raise RuntimeError("rubric generation changed during replay")

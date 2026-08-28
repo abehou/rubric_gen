@@ -14,7 +14,7 @@ from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
-from rubric_gen.submission_revision.rubric_bank import CompleteRubric, RubricBankPolicy
+from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
 from rubric_gen.submission_revision.evolution_provider import (
     MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
     MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
@@ -30,9 +30,9 @@ EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 EXPERIMENT_ID_TOKEN = "{experiment_id}"
 _RUBRIC_POLICY_SLUGS = {
-    RubricBankPolicy.FIXED: "static",
-    RubricBankPolicy.OFFLINE_ELICITATION: "offline-rubric",
-    RubricBankPolicy.ONLINE_ELICITATION: "online-rubric",
+    RubricPolicy.FIXED: "static",
+    RubricPolicy.OFFLINE_ELICITATION: "offline-rubric",
+    RubricPolicy.ONLINE_ELICITATION: "online-rubric",
 }
 _IDENTITY_KEYS = (
     "kind",
@@ -210,7 +210,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
-    condition_pairs: list[tuple[FeedbackPolicy, RubricBankPolicy]] = []
+    condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
     for condition in conditions:
         if not isinstance(condition, dict) or set(condition) != {
             "condition_id", "feedback_policy", "rubric_policy"
@@ -229,7 +229,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         if type(rubric_policy) is not str:
             raise ValueError("condition rubric_policy must be a string")
         resolved_feedback = FeedbackPolicy(feedback_policy)
-        resolved_rubric = RubricBankPolicy(rubric_policy)
+        resolved_rubric = RubricPolicy(rubric_policy)
         expected_id = (
             f"{resolved_feedback.value.replace('_', '-')}-"
             f"{_RUBRIC_POLICY_SLUGS[resolved_rubric]}"
@@ -247,7 +247,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     expected_pairs = {
         (feedback_policy, rubric_policy)
         for feedback_policy in FeedbackPolicy
-        for rubric_policy in RubricBankPolicy
+        for rubric_policy in RubricPolicy
     }
     if (
         len(condition_pairs) != len(expected_pairs)

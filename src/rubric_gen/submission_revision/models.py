@@ -10,12 +10,12 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.runtime.agents.sessions import SolverSessionDriver
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.evolution_provider import (
     MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
     MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
 )
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
+from rubric_gen.submission_revision.rubric_generation import RubricPolicy
 from rubric_gen.submission_revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
@@ -52,7 +52,7 @@ class SubmissionRevisionConfig:
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
     feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
-    rubric_policy: RubricBankPolicy = RubricBankPolicy.FIXED
+    rubric_policy: RubricPolicy = RubricPolicy.FIXED
     rubric_proposer_model: str = "gpt-5.6-luna"
     rubric_proposer_base_url: str | None = None
     rubric_semantic_judge_base_url: str | None = None
@@ -116,7 +116,7 @@ class SubmissionRevisionConfig:
             )
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)
-        RubricBankPolicy(self.rubric_policy)
+        RubricPolicy(self.rubric_policy)
         for name, model in (
             ("rubric_proposer_model", self.rubric_proposer_model),
             ("rubric_semantic_judge_model", self.rubric_semantic_judge_model),
@@ -180,7 +180,7 @@ class RevisionDependencies:
     session: SolverSessionDriver
     judge: SubmissionJudge
     master_judge: SubmissionJudge | None = None
-    bank_proposer: RubricBankProposer | None = None
+    rubric_proposer: RubricProposer | None = None
     feedback_simulator: SimulatedUserFeedback | None = None
 
 

@@ -33,7 +33,7 @@ from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     build_full_rubric_run_spec,
     full_rubric_payload,
     parse_structured_output,
-    preflight_full_rubric_bank,
+    preflight_full_rubric_generation,
     records_from_raw_reports,
     structured_output_schema,
     validate_usage_record,
@@ -316,50 +316,20 @@ def test_preflight_rejects_context_and_criterion_limits() -> None:
         )
 
 
-def test_whole_bank_preflight_requires_one_rubric() -> None:
-    shape = preflight_full_rubric_bank(
-        [RUBRIC],
+def test_generation_preflight_scores_one_complete_rubric() -> None:
+    shape = preflight_full_rubric_generation(
+        RUBRIC,
         review_text="workspace",
         answer_text="",
     )
 
-    assert shape["member_count"] == 1
     assert shape["calls"] == JUDGMENT_REPEATS
-    assert shape["total_request_content_bytes"] == sum(
-        member["total_request_content_bytes"] for member in shape["members"]
-    )
-    assert shape["total_output_tokens"] == sum(
-        member["total_output_tokens"] for member in shape["members"]
-    )
-
-    with pytest.raises(FullRubricJudgeError, match="2 members"):
-        preflight_full_rubric_bank(
-            [RUBRIC, RUBRIC],
-            review_text="workspace",
-            answer_text="",
-        )
-
-
-def test_whole_bank_preflight_rejects_aggregate_prompt_budget(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    one = preflight_full_rubric_bank(
-        [RUBRIC],
-        review_text="workspace",
-        answer_text="",
-    )
-    monkeypatch.setattr(
-        full_rubric_protocol,
-        "FULL_RUBRIC_MAX_BANK_REQUEST_CONTENT_BYTES",
-        one["total_request_content_bytes"] - 1,
-    )
-
-    with pytest.raises(FullRubricJudgeError, match="bank request content totals"):
-        preflight_full_rubric_bank(
-            [RUBRIC],
-            review_text="workspace",
-            answer_text="",
-        )
+    assert shape["total_request_content_bytes"] == shape["rubric"][
+        "total_request_content_bytes"
+    ]
+    assert shape["total_output_tokens"] == shape["rubric"][
+        "total_output_tokens"
+    ]
 
 
 @pytest.mark.parametrize(

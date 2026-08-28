@@ -24,123 +24,91 @@ from rubric_gen.submission_revision.rh_protocol import (
     _finite_score,
     _is_sha256,
 )
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
-from rubric_gen.submission_revision.rubric_bank_lifecycle import (
-    RubricBankGeneration,
-    load_rubric_bank,
-    rubric_bank_directory,
+from rubric_gen.submission_revision.rubric_generation import (
+    RubricGeneration,
+    RubricPolicy,
+)
+from rubric_gen.submission_revision.rubric_generation_store import (
+    load_rubric_generation,
+    rubric_generation_directory,
 )
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 
-def _load_weak_bank_score(
+def _load_weak_rubric_score(
     experiment_dir: Path,
     submission_id: str,
-    generation: RubricBankGeneration,
+    generation: RubricGeneration,
     state_score: object,
     benchmark: SubmissionBenchmarkId,
 ) -> float:
-    path = experiment_dir / "bank-evaluations" / f"{submission_id}.json"
+    path = experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
     if path.is_symlink() or not path.is_file():
-        raise RuntimeError(f"weak bank evaluation is missing: {path}")
-    record = read_json_object(path, "weak bank evaluation")
+        raise RuntimeError(f"weak rubric evaluation is missing: {path}")
+    record = read_json_object(path, "weak rubric evaluation")
     if set(record) != {
         "kind",
         "submission_id",
         "generation_round",
-        "bank_sha256",
+        "generation_sha256",
+        "rubric_sha256",
         "dispatch_preflight",
-        "members",
+        "judge_score",
         "canonical_original_score",
-        "weighted_elicited_penalty",
+        "elicited_penalty",
+        "score_validation_sha256",
+        "evaluation_sha256",
         "score",
     }:
-        raise RuntimeError("weak bank evaluation has invalid fields")
-    bank = generation.bank
+        raise RuntimeError("weak rubric evaluation has invalid fields")
     if (
         record.get("kind")
         != "canonical-original-plus-elicited-penalty-evaluation"
         or record.get("submission_id") != submission_id
-        or record.get("generation_round") != bank.generation_round
-        or record.get("bank_sha256") != bank.content_sha256
+        or record.get("generation_round") != generation.generation_round
+        or record.get("generation_sha256") != generation.generation_sha256
+        or record.get("rubric_sha256") != generation.rubric.content_sha256
     ):
-        raise RuntimeError("weak bank evaluation has the wrong identity")
+        raise RuntimeError("weak rubric evaluation has the wrong identity")
     dispatch = record.get("dispatch_preflight")
     if not isinstance(dispatch, dict) or set(dispatch) != {
         "grading_engine",
-        "bank_sha256",
-        "member_sha256s",
+        "generation_sha256",
+        "rubric_sha256",
         "review_text_sha256",
         "answer_text_sha256",
         "cost_shape",
     }:
-        raise RuntimeError("weak bank evaluation has an invalid dispatch preflight")
-    ordered_hashes = [item.rubric.content_sha256 for item in bank.items]
+        raise RuntimeError("weak rubric evaluation has an invalid dispatch")
     if (
         dispatch.get("grading_engine")
         != grading_engine_for_benchmark(benchmark).value
-        or dispatch.get("bank_sha256") != bank.content_sha256
-        or dispatch.get("member_sha256s") != ordered_hashes
+        or dispatch.get("generation_sha256") != generation.generation_sha256
+        or dispatch.get("rubric_sha256") != generation.rubric.content_sha256
         or not _is_sha256(dispatch.get("review_text_sha256"))
         or not _is_sha256(dispatch.get("answer_text_sha256"))
         or not isinstance(dispatch.get("cost_shape"), dict)
     ):
-        raise RuntimeError("weak bank evaluation dispatch binding changed")
-    members = record.get("members")
-    expected_hashes = {item.rubric.content_sha256 for item in bank.items}
-    if not isinstance(members, dict) or set(members) != expected_hashes:
-        raise RuntimeError("weak bank evaluation has the wrong members")
-    member_scores: dict[str, float] = {}
-    for item in bank.items:
-        member_hash = item.rubric.content_sha256
-        member = members[member_hash]
-        if not isinstance(member, dict) or set(member) != {
-            "weight",
-            "judge_score",
-            "elicited_penalty",
-            "score",
-            "score_validation_sha256",
-            "evaluation_sha256",
-        }:
-            raise RuntimeError("weak bank evaluation member has invalid fields")
-        weight = member.get("weight")
-        if (
-            isinstance(weight, bool)
-            or not isinstance(weight, Real)
-            or float(weight) != item.weight
-        ):
-            raise RuntimeError("weak bank evaluation member has the wrong weight")
-        for hash_key in ("score_validation_sha256", "evaluation_sha256"):
-            digest = member.get(hash_key)
-            if not _is_sha256(digest):
-                raise RuntimeError("weak bank evaluation member has an invalid hash")
-        _finite_score(member.get("judge_score"), "weak bank judge score")
-        penalty = _finite_number(
-            member.get("elicited_penalty"),
-            "weak bank elicited penalty",
-        )
-        if penalty > 0:
-            raise RuntimeError("weak bank elicited penalty is positive")
-        member_scores[member_hash] = _finite_score(
-            member.get("score"),
-            "weak bank member score",
-        )
-    expected_score = bank.aggregate(member_scores)
+        raise RuntimeError("weak rubric evaluation dispatch binding changed")
+    for hash_key in ("score_validation_sha256", "evaluation_sha256"):
+        if not _is_sha256(record.get(hash_key)):
+            raise RuntimeError("weak rubric evaluation has an invalid hash")
+    _finite_score(record.get("judge_score"), "weak rubric judge score")
     canonical_score = _finite_score(
         record.get("canonical_original_score"),
         "weak canonical original score",
     )
-    weighted_penalty = _finite_number(
-        record.get("weighted_elicited_penalty"),
-        "weak weighted elicited penalty",
+    penalty = _finite_number(
+        record.get("elicited_penalty"),
+        "weak elicited penalty",
     )
-    if weighted_penalty > 0:
-        raise RuntimeError("weak weighted elicited penalty is positive")
-    score = _finite_score(record.get("score"), "weak composed bank score")
-    if score != expected_score or score != max(0.0, canonical_score + weighted_penalty):
-        raise RuntimeError("weak bank composed score is inconsistent")
+    if penalty > 0:
+        raise RuntimeError("weak elicited penalty is positive")
+    score = _finite_score(record.get("score"), "weak composed rubric score")
+    if score != max(0.0, canonical_score + penalty):
+        raise RuntimeError("weak rubric score is inconsistent")
     normalized_state_score = _finite_score(state_score, "weak state score")
     if normalized_state_score != score:
-        raise RuntimeError("weak state score disagrees with bank evaluation")
+        raise RuntimeError("weak state score disagrees with rubric evaluation")
     return score
 
 
@@ -241,55 +209,51 @@ def _load_evaluation_target(
     task_id = str(assignment["task_id"])
     replicate = int(assignment["replicate"])
     condition = config.experiment.condition(str(assignment["condition_id"]))
-    bank_policy = RubricBankPolicy(str(condition["rubric_policy"]))
-    initial_bank_round = _active_bank_round(bank_policy, 0)
-    final_bank_round = _active_bank_round(
-        bank_policy,
+    rubric_policy = RubricPolicy(str(condition["rubric_policy"]))
+    initial_generation_round = _active_generation_round(rubric_policy, 0)
+    final_generation_round = _active_generation_round(
+        rubric_policy,
         len(submission_ids) - 1,
     )
-    bank_generations = {
-        generation_round: load_rubric_bank(
+    generations = {
+        generation_round: load_rubric_generation(
             experiment_dir,
             generation_round,
-            expected_policy=bank_policy,
+            expected_policy=rubric_policy,
         )
         for generation_round in {
             0,
-            initial_bank_round,
-            final_bank_round,
+            initial_generation_round,
+            final_generation_round,
         }
     }
-    selected_bank_generation = bank_generations[0]
-    initial_bank_generation = bank_generations[initial_bank_round]
-    final_bank_generation = bank_generations[final_bank_round]
-    initial_bank_manifest_path = (
-        rubric_bank_directory(experiment_dir, initial_bank_round)
+    selected_generation = generations[0]
+    initial_generation = generations[initial_generation_round]
+    final_generation = generations[final_generation_round]
+    initial_manifest_path = (
+        rubric_generation_directory(experiment_dir, initial_generation_round)
         / "manifest.json"
     ).resolve()
-    final_bank_manifest_path = (
-        rubric_bank_directory(experiment_dir, final_bank_round)
+    final_manifest_path = (
+        rubric_generation_directory(experiment_dir, final_generation_round)
         / "manifest.json"
     ).resolve()
-    initial_member_hashes = {
-        item.rubric.content_sha256
-        for item in selected_bank_generation.bank.items
-    }
-    if selection.optimizer_sha256 not in initial_member_hashes:
+    if selected_generation.rubric.content_sha256 != selection.optimizer_sha256:
         raise RuntimeError(
-            "initial bank does not contain the selected rubric: "
+            "initial generation differs from the selected rubric: "
             f"{assignment_id}"
         )
-    weak_initial_score = _load_weak_bank_score(
+    weak_initial_score = _load_weak_rubric_score(
         experiment_dir,
         str(submission_ids[0]),
-        initial_bank_generation,
+        initial_generation,
         scores[0],
         config.experiment.benchmark,
     )
-    weak_final_score = _load_weak_bank_score(
+    weak_final_score = _load_weak_rubric_score(
         experiment_dir,
         str(submission_ids[-1]),
-        final_bank_generation,
+        final_generation,
         scores[-1],
         config.experiment.benchmark,
     )
@@ -298,7 +262,7 @@ def _load_evaluation_target(
         task_id=task_id,
         replicate=replicate,
         condition_id=str(assignment["condition_id"]),
-        rubric_policy=bank_policy,
+        rubric_policy=rubric_policy,
         benchmark=config.experiment.benchmark,
         experiment_dir=experiment_dir.resolve(),
         task_dir=config.experiment.task_dir(task_id).resolve(),
@@ -317,12 +281,12 @@ def _load_evaluation_target(
         fixed_original_scores=tuple(
             float(value) for value in fixed_original_scores
         ),
-        initial_bank_generation=initial_bank_generation,
-        final_bank_generation=final_bank_generation,
-        initial_bank_manifest_path=initial_bank_manifest_path,
-        final_bank_manifest_path=final_bank_manifest_path,
-        initial_bank_manifest_sha256=sha256_file(initial_bank_manifest_path),
-        final_bank_manifest_sha256=sha256_file(final_bank_manifest_path),
+        initial_generation=initial_generation,
+        final_generation=final_generation,
+        initial_manifest_path=initial_manifest_path,
+        final_manifest_path=final_manifest_path,
+        initial_manifest_sha256=sha256_file(initial_manifest_path),
+        final_manifest_sha256=sha256_file(final_manifest_path),
         selection=selection,
     )
 
@@ -404,14 +368,14 @@ def _load_terminal_revision_state(
     return state
 
 
-def _active_bank_round(
-    bank_policy: RubricBankPolicy,
+def _active_generation_round(
+    rubric_policy: RubricPolicy,
     boundary: int,
 ) -> int:
     if boundary < 0:
-        raise ValueError("active bank boundary must be nonnegative")
-    if bank_policy is RubricBankPolicy.FIXED:
+        raise ValueError("active rubric boundary must be nonnegative")
+    if rubric_policy is RubricPolicy.FIXED:
         return 0
-    if bank_policy is RubricBankPolicy.OFFLINE_ELICITATION:
+    if rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
         return 1
     return max(0, boundary - 1)

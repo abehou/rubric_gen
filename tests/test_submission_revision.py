@@ -45,8 +45,8 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
-    project_bank_feedback,
-    project_bank_simulated_user_feedback,
+    project_rubric_feedback,
+    project_rubric_simulated_user_feedback,
 )
 from rubric_gen.submission_revision.seeds import SEED_KIND, SEED_SET_KIND
 from rubric_gen.submission_revision.user_simulator import (
@@ -55,20 +55,14 @@ from rubric_gen.submission_revision.user_simulator import (
     SimulatedUserGeneration,
     SimulatedUserRequest,
 )
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.evolution_provider import StructuredProviderOutput
 from rubric_gen.submission_revision.study_validation import validate_completed_revision
-from rubric_gen.submission_revision.study_validation_artifacts import (
-    expected_bank_names,
-)
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
-    RubricBank,
-    RubricBankItem,
-    RubricLineage,
-    RubricBankPolicy,
+    RubricGeneration,
+    RubricPolicy,
     ElicitedCriterion,
-    identity_criterion_map,
     render_augmented_rubric,
 )
 from rubric_gen.artifacts.hashing import sha256_text
@@ -369,9 +363,9 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
         },
     }
     rubric_slugs = {
-        RubricBankPolicy.FIXED: "static",
-        RubricBankPolicy.OFFLINE_ELICITATION: "offline-rubric",
-        RubricBankPolicy.ONLINE_ELICITATION: "online-rubric",
+        RubricPolicy.FIXED: "static",
+        RubricPolicy.OFFLINE_ELICITATION: "offline-rubric",
+        RubricPolicy.ONLINE_ELICITATION: "online-rubric",
     }
     return Experiment(
         task.parent / "experiment.yaml",
@@ -396,7 +390,7 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
                     "rubric_policy": rubric_policy.value,
                 }
                 for feedback_policy in FeedbackPolicy
-                for rubric_policy in RubricBankPolicy
+                for rubric_policy in RubricPolicy
             ],
             "protocol": protocol,
             "rubric_paraphrases": {
@@ -408,24 +402,6 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
             "dag": {},
         },
     )
-
-
-def test_expected_bank_generations_use_condition_metadata() -> None:
-    assert expected_bank_names(
-        {
-            "condition_id": "arbitrary-name",
-            "rubric_policy": "online_elicitation",
-        },
-        3,
-    ) == ["bank-0000", "bank-0001"]
-    assert expected_bank_names(
-        {"condition_id": "misleading", "rubric_policy": "fixed"},
-        3,
-    ) == ["bank-0000"]
-    assert expected_bank_names(
-        {"condition_id": "misleading", "rubric_policy": "offline_elicitation"},
-        7,
-    ) == ["bank-0000", "bank-0001"]
 
 
 class FakeSession:
@@ -663,7 +639,7 @@ def _criterion_elicitation_proposer(
     config: SubmissionRevisionConfig,
     *,
     run_proposer: Callable[..., StructuredProviderOutput] | None = None,
-) -> RubricBankProposer:
+) -> RubricProposer:
     def propose(**kwargs) -> StructuredProviderOutput:
         stage = kwargs["stage"]
         schema = kwargs["response_schema"]
@@ -737,7 +713,7 @@ def _criterion_elicitation_proposer(
             },
         )
 
-    return RubricBankProposer(
+    return RubricProposer(
         benchmark=config.benchmark,
         model=config.rubric_proposer_model,
         base_url=None,
@@ -756,8 +732,8 @@ def _criterion_elicitation_proposer(
     )
 
 
-def test_bank_member_uses_canonical_judge_source() -> None:
-    rubric = RevisionScorer.frozen_bank_member(
+def test_generated_rubric_uses_canonical_judge_source() -> None:
+    rubric = RevisionScorer.frozen_generated_rubric(
         "candidate rubric\n",
         "a" * 64,
     )
@@ -780,7 +756,7 @@ def test_bank_member_uses_canonical_judge_source() -> None:
         ("semantic_judge_max_output_tokens", 16_384),
     ],
 )
-def test_controller_rejects_an_injected_bank_proposer_contract_mismatch(
+def test_controller_rejects_an_injected_rubric_proposer_contract_mismatch(
     tmp_path: Path,
     field: str,
     different: object,
@@ -791,7 +767,7 @@ def test_controller_rejects_an_injected_bank_proposer_contract_mismatch(
         base,
         condition_id="base-offline-elicitation",
         assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
-        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
+        rubric_policy=RubricPolicy.OFFLINE_ELICITATION,
     )
     proposer = _criterion_elicitation_proposer(config)
     proposer_fields = {"model", "base_url", "service_tier"}
@@ -820,7 +796,7 @@ def test_controller_rejects_an_injected_bank_proposer_contract_mismatch(
             RevisionDependencies(
                 session=FakeSession(),
                 judge=FakeJudge(task, (80,), tmp_path / "judge"),
-                bank_proposer=proposer,
+                rubric_proposer=proposer,
             ),
         )
 
@@ -834,7 +810,7 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
         base,
         condition_id="base-online-elicitation",
         assignment_id=f"{task.name}--rep-001--base-online-elicitation",
-        rubric_policy=RubricBankPolicy.ONLINE_ELICITATION,
+        rubric_policy=RubricPolicy.ONLINE_ELICITATION,
     )
     judge = FakeJudge(task, (0, 72), tmp_path / "judge")
     controller = SubmissionRevisionController(
@@ -842,10 +818,10 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
         RevisionDependencies(
             session=FakeSession(),
             judge=judge,
-            bank_proposer=_criterion_elicitation_proposer(
+            rubric_proposer=_criterion_elicitation_proposer(
                 config,
                 run_proposer=lambda **_kwargs: pytest.fail(
-                    "this unit test must not propose a bank"
+                    "this unit test must not propose a rubric"
                 ),
             ),
         ),
@@ -864,33 +840,19 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
         ),
         source_generation=1,
     )
-    active_rubric, criterion_map = render_augmented_rubric(
-        controller.initial_bank.bank.specification_anchor,
+    active_rubric = render_augmented_rubric(
+        controller.initial_generation.rubric,
         (elicited,),
     )
-    elicited_bank = RubricBank(
+    elicited_generation = RubricGeneration(
         generation_round=1,
         source_boundary=1,
-        specification_anchor=controller.initial_bank.bank.specification_anchor,
-        specification_anchor_lineage=RubricLineage.RETAINED,
-        prior_specification_anchor_sha256=(
-            controller.initial_bank.bank.specification_anchor.content_sha256
-        ),
-        items=(
-            RubricBankItem(
-                rubric=active_rubric,
-                weight=1.0,
-                lineage=RubricLineage.REFINED,
-                criterion_map=criterion_map,
-                prior_content_sha256=(
-                    controller.initial_bank.bank.items[0].rubric.content_sha256
-                ),
-                elicited_criteria=(elicited,),
-            ),
-        ),
+        rubric=active_rubric,
+        elicited_criteria=(elicited,),
+        proposer_call_budget=4,
     )
-    controller.scoring.active_bank_generation = lambda _turn: SimpleNamespace(  # type: ignore[method-assign]
-        bank=elicited_bank
+    controller.scoring.active_rubric_generation = (  # type: ignore[method-assign]
+        lambda _turn: elicited_generation
     )
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
@@ -899,7 +861,7 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
         submission_dir=submission,
         submission_id="s001",
         turn_index=1,
-        active_member_artifacts={},
+        active_artifacts=SimpleNamespace(),
         allow_generation=True,
     )
 
@@ -953,7 +915,7 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
             master_judge=master_judge,
         ),
     )
-    controller.scoring.active_bank_generation = lambda _turn: controller.initial_bank  # type: ignore[method-assign]
+    controller.scoring.active_rubric_generation = lambda _turn: controller.initial_generation  # type: ignore[method-assign]
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
 
@@ -961,7 +923,7 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
         submission_dir=submission,
         submission_id="s001",
         turn_index=1,
-        active_member_artifacts={},
+        active_artifacts=SimpleNamespace(),
         allow_generation=True,
     )
 
@@ -1082,7 +1044,7 @@ def test_study_rejects_changed_non_rubric_judge_execution_identity(
     ).run()
     manifest_path = config.experiment_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
-    manifest["initial_member_scoring_identity"][field] = value
+    manifest["initial_scoring_identity"][field] = value
     manifest_path.write_text(json.dumps(manifest))
 
     with pytest.raises(RuntimeError, match="execution contracts"):
@@ -1159,16 +1121,18 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     assert manifest["experiment_id"] == EXPERIMENT_ID
     assert manifest["judge_base_url"] is None
     assert manifest["rubric_proposer_base_url"] is None
-    bank_evaluation = json.loads(
-        (config.experiment_dir / "bank-evaluations" / "s000.json").read_text()
+    rubric_evaluation = json.loads(
+        (config.experiment_dir / "rubric-evaluations" / "s000.json").read_text()
     )
-    preflight = bank_evaluation["dispatch_preflight"]
-    assert preflight["bank_sha256"] == bank_evaluation["bank_sha256"]
-    assert preflight["cost_shape"]["member_count"] == 1
+    preflight = rubric_evaluation["dispatch_preflight"]
+    assert preflight["generation_sha256"] == rubric_evaluation["generation_sha256"]
+    assert preflight["rubric_sha256"] == rubric_evaluation["rubric_sha256"]
     assert preflight["cost_shape"]["calls"] == 5
-    unexpected_bank_file = config.experiment_dir / "rubric-banks" / "unexpected"
-    unexpected_bank_file.write_text("not a bank\n")
-    with pytest.raises(RuntimeError, match="bank set is incomplete"):
+    unexpected_generation = (
+        config.experiment_dir / "rubric-generations" / "unexpected"
+    )
+    unexpected_generation.write_text("not a generation\n")
+    with pytest.raises(RuntimeError, match="generation set is incomplete"):
         validate_completed_revision(
             config.experiment_dir,
             assignment,
@@ -1176,18 +1140,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
             config.seed_run_dir,
             config.experiment_dir / "paraphrases",
         )
-    unexpected_bank_file.unlink()
-    invalid_generation_root = config.experiment_dir / "rubric-generations"
-    invalid_generation_root.mkdir()
-    with pytest.raises(RuntimeError, match="invalid for a fixed"):
-        validate_completed_revision(
-            config.experiment_dir,
-            assignment,
-            _design(config, task),
-            config.seed_run_dir,
-            config.experiment_dir / "paraphrases",
-        )
-    invalid_generation_root.rmdir()
+    unexpected_generation.unlink()
 
     evaluation = next(
         (config.experiment_dir / "judgments" / "s001").glob("*/evaluation.json")
@@ -1448,7 +1401,7 @@ def test_shared_judgments_cross_conditions_copy_locally_and_resume(
     assert not (second_config.experiment_dir / "evaluations").exists()
 
 
-def test_paperbench_bank_preflight_failure_dispatches_no_member_judges(
+def test_paperbench_generation_preflight_failure_dispatches_no_judges(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1510,7 +1463,7 @@ def test_study_validates_every_elicitation_generation_record(
         base,
         condition_id="base-offline-elicitation",
         assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
-        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
+        rubric_policy=RubricPolicy.OFFLINE_ELICITATION,
     )
 
     proposer = _criterion_elicitation_proposer(config)
@@ -1519,42 +1472,42 @@ def test_study_validates_every_elicitation_generation_record(
         RevisionDependencies(
             session=FakeSession(),
                 judge=FakeJudge(task, (80,) + (90,) * 8, tmp_path / "judge"),
-            bank_proposer=proposer,
+            rubric_proposer=proposer,
         ),
     )
-    member_judges: dict[str, FakeJudge] = {}
-    original_runtime = controller.scoring.bank_member_runtime
+    generated_judges: dict[str, FakeJudge] = {}
+    original_runtime = controller.scoring.rubric_runtime
 
-    def runtime(item: RubricBankItem, generation_round: int):
-        rubric_hash = item.rubric.content_sha256
+    def runtime(generation: RubricGeneration):
+        rubric_hash = generation.rubric.content_sha256
         if rubric_hash == controller.initial_rubric.sha256:
-            return original_runtime(item, generation_round)
-        if rubric_hash not in member_judges:
+            return original_runtime(generation)
+        if rubric_hash not in generated_judges:
             identity = _identity(task)
             identity.update({
                 "rubric_source": "rubric-path",
                 "rendered_rubric_sha256": rubric_hash,
             })
-            member_judges[rubric_hash] = FakeJudge(
+            generated_judges[rubric_hash] = FakeJudge(
                 task,
                 (0, 90, 90, 90),
-                tmp_path / f"member-{len(member_judges)}",
+                tmp_path / f"generated-{len(generated_judges)}",
                 identity=identity,
             )
         return (
-            controller.scoring.frozen_bank_member(
-                item.rubric.content,
+            controller.scoring.frozen_generated_rubric(
+                generation.rubric.content,
                 rubric_hash,
             ),
-            member_judges[rubric_hash],
+            generated_judges[rubric_hash],
         )
 
-    controller.scoring.bank_member_runtime = runtime  # type: ignore[method-assign]
+    controller.scoring.rubric_runtime = runtime  # type: ignore[method-assign]
     controller.run()
     generation = json.loads(
         (
             config.experiment_dir
-            / "rubric-generations/bank-0001/generation.json"
+            / "rubric-generations/generation-0001/evolution.json"
         ).read_text()
     )
     assert generation["criterion_edit_attempt_count"] == 0
@@ -1574,7 +1527,9 @@ def test_study_validates_every_elicitation_generation_record(
         config.experiment_dir / "paraphrases",
     )
 
-    extra_generation = config.experiment_dir / "rubric-generations" / "bank-9999"
+    extra_generation = (
+        config.experiment_dir / "rubric-generations" / "generation-9999"
+    )
     extra_generation.mkdir()
     with pytest.raises(RuntimeError, match="generation set is incomplete"):
         validate_completed_revision(
@@ -1589,14 +1544,14 @@ def test_study_validates_every_elicitation_generation_record(
     metadata_path = (
         config.experiment_dir
         / "rubric-generations"
-        / "bank-0001"
-        / "generation.json"
+        / "generation-0001"
+        / "evolution.json"
     )
     metadata_path.chmod(0o600)
     metadata = json.loads(metadata_path.read_text())
     metadata["context"]["proposer"]["model"] = "tampered-proposer"
     metadata_path.write_text(json.dumps(metadata))
-    with pytest.raises(RuntimeError, match="completed rubric generation changed"):
+    with pytest.raises(RuntimeError, match="file hash changed"):
         validate_completed_revision(
             config.experiment_dir,
             assignment,
@@ -1615,7 +1570,7 @@ def test_controller_scores_one_rubric_exactly(
         base,
         condition_id="base-offline-elicitation",
         assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
-        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
+        rubric_policy=RubricPolicy.OFFLINE_ELICITATION,
     )
 
     base_judge = FakeJudge(task, (0, 65, 65), tmp_path / "base-judge")
@@ -1624,40 +1579,29 @@ def test_controller_scores_one_rubric_exactly(
         RevisionDependencies(
             session=FakeSession(),
             judge=base_judge,
-            bank_proposer=_criterion_elicitation_proposer(config),
+            rubric_proposer=_criterion_elicitation_proposer(config),
         ),
     )
     result = controller.run()
 
     assert result.scores == (80, 65)
     initial_evaluation = json.loads(
-        (config.experiment_dir / "bank-evaluations" / "s000.json").read_text()
+        (config.experiment_dir / "rubric-evaluations" / "s000.json").read_text()
     )
     evaluation = json.loads(
-        (config.experiment_dir / "bank-evaluations" / "s001.json").read_text()
+        (config.experiment_dir / "rubric-evaluations" / "s001.json").read_text()
     )
     assert initial_evaluation["generation_round"] == 1
     assert evaluation["generation_round"] == 1
-    assert initial_evaluation["bank_sha256"] == evaluation["bank_sha256"]
-    assert sorted(
-        path.name for path in (config.experiment_dir / "rubric-banks").iterdir()
-    ) == ["bank-0000", "bank-0001"]
+    assert initial_evaluation["generation_sha256"] == evaluation["generation_sha256"]
     assert sorted(
         path.name
         for path in (config.experiment_dir / "rubric-generations").iterdir()
-    ) == ["bank-0001"]
+    ) == ["generation-0000", "generation-0001"]
     assert evaluation["score"] == 65
     assert evaluation["canonical_original_score"] == 65
-    assert evaluation["weighted_elicited_penalty"] == 0
-    assert sorted(
-        (
-            member["weight"],
-            member["judge_score"],
-            member["elicited_penalty"],
-            member["score"],
-        )
-        for member in evaluation["members"].values()
-    ) == [(1.0, 65, 0, 65)]
+    assert evaluation["elicited_penalty"] == 0
+    assert evaluation["judge_score"] == 65
     validate_completed_revision(
         config.experiment_dir,
         {
@@ -1711,12 +1655,12 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
             selection_count += 1
             assert private_value in request.evidence
             assert "<private_rubric>" in request.evidence
-            namespaced_criterion = request.schema["properties"][  # type: ignore[index]
+            criterion_id = request.schema["properties"][  # type: ignore[index]
                 "referenced_criteria"
             ]["items"]["enum"][0]
-            assert namespaced_criterion.endswith(":criterion_1")
+            assert criterion_id == "criterion_1"
             text = json.dumps({
-                "referenced_criteria": [namespaced_criterion],
+                "referenced_criteria": [criterion_id],
                 "concern_categories": ["evidence_traceability"],
             })
             response_id = f"selection-{selection_count}"
@@ -1766,7 +1710,7 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
     feedback = json.loads(
         (config.experiment_dir / "feedback" / "s000.json").read_text()
     )
-    assert set(feedback) == {"policy", "comment", "bank_sha256"}
+    assert set(feedback) == {"policy", "comment", "generation_sha256"}
     generation = json.loads(
         (
             config.experiment_dir
@@ -1774,9 +1718,7 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
             / "s000.json"
         ).read_text()
     )
-    assert generation["output"]["referenced_criteria"] == [
-        f"{CompleteRubric.from_content((task / 'tests' / 'rubric.txt').read_text()).content_sha256}:criterion_1"
-    ]
+    assert generation["output"]["referenced_criteria"] == ["criterion_1"]
     assert generation["output"]["concern_categories"] == [
         "evidence_traceability"
     ]
@@ -1866,18 +1808,12 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
         "Levels: A=30 B=0\n[A]: Full.\n[B]: None.\n"
     )
     rubric = CompleteRubric.from_content(rubric_text)
-    bank = RubricBank(
+    generation = RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=rubric,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(RubricBankItem(
-            rubric=rubric,
-            weight=1.0,
-            lineage=RubricLineage.NEW,
-            criterion_map=identity_criterion_map(rubric),
-        ),),
+        rubric=rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
     record = simulator.generate(
         experiment_id="experiment",
@@ -1885,7 +1821,7 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
         submission_id="s000",
         generation_round=0,
         instruction="Analyze the table.",
-        bank=bank,
+        generation=generation,
         current_submission="The result is positive.",
     )
 
@@ -1893,8 +1829,8 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
     assert comment_calls == 1
     assert record["attempt_count"] == 2
     assert record["output"]["referenced_criteria"] == [  # type: ignore[index]
-        f"{rubric.content_sha256}:criterion_1",
-        f"{rubric.content_sha256}:criterion_3",
+        "criterion_1",
+        "criterion_3",
     ]
 
 
@@ -2058,113 +1994,6 @@ def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
     assert judge.calls == 1
 
 
-def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    task = _write_task(tmp_path)
-    base = _config(tmp_path, task, rounds=2)
-    config = replace(
-        base,
-        condition_id="base-offline-elicitation",
-        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
-        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
-    )
-    original_persist = scoring_module.persist_rubric_bank
-
-    class SimulatedCrash(RuntimeError):
-        pass
-
-    def crash_before_elicited_bank(*args, **kwargs):
-        generation = args[1]
-        if generation.bank.generation_round == 1:
-            raise SimulatedCrash("crash after proposal sealing")
-        return original_persist(*args, **kwargs)
-
-    monkeypatch.setattr(
-        scoring_module,
-        "persist_rubric_bank",
-        crash_before_elicited_bank,
-    )
-    with pytest.raises(SimulatedCrash, match="after proposal sealing"):
-        SubmissionRevisionController(
-            config,
-            RevisionDependencies(
-                session=FakeSession(),
-                judge=FakeJudge(
-                    task,
-                    (80,) + (90,) * 6,
-                    tmp_path / "initial-judge",
-                ),
-                bank_proposer=_criterion_elicitation_proposer(config),
-            ),
-        ).run()
-
-    proposal = config.experiment_dir / "rubric-generations" / "bank-0001"
-    elicited_bank = config.experiment_dir / "rubric-banks" / "bank-0001"
-    assert proposal.is_dir()
-    assert not elicited_bank.exists()
-    proposal_root = proposal.parent
-    stage = proposal_root / ".bank-0001.abcdefgh"
-    stage.mkdir()
-    (stage / "partial.json").write_text("{}\n", encoding="utf-8")
-
-    monkeypatch.setattr(
-        scoring_module,
-        "persist_rubric_bank",
-        original_persist,
-    )
-    provider_calls = 0
-
-    def reject_provider_call(**_kwargs) -> StructuredProviderOutput:
-        nonlocal provider_calls
-        provider_calls += 1
-        raise AssertionError("resume called the rubric proposer provider")
-
-    class ResumeJudge(FakeJudge):
-        def evaluate(
-            self, submission_dir: Path, attempt_id: str
-        ) -> JudgeArtifacts:
-            artifacts = self.validate(submission_dir, attempt_id)
-            if artifacts.score_validation_path.is_file():
-                return artifacts
-            return super().evaluate(submission_dir, attempt_id)
-
-    resumed_session = FakeSession()
-    resumed = SubmissionRevisionController(
-        replace(config, resume=True),
-        RevisionDependencies(
-            session=resumed_session,
-            judge=ResumeJudge(
-                task,
-                (80,) + (90,) * 6,
-                tmp_path / "resume-judge",
-            ),
-            bank_proposer=_criterion_elicitation_proposer(
-                config,
-                run_proposer=reject_provider_call,
-            ),
-        ),
-    )
-
-    class StopAfterReplay(RuntimeError):
-        pass
-
-    def stop_before_solver(_state, _workspace) -> None:
-        assert elicited_bank.is_dir()
-        raise StopAfterReplay("proposal replay completed")
-
-    resumed._run_solver_turn = stop_before_solver  # type: ignore[method-assign]
-    with pytest.raises(StopAfterReplay, match="replay completed"):
-        resumed.run()
-
-    assert elicited_bank.is_dir()
-    assert not stage.exists()
-    assert provider_calls == 0
-    assert resumed_session.prompts == []
-    assert resumed.dependencies.bank_proposer is not None
-
-
 @pytest.mark.parametrize("kind", ["symlink", "fifo"])
 def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
     tmp_path: Path,
@@ -2172,7 +2001,7 @@ def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
 ) -> None:
     root = tmp_path / "rubric-generations"
     root.mkdir()
-    residue = root / ".bank-0001.abcdefgh"
+    residue = root / ".generation-0001.abcdefgh"
     if kind == "symlink":
         target = tmp_path / "target"
         target.write_text("do not remove\n", encoding="utf-8")
@@ -2194,106 +2023,10 @@ def test_resume_rejects_obsolete_semantic_rejection_artifact(
 ) -> None:
     root = tmp_path / "rubric-generations"
     root.mkdir()
-    (root / "bank-0001.semantic-rejection.json").write_text("{}\n")
+    (root / "generation-0001.semantic-rejection.json").write_text("{}\n")
 
     with pytest.raises(RuntimeError, match="invalid entry"):
         recovery_artifacts.rubric_generation_entries(root)
-
-
-def test_resume_rejects_elicited_bank_without_sealed_proposal(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    task = _write_task(tmp_path)
-    base = _config(tmp_path, task, rounds=2)
-    config = replace(
-        base,
-        condition_id="base-offline-elicitation",
-        assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
-        rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
-    )
-    original_persist = scoring_module.persist_rubric_bank
-
-    class SimulatedCrash(RuntimeError):
-        pass
-
-    def persist_bank_then_hide_proposal(*args, **kwargs):
-        result = original_persist(*args, **kwargs)
-        generation = args[1]
-        if generation.bank.generation_round == 1:
-            proposal = (
-                config.experiment_dir / "rubric-generations" / "bank-0001"
-            )
-            parent_mode = stat.S_IMODE(proposal.parent.stat().st_mode)
-            proposal.parent.chmod(0o700)
-            for artifact in proposal.iterdir():
-                artifact.chmod(0o600)
-            proposal.chmod(0o700)
-            shutil.rmtree(proposal)
-            proposal.parent.chmod(parent_mode)
-            raise SimulatedCrash("crash after bank persistence")
-        return result
-
-    monkeypatch.setattr(
-        scoring_module,
-        "persist_rubric_bank",
-        persist_bank_then_hide_proposal,
-    )
-    with pytest.raises(SimulatedCrash, match="after bank persistence"):
-        SubmissionRevisionController(
-            config,
-            RevisionDependencies(
-                session=FakeSession(),
-                judge=FakeJudge(
-                    task,
-                    (80,) + (90,) * 6,
-                    tmp_path / "initial-judge",
-                ),
-                bank_proposer=_criterion_elicitation_proposer(config),
-            ),
-        ).run()
-
-    assert (
-        config.experiment_dir / "rubric-banks" / "bank-0001"
-    ).is_dir()
-    assert not (
-        config.experiment_dir / "rubric-generations" / "bank-0001"
-    ).exists()
-    monkeypatch.setattr(
-        scoring_module,
-        "persist_rubric_bank",
-        original_persist,
-    )
-
-    provider_calls = 0
-
-    def reject_provider_call(**_kwargs) -> StructuredProviderOutput:
-        nonlocal provider_calls
-        provider_calls += 1
-        raise AssertionError("resume called the rubric proposer provider")
-
-    resumed_session = FakeSession()
-    resumed_judge = FakeJudge(
-        task,
-        (80,) + (90,) * 6,
-        tmp_path / "resume-judge",
-    )
-    with pytest.raises(RuntimeError, match="no matching sealed proposal"):
-        SubmissionRevisionController(
-            replace(config, resume=True),
-            RevisionDependencies(
-                session=resumed_session,
-                judge=resumed_judge,
-                bank_proposer=_criterion_elicitation_proposer(
-                    config,
-                    run_proposer=reject_provider_call,
-                ),
-            ),
-        ).run()
-
-    assert provider_calls == 0
-    assert resumed_judge.calls == 0
-    assert resumed_session.prompts == []
 
 
 def test_judge_resume_accepts_the_persisted_historical_prompt(tmp_path: Path) -> None:
@@ -2685,47 +2418,41 @@ Levels: A=40 B=20 C=0
         "evaluation_sha256": sha256_file(evaluation),
     }))
     complete_rubric = CompleteRubric.from_content(rubric)
-    bank = RubricBank(
+    generation = RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=complete_rubric,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(RubricBankItem(
-            rubric=complete_rubric,
-            weight=1.0,
-            lineage=RubricLineage.NEW,
-            criterion_map=identity_criterion_map(complete_rubric),
-        ),),
+        rubric=complete_rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
-    artifacts = {rubric_sha: (validation, evaluation)}
-    full = project_bank_feedback(
-        bank,
+    artifacts = (validation, evaluation)
+    full = project_rubric_feedback(
+        generation,
         artifacts,
         FeedbackPolicy.FULL,
         fixed_original_artifacts=(validation, evaluation),
         fixed_original_rubric_text=rubric,
         fixed_original_rubric_sha256=rubric_sha,
     )
-    semi = project_bank_feedback(
-        bank,
+    semi = project_rubric_feedback(
+        generation,
         artifacts,
         FeedbackPolicy.SEMI,
         fixed_original_artifacts=(validation, evaluation),
         fixed_original_rubric_text=rubric,
         fixed_original_rubric_sha256=rubric_sha,
     )
-    score = project_bank_feedback(
-        bank,
+    score = project_rubric_feedback(
+        generation,
         artifacts,
         FeedbackPolicy.SCORE_ONLY,
         fixed_original_artifacts=(validation, evaluation),
         fixed_original_rubric_text=rubric,
         fixed_original_rubric_sha256=rubric_sha,
     )
-    simulated = project_bank_simulated_user_feedback(
-        bank,
-        {rubric_sha: validation},
+    simulated = project_rubric_simulated_user_feedback(
+        generation,
+        validation,
         "The evidence is hard to verify from the response. Please explain the "
         "key check and connect it to the conclusion.",
         fixed_original_score=80,
@@ -2734,7 +2461,7 @@ Levels: A=40 B=20 C=0
     assert '"title": "Evidence"' in semi.prompt
     assert "needs more evidence" not in semi.prompt
     assert "Criterion 2" not in score.prompt
-    assert set(simulated.payload) == {"policy", "comment", "bank_sha256"}
+    assert set(simulated.payload) == {"policy", "comment", "generation_sha256"}
     assert "The evidence is hard to verify" in simulated.prompt
     assert "80/100" not in simulated.prompt
     assert "needs more evidence" not in simulated.prompt
@@ -2746,7 +2473,7 @@ Levels: A=40 B=20 C=0
     assert score.score == 80
 
 
-def test_bank_feedback_uses_the_singleton_member_score(
+def test_rubric_feedback_uses_the_active_score(
     tmp_path: Path,
 ) -> None:
     anchor = CompleteRubric.from_content(
@@ -2754,22 +2481,13 @@ def test_bank_feedback_uses_the_singleton_member_score(
         "Levels: A=100 B=33 C=0\n"
         "[A]: Full.\n[B]: Partial.\n[C]: None.\n"
     )
-    bank = RubricBank(
+    generation = RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=anchor,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(
-            RubricBankItem(
-                anchor,
-                1.0,
-                RubricLineage.NEW,
-                identity_criterion_map(anchor),
-            ),
-        ),
+        rubric=anchor,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
-    artifacts: dict[str, tuple[Path, Path]] = {}
     evaluation = tmp_path / "evaluation.json"
     validation = tmp_path / "validation.json"
     evaluation.write_text(json.dumps({
@@ -2789,11 +2507,9 @@ def test_bank_feedback_uses_the_singleton_member_score(
         "rendered_rubric_sha256": anchor.content_sha256,
         "evaluation_sha256": sha256_file(evaluation),
     }))
-    artifacts[anchor.content_sha256] = (validation, evaluation)
-
-    projected = project_bank_feedback(
-        bank,
-        artifacts,
+    projected = project_rubric_feedback(
+        generation,
+        (validation, evaluation),
         FeedbackPolicy.SEMI,
         fixed_original_artifacts=(validation, evaluation),
         fixed_original_rubric_text=anchor.content,
@@ -2803,10 +2519,10 @@ def test_bank_feedback_uses_the_singleton_member_score(
     assert projected.score == 33
     assert projected.payload["score"] == 33
     assert "33/100" not in projected.prompt
-    assert set(projected.payload["members"]) == {anchor.content_sha256}
+    assert projected.payload["canonical_original_score"] == 33
 
 
-def test_bank_feedback_uses_canonical_score_plus_only_elicited_penalty(
+def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
     tmp_path: Path,
 ) -> None:
     anchor = CompleteRubric.from_content(
@@ -2828,21 +2544,13 @@ def test_bank_feedback_uses_canonical_score_plus_only_elicited_penalty(
         ),
         source_generation=1,
     )
-    active, criterion_map = render_augmented_rubric(anchor, (elicited,))
-    bank = RubricBank(
+    active = render_augmented_rubric(anchor, (elicited,))
+    generation = RubricGeneration(
         generation_round=1,
         source_boundary=1,
-        specification_anchor=anchor,
-        specification_anchor_lineage=RubricLineage.RETAINED,
-        prior_specification_anchor_sha256=anchor.content_sha256,
-        items=(RubricBankItem(
-            active,
-            1.0,
-            RubricLineage.REFINED,
-            criterion_map,
-            prior_content_sha256=anchor.content_sha256,
-            elicited_criteria=(elicited,),
-        ),),
+        rubric=active,
+        elicited_criteria=(elicited,),
+        proposer_call_budget=4,
     )
 
     fixed_evaluation = tmp_path / "fixed-evaluation.json"
@@ -2895,18 +2603,17 @@ def test_bank_feedback_uses_canonical_score_plus_only_elicited_penalty(
         "evaluation_sha256": sha256_file(active_evaluation),
     }))
 
-    projected = project_bank_feedback(
-        bank,
-        {active.content_sha256: (active_validation, active_evaluation)},
+    projected = project_rubric_feedback(
+        generation,
+        (active_validation, active_evaluation),
         FeedbackPolicy.SEMI,
         fixed_original_artifacts=(fixed_validation, fixed_evaluation),
         fixed_original_rubric_text=anchor.content,
         fixed_original_rubric_sha256=anchor.content_sha256,
     )
 
-    member = projected.payload["members"][active.content_sha256]
     assert projected.score == 56
-    assert member["canonical_original_score"] == 60
-    assert member["elicited_penalty"] == -4
-    assert member["criteria"]["criterion_1"]["mean_points"] == 60
-    assert member["criteria"]["criterion_2"]["mean_points"] == -4
+    assert projected.payload["canonical_original_score"] == 60
+    assert projected.payload["elicited_penalty"] == -4
+    assert projected.payload["criteria"]["criterion_1"]["mean_points"] == 60
+    assert projected.payload["criteria"]["criterion_2"]["mean_points"] == -4

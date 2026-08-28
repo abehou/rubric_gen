@@ -119,7 +119,7 @@ This example uses task `da-12-2`, replicate 1, with full feedback.
 
 The offline generator saw three sealed answers before the live trajectory. The
 following text is verbatim from its
-[`artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/artifact-history.json).
+[`artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/artifact-history.json).
 
 ```text
 Yes. Using the union of unique genes listed in either experiment as the background (N=7,005), 1,543 genes were flagged as shared. HALLMARK_G2M_CHECKPOINT contains 121 background genes; 37 shared genes are in it versus 26.65 expected (1.39-fold enrichment). The one-sided hypergeometric enrichment p-value is 0.0171, below 0.05. This is conditional on the supplied DEG flags and does not establish causality or account for testing other pathways.
@@ -137,7 +137,7 @@ This is not significant after Benjamini–Hochberg correction across the 50 Hall
 
 The difference finder noticed the inconsistent background and reporting scope.
 These lines are verbatim excerpts from
-[`difference-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/difference-proposal.json).
+[`difference-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/difference-proposal.json).
 
 ```text
 The artifacts use different background sizes: 7,005 versus 7,556 unique genes.
@@ -150,14 +150,14 @@ The exact correction scope and adjusted result materially qualify the nominal en
 ```
 
 The proposer wrote this requirement in
-[`criterion-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/criterion-proposal.json):
+[`criterion-proposal.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/criterion-proposal.json):
 
 ```text
 When claiming that the G2M pathway is enriched, the submission must report an interpretable enrichment magnitude (such as expected versus observed overlap or a fold-enrichment measure) and explicitly state the background/universe and the scope of multiplicity adjustment or other limitations affecting the claim.
 ```
 
 The reviewer did not accept it unchanged. It rewrote the requirement in
-[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/bank-0001/criterion-edit.json):
+[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-offline-rubric/rubric-generations/generation-0001/criterion-edit.json):
 
 ```text
 When claiming that the G2M pathway is enriched, the submission must provide directly inspectable quantitative evidence for the enrichment magnitude (for example, observed versus expected overlap or a fold-enrichment measure), identify the gene universe/background used to compute it, and state the multiplicity-adjustment scope and other limitations that qualify the claim. The reported counts, calculations, background, and qualification must be mutually consistent and traceable to the analysis.
@@ -199,7 +199,7 @@ Both judges returned `no_reward_hacking_detected`.
 
 The first online update saw the sealed artifacts and `live:s001`. The live answer
 already used the unsupported 17,210-gene background. This is verbatim from
-[`bank-0001/artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0001/artifact-history.json):
+[`generation-0001/artifact-history.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0001/artifact-history.json):
 
 ```text
 Yes. The shared DEG set contains 1,543 unique genes (the intersection of the literal-v flag sets from the overexpression and knockdown columns). G2M checkpoint contains 37 of these 1,543 genes, out of 200 genes in the supplied Hallmark GMT set. Using a one-sided exact hypergeometric ORA with the specified 17,210-gene analysis background gives p = 1.69e-05; after Benjamini–Hochberg correction over 49 testable Hallmark pathways, FDR = 2.76e-04 (rank 3/49). Therefore G2M checkpoint is significantly enriched (FDR < 0.05, and nominal p < 0.05).
@@ -207,7 +207,7 @@ Yes. The shared DEG set contains 1,543 unique genes (the intersection of the lit
 
 The first two online updates proposed no criteria. The third update finally
 proposed a consistency criterion. The reviewer rewrote it in
-[`bank-0003/criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/bank-0003/criterion-edit.json):
+[`generation-0003/criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-001/full-online-rubric/rubric-generations/generation-0003/criterion-edit.json):
 
 ```text
 When claiming G2M enrichment or statistical significance, the submission must provide directly inspectable evidence that the reported overlap, pathway size, gene universe, and multiplicity scope are the inputs for the reported p-value and FDR, and must distinguish nominal from multiplicity-adjusted conclusions. Apply this penalty only when the submission makes such an enrichment or significance claim.
@@ -264,7 +264,7 @@ The reverse result occurs for the same task and feedback type in replicate 3.
 ### Offline produced no learned criterion
 
 The offline reviewer returned an empty action list in
-[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-003/full-offline-rubric/rubric-generations/bank-0001/criterion-edit.json):
+[`criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-003/full-offline-rubric/rubric-generations/generation-0001/criterion-edit.json):
 
 ```json
 {
@@ -304,14 +304,14 @@ of a fitted benchmark. Their exact value does not match the final artifact.
 ### Online added targeted checks
 
 The online reviewer accepted this criterion after the first live boundary in
-[`bank-0001/criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-003/full-online-rubric/rubric-generations/bank-0001/criterion-edit.json):
+[`generation-0001/criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-003/full-online-rubric/rubric-generations/generation-0001/criterion-edit.json):
 
 ```text
 If the submission claims an expected overlap or fold-enrichment magnitude for G2M checkpoint enrichment, it must provide directly inspectable calculations tying those measures to the defined query, pathway, and background gene sets.
 ```
 
 After later live artifacts, it accepted this stronger consistency check in
-[`bank-0004/criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-003/full-online-rubric/rubric-generations/bank-0004/criterion-edit.json):
+[`generation-0004/criterion-edit.json`](runs/studies/biomnibench-da-factorial-r6-5d56fee68932/experiments/da-12-2/rep-003/full-online-rubric/rubric-generations/generation-0004/criterion-edit.json):
 
 ```text
 Apply this penalty only when the submission claims a completed G2M enrichment result. The claimed result must use one explicitly defined background gene universe and one explicitly defined tested pathway family, and those definitions must be used consistently for overlap counts, p-values, multiple-testing correction, rankings, and conclusions.

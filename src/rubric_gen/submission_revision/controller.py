@@ -44,7 +44,7 @@ from rubric_gen.submission_revision.artifacts import (
 from rubric_gen.submission_revision.evolution import (
     rubric_generation_implementation_sha256,
 )
-from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
+from rubric_gen.submission_revision.rubric_generation import RubricPolicy
 
 
 class _SolverTurnFailure(RuntimeError):
@@ -74,8 +74,8 @@ class SubmissionRevisionController:
         self.task_dir = setup.task_dir
         self.judgment_reuse = setup.judgment_reuse
         self.initial_rubric = setup.initial_rubric
-        self.bank_policy = setup.bank_policy
-        self.initial_bank = setup.initial_bank
+        self.rubric_policy = setup.rubric_policy
+        self.initial_generation = setup.initial_generation
         self.master_rubric = setup.master_rubric
         self.instruction_sha256 = setup.instruction_sha256
         self.data_sha256 = setup.data_sha256
@@ -93,8 +93,8 @@ class SubmissionRevisionController:
             experiment_dir=self.experiment_dir,
             task_dir=self.task_dir,
             dependencies=self.dependencies,
-            bank_policy=self.bank_policy,
-            initial_bank=self.initial_bank,
+            rubric_policy=self.rubric_policy,
+            initial_generation=self.initial_generation,
             initial_rubric=self.initial_rubric,
             master_rubric=self.master_rubric,
             master_judge=self.master_judge,
@@ -121,7 +121,7 @@ class SubmissionRevisionController:
             experiment_dir=self.experiment_dir,
             task_dir=self.task_dir,
             dependencies=self.dependencies,
-            bank_policy=self.bank_policy,
+            rubric_policy=self.rubric_policy,
             scoring_identity=self.scoring_identity,
             seed=self.seed,
             store=self.store,
@@ -153,7 +153,7 @@ class SubmissionRevisionController:
             "turn_timeout_seconds": self.config.agent.timeout_seconds,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
-            "rubric_policy": self.bank_policy.value,
+            "rubric_policy": self.rubric_policy.value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
@@ -182,8 +182,10 @@ class SubmissionRevisionController:
             "initial_rubric_path": str(
                 self.config.optimizer_rubric_path.resolve()
             ),
-            "initial_bank_sha256": self.initial_bank.bank.content_sha256,
-            "initial_bank_member_count": self.initial_bank.bank.rubric_count,
+            "initial_generation_sha256": (
+                self.initial_generation.generation_sha256
+            ),
+            "initial_rubric_sha256": self.initial_generation.rubric.content_sha256,
             "master_rubric_name": self.config.master_rubric_name,
             "master_rubric_sha256": self.master_rubric.sha256,
             "instruction_sha256": self.instruction_sha256,
@@ -331,13 +333,13 @@ class SubmissionRevisionController:
                 "live_workspace_removed": False,
                 "session_id": None,
                 "effective_solver_model": None,
-                "initial_member_scoring_identity": self.scoring_identity,
+                "initial_scoring_identity": self.scoring_identity,
             },
         )
-        self.store.persist_initial_bank()
+        self.store.persist_initial_generation()
         self.store.write_state(state)
-        if self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION:
-            self.scoring.compile_offline_bank()
+        if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
+            self.scoring.compile_offline_rubric()
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
         ensure_artifacts_dir(workspace)

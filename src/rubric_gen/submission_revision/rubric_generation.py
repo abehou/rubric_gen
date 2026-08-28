@@ -1,15 +1,12 @@
-"""Rubric-bank domain models, rendering, and lineage validation."""
+"""Rubric-generation domain models, rendering, and lineage validation."""
 
 from __future__ import annotations
 
 import json
-import math
 import re
 import unicodedata
-from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from numbers import Real
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.submission_revision.autorubric import (
@@ -19,7 +16,6 @@ from rubric_gen.submission_revision.autorubric import (
 
 
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
-MAX_RUBRIC_BANK_ITEMS = 1
 MAX_ELICITED_CRITERIA = 5
 ELICITED_CRITERION_PENALTY_FRACTION = 0.04
 MAX_CRITERION_TITLE_CHARS = 160
@@ -109,16 +105,8 @@ def _validate_complete_rubric(rubric_text: str) -> tuple[str | None, int]:
     return protocol, expected_maximum
 
 
-class RubricLineage(str, Enum):
-    """Describe how one rubric relates to the prior bank."""
-
-    NEW = "new"
-    REFINED = "refined"
-    RETAINED = "retained"
-
-
-class RubricBankPolicy(str, Enum):
-    """Define how an experiment changes its single rubric."""
+class RubricPolicy(str, Enum):
+    """Define how an experiment changes its active rubric."""
 
     FIXED = "fixed"
     OFFLINE_ELICITATION = "offline_elicitation"
@@ -147,36 +135,6 @@ class CompleteRubric:
         if type(content) is not str:
             raise ValueError("rubric content must be a string")
         return cls(content=content, content_sha256=sha256_text(content))
-
-
-@dataclass(frozen=True)
-class RubricCriterionMapping:
-    """Map one anchor criterion to one member criterion."""
-
-    anchor_criterion_id: str
-    member_criterion_id: str
-
-    def __post_init__(self) -> None:
-        if (
-            type(self.anchor_criterion_id) is not str
-            or re.fullmatch(r"criterion_[1-9][0-9]*", self.anchor_criterion_id)
-            is None
-        ):
-            raise ValueError("criterion mapping has an invalid anchor criterion ID")
-        if (
-            type(self.member_criterion_id) is not str
-            or re.fullmatch(r"criterion_[1-9][0-9]*", self.member_criterion_id)
-            is None
-        ):
-            raise ValueError("criterion mapping has an invalid member criterion ID")
-
-    def as_dict(self) -> dict[str, object]:
-        """Return the canonical JSON representation."""
-
-        return {
-            "anchor_criterion_id": self.anchor_criterion_id,
-            "member_criterion_id": self.member_criterion_id,
-        }
 
 
 def is_valid_single_line_text(
@@ -363,29 +321,6 @@ def parse_elicited_criterion(value: object) -> ElicitedCriterion:
     )
 
 
-def _rubric_point_vectors(
-    rubric: CompleteRubric,
-) -> dict[str, tuple[tuple[str, int], ...]]:
-    parsed = parse_autorubric_rubric(rubric.content)
-    return {
-        criterion.criterion_id: tuple(
-            (level.label, level.points) for level in criterion.levels
-        )
-        for criterion in parsed.criteria
-    }
-
-
-def identity_criterion_map(
-    rubric: CompleteRubric,
-) -> tuple[RubricCriterionMapping, ...]:
-    """Return the exact identity map for one rubric used as its own anchor."""
-
-    return tuple(
-        RubricCriterionMapping(criterion_id, criterion_id)
-        for criterion_id in _rubric_point_vectors(rubric)
-    )
-
-
 def _criterion_specific_requirement(
     criterion: object,
 ) -> str:
@@ -446,7 +381,7 @@ def _context_with_normalization_maximum(
 def render_augmented_rubric(
     original_rubric: CompleteRubric,
     elicited_criteria: tuple[ElicitedCriterion, ...],
-) -> tuple[CompleteRubric, tuple[RubricCriterionMapping, ...]]:
+) -> CompleteRubric:
     """Render one rubric with fixed original text and bounded added criteria."""
 
     if not isinstance(original_rubric, CompleteRubric):
@@ -462,7 +397,7 @@ def render_augmented_rubric(
     ):
         raise ValueError("elicited criteria repeat a content identity")
     if not elicited_criteria:
-        return original_rubric, identity_criterion_map(original_rubric)
+        return original_rubric
 
     parsed = parse_autorubric_rubric(original_rubric.content)
     protocol = _scoring_protocol(original_rubric.content)
@@ -498,13 +433,7 @@ def render_augmented_rubric(
             f"Score normalization maximum: {original_maximum}",
             "",
         ))
-    criterion_map: list[RubricCriterionMapping] = []
     for index, criterion in enumerate(parsed.criteria, start=1):
-        member_id = f"criterion_{index}"
-        criterion_map.append(RubricCriterionMapping(
-            anchor_criterion_id=criterion.criterion_id,
-            member_criterion_id=member_id,
-        ))
         lines.append(f"Criterion {index}: {criterion.title}")
         specific = _criterion_specific_requirement(criterion)
         if specific:
@@ -550,8 +479,7 @@ def render_augmented_rubric(
             for label, description in criterion.level_descriptions
         )
         lines.append("")
-    rubric = CompleteRubric.from_content("\n".join(lines).rstrip() + "\n")
-    return rubric, tuple(criterion_map)
+    return CompleteRubric.from_content("\n".join(lines).rstrip() + "\n")
 
 
 def elicited_criterion_penalty_points(original_rubric: CompleteRubric) -> int:
@@ -591,77 +519,35 @@ def elicited_criterion_capacity(original_rubric: CompleteRubric) -> int:
     )
 
 
-def validate_rubric_criterion_map(
-    specification_anchor: CompleteRubric,
-    rubric: CompleteRubric,
-    criterion_map: tuple[RubricCriterionMapping, ...],
-    elicited_criteria: tuple[ElicitedCriterion, ...],
-) -> None:
-    """Require the exact deterministic rendering of one augmented rubric."""
-
-    if not isinstance(specification_anchor, CompleteRubric):
-        raise ValueError("specification anchor must be a CompleteRubric")
-    if not isinstance(rubric, CompleteRubric):
-        raise ValueError("rubric must be a CompleteRubric")
-    if (
-        type(criterion_map) is not tuple
-        or any(not isinstance(item, RubricCriterionMapping) for item in criterion_map)
-    ):
-        raise ValueError("criterion_map must contain RubricCriterionMapping values")
-    expected_rubric, expected_map = render_augmented_rubric(
-        specification_anchor,
-        elicited_criteria,
-    )
-    if rubric != expected_rubric or criterion_map != expected_map:
-        raise ValueError("rubric differs from its deterministic augmentation")
-
-
-def rubric_bank_member_limits(
-    specification_anchor: CompleteRubric,
-    generation_round: int,
-) -> tuple[int, int]:
-    """Return the structural bank-size bounds for one anchor and round."""
-
-    generation_round = require_nonnegative_int(
-        generation_round,
-        "generation_round",
-    )
-    return (1, 1)
-
-
 @dataclass(frozen=True)
-class RubricBankItem:
-    """Store the sole rubric and its cumulative elicited criteria."""
+class RubricGeneration:
+    """Store one complete active rubric and its cumulative elicited criteria."""
 
+    generation_round: int
+    source_boundary: int | None
     rubric: CompleteRubric
-    weight: float
-    lineage: RubricLineage
-    criterion_map: tuple[RubricCriterionMapping, ...]
-    prior_content_sha256: str | None = None
-    elicited_criteria: tuple[ElicitedCriterion, ...] = ()
+    elicited_criteria: tuple[ElicitedCriterion, ...]
+    proposer_call_budget: int
 
     def __post_init__(self) -> None:
+        generation_round = require_nonnegative_int(
+            self.generation_round,
+            "generation_round",
+        )
+        require_nonnegative_int(self.proposer_call_budget, "proposer_call_budget")
+        if self.source_boundary is not None:
+            source_boundary = require_nonnegative_int(
+                self.source_boundary,
+                "source_boundary",
+            )
+            if source_boundary != generation_round:
+                raise ValueError(
+                    "source_boundary must equal the rubric generation round"
+                )
+        if generation_round == 0 and self.source_boundary is not None:
+            raise ValueError("the initial rubric cannot have a source boundary")
         if not isinstance(self.rubric, CompleteRubric):
             raise ValueError("rubric must be a CompleteRubric")
-        if isinstance(self.weight, bool) or not isinstance(self.weight, Real):
-            raise ValueError("weight must be a real number")
-        weight = float(self.weight)
-        if not math.isfinite(weight) or weight <= 0.0:
-            raise ValueError("weight must be finite and positive")
-        object.__setattr__(self, "weight", weight)
-
-        if not isinstance(self.lineage, RubricLineage):
-            raise ValueError("lineage must be a RubricLineage")
-        if (
-            type(self.criterion_map) is not tuple
-            or any(
-                not isinstance(mapping, RubricCriterionMapping)
-                for mapping in self.criterion_map
-            )
-        ):
-            raise ValueError(
-                "criterion_map must contain RubricCriterionMapping values"
-            )
         if (
             type(self.elicited_criteria) is not tuple
             or len(self.elicited_criteria) > MAX_ELICITED_CRITERIA
@@ -675,158 +561,27 @@ class RubricBankItem:
             criterion.criterion_id for criterion in self.elicited_criteria
         }) != len(self.elicited_criteria):
             raise ValueError("elicited_criteria contains duplicate criteria")
-        if self.lineage is RubricLineage.NEW:
-            if self.prior_content_sha256 is not None:
-                raise ValueError("a new rubric cannot reference a prior rubric")
-            if self.elicited_criteria:
-                raise ValueError("the initial rubric cannot contain elicited criteria")
-            return
-
-        prior_hash = require_sha256(
-            self.prior_content_sha256,
-            "prior_content_sha256",
-        )
-        if self.lineage is RubricLineage.RETAINED:
-            if prior_hash != self.rubric.content_sha256:
-                raise ValueError("a retained rubric must keep the prior content hash")
-        elif prior_hash == self.rubric.content_sha256:
-            raise ValueError("a refined rubric must change the prior content hash")
-
-
-@dataclass(frozen=True)
-class RubricBank:
-    """Store one task rubric for a generation round."""
-
-    generation_round: int
-    source_boundary: int | None
-    specification_anchor: CompleteRubric
-    specification_anchor_lineage: RubricLineage
-    prior_specification_anchor_sha256: str | None
-    items: tuple[RubricBankItem, ...]
-
-    def __post_init__(self) -> None:
-        generation_round = require_nonnegative_int(
-            self.generation_round,
-            "generation_round",
-        )
-        if self.source_boundary is not None:
-            source_boundary = require_nonnegative_int(
-                self.source_boundary,
-                "source_boundary",
-            )
-            if source_boundary != generation_round:
-                raise ValueError(
-                    "source_boundary must equal the elicitation generation round"
-                )
-        if generation_round == 0 and self.source_boundary is not None:
-            raise ValueError("the initial bank cannot have a source boundary")
-
-        if not isinstance(self.specification_anchor, CompleteRubric):
-            raise ValueError("specification_anchor must be a CompleteRubric")
-        if not isinstance(self.specification_anchor_lineage, RubricLineage):
-            raise ValueError("specification_anchor_lineage must be a RubricLineage")
-        if generation_round == 0:
-            if (
-                self.specification_anchor_lineage is not RubricLineage.NEW
-                or self.prior_specification_anchor_sha256 is not None
-            ):
-                raise ValueError("the initial specification anchor must have new lineage")
-        else:
-            if self.specification_anchor_lineage is not RubricLineage.RETAINED:
-                raise ValueError("the original rubric must remain retained")
-            prior_anchor_hash = require_sha256(
-                self.prior_specification_anchor_sha256,
-                "prior_specification_anchor_sha256",
-            )
-            if prior_anchor_hash != self.specification_anchor.content_sha256:
-                raise ValueError("the original rubric hash cannot change")
-
-        minimum_items, maximum_items = rubric_bank_member_limits(
-            self.specification_anchor,
-            generation_round,
-        )
-        if (
-            type(self.items) is not tuple
-            or not minimum_items <= len(self.items) <= maximum_items
+        if generation_round == 0 and self.elicited_criteria:
+            raise ValueError("the initial rubric cannot contain elicited criteria")
+        if any(
+            criterion.source_generation > generation_round
+            for criterion in self.elicited_criteria
         ):
-            raise ValueError(
-                "items must contain "
-                f"{minimum_items} to {maximum_items} complete rubrics"
-            )
-        if any(not isinstance(item, RubricBankItem) for item in self.items):
-            raise ValueError("each bank item must be a RubricBankItem")
-
-        rubric_hashes = [item.rubric.content_sha256 for item in self.items]
-        if len(set(rubric_hashes)) != len(rubric_hashes):
-            raise ValueError("a bank cannot contain duplicate rubric hashes")
-        if rubric_hashes != sorted(rubric_hashes):
-            raise ValueError(
-                "bank members must use ascending rubric content hash order"
-            )
-
-        if self.items[0].weight != 1.0:
-            raise ValueError("the sole rubric member must have weight 1")
-        if generation_round == 0 and any(
-            item.lineage is not RubricLineage.NEW for item in self.items
-        ):
-            raise ValueError("each rubric in the initial bank must have new lineage")
-
-        if generation_round == 0:
-            if (
-                len(self.items) != 1
-                or self.items[0].rubric != self.specification_anchor
-                or self.items[0].criterion_map
-                != identity_criterion_map(self.specification_anchor)
-                or self.items[0].elicited_criteria
-            ):
-                raise ValueError(
-                    "the initial bank must contain the unchanged original rubric"
-                )
-
-        protocols = {
-            _validate_complete_rubric(rubric.content)[0]
-            for rubric in (
-                self.specification_anchor,
-                *(item.rubric for item in self.items),
-            )
-        }
-        if len(protocols) != 1:
-            raise ValueError("all bank members must use one scoring protocol")
-        for item in self.items:
-            validate_rubric_criterion_map(
-                self.specification_anchor,
-                item.rubric,
-                item.criterion_map,
-                item.elicited_criteria,
-            )
+            raise ValueError("elicited criterion comes from a later generation")
 
     @property
-    def content_sha256(self) -> str:
-        """Hash the weighted bank content without round or lineage metadata."""
+    def generation_sha256(self) -> str:
+        """Return the identity of the complete generation content."""
 
-        members = sorted(
-            (
-                {
-                    "content_sha256": item.rubric.content_sha256,
-                    "weight_hex": item.weight.hex(),
-                    "criterion_map": [
-                        mapping.as_dict() for mapping in item.criterion_map
-                    ],
-                    "elicited_criteria": [
-                        criterion.as_dict()
-                        for criterion in item.elicited_criteria
-                    ],
-                }
-                for item in self.items
-            ),
-            key=lambda member: member["content_sha256"],
-        )
         payload = json.dumps(
             {
-                "specification_anchor_sha256": (
-                    self.specification_anchor.content_sha256
-                ),
-                "members": members,
+                "generation_round": self.generation_round,
+                "source_boundary": self.source_boundary,
+                "rubric_sha256": self.rubric.content_sha256,
+                "elicited_criteria": [
+                    criterion.as_dict() for criterion in self.elicited_criteria
+                ],
+                "proposer_call_budget": self.proposer_call_budget,
             },
             ensure_ascii=False,
             separators=(",", ":"),
@@ -835,139 +590,24 @@ class RubricBank:
         return sha256_text(payload)
 
     @property
-    def rubric_count(self) -> int:
-        """Return the number of complete rubrics in the bank."""
-
-        return len(self.items)
-
-    @property
     def scoring_protocol(self) -> str | None:
-        """Return the bank-wide scoring protocol directive."""
-
-        protocol, _ = _validate_complete_rubric(self.specification_anchor.content)
+        protocol, _ = _validate_complete_rubric(self.rubric.content)
         return protocol
 
     @property
     def normalization_maximum(self) -> int:
-        """Return the bank-wide raw score maximum that maps to 100."""
-
-        _, maximum = _validate_complete_rubric(self.items[0].rubric.content)
+        _, maximum = _validate_complete_rubric(self.rubric.content)
         return maximum
 
-    @property
-    def inverse_weight_concentration(self) -> float:
-        """Return the inverse sum of squared operational weights."""
+    def validate_successor(self, prior: RubricGeneration) -> None:
+        """Require consecutive generation identity and append-only criteria."""
 
-        return 1.0 / math.fsum(item.weight**2 for item in self.items)
-
-    def aggregate(self, scores: Mapping[str, float]) -> float:
-        """Return the weighted score for one exact score per rubric hash."""
-
-        if not isinstance(scores, Mapping):
-            raise ValueError("scores must be a mapping")
-        expected_hashes = {item.rubric.content_sha256 for item in self.items}
-        supplied_hashes = set(scores)
-        if supplied_hashes != expected_hashes:
-            missing = sorted(expected_hashes - supplied_hashes)
-            extra = sorted(supplied_hashes - expected_hashes)
-            raise ValueError(
-                f"scores must match the bank exactly; missing={missing}, extra={extra}"
-            )
-
-        weighted_scores: list[float] = []
-        for item in self.items:
-            score = scores[item.rubric.content_sha256]
-            if isinstance(score, bool) or not isinstance(score, Real):
-                raise ValueError("each rubric score must be a real number")
-            numeric_score = float(score)
-            if not math.isfinite(numeric_score):
-                raise ValueError("each rubric score must be finite")
-            weighted_scores.append(item.weight * numeric_score)
-        return math.fsum(weighted_scores)
-
-    def validate_lineage(self, prior_bank: RubricBank) -> None:
-        """Validate every lineage claim against the immediately prior bank."""
-
-        if not isinstance(prior_bank, RubricBank):
-            raise ValueError("prior_bank must be a RubricBank")
-        if prior_bank.generation_round != self.generation_round - 1:
-            raise ValueError("prior_bank must be the immediately preceding generation")
-        if self.scoring_protocol != prior_bank.scoring_protocol:
-            raise ValueError(
-                "a specification anchor cannot change the bank scoring protocol"
-            )
-
-        if self.prior_specification_anchor_sha256 != (
-            prior_bank.specification_anchor.content_sha256
-        ):
-            raise ValueError("specification anchor lineage references the wrong prior hash")
-        if (
-            self.specification_anchor != prior_bank.specification_anchor
-            or self.specification_anchor_lineage is not RubricLineage.RETAINED
-        ):
-            raise ValueError("the original rubric cannot change")
-
-        prior_by_hash = {
-            item.rubric.content_sha256: item for item in prior_bank.items
-        }
-        prior_hashes = set(prior_by_hash)
-        descendant_lineages: dict[str, list[RubricLineage]] = {}
-        for item in self.items:
-            current_hash = item.rubric.content_sha256
-            prior_hash = item.prior_content_sha256
-
-            if item.lineage is RubricLineage.NEW:
-                if current_hash in prior_hashes:
-                    raise ValueError(
-                        "a rubric present in the prior bank must be retained"
-                    )
-                continue
-
-            assert prior_hash is not None
-            if prior_hash not in prior_hashes:
-                raise ValueError("a lineage reference is absent from the prior bank")
-            descendant_lineages.setdefault(prior_hash, []).append(item.lineage)
-
-            if item.lineage is RubricLineage.RETAINED:
-                if current_hash != prior_hash:
-                    raise ValueError("retained lineage changed the rubric content")
-                if item.criterion_map != prior_by_hash[prior_hash].criterion_map:
-                    raise ValueError("a retained member must keep its criterion map")
-                if (
-                    item.elicited_criteria
-                    != prior_by_hash[prior_hash].elicited_criteria
-                ):
-                    raise ValueError(
-                        "a retained rubric must keep its elicited criteria"
-                    )
-            else:
-                if current_hash in prior_hashes:
-                    raise ValueError(
-                        "refined lineage must produce content absent from the prior bank"
-                    )
-                prior_criteria = prior_by_hash[prior_hash].elicited_criteria
-                if (
-                    item.elicited_criteria[:len(prior_criteria)] != prior_criteria
-                    or len(item.elicited_criteria) <= len(prior_criteria)
-                ):
-                    raise ValueError(
-                        "a refined rubric can only append elicited criteria"
-                    )
-        if any(
-            len(lineages) > 1
-            and any(lineage is not RubricLineage.REFINED for lineage in lineages)
-            for lineages in descendant_lineages.values()
-        ):
-            raise ValueError(
-                "multiple descendants of one prior rubric must all be refined"
-            )
-
-
-def canonical_rubric_bank_items(bank: RubricBank) -> tuple[RubricBankItem, ...]:
-    """Return the member order used by every model-facing bank renderer."""
-
-    if not isinstance(bank, RubricBank):
-        raise ValueError("bank must be a RubricBank")
-    return tuple(
-        sorted(bank.items, key=lambda item: item.rubric.content_sha256)
-    )
+        if not isinstance(prior, RubricGeneration):
+            raise ValueError("prior must be a RubricGeneration")
+        if self.generation_round != prior.generation_round + 1:
+            raise ValueError("rubric generations must be consecutive")
+        if self.scoring_protocol != prior.scoring_protocol:
+            raise ValueError("a rubric generation cannot change scoring protocol")
+        prior_count = len(prior.elicited_criteria)
+        if self.elicited_criteria[:prior_count] != prior.elicited_criteria:
+            raise ValueError("a rubric generation cannot change prior criteria")

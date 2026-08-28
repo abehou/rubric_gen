@@ -21,10 +21,10 @@ import benchmarks. Callers must pass prompts, required outputs, and session rule
 It selects a submission benchmark through the registry. Its audit adapter converts
 completed revisions into blinded evidence sources.
 
-Rubric-bank code has two ownership layers.
+Rubric generation has two ownership layers.
 
-- `rubric_bank.py` owns domain models, rendering, aggregation, and lineage rules.
-- `rubric_bank_lifecycle.py` owns schedules and atomic generation storage.
+- `rubric_generation.py` owns the active-rubric model and criterion rendering.
+- `rubric_generation_store.py` owns atomic self-contained generation storage.
 
 Rubric evolution has explicit protocol and durability boundaries.
 
@@ -32,7 +32,6 @@ Rubric evolution has explicit protocol and durability boundaries.
 - `evolution_artifacts.py` owns blinded artifact-history contracts.
 - `evolution_protocol.py` owns prompts, schemas, evidence, and response validation.
 - `evolution_provider.py` owns the structured provider contract and output type.
-- `evolution_store.py` owns atomic generation publication.
 - `evolution_serialization.py` owns strict JSON and content-identity helpers.
 
 Judge execution also uses explicit ownership. `judging/runner.py` coordinates the

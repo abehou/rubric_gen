@@ -175,23 +175,22 @@ class RevisionWorkspaceManager:
             submission_dir = self.experiment_dir / "submissions" / submission_id
             attempt_id = state.judge_attempts[submission_id]
             submission_index = int(submission_id[1:])
-            bank = self.scoring.active_bank_generation(submission_index).bank
-            for item in bank.items:
-                evaluation_workspace = (
-                    self.experiment_dir
-                    / "evaluations"
-                    / submission_id
-                    / item.rubric.content_sha256
-                    / attempt_id
-                    / "run"
-                    / "workspace"
+            generation = self.scoring.active_rubric_generation(submission_index)
+            evaluation_workspace = (
+                self.experiment_dir
+                / "evaluations"
+                / submission_id
+                / generation.rubric.content_sha256
+                / attempt_id
+                / "run"
+                / "workspace"
+            )
+            # Custom judges can keep caches outside the standard tree.
+            if os.path.lexists(evaluation_workspace):
+                _compact_historical_workspace(
+                    evaluation_workspace,
+                    retained_names=retained_names,
                 )
-                # Custom judges can keep caches outside the standard tree.
-                if os.path.lexists(evaluation_workspace):
-                    _compact_historical_workspace(
-                        evaluation_workspace,
-                        retained_names=retained_names,
-                    )
             stats = _compact_historical_workspace(
                 submission_dir / "workspace",
                 retained_names=retained_names,
@@ -318,5 +317,4 @@ class RevisionWorkspaceManager:
             }
         )
         return submission_dir
-
 

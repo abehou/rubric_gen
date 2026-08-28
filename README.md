@@ -129,7 +129,7 @@ Each `conditions` entry sets `feedback_policy` to one of these values:
 The shared pool contains several sealed rubric-paraphrase sets. Each set has
 one rubric for every available task. A replicate selects one complete set before
 revision. All conditions in that replicate use the same selected variant as the
-initial bank. The other variants remain hidden from the solver, in-loop judge,
+initial rubric. The other variants remain hidden from the solver, in-loop judge,
 and proposer. They provide a common paraphrase-sensitivity diagnostic. This
 diagnostic does not identify a pure wording effect.
 

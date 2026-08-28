@@ -4,7 +4,7 @@ This figure uses the live partial mechanistic cache for the BioMNIBench
 `results20` experiment.
 
 The weak judge is GPT-5.6 Luna. The strong score is the arithmetic mean of
-GPT-5.6 Sol and Claude Opus 5. Each assignment must have complete terminal-bank
+GPT-5.6 Sol and Claude Opus 5. Each assignment must have complete terminal-rubric
 scores from all three judges at both the initial and final boundaries.
 
 The plotted gap is `weak score - strong score`. A positive value means the weak

@@ -72,33 +72,38 @@ def terminal_jobs_by_assignment(
     result: dict[tuple[str, str, str], list[object]] = defaultdict(list)
     for job in jobs:
         if not any(
-            binding.bank_role == "terminal_common"
-            for binding in job.bank_members
+            binding.role == "terminal_common"
+            for binding in job.generation_bindings
         ):
             continue
         result[(job.target.assignment_id, job.boundary, job.model)].append(job)
     return result
 
 
-def complete_bank_score(
+def complete_rubric_score(
     target: object,
     jobs: list[object],
     records: dict[str, dict[str, object]],
 ) -> float | None:
     if not jobs or any(job.key not in records for job in jobs):
         return None
-    member_scores: dict[str, float] = {}
+    expected_sha256 = target.final_generation.rubric.content_sha256
+    rubric_score: float | None = None
     for job in jobs:
         binding = next(
             binding
-            for binding in job.bank_members
-            if binding.bank_role == "terminal_common"
+            for binding in job.generation_bindings
+            if binding.role == "terminal_common"
         )
+        if binding.rubric_sha256 != expected_sha256:
+            raise RuntimeError("terminal judgment uses the wrong rubric")
         score = records[job.key].get("score")
         if isinstance(score, bool) or not isinstance(score, (int, float)):
             raise RuntimeError("mechanistic record has an invalid score")
-        member_scores[binding.member_sha256] = float(score)
-    return float(target.final_bank_generation.bank.aggregate(member_scores))
+        if rubric_score is not None and rubric_score != float(score):
+            raise RuntimeError("terminal rubric has conflicting scores")
+        rubric_score = float(score)
+    return rubric_score
 
 
 def condition_parts(experiment: object, target: object) -> tuple[str, str]:
@@ -137,7 +142,7 @@ def build_rows() -> tuple[list[dict[str, object]], dict[str, object]]:
         feedback, rubric = condition_parts(experiment, target)
         for boundary in BOUNDARIES:
             scores = {
-                model: complete_bank_score(
+                model: complete_rubric_score(
                     target,
                     terminal_jobs[(target.assignment_id, boundary, model)],
                     records,
@@ -361,7 +366,7 @@ def plot(
         "gap_change",
         "Change: final minus initial",
     )
-    axes[0].set_ylabel("Weak − strong terminal-bank score (points)")
+    axes[0].set_ylabel("Weak − strong terminal-rubric score (points)")
     handles, labels = axes[0].get_legend_handles_labels()
     figure.legend(
         handles,
@@ -381,7 +386,7 @@ def plot(
     figure.text(
         0.5,
         0.018,
-        "Matched assignments require complete terminal-bank scores from "
+        "Matched assignments require complete terminal-rubric scores from "
         "GPT-5.6 Luna, GPT-5.6 Sol, and Claude Opus 5 at both boundaries. "
         "Strong = mean(Sol, Claude).\n"
         f"Snapshot {metadata['snapshot_at']} · "

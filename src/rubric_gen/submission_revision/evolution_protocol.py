@@ -14,10 +14,10 @@ from rubric_gen.submission_revision.evolution_serialization import (
     canonical_json,
     load_json_object,
 )
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
     ElicitedCriterion,
-    RubricBank,
+    RubricGeneration,
     elicited_criterion_capacity,
     elicited_criterion_penalty_points,
     render_augmented_rubric,
@@ -49,9 +49,9 @@ def _numeric_literal_key(value: str) -> tuple[str, bool]:
 
 def _specification_numeric_literals(
     instruction: str,
-    specification_anchor: CompleteRubric,
+    original_rubric: CompleteRubric,
 ) -> frozenset[tuple[str, bool]]:
-    parsed = parse_autorubric_rubric(specification_anchor.content)
+    parsed = parse_autorubric_rubric(original_rubric.content)
     wording = [instruction, parsed.context]
     for criterion in parsed.criteria:
         marker = (
@@ -401,12 +401,13 @@ def editor_schema(
 def difference_evidence(
     *,
     instruction: str,
-    current_bank: RubricBank,
+    original_rubric: CompleteRubric,
+    current_generation: RubricGeneration,
     artifact_history: ArtifactHistory,
 ) -> str:
     return canonical_json({
         "task": instruction,
-        "current_rubric": current_bank.items[0].rubric.content,
+        "current_rubric": current_generation.rubric.content,
         "blinded_artifact_history": artifact_history.model_record(),
     })
 
@@ -414,7 +415,8 @@ def difference_evidence(
 def criterion_evidence(
     *,
     instruction: str,
-    current_bank: RubricBank,
+    original_rubric: CompleteRubric,
+    current_generation: RubricGeneration,
     artifact_history: ArtifactHistory,
     difference_response: dict[str, object],
     remaining_capacity: int,
@@ -422,7 +424,7 @@ def criterion_evidence(
 ) -> str:
     return canonical_json({
         "task": instruction,
-        "current_rubric": current_bank.items[0].rubric.content,
+        "current_rubric": current_generation.rubric.content,
         "blinded_pair_graph": [
             item.as_dict() for item in artifact_history.pairs
         ],
@@ -431,7 +433,7 @@ def criterion_evidence(
         "required_level_labels": list(level_labels),
         "program_owned_penalty_points_per_criterion": (
             elicited_criterion_penalty_points(
-                current_bank.specification_anchor
+                original_rubric
             )
         ),
     })
@@ -440,25 +442,26 @@ def criterion_evidence(
 def editor_evidence(
     *,
     instruction: str,
-    current_bank: RubricBank,
+    original_rubric: CompleteRubric,
+    current_generation: RubricGeneration,
     artifact_history: ArtifactHistory,
     difference_response: dict[str, object],
     proposed_criteria: tuple[ElicitedCriterion, ...],
 ) -> str:
     return canonical_json({
         "task": instruction,
-        "current_rubric": current_bank.items[0].rubric.content,
+        "current_rubric": current_generation.rubric.content,
         "blinded_artifact_history": artifact_history.model_record(),
         "discovered_differences": difference_response,
         "proposed_criteria": [item.as_dict() for item in proposed_criteria],
         "program_owned_penalty_points_per_criterion": (
             elicited_criterion_penalty_points(
-                current_bank.specification_anchor
+                original_rubric
             )
         ),
         "remaining_criterion_capacity": (
-            elicited_criterion_capacity(current_bank.specification_anchor)
-            - len(current_bank.items[0].elicited_criteria)
+            elicited_criterion_capacity(original_rubric)
+            - len(current_generation.elicited_criteria)
         ),
     })
 
@@ -629,7 +632,8 @@ def validated_criterion_response(
     text: str,
     *,
     instruction: str,
-    current_bank: RubricBank,
+    original_rubric: CompleteRubric,
+    current_generation: RubricGeneration,
     generation_round: int,
     remaining_capacity: int,
     level_labels: tuple[str, ...],
@@ -643,7 +647,7 @@ def validated_criterion_response(
         raise ValueError("criterion proposal exceeds the remaining capacity")
     authorized = _specification_numeric_literals(
         instruction,
-        current_bank.specification_anchor,
+        original_rubric,
     )
     criteria: list[ElicitedCriterion] = []
     expected_fields = {
@@ -806,7 +810,8 @@ def validated_editor_response(
     criteria: tuple[ElicitedCriterion, ...],
     *,
     instruction: str,
-    current_bank: RubricBank,
+    original_rubric: CompleteRubric,
+    current_generation: RubricGeneration,
     generation_round: int,
     remaining_capacity: int,
     level_labels: tuple[str, ...],
@@ -824,7 +829,7 @@ def validated_editor_response(
         artifact_history=artifact_history,
         authorized_numeric_literals=_specification_numeric_literals(
             instruction,
-            current_bank.specification_anchor,
+            original_rubric,
         ),
         generation_round=generation_round,
     )
@@ -838,8 +843,8 @@ def validated_editor_response(
         remaining_capacity,
     )
     render_augmented_rubric(
-        current_bank.specification_anchor,
-        current_bank.items[0].elicited_criteria + edited,
+        original_rubric,
+        current_generation.elicited_criteria + edited,
     )
     return {
         "actions": tuple(action.record() for action in actions),

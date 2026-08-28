@@ -28,37 +28,6 @@ def fixed_original_attempt_id(
     ).hexdigest()[:32]
 
 
-def numbered_bank_directories(
-    root: Path,
-    *,
-    required: bool,
-    context: str,
-) -> list[int]:
-    """Return strict canonical bank directory numbers."""
-
-    if not os.path.lexists(root):
-        if required:
-            raise RuntimeError(f"{context} root is missing")
-        return []
-    if root.is_symlink() or not root.is_dir():
-        raise RuntimeError(f"{context} root is invalid")
-    rounds: list[int] = []
-    for path in root.iterdir():
-        name = path.name
-        if (
-            path.is_symlink()
-            or not path.is_dir()
-            or len(name) != 9
-            or not name.startswith("bank-")
-            or not name[5:].isdigit()
-        ):
-            raise RuntimeError(f"{context} root contains an invalid entry")
-        rounds.append(int(name[5:]))
-    if len(set(rounds)) != len(rounds):
-        raise RuntimeError(f"{context} root contains duplicate rounds")
-    return sorted(rounds)
-
-
 def rubric_generation_entries(
     root: Path,
 ) -> list[int]:
@@ -74,11 +43,11 @@ def rubric_generation_entries(
         if (
             not path.is_symlink()
             and path.is_dir()
-            and len(name) == 9
-            and name.startswith("bank-")
-            and name[5:].isdigit()
+            and len(name) == 15
+            and name.startswith("generation-")
+            and name[11:].isdigit()
         ):
-            rounds.append(int(name[5:]))
+            rounds.append(int(name[11:]))
             continue
         raise RuntimeError("rubric generation root contains an invalid entry")
     if len(set(rounds)) != len(rounds):
@@ -87,7 +56,7 @@ def rubric_generation_entries(
 
 
 _GENERATION_STAGING_DIRECTORY = re.compile(
-    r"^\.bank-([0-9]{4})\.[a-z0-9_]{8}$"
+    r"^\.generation-([0-9]{4})\.[a-z0-9_]{8}$"
 )
 
 
@@ -140,5 +109,4 @@ def remove_owned_rubric_generation_residue(
             os.fsync(directory_fd)
         finally:
             os.close(directory_fd)
-
 

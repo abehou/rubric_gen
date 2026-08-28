@@ -9,8 +9,8 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
-from rubric_gen.submission_revision.bank_scoring import (
-    validate_bank_scoring_structure,
+from rubric_gen.submission_revision.generation_scoring import (
+    validate_generation_scoring_structure,
 )
 from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
@@ -46,17 +46,19 @@ from rubric_gen.submission_revision.evolution_serialization import (
     canonical_sha256,
     load_json_object,
 )
-from rubric_gen.submission_revision.evolution_store import publish_generation
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
+    CompleteRubric,
     ElicitedCriterion,
-    RubricBank,
-    RubricBankItem,
-    RubricBankPolicy,
-    RubricLineage,
+    RubricGeneration,
+    RubricPolicy,
     elicited_criterion_capacity,
     render_augmented_rubric,
 )
-from rubric_gen.submission_revision.rubric_bank_lifecycle import RubricBankGeneration
+from rubric_gen.submission_revision.rubric_generation_store import (
+    load_rubric_generation,
+    persist_rubric_generation,
+    rubric_generation_directory,
+)
 
 
 def rubric_generation_implementation_sha256() -> str:
@@ -69,11 +71,10 @@ def rubric_generation_implementation_sha256() -> str:
         package_root / "evolution_protocol.py",
         package_root / "evolution_provider.py",
         package_root / "evolution_serialization.py",
-        package_root / "evolution_store.py",
-        package_root / "rubric_bank.py",
-        package_root / "rubric_bank_lifecycle.py",
+        package_root / "rubric_generation.py",
+        package_root / "rubric_generation_store.py",
         package_root / "autorubric.py",
-        package_root / "bank_scoring.py",
+        package_root / "generation_scoring.py",
         package_root / "contrasts.py",
         package_root / "judging" / "full_rubric_judge.py",
         package_root / "judging" / "models.py",
@@ -100,13 +101,13 @@ class _StageResult:
 
 @dataclass(frozen=True)
 class _ProductionResult:
-    bank: RubricBank
+    generation: RubricGeneration
     difference: _StageResult
     criteria: _StageResult
     editor: _StageResult
 
 
-class RubricBankProposer:
+class RubricProposer:
     """Elicit general missing criteria from a blinded artifact history."""
 
     def __init__(
@@ -169,31 +170,34 @@ class RubricBankProposer:
         self,
         *,
         instruction: str,
-        current_bank: RubricBank,
-        policy: RubricBankPolicy,
+        original_rubric: CompleteRubric,
+        current_generation: RubricGeneration,
+        policy: RubricPolicy,
         generation_round: int,
         output_dir: Path,
         artifact_history: ArtifactHistory,
         source_boundary: int | None = None,
-    ) -> RubricBankGeneration:
+    ) -> RubricGeneration:
         """Return the next single rubric after bounded criterion elicitation."""
 
         if type(instruction) is not str or not instruction.strip():
             raise ValueError("task instruction must be nonempty")
-        if not isinstance(current_bank, RubricBank):
-            raise ValueError("current_bank must be a RubricBank")
-        if type(policy) is not RubricBankPolicy or policy not in {
-            RubricBankPolicy.OFFLINE_ELICITATION,
-            RubricBankPolicy.ONLINE_ELICITATION,
+        if not isinstance(original_rubric, CompleteRubric):
+            raise ValueError("original_rubric must be a CompleteRubric")
+        if not isinstance(current_generation, RubricGeneration):
+            raise ValueError("current_generation must be a RubricGeneration")
+        if type(policy) is not RubricPolicy or policy not in {
+            RubricPolicy.OFFLINE_ELICITATION,
+            RubricPolicy.ONLINE_ELICITATION,
         }:
             raise ValueError("criterion elicitation requires an elicitation policy")
         if type(generation_round) is not int:
             raise ValueError("generation_round must be an integer")
-        if generation_round != current_bank.generation_round + 1:
+        if generation_round != current_generation.generation_round + 1:
             raise ValueError("rubric generations must be consecutive")
         if generation_round > self.semantic_judge_max_calls:
             raise RuntimeError("semantic reviewer call schedule is exhausted")
-        if policy is RubricBankPolicy.OFFLINE_ELICITATION:
+        if policy is RubricPolicy.OFFLINE_ELICITATION:
             if generation_round != 1:
                 raise ValueError(
                     "offline elicitation has one pre-treatment generation"
@@ -205,17 +209,18 @@ class RubricBankProposer:
         artifact_history = validate_artifact_history(artifact_history)
         context = self._context(
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
             source_boundary=source_boundary,
             artifact_history=artifact_history,
         )
-        output_dir.mkdir(parents=True, exist_ok=True)
         try:
             completed = self._load_completed_generation(
                 instruction=instruction,
-                current_bank=current_bank,
+                original_rubric=original_rubric,
+                current_generation=current_generation,
                 policy=policy,
                 generation_round=generation_round,
                 source_boundary=source_boundary,
@@ -229,17 +234,14 @@ class RubricBankProposer:
             return completed
         result = self._produce(
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
             source_boundary=source_boundary,
             artifact_history=artifact_history,
         )
 
-        generation = RubricBankGeneration(
-            bank=result.bank,
-            proposer_call_budget=2 * (self.max_retries + 1),
-        )
         metadata = self._generation_record(
             context=context,
             result=result,
@@ -248,49 +250,42 @@ class RubricBankProposer:
             "kind": "blinded-artifact-history",
             **artifact_history.artifact_record(),
         }
-        expected_files = {
+        evolution_files = {
             "artifact-history.json": canonical_json(history_payload) + "\n",
             "difference-proposal.json": result.difference.raw_text,
             "criterion-proposal.json": result.criteria.raw_text,
             "criterion-edit.json": result.editor.raw_text,
-            "generation.json": canonical_json(metadata) + "\n",
+            "evolution.json": canonical_json(metadata) + "\n",
         }
-        publish_generation(
+        persist_rubric_generation(
             output_dir,
-            generation_round,
-            expected_files,
+            result.generation,
+            policy,
+            evolution_files=evolution_files,
         )
-        return generation
+        return result.generation
 
     def _load_completed_generation(
         self,
         *,
         instruction: str,
-        current_bank: RubricBank,
-        policy: RubricBankPolicy,
+        original_rubric: CompleteRubric,
+        current_generation: RubricGeneration,
+        policy: RubricPolicy,
         generation_round: int,
         source_boundary: int | None,
         artifact_history: ArtifactHistory,
         context: dict[str, object],
         output_dir: Path,
-    ) -> RubricBankGeneration | None:
-        root = output_dir / f"bank-{generation_round:04d}"
+    ) -> RubricGeneration | None:
+        root = rubric_generation_directory(output_dir, generation_round)
         if not root.exists():
             return None
-        expected_names = {
-            "artifact-history.json",
-            "difference-proposal.json",
-            "criterion-proposal.json",
-            "criterion-edit.json",
-            "generation.json",
-        }
-        if (
-            root.is_symlink()
-            or not root.is_dir()
-            or {path.name for path in root.iterdir()} != expected_names
-            or any(path.is_symlink() or not path.is_file() for path in root.iterdir())
-        ):
-            raise RuntimeError("completed rubric generation is incomplete")
+        loaded = load_rubric_generation(
+            output_dir,
+            generation_round,
+            expected_policy=policy,
+        )
         expected_history = {
             "kind": "blinded-artifact-history",
             **artifact_history.artifact_record(),
@@ -306,17 +301,18 @@ class RubricBankProposer:
             difference_text,
             artifact_history=artifact_history,
         )
-        existing_count = len(current_bank.items[0].elicited_criteria)
+        existing_count = len(current_generation.elicited_criteria)
         remaining = (
-            elicited_criterion_capacity(current_bank.specification_anchor)
+            elicited_criterion_capacity(original_rubric)
             - existing_count
         )
-        level_labels = required_level_labels(current_bank.specification_anchor)
+        level_labels = required_level_labels(original_rubric)
         criterion_text = (root / "criterion-proposal.json").read_text()
         criterion_value = validated_criterion_response(
             criterion_text,
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             generation_round=generation_round,
             remaining_capacity=remaining,
             level_labels=level_labels,
@@ -327,7 +323,8 @@ class RubricBankProposer:
             editor_text,
             criterion_value,
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             generation_round=generation_round,
             remaining_capacity=remaining,
             level_labels=level_labels,
@@ -335,15 +332,16 @@ class RubricBankProposer:
         )
         edited_criteria = editor_value["criteria"]
         assert isinstance(edited_criteria, tuple)
-        bank = self._build_bank(
-            current_bank=current_bank,
+        generation = self._build_generation(
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
             source_boundary=source_boundary,
             edited_criteria=edited_criteria,
         )
         metadata = load_json_object(
-            (root / "generation.json").read_text(),
+            (root / "evolution.json").read_text(),
             "completed rubric generation",
         )
         counts = (
@@ -366,28 +364,29 @@ class RubricBankProposer:
         difference = _StageResult(difference_text, difference_value, counts[0])
         criteria = _StageResult(criterion_text, criterion_value, counts[1])
         editor = _StageResult(editor_text, editor_value, counts[2])
-        result = _ProductionResult(bank, difference, criteria, editor)
+        result = _ProductionResult(generation, difference, criteria, editor)
         if metadata != self._generation_record(context=context, result=result):
             raise RuntimeError("completed rubric generation changed")
-        return RubricBankGeneration(
-            bank=bank,
-            proposer_call_budget=2 * (self.max_retries + 1),
-        )
+        if loaded != generation:
+            raise RuntimeError("completed rubric generation content changed")
+        return loaded
 
 
     def _produce(
         self,
         *,
         instruction: str,
-        current_bank: RubricBank,
-        policy: RubricBankPolicy,
+        original_rubric: CompleteRubric,
+        current_generation: RubricGeneration,
+        policy: RubricPolicy,
         generation_round: int,
         source_boundary: int | None,
         artifact_history: ArtifactHistory,
     ) -> _ProductionResult:
         difference_evidence_value = difference_evidence(
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             artifact_history=artifact_history,
         )
         difference = self._proposer_stage(
@@ -401,17 +400,16 @@ class RubricBankProposer:
             ),
         )
         assert isinstance(difference.value, dict)
-        existing_criterion_count = len(
-            current_bank.items[0].elicited_criteria
-        )
+        existing_criterion_count = len(current_generation.elicited_criteria)
         remaining = (
-            elicited_criterion_capacity(current_bank.specification_anchor)
+            elicited_criterion_capacity(original_rubric)
             - existing_criterion_count
         )
-        level_labels = required_level_labels(current_bank.specification_anchor)
+        level_labels = required_level_labels(original_rubric)
         criterion_evidence_value = criterion_evidence(
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             artifact_history=artifact_history,
             difference_response=difference.value,
             remaining_capacity=remaining,
@@ -429,7 +427,8 @@ class RubricBankProposer:
             validator=lambda value: validated_criterion_response(
                 value,
                 instruction=instruction,
-                current_bank=current_bank,
+                original_rubric=original_rubric,
+                current_generation=current_generation,
                 generation_round=generation_round,
                 remaining_capacity=remaining,
                 level_labels=level_labels,
@@ -439,7 +438,8 @@ class RubricBankProposer:
         assert isinstance(criteria.value, tuple)
         editor_evidence_value = editor_evidence(
             instruction=instruction,
-            current_bank=current_bank,
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             artifact_history=artifact_history,
             difference_response=difference.value,
             proposed_criteria=criteria.value,
@@ -455,7 +455,8 @@ class RubricBankProposer:
                 value,
                 criteria.value,
                 instruction=instruction,
-                current_bank=current_bank,
+                original_rubric=original_rubric,
+                current_generation=current_generation,
                 generation_round=generation_round,
                 remaining_capacity=remaining,
                 level_labels=level_labels,
@@ -466,63 +467,49 @@ class RubricBankProposer:
         assert isinstance(editor.value, dict)
         edited_criteria = editor.value["criteria"]
         assert isinstance(edited_criteria, tuple)
-        bank = self._build_bank(
-            current_bank=current_bank,
+        generation = self._build_generation(
+            original_rubric=original_rubric,
+            current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
             source_boundary=source_boundary,
             edited_criteria=edited_criteria,
         )
         return _ProductionResult(
-            bank=bank,
+            generation=generation,
             difference=difference,
             criteria=criteria,
             editor=editor,
         )
 
-    @staticmethod
-    def _build_bank(
+    def _build_generation(
+        self,
         *,
-        current_bank: RubricBank,
-        policy: RubricBankPolicy,
+        original_rubric: CompleteRubric,
+        current_generation: RubricGeneration,
+        policy: RubricPolicy,
         generation_round: int,
         source_boundary: int | None,
         edited_criteria: tuple[ElicitedCriterion, ...],
-    ) -> RubricBank:
-        all_criteria = current_bank.items[0].elicited_criteria + edited_criteria
-        next_rubric, criterion_map = render_augmented_rubric(
-            current_bank.specification_anchor,
+    ) -> RubricGeneration:
+        all_criteria = current_generation.elicited_criteria + edited_criteria
+        next_rubric = render_augmented_rubric(
+            original_rubric,
             all_criteria,
         )
-        prior_item = current_bank.items[0]
-        lineage = (
-            RubricLineage.RETAINED
-            if next_rubric == prior_item.rubric
-            else RubricLineage.REFINED
-        )
-        bank = RubricBank(
+        generation = RubricGeneration(
             generation_round=generation_round,
             source_boundary=(
                 source_boundary
-                if policy is RubricBankPolicy.ONLINE_ELICITATION
+                if policy is RubricPolicy.ONLINE_ELICITATION
                 else None
             ),
-            specification_anchor=current_bank.specification_anchor,
-            specification_anchor_lineage=RubricLineage.RETAINED,
-            prior_specification_anchor_sha256=(
-                current_bank.specification_anchor.content_sha256
-            ),
-            items=(RubricBankItem(
-                rubric=next_rubric,
-                weight=1.0,
-                lineage=lineage,
-                prior_content_sha256=prior_item.rubric.content_sha256,
-                criterion_map=criterion_map,
-                elicited_criteria=all_criteria,
-            ),),
+            rubric=next_rubric,
+            elicited_criteria=all_criteria,
+            proposer_call_budget=2 * (self.max_retries + 1),
         )
-        bank.validate_lineage(current_bank)
-        return bank
+        generation.validate_successor(current_generation)
+        return generation
 
     def _proposer_stage(
         self,
@@ -623,8 +610,9 @@ class RubricBankProposer:
         self,
         *,
         instruction: str,
-        current_bank: RubricBank,
-        policy: RubricBankPolicy,
+        original_rubric: CompleteRubric,
+        current_generation: RubricGeneration,
+        policy: RubricPolicy,
         generation_round: int,
         source_boundary: int | None,
         artifact_history: ArtifactHistory,
@@ -635,10 +623,8 @@ class RubricBankProposer:
             "generation_round": generation_round,
             "source_boundary": source_boundary,
             "instruction_sha256": sha256_text(instruction),
-            "prior_bank_sha256": current_bank.content_sha256,
-            "original_rubric_sha256": (
-                current_bank.specification_anchor.content_sha256
-            ),
+            "prior_generation_sha256": current_generation.generation_sha256,
+            "original_rubric_sha256": original_rubric.content_sha256,
             "artifact_history_sha256": canonical_sha256(
                 artifact_history.artifact_record()
             ),
@@ -657,12 +643,12 @@ class RubricBankProposer:
             "kind": "criterion-elicitation-generation",
             "implementation_sha256": rubric_generation_implementation_sha256(),
             "context": context,
-            "prior_bank_sha256": context["prior_bank_sha256"],
-            "next_bank_sha256": result.bank.content_sha256,
-            "original_rubric_sha256": result.bank.specification_anchor.content_sha256,
+            "prior_generation_sha256": context["prior_generation_sha256"],
+            "generation_sha256": result.generation.generation_sha256,
+            "original_rubric_sha256": context["original_rubric_sha256"],
             "elicited_criterion_ids": [
                 item.criterion_id
-                for item in result.bank.items[0].elicited_criteria
+                for item in result.generation.elicited_criteria
             ],
             "difference_proposal_sha256": sha256_text(result.difference.raw_text),
             "criterion_proposal_sha256": sha256_text(result.criteria.raw_text),
@@ -671,8 +657,8 @@ class RubricBankProposer:
             "difference_attempt_count": result.difference.attempt_count,
             "criterion_attempt_count": result.criteria.attempt_count,
             "criterion_edit_attempt_count": result.editor.attempt_count,
-            "scoring_feasibility": validate_bank_scoring_structure(
-                result.bank,
+            "scoring_feasibility": validate_generation_scoring_structure(
+                result.generation,
                 benchmark=self.benchmark,
             ),
         }

@@ -645,7 +645,7 @@ At minimum:
 
 This historical snapshot is not reproducible from the current checkout. Git
 does not track its raw run tree. The current experiment files and evaluator use
-an incompatible bank protocol, and the obsolete analysis programs were removed.
+an incompatible multi-rubric protocol, and the obsolete analysis programs were removed.
 Use this report only as a record of the old result. Do not pass its artifacts to
 the current workflow.
 

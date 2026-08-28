@@ -237,8 +237,8 @@ L_t = sum_k loss_weight_k * max(component_k,t, 0)
 ```
 
 `L_final - L_initial` is a diagnostic proxy change. It is not a primary outcome.
-The terminal active-bank gain is also diagnostic because its ruler differs across
-conditions. Boundary-local online gains have the same problem.
+The terminal active-rubric gain is also diagnostic because its ruler differs across
+conditions. Boundary-local active-rubric gains have the same problem.
 
 The evaluation also reports each component's final-minus-initial change and the
 proxy-gain gap.

@@ -12,11 +12,10 @@ from .artifacts import (
 from rubric_gen.artifacts.serialization import write_json_atomic
 from .judge import SCORING_IDENTITY_KEYS
 from .models import RevisionState
-from .rubric_bank import RubricBankPolicy
-from .rubric_bank_lifecycle import (
-    RubricBankGeneration,
-    load_rubric_bank,
-    persist_rubric_bank,
+from .rubric_generation import RubricGeneration, RubricPolicy
+from .rubric_generation_store import (
+    load_rubric_generation,
+    persist_rubric_generation,
 )
 
 
@@ -87,13 +86,13 @@ class RevisionStore:
         self,
         experiment_dir: Path,
         *,
-        initial_bank: RubricBankGeneration,
-        bank_policy: RubricBankPolicy,
+        initial_generation: RubricGeneration,
+        rubric_policy: RubricPolicy,
         scoring_identity: dict[str, object],
     ) -> None:
         self.experiment_dir = experiment_dir
-        self.initial_bank = initial_bank
-        self.bank_policy = bank_policy
+        self.initial_generation = initial_generation
+        self.rubric_policy = rubric_policy
         self.scoring_identity = dict(scoring_identity)
 
     @property
@@ -104,21 +103,21 @@ class RevisionStore:
     def state_path(self) -> Path:
         return self.experiment_dir / "state.json"
 
-    def persist_initial_bank(self) -> None:
-        persist_rubric_bank(
+    def persist_initial_generation(self) -> None:
+        persist_rubric_generation(
             self.experiment_dir,
-            self.initial_bank,
-            self.bank_policy,
+            self.initial_generation,
+            self.rubric_policy,
         )
 
-    def verify_initial_bank(self) -> None:
-        persisted = load_rubric_bank(
+    def verify_initial_generation(self) -> None:
+        persisted = load_rubric_generation(
             self.experiment_dir,
             0,
-            expected_policy=self.bank_policy,
+            expected_policy=self.rubric_policy,
         )
-        if persisted != self.initial_bank:
-            raise RuntimeError("persisted initial rubric bank changed")
+        if persisted != self.initial_generation:
+            raise RuntimeError("persisted initial rubric generation changed")
 
     def write_state(self, state: RevisionState) -> None:
         write_json_atomic(self.state_path, state.as_json())
@@ -164,7 +163,7 @@ class RevisionStore:
             context="optimizer score validation",
         )
         manifest = read_json_object(self.manifest_path, "revision manifest")
-        if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
+        if manifest.get("initial_scoring_identity") != self.scoring_identity:
             raise RuntimeError("optimizer scoring identity changed in the manifest")
         if identity != self.scoring_identity:
             raise RuntimeError("optimizer scoring identity changed during revision")

@@ -19,7 +19,7 @@ The active rubric can differ by condition.
 The second plots the common selected-rubric change in `S - Q`.
 This common ruler gives the cleaner cross-condition comparison.
 
-`W` is the GPT-5.6 Luna terminal-bank score.
+`W` is the GPT-5.6 Luna terminal-rubric score.
 `A` and `S` use the mean of GPT-5.6 Sol and Claude Opus 5.
 `Q` is the rubric-free mean from the same two strong judges.
 Gemini was unavailable for the completed mechanistic and holistic panels.

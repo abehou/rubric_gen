@@ -12,15 +12,17 @@ from rubric_gen.submission_revision.artifacts import (
     sha256_file,
     verify_submission_snapshot,
 )
-from rubric_gen.submission_revision.bank_scoring import preflight_bank_dispatch
+from rubric_gen.submission_revision.generation_scoring import (
+    preflight_generation_dispatch,
+)
 from rubric_gen.submission_revision.contrasts import build_elicitation_artifact_history
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
     ProjectedFeedback,
-    compose_bank_score,
-    project_bank_feedback,
-    project_bank_simulated_user_feedback,
+    compose_rubric_score,
+    project_rubric_feedback,
+    project_rubric_simulated_user_feedback,
 )
 from rubric_gen.submission_revision.judge import FrozenRubric, FrozenRubricJudge
 from rubric_gen.submission_revision.judging.models import RUBRIC_PATH_SOURCE
@@ -29,14 +31,13 @@ from rubric_gen.submission_revision.judgment_reuse import (
     load_judgment_copy,
 )
 from rubric_gen.submission_revision.prompts import PromptProfile
-from rubric_gen.submission_revision.rubric_bank import (
-    RubricBank,
-    RubricBankItem,
-    RubricBankPolicy,
+from rubric_gen.submission_revision.rubric_generation import (
+    RubricGeneration,
+    RubricPolicy,
 )
-from rubric_gen.submission_revision.rubric_bank_lifecycle import (
-    RubricBankGeneration,
-    load_rubric_bank,
+from rubric_gen.submission_revision.rubric_generation_store import (
+    load_rubric_generation,
+    rubric_generation_directory,
 )
 from rubric_gen.submission_revision.study_validation_context import (
     ValidationContext,
@@ -44,7 +45,7 @@ from rubric_gen.submission_revision.study_validation_context import (
 )
 
 
-MemberArtifacts = dict[str, tuple[Path, Path]]
+RubricArtifacts = tuple[Path, Path]
 
 
 def validate_revision_artifacts(context: ValidationContext) -> None:
@@ -53,7 +54,6 @@ def validate_revision_artifacts(context: ValidationContext) -> None:
     instruction = (context.task_dir / "instruction.md").read_text(encoding="utf-8")
     for submission_id in context.expected_ids:
         _validate_submission(context, roots, proposer, instruction, submission_id)
-    _validate_bank_directories(context)
 
 
 @dataclass(frozen=True)
@@ -61,7 +61,7 @@ class _ArtifactRoots:
     submissions: Path
     rubric_generations: Path
     feedback: Path
-    bank_evaluations: Path
+    rubric_evaluations: Path
     feedback_generations: Path
 
 
@@ -81,11 +81,11 @@ def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
         expected_json,
         "revision feedback set is incomplete",
     )
-    bank_evaluations = context.experiment_dir / "bank-evaluations"
+    rubric_evaluations = context.experiment_dir / "rubric-evaluations"
     _require_directory_names(
-        bank_evaluations,
+        rubric_evaluations,
         expected_json,
-        "revision bank evaluation set is incomplete",
+        "revision rubric evaluation set is incomplete",
     )
     feedback_generations = context.experiment_dir / "feedback-generations"
     if context.policy is FeedbackPolicy.USER_SIMULATOR:
@@ -102,7 +102,7 @@ def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
         submissions=submissions,
         rubric_generations=rubric_generations,
         feedback=feedback,
-        bank_evaluations=bank_evaluations,
+        rubric_evaluations=rubric_evaluations,
         feedback_generations=feedback_generations,
     )
 
@@ -120,24 +120,16 @@ def _validate_rubric_generation_set(
     context: ValidationContext,
     root: Path,
 ) -> None:
-    if context.bank_policy is RubricBankPolicy.FIXED:
-        if os.path.lexists(root):
-            raise RuntimeError(
-                "rubric-generations is invalid for a fixed rubric policy"
-            )
-        return
     indices = (
-        range(1, 2)
-        if context.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
-        else range(1, context.revision_rounds)
+        range(1)
+        if context.rubric_policy is RubricPolicy.FIXED
+        else (
+            range(2)
+            if context.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
+            else range(max(1, context.revision_rounds))
+        )
     )
-    expected = [f"bank-{index:04d}" for index in indices]
-    if not expected:
-        if os.path.lexists(root):
-            raise RuntimeError(
-                "a no-update elicitation arm has rubric generation artifacts"
-            )
-        return
+    expected = [f"generation-{index:04d}" for index in indices]
     if (
         root.is_symlink()
         or not root.is_dir()
@@ -148,12 +140,12 @@ def _validate_rubric_generation_set(
         raise RuntimeError("rubric generation set is incomplete")
 
 
-def _generation_proposer(context: ValidationContext) -> RubricBankProposer | None:
-    if context.bank_policy is RubricBankPolicy.FIXED:
+def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
+    if context.rubric_policy is RubricPolicy.FIXED:
         return None
     protocol = context.protocol
     model = str(protocol["rubric_proposer_model"])
-    return RubricBankProposer(
+    return RubricProposer(
         benchmark=context.experiment.benchmark,
         model=model,
         base_url=context.endpoints.get(model),
@@ -180,7 +172,7 @@ def _generation_proposer(context: ValidationContext) -> RubricBankProposer | Non
 def _validate_submission(
     context: ValidationContext,
     roots: _ArtifactRoots,
-    proposer: RubricBankProposer | None,
+    proposer: RubricProposer | None,
     instruction: str,
     submission_id: str,
 ) -> None:
@@ -192,7 +184,7 @@ def _validate_submission(
     if feedback_path.is_symlink() or not feedback_path.is_file():
         raise RuntimeError(f"missing feedback for {submission_id}")
     index = int(submission_id[1:])
-    generation_round = _generation_round(context.bank_policy, index)
+    generation_round = _generation_round(context.rubric_policy, index)
     generation = _validated_generation(
         context,
         roots,
@@ -200,13 +192,12 @@ def _validate_submission(
         instruction,
         generation_round,
     )
-    member_artifacts = _member_artifacts(
+    rubric_artifacts = _rubric_artifacts(
         context,
         submission,
         submission_id,
         index,
-        generation_round,
-        generation.bank,
+        generation,
     )
     fixed_score = _fixed_score(context, index)
     fixed_artifacts = _fixed_original_artifacts(
@@ -214,7 +205,7 @@ def _validate_submission(
         submission,
         submission_id,
         index,
-        member_artifacts,
+        rubric_artifacts,
         fixed_score,
     )
     projected = _project_feedback(
@@ -223,25 +214,23 @@ def _validate_submission(
         submission,
         submission_id,
         generation_round,
-        generation.bank,
-        member_artifacts,
+        generation,
+        rubric_artifacts,
         fixed_artifacts,
         fixed_score,
     )
-    expected_evaluation = _expected_bank_evaluation(
+    expected_evaluation = _expected_rubric_evaluation(
         context,
         submission_id,
-        generation.bank,
-        member_artifacts,
+        generation,
+        rubric_artifacts,
         fixed_score,
     )
     if read_json_object(
-        roots.bank_evaluations / f"{submission_id}.json",
-        "bank evaluation",
+        roots.rubric_evaluations / f"{submission_id}.json",
+        "rubric evaluation",
     ) != expected_evaluation:
-        raise RuntimeError(
-            f"bank evaluation disagrees with members: {submission_id}"
-        )
+        raise RuntimeError(f"rubric evaluation disagrees: {submission_id}")
     scores = context.state["scores"]
     assert isinstance(scores, list)
     if (
@@ -253,10 +242,10 @@ def _validate_submission(
         )
 
 
-def _generation_round(policy: RubricBankPolicy, submission_index: int) -> int:
-    if policy is RubricBankPolicy.FIXED:
+def _generation_round(policy: RubricPolicy, submission_index: int) -> int:
+    if policy is RubricPolicy.FIXED:
         return 0
-    if policy is RubricBankPolicy.OFFLINE_ELICITATION:
+    if policy is RubricPolicy.OFFLINE_ELICITATION:
         return 1
     return max(0, submission_index - 1)
 
@@ -264,33 +253,34 @@ def _generation_round(policy: RubricBankPolicy, submission_index: int) -> int:
 def _validated_generation(
     context: ValidationContext,
     roots: _ArtifactRoots,
-    proposer: RubricBankProposer | None,
+    proposer: RubricProposer | None,
     instruction: str,
     generation_round: int,
-) -> RubricBankGeneration:
-    generation = load_rubric_bank(
+) -> RubricGeneration:
+    generation = load_rubric_generation(
         context.experiment_dir,
         generation_round,
-        expected_policy=context.bank_policy,
+        expected_policy=context.rubric_policy,
     )
     if generation_round == 0:
         return generation
-    prior = load_rubric_bank(
+    prior = load_rubric_generation(
         context.experiment_dir,
         generation_round - 1,
-        expected_policy=context.bank_policy,
+        expected_policy=context.rubric_policy,
     )
-    generation.bank.validate_lineage(prior.bank)
+    generation.validate_successor(prior)
     if proposer is None:
         raise RuntimeError("elicitation generation has no proposer")
     validated = proposer.elicit_rubric(
         instruction=instruction,
-        current_bank=prior.bank,
-        policy=context.bank_policy,
+        original_rubric=context.scoring.initial_generation.rubric,
+        current_generation=prior,
+        policy=context.rubric_policy,
         generation_round=generation_round,
-        output_dir=roots.rubric_generations,
+        output_dir=context.experiment_dir,
         artifact_history=build_elicitation_artifact_history(
-            online=context.bank_policy is RubricBankPolicy.ONLINE_ELICITATION,
+            online=context.rubric_policy is RubricPolicy.ONLINE_ELICITATION,
             seed_set=context.seed.root,
             task_dir=context.task_dir,
             experiment_dir=context.experiment_dir,
@@ -302,48 +292,45 @@ def _validated_generation(
         ),
         source_boundary=(
             generation_round
-            if context.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
+            if context.rubric_policy is RubricPolicy.ONLINE_ELICITATION
             else None
         ),
     )
     if validated != generation:
-        raise RuntimeError("rubric generation disagrees with the active bank")
+        raise RuntimeError("rubric generation disagrees with the active rubric")
     return generation
 
 
-def _member_artifacts(
+def _rubric_artifacts(
     context: ValidationContext,
     submission: Path,
     submission_id: str,
     submission_index: int,
-    generation_round: int,
-    bank: RubricBank,
-) -> MemberArtifacts:
-    artifacts: MemberArtifacts = {}
-    for item in bank.items:
-        rubric_hash = item.rubric.content_sha256
-        paths = _member_artifact_paths(
-            context,
-            submission,
-            submission_id,
-            submission_index,
-            generation_round,
-            item,
-        )
-        _validate_judgment(paths, submission_id, rubric_hash)
-        artifacts[rubric_hash] = paths
-    return artifacts
+    generation: RubricGeneration,
+) -> RubricArtifacts:
+    paths = _rubric_artifact_paths(
+        context,
+        submission,
+        submission_id,
+        submission_index,
+        generation,
+    )
+    _validate_judgment(
+        paths,
+        submission_id,
+        generation.rubric.content_sha256,
+    )
+    return paths
 
 
-def _member_artifact_paths(
+def _rubric_artifact_paths(
     context: ValidationContext,
     submission: Path,
     submission_id: str,
     submission_index: int,
-    generation_round: int,
-    item: RubricBankItem,
+    generation: RubricGeneration,
 ) -> tuple[Path, Path]:
-    rubric_hash = item.rubric.content_sha256
+    rubric_hash = generation.rubric.content_sha256
     if (
         submission_index == 0
         and context.seed_contract == context.scoring.initial_contract
@@ -351,7 +338,7 @@ def _member_artifact_paths(
     ):
         validation, evaluation, _ = context.seed.judgment
         return validation, evaluation
-    _, judge = _bank_member_judge(context, item, generation_round)
+    _, judge = _generation_judge(context, generation)
     review_text, answer_text = judge.review_inputs(submission)
     expected_request = exact_judgment_request(
         task_id=str(context.assignment["task_id"]),
@@ -370,30 +357,29 @@ def _member_artifact_paths(
     return artifacts.score_validation_path, artifacts.evaluation_path
 
 
-def _bank_member_judge(
+def _generation_judge(
     context: ValidationContext,
-    item: RubricBankItem,
-    generation_round: int,
+    generation: RubricGeneration,
 ) -> tuple[FrozenRubric, FrozenRubricJudge]:
-    if item.rubric.content_sha256 == context.scoring.initial_rubric.sha256:
+    if generation.rubric.content_sha256 == context.scoring.initial_rubric.sha256:
         return context.scoring.initial_rubric, context.scoring.initial_judge
-    member_path = (
-        context.experiment_dir
-        / "rubric-banks"
-        / f"bank-{generation_round:04d}"
-        / "members"
-        / f"{item.rubric.content_sha256}.txt"
+    rubric_path = (
+        rubric_generation_directory(
+            context.experiment_dir,
+            generation.generation_round,
+        )
+        / "rubric.txt"
     )
     rubric = FrozenRubric(
-        text=item.rubric.content,
-        sha256=item.rubric.content_sha256,
+        text=generation.rubric.content,
+        sha256=generation.rubric.content_sha256,
         source=RUBRIC_PATH_SOURCE,
         rubric_set_id=None,
         rubric_id=None,
         structured_rubric_sha256=None,
         manifest_sha256=None,
     )
-    config = replace(context.scoring.judge_config, rubric_path=member_path)
+    config = replace(context.scoring.judge_config, rubric_path=rubric_path)
     return rubric, FrozenRubricJudge(config, rubric)
 
 
@@ -431,7 +417,7 @@ def _fixed_original_artifacts(
     submission: Path,
     submission_id: str,
     submission_index: int,
-    member_artifacts: MemberArtifacts,
+    rubric_artifacts: RubricArtifacts,
     fixed_score: object,
 ) -> tuple[Path, Path]:
     paths = _fixed_original_artifact_paths(
@@ -439,7 +425,7 @@ def _fixed_original_artifacts(
         submission,
         submission_id,
         submission_index,
-        member_artifacts,
+        rubric_artifacts,
     )
     validation_path, evaluation_path = paths
     if (
@@ -471,25 +457,20 @@ def _fixed_original_artifact_paths(
     submission: Path,
     submission_id: str,
     submission_index: int,
-    member_artifacts: MemberArtifacts,
+    rubric_artifacts: RubricArtifacts,
 ) -> tuple[Path, Path]:
     selection = context.selection
     same_base_and_master = (
-        context.scoring.initial_generation.bank.items[0].rubric.content_sha256
+        context.scoring.initial_generation.rubric.content_sha256
         == selection.master_sha256
     )
     if submission_index == 0 and context.seed_contract == context.scoring.master_contract:
         validation, evaluation, _ = context.seed.judgment
         return validation, evaluation
     if same_base_and_master and (
-        submission_index == 0 or context.bank_policy is RubricBankPolicy.FIXED
+        submission_index == 0 or context.rubric_policy is RubricPolicy.FIXED
     ):
-        try:
-            return member_artifacts[selection.master_sha256]
-        except KeyError as exc:
-            raise RuntimeError(
-                f"active bank lacks the master judgment: {submission_id}"
-            ) from exc
+        return rubric_artifacts
     review_text, answer_text = context.scoring.master_judge.review_inputs(submission)
     expected_request = exact_judgment_request(
         task_id=str(context.assignment["task_id"]),
@@ -514,16 +495,16 @@ def _project_feedback(
     submission: Path,
     submission_id: str,
     generation_round: int,
-    bank: RubricBank,
-    member_artifacts: MemberArtifacts,
+    generation: RubricGeneration,
+    rubric_artifacts: RubricArtifacts,
     fixed_artifacts: tuple[Path, Path],
     fixed_score: object,
 ) -> ProjectedFeedback:
     prompt_profile = PromptProfile(str(context.protocol["prompt"]))
     if context.policy is not FeedbackPolicy.USER_SIMULATOR:
-        return project_bank_feedback(
-            bank,
-            member_artifacts,
+        return project_rubric_feedback(
+            generation,
+            rubric_artifacts,
             context.policy,
             fixed_original_artifacts=fixed_artifacts,
             fixed_original_rubric_text=context.selection.master_path.read_text(
@@ -539,24 +520,21 @@ def _project_feedback(
     generation_path = roots.feedback_generations / f"{submission_id}.json"
     if generation_path.is_symlink() or not generation_path.is_file():
         raise RuntimeError(f"missing simulated-user generation for {submission_id}")
-    generation = read_json_object(
+    simulated_record = read_json_object(
         generation_path,
         "simulated-user generation",
     )
     comment = simulator.validate(
-        generation,
+        simulated_record,
         experiment_id=context.experiment.experiment_id,
         assignment_id=str(context.assignment["assignment_id"]),
         submission_id=submission_id,
         generation_round=generation_round,
-        bank=bank,
+        generation=generation,
     )
-    return project_bank_simulated_user_feedback(
-        bank,
-        {
-            rubric_hash: paths[0]
-            for rubric_hash, paths in member_artifacts.items()
-        },
+    return project_rubric_simulated_user_feedback(
+        generation,
+        rubric_artifacts[0],
         comment,
         fixed_original_score=float(fixed_score),
         prompt_profile=prompt_profile,
@@ -564,78 +542,42 @@ def _project_feedback(
     )
 
 
-def _expected_bank_evaluation(
+def _expected_rubric_evaluation(
     context: ValidationContext,
     submission_id: str,
-    bank: RubricBank,
-    member_artifacts: MemberArtifacts,
+    generation: RubricGeneration,
+    rubric_artifacts: RubricArtifacts,
     fixed_score: object,
 ) -> dict[str, object]:
-    validation_paths = {
-        rubric_hash: paths[0] for rubric_hash, paths in member_artifacts.items()
-    }
-    composition = compose_bank_score(bank, validation_paths, float(fixed_score))
-    members: dict[str, dict[str, object]] = {}
-    for item in bank.items:
-        rubric_hash = item.rubric.content_sha256
-        validation_path, evaluation_path = member_artifacts[rubric_hash]
-        score = read_json_object(validation_path, "score validation").get("score")
-        if not valid_score(score):
-            raise RuntimeError("bank member score is invalid")
-        member = composition.members[rubric_hash]
-        members[rubric_hash] = {
-            "weight": item.weight,
-            "judge_score": score,
-            "elicited_penalty": member.elicited_penalty,
-            "score": member.score,
-            "score_validation_sha256": sha256_file(validation_path),
-            "evaluation_sha256": sha256_file(evaluation_path),
-        }
-    first_validation = next(iter(member_artifacts.values()))[0]
+    validation_path, evaluation_path = rubric_artifacts
+    composition = compose_rubric_score(
+        generation,
+        validation_path,
+        float(fixed_score),
+    )
+    score = read_json_object(validation_path, "score validation").get("score")
+    if not valid_score(score):
+        raise RuntimeError("rubric score is invalid")
     return {
         "kind": "canonical-original-plus-elicited-penalty-evaluation",
         "submission_id": submission_id,
-        "generation_round": bank.generation_round,
-        "bank_sha256": bank.content_sha256,
-        "dispatch_preflight": preflight_bank_dispatch(
-            bank,
+        "generation_round": generation.generation_round,
+        "generation_sha256": generation.generation_sha256,
+        "rubric_sha256": generation.rubric.content_sha256,
+        "dispatch_preflight": preflight_generation_dispatch(
+            generation,
             benchmark=context.experiment.benchmark,
-            review_text=(first_validation.parent / "judge_input_trace.md").read_text(
+            review_text=(validation_path.parent / "judge_input_trace.md").read_text(
                 encoding="utf-8"
             ),
-            answer_text=(first_validation.parent / "judge_input_answer.txt").read_text(
+            answer_text=(validation_path.parent / "judge_input_answer.txt").read_text(
                 encoding="utf-8"
             ),
         ),
-        "members": members,
+        "judge_score": score,
         "canonical_original_score": composition.canonical_original_score,
-        "weighted_elicited_penalty": composition.weighted_elicited_penalty,
+        "elicited_penalty": composition.elicited_penalty,
+        "score_validation_sha256": sha256_file(validation_path),
+        "evaluation_sha256": sha256_file(evaluation_path),
         "score": composition.score,
     }
-
-
-def _validate_bank_directories(context: ValidationContext) -> None:
-    root = context.experiment_dir / "rubric-banks"
-    expected = expected_bank_names(context.condition, len(context.expected_ids))
-    if (
-        root.is_symlink()
-        or not root.is_dir()
-        or sorted(path.name for path in root.iterdir()) != expected
-        or any(path.is_symlink() or not path.is_dir() for path in root.iterdir())
-    ):
-        raise RuntimeError("revision rubric bank set is incomplete")
-
-
-def expected_bank_names(
-    condition_spec: dict[str, object],
-    submission_count: int,
-) -> list[str]:
-    policy = RubricBankPolicy(str(condition_spec["rubric_policy"]))
-    if policy is RubricBankPolicy.FIXED:
-        return ["bank-0000"]
-    if policy is RubricBankPolicy.OFFLINE_ELICITATION:
-        return ["bank-0000", "bank-0001"]
-    return [
-        f"bank-{index:04d}"
-        for index in range(max(1, submission_count - 1))
-    ]

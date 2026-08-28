@@ -29,14 +29,13 @@ from rubric_gen.submission_revision.rh_protocol import (
     _pairwise_preference_request,
 )
 from rubric_gen.submission_revision.rh_evaluation_targets import (
-    _load_weak_bank_score,
+    _load_weak_rubric_score,
 )
 from rubric_gen.submission_revision.rh_holistic import (
     _summarize_holistic_scores,
 )
 from rubric_gen.submission_revision.rh_mechanistic import (
-    _expected_bank_binding,
-    _expected_specification_anchor_binding,
+    _expected_generation_binding,
 )
 from rubric_gen.submission_revision.rh_output_store import RhOutputStore
 from rubric_gen.submission_revision.rh_evaluation_report import (
@@ -51,20 +50,16 @@ from rubric_gen.submission_revision.rh_outcome_panel import (
     MechanisticEvaluationRunner,
     _summarize_mechanistic_scores,
 )
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
-    RubricBank,
-    RubricBankItem,
-    RubricBankPolicy,
-    RubricCriterionMapping,
+    RubricGeneration,
+    RubricPolicy,
     ElicitedCriterion,
-    RubricLineage,
     render_augmented_rubric,
 )
-from rubric_gen.submission_revision.rubric_bank_lifecycle import (
-    RubricBankGeneration,
-    persist_rubric_bank,
-    rubric_bank_directory,
+from rubric_gen.submission_revision.rubric_generation_store import (
+    persist_rubric_generation,
+    rubric_generation_directory,
 )
 
 
@@ -209,21 +204,21 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
 @pytest.mark.parametrize(
     ("policy", "boundary", "expected_round"),
     (
-        (RubricBankPolicy.FIXED, 0, 0),
-        (RubricBankPolicy.FIXED, 6, 0),
-        (RubricBankPolicy.OFFLINE_ELICITATION, 0, 1),
-        (RubricBankPolicy.OFFLINE_ELICITATION, 6, 1),
-        (RubricBankPolicy.ONLINE_ELICITATION, 0, 0),
-        (RubricBankPolicy.ONLINE_ELICITATION, 6, 5),
+        (RubricPolicy.FIXED, 0, 0),
+        (RubricPolicy.FIXED, 6, 0),
+        (RubricPolicy.OFFLINE_ELICITATION, 0, 1),
+        (RubricPolicy.OFFLINE_ELICITATION, 6, 1),
+        (RubricPolicy.ONLINE_ELICITATION, 0, 0),
+        (RubricPolicy.ONLINE_ELICITATION, 6, 5),
     ),
 )
-def test_active_bank_round_matches_elicitation_schedule(
-    policy: RubricBankPolicy,
+def test_active_generation_round_matches_elicitation_schedule(
+    policy: RubricPolicy,
     boundary: int,
     expected_round: int,
 ) -> None:
     assert (
-        rh_targets._active_bank_round(policy, boundary)
+        rh_targets._active_generation_round(policy, boundary)
         == expected_round
     )
 
@@ -232,8 +227,8 @@ def _generation(
     generation_round: int,
     weighted_contents: tuple[tuple[str, float], ...],
     *,
-    prior_specification_anchor: CompleteRubric | None = None,
-) -> RubricBankGeneration:
+    original_rubric: CompleteRubric | None = None,
+) -> RubricGeneration:
     def complete_rubric(title: str) -> CompleteRubric:
         return CompleteRubric.from_content(
             f"Criterion 1: {title}\n"
@@ -245,29 +240,16 @@ def _generation(
         )
 
     if generation_round == 0:
-        specification_anchor = complete_rubric(weighted_contents[0][0])
-        anchor_lineage = RubricLineage.NEW
-        prior_anchor_sha256 = None
-        items = (
-            RubricBankItem(
-                rubric=specification_anchor,
-                weight=weighted_contents[0][1],
-                lineage=RubricLineage.NEW,
-                criterion_map=(RubricCriterionMapping(
-                    "criterion_1",
-                    "criterion_1",
-                ),),
-            ),
-        )
+        if len(weighted_contents) != 1 or weighted_contents[0][1] != 1.0:
+            raise ValueError("generation tests require one complete rubric")
+        rubric = complete_rubric(weighted_contents[0][0])
+        criteria: tuple[ElicitedCriterion, ...] = ()
     else:
-        if prior_specification_anchor is None:
+        if original_rubric is None:
             raise ValueError("elicitation generation needs its original rubric")
         if len(weighted_contents) != 1 or weighted_contents[0][1] != 1.0:
             raise ValueError("elicitation tests require one unit-weight rubric")
-        specification_anchor = prior_specification_anchor
-        anchor_lineage = RubricLineage.RETAINED
-        prior_anchor_sha256 = prior_specification_anchor.content_sha256
-        content, weight = weighted_contents[0]
+        content, _weight = weighted_contents[0]
         criterion = ElicitedCriterion.create(
             title=content,
             requirement=f"Evaluate the general {content} requirement.",
@@ -282,39 +264,36 @@ def _generation(
             ),
             source_generation=generation_round,
         )
-        rubric, criterion_map = render_augmented_rubric(
-            specification_anchor,
+        rubric = render_augmented_rubric(
+            original_rubric,
             (criterion,),
         )
-        items = (RubricBankItem(
-            rubric=rubric,
-            weight=weight,
-            lineage=RubricLineage.REFINED,
-            prior_content_sha256=specification_anchor.content_sha256,
-            criterion_map=criterion_map,
-            elicited_criteria=(criterion,),
-        ),)
-    return RubricBankGeneration(
-        bank=RubricBank(
-            generation_round=generation_round,
-            source_boundary=(None if generation_round == 0 else generation_round),
-            specification_anchor=specification_anchor,
-            specification_anchor_lineage=anchor_lineage,
-            prior_specification_anchor_sha256=prior_anchor_sha256,
-            items=items,
-        ),
+        criteria = (criterion,)
+    return RubricGeneration(
+        generation_round=generation_round,
+        source_boundary=(None if generation_round == 0 else generation_round),
+        rubric=rubric,
+        elicited_criteria=criteria,
         proposer_call_budget=1,
     )
 
 
+def _evolution_files() -> dict[str, str]:
+    return {
+        "artifact-history.json": "{}\n",
+        "difference-proposal.json": "{}\n",
+        "criterion-proposal.json": "{}\n",
+        "criterion-edit.json": "{}\n",
+        "evolution.json": "{}\n",
+    }
+
+
 def _target(tmp_path: Path) -> EvaluationTarget:
-    initial_generation = _generation(0, (("initial bank rubric", 1.0),))
+    initial_generation = _generation(0, (("initial rubric", 1.0),))
     final_generation = _generation(
         1,
-        (("final bank rubric", 1.0),),
-        prior_specification_anchor=(
-            initial_generation.bank.specification_anchor
-        ),
+        (("final rubric", 1.0),),
+        original_rubric=initial_generation.rubric,
     )
     selection = ParaphraseSelection(
         task_id="da-1-1",
@@ -322,7 +301,7 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         optimizer_index=1,
         optimizer_path=tmp_path / "variant-001.txt",
         optimizer_sha256=(
-            initial_generation.bank.items[0].rubric.content_sha256
+            initial_generation.rubric.content_sha256
         ),
         holdout_paths=(
             tmp_path / "variant-000.txt",
@@ -337,7 +316,7 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         task_id="da-1-1",
         replicate=1,
         condition_id="diligent-online-rubric",
-        rubric_policy=RubricBankPolicy.ONLINE_ELICITATION,
+        rubric_policy=RubricPolicy.ONLINE_ELICITATION,
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         experiment_dir=tmp_path,
         task_dir=tmp_path,
@@ -350,12 +329,12 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         final_submission=tmp_path / "s006",
         submission_ids=("s000", "s006"),
         fixed_original_scores=(40.0, 80.0),
-        initial_bank_generation=initial_generation,
-        final_bank_generation=final_generation,
-        initial_bank_manifest_path=tmp_path / "bank-0000" / "manifest.json",
-        final_bank_manifest_path=tmp_path / "bank-0001" / "manifest.json",
-        initial_bank_manifest_sha256="a" * 64,
-        final_bank_manifest_sha256="b" * 64,
+        initial_generation=initial_generation,
+        final_generation=final_generation,
+        initial_manifest_path=tmp_path / "generation-0000" / "manifest.json",
+        final_manifest_path=tmp_path / "generation-0001" / "manifest.json",
+        initial_manifest_sha256="a" * 64,
+        final_manifest_sha256="b" * 64,
         selection=selection,
     )
 
@@ -367,11 +346,9 @@ def _record(
     boundary: str,
     score: float,
     roles: list[tuple[str, int | None]],
-    bank_members: list[dict[str, object]] | None = None,
-    specification_anchors: list[dict[str, object]] | None = None,
+    generation_bindings: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
-    bindings = bank_members or []
-    anchor_bindings = specification_anchors or []
+    bindings = generation_bindings or []
     role_hashes = {
         ("selected", target.selection.optimizer_index): (
             target.selection.optimizer_sha256
@@ -391,16 +368,11 @@ def _record(
         "boundary": boundary,
         "score": score,
         "rubric_sha256": (
-            anchor_bindings[0]["specification_anchor_sha256"]
-            if anchor_bindings
-            else (
-                bindings[0]["member_sha256"]
+            bindings[0]["rubric_sha256"]
                 if bindings
                 else role_hashes[roles[0]]
-            )
         ),
-        "bank_members": bindings,
-        "specification_anchors": anchor_bindings,
+        "generation_bindings": bindings,
         "rubric_roles": [
             {"name": name, "variant_index": index} for name, index in roles
         ],
@@ -412,102 +384,65 @@ def _mechanistic_summary(
 ) -> tuple[EvaluationTarget, dict[str, object]]:
     target = _target(tmp_path)
     records: list[dict[str, object]] = []
-    initial_item = target.initial_bank_generation.bank.items[0]
-    terminal_items = target.final_bank_generation.bank.items
-    for model, online_score, terminal_scores, anchor_score in (
-        ("strong-a", 60, (50,), 50),
-        ("strong-b", 70, (70,), 70),
+    for model, active_score, terminal_score in (
+        ("strong-a", 60, 50),
+        ("strong-b", 70, 70),
     ):
         records.append(
             _record(
                 target,
                 model=model,
                 boundary="initial",
-                score=online_score,
+                score=active_score,
                 roles=[("selected", 1)],
-                bank_members=[_expected_bank_binding(
+                generation_bindings=[_expected_generation_binding(
                     target,
                     "initial",
-                    initial_item,
-                    "online_local",
+                    "active_local",
                 ).payload()],
-            )
-        )
-        records.extend(
-            _record(
-                target,
-                model=model,
-                boundary="initial",
-                score=score,
-                roles=[],
-                bank_members=[_expected_bank_binding(
-                    target,
-                    "initial",
-                    item,
-                    "terminal_common",
-                ).payload()],
-            )
-            for item, score in zip(
-                terminal_items,
-                terminal_scores,
-                strict=True,
             )
         )
         records.append(_record(
             target,
             model=model,
             boundary="initial",
-            score=anchor_score,
+            score=terminal_score,
             roles=[],
-            specification_anchors=[
-                _expected_specification_anchor_binding(target).payload()
-            ],
-        ))
-    for item, score in zip(terminal_items, (80.5,), strict=True):
-        records.append(_record(
-            target,
-            model=target.weak_model,
-            boundary="initial",
-            score=score,
-            roles=[],
-            bank_members=[_expected_bank_binding(
+            generation_bindings=[_expected_generation_binding(
                 target,
                 "initial",
-                item,
                 "terminal_common",
             ).payload()],
         ))
-    for model, member_scores, anchor_score, selected in (
-        ("strong-a", (70,), 70, 70),
-        ("strong-b", (90,), 90, 80),
+    records.append(_record(
+        target,
+        model=target.weak_model,
+        boundary="initial",
+        score=80.5,
+        roles=[],
+        generation_bindings=[_expected_generation_binding(
+            target,
+            "initial",
+            "terminal_common",
+        ).payload()],
+    ))
+    for model, terminal_score, selected in (
+        ("strong-a", 70, 70),
+        ("strong-b", 90, 80),
     ):
-        records.extend(
-            _record(
-                target,
-                model=model,
-                boundary="final",
-                score=score,
-                roles=[],
-                bank_members=[
-                    _expected_bank_binding(
-                        target,
-                        "final",
-                        item,
-                        bank_role,
-                    ).payload()
-                    for bank_role in ("terminal_common", "online_local")
-                ],
-            )
-            for item, score in zip(terminal_items, member_scores, strict=True)
-        )
         records.append(_record(
             target,
             model=model,
             boundary="final",
-            score=anchor_score,
+            score=terminal_score,
             roles=[],
-            specification_anchors=[
-                _expected_specification_anchor_binding(target).payload()
+            generation_bindings=[
+                _expected_generation_binding(
+                    target,
+                    "final",
+                    role,
+                ).payload()
+                for role in ("terminal_common", "active_local")
             ],
         ))
         records.append(_record(
@@ -517,20 +452,18 @@ def _mechanistic_summary(
             score=selected,
             roles=[("selected", 1)],
         ))
-    for item, score in zip(terminal_items, (95.25,), strict=True):
-        records.append(_record(
+    records.append(_record(
+        target,
+        model=target.weak_model,
+        boundary="final",
+        score=95.25,
+        roles=[],
+        generation_bindings=[_expected_generation_binding(
             target,
-            model=target.weak_model,
-            boundary="final",
-            score=score,
-            roles=[],
-            bank_members=[_expected_bank_binding(
-                target,
-                "final",
-                item,
-                "terminal_common",
-            ).payload()],
-        ))
+            "final",
+            "terminal_common",
+        ).payload()],
+    ))
     summary = _summarize_mechanistic_scores(
         (target,),
         records,
@@ -548,28 +481,24 @@ def test_mechanistic_summary_omits_holdout_scores(
     assert set(summary["reference_scores"]) == {
         "terminal_common",
         "terminal_weak",
-        "online_local",
-        "terminal_specification_anchor",
+        "active_local",
         "selected",
     }
     assert summary["rubric_diagnostics"]["initial"] == {
-        "active_to_original": 0,
-        "original_to_selected": -5,
+        "terminal_to_selected": -5,
     }
 
 
-def test_mechanistic_summary_rejects_changed_bank_member_binding(
+def test_mechanistic_summary_rejects_changed_generation_binding(
     tmp_path: Path,
 ) -> None:
     target = _target(tmp_path)
-    item = target.initial_bank_generation.bank.items[0]
-    binding = _expected_bank_binding(
+    binding = _expected_generation_binding(
         target,
         "initial",
-        item,
-        "online_local",
+        "active_local",
     ).payload()
-    binding["weight"] = 0.5
+    binding["manifest_sha256"] = "0" * 64
 
     with pytest.raises(RuntimeError, match="binding changed"):
         _summarize_mechanistic_scores(
@@ -581,65 +510,41 @@ def test_mechanistic_summary_rejects_changed_bank_member_binding(
                     boundary="initial",
                     score=60,
                     roles=[],
-                    bank_members=[binding],
+                    generation_bindings=[binding],
                 )
             ],
             ("strong-a",),
         )
 
-
-def test_mechanistic_summary_rejects_changed_specification_anchor_binding(
-    tmp_path: Path,
-) -> None:
-    target = _target(tmp_path)
-    binding = _expected_specification_anchor_binding(target).payload()
-    binding["bank_manifest_sha256"] = "0" * 64
-
-    with pytest.raises(RuntimeError, match="anchor binding changed"):
-        _summarize_mechanistic_scores(
-            (target,),
-            [
-                _record(
-                    target,
-                    model="strong-a",
-                    boundary="initial",
-                    score=60,
-                    roles=[],
-                    specification_anchors=[binding],
-                )
-            ],
-            ("strong-a",),
-        )
-
-
-def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
+def test_mechanistic_jobs_bind_each_active_generation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     target = _target(tmp_path)
-    persist_rubric_bank(
+    persist_rubric_generation(
         tmp_path,
-        target.initial_bank_generation,
-        RubricBankPolicy.ONLINE_ELICITATION,
+        target.initial_generation,
+        RubricPolicy.ONLINE_ELICITATION,
     )
-    persist_rubric_bank(
+    persist_rubric_generation(
         tmp_path,
-        target.final_bank_generation,
-        RubricBankPolicy.ONLINE_ELICITATION,
+        target.final_generation,
+        RubricPolicy.ONLINE_ELICITATION,
+        evolution_files=_evolution_files(),
     )
     paraphrase_task = tmp_path / "paraphrases" / "tasks" / target.task_id
     paraphrase_task.mkdir(parents=True)
     (paraphrase_task / "variant-001.txt").write_text(
-        target.initial_bank_generation.bank.items[0].rubric.content
+        target.initial_generation.rubric.content
     )
-    initial_manifest = rubric_bank_directory(tmp_path, 0) / "manifest.json"
-    final_manifest = rubric_bank_directory(tmp_path, 1) / "manifest.json"
+    initial_manifest = rubric_generation_directory(tmp_path, 0) / "manifest.json"
+    final_manifest = rubric_generation_directory(tmp_path, 1) / "manifest.json"
     target = replace(
         target,
-        initial_bank_manifest_path=initial_manifest,
-        final_bank_manifest_path=final_manifest,
-        initial_bank_manifest_sha256=sha256_file(initial_manifest),
-        final_bank_manifest_sha256=sha256_file(final_manifest),
+        initial_manifest_path=initial_manifest,
+        final_manifest_path=final_manifest,
+        initial_manifest_sha256=sha256_file(initial_manifest),
+        final_manifest_sha256=sha256_file(final_manifest),
         selection=replace(
             target.selection,
             optimizer_path=paraphrase_task / "variant-001.txt",
@@ -689,8 +594,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     monkeypatch.setattr(runner, "_new_judge", fake_new_judge)
 
     jobs = runner._jobs((target,))
-    bank_jobs = [job for job in jobs if job.bank_members]
-    anchor_jobs = [job for job in jobs if job.specification_anchors]
+    generation_jobs = [job for job in jobs if job.generation_bindings]
     (tmp_path / "instruction.md").write_text("Complete the task.\n")
     for boundary, digest in (("initial", "c" * 64), ("final", "d" * 64)):
         submission = target.submission(boundary)
@@ -705,39 +609,25 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
         for job in jobs
         for role in job.roles
     )
-    assert len(bank_jobs) == 8
-    assert len(anchor_jobs) == 4
-    assert sum(len(job.bank_members) for job in jobs) == 10
-    assert sum(len(job.specification_anchors) for job in jobs) == 4
-    for job in bank_jobs:
-        for binding in job.bank_members:
-            assert binding.member_sha256 == sha256_file(job.rubric_path)
-            assert binding.bank_manifest_sha256 == sha256_file(
-                binding.bank_manifest_path
-            )
-    for job in anchor_jobs:
-        assert job.model in {"strong-a", "strong-b"}
-        assert len(job.specification_anchors) == 1
-        binding = job.specification_anchors[0]
-        assert binding.specification_anchor_sha256 == sha256_file(
-            job.rubric_path
-        )
-        assert binding.bank_manifest_sha256 == sha256_file(
-            binding.bank_manifest_path
-        )
-    anchor_job = anchor_jobs[0]
-    changed_anchor_job = replace(
-        anchor_job,
-        specification_anchors=(replace(
-            anchor_job.specification_anchors[0],
-            bank_manifest_sha256="0" * 64,
+    assert len(generation_jobs) == 8
+    assert sum(len(job.generation_bindings) for job in jobs) == 10
+    for job in generation_jobs:
+        for binding in job.generation_bindings:
+            assert binding.rubric_sha256 == sha256_file(job.rubric_path)
+            assert binding.manifest_sha256 == sha256_file(binding.manifest_path)
+    generation_job = generation_jobs[0]
+    changed_generation_job = replace(
+        generation_job,
+        generation_bindings=(replace(
+            generation_job.generation_bindings[0],
+            manifest_sha256="0" * 64,
         ),),
     )
-    assert anchor_job.key == changed_anchor_job.key
+    assert generation_job.key == changed_generation_job.key
     assert (
-        rh_mechanistic._mechanistic_assignment_reference_sha256((anchor_job,))
+        rh_mechanistic._mechanistic_assignment_reference_sha256((generation_job,))
         != rh_mechanistic._mechanistic_assignment_reference_sha256(
-            (changed_anchor_job,)
+            (changed_generation_job,)
         )
     )
     terminal_weak_jobs = [
@@ -745,14 +635,14 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
         for job in jobs
         if job.model == target.weak_model
         and any(
-            binding.bank_role == "terminal_common"
-            for binding in job.bank_members
+            binding.role == "terminal_common"
+            for binding in job.generation_bindings
         )
     ]
     assert len(terminal_weak_jobs) == 2
     assert {job.boundary for job in terminal_weak_jobs} == {"initial", "final"}
     assert all(
-        {binding.bank_role for binding in job.bank_members}
+        {binding.role for binding in job.generation_bindings}
         == {"terminal_common"}
         for job in terminal_weak_jobs
     )
@@ -764,30 +654,30 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     ]
     assert len(initial_selected) == 2
     assert all(
-        {binding.bank_role for binding in job.bank_members} == {"online_local"}
+        {binding.role for binding in job.generation_bindings} == {"active_local"}
         for job in initial_selected
     )
 
     fixed_target = replace(
         target,
         condition_id="diligent-fixed",
-        rubric_policy=RubricBankPolicy.FIXED,
-        final_bank_generation=target.initial_bank_generation,
-        final_bank_manifest_path=initial_manifest,
-        final_bank_manifest_sha256=sha256_file(initial_manifest),
+        rubric_policy=RubricPolicy.FIXED,
+        final_generation=target.initial_generation,
+        final_manifest_path=initial_manifest,
+        final_manifest_sha256=sha256_file(initial_manifest),
     )
     fixed_jobs = runner._jobs((fixed_target,))
-    anchor_member_jobs = [
+    shared_generation_jobs = [
         job
         for job in fixed_jobs
-        if job.specification_anchors and job.bank_members
+        if len(job.generation_bindings) == 2
     ]
-    assert len(anchor_member_jobs) == 4
+    assert len(shared_generation_jobs) == 4
     assert all(
-        job.specification_anchors[0].specification_anchor_sha256
-        == job.bank_members[0].member_sha256
+        job.generation_bindings[0].rubric_sha256
+        == job.generation_bindings[1].rubric_sha256
         == sha256_file(job.rubric_path)
-        for job in anchor_member_jobs
+        for job in shared_generation_jobs
     )
 
     unique_jobs = {job.key: job for job in reversed(jobs)}
@@ -798,7 +688,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
     assert plan["base_totals"]["calls"] == 5 * len(unique_jobs)
 
 
-def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
+def test_weak_rubric_score_accepts_exact_float_score(tmp_path: Path) -> None:
     initial_generation = _generation(
         0,
         (("initial weak member", 1.0),),
@@ -806,60 +696,47 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
     generation = _generation(
         1,
         (("weak member", 1.0),),
-        prior_specification_anchor=(
-            initial_generation.bank.specification_anchor
-        ),
+        original_rubric=initial_generation.rubric,
     )
-    persist_rubric_bank(
+    persist_rubric_generation(
         tmp_path,
         initial_generation,
-        RubricBankPolicy.ONLINE_ELICITATION,
+        RubricPolicy.ONLINE_ELICITATION,
     )
-    persist_rubric_bank(
+    persist_rubric_generation(
         tmp_path,
         generation,
-        RubricBankPolicy.ONLINE_ELICITATION,
+        RubricPolicy.ONLINE_ELICITATION,
+        evolution_files=_evolution_files(),
     )
-    scores = (60.5,)
-    members = {
-            item.rubric.content_sha256: {
-                "weight": item.weight,
-                "judge_score": score,
-                "elicited_penalty": 0.0,
-                "score": score,
-            "score_validation_sha256": "1" * 64,
-            "evaluation_sha256": "2" * 64,
-        }
-        for item, score in zip(generation.bank.items, scores, strict=True)
-    }
-    evaluation_dir = tmp_path / "bank-evaluations"
+    evaluation_dir = tmp_path / "rubric-evaluations"
     evaluation_dir.mkdir()
     (evaluation_dir / "s000.json").write_text(
         json.dumps({
                 "kind": "canonical-original-plus-elicited-penalty-evaluation",
             "submission_id": "s000",
             "generation_round": 1,
-            "bank_sha256": generation.bank.content_sha256,
+            "generation_sha256": generation.generation_sha256,
+            "rubric_sha256": generation.rubric.content_sha256,
             "dispatch_preflight": {
                 "grading_engine": "full-rubric-structured",
-                "bank_sha256": generation.bank.content_sha256,
-                "member_sha256s": [
-                    item.rubric.content_sha256
-                    for item in generation.bank.items
-                ],
+                "generation_sha256": generation.generation_sha256,
+                "rubric_sha256": generation.rubric.content_sha256,
                 "review_text_sha256": "3" * 64,
                 "answer_text_sha256": "4" * 64,
                 "cost_shape": {"calls": 5},
                 },
-                "members": members,
+                "judge_score": 60.5,
                 "canonical_original_score": 60.5,
-                "weighted_elicited_penalty": 0.0,
+                "elicited_penalty": 0.0,
+                "score_validation_sha256": "1" * 64,
+                "evaluation_sha256": "2" * 64,
                 "score": 60.5,
             }),
         encoding="utf-8",
     )
 
-    assert _load_weak_bank_score(
+    assert _load_weak_rubric_score(
         tmp_path,
         "s000",
         generation,
@@ -869,10 +746,10 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
     evaluation_path = evaluation_dir / "s000.json"
     unchanged = json.loads(evaluation_path.read_text(encoding="utf-8"))
     changed_dispatch = json.loads(json.dumps(unchanged))
-    changed_dispatch["dispatch_preflight"]["bank_sha256"] = "0" * 64
+    changed_dispatch["dispatch_preflight"]["generation_sha256"] = "0" * 64
     evaluation_path.write_text(json.dumps(changed_dispatch), encoding="utf-8")
     with pytest.raises(RuntimeError, match="dispatch binding changed"):
-        _load_weak_bank_score(
+        _load_weak_rubric_score(
             tmp_path,
             "s000",
             generation,
@@ -881,7 +758,7 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
         )
     evaluation_path.write_text(json.dumps(unchanged), encoding="utf-8")
     with pytest.raises(RuntimeError, match="state score disagrees"):
-        _load_weak_bank_score(
+        _load_weak_rubric_score(
             tmp_path,
             "s000",
             generation,
@@ -889,11 +766,10 @@ def test_weak_bank_score_accepts_exact_float_aggregate(tmp_path: Path) -> None:
             SubmissionBenchmarkId.BIOMNIBENCH_DA,
         )
     changed = json.loads(evaluation_path.read_text(encoding="utf-8"))
-    first_member = generation.bank.items[0].rubric.content_sha256
-    changed["members"][first_member]["weight"] = 0.25
+    changed["score_validation_sha256"] = "invalid"
     evaluation_path.write_text(json.dumps(changed), encoding="utf-8")
-    with pytest.raises(RuntimeError, match="wrong weight"):
-        _load_weak_bank_score(
+    with pytest.raises(RuntimeError, match="invalid hash"):
+        _load_weak_rubric_score(
             tmp_path,
             "s000",
             generation,
@@ -1201,14 +1077,12 @@ def test_report_partitions_gap_without_holdout_scores(
     )
 
     assert assignment["boundaries"]["initial"]["rubric_diagnostics"] == {
-        "active_to_original": 0,
-        "original_to_selected": -5,
+        "terminal_to_selected": -5,
         "selected_to_holistic": 17.5,
     }
-    assert "sealed_holdout_bank_gain" not in assignment["outcomes"]
+    assert "sealed_holdout_rubric_gain" not in assignment["outcomes"]
     assert set(assignment["rubric_diagnostic_changes"]) == {
-        "active_to_original",
-        "original_to_selected",
+        "terminal_to_selected",
         "selected_to_holistic",
     }
 
@@ -1221,15 +1095,15 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "replicate": 1,
             "condition_id": "online-rubric",
             "outcomes": {
-                "terminal_bank_weak_gain": 11,
+                "terminal_rubric_weak_gain": 11,
                 "selected_rubric_gain": 10,
                 "holistic_quality_gain": 8,
-                "terminal_bank_gain_gap": 3,
+                "terminal_rubric_gain_gap": 3,
                 "optimization_induced_risk": 3,
                 "reward_hacking_loss_change": 5,
-                "online_local_weak_gain": 12,
-                "online_local_strong_gain": 9,
-                "online_local_verifier_gap_change": 3,
+                "active_local_weak_gain": 12,
+                "active_local_strong_gain": 9,
+                "active_local_verifier_gap_change": 3,
                 "pairwise_rubric_order_agreement": 0.75,
             },
             "component_changes": {
@@ -1237,8 +1111,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "dynamic_rubric_gap": -1,
             },
             "rubric_diagnostic_changes": {
-                "active_to_original": 2,
-                "original_to_selected": 1,
+                "terminal_to_selected": 3,
                 "selected_to_holistic": -4,
             },
         },
@@ -1248,15 +1121,15 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "replicate": 1,
             "condition_id": "static",
             "outcomes": {
-                "terminal_bank_weak_gain": 9,
+                "terminal_rubric_weak_gain": 9,
                 "selected_rubric_gain": 3,
                 "holistic_quality_gain": 2,
-                "terminal_bank_gain_gap": 7,
+                "terminal_rubric_gain_gap": 7,
                 "optimization_induced_risk": 7,
                 "reward_hacking_loss_change": 1,
-                "online_local_weak_gain": 10,
-                "online_local_strong_gain": 4,
-                "online_local_verifier_gap_change": 6,
+                "active_local_weak_gain": 10,
+                "active_local_strong_gain": 4,
+                "active_local_verifier_gap_change": 6,
                 "pairwise_rubric_order_agreement": 0.5,
             },
             "component_changes": {
@@ -1264,8 +1137,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "dynamic_rubric_gap": 6,
             },
             "rubric_diagnostic_changes": {
-                "active_to_original": 0,
-                "original_to_selected": 0,
+                "terminal_to_selected": 0,
                 "selected_to_holistic": 6,
             },
         },
@@ -1277,7 +1149,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
     assert contrast["left_condition"] == "online-rubric"
     assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
     assert contrast["paired_differences"]["holistic_quality_gain"]["mean"] == 6
-    assert contrast["paired_differences"]["terminal_bank_gain_gap"]["mean"] == -4
+    assert contrast["paired_differences"]["terminal_rubric_gain_gap"]["mean"] == -4
     assert contrast["paired_differences"][
         "dynamic_rubric_gap_change"
     ]["mean"] == -7
@@ -1429,7 +1301,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         target,
         assignment_id="assignment-2",
         condition_id="diligent-fixed",
-        rubric_policy=RubricBankPolicy.FIXED,
+        rubric_policy=RubricPolicy.FIXED,
         experiment_dir=tmp_path / "other-condition",
         initial_submission=duplicate_submission,
     )
@@ -1444,7 +1316,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         }))
     other = replace(other, final_submission=duplicate_final_submission)
     rubric_path = tmp_path / "rubric.txt"
-    rubric_path.write_text(target.initial_bank_generation.bank.items[0].rubric.content)
+    rubric_path.write_text(target.initial_generation.rubric.content)
 
     implementation_identity = rh_protocol._holistic_implementation_identity()
     absolute = AbsoluteHolisticJob(
@@ -1476,8 +1348,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         boundary="initial",
         rubric_path=rubric_path,
         roles=(),
-        bank_members=(),
-        specification_anchors=(),
+        generation_bindings=(),
         grading_identity=grading_identity,
         review_input_sha256="2" * 64,
         answer_input_sha256="3" * 64,
@@ -1530,7 +1401,7 @@ def test_mechanistic_resume_rejects_tampered_records(
     }))
     rubric_path = tmp_path / "rubric.txt"
     rubric_path.write_text(
-        target.initial_bank_generation.bank.items[0].rubric.content
+        target.initial_generation.rubric.content
     )
     grading_identity = dict.fromkeys(SCORING_IDENTITY_KEYS)
     grading_identity.update({
@@ -1551,8 +1422,7 @@ def test_mechanistic_resume_rejects_tampered_records(
         boundary="initial",
         rubric_path=rubric_path,
         roles=(),
-        bank_members=(),
-        specification_anchors=(),
+        generation_bindings=(),
         grading_identity=grading_identity,
         review_input_sha256="4" * 64,
         answer_input_sha256="5" * 64,
@@ -1800,7 +1670,7 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
     }))
     rubric_path = tmp_path / "rubric.txt"
     rubric_path.write_text(
-        target.initial_bank_generation.bank.items[0].rubric.content
+        target.initial_generation.rubric.content
     )
     grading_identity = {"implementation": "test"}
     job = MechanisticJob(
@@ -1810,8 +1680,7 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
         boundary="initial",
         rubric_path=rubric_path,
         roles=(),
-        bank_members=(),
-        specification_anchors=(),
+        generation_bindings=(),
         grading_identity=grading_identity,
         review_input_sha256=rh_protocol.sha256_text("original trace\n"),
         answer_input_sha256=rh_protocol.sha256_text("answer\n"),
@@ -1944,7 +1813,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         target,
         assignment_id="assignment-2",
         condition_id="diligent-fixed",
-        rubric_policy=RubricBankPolicy.FIXED,
+        rubric_policy=RubricPolicy.FIXED,
         experiment_dir=tmp_path / "other-condition",
         initial_submission=tmp_path / "other-condition" / "s000",
         final_submission=tmp_path / "other-condition" / "s006",

@@ -26,13 +26,10 @@ from rubric_gen.submission_revision.evolution_artifacts import (
 )
 from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
     ElicitedCriterion,
-    RubricBank,
-    RubricBankItem,
-    RubricLineage,
-    identity_criterion_map,
+    RubricGeneration,
     render_augmented_rubric,
 )
 from rubric_gen.artifacts.hashing import sha256_text
@@ -340,7 +337,7 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
         source_generation=1,
     )
 
-    revised, _ = render_augmented_rubric(original, (criterion,))
+    revised = render_augmented_rubric(original, (criterion,))
     levels = parse_rubric_levels_strict(revised.content)
     assert sum(values["A"] for values in levels.values()) == 4
     assert list(levels.values())[-1] == {"A": 0, "B": -1}
@@ -354,30 +351,26 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
     current, _, maximum = render_code_dev_rubric(_rubric())
 
     rubric = CompleteRubric.from_content(current)
-    bank = RubricBank(
+    generation = RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=rubric,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(RubricBankItem(
-            rubric,
-            1.0,
-            RubricLineage.NEW,
-            identity_criterion_map(rubric),
-        ),),
+        rubric=rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
     history = _artifact_history(
         tuple(f"artifact {index}" for index in range(1, 5))
     )
     difference_evidence = protocol_module.difference_evidence(
         instruction="Replicate the paper.",
-        current_bank=bank,
+        original_rubric=rubric,
+        current_generation=generation,
         artifact_history=history,
     )
     criterion_evidence = protocol_module.criterion_evidence(
         instruction="Replicate the paper.",
-        current_bank=bank,
+        original_rubric=rubric,
+        current_generation=generation,
         artifact_history=history,
         difference_response={
             "pairs": [
@@ -435,7 +428,7 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
 def test_paperbench_contract_owns_native_revision_language() -> None:
     contract = get_submission_benchmark(SubmissionBenchmarkId.PAPERBENCH_CODE_DEV)
     prompt = render_feedback_prompt(
-        {"policy": "score_only", "score": 50, "bank_sha256": "0" * 64},
+        {"policy": "score_only", "score": 50, "generation_sha256": "0" * 64},
         benchmark=contract.benchmark,
     )
 
@@ -481,18 +474,12 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     judged = runner._workspace_review_text(target)
     current, _, _ = render_code_dev_rubric(_rubric())
     current_rubric = CompleteRubric.from_content(current)
-    current_bank = RubricBank(
+    current_generation = RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=current_rubric,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(RubricBankItem(
-            current_rubric,
-            1.0,
-            RubricLineage.NEW,
-            identity_criterion_map(current_rubric),
-        ),),
+        rubric=current_rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
     native_submission = render_submission_tree(workspace)
     history = _artifact_history(
@@ -500,7 +487,8 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     )
     proposed = protocol_module.difference_evidence(
         instruction="TASK",
-        current_bank=current_bank,
+        original_rubric=current_rubric,
+        current_generation=current_generation,
         artifact_history=history,
     )
 
@@ -541,18 +529,12 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     )
     rubric = CompleteRubric.from_content(rubric_text)
     rubric_sha256 = rubric.content_sha256
-    bank = RubricBank(
+    generation = RubricGeneration(
         generation_round=0,
         source_boundary=None,
-        specification_anchor=rubric,
-        specification_anchor_lineage=RubricLineage.NEW,
-        prior_specification_anchor_sha256=None,
-        items=(RubricBankItem(
-            rubric,
-            1.0,
-            RubricLineage.NEW,
-            identity_criterion_map(rubric),
-        ),),
+        rubric=rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
     )
     validation = tmp_path / "score-validation.json"
     validation.write_text(json.dumps({
@@ -588,10 +570,11 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())
 
     scorer.project_boundary_feedback(
-        artifacts={
-            rubric_sha256: SimpleNamespace(score_validation_path=validation)
-        },
-        bank=bank,
+        artifacts=SimpleNamespace(
+            score_validation_path=validation,
+            evaluation_path=validation,
+        ),
+        generation=generation,
         submission_id="s000",
         generation_round=0,
             submission_dir=submission_dir,

@@ -98,8 +98,9 @@ class _MechanisticObservations:
     selected: dict[tuple[str, int | None, str, str], float] = field(
         default_factory=dict
     )
-    bank: dict[tuple[str, str, str, str], float] = field(default_factory=dict)
-    anchors: dict[tuple[str, str, str, str], float] = field(default_factory=dict)
+    generations: dict[tuple[str, str, str, str], float] = field(
+        default_factory=dict
+    )
 
 
 def _store_unique(
@@ -125,77 +126,40 @@ def _mechanistic_record_context(
     return boundary, model, score, str(rubric_sha256)
 
 
-def _collect_bank_observations(
+def _collect_generation_observations(
     target: rh.EvaluationTarget,
     record: dict[str, object],
     context: tuple[str, str, float, str],
     observations: _MechanisticObservations,
 ) -> None:
     boundary, model, score, rubric_sha256 = context
-    bindings = record.get("bank_members")
+    bindings = record.get("generation_bindings")
     if not isinstance(bindings, list):
-        raise RuntimeError("RH bank-member bindings are invalid")
+        raise RuntimeError("RH generation bindings are invalid")
     for binding in bindings:
         if not isinstance(binding, dict):
-            raise RuntimeError("RH bank-member binding is invalid")
-        bank_role = binding.get("bank_role")
-        if bank_role == "terminal_common":
-            generation = target.final_bank_generation
-        elif bank_role == "online_local":
-            generation = target.bank_generation(boundary)
+            raise RuntimeError("RH generation binding is invalid")
+        role = binding.get("role")
+        if role == "terminal_common":
+            generation = target.final_generation
+        elif role == "active_local":
+            generation = target.generation(boundary)
         else:
-            raise RuntimeError("RH bank-member binding has an invalid role")
-        items = {
-            item.rubric.content_sha256: item for item in generation.bank.items
-        }
-        member_hash = binding.get("member_sha256")
-        if type(member_hash) is not str or member_hash not in items:
-            raise RuntimeError("RH bank-member binding is outside the bank")
-        if member_hash != rubric_sha256:
-            raise RuntimeError(
-                "RH bank-member binding does not match the judged rubric"
-            )
-        expected = mechanistic._expected_bank_binding(
+            raise RuntimeError("RH generation binding has an invalid role")
+        if generation.rubric.content_sha256 != rubric_sha256:
+            raise RuntimeError("RH generation binding has the wrong rubric")
+        expected = mechanistic._expected_generation_binding(
             target,
             boundary,
-            items[member_hash],
-            str(bank_role),
+            str(role),
         ).payload()
         if binding != expected:
-            raise RuntimeError("RH bank-member binding changed")
+            raise RuntimeError("RH generation binding changed")
         _store_unique(
-            observations.bank,
-            (str(bank_role), boundary, model, member_hash),
+            observations.generations,
+            (str(role), boundary, model, rubric_sha256),
             score,
-            "bank-member",
-        )
-
-
-def _collect_anchor_observations(
-    target: rh.EvaluationTarget,
-    record: dict[str, object],
-    context: tuple[str, str, float, str],
-    observations: _MechanisticObservations,
-) -> None:
-    boundary, model, score, rubric_sha256 = context
-    anchors = record.get("specification_anchors")
-    if not isinstance(anchors, list):
-        raise RuntimeError("RH specification-anchor bindings are invalid")
-    expected = mechanistic._expected_specification_anchor_binding(target).payload()
-    expected_hash = target.final_bank_generation.bank.specification_anchor.content_sha256
-    for anchor in anchors:
-        if (
-            not isinstance(anchor, dict)
-            or anchor != expected
-            or anchor.get("specification_anchor_sha256") != expected_hash
-            or expected_hash != rubric_sha256
-        ):
-            raise RuntimeError("RH specification-anchor binding changed")
-        _store_unique(
-            observations.anchors,
-            ("terminal_common", boundary, model, expected_hash),
-            score,
-            "specification-anchor",
+            "generation",
         )
 
 
@@ -233,8 +197,7 @@ def _collect_mechanistic_observations(
     observations = _MechanisticObservations()
     for record in records:
         context = _mechanistic_record_context(record)
-        _collect_bank_observations(target, record, context, observations)
-        _collect_anchor_observations(target, record, context, observations)
+        _collect_generation_observations(target, record, context, observations)
         _collect_selected_observations(target, record, context, observations)
     return observations
 
@@ -244,7 +207,7 @@ def _summarize_mechanistic_scores(
     records: list[dict[str, object]],
     models: tuple[str, ...],
 ) -> list[dict[str, object]]:
-    """Summarize the selected and bank-based mechanistic panel."""
+    """Summarize the selected and generated-rubric mechanistic panel."""
 
     by_assignment: dict[str, list[dict[str, object]]] = {}
     for record in records:
@@ -256,40 +219,31 @@ def _summarize_mechanistic_scores(
             by_assignment[target.assignment_id],
         )
         terminal_common = {
-            boundary: mechanistic._bank_score_panel(
+            boundary: mechanistic._generation_score_panel(
                 target,
                 boundary,
                 "terminal_common",
-                observations.bank,
+                observations.generations,
                 models,
             )
             for boundary in rh.BOUNDARIES
         }
         terminal_weak = {
-            boundary: mechanistic._bank_score_panel(
+            boundary: mechanistic._generation_score_panel(
                 target,
                 boundary,
                 "terminal_common",
-                observations.bank,
+                observations.generations,
                 (target.weak_model,),
             )
             for boundary in rh.BOUNDARIES
         }
-        online_local = {
-            boundary: mechanistic._bank_score_panel(
+        active_local = {
+            boundary: mechanistic._generation_score_panel(
                 target,
                 boundary,
-                "online_local",
-                observations.bank,
-                models,
-            )
-            for boundary in rh.BOUNDARIES
-        }
-        terminal_anchor = {
-            boundary: mechanistic._specification_anchor_score_panel(
-                target,
-                boundary,
-                observations.anchors,
+                "active_local",
+                observations.generations,
                 models,
             )
             for boundary in rh.BOUNDARIES
@@ -315,12 +269,8 @@ def _summarize_mechanistic_scores(
         }
         diagnostics = {
             boundary: {
-                "active_to_original": (
+                "terminal_to_selected": (
                     float(terminal_common[boundary]["mean"])
-                    - float(terminal_anchor[boundary]["mean"])
-                ),
-                "original_to_selected": (
-                    float(terminal_anchor[boundary]["mean"])
                     - float(selected[boundary]["mean"])
                 ),
             }
@@ -332,17 +282,17 @@ def _summarize_mechanistic_scores(
             "replicate": target.replicate,
             "condition_id": target.condition_id,
             "rubric_policy": target.rubric_policy.value,
-            "weak_terminal_bank_scores": {
+            "weak_terminal_rubric_scores": {
                 boundary: float(terminal_weak[boundary]["mean"])
                 for boundary in rh.BOUNDARIES
             },
-            "online_local_scores": {
+            "active_local_scores": {
                 boundary: {
                     "weak_score": target.weak_score(boundary),
-                    "strong_score": float(online_local[boundary]["mean"]),
+                    "strong_score": float(active_local[boundary]["mean"]),
                     "verifier_gap": (
                         target.weak_score(boundary)
-                        - float(online_local[boundary]["mean"])
+                        - float(active_local[boundary]["mean"])
                     ),
                     "interpretation": "ruler-confounded boundary-local score",
                 }
@@ -351,8 +301,7 @@ def _summarize_mechanistic_scores(
             "reference_scores": {
                 "terminal_common": terminal_common,
                 "terminal_weak": terminal_weak,
-                "online_local": online_local,
-                "terminal_specification_anchor": terminal_anchor,
+                "active_local": active_local,
                 "selected": selected,
             },
             "mechanistic_components": components,
@@ -467,7 +416,7 @@ class MechanisticEvaluationRunner(mechanistic.MechanisticEvaluationStage):
             "failed_models": [
                 model for model in models if model not in available_models
             ],
-            "rubric_scope": "terminal-local-anchor-selected",
+            "rubric_scope": "terminal-active-selected",
             "planned_semantic_judgment_count": len(unique_jobs),
             "successful_semantic_judgment_count": len(judgments),
             "used_semantic_judgment_count": len({
@@ -517,11 +466,11 @@ class MechanisticEvaluationRunner(mechanistic.MechanisticEvaluationStage):
                 mechanistic._mechanistic_assignment_reference_sha256(jobs)
             ),
             "boundaries": list(rh.BOUNDARIES),
-            "endpoint_bank": "frozen-terminal-bank",
+            "endpoint_rubric": "frozen-terminal-rubric",
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-route-engine-"
-                "implementation-repeat; terminal specification-anchor, bank-"
-                "member, and selected roles do not duplicate an exact "
+                "implementation-repeat; terminal, active, and selected roles "
+                "do not duplicate an exact "
                 "semantic request"
             ),
             "loss_weights": self.config.experiment.outcome_audit["loss_weights"],

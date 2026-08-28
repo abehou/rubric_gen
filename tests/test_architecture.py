@@ -134,11 +134,11 @@ def test_reward_hacking_panel_modules_remain_focused() -> None:
     assert "def _run_batch" not in runner_source
 
 
-def test_rubric_bank_and_judge_runner_modules_remain_focused() -> None:
+def test_rubric_generation_and_judge_runner_modules_remain_focused() -> None:
     submission_revision = SOURCE_ROOT / "submission_revision"
     modules = (
-        submission_revision / "rubric_bank.py",
-        submission_revision / "rubric_bank_lifecycle.py",
+        submission_revision / "rubric_generation.py",
+        submission_revision / "rubric_generation_store.py",
         submission_revision / "judging" / "runner.py",
     )
 
@@ -147,7 +147,7 @@ def test_rubric_bank_and_judge_runner_modules_remain_focused() -> None:
         assert line_count < 1_000, f"{module.name} has {line_count} lines"
 
     domain_source = modules[0].read_text(encoding="utf-8")
-    assert "rubric_bank_lifecycle" not in domain_source
+    assert "rubric_generation_store" not in domain_source
 
 
 def test_rubric_evolution_modules_remain_focused() -> None:
@@ -158,7 +158,7 @@ def test_rubric_evolution_modules_remain_focused() -> None:
         "evolution_protocol.py",
         "evolution_provider.py",
         "evolution_serialization.py",
-        "evolution_store.py",
+        "rubric_generation_store.py",
     )
 
     sources = []
@@ -169,7 +169,7 @@ def test_rubric_evolution_modules_remain_focused() -> None:
         assert line_count < 1_000, f"{module} has {line_count} lines"
 
     combined = "\n".join(sources)
-    assert "BankProposerOutput" not in combined
+    assert "MultiRubricProposerOutput" not in combined
     assert "SemanticReviewerOutput" not in combined
 
 

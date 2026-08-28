@@ -8,7 +8,7 @@ from pathlib import Path
 from rubric_gen.benchmarks import SubmissionBenchmark, get_submission_benchmark
 from rubric_gen.runtime.agents.sessions import CliSolverSessionDriver
 from rubric_gen.submission_revision.artifacts import sha256_file, tree_sha256
-from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.judge import (
     SCORING_IDENTITY_KEYS,
@@ -24,16 +24,10 @@ from rubric_gen.submission_revision.models import (
     RevisionDependencies,
     SubmissionRevisionConfig,
 )
-from rubric_gen.submission_revision.rubric_bank import (
+from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
-    RubricBank,
-    RubricBankItem,
-    RubricBankPolicy,
-    RubricLineage,
-    identity_criterion_map,
-)
-from rubric_gen.submission_revision.rubric_bank_lifecycle import (
-    RubricBankGeneration,
+    RubricGeneration,
+    RubricPolicy,
 )
 from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
 from rubric_gen.submission_revision.store import (
@@ -52,8 +46,8 @@ class RevisionSetup:
     task_dir: Path
     judgment_reuse: ExactJudgmentReuseStore | None
     initial_rubric: FrozenRubric
-    bank_policy: RubricBankPolicy
-    initial_bank: RubricBankGeneration
+    rubric_policy: RubricPolicy
+    initial_generation: RubricGeneration
     master_rubric: FrozenRubric
     instruction_sha256: str
     data_sha256: str
@@ -67,22 +61,13 @@ class RevisionSetup:
     store: RevisionStore
 
 
-def _initial_bank(initial_rubric: FrozenRubric) -> RubricBankGeneration:
+def _initial_generation(initial_rubric: FrozenRubric) -> RubricGeneration:
     rubric = CompleteRubric.from_content(initial_rubric.text)
-    return RubricBankGeneration(
-        RubricBank(
-            generation_round=0,
-            source_boundary=None,
-            specification_anchor=rubric,
-            specification_anchor_lineage=RubricLineage.NEW,
-            prior_specification_anchor_sha256=None,
-            items=(RubricBankItem(
-                rubric=rubric,
-                weight=1.0,
-                lineage=RubricLineage.NEW,
-                criterion_map=identity_criterion_map(rubric),
-            ),),
-        ),
+    return RubricGeneration(
+        generation_round=0,
+        source_boundary=None,
+        rubric=rubric,
+        elicited_criteria=(),
         proposer_call_budget=0,
     )
 
@@ -92,11 +77,11 @@ def _default_dependencies(
     benchmark: SubmissionBenchmark,
     initial_rubric: FrozenRubric,
     master_rubric: FrozenRubric,
-    bank_policy: RubricBankPolicy,
+    rubric_policy: RubricPolicy,
 ) -> RevisionDependencies:
     proposer = None
-    if bank_policy is not RubricBankPolicy.FIXED:
-        proposer = RubricBankProposer(
+    if rubric_policy is not RubricPolicy.FIXED:
+        proposer = RubricProposer(
             benchmark=config.benchmark,
             model=config.rubric_proposer_model,
             base_url=config.rubric_proposer_base_url,
@@ -123,7 +108,7 @@ def _default_dependencies(
             config.master_judge_config(),
             master_rubric,
         ),
-        bank_proposer=proposer,
+        rubric_proposer=proposer,
         feedback_simulator=(
             SimulatedUserFeedback(config.feedback_simulator)
             if config.feedback_simulator is not None
@@ -135,10 +120,10 @@ def _default_dependencies(
 def _validate_proposer(
     config: SubmissionRevisionConfig,
     dependencies: RevisionDependencies,
-    bank_policy: RubricBankPolicy,
+    rubric_policy: RubricPolicy,
 ) -> None:
-    proposer = dependencies.bank_proposer
-    if bank_policy is RubricBankPolicy.FIXED:
+    proposer = dependencies.rubric_proposer
+    if rubric_policy is RubricPolicy.FIXED:
         return
     if proposer is None:
         raise ValueError("an elicitation policy requires a rubric proposer")
@@ -174,7 +159,7 @@ def _validate_proposer(
         expected_service_tier,
     )
     if actual != expected:
-        raise ValueError("bank proposer contract differs from revision config")
+        raise ValueError("rubric proposer contract differs from revision config")
 
 
 def _validate_feedback_simulator(
@@ -268,8 +253,8 @@ def build_revision_setup(
         else None
     )
     initial_rubric = resolve_optimizer_rubric(config.judge_config())
-    initial_bank = _initial_bank(initial_rubric)
-    bank_policy = RubricBankPolicy(config.rubric_policy)
+    initial_generation = _initial_generation(initial_rubric)
+    rubric_policy = RubricPolicy(config.rubric_policy)
     master_rubric = resolve_optimizer_rubric(config.master_judge_config())
     seed = resolve_seed(
         config.seed_run_dir,
@@ -283,9 +268,9 @@ def build_revision_setup(
         benchmark,
         initial_rubric,
         master_rubric,
-        bank_policy,
+        rubric_policy,
     )
-    _validate_proposer(config, resolved_dependencies, bank_policy)
+    _validate_proposer(config, resolved_dependencies, rubric_policy)
     _validate_feedback_simulator(config, resolved_dependencies)
     master_judge = resolved_dependencies.master_judge or resolved_dependencies.judge
     scoring_identity = _judge_identity(
@@ -305,8 +290,8 @@ def build_revision_setup(
     )
     store = RevisionStore(
         experiment_dir,
-        initial_bank=initial_bank,
-        bank_policy=bank_policy,
+        initial_generation=initial_generation,
+        rubric_policy=rubric_policy,
         scoring_identity=scoring_identity,
     )
     return RevisionSetup(
@@ -315,8 +300,8 @@ def build_revision_setup(
         task_dir=task_dir,
         judgment_reuse=judgment_reuse,
         initial_rubric=initial_rubric,
-        bank_policy=bank_policy,
-        initial_bank=initial_bank,
+        rubric_policy=rubric_policy,
+        initial_generation=initial_generation,
         master_rubric=master_rubric,
         instruction_sha256=sha256_file(task_dir / "instruction.md"),
         data_sha256=tree_sha256(task_dir / "environment" / "data"),

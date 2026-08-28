@@ -27,12 +27,11 @@ from rubric_gen.submission_revision.judging.preflight import (
 from rubric_gen.submission_revision.rh_audit_judge import RhAuditRubricJudge
 from rubric_gen.submission_revision.rh_protocol import (
     BOUNDARIES,
-    BankMemberBinding,
     EvaluationConfig,
     EvaluationTarget,
+    GenerationBinding,
     MechanisticJob,
     RubricRole,
-    SpecificationAnchorBinding,
     PreparedMechanisticEvaluation,
     _accept_predispatch_plan,
     _assert_accepted_job_plan,
@@ -47,20 +46,15 @@ from rubric_gen.submission_revision.rh_protocol import (
     _submission_content_sha256,
 )
 from rubric_gen.submission_revision.rh_output_store import RhOutputStore
-from rubric_gen.submission_revision.rubric_bank import RubricBankItem
 
 
 @dataclass
 class _GroupedRubrics:
     paths: dict[tuple[str, str], Path] = field(default_factory=dict)
     roles: dict[tuple[str, str], list[RubricRole]] = field(default_factory=dict)
-    bank_bindings: dict[
+    generation_bindings: dict[
         tuple[str, str],
-        list[BankMemberBinding],
-    ] = field(default_factory=dict)
-    anchor_bindings: dict[
-        tuple[str, str],
-        list[SpecificationAnchorBinding],
+        list[GenerationBinding],
     ] = field(default_factory=dict)
 
     def include(
@@ -69,37 +63,26 @@ class _GroupedRubrics:
         model: str,
         *,
         role: RubricRole | None = None,
-        bank_binding: BankMemberBinding | None = None,
-        anchor_binding: SpecificationAnchorBinding | None = None,
+        generation_binding: GenerationBinding | None = None,
     ) -> None:
         resolved = path.resolve()
         rubric_sha256 = sha256_file(resolved)
-        if bank_binding is not None and bank_binding.member_sha256 != rubric_sha256:
-            raise RuntimeError("RH bank-member binding does not match its rubric")
         if (
-            anchor_binding is not None
-            and anchor_binding.specification_anchor_sha256 != rubric_sha256
+            generation_binding is not None
+            and generation_binding.rubric_sha256 != rubric_sha256
         ):
-            raise RuntimeError(
-                "RH specification-anchor binding does not match its rubric"
-            )
+            raise RuntimeError("RH generation binding does not match its rubric")
         key = (rubric_sha256, model)
         self.paths.setdefault(key, resolved)
         self.roles.setdefault(key, [])
-        self.bank_bindings.setdefault(key, [])
-        self.anchor_bindings.setdefault(key, [])
+        self.generation_bindings.setdefault(key, [])
         if role is not None:
             self.roles[key].append(role)
         if (
-            bank_binding is not None
-            and bank_binding not in self.bank_bindings[key]
+            generation_binding is not None
+            and generation_binding not in self.generation_bindings[key]
         ):
-            self.bank_bindings[key].append(bank_binding)
-        if (
-            anchor_binding is not None
-            and anchor_binding not in self.anchor_bindings[key]
-        ):
-            self.anchor_bindings[key].append(anchor_binding)
+            self.generation_bindings[key].append(generation_binding)
 
 
 class MechanisticEvaluationStage:
@@ -285,13 +268,9 @@ class MechanisticEvaluationStage:
                         else -1,
                     ),
                 )),
-                bank_members=tuple(sorted(
-                    grouped.bank_bindings[key],
-                    key=lambda value: value.bank_role,
-                )),
-                specification_anchors=tuple(sorted(
-                    grouped.anchor_bindings[key],
-                    key=lambda value: value.bank_role,
+                generation_bindings=tuple(sorted(
+                    grouped.generation_bindings[key],
+                    key=lambda value: value.role,
                 )),
                 grading_identity=grading_identity,
                 review_input_sha256=review_sha256,
@@ -315,41 +294,28 @@ class MechanisticEvaluationStage:
         models: tuple[str, ...],
     ) -> _GroupedRubrics:
         grouped = _GroupedRubrics()
-        terminal = target.final_bank_generation
-        terminal_dir = target.final_bank_manifest_path.parent
+        terminal = target.final_generation
+        terminal_dir = target.final_manifest_path.parent
         terminal_models = tuple(dict.fromkeys((*models, target.weak_model)))
-        for item in terminal.bank.items:
-            path = terminal_dir / "members" / f"{item.rubric.content_sha256}.txt"
-            binding = _expected_bank_binding(
-                target,
-                boundary,
-                item,
-                "terminal_common",
-            )
-            for model in terminal_models:
-                grouped.include(path, model, bank_binding=binding)
+        path = terminal_dir / "rubric.txt"
+        binding = _expected_generation_binding(
+            target,
+            boundary,
+            "terminal_common",
+        )
+        for model in terminal_models:
+            grouped.include(path, model, generation_binding=binding)
 
-        anchor_binding = _expected_specification_anchor_binding(target)
-        anchor_path = terminal_dir / "specification-anchor.txt"
+        active = target.generation(boundary)
+        active_dir = target.generation_manifest_path(boundary).parent
+        path = active_dir / "rubric.txt"
+        binding = _expected_generation_binding(
+            target,
+            boundary,
+            "active_local",
+        )
         for model in models:
-            grouped.include(
-                anchor_path,
-                model,
-                anchor_binding=anchor_binding,
-            )
-
-        online = target.bank_generation(boundary)
-        online_dir = target.bank_manifest_path(boundary).parent
-        for item in online.bank.items:
-            path = online_dir / "members" / f"{item.rubric.content_sha256}.txt"
-            binding = _expected_bank_binding(
-                target,
-                boundary,
-                item,
-                "online_local",
-            )
-            for model in models:
-                grouped.include(path, model, bank_binding=binding)
+            grouped.include(path, model, generation_binding=binding)
 
         selected_role = RubricRole(
             "selected",
@@ -516,9 +482,8 @@ def _mechanistic_job_identity(job: MechanisticJob) -> dict[str, object]:
             job.submission
         ),
         "rubric_roles": [role.payload() for role in job.roles],
-        "bank_members": [binding.payload() for binding in job.bank_members],
-        "specification_anchors": [
-            binding.payload() for binding in job.specification_anchors
+        "generation_bindings": [
+            binding.payload() for binding in job.generation_bindings
         ],
         "rubric_path": str(job.rubric_path.resolve()),
         "rubric_sha256": sha256_file(job.rubric_path),
@@ -623,164 +588,84 @@ def _score_panel(
     }
 
 
-def _expected_bank_binding(
+def _expected_generation_binding(
     target: EvaluationTarget,
     boundary: str,
-    item: RubricBankItem,
-    bank_role: str,
-) -> BankMemberBinding:
-    if bank_role == "terminal_common":
-        generation = target.final_bank_generation
-        manifest_path = target.final_bank_manifest_path
-        manifest_sha256 = target.final_bank_manifest_sha256
-    elif bank_role == "online_local":
-        generation = target.bank_generation(boundary)
-        manifest_path = target.bank_manifest_path(boundary)
-        manifest_sha256 = target.bank_manifest_sha256(boundary)
+    role: str,
+) -> GenerationBinding:
+    if role == "terminal_common":
+        generation = target.final_generation
+        manifest_path = target.final_manifest_path
+        manifest_sha256 = target.final_manifest_sha256
+    elif role == "active_local":
+        generation = target.generation(boundary)
+        manifest_path = target.generation_manifest_path(boundary)
+        manifest_sha256 = target.generation_manifest_sha256(boundary)
     else:
-        raise ValueError(f"invalid RH bank role: {bank_role}")
-    return BankMemberBinding(
-        bank_role=bank_role,
-        generation_round=generation.bank.generation_round,
-        bank_sha256=generation.bank.content_sha256,
-        bank_manifest_path=manifest_path,
-        bank_manifest_sha256=manifest_sha256,
-        member_sha256=item.rubric.content_sha256,
-        weight=item.weight,
-    )
-
-
-def _expected_specification_anchor_binding(
-    target: EvaluationTarget,
-) -> SpecificationAnchorBinding:
-    generation = target.final_bank_generation
-    bank = generation.bank
-    return SpecificationAnchorBinding(
-        bank_role="terminal_common",
-        generation_round=bank.generation_round,
-        bank_sha256=bank.content_sha256,
-        bank_manifest_path=target.final_bank_manifest_path,
-        bank_manifest_sha256=target.final_bank_manifest_sha256,
-        specification_anchor_sha256=(
-            bank.specification_anchor.content_sha256
-        ),
+        raise ValueError(f"invalid RH generation role: {role}")
+    return GenerationBinding(
+        role=role,
+        generation_round=generation.generation_round,
+        generation_sha256=generation.generation_sha256,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        rubric_sha256=generation.rubric.content_sha256,
     )
 
 
 def _validate_mechanistic_job_bindings(job: MechanisticJob) -> None:
     rubric_sha256 = sha256_file(job.rubric_path)
-    for binding in job.bank_members:
-        if binding.bank_role == "terminal_common":
-            generation = job.target.final_bank_generation
-        elif binding.bank_role == "online_local":
-            generation = job.target.bank_generation(job.boundary)
+    for binding in job.generation_bindings:
+        if binding.role == "terminal_common":
+            generation = job.target.final_generation
+        elif binding.role == "active_local":
+            generation = job.target.generation(job.boundary)
         else:
-            raise RuntimeError("RH bank-member binding has an invalid role")
-        items = {
-            item.rubric.content_sha256: item for item in generation.bank.items
-        }
-        item = items.get(binding.member_sha256)
-        if item is None or binding.member_sha256 != rubric_sha256:
-            raise RuntimeError("RH bank-member binding is outside the bank")
-        if binding != _expected_bank_binding(
+            raise RuntimeError("RH generation binding has an invalid role")
+        if generation.rubric.content_sha256 != rubric_sha256:
+            raise RuntimeError("RH generation binding has the wrong rubric")
+        if binding != _expected_generation_binding(
             job.target,
             job.boundary,
-            item,
-            binding.bank_role,
+            binding.role,
         ):
-            raise RuntimeError("RH bank-member binding changed")
-        if sha256_file(binding.bank_manifest_path) != binding.bank_manifest_sha256:
-            raise RuntimeError("RH bank-member manifest changed")
-    for binding in job.specification_anchors:
-        if binding.bank_role != "terminal_common":
-            raise RuntimeError(
-                "RH specification-anchor binding has an invalid role"
-            )
-        if (
-            binding.specification_anchor_sha256 != rubric_sha256
-            or binding != _expected_specification_anchor_binding(job.target)
-        ):
-            raise RuntimeError("RH specification-anchor binding changed")
-        if sha256_file(binding.bank_manifest_path) != binding.bank_manifest_sha256:
-            raise RuntimeError("RH specification-anchor manifest changed")
+            raise RuntimeError("RH generation binding changed")
+        if sha256_file(binding.manifest_path) != binding.manifest_sha256:
+            raise RuntimeError("RH generation manifest changed")
 
 
-def _bank_score_panel(
+def _generation_score_panel(
     target: EvaluationTarget,
     boundary: str,
-    bank_role: str,
+    role: str,
     observations: dict[tuple[str, str, str, str], float],
     models: tuple[str, ...],
 ) -> dict[str, object]:
-    if bank_role == "terminal_common":
-        generation = target.final_bank_generation
-        manifest_path = target.final_bank_manifest_path
-        manifest_sha256 = target.final_bank_manifest_sha256
-    elif bank_role == "online_local":
-        generation = target.bank_generation(boundary)
-        manifest_path = target.bank_manifest_path(boundary)
-        manifest_sha256 = target.bank_manifest_sha256(boundary)
+    if role == "terminal_common":
+        generation = target.final_generation
+        manifest_path = target.final_manifest_path
+        manifest_sha256 = target.final_manifest_sha256
+    elif role == "active_local":
+        generation = target.generation(boundary)
+        manifest_path = target.generation_manifest_path(boundary)
+        manifest_sha256 = target.generation_manifest_sha256(boundary)
     else:
-        raise ValueError(f"invalid RH bank role: {bank_role}")
-    bank = generation.bank
-    model_member_scores: dict[str, dict[str, float]] = {}
-    aggregate_scores: dict[str, float] = {}
-    for model in models:
-        member_scores = {
-            item.rubric.content_sha256: observations[
-                (bank_role, boundary, model, item.rubric.content_sha256)
-            ]
-            for item in bank.items
-        }
-        model_member_scores[model] = member_scores
-        aggregate_scores[model] = bank.aggregate(member_scores)
-    values = list(aggregate_scores.values())
-    return {
-        "bank_role": bank_role,
-        "generation_round": bank.generation_round,
-        "source_boundary": bank.source_boundary,
-        "proposer_call_budget": generation.proposer_call_budget,
-        "bank_sha256": bank.content_sha256,
-        "bank_manifest_path": str(manifest_path),
-        "bank_manifest_sha256": manifest_sha256,
-        "rubric_count": bank.rubric_count,
-        "inverse_weight_concentration": bank.inverse_weight_concentration,
-        "member_weights": {
-            item.rubric.content_sha256: item.weight for item in bank.items
-        },
-        "member_scores": model_member_scores,
-        "scores": aggregate_scores,
-        "mean": fmean(values),
-        "median": median(values),
-        "minimum": min(values),
-        "maximum": max(values),
-    }
-
-
-def _specification_anchor_score_panel(
-    target: EvaluationTarget,
-    boundary: str,
-    observations: dict[tuple[str, str, str, str], float],
-    models: tuple[str, ...],
-) -> dict[str, object]:
-    generation = target.final_bank_generation
-    bank = generation.bank
-    anchor_sha256 = bank.specification_anchor.content_sha256
+        raise ValueError(f"invalid RH generation role: {role}")
+    rubric_sha256 = generation.rubric.content_sha256
     scores = {
-        model: observations[
-            ("terminal_common", boundary, model, anchor_sha256)
-        ]
+        model: observations[(role, boundary, model, rubric_sha256)]
         for model in models
     }
     values = list(scores.values())
     return {
-        "bank_role": "terminal_common",
-        "generation_round": bank.generation_round,
-        "source_boundary": bank.source_boundary,
-        "bank_sha256": bank.content_sha256,
-        "bank_manifest_path": str(target.final_bank_manifest_path),
-        "bank_manifest_sha256": target.final_bank_manifest_sha256,
-        "specification_anchor_sha256": anchor_sha256,
+        "role": role,
+        "generation_round": generation.generation_round,
+        "source_boundary": generation.source_boundary,
+        "proposer_call_budget": generation.proposer_call_budget,
+        "generation_sha256": generation.generation_sha256,
+        "rubric_sha256": rubric_sha256,
+        "manifest_path": str(manifest_path),
+        "manifest_sha256": manifest_sha256,
         "scores": scores,
         "mean": fmean(values),
         "median": median(values),

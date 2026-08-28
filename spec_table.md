@@ -539,7 +539,7 @@ causal, normative, or replacements for preregistered weights.
 
 - Experiment matrix: `experiments/biomnibench-{dev3,results20}.yaml` and `experiments/paperbench-{dev3,results20}.yaml`.
 - Elicitation rules: `src/rubric_gen/submission_revision/evolution.py` and `contrasts.py`.
-- One-rubric and score-weight rules: `src/rubric_gen/submission_revision/rubric_bank.py`.
+- Rubric generation rules: `src/rubric_gen/submission_revision/rubric_generation.py`.
 - Five-call grading: `src/rubric_gen/submission_revision/judging/full_rubric_judge.py`.
 - Outcome protocol: `src/rubric_gen/reward_hacking/protocol.py` and `rh_diagnostics.py`.
 - Harvey configs: `experiments/harvey-harness-evolution-{dev3,results20}.yaml`.
