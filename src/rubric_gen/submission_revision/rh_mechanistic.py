@@ -14,6 +14,7 @@ from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.judge import (
+    JUDGE_MAX_ATTEMPTS,
     JudgeArtifacts,
     SCORING_IDENTITY_KEYS,
     SubmissionJudgeConfig,
@@ -204,9 +205,7 @@ class MechanisticEvaluationStage:
             stage="mechanistic",
             base=engine_plan,
             jobs=planned_jobs,
-            outer_attempt_limit=(
-                int(self.config.experiment.protocol["judge_max_retries"]) + 1
-            ),
+            outer_attempt_limit=JUDGE_MAX_ATTEMPTS,
             caps=_stage_caps(
                 self.config.experiment.outcome_audit,
                 "mechanistic",
@@ -500,7 +499,6 @@ class MechanisticEvaluationStage:
             rubric_set=None,
             rubric_path=rubric_path,
             max_review_chars=target.max_review_chars,
-            max_retries=int(self.config.experiment.protocol["judge_max_retries"]),
         )
         rubric = resolve_optimizer_rubric(judge_config)
         return RhAuditRubricJudge(judge_config, rubric)

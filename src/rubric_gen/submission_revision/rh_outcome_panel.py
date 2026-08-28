@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import os
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.progress import TerminalProgress
@@ -25,45 +23,8 @@ PANEL_POLICY: dict[str, object] = {
 }
 
 
-class _JudgeCircuitOpen(RuntimeError):
-    def __init__(self, reason: str) -> None:
-        super().__init__(reason)
-        self.reason = reason
-
-
-def _provider_circuit_reason(error: BaseException) -> str | None:
-    pending: list[BaseException] = [error]
-    seen: set[int] = set()
-    while pending:
-        current = pending.pop()
-        if id(current) in seen:
-            continue
-        seen.add(id(current))
-        if getattr(current, "status_code", None) == 429:
-            return "provider-unavailable"
-        text = str(current)
-        if (
-            "429 RESOURCE_EXHAUSTED" in text
-            or "prepayment credits are depleted" in text
-            or "credit balance is too low" in text
-        ):
-            return "provider-unavailable"
-        if (
-            "output_config.format.schema: For 'array' type, 'minItems' values "
-            "other than 0 or 1 are not supported"
-        ) in text:
-            return "provider-schema-unsupported"
-        if current.__cause__ is not None:
-            pending.append(current.__cause__)
-        if current.__context__ is not None:
-            pending.append(current.__context__)
-    return None
-
-
 def _is_judge_failure(error: BaseException, prefix: str) -> bool:
-    return isinstance(error, _JudgeCircuitOpen) or (
-        isinstance(error, RuntimeError) and str(error).startswith(prefix)
-    )
+    return isinstance(error, RuntimeError) and str(error).startswith(prefix)
 
 
 def _failure_record(
@@ -73,16 +34,10 @@ def _failure_record(
     error: BaseException,
     instrument: str | None = None,
 ) -> dict[str, object]:
-    if isinstance(error, _JudgeCircuitOpen):
-        reason = error.reason
-    elif (circuit_reason := _provider_circuit_reason(error)) is not None:
-        reason = circuit_reason
-    else:
-        reason = "judge-failed"
     record: dict[str, object] = {
         "judgment_key": key,
         "model": model,
-        "reason": reason,
+        "reason": "judge-failed",
         "error_type": type(error).__name__,
     }
     if instrument is not None:
@@ -123,13 +78,7 @@ def _prior_failures(
             or set(failure) != expected_fields
             or type(failure.get("judgment_key")) is not str
             or type(failure.get("model")) is not str
-            or failure.get("reason") not in {
-                "provider-circuit-open",
-                "provider-schema-unsupported",
-                "provider-unavailable",
-                "judge-stage-incomplete",
-                "judge-failed",
-            }
+            or failure.get("reason") != "judge-failed"
             or type(failure.get("error_type")) is not str
             or (
                 instruments is not None
@@ -142,33 +91,6 @@ def _prior_failures(
             raise RuntimeError("RH outcome judge failure is duplicated")
         result[key] = failure
     return result
-
-
-def _run_with_circuit(
-    *,
-    model: str,
-    operation: Callable[[], dict[str, object]],
-    circuits: dict[str, str],
-    circuit_lock: threading.Lock,
-    failure_prefix: str,
-) -> dict[str, object]:
-    with circuit_lock:
-        circuit_reason = circuits.get(model)
-    if circuit_reason is not None:
-        raise _JudgeCircuitOpen(circuit_reason)
-    try:
-        return operation()
-    except Exception as error:
-        if _is_judge_failure(error, failure_prefix):
-            circuit_reason = (
-                "provider-circuit-open"
-                if _provider_circuit_reason(error) is not None
-                else "judge-stage-incomplete"
-            )
-            with circuit_lock:
-                circuits.setdefault(model, circuit_reason)
-        raise
-
 
 
 @dataclass
@@ -462,8 +384,6 @@ class MechanisticEvaluationRunner(mechanistic.MechanisticEvaluationStage):
         if not set(failures) <= set(jobs_by_key):
             raise RuntimeError("RH mechanistic failure is outside the accepted plan")
         judgments: dict[str, dict[str, object]] = {}
-        circuits: dict[str, str] = {}
-        circuit_lock = threading.Lock()
         fresh_jobs = tuple(
             job for job in unique_jobs if job.key not in failures
         )
@@ -477,14 +397,7 @@ class MechanisticEvaluationRunner(mechanistic.MechanisticEvaluationStage):
                 max_workers=self.config.max_concurrency
             ) as pool:
                 futures = {
-                    pool.submit(
-                        _run_with_circuit,
-                        model=job.model,
-                        operation=lambda job=job: self._run_job(job),
-                        circuits=circuits,
-                        circuit_lock=circuit_lock,
-                        failure_prefix="RH audit rubric judge failed after ",
-                    ): job
+                    pool.submit(self._run_job, job): job
                     for job in fresh_jobs
                 }
                 for future in as_completed(futures):
@@ -642,8 +555,6 @@ class HolisticPairwiseRunner(holistic.HolisticEvaluationStage):
             raise RuntimeError("RH holistic failure is outside the accepted plan")
         absolute_judgments: dict[str, dict[str, object]] = {}
         pairwise_judgments: dict[str, dict[str, object]] = {}
-        circuits: dict[str, str] = {}
-        circuit_lock = threading.Lock()
         jobs = [
             ("absolute", job)
             for job in prepared.unique_absolute_jobs
@@ -664,16 +575,10 @@ class HolisticPairwiseRunner(holistic.HolisticEvaluationStage):
             ) as pool:
                 futures = {
                     pool.submit(
-                        _run_with_circuit,
-                        model=job.model,
-                        operation=(
-                            (lambda job=job: self._run_absolute_job(job))
-                            if instrument == "absolute"
-                            else (lambda job=job: self._run_pairwise_job(job))
-                        ),
-                        circuits=circuits,
-                        circuit_lock=circuit_lock,
-                        failure_prefix="RH holistic judge failed after ",
+                        self._run_absolute_job
+                        if instrument == "absolute"
+                        else self._run_pairwise_job,
+                        job,
                     ): (instrument, job)
                     for instrument, job in jobs
                 }

@@ -48,7 +48,6 @@ class SubmissionRevisionConfig:
     rubric_semantic_judge_max_request_bytes: int
     rubric_semantic_judge_max_output_tokens: int
     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
-    judge_max_retries: int = 1
     rubric_proposer_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
     feedback_simulator: SimulatedUserConfig | None = None
@@ -64,7 +63,6 @@ class SubmissionRevisionConfig:
     resume: bool = False
     show_progress: bool = True
     progress_position: int | None = None
-    publish_report: bool = False
 
     def __post_init__(self) -> None:
         if type(self.revision_rounds) is not int or self.revision_rounds < 0:
@@ -88,8 +86,6 @@ class SubmissionRevisionConfig:
             type(self.progress_position) is not int or self.progress_position < 0
         ):
             raise ValueError("progress_position must be a non-negative integer")
-        if type(self.publish_report) is not bool:
-            raise ValueError("publish_report must be a boolean")
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
         for name, value in (
@@ -103,12 +99,13 @@ class SubmissionRevisionConfig:
             raise ValueError("replicate must be a positive integer")
         if type(self.execution_order) is not int or self.execution_order < 1:
             raise ValueError("execution_order must be a positive integer")
-        for name, retries in (
-            ("judge_max_retries", self.judge_max_retries),
-            ("rubric_proposer_max_retries", self.rubric_proposer_max_retries),
+        if (
+            type(self.rubric_proposer_max_retries) is not int
+            or self.rubric_proposer_max_retries < 0
         ):
-            if type(retries) is not int or retries < 0:
-                raise ValueError(f"{name} must be a non-negative integer")
+            raise ValueError(
+                "rubric_proposer_max_retries must be a non-negative integer"
+            )
         feedback_policy = FeedbackPolicy(self.feedback_policy)
         if (
             feedback_policy is FeedbackPolicy.USER_SIMULATOR
@@ -160,7 +157,6 @@ class SubmissionRevisionConfig:
             rubric_set=None,
             rubric_path=self.optimizer_rubric_path,
             max_review_chars=self.max_review_chars,
-            max_retries=self.judge_max_retries,
         )
 
     def master_judge_config(self) -> SubmissionJudgeConfig:
@@ -175,7 +171,6 @@ class SubmissionRevisionConfig:
             rubric_set=None,
             rubric_path=None,
             max_review_chars=self.max_review_chars,
-            max_retries=self.judge_max_retries,
         )
 
 @dataclass(frozen=True)

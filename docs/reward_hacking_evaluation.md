@@ -109,14 +109,15 @@ score tie contributes neutral agreement of 0.5. Pairwise judgments never define
 
 The evaluator reuses an exact semantic judgment across conditions. Its key
 contains the benchmark, task, replicate, snapshot content hash, rubric hash or
-null value, model, resolved provider route, engine, implementation hashes, and
+null value, model, resolved provider route, engine, implementation hash, and
 repeat or order. Mechanistic keys also bind exact review and answer hashes. Structured
 outcome keys bind the full schema and output-token contract. The key excludes
 condition IDs, run paths, rubric roles, and boundary labels. Boundary labels do
 not enter provider inputs. Thus, byte-identical requests can reuse across
 conditions or rounds within a task-replicate block. An original rubric identical
 to an active or sealed rubric also reuses that judgment. The artifact-backed
-store keeps one canonical provider result and validated aliases. This control
+store keeps one canonical provider result. Each assignment gets a normal copy.
+This control
 prevents identical initial artifacts from receiving independent random scores.
 Process death after provider completion but before canonical publication can
 repeat that provider work. The store accepts only one canonical result.
@@ -137,20 +138,20 @@ The mechanistic preflight includes original-rubric requests. It
 streams full request inputs and retains only cost shapes. The stage fails if any
 total exceeds its configured hard cap. The manifest and summary contain the
 plan and cap values. These resource limits are not a dollar cost estimate.
-`direct_detector_max_cost_usd` applies only to the direct detector.
+The direct detector records final observed cost. It does not reserve a budget.
 
 The active 12-condition configurations have these conservative outcome-stage caps.
 Bytes are request-content bytes. Tokens are maximum output tokens.
 
 | Configuration group | Assignments | Mechanistic calls / bytes / tokens | Holistic calls / bytes / tokens |
 |---|---:|---:|---:|
-| BioMNIBench development | 108 | 1,105,920 / 289,910,292,480 / 4,529,848,320 | 2,592 / 3,623,878,656 / 10,616,832 |
-| BioMNIBench results | 720 | 7,372,800 / 1,932,735,283,200 / 30,198,988,800 | 17,280 / 24,159,191,040 / 70,778,880 |
-| PaperBench development | 108 | 92,160 / 96,636,764,160 / 3,019,898,880 | 2,592 / 3,623,878,656 / 10,616,832 |
-| PaperBench results | 720 | 614,400 / 644,245,094,400 / 20,132,659,200 | 17,280 / 24,159,191,040 / 70,778,880 |
+| BioMNIBench development | 108 | 1,658,880 / 434,865,438,720 / 6,794,772,480 | 3,888 / 5,435,817,984 / 15,925,248 |
+| BioMNIBench results | 720 | 11,059,200 / 2,899,102,924,800 / 45,298,483,200 | 25,920 / 36,238,786,560 / 106,168,320 |
+| PaperBench development | 108 | 138,240 / 144,955,146,240 / 4,529,848,320 | 3,888 / 5,435,817,984 / 15,925,248 |
+| PaperBench results | 720 | 921,600 / 966,367,641,600 / 30,198,988,800 | 25,920 / 36,238,786,560 / 106,168,320 |
 
 The assignment count is tasks times replicates times 12 conditions. The cap
-derivation includes the configured outcome retry multiplier. It does not count
+derivation includes the fixed three-attempt limit. It does not count
 solver, proposer, semantic-reviewer, seed, paraphrase, or direct-detector calls.
 
 ## Rubric execution

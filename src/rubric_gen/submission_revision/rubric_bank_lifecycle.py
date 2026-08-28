@@ -1,4 +1,4 @@
-"""Rubric-bank schedules and immutable generation storage."""
+"""Rubric-bank schedules and atomic generation storage."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from numbers import Real
 from pathlib import Path
 
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.submission_revision.artifacts import make_read_only
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
     RubricBank,
@@ -265,9 +264,6 @@ def persist_rubric_bank(
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
-        for path in stage.rglob("*"):
-            make_read_only(path)
-        make_read_only(stage)
         os.rename(stage, bank_dir)
         directory_fd = os.open(bank_parent, os.O_RDONLY)
         try:
@@ -276,12 +272,6 @@ def persist_rubric_bank(
             os.close(directory_fd)
     except Exception:
         if stage.exists():
-            for path in sorted(stage.rglob("*"), reverse=True):
-                try:
-                    path.chmod(0o700 if path.is_dir() else 0o600)
-                except OSError:
-                    pass
-            stage.chmod(0o700)
             shutil.rmtree(stage)
         raise
     return manifest_path

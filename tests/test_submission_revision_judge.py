@@ -50,7 +50,7 @@ class ScriptedJudgeRunner:
         return self._output_dir
 
 
-def _judge(tmp_path: Path, *, max_retries: int = 5) -> FrozenRubricJudge:
+def _judge(tmp_path: Path) -> FrozenRubricJudge:
     task = tmp_path / "tasks" / "da-1-1"
     task.mkdir(parents=True)
     rubric_text = "Criterion 1: result\nLevels: A=100 B=50 C=0\n"
@@ -63,7 +63,6 @@ def _judge(tmp_path: Path, *, max_retries: int = 5) -> FrozenRubricJudge:
             rubric_name="rubric.txt",
             rubric_set=None,
             max_review_chars=None,
-            max_retries=max_retries,
         ),
         FrozenRubric(
             text=rubric_text,
@@ -85,9 +84,7 @@ def test_scoring_identity_binds_endpoint_benchmark_and_engine(
     judge_source = tmp_path / "full_rubric_judge.py"
     judge_source.write_text("fixed judge\n")
     runner = SimpleNamespace(
-        find_judge=lambda _task_dir: judge_source,
-        judge_runner_sha256=lambda: "1" * 64,
-        scorer_module_sha256=lambda: "2" * 64,
+        scoring_implementation_sha256=lambda: "1" * 64,
         judge_model=lambda _env: "gpt-5.6-luna",
     )
     monkeypatch.setattr(judge, "_runner", lambda *_args, **_kwargs: runner)
@@ -169,7 +166,7 @@ def test_optimizer_judge_retries_and_archives_failed_attempts(
     assert first_record["exit_code"] == 1
 
 
-def test_optimizer_judge_reports_details_after_five_retries(
+def test_optimizer_judge_reports_details_after_three_attempts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -194,15 +191,15 @@ def test_optimizer_judge_reports_details_after_five_retries(
 
     with pytest.raises(
         RuntimeError,
-        match=r"failed after 6 attempts.*exit_code=1.*stdout=.*stdout.txt",
+        match=r"failed after 3 attempts.*exit_code=1.*stdout=.*stdout.txt",
     ):
         judge.evaluate(submission, "b" * 32)
 
-    assert runner.calls == 6
-    assert len(list((evaluation_root / "judge-attempts").iterdir())) == 6
+    assert runner.calls == 3
+    assert len(list((evaluation_root / "judge-attempts").iterdir())) == 3
 
 
-def test_optimizer_judge_does_not_retry_an_unavailable_model(
+def test_optimizer_judge_gives_each_job_three_attempts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -231,59 +228,7 @@ def test_optimizer_judge_does_not_retry_an_unavailable_model(
     monkeypatch.setattr(judge_module, "prepare_evaluation_run", fake_prepare)
     monkeypatch.setattr(judge, "_runner_and_target", lambda run: (runner, object()))
 
-    with pytest.raises(RuntimeError, match="non-retryable error"):
+    with pytest.raises(RuntimeError, match="failed after 3 attempts"):
         judge.evaluate(submission, "c" * 32)
 
-    assert runner.calls == 1
-
-
-@pytest.mark.parametrize(
-    ("provider_error", "expected"),
-    (
-        (
-            "openai.RateLimitError: 429 {'code': 'insufficient_quota'}",
-            "insufficient quota",
-        ),
-        (
-            "openai.AuthenticationError: Incorrect API key provided; "
-            "code=invalid_api_key",
-            "API key is invalid",
-        ),
-        (
-            "openai.NotFoundError: model_not_found: OpenAI model unavailable",
-            "model is unavailable",
-        ),
-    ),
-)
-def test_optimizer_judge_does_not_retry_permanent_openai_errors(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    provider_error: str,
-    expected: str,
-) -> None:
-    judge = _judge(tmp_path)
-    submission = tmp_path / "experiment" / "submissions" / "s000"
-    submission.mkdir(parents=True)
-    evaluation_root = judge._evaluation_root(submission, "d" * 32)
-    output_dir = evaluation_root / "run" / "judges" / "trajectory" / "da-1-1"
-    runner = ScriptedJudgeRunner(output_dir, failures=6)
-
-    def permanent_failure(target: object) -> dict[str, object]:
-        record = ScriptedJudgeRunner.review_target(runner, target)
-        (output_dir / "stdout.txt").write_text(provider_error)
-        return record
-
-    runner.review_target = permanent_failure  # type: ignore[method-assign]
-
-    def fake_prepare(submission_dir: Path, root: Path) -> Path:
-        run = root / "run"
-        run.mkdir(parents=True)
-        return run
-
-    monkeypatch.setattr(judge_module, "prepare_evaluation_run", fake_prepare)
-    monkeypatch.setattr(judge, "_runner_and_target", lambda run: (runner, object()))
-
-    with pytest.raises(RuntimeError, match=expected):
-        judge.evaluate(submission, "d" * 32)
-
-    assert runner.calls == 1
+    assert runner.calls == 3

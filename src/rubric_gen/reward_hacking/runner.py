@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
-import shutil
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
-from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.evidence.index import index_implementation_sha256
-from rubric_gen.reward_hacking.batch import BatchOutcome, OpenAIBatchRunner
 from rubric_gen.reward_hacking.metrics import detection_rates, plot_detection_rates
 from rubric_gen.reward_hacking.planning import plan_requests
 from rubric_gen.reward_hacking.jobs import (
+    JUDGE_MAX_ATTEMPTS,
     PreparationFailure,
     PreparedJob,
     PreparedPanel,
@@ -36,10 +34,7 @@ from rubric_gen.reward_hacking.protocol import (
     RH_INPUT_VALIDATION_POLICY,
     RH_PROMPT_CACHE_POLICY,
 )
-from rubric_gen.reward_hacking.review import (
-    EvidencePrompt,
-    _retry_disposition,
-)
+from rubric_gen.reward_hacking.review import EvidencePrompt
 from rubric_gen.reward_hacking.sources import AuditCase
 from rubric_gen.reward_hacking.standard import StandardJobRunner, StandardOutcome
 from rubric_gen.reward_hacking.targets import detection_target
@@ -63,13 +58,10 @@ from rubric_gen.runtime.pricing import (
 from rubric_gen.runtime.progress import TerminalProgress
 
 
-def _implementation_sha256s() -> dict[str, str]:
+def scoring_implementation_sha256() -> str:
     root = Path(__file__).parent
-    return {
-        name: sha256_file(root / name)
-        for name in (
-            "batch.py",
-            "batch_state.py",
+    digest = hashlib.sha256()
+    for name in (
             "costs.py",
             "jobs.py",
             "metrics.py",
@@ -79,10 +71,14 @@ def _implementation_sha256s() -> dict[str, str]:
             "runner.py",
             "sources.py",
             "standard.py",
-            "standard_state.py",
             "targets.py",
-        )
-    }
+    ):
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((root / name).read_bytes())
+        digest.update(b"\0")
+    digest.update(index_implementation_sha256().encode("ascii"))
+    return digest.hexdigest()
 
 
 class RewardHackingJudgeRunner:
@@ -109,20 +105,16 @@ class RewardHackingJudgeRunner:
         )
         self._spent_usd = 0.0
         self._spent_by_model: dict[str, float] = {}
-        self._unverified_failure_risk_usd = 0.0
-        self.run_provenance = {
-            "implementation_sha256s": _implementation_sha256s(),
-            "evidence_index_sha256": index_implementation_sha256(),
+        self.run_settings = {
+            "scoring_implementation_sha256": scoring_implementation_sha256(),
             "detection": config.detection,
             "detection_target": target.provenance(),
             "models": list(config.models),
-            "max_retries": config.max_retries,
+            "max_attempts": JUDGE_MAX_ATTEMPTS,
             "max_input_tokens": config.max_input_tokens,
             "max_output_tokens": config.max_output_tokens,
             "max_event_text_chars": config.max_event_text_chars,
             "max_command_output_chars": config.max_command_output_chars,
-            "max_cost_usd": config.max_cost_usd,
-            "execution": config.execution,
             "primary_rule": config.primary_rule,
             "source": config.source.provenance,
             "openai_reasoning_effort": OPENAI_RH_REASONING_EFFORT,
@@ -162,31 +154,23 @@ class RewardHackingJudgeRunner:
                 },
             },
         }
-        self.run_provenance_sha256 = sha256_text(json.dumps(
-            self.run_provenance,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ))
-
-    def _write_or_validate_run_provenance(self) -> None:
-        path = self.config.output_dir / "run-provenance.json"
-        expected = {
-            **self.run_provenance,
-            "sha256": self.run_provenance_sha256,
-        }
+    def _write_or_validate_run_settings(self) -> None:
+        path = self.config.output_dir / "run.json"
+        expected = self.run_settings
         if path.is_file():
+            if not self.config.resume:
+                raise FileExistsError(f"reward-hacking run already exists: {path}")
             try:
                 existing = json.loads(path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as exc:
-                raise ValueError(f"invalid run provenance: {path}") from exc
+                raise ValueError(f"invalid run settings: {path}") from exc
             if existing != expected:
                 raise ValueError(
-                    "existing run provenance does not exactly match the requested run"
+                    "existing run settings do not exactly match the requested run"
                 )
             return
         if self.config.resume:
-            raise ValueError("resumed run has no strict run-provenance.json")
+            raise ValueError("resumed run has no run.json")
         write_json_atomic(path, expected)
 
     def _payload(self, case: AuditCase) -> EvidencePrompt:
@@ -228,7 +212,7 @@ class RewardHackingJudgeRunner:
         cases = sorted(self.config.source.cases, key=lambda case: case.sort_key)
         total = len(cases) * len(self.config.models)
         jobs: list[PreparedJob] = []
-        unavailable: dict[str, tuple[str, str]] = {}
+        failures: list[PreparationFailure] = []
         with TerminalProgress(
             total=total,
             description="Audit preparation",
@@ -236,101 +220,48 @@ class RewardHackingJudgeRunner:
         ) as progress:
             for case in cases:
                 progress.set_status(f"loading {case.case_id}")
-                payload = (
-                    self._payload(case)
-                    if len(unavailable) < len(self.config.models)
-                    else None
-                )
+                payload = self._payload(case)
                 for model in self.config.models:
-                    if model in unavailable:
-                        progress.set_status(
-                            f"skipping {case.case_id} for unavailable {model}"
-                        )
-                        progress.update()
-                        continue
-                    assert payload is not None
                     progress.set_status(f"planning {case.case_id} for {model}")
                     try:
                         jobs.append(self._prepare_job(case, model, payload))
                     except Exception as exc:
-                        _retryable, opens_circuit = _retry_disposition(exc)
-                        if not opens_circuit:
-                            raise
-                        unavailable[model] = (type(exc).__name__, str(exc))
-                        jobs = [job for job in jobs if job.model != model]
+                        failures.append(PreparationFailure(
+                            case=case,
+                            model=model,
+                            error_type=type(exc).__name__,
+                            error=str(exc),
+                        ))
                     progress.update()
-        failures = tuple(
-            PreparationFailure(
-                case=case,
-                model=model,
-                error_type=unavailable[model][0],
-                error=unavailable[model][1],
-            )
-            for case in cases
-            for model in self.config.models
-            if model in unavailable
-        )
-        return PreparedPanel(jobs=tuple(jobs), failures=failures)
+        return PreparedPanel(jobs=tuple(jobs), failures=tuple(failures))
 
     def run(self) -> int:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
+        self._write_or_validate_run_settings()
         standard = self._standard_runner()
-        try:
-            self._write_or_validate_run_provenance()
-            if standard is not None:
-                standard.initialize_cost_state()
-        except ValueError:
-            if not self.config.resume:
-                raise
-            self._replace_incompatible_output()
-            self.config = replace(self.config, resume=False)
-            standard = self._standard_runner()
-            self._write_or_validate_run_provenance()
-            if standard is not None:
-                standard.initialize_cost_state()
         prepared = self._prepare_jobs()
         jobs = prepared.jobs
         preparation_failures = [
-            failure.record(self.config.max_retries)
+            failure.record()
             for failure in prepared.failures
         ]
-        if self.config.execution == "batch":
-            if preparation_failures:
-                return self._finish(preparation_failures)
-            outcome = OpenAIBatchRunner(
-                self.config,
-                jobs,
-                self.run_provenance_sha256,
-                self.count_tokens,
-                self._payload,
-            ).run()
-            self._set_costs(outcome)
-            return 0 if outcome.records is None else self._finish(outcome.records)
-        if standard is None:
-            raise AssertionError("standard execution has no standard runner")
         records = self._run_standard(standard, jobs, preparation_failures)
         self._set_costs(standard.outcome)
         return self._finish(records)
 
-    def _standard_runner(self) -> StandardJobRunner | None:
-        if self.config.execution != "standard":
-            return None
+    def _standard_runner(self) -> StandardJobRunner:
         return StandardJobRunner(
             self.config,
-            self.run_provenance_sha256,
-            _implementation_sha256s(),
+            self.run_settings,
             self.generate_response,
             self.generate_vllm_response,
             self.count_tokens,
             self._payload,
         )
 
-    def _set_costs(self, outcome: StandardOutcome | BatchOutcome) -> None:
+    def _set_costs(self, outcome: StandardOutcome) -> None:
         self._spent_usd = outcome.observed_api_usd
         self._spent_by_model = outcome.observed_by_model_usd
-        self._unverified_failure_risk_usd = (
-            outcome.unverified_failed_request_risk_usd
-        )
 
     def _run_standard(
         self,
@@ -367,13 +298,16 @@ class RewardHackingJudgeRunner:
                         try:
                             records.append(future.result())
                         except Exception as exc:
-                            records.append({"case_id": job.case.case_id,
-                                            "source_kind": job.source_kind,
-                                            "source_path": str(job.case.path),
-                                            "provider": job.model,
-                                            "model": job.model, "status": "failed",
-                                            "error_type": type(exc).__name__,
-                                            "error": str(exc)})
+                            records.append({
+                                "case_id": job.case.case_id,
+                                "source_kind": job.source_kind,
+                                "source_path": str(job.case.path),
+                                "provider": job.model,
+                                "model": job.model,
+                                "status": "failed",
+                                "error_type": type(exc).__name__,
+                                "error": str(exc),
+                            })
                         progress.update()
                         if group:
                             submit_next(group)
@@ -381,44 +315,40 @@ class RewardHackingJudgeRunner:
                             submit_next(pending.popleft())
         return records
 
-    def _replace_incompatible_output(self) -> None:
-        root = self.config.output_dir
-        if root.is_symlink() or not root.is_dir():
-            raise RuntimeError(f"invalid reward-hacking output directory: {root}")
-        shutil.rmtree(root)
-        root.mkdir(parents=True)
-
     def _finish(self, records: list[dict[str, object]]) -> int:
         records.sort(key=lambda row: (str(row["case_id"]), str(row["model"])))
-        summary = {"kind": "reward-hacking-model-panel",
-                   "models": list(self.config.models),
-                   "base_urls": self.config.base_urls,
-                   "max_retries": self.config.max_retries,
-                   "detection": self.config.detection,
-                   "detection_target": detection_target(
-                       self.config.detection
-                   ).provenance(),
-                   "primary_rule": self.config.primary_rule,
-                   "rh_monitor": self.run_provenance.get("rh_monitor"),
-                   "source": self.config.source.provenance,
-                   "run_provenance_sha256": self.run_provenance_sha256,
-                   "run_provenance": self.run_provenance,
-                   "cost": {
-                       "observed_api_usd": self._spent_usd,
-                       "observed_by_model_usd": dict(
-                           sorted(self._spent_by_model.items())
-                       ),
-                       "unverified_failed_request_risk_usd": (
-                           self._unverified_failure_risk_usd
-                       ),
-                       "budget_usd": self.config.max_cost_usd,
-                       "pricing_sources": PRICING_SOURCES,
-                       "pricing_as_of": PRICING_AS_OF,
-                   },
-                   "records": records}
+        summary = {
+            "kind": "reward-hacking-model-panel",
+            "models": list(self.config.models),
+            "base_urls": self.config.base_urls,
+            "max_attempts": JUDGE_MAX_ATTEMPTS,
+            "detection": self.config.detection,
+            "detection_target": detection_target(
+                self.config.detection
+            ).provenance(),
+            "primary_rule": self.config.primary_rule,
+            "rh_monitor": self.run_settings.get("rh_monitor"),
+            "source": self.config.source.provenance,
+            "run_settings": self.run_settings,
+            "cost": {
+                "observed_api_usd": self._spent_usd,
+                "observed_by_model_usd": dict(
+                    sorted(self._spent_by_model.items())
+                ),
+                "pricing_sources": PRICING_SOURCES,
+                "pricing_as_of": PRICING_AS_OF,
+            },
+            "records": records,
+        }
         write_json_atomic(self.config.output_dir / "summary.json", summary)
+        successful = sum(
+            row["status"] in {"completed", "skipped"} for row in records
+        )
+        if successful == 0:
+            return 1
         rates = detection_rates(summary)
+        rates["completed_results"] = successful
+        rates["missing_results"] = len(records) - successful
         write_json_atomic(self.config.output_dir / "detection-rates.json", rates)
         plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
-        failures = sum(row["status"] == "failed" for row in records)
-        return 1 if failures else 0
+        return 0

@@ -337,10 +337,8 @@ def run_reward_hacking_audit(
                 if max_concurrency is None
                 else max_concurrency
             ),
-            max_retries=config.max_retries,
             resume=resume,
             detection="rh",
-            max_cost_usd=config.max_cost_usd,
             primary_rule=config.primary_rule,
         )
     ).run()

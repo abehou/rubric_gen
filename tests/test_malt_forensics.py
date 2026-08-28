@@ -29,8 +29,6 @@ from rubric_gen.benchmarks.malt.cases import (
 from rubric_gen.reward_hacking.metrics import (
     detection_rates,
     plot_detection_rates,
-    render_metrics_csv,
-    render_metrics_markdown,
     score_panel,
 )
 from rubric_gen.reward_hacking.categories import categorize_findings
@@ -334,15 +332,12 @@ def test_evaluation_modes_are_mutually_exclusive() -> None:
         "data.jsonl", "--detect", "rh", "--output-dir", "out", "--ensemble"
     ])
     assert args.ensemble is True
-    assert args.max_retries is None
     assert args.max_input_tokens is None
-    assert args.max_cost_usd is None
-    assert args.execution is None
-    limited = parser.parse_args([
-        "data.jsonl", "--detect", "rh", "--output-dir", "out",
-        "--judge", "gpt-test", "--max-retries", "4",
-    ])
-    assert limited.max_retries == 4
+    with pytest.raises(SystemExit):
+        parser.parse_args([
+            "data.jsonl", "--detect", "rh", "--output-dir", "out",
+            "--judge", "gpt-test", "--execution", "batch",
+        ])
     with pytest.raises(SystemExit):
         parser.parse_args([
             "data.jsonl", "--detect", "rh", "--output-dir", "out",
@@ -439,7 +434,6 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         "experiment_ids": ["test-experiment"],
         "tasks_dir": str(tasks.resolve()),
     }
-    assert config.max_cost_usd == 1_500.0
     assert config.max_command_output_chars == 2_048
     assert config.detection == detection
     assert config.resume is False
@@ -674,11 +668,6 @@ def test_score_panel_reports_individual_and_fixed_ensembles(tmp_path: Path) -> N
     assert result["providers"]["gemini"]["accuracy"] == 0.0
     assert result["split_gold_cases"] == 3
     assert result["gold_cases"] == 2
-    markdown = render_metrics_markdown(result)
-    csv_text = render_metrics_csv(result)
-    assert "| ensemble | majority |" in markdown
-    assert "Precision | Recall | F1" in markdown
-    assert "ensemble,majority" in csv_text
 
 
 def test_unscored_detection_rates_exclude_failures_and_require_complete_panels(

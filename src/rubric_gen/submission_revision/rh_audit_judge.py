@@ -15,12 +15,12 @@ from pathlib import Path
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.artifacts import (
-    make_tree_read_only,
     remove_owned_evaluation_tree,
 )
 from rubric_gen.submission_revision.judge import (
     FrozenRubric,
     FrozenRubricJudge,
+    JUDGE_MAX_ATTEMPTS,
     JudgeArtifacts,
     SubmissionJudgeConfig,
 )
@@ -629,16 +629,17 @@ class RhAuditRubricJudge:
         if type(model) is not str or not model.strip():
             raise ValueError("RH audit judge model must be explicit")
         source = Path(__file__).resolve()
-        base_judge = source.parent / "judging" / "full_rubric_judge.py"
-        review_adapter = source.parent / "judge.py"
+        judging = source.parent / "judging"
         return {
-            "judge_source_sha256": sha256_file(source),
-            "judge_runner_sha256": _composite_sha256((
+            "scoring_implementation_sha256": _composite_sha256((
                 source,
-                review_adapter,
-                base_judge,
+                source.parent / "judge.py",
+                judging / "executor.py",
+                judging / "full_rubric_judge.py",
+                judging / "full_rubric_protocol.py",
+                judging / "models.py",
+                judging / "scoring.py",
             )),
-            "scorer_module_sha256": sha256_file(base_judge),
             "effective_judge_model": model,
             "judge_api_base": self.config.base_url,
             "benchmark": self.config.benchmark.value,
@@ -694,7 +695,7 @@ class RhAuditRubricJudge:
         )
         last_error: Exception | None = None
         records: FullRubricArtifactRecords | None = None
-        for provider_attempt in range(1, self.config.max_retries + 2):
+        for provider_attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
             try:
                 records = grade_rh_full_rubric(
                     rubric_text=self.rubric.text,
@@ -711,7 +712,7 @@ class RhAuditRubricJudge:
         if records is None:
             raise RuntimeError(
                 "RH audit rubric judge failed after "
-                f"{self.config.max_retries + 1} attempts: {last_error}"
+                f"{JUDGE_MAX_ATTEMPTS} attempts: {last_error}"
             ) from last_error
         self._publish(
             root=root,
@@ -832,7 +833,6 @@ class RhAuditRubricJudge:
             }
             write_json_atomic(pending / "metadata.json", metadata)
             pending.replace(root)
-            make_tree_read_only(root)
         except Exception:
             shutil.rmtree(pending, ignore_errors=True)
             raise

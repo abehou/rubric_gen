@@ -439,6 +439,7 @@ def _rh_implementation_sha256() -> str:
         Path(__file__),
         Path(__file__).with_name("rh_mechanistic.py"),
         Path(__file__).with_name("rh_holistic.py"),
+        Path(__file__).parents[1] / "runtime" / "llm.py",
     )
     digest = hashlib.sha256()
     for path in implementation_files:
@@ -451,10 +452,7 @@ def _rh_implementation_sha256() -> str:
 
 def _holistic_implementation_identity() -> dict[str, str]:
     return {
-        "rh_evaluation_sha256": _rh_implementation_sha256(),
-        "runtime_llm_sha256": sha256_file(
-            Path(__file__).parents[1] / "runtime" / "llm.py"
-        ),
+        "scoring_implementation_sha256": _rh_implementation_sha256(),
     }
 
 
@@ -471,9 +469,7 @@ def _mechanistic_implementation_identity(
     if not jobs:
         raise RuntimeError("RH mechanistic stage has no jobs")
     fields = (
-        "judge_source_sha256",
-        "judge_runner_sha256",
-        "scorer_module_sha256",
+        "scoring_implementation_sha256",
         "benchmark",
         "grading_engine",
     )
@@ -486,7 +482,7 @@ def _mechanistic_implementation_identity(
             any(implementation[field] is None for field in fields)
             or not all(
                 _is_sha256(implementation[field])
-                for field in fields[:3]
+                for field in fields[:1]
             )
         ):
             raise RuntimeError("RH mechanistic implementation identity is invalid")

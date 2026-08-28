@@ -7,9 +7,6 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from rubric_gen.submission_revision.artifacts import make_read_only
-
-
 _GENERATION_FILES = frozenset({
     "artifact-history.json",
     "difference-proposal.json",
@@ -24,7 +21,7 @@ def publish_generation(
     generation_round: int,
     files: dict[str, str],
 ) -> None:
-    """Publish one immutable generation or validate its exact existing copy."""
+    """Publish one complete generation or validate its exact existing copy."""
 
     if set(files) != _GENERATION_FILES:
         raise ValueError("rubric generation publication has invalid files")
@@ -43,13 +40,11 @@ def publish_generation(
         for path in stage.iterdir():
             with path.open("rb") as stream:
                 os.fsync(stream.fileno())
-            make_read_only(path)
         stage_fd = os.open(stage, os.O_RDONLY)
         try:
             os.fsync(stage_fd)
         finally:
             os.close(stage_fd)
-        make_read_only(stage)
         os.rename(stage, root)
         parent_fd = os.open(output_dir, os.O_RDONLY)
         try:
@@ -58,12 +53,6 @@ def publish_generation(
             os.close(parent_fd)
     except Exception:
         if stage.exists():
-            for path in stage.iterdir():
-                try:
-                    path.chmod(0o600)
-                except OSError:
-                    pass
-            stage.chmod(0o700)
             shutil.rmtree(stage)
         raise
 

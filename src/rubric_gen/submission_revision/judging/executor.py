@@ -12,7 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from rubric_gen.artifacts.hashing import sha256_file, sha256_text
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.rubrics.schema import canonical_json, load_json_strict
 
@@ -67,16 +67,16 @@ class JudgeExecutor:
         validate_target: Callable[[JudgeTarget], None],
         target_identities: Callable[[JudgeTarget], TargetDirectoryIdentities],
         resolve_local_rubric: Callable[[Path], ResolvedRubric],
-        judge_runner_sha256: Callable[[], str] | None = None,
-        scorer_module_sha256: Callable[[], str] | None = None,
+        scoring_implementation_sha256: Callable[[], str] | None = None,
     ) -> None:
         self.config = config
         self.artifacts = artifacts
         self.validate_target = validate_target
         self.target_identities = target_identities
         self.resolve_local_rubric = resolve_local_rubric
-        self._judge_runner_sha256 = judge_runner_sha256 or self.judge_runner_sha256
-        self._scorer_module_sha256 = scorer_module_sha256 or self.scorer_module_sha256
+        self._scoring_implementation_sha256 = (
+            scoring_implementation_sha256 or self.scoring_implementation_sha256
+        )
 
     @property
     def grading_engine(self) -> GradingEngine:
@@ -110,7 +110,6 @@ class JudgeExecutor:
                 )
         except (OSError, RuntimeError) as exc:
             raise SystemExit(f"Invalid judge path: {judge_path}") from exc
-        judge_source = judge_path.read_bytes()
         env = os.environ.copy()
         env["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
         requested_model = self.judge_model(env)
@@ -124,7 +123,6 @@ class JudgeExecutor:
         score_input_attestation = self.score_input_attestation(
             attempt=attempt,
             rubric=rubric,
-            judge_source=judge_source,
             review_text=review_text,
             answer_text=answer_text,
             effective_judge_model=requested_model,
@@ -445,7 +443,6 @@ class JudgeExecutor:
         *,
         attempt: JudgeAttempt,
         rubric: ResolvedRubric,
-        judge_source: bytes,
         review_text: str,
         answer_text: str,
         effective_judge_model: str,
@@ -484,9 +481,9 @@ class JudgeExecutor:
         return {
             "review_input_sha256": review_sha256,
             "answer_input_sha256": answer_sha256,
-            "judge_source_sha256": hashlib.sha256(judge_source).hexdigest(),
-            "judge_runner_sha256": self._judge_runner_sha256(),
-            "scorer_module_sha256": self._scorer_module_sha256(),
+            "scoring_implementation_sha256": (
+                self._scoring_implementation_sha256()
+            ),
             "effective_judge_model": effective_judge_model,
             "judge_api_base": self.config.base_url,
             "benchmark": self.config.benchmark.value,
@@ -500,7 +497,7 @@ class JudgeExecutor:
         }
 
     @staticmethod
-    def judge_runner_sha256(
+    def scoring_implementation_sha256(
         benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
     ) -> str:
         resolved = SubmissionBenchmarkId(benchmark)
@@ -513,9 +510,11 @@ class JudgeExecutor:
                 "discovery.py",
                 "executor.py",
                 "full_rubric_judge.py",
+                "full_rubric_protocol.py",
                 "models.py",
                 "preflight.py",
                 "runner.py",
+                "scoring.py",
             )
         ]
         sources.append(
@@ -562,10 +561,6 @@ class JudgeExecutor:
             digest.update(path.read_bytes())
             digest.update(b"\0")
         return digest.hexdigest()
-
-    @staticmethod
-    def scorer_module_sha256() -> str:
-        return sha256_file(Path(__file__).with_name("scoring.py"))
 
     def judge_model(self, env: dict[str, str] | None = None) -> str:
         if self.config.model:

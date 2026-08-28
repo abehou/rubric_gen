@@ -33,8 +33,6 @@ from rubric_gen.submission_revision.artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
     live_root_parent as _live_root_parent,
     REVISION_EXPERIMENT_KIND as _REVISION_EXPERIMENT_KIND,
-    make_read_only as _make_read_only,
-    make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
     remove_created_live_tree as _remove_created_live_tree,
     remove_live_tree as _remove_tree,
@@ -44,7 +42,7 @@ from rubric_gen.submission_revision.artifacts import (
     write_live_root_sentinel as _write_live_root_sentinel,
 )
 from rubric_gen.submission_revision.evolution import (
-    rubric_generation_implementation_identity,
+    rubric_generation_implementation_sha256,
 )
 from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 
@@ -75,7 +73,6 @@ class SubmissionRevisionController:
         self.experiment_dir = setup.experiment_dir
         self.task_dir = setup.task_dir
         self.judgment_reuse = setup.judgment_reuse
-        self.simulator_reuse = setup.simulator_reuse
         self.initial_rubric = setup.initial_rubric
         self.bank_policy = setup.bank_policy
         self.initial_bank = setup.initial_bank
@@ -103,7 +100,6 @@ class SubmissionRevisionController:
             master_judge=self.master_judge,
             seed=self.seed,
             judgment_reuse=self.judgment_reuse,
-            simulator_reuse=self.simulator_reuse,
             reuse_seed_judgment=self.reuse_seed_judgment,
             reuse_seed_master_judgment=self.reuse_seed_master_judgment,
             instruction_sha256=self.instruction_sha256,
@@ -155,7 +151,6 @@ class SubmissionRevisionController:
             "service_tier": self.config.agent.service_tier,
             "solver_base_url": self.config.agent.base_url,
             "turn_timeout_seconds": self.config.agent.timeout_seconds,
-            "judge_max_retries": self.config.judge_max_retries,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
             "rubric_policy": self.bank_policy.value,
@@ -177,8 +172,8 @@ class SubmissionRevisionController:
             "rubric_semantic_judge_max_output_tokens": (
                 self.config.rubric_semantic_judge_max_output_tokens
             ),
-            "rubric_generation_implementation_identity": (
-                rubric_generation_implementation_identity()
+            "rubric_generation_implementation_sha256": (
+                rubric_generation_implementation_sha256()
             ),
             "review": self.config.review,
             "judge_model": self.config.judge_model,
@@ -283,7 +278,7 @@ class SubmissionRevisionController:
                     _RevisionPhase.COMPLETED,
                 }:
                     raise RuntimeError(f"invalid revision state: {state.phase}")
-            self.scoring.validate_scored_boundaries(state)
+            self.scoring.validate_latest_boundary(state)
             state.phase = _RevisionPhase.COMPLETED
             self.store.write_state(state)
             compaction = self.workspaces.compact_historical_submissions(state)
@@ -298,7 +293,7 @@ class SubmissionRevisionController:
                     "historical_workspace_logical_bytes_removed": compaction[1],
                 }
             )
-            self.scoring.publish_progress_report(
+            self.scoring.publish_final_plot(
                 state,
                 state.submission_ids[-1],
             )
@@ -326,7 +321,6 @@ class SubmissionRevisionController:
         TaskWorkspace(self.task_dir, workspace).create()
         self.workspaces.materialize_seed(workspace)
         self.workspaces.link_seed_snapshot()
-        _make_read_only(workspace / "instruction.md")
         _write_json(
             self.experiment_dir / "manifest.json",
             {
@@ -416,7 +410,6 @@ class SubmissionRevisionController:
             _solution_tree_sha256(workspace)
         except (OSError, RuntimeError) as exc:
             raise _SolverTurnFailure(str(exc), 2) from exc
-        _make_tree_read_only(turn_dir)
         submission_id = f"s{turn_index:03d}"
         trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
             self.experiment_dir
@@ -490,7 +483,6 @@ class SubmissionRevisionController:
                 "reason": reason,
             }
         )
-        _make_tree_read_only(turn_dir)
 
 def run_submission_revision(
     config: SubmissionRevisionConfig,

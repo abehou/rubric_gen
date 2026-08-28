@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-from rubric_gen.runtime.llm import (
-    GenerationResult,
-    StructuredRequest,
-    estimate_input_tokens,
-)
+from rubric_gen.runtime.llm import GenerationResult
 from rubric_gen.runtime.pricing import (
-    ANTHROPIC_PRICES_PER_MILLION,
     GEMINI_PRICES_PER_MILLION,
     HOSTED_PRICES_PER_MILLION,
     OPENAI_LONG_CONTEXT_THRESHOLD,
@@ -16,29 +11,6 @@ from rubric_gen.runtime.pricing import (
     OPENAI_LONG_OUTPUT_MULTIPLIER,
     OPENAI_PRICES_PER_MILLION,
 )
-
-
-def cache_write_reservation_tokens(
-    model: str,
-    request: StructuredRequest,
-    input_tokens: int,
-) -> int:
-    """Reserve cache-write pricing only for the stable prompt prefix."""
-
-    if model not in {
-        *OPENAI_PRICES_PER_MILLION,
-        *ANTHROPIC_PRICES_PER_MILLION,
-    }:
-        return 0
-    prefix_only = StructuredRequest(
-        instructions=request.instructions,
-        evidence="",
-        schema_name=request.schema_name,
-        schema=request.schema,
-        max_output_tokens=request.max_output_tokens,
-        prompt_layout=request.prompt_layout,
-    )
-    return min(estimate_input_tokens(model, prefix_only), input_tokens)
 
 
 def request_cost(

@@ -37,10 +37,7 @@ from rubric_gen.reward_hacking.protocol import (
     DEFAULT_RH_MAX_OUTPUT_TOKENS,
     PRIMARY_RH_MODELS,
 )
-from rubric_gen.reward_hacking.jobs import (
-    DEFAULT_PANEL_MAX_COST_USD,
-    RewardHackingJudgeConfig,
-)
+from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
 from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.reward_hacking.sources import transcript_audit_source
 from rubric_gen.reward_hacking.targets import TARGETS, detection_target
@@ -275,27 +272,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Per-command-output evidence cap.",
     )
     parser.add_argument(
-        "--max-cost-usd", type=float, default=None,
-        help="Hard total hosted-API budget.",
-    )
-    parser.add_argument(
-        "--execution", choices=("standard", "batch"), default=None,
-        help="Use synchronous requests or the discounted OpenAI Batch API.",
-    )
-    parser.add_argument(
         "--primary-rule",
         choices=("majority", "any_detect", "unanimous_detects"),
         default=None,
         help="Configured ensemble rule.",
-    )
-    parser.add_argument(
-        "--max-retries",
-        type=int,
-        default=None,
-        help=(
-            "Retry transient detection requests this many times. Permanent and "
-            "quota errors are never retried. Defaults to 1 retry."
-        ),
     )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument(
@@ -334,12 +314,7 @@ def run(args: argparse.Namespace) -> int:
         if args.max_command_output_chars is None
         else args.max_command_output_chars
     )
-    args.max_cost_usd = (
-        DEFAULT_PANEL_MAX_COST_USD if args.max_cost_usd is None else args.max_cost_usd
-    )
-    args.execution = "standard" if args.execution is None else args.execution
     args.primary_rule = "any_detect" if args.primary_rule is None else args.primary_rule
-    args.max_retries = 1 if args.max_retries is None else args.max_retries
 
     inputs = (
         tuple(resolve_project_path(value) for value in args.inputs)
@@ -480,16 +455,6 @@ def run(args: argparse.Namespace) -> int:
         )
         mode_name = "vllm-" + identity
         agent_panel = None
-    if args.execution == "batch" and (
-        agent_panel is not None
-        or models is None
-        or len(models) != 1
-        or not models[0].startswith("gpt-5.6-")
-        or models[0] in base_urls
-    ):
-        raise ValueError(
-            "--execution batch requires one hosted GPT-5.6 model selected with --judge"
-        )
     mode_name += f"--detect-{target.name}--split-{args.split}"
     if args.negative_top is not None:
         mode_name += f"--all-positives--negative-top-{args.negative_top}--seed-{args.seed}"
@@ -506,10 +471,9 @@ def run(args: argparse.Namespace) -> int:
         f"--dev-{args.development_fraction:g}"
         f"--val-{args.validation_fraction:g}"
         f"--mc-{args.max_concurrency}"
-        f"--mi-{args.max_input_tokens}--budget-{args.max_cost_usd:g}"
+        f"--mi-{args.max_input_tokens}"
         f"--mo-{args.max_output_tokens}--me-{args.max_event_text_chars}"
         f"--mco-{args.max_command_output_chars}"
-        f"--exec-{args.execution}"
         f"--primary-{args.primary_rule}"
         f"--data-{preparation_digest}"
     )
@@ -526,15 +490,12 @@ def run(args: argparse.Namespace) -> int:
         source=transcript_audit_source(case_dirs, preparation),
         models=models, output_dir=evaluation_root,
         max_concurrency=args.max_concurrency, resume=resume_evaluation,
-        max_retries=args.max_retries,
         base_urls=base_urls,
         detection=target.name,
         max_input_tokens=args.max_input_tokens,
         max_output_tokens=args.max_output_tokens,
         max_event_text_chars=args.max_event_text_chars,
         max_command_output_chars=args.max_command_output_chars,
-        max_cost_usd=args.max_cost_usd,
-        execution=args.execution,
         primary_rule=args.primary_rule,
     )).run()
     summary_path = evaluation_root / "summary.json"

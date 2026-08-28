@@ -68,6 +68,4 @@ audit:
     - claude-opus-5
     - gemini-3.6-flash
   max_concurrency: 12
-  max_retries: 1
-  max_cost_usd: 50.0
   primary_rule: any_detect

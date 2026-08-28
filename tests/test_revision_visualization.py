@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -10,7 +9,6 @@ from types import SimpleNamespace
 import pytest
 
 import rubric_gen.submission_revision.controller_scoring as scoring_module
-from rubric_gen.submission_revision.reports import publish_revision_report
 import rubric_gen.submission_revision.visualization.revisions as revisions_module
 
 
@@ -78,15 +76,12 @@ def test_revision_score_plots_serialize_pyplot_across_threads(
     )
 
 
-def test_report_failure_does_not_abort_revision(
+def test_final_plot_failure_does_not_abort_revision(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     scorer = object.__new__(scoring_module.RevisionScorer)
-    scorer.config = SimpleNamespace(
-        feedback_policy="semi",
-        publish_report=True,
-    )
+    scorer.config = SimpleNamespace(feedback_policy="semi")
     scorer.experiment_dir = tmp_path / "experiment"
     scorer.task_dir = tmp_path / "da-1-1"
     events: list[dict[str, object]] = []
@@ -98,53 +93,16 @@ def test_report_failure_does_not_abort_revision(
 
     monkeypatch.setattr(scoring_module, "write_revision_score_plot", fail_plot)
 
-    scorer.publish_progress_report(
+    scorer.publish_final_plot(
         SimpleNamespace(scores=[54], fixed_original_scores=[54]),
         "s000",
     )
 
     assert events == [
         {
-            "event": "report_publication_failed",
+            "event": "plot_publication_failed",
             "submission_id": "s000",
             "error_type": "RuntimeError",
             "error": "matplotlib race",
         }
     ]
-
-
-def test_revision_report_separates_on_policy_and_fixed_scores(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    experiment = tmp_path / "study" / "assignment"
-    experiment.mkdir(parents=True)
-    (experiment / "score_improvement.png").write_bytes(b"plot")
-    (experiment / "manifest.json").write_text(json.dumps({
-        "task_id": "da-1-1",
-        "revision_rounds": 1,
-        "feedback_policy": "semi",
-        "prompt": "base",
-        "rubric_policy": "online_elicitation",
-        "provider": "codex",
-        "model": "solver",
-        "judge_model": "judge",
-        "review": "trace",
-        "rubric_name": "rubric.txt",
-        "rubric_set": None,
-    }))
-    (experiment / "state.json").write_text(json.dumps({
-        "phase": "completed",
-        "scores": [56, 100],
-        "fixed_original_scores": [56, 72],
-    }))
-    reports = tmp_path / "reports"
-    monkeypatch.setenv("BIOMNIBENCH_REPORTS_ROOT", str(reports))
-
-    report_dir = publish_revision_report(experiment)
-
-    summary = json.loads((report_dir / "summary.json").read_text())
-    assert "schema_version" not in summary
-    assert summary["on_policy_scores"] == [56, 100]
-    assert summary["fixed_original_scores"] == [56, 72]
-    assert "scores" not in summary

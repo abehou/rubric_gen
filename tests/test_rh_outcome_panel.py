@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import threading
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -269,57 +268,12 @@ def test_mechanistic_panel_fails_when_every_strong_judge_fails(
     assert not (tmp_path / "output" / "summary.json").exists()
 
 
-def test_anthropic_array_limit_opens_the_provider_circuit() -> None:
-    error = RuntimeError(
-        "RH audit rubric judge failed after 2 attempts: Error code: 400 - "
-        "output_config.format.schema: For 'array' type, 'minItems' values "
-        "other than 0 or 1 are not supported"
-    )
-
-    assert panel_module._provider_circuit_reason(error) == (
-        "provider-schema-unsupported"
-    )
-
-
-def test_anthropic_low_balance_opens_the_provider_circuit() -> None:
-    error = RuntimeError(
-        "RH audit rubric judge failed after 2 attempts: Error code: 400 - "
-        "Your credit balance is too low to access the Anthropic API"
-    )
-
-    assert panel_module._provider_circuit_reason(error) == "provider-unavailable"
-
-
-def test_terminal_judge_failure_opens_the_model_stage_circuit() -> None:
-    circuits: dict[str, str] = {}
-    lock = threading.Lock()
-
-    with pytest.raises(RuntimeError, match="failed after 2 attempts"):
-        panel_module._run_with_circuit(
-            model="claude",
-            operation=lambda: (_ for _ in ()).throw(RuntimeError(
-                "RH audit rubric judge failed after 2 attempts: timeout"
-            )),
-            circuits=circuits,
-            circuit_lock=lock,
-            failure_prefix="RH audit rubric judge failed after ",
-        )
-
-    assert circuits == {"claude": "judge-stage-incomplete"}
-    with pytest.raises(panel_module._JudgeCircuitOpen) as caught:
-        panel_module._run_with_circuit(
-            model="claude",
-            operation=lambda: {"score": 50},
-            circuits=circuits,
-            circuit_lock=lock,
-            failure_prefix="RH audit rubric judge failed after ",
-        )
-    assert caught.value.reason == "judge-stage-incomplete"
+def test_judge_failure_has_no_provider_wide_effect() -> None:
     assert panel_module._failure_record(
         key="job-2",
         model="claude",
-        error=caught.value,
-    )["reason"] == "judge-stage-incomplete"
+        error=RuntimeError("RH audit rubric judge failed after 3 attempts: timeout"),
+    )["reason"] == "judge-failed"
 
 
 def test_holistic_panel_uses_every_stage_complete_judge(

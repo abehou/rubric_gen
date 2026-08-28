@@ -55,7 +55,6 @@ REVISION_MANIFEST_KEYS = frozenset(
         "instruction_sha256",
         "isolation",
         "judge_base_url",
-        "judge_max_retries",
         "judge_model",
         "kind",
         "live_workspace_dir",
@@ -82,7 +81,7 @@ REVISION_MANIFEST_KEYS = frozenset(
         "rubric_semantic_judge_max_calls",
         "rubric_semantic_judge_max_request_bytes",
         "rubric_semantic_judge_max_output_tokens",
-        "rubric_generation_implementation_identity",
+        "rubric_generation_implementation_sha256",
         "initial_member_scoring_identity",
         "seed_run_dir",
         "seed_sha256",
@@ -211,7 +210,6 @@ def prepare_evaluation_run(submission_dir: Path, evaluation_root: Path) -> Path:
     evaluation_status = run_dir / "status.json"
     write_json(evaluation_status, source_status)
     make_read_only(evaluation_trajectory)
-    make_read_only(evaluation_status)
     return run_dir
 
 
@@ -323,7 +321,6 @@ def write_live_root_sentinel(root: Path, experiment_dir: Path) -> None:
             "experiment_dir": str(experiment_dir.resolve()),
         },
     )
-    make_read_only(root / _LIVE_ROOT_SENTINEL)
 
 
 def remove_live_tree(root: Path, experiment_dir: Path) -> None:

@@ -15,7 +15,6 @@ from rubric_gen.submission_revision.artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
     is_excluded_solution_root as _is_excluded_solution_root,
     live_root_parent as _live_root_parent,
-    make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
     remove_created_live_tree as _remove_created_live_tree,
     remove_live_tree as _remove_tree,
@@ -265,11 +264,12 @@ class RevisionRecovery:
         )
         disposition = self._recovery_disposition(state, workspace, status)
         if disposition is _RecoveryDisposition.RESET:
-            self.workspaces.restore_last_scored_workspace(state, workspace)
-            self._reset_uncertain_solver_turn(
+            self._restore_reset_and_discard(
                 state,
-                boundary.turn_dir,
-                boundary.turn_index,
+                workspace,
+                manifest,
+                boundary,
+                "solver turn output was not safe to resume",
             )
             return
         self._promote_recovered_turn(
@@ -292,7 +292,7 @@ class RevisionRecovery:
             or set(state.judge_attempts) != set(state.submission_ids)
         ):
             raise RuntimeError("failed revision state boundary counts are inconsistent")
-        self.scoring.validate_scored_boundaries(state)
+        self.scoring.validate_latest_boundary(state)
         turn_dir = self.experiment_dir / "turns" / f"turn-{turn_index:03d}"
         expected_turns = [
             self.experiment_dir / "turns" / f"turn-{index:03d}"
@@ -568,7 +568,6 @@ class RevisionRecovery:
             "recovered_on_resume": True,
         })
         _write_json(boundary.status_path, status)
-        _make_tree_read_only(boundary.turn_dir)
         state.submission_ids.append(submission_id)
         state.next_turn_index += 1
         state.phase = _RevisionPhase.READY_FOR_JUDGE
@@ -682,7 +681,8 @@ class RevisionRecovery:
         ]
         if turn_dirs != expected_turns:
             raise RuntimeError("experiment contains an uncertain solver turn")
-        for submission_id in state.submission_ids:
+        if len(state.submission_ids) > len(state.scores):
+            submission_id = state.submission_ids[-1]
             _verify_submission_snapshot(
                 self.experiment_dir / "submissions" / submission_id
             )
@@ -697,7 +697,7 @@ class RevisionRecovery:
             if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
                 raise RuntimeError("live workspace changed after the last boundary")
         self._validate_rubric_generation_replay()
-        self.scoring.validate_scored_boundaries(state)
+        self.scoring.validate_latest_boundary(state)
         if manifest.get("initial_member_scoring_identity") != self.scoring_identity:
             raise RuntimeError("revision manifest has the wrong scoring identity")
 
@@ -726,9 +726,7 @@ class RevisionRecovery:
             proposal_root,
             max_generation_round=maximum_generation,
         )
-        proposal_rounds, ledger_rounds = rubric_generation_entries(
-            proposal_root
-        )
+        proposal_rounds = rubric_generation_entries(proposal_root)
         bank_rounds = numbered_bank_directories(
             bank_root,
             required=True,
@@ -738,12 +736,9 @@ class RevisionRecovery:
             self.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
             and bank_rounds == [0]
             and not proposal_rounds
-            and not ledger_rounds
         ):
             self.scoring.compile_offline_bank()
-            proposal_rounds, ledger_rounds = rubric_generation_entries(
-                proposal_root
-            )
+            proposal_rounds = rubric_generation_entries(proposal_root)
             bank_rounds = numbered_bank_directories(
                 bank_root,
                 required=True,
@@ -769,26 +764,13 @@ class RevisionRecovery:
             )
         if proposal_rounds and proposal_rounds[-1] > maximum_generation:
             raise RuntimeError("rubric elicitation generation exceeds the study length")
-        expected_ledger_rounds = list(range(1, len(ledger_rounds) + 1))
-        if ledger_rounds != expected_ledger_rounds:
-            raise RuntimeError("rubric provider attempt ledgers are not contiguous")
-        terminal_ledgers = sorted(set(ledger_rounds) - set(proposal_rounds))
-        if (
-            len(terminal_ledgers) > 1
-            or terminal_ledgers
-            and terminal_ledgers[0] != len(proposal_rounds) + 1
-            or ledger_rounds
-            and ledger_rounds[-1] > maximum_generation
-        ):
-            raise RuntimeError("rubric provider attempt ledger schedule is invalid")
-
         proposer = self.dependencies.bank_proposer
         if proposer is None:
             raise RuntimeError("elicitation replay has no rubric proposer")
         instruction = (self.task_dir / "instruction.md").read_text(
             encoding="utf-8"
         )
-        for generation_round in ledger_rounds:
+        for generation_round in proposal_rounds:
             prior = load_rubric_bank(
                 self.experiment_dir,
                 generation_round - 1,
@@ -819,13 +801,9 @@ class RevisionRecovery:
                     raise RuntimeError(
                         "rubric generation disagrees with the persisted bank"
                     )
-            elif (
-                generation_round in proposal_rounds
-                or generation_round in terminal_ledgers
-            ):
+            else:
                 persist_rubric_bank(
                     self.experiment_dir,
                     replayed,
                     self.bank_policy,
                 )
-

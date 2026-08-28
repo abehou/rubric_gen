@@ -21,9 +21,7 @@ from .rubric_bank_lifecycle import (
 
 
 SEED_SCORING_CONTRACT_KEYS = (
-    "judge_source_sha256",
-    "judge_runner_sha256",
-    "scorer_module_sha256",
+    "scoring_implementation_sha256",
     "effective_judge_model",
     "judge_api_base",
     "benchmark",
@@ -39,9 +37,7 @@ SEED_SCORING_CONTRACT_KEYS = (
 )
 
 JUDGE_EXECUTION_CONTRACT_KEYS = (
-    "judge_source_sha256",
-    "judge_runner_sha256",
-    "scorer_module_sha256",
+    "scoring_implementation_sha256",
     "effective_judge_model",
     "judge_api_base",
     "benchmark",

@@ -317,7 +317,6 @@ def test_audit_judge_publishes_and_resumes_sealed_artifacts(
         rubric_set=None,
         rubric_path=rubric_path,
         max_review_chars=None,
-        max_retries=1,
     )
     rubric = FrozenRubric(
         text=RUBRIC,
@@ -377,7 +376,6 @@ def test_audit_judge_serializes_concurrent_exact_evaluations(
         rubric_set=None,
         rubric_path=rubric_path,
         max_review_chars=None,
-        max_retries=1,
     )
     rubric = FrozenRubric(
         text=RUBRIC,

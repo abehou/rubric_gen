@@ -94,7 +94,6 @@ def _design(root: Path, task: Path) -> Experiment:
                 "timeout_seconds": 60,
             },
             "judge_model": "test-judge",
-            "judge_max_retries": 1,
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,

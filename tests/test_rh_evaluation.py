@@ -652,7 +652,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
             "mechanistic_max_request_bytes": 100_000_000,
             "mechanistic_max_output_tokens": 10_000_000,
         },
-        protocol={"judge_max_retries": 0},
+        protocol={},
     )
     runner = MechanisticEvaluationRunner(
         EvaluationConfig(
@@ -670,9 +670,7 @@ def test_mechanistic_jobs_expand_and_bind_each_weighted_bank_member(
         rubric_path = kwargs["rubric_path"]
         identity = dict.fromkeys(SCORING_IDENTITY_KEYS)
         identity.update({
-            "judge_source_sha256": "1" * 64,
-            "judge_runner_sha256": "2" * 64,
-            "scorer_module_sha256": "3" * 64,
+            "scoring_implementation_sha256": "1" * 64,
             "effective_judge_model": kwargs["model"],
             "judge_api_base": kwargs["api_base"],
             "benchmark": target_arg.benchmark.value,
@@ -1466,11 +1464,11 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         implementation_identity=implementation_identity,
     )
     assert pairwise.key == replace(pairwise, target=other).key
-    assert implementation_identity["rh_evaluation_sha256"] == (
+    assert implementation_identity["scoring_implementation_sha256"] == (
         rh_protocol._rh_implementation_sha256()
     )
 
-    grading_identity = {"judge_runner_sha256": "1" * 64}
+    grading_identity = {"scoring_implementation_sha256": "1" * 64}
     mechanistic = MechanisticJob(
         target=target,
         model="strong-a",
@@ -1497,7 +1495,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         absolute,
         implementation_identity={
             **implementation_identity,
-            "runtime_llm_sha256": "5" * 64,
+            "scoring_implementation_sha256": "5" * 64,
         },
     ).key != absolute.key
     assert replace(
@@ -1536,9 +1534,7 @@ def test_mechanistic_resume_rejects_tampered_records(
     )
     grading_identity = dict.fromkeys(SCORING_IDENTITY_KEYS)
     grading_identity.update({
-        "judge_source_sha256": "1" * 64,
-        "judge_runner_sha256": "2" * 64,
-        "scorer_module_sha256": "3" * 64,
+        "scoring_implementation_sha256": "1" * 64,
         "effective_judge_model": "strong-a",
         "judge_api_base": None,
         "benchmark": target.benchmark.value,
@@ -1593,9 +1589,9 @@ def test_mechanistic_resume_rejects_tampered_records(
     record_path.parent.mkdir(parents=True)
     record_path.write_text(json.dumps(record))
     experiment = SimpleNamespace(
-        protocol={"judge_max_retries": 0},
+        protocol={},
         outcome_audit={
-            "holistic_max_calls": 1,
+            "holistic_max_calls": 3,
             "holistic_max_request_bytes": 1_000_000,
             "holistic_max_output_tokens": 10_000,
         },
@@ -1694,9 +1690,9 @@ def test_holistic_resume_rejects_tampered_records(
     record_path.parent.mkdir(parents=True)
     record_path.write_text(json.dumps(record))
     experiment = SimpleNamespace(
-        protocol={"judge_max_retries": 0},
+        protocol={},
         outcome_audit={
-            "holistic_max_calls": 1,
+            "holistic_max_calls": 3,
             "holistic_max_request_bytes": 1_000_000,
             "holistic_max_output_tokens": 10_000,
         },
@@ -1755,9 +1751,9 @@ def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
         )
 
     experiment = SimpleNamespace(
-        protocol={"judge_max_retries": 0},
+        protocol={},
         outcome_audit={
-            "holistic_max_calls": 1,
+            "holistic_max_calls": 3,
             "holistic_max_request_bytes": 1_000_000,
             "holistic_max_output_tokens": 10_000,
         },
@@ -1840,9 +1836,9 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
         )
 
     experiment = SimpleNamespace(
-        protocol={"judge_max_retries": 0},
+        protocol={},
         outcome_audit={
-            "mechanistic_max_calls": 10,
+            "mechanistic_max_calls": 15,
             "mechanistic_max_request_bytes": 1_000_000,
             "mechanistic_max_output_tokens": 100_000,
         },
@@ -1911,9 +1907,9 @@ def test_holistic_dispatch_rejects_task_changed_after_preflight(
         )
 
     experiment = SimpleNamespace(
-        protocol={"judge_max_retries": 0},
+        protocol={},
         outcome_audit={
-            "holistic_max_calls": 1,
+            "holistic_max_calls": 3,
             "holistic_max_request_bytes": 1_000_000,
             "holistic_max_output_tokens": 10_000,
         },
@@ -1988,14 +1984,14 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
 
     audit = {
         "models": ["strong-a"],
-        "holistic_max_calls": 10,
+        "holistic_max_calls": 12,
         "holistic_max_request_bytes": 1_000_000,
         "holistic_max_output_tokens": 100_000,
     }
     experiment = SimpleNamespace(
         experiment_id="experiment-1",
         outcome_audit=audit,
-        protocol={"judge_max_retries": 0},
+        protocol={},
     )
     output = tmp_path / "holistic-output"
     runner = HolisticPairwiseRunner(
@@ -2063,7 +2059,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
             "_holistic_implementation_identity",
             lambda: {
                 **implementation_identity,
-                "runtime_llm_sha256": "f" * 64,
+                "scoring_implementation_sha256": "f" * 64,
             },
         )
         changed_implementation = HolisticPairwiseRunner(
@@ -2109,7 +2105,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     rejected_experiment = SimpleNamespace(
         experiment_id="experiment-1",
         outcome_audit={**audit, "holistic_max_calls": 7},
-        protocol={"judge_max_retries": 1},
+        protocol={},
     )
     rejected = HolisticPairwiseRunner(
         EvaluationConfig(

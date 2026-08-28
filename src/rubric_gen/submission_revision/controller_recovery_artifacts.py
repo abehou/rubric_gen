@@ -61,15 +61,14 @@ def numbered_bank_directories(
 
 def rubric_generation_entries(
     root: Path,
-) -> tuple[list[int], list[int]]:
-    """Return generation and provider-ledger rounds."""
+) -> list[int]:
+    """Return completed rubric-generation rounds."""
 
     if not os.path.lexists(root):
-        return [], []
+        return []
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError("rubric generation root is invalid")
     rounds: list[int] = []
-    ledger_rounds: list[int] = []
     for path in root.iterdir():
         name = path.name
         if (
@@ -81,32 +80,12 @@ def rubric_generation_entries(
         ):
             rounds.append(int(name[5:]))
             continue
-        prefix = "bank-"
-        ledger_suffix = ".provider-attempts.json"
-        ledger_digits = name[len(prefix):-len(ledger_suffix)] if (
-            name.startswith(prefix) and name.endswith(ledger_suffix)
-        ) else ""
-        if (
-            not path.is_symlink()
-            and path.is_file()
-            and len(ledger_digits) == 4
-            and ledger_digits.isdigit()
-        ):
-            ledger_rounds.append(int(ledger_digits))
-            continue
         raise RuntimeError("rubric generation root contains an invalid entry")
     if len(set(rounds)) != len(rounds):
         raise RuntimeError("rubric generation root contains duplicate rounds")
-    if len(set(ledger_rounds)) != len(ledger_rounds):
-        raise RuntimeError("rubric generation root contains duplicate ledgers")
-    if not set(rounds) <= set(ledger_rounds):
-        raise RuntimeError("rubric generation lacks its provider attempt ledger")
-    return sorted(rounds), sorted(ledger_rounds)
+    return sorted(rounds)
 
 
-_LEDGER_ATOMIC_TEMP = re.compile(
-    r"^\.bank-([0-9]{4})\.provider-attempts\.json\.[a-z0-9_]{8}\.tmp$"
-)
 _GENERATION_STAGING_DIRECTORY = re.compile(
     r"^\.bank-([0-9]{4})\.[a-z0-9_]{8}$"
 )
@@ -126,20 +105,13 @@ def remove_owned_rubric_generation_residue(
         raise RuntimeError("rubric generation root is invalid")
     changed = False
     for path in sorted(root.iterdir(), key=lambda item: item.name):
-        ledger_match = _LEDGER_ATOMIC_TEMP.fullmatch(path.name)
         stage_match = _GENERATION_STAGING_DIRECTORY.fullmatch(path.name)
-        match = ledger_match or stage_match
-        if match is None or not 1 <= int(match.group(1)) <= max_generation_round:
+        if (
+            stage_match is None
+            or not 1 <= int(stage_match.group(1)) <= max_generation_round
+        ):
             continue
         path_stat = os.lstat(path)
-        if ledger_match is not None:
-            if not stat.S_ISREG(path_stat.st_mode):
-                raise RuntimeError(
-                    "rubric generation temporary path is not a regular file"
-                )
-            path.unlink()
-            changed = True
-            continue
         if not stat.S_ISDIR(path_stat.st_mode):
             raise RuntimeError(
                 "rubric generation staging path is not a directory"
@@ -168,6 +140,5 @@ def remove_owned_rubric_generation_residue(
             os.fsync(directory_fd)
         finally:
             os.close(directory_fd)
-
 
 

@@ -72,13 +72,13 @@ def _expected_conditions() -> list[dict[str, str]]:
 
 def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
     tiers = {
-        "biomnibench-dev3.yaml": (BIO_DEV_TASKS, 108, 1_105_920, 2_592),
+        "biomnibench-dev3.yaml": (BIO_DEV_TASKS, 108, 1_658_880, 3_888),
         "biomnibench-results20.yaml": (
-            BIO_RESULTS_TASKS, 720, 7_372_800, 17_280,
+            BIO_RESULTS_TASKS, 720, 11_059_200, 25_920,
         ),
-        "paperbench-dev3.yaml": (PAPERBENCH_DEV_PAPERS, 108, 92_160, 2_592),
+        "paperbench-dev3.yaml": (PAPERBENCH_DEV_PAPERS, 108, 138_240, 3_888),
         "paperbench-results20.yaml": (
-            PAPERBENCH_RESULTS_PAPERS, 720, 614_400, 17_280,
+            PAPERBENCH_RESULTS_PAPERS, 720, 921_600, 25_920,
         ),
     }
     expected_conditions = _expected_conditions()
@@ -110,7 +110,6 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
             "gpt-5.6-sol", "claude-opus-5", "gemini-3.6-flash",
         ]
         assert payload["outcome_audit"]["primary_rule"] == "any_detect"
-        assert payload["outcome_audit"]["direct_detector_max_cost_usd"] == 6_000
         assert payload["outcome_audit"]["mechanistic_max_calls"] == mechanistic_calls
         assert payload["outcome_audit"]["holistic_max_calls"] == holistic_calls
         benchmark_slug = "paperbench" if filename.startswith("paperbench") else "biomnibench"

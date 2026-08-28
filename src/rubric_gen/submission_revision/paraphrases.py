@@ -22,7 +22,7 @@ from rubric_gen.runtime.llm import (
     generate_structured_vllm,
 )
 from rubric_gen.runtime.progress import TerminalProgress
-from rubric_gen.submission_revision.artifacts import make_read_only, read_json_object
+from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.paraphrase_protocol import (
@@ -33,7 +33,6 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
     PARAPHRASE_VARIANT_KIND,
     WordingRequestGroup,
     duplicate_title_collisions,
-    group_source_sha256,
     wording_template,
 )
 
@@ -255,14 +254,12 @@ class ParaphraseRunner:
         task_root.mkdir(parents=True, exist_ok=True)
         rubric_path = task_root / f"variant-{variant_index:03d}.txt"
         metadata_path = task_root / f"variant-{variant_index:03d}.json"
-        parts_root = task_root / f"variant-{variant_index:03d}.parts"
         master_path = self._master_path(task_id)
         master = master_path.read_text(encoding="utf-8")
         template = wording_template(master)
         if self._resume_variant(
             rubric_path,
             metadata_path,
-            parts_root,
             master,
             master_path,
             task_id,
@@ -274,7 +271,6 @@ class ParaphraseRunner:
             task_id,
             variant_index,
             template.groups,
-            parts_root,
         )
         replacements = {
             key: value
@@ -294,13 +290,11 @@ class ParaphraseRunner:
             text,
             ordered_results,
         )
-        self._remove_parts(parts_root)
 
     def _resume_variant(
         self,
         rubric_path: Path,
         metadata_path: Path,
-        parts_root: Path,
         master: str,
         master_path: Path,
         task_id: str,
@@ -318,7 +312,6 @@ class ParaphraseRunner:
                 variant_index,
                 self.model,
             )
-            self._remove_parts(parts_root)
             return True
         for path in (rubric_path, metadata_path):
             if not os.path.lexists(path):
@@ -336,9 +329,7 @@ class ParaphraseRunner:
         task_id: str,
         variant_index: int,
         groups: tuple[WordingRequestGroup, ...],
-        parts_root: Path,
     ) -> tuple[_GroupGeneration, ...]:
-        self._prepare_parts(parts_root, groups)
         request_pool = self._request_pool
         if request_pool is None:
             raise RuntimeError("paraphrase request pool is unavailable")
@@ -349,7 +340,6 @@ class ParaphraseRunner:
                 task_id,
                 variant_index,
                 group,
-                parts_root / f"{group.group_id}.json",
             ): group.group_id
             for group in groups
         }
@@ -363,7 +353,6 @@ class ParaphraseRunner:
             task_id=task_id,
             variant_index=variant_index,
             groups=groups,
-            parts_root=parts_root,
             results=results,
         )
         return tuple(results[group.group_id] for group in groups)
@@ -439,8 +428,6 @@ class ParaphraseRunner:
                     ],
                 },
             })
-            make_read_only(rubric_path)
-            make_read_only(metadata_path)
 
     def _repair_duplicate_titles(
         self,
@@ -449,7 +436,6 @@ class ParaphraseRunner:
         task_id: str,
         variant_index: int,
         groups: tuple[WordingRequestGroup, ...],
-        parts_root: Path,
         results: dict[str, _GroupGeneration],
     ) -> None:
         request_pool = self._request_pool
@@ -465,7 +451,6 @@ class ParaphraseRunner:
                 task_root,
                 task_id,
                 variant_index,
-                parts_root,
                 results,
                 repairs,
             )
@@ -476,11 +461,6 @@ class ParaphraseRunner:
             for collision in collisions
             for _group_id, key, _title in collision
         )
-        for collision in collisions:
-            for group_id, _key, _title in collision[1:]:
-                checkpoint_path = parts_root / f"{group_id}.json"
-                if checkpoint_path.is_file() and not checkpoint_path.is_symlink():
-                    checkpoint_path.unlink()
         raise ValueError(
             "paraphrase contains duplicate criterion titles after repair: "
             + fields
@@ -492,21 +472,17 @@ class ParaphraseRunner:
         task_root: Path,
         task_id: str,
         variant_index: int,
-        parts_root: Path,
         results: dict[str, _GroupGeneration],
         repairs: dict[str, tuple[WordingRequestGroup, str]],
     ) -> None:
         futures: dict[Future[_GroupGeneration], str] = {}
         for group_id, (group, repair_error) in repairs.items():
-            checkpoint_path = parts_root / f"{group.group_id}.json"
-            _clear_repair_checkpoint(checkpoint_path)
             futures[request_pool.submit(
                 self._generate_group,
                 task_root,
                 task_id,
                 variant_index,
                 group,
-                checkpoint_path,
                 initial_repair_error=repair_error,
                 attempt_offset=results[group_id].attempt_count,
             )] = group_id
@@ -519,19 +495,10 @@ class ParaphraseRunner:
         task_id: str,
         variant_index: int,
         group: WordingRequestGroup,
-        checkpoint_path: Path,
         *,
         initial_repair_error: str | None = None,
         attempt_offset: int = 0,
     ) -> _GroupGeneration:
-        checkpoint = self._read_group_checkpoint(
-            checkpoint_path,
-            task_id,
-            variant_index,
-            group,
-        )
-        if checkpoint is not None:
-            return checkpoint
         last_error: Exception | None = (
             ValueError(initial_repair_error)
             if initial_repair_error is not None
@@ -559,13 +526,6 @@ class ParaphraseRunner:
                     ),
                     generation=generation.provenance(),
                 )
-                self._write_group_checkpoint(
-                    checkpoint_path,
-                    task_id,
-                    variant_index,
-                    group,
-                    result,
-                )
                 return result
             except Exception as exc:
                 last_error = exc
@@ -583,118 +543,6 @@ class ParaphraseRunner:
             f"{group.group_id} after {self.max_retries + 1} attempts: "
             f"{last_error}"
         ) from last_error
-
-    def _prepare_parts(
-        self,
-        parts_root: Path,
-        groups: tuple[WordingRequestGroup, ...],
-    ) -> None:
-        allowed = {f"{group.group_id}.json" for group in groups}
-        if os.path.lexists(parts_root):
-            if parts_root.is_symlink() or not parts_root.is_dir():
-                raise RuntimeError(
-                    f"invalid rubric paraphrase checkpoint directory: {parts_root}"
-                )
-            unexpected = [
-                path for path in parts_root.iterdir()
-                if path.name not in allowed
-            ]
-            if unexpected:
-                raise RuntimeError(
-                    "rubric paraphrase checkpoint directory contains an "
-                    f"unexpected path: {unexpected[0]}"
-                )
-            return
-        parts_root.mkdir()
-
-    def _read_group_checkpoint(
-        self,
-        path: Path,
-        task_id: str,
-        variant_index: int,
-        group: WordingRequestGroup,
-    ) -> _GroupGeneration | None:
-        if not os.path.lexists(path):
-            return None
-        if path.is_symlink() or not path.is_file():
-            raise RuntimeError(f"invalid rubric paraphrase checkpoint: {path}")
-        payload = read_json_object(path, "rubric paraphrase checkpoint")
-        replacements = payload.get("replacements")
-        generation = payload.get("generation")
-        if (
-            set(payload) != {
-                "task_id",
-                "variant_index",
-                "group_id",
-                "model",
-                "source_sha256",
-                "replacements",
-                "attempt_count",
-                "prompt_sha256",
-                "generation",
-            }
-            or payload.get("task_id") != task_id
-            or payload.get("variant_index") != variant_index
-            or payload.get("group_id") != group.group_id
-            or payload.get("model") != self.model
-            or payload.get("source_sha256") != group_source_sha256(group)
-            or type(payload.get("attempt_count")) is not int
-            or payload["attempt_count"] < 1
-            or type(payload.get("prompt_sha256")) is not str
-            or not payload["prompt_sha256"]
-            or not isinstance(generation, dict)
-        ):
-            raise RuntimeError(f"rubric paraphrase checkpoint is invalid: {path}")
-        try:
-            validated = group.validate_replacements(replacements)
-        except ValueError as exc:
-            raise RuntimeError(
-                f"rubric paraphrase checkpoint is invalid: {path}"
-            ) from exc
-        return _GroupGeneration(
-            group_id=group.group_id,
-            replacements=validated,
-            attempt_count=int(payload["attempt_count"]),
-            prompt_sha256=str(payload["prompt_sha256"]),
-            generation=dict(generation),
-        )
-
-    def _write_group_checkpoint(
-        self,
-        path: Path,
-        task_id: str,
-        variant_index: int,
-        group: WordingRequestGroup,
-        result: _GroupGeneration,
-    ) -> None:
-        write_json_atomic(path, {
-            "task_id": task_id,
-            "variant_index": variant_index,
-            "group_id": group.group_id,
-            "model": self.model,
-            "source_sha256": group_source_sha256(group),
-            "replacements": result.replacements,
-            "attempt_count": result.attempt_count,
-            "prompt_sha256": result.prompt_sha256,
-            "generation": result.generation,
-        })
-        make_read_only(path)
-
-    @staticmethod
-    def _remove_parts(parts_root: Path) -> None:
-        if not os.path.lexists(parts_root):
-            return
-        if parts_root.is_symlink() or not parts_root.is_dir():
-            raise RuntimeError(
-                f"invalid rubric paraphrase checkpoint directory: {parts_root}"
-            )
-        for path in parts_root.iterdir():
-            if path.is_symlink() or not path.is_file():
-                raise RuntimeError(
-                    f"invalid rubric paraphrase checkpoint: {path}"
-                )
-            path.unlink()
-        parts_root.rmdir()
 
     def _generate(self, request: StructuredRequest) -> GenerationResult:
         if self._generation_operation is not None:
@@ -745,13 +593,6 @@ def _duplicate_title_repairs(
                 "source title's distinguishing wording.",
             )
     return repairs
-
-
-def _clear_repair_checkpoint(path: Path) -> None:
-    if path.is_symlink() or (os.path.lexists(path) and not path.is_file()):
-        raise RuntimeError(f"invalid rubric paraphrase checkpoint: {path}")
-    if path.is_file():
-        path.unlink()
 
 
 def _paraphrase_request(

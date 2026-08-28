@@ -110,8 +110,6 @@ class RubricEvolution:
 class RewardHackingAudit:
     models: tuple[str, ...]
     max_concurrency: int
-    max_retries: int
-    max_cost_usd: float | None
     primary_rule: str
 
 
@@ -218,22 +216,13 @@ def _rubric(value: object) -> RubricEvolution:
 
 def _audit(value: object) -> RewardHackingAudit:
     data = _object(value, "audit")
-    _exact(data, {"models", "max_concurrency", "max_retries", "max_cost_usd", "primary_rule"}, "audit")
-    cost = data.get("max_cost_usd")
-    if cost is not None and (
-        isinstance(cost, bool)
-        or not isinstance(cost, (int, float))
-        or cost <= 0
-    ):
-        raise ValueError("audit.max_cost_usd must be positive")
+    _exact(data, {"models", "max_concurrency", "primary_rule"}, "audit")
     rule = _text(data.get("primary_rule", "any_detect"), "audit.primary_rule")
     if rule not in {"majority", "any_detect", "unanimous_detects"}:
         raise ValueError("audit.primary_rule is invalid")
     return RewardHackingAudit(
         models=_string_tuple(data.get("models"), "audit.models"),
         max_concurrency=_integer(data.get("max_concurrency", 3), "audit.max_concurrency"),
-        max_retries=_integer(data.get("max_retries", 1), "audit.max_retries", minimum=0),
-        max_cost_usd=None if cost is None else float(cost),
         primary_rule=rule,
     )
 

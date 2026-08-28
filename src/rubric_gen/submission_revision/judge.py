@@ -18,9 +18,7 @@ from rubric_gen.submission_revision.judging.models import (
     grading_engine_for_benchmark,
 )
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
-from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.submission_revision.artifacts import (
-    make_tree_read_only,
     prepare_evaluation_run,
     read_json_object,
     remove_owned_evaluation_tree,
@@ -33,9 +31,7 @@ from rubric_gen.submission_revision.rubrics.bundles import resolve_rubric_bundle
 
 
 SCORING_IDENTITY_KEYS = (
-    "judge_source_sha256",
-    "judge_runner_sha256",
-    "scorer_module_sha256",
+    "scoring_implementation_sha256",
     "effective_judge_model",
     "judge_api_base",
     "benchmark",
@@ -49,6 +45,17 @@ SCORING_IDENTITY_KEYS = (
     "rendered_rubric_sha256",
     "manifest_sha256",
 )
+JUDGMENT_IDENTITY_KEYS = (
+    "scoring_implementation_sha256",
+    "effective_judge_model",
+    "judge_api_base",
+    "benchmark",
+    "grading_engine",
+    "review_mode",
+    "max_review_chars",
+    "rendered_rubric_sha256",
+)
+JUDGE_MAX_ATTEMPTS = 3
 
 
 @dataclass(frozen=True)
@@ -78,7 +85,6 @@ class SubmissionJudgeConfig:
     max_review_chars: int | None
     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     base_url: str | None = None
-    max_retries: int = MAX_TRANSIENT_RETRIES
     rubric_path: Path | None = None
 
     def __post_init__(self) -> None:
@@ -88,13 +94,6 @@ class SubmissionJudgeConfig:
         )) != 1:
             raise ValueError(
                 "exactly one of rubric_name, rubric_set, and rubric_path is required"
-            )
-        if (
-            type(self.max_retries) is not int
-            or not 0 <= self.max_retries <= MAX_TRANSIENT_RETRIES
-        ):
-            raise ValueError(
-                f"max_retries must be between 0 and {MAX_TRANSIENT_RETRIES}"
             )
 
 
@@ -123,11 +122,10 @@ class FrozenRubricJudge:
 
     def scoring_identity(self) -> dict[str, object]:
         runner = self._runner(self.experiment_dir, resume=False)
-        judge_path = runner.find_judge(self.task_dir)
         return {
-            "judge_source_sha256": sha256_file(judge_path),
-            "judge_runner_sha256": runner.judge_runner_sha256(),
-            "scorer_module_sha256": runner.scorer_module_sha256(),
+            "scoring_implementation_sha256": (
+                runner.scoring_implementation_sha256()
+            ),
             "effective_judge_model": runner.judge_model(os.environ.copy()),
             "judge_api_base": self.config.base_url,
             "benchmark": self.config.benchmark.value,
@@ -155,7 +153,6 @@ class FrozenRubricJudge:
         if os.path.lexists(evaluation_root):
             try:
                 artifacts = self.validate(submission_dir, attempt_id)
-                make_tree_read_only(evaluation_root)
                 return artifacts
             except (OSError, RuntimeError, SystemExit, ValueError):
                 remove_owned_evaluation_tree(
@@ -165,8 +162,7 @@ class FrozenRubricJudge:
         run_dir = prepare_evaluation_run(submission_dir, evaluation_root)
         runner, target = self._runner_and_target(run_dir)
         record: dict[str, object] = {}
-        max_attempts = self.config.max_retries + 1
-        for attempt_index in range(1, max_attempts + 1):
+        for attempt_index in range(1, JUDGE_MAX_ATTEMPTS + 1):
             record = runner.review_target(target)
             if (
                 record.get("status") == "completed"
@@ -181,12 +177,6 @@ class FrozenRubricJudge:
                 attempt_index,
                 record,
             )
-            permanent_error = self._permanent_failure(record)
-            if permanent_error is not None:
-                raise RuntimeError(
-                    "optimizer judge has a non-retryable error: "
-                    + permanent_error
-                )
         else:
             details = [
                 f"status={record.get('status')}",
@@ -196,7 +186,7 @@ class FrozenRubricJudge:
                 details.append(f"validation_error={record['validation_error']}")
             details.append(f"stdout={record.get('stdout')}")
             raise RuntimeError(
-                f"optimizer judge failed after {max_attempts} attempts: "
+                f"optimizer judge failed after {JUDGE_MAX_ATTEMPTS} attempts: "
                 + ", ".join(details)
             )
         artifacts = self._validated_cached_artifacts(
@@ -205,41 +195,7 @@ class FrozenRubricJudge:
             evaluation_root,
             submission_dir,
         )
-        make_tree_read_only(evaluation_root)
         return artifacts
-
-    @staticmethod
-    def _permanent_failure(record: dict[str, object]) -> str | None:
-        stdout_value = record.get("stdout")
-        if type(stdout_value) is not str:
-            return None
-        stdout_path = Path(stdout_value)
-        try:
-            stdout = stdout_path.read_text(errors="replace")
-        except OSError:
-            return None
-        if (
-            "404 NOT_FOUND" in stdout
-            and "is not found" in stdout
-            and "generateContent" in stdout
-        ):
-            return (
-                "the configured judge model is unavailable for generateContent; "
-                f"see {stdout_path}"
-            )
-        if "insufficient_quota" in stdout:
-            return (
-                "the OpenAI account has insufficient quota; update billing or "
-                f"use a different judge provider; see {stdout_path}"
-            )
-        if "invalid_api_key" in stdout or "Incorrect API key provided" in stdout:
-            return f"the OpenAI API key is invalid; see {stdout_path}"
-        if "model_not_found" in stdout and "openai" in stdout.lower():
-            return (
-                "the configured OpenAI judge model is unavailable to this account; "
-                f"see {stdout_path}"
-            )
-        return None
 
     def _archive_failed_attempt(
         self,

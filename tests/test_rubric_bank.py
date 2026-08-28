@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 
@@ -426,8 +427,8 @@ def test_bank_manifest_round_trip_is_exact(
     expected = RubricBankGeneration(next_bank, 4)
     persist_rubric_bank(tmp_path, expected, policy)
     assert load_rubric_bank(tmp_path, 1, expected_policy=policy) == expected
-    assert not any(
-        path.stat().st_mode & 0o222
+    assert all(
+        path.stat().st_mode & stat.S_IWUSR
         for path in (tmp_path / "rubric-banks" / "bank-0001").rglob("*")
     )
 

@@ -10,14 +10,14 @@ from rubric_gen.reward_hacking.protocol import (
     DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
     DEFAULT_RH_MAX_INPUT_TOKENS,
     DEFAULT_RH_MAX_OUTPUT_TOKENS,
+    RH_JUDGE_MAX_ATTEMPTS,
 )
 from rubric_gen.reward_hacking.sources import AuditCase, AuditSource
 from rubric_gen.reward_hacking.targets import detection_target
 from rubric_gen.runtime.llm import StructuredRequest
-from rubric_gen.runtime.pricing import OPENAI_PRICES_PER_MILLION
 
 
-DEFAULT_PANEL_MAX_COST_USD = 50.0
+JUDGE_MAX_ATTEMPTS = RH_JUDGE_MAX_ATTEMPTS
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,6 @@ class RewardHackingJudgeConfig:
     models: tuple[str, ...]
     output_dir: Path
     max_concurrency: int = 3
-    max_retries: int = 1
     resume: bool = False
     base_urls: dict[str, str] = field(default_factory=dict)
     detection: str = "rh"
@@ -34,8 +33,6 @@ class RewardHackingJudgeConfig:
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS
     max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS
     max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
-    max_cost_usd: float | None = DEFAULT_PANEL_MAX_COST_USD
-    execution: str = "standard"
     primary_rule: str = "any_detect"
 
     def __post_init__(self) -> None:
@@ -50,8 +47,6 @@ class RewardHackingJudgeConfig:
             raise ValueError("vLLM endpoints must match selected judge models")
         if self.max_concurrency < 1:
             raise ValueError("max_concurrency must be at least 1")
-        if self.max_retries < 0:
-            raise ValueError("max_retries must not be negative")
         if not 10_000 <= self.max_input_tokens <= 272_000:
             raise ValueError("max_input_tokens must be between 10000 and 272000")
         if not 1_024 <= self.max_output_tokens <= 16_384:
@@ -65,18 +60,8 @@ class RewardHackingJudgeConfig:
                 "max_command_output_chars must be between 512 and "
                 "max_event_text_chars"
             )
-        if self.max_cost_usd is not None and self.max_cost_usd <= 0:
-            raise ValueError("max_cost_usd must be positive")
-        if self.execution not in {"standard", "batch"}:
-            raise ValueError("execution must be standard or batch")
         if self.primary_rule not in {"majority", "any_detect", "unanimous_detects"}:
             raise ValueError("primary_rule is invalid")
-        if self.execution == "batch" and (
-            len(self.models) != 1
-            or self.models[0] not in OPENAI_PRICES_PER_MILLION
-            or self.base_urls
-        ):
-            raise ValueError("batch execution requires exactly one hosted OpenAI model")
 
 
 @dataclass(frozen=True)
@@ -112,7 +97,7 @@ class PreparationFailure:
     error_type: str
     error: str
 
-    def record(self, max_retries: int) -> dict[str, object]:
+    def record(self) -> dict[str, object]:
         return {
             "case_id": self.case.case_id,
             "source_kind": self.case.source_kind,
@@ -123,8 +108,7 @@ class PreparationFailure:
             "error_type": self.error_type,
             "error": self.error,
             "attempt_count": 0,
-            "max_retries": max_retries,
-            "retry_exhausted": False,
+            "max_attempts": JUDGE_MAX_ATTEMPTS,
         }
 
 

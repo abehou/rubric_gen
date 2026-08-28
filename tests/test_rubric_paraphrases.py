@@ -129,7 +129,6 @@ def _experiment(
                 "timeout_seconds": 60,
             },
             "judge_model": "test-judge",
-            "judge_max_retries": 1,
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
@@ -152,7 +151,6 @@ def _experiment(
                 "verifier_exploitation": 1,
                 "dynamic_rubric_gap": 1,
             },
-            "direct_detector_max_cost_usd": 100,
             "mechanistic_max_calls": 1_024,
             "mechanistic_max_request_bytes": 268_435_456,
             "mechanistic_max_output_tokens": 4_194_304,
@@ -341,7 +339,7 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
     assert first_selection.optimizer_index == second_selection.optimizer_index
 
 
-def test_paraphrase_checkpoints_successful_criteria_across_failed_run(
+def test_incomplete_paraphrase_restarts_all_criteria(
     tmp_path: Path,
 ) -> None:
     experiment = _experiment(tmp_path)
@@ -414,14 +412,12 @@ def test_paraphrase_checkpoints_successful_criteria_across_failed_run(
         for group_id in ("criterion-001", "criterion-002")
         if (index, group_id) != (0, "criterion-002")
     )
-    checkpoint = root / "tasks/da-1-1/variant-000.parts/criterion-001.json"
-    assert checkpoint.is_file()
+    assert not (root / "tasks/da-1-1/variant-000.txt").exists()
 
     calls.clear()
     fail_target = False
     assert ParaphraseRunner(config, generation_operation=generate).run() == 0
-    assert calls == [(0, "criterion-002")]
-    assert not checkpoint.parent.exists()
+    assert sorted(calls) == [(0, "criterion-001"), (0, "criterion-002")]
     metadata = json.loads(
         (root / "tasks/da-1-1/variant-000.json").read_text()
     )

@@ -362,6 +362,5 @@ def run_judge(args: argparse.Namespace) -> int:
         study_dir=resolve_project_path(args.study_dir),
         output_dir=resolve_project_path(args.output_dir),
         max_concurrency=args.max_concurrency,
-        max_retries=args.max_retries,
         resume=args.resume,
     )).run()

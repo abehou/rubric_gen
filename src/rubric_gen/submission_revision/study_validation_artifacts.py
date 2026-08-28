@@ -14,9 +14,6 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision.bank_scoring import preflight_bank_dispatch
 from rubric_gen.submission_revision.contrasts import build_elicitation_artifact_history
-from rubric_gen.submission_revision.controller_recovery_artifacts import (
-    fixed_original_attempt_id,
-)
 from rubric_gen.submission_revision.evolution import RubricBankProposer
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
@@ -29,7 +26,7 @@ from rubric_gen.submission_revision.judge import FrozenRubric, FrozenRubricJudge
 from rubric_gen.submission_revision.judging.models import RUBRIC_PATH_SOURCE
 from rubric_gen.submission_revision.judgment_reuse import (
     exact_judgment_request,
-    exact_simulator_request,
+    load_judgment_copy,
 )
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.rubric_bank import (
@@ -134,14 +131,7 @@ def _validate_rubric_generation_set(
         if context.bank_policy is RubricBankPolicy.OFFLINE_ELICITATION
         else range(1, context.revision_rounds)
     )
-    expected = [
-        name
-        for index in indices
-        for name in (
-            f"bank-{index:04d}",
-            f"bank-{index:04d}.provider-attempts.json",
-        )
-    ]
+    expected = [f"bank-{index:04d}" for index in indices]
     if not expected:
         if os.path.lexists(root):
             raise RuntimeError(
@@ -153,15 +143,9 @@ def _validate_rubric_generation_set(
         or not root.is_dir()
         or sorted(path.name for path in root.iterdir()) != expected
         or any(path.is_symlink() for path in root.iterdir())
-        or any(not _valid_generation_entry(path) for path in root.iterdir())
+        or any(not path.is_dir() for path in root.iterdir())
     ):
         raise RuntimeError("rubric generation set is incomplete")
-
-
-def _valid_generation_entry(path: Path) -> bool:
-    if path.name.endswith(".provider-attempts.json"):
-        return path.is_file()
-    return path.is_dir()
 
 
 def _generation_proposer(context: ValidationContext) -> RubricBankProposer | None:
@@ -335,9 +319,6 @@ def _member_artifacts(
     generation_round: int,
     bank: RubricBank,
 ) -> MemberArtifacts:
-    attempts = context.state["judge_attempts"]
-    assert isinstance(attempts, dict)
-    attempt = str(attempts[submission_id])
     artifacts: MemberArtifacts = {}
     for item in bank.items:
         rubric_hash = item.rubric.content_sha256
@@ -348,7 +329,6 @@ def _member_artifacts(
             submission_index,
             generation_round,
             item,
-            attempt,
         )
         _validate_judgment(paths, submission_id, rubric_hash)
         artifacts[rubric_hash] = paths
@@ -362,7 +342,6 @@ def _member_artifact_paths(
     submission_index: int,
     generation_round: int,
     item: RubricBankItem,
-    attempt: str,
 ) -> tuple[Path, Path]:
     rubric_hash = item.rubric.content_sha256
     if (
@@ -372,44 +351,23 @@ def _member_artifact_paths(
     ):
         validation, evaluation, _ = context.seed.judgment
         return validation, evaluation
-    if context.reuse_store is not None:
-        _, judge = _bank_member_judge(context, item, generation_round)
-        review_text, answer_text = judge.review_inputs(submission)
-        expected_request = exact_judgment_request(
-            task_id=str(context.assignment["task_id"]),
-            replicate=int(context.assignment["replicate"]),
-            rubric_sha256=rubric_hash,
-            review_text=review_text,
-            answer_text=answer_text,
-            scoring_identity=judge.scoring_identity(),
-        )
-        reused = context.reuse_store.validate_alias(
-            context.experiment_dir
-            / "judgment-aliases"
-            / submission_id
-            / (context.reuse_store.request_sha256(expected_request) + ".json"),
-            assignment_id=str(context.assignment["assignment_id"]),
-            replicate=int(context.assignment["replicate"]),
-            submission_id=submission_id,
-            rubric_sha256=rubric_hash,
-            expected_request=expected_request,
-        )
-        return (
-            reused.artifacts.score_validation_path,
-            reused.artifacts.evaluation_path,
-        )
-    root = (
-        context.experiment_dir
-        / "evaluations"
-        / submission_id
-        / rubric_hash
-        / attempt
-        / "run"
-        / "judges"
-        / str(context.protocol["review"])
-        / str(context.assignment["task_id"])
+    _, judge = _bank_member_judge(context, item, generation_round)
+    review_text, answer_text = judge.review_inputs(submission)
+    expected_request = exact_judgment_request(
+        task_id=str(context.assignment["task_id"]),
+        replicate=int(context.assignment["replicate"]),
+        rubric_sha256=rubric_hash,
+        review_text=review_text,
+        answer_text=answer_text,
+        scoring_identity=judge.scoring_identity(),
     )
-    return root / "score_validation.json", root / "evaluation.json"
+    artifacts = load_judgment_copy(
+        experiment_dir=context.experiment_dir,
+        submission_id=submission_id,
+        rubric_sha256=rubric_hash,
+        expected_request=expected_request,
+    )
+    return artifacts.score_validation_path, artifacts.evaluation_path
 
 
 def _bank_member_judge(
@@ -532,48 +490,22 @@ def _fixed_original_artifact_paths(
             raise RuntimeError(
                 f"active bank lacks the master judgment: {submission_id}"
             ) from exc
-    if context.reuse_store is not None:
-        review_text, answer_text = context.scoring.master_judge.review_inputs(submission)
-        expected_request = exact_judgment_request(
-            task_id=str(context.assignment["task_id"]),
-            replicate=int(context.assignment["replicate"]),
-            rubric_sha256=selection.master_sha256,
-            review_text=review_text,
-            answer_text=answer_text,
-            scoring_identity=context.scoring.master_judge.scoring_identity(),
-        )
-        reused = context.reuse_store.validate_alias(
-            context.experiment_dir
-            / "judgment-aliases"
-            / submission_id
-            / (context.reuse_store.request_sha256(expected_request) + ".json"),
-            assignment_id=str(context.assignment["assignment_id"]),
-            replicate=int(context.assignment["replicate"]),
-            submission_id=submission_id,
-            rubric_sha256=selection.master_sha256,
-            expected_request=expected_request,
-        )
-        return (
-            reused.artifacts.score_validation_path,
-            reused.artifacts.evaluation_path,
-        )
-    attempt = fixed_original_attempt_id(
-        str(context.assignment["assignment_id"]),
-        submission_id,
-        selection.master_sha256,
+    review_text, answer_text = context.scoring.master_judge.review_inputs(submission)
+    expected_request = exact_judgment_request(
+        task_id=str(context.assignment["task_id"]),
+        replicate=int(context.assignment["replicate"]),
+        rubric_sha256=selection.master_sha256,
+        review_text=review_text,
+        answer_text=answer_text,
+        scoring_identity=context.scoring.master_judge.scoring_identity(),
     )
-    root = (
-        context.experiment_dir
-        / "evaluations"
-        / submission_id
-        / selection.master_sha256
-        / attempt
-        / "run"
-        / "judges"
-        / str(context.protocol["review"])
-        / str(context.assignment["task_id"])
+    artifacts = load_judgment_copy(
+        experiment_dir=context.experiment_dir,
+        submission_id=submission_id,
+        rubric_sha256=selection.master_sha256,
+        expected_request=expected_request,
     )
-    return root / "score_validation.json", root / "evaluation.json"
+    return artifacts.score_validation_path, artifacts.evaluation_path
 
 
 def _project_feedback(
@@ -619,14 +551,6 @@ def _project_feedback(
         generation_round=generation_round,
         bank=bank,
     )
-    _validate_shared_simulator_generation(
-        context,
-        submission,
-        submission_id,
-        generation_round,
-        bank,
-        generation,
-    )
     return project_bank_simulated_user_feedback(
         bank,
         {
@@ -638,55 +562,6 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
-
-
-def _validate_shared_simulator_generation(
-    context: ValidationContext,
-    submission: Path,
-    submission_id: str,
-    generation_round: int,
-    bank: RubricBank,
-    generation: dict[str, object],
-) -> None:
-    store = context.simulator_reuse_store
-    simulator = context.simulator
-    if store is None or simulator is None:
-        return
-    instruction = (context.task_dir / "instruction.md").read_text(encoding="utf-8")
-    current_submission = get_submission_benchmark(
-        context.experiment.benchmark
-    ).render_submission(submission / "workspace")
-    expected_request = exact_simulator_request(
-        experiment_id=context.experiment.experiment_id,
-        task_id=str(context.assignment["task_id"]),
-        replicate=int(context.assignment["replicate"]),
-        instruction=instruction,
-        bank_sha256=bank.content_sha256,
-        current_submission=current_submission,
-        simulator_identity=simulator.identity(),
-    )
-    reused = store.validate_alias(
-        context.experiment_dir
-        / "simulated-user-aliases"
-        / f"{submission_id}.json",
-        assignment_id=str(context.assignment["assignment_id"]),
-        replicate=int(context.assignment["replicate"]),
-        submission_id=submission_id,
-        expected_request=expected_request,
-    )
-    expected_generation = store.assignment_record(
-        reused,
-        experiment_id=context.experiment.experiment_id,
-        assignment_id=str(context.assignment["assignment_id"]),
-        submission_id=submission_id,
-        generation_round=generation_round,
-        bank_sha256=bank.content_sha256,
-        simulator_identity=simulator.identity(),
-    )
-    if generation != expected_generation:
-        raise RuntimeError(
-            "simulated-user generation differs from its shared artifact"
-        )
 
 
 def _expected_bank_evaluation(

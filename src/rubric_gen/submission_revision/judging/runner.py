@@ -127,18 +127,20 @@ class SubmissionJudgeRunner:
         # attestation at construction time as well, so an unrelated source edit
         # during a long-running revision batch cannot invalidate earlier scores
         # or make later scores claim a different implementation identity.
-        self._judge_runner_sha256 = JudgeExecutor.judge_runner_sha256(
+        self._scoring_implementation_sha256 = (
+            JudgeExecutor.scoring_implementation_sha256(
             config.benchmark
+            )
         )
-        self._scorer_module_sha256 = JudgeExecutor.scorer_module_sha256()
         self.executor = JudgeExecutor(
             config,
             self.artifacts,
             validate_target=self.validate_target_identity,
             target_identities=self._target_directory_identities,
             resolve_local_rubric=self.resolved_local_rubric,
-            judge_runner_sha256=self.judge_runner_sha256,
-            scorer_module_sha256=self.scorer_module_sha256,
+            scoring_implementation_sha256=(
+                self.scoring_implementation_sha256
+            ),
         )
 
     @property
@@ -772,11 +774,8 @@ class SubmissionJudgeRunner:
             self.benchmark.answer_artifact,
         )
 
-    def judge_runner_sha256(self) -> str:
-        return self._judge_runner_sha256
-
-    def scorer_module_sha256(self) -> str:
-        return self._scorer_module_sha256
+    def scoring_implementation_sha256(self) -> str:
+        return self._scoring_implementation_sha256
 
     def judge_model(self, env: dict[str, str] | None = None) -> str:
         return self.executor.judge_model(env)

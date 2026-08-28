@@ -1,4 +1,4 @@
-"""Canonical JSON for exact rubric-evolution replay."""
+"""Canonical JSON helpers for rubric generation."""
 
 from __future__ import annotations
 

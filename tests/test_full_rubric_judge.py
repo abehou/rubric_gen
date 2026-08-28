@@ -175,8 +175,7 @@ def _executor(tmp_path: Path) -> JudgeExecutor:
         validate_target=lambda _target: None,
         target_identities=lambda _target: None,  # type: ignore[arg-type,return-value]
         resolve_local_rubric=lambda _path: _resolved_rubric(tmp_path),
-        judge_runner_sha256=lambda: "4" * 64,
-        scorer_module_sha256=lambda: "5" * 64,
+        scoring_implementation_sha256=lambda: "4" * 64,
     )
 
 
@@ -184,9 +183,7 @@ def _attestation(spec) -> dict[str, object]:
     value = {
         "review_input_sha256": "1" * 64,
         "answer_input_sha256": "2" * 64,
-        "judge_source_sha256": "3" * 64,
-        "judge_runner_sha256": "4" * 64,
-        "scorer_module_sha256": "5" * 64,
+        "scoring_implementation_sha256": "4" * 64,
         "effective_judge_model": "gpt-5.6-luna",
         "judge_api_base": None,
         "benchmark": SubmissionBenchmarkId.PAPERBENCH_CODE_DEV.value,

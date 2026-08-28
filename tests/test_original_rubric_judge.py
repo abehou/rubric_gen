@@ -90,9 +90,7 @@ class FakeJudge:
 
     def scoring_identity(self) -> dict[str, object]:
         return {
-            "judge_source_sha256": "1" * 64,
-            "judge_runner_sha256": "2" * 64,
-            "scorer_module_sha256": "3" * 64,
+            "scoring_implementation_sha256": "1" * 64,
             "effective_judge_model": self.job.model,
             "judge_api_base": None,
             "benchmark": self.job.target.benchmark.value,
@@ -225,8 +223,8 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         "pending": 0,
     }
     assert summary["predispatch_plan"]["base_totals"]["calls"] == 30
-    assert summary["predispatch_plan"]["maximum_totals"]["calls"] == 60
-    assert summary["predispatch_plan"]["outer_attempt_limit"] == 2
+    assert summary["predispatch_plan"]["maximum_totals"]["calls"] == 90
+    assert summary["predispatch_plan"]["outer_attempt_limit"] == 3
     result = summary["assignments"][target.assignment_id]
     assert result["ensemble"] == {
         "status": "completed",
@@ -371,7 +369,7 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
                     "base_url": "http://simulator.test/v1/",
                     "max_output_tokens": 1024,
                     "max_aspects": 2,
-                    "max_retries": 1,
+                    "max_attempts": 3,
                 },
             }
         )
@@ -413,9 +411,6 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
         "reviewer-model": "http://reviewer.test/v1",
         "simulator-model": "http://simulator.test/v1",
     }
-    assert validations[-1]["judgment_reuse_root"] == (
-        source / "shared-judgments"
-    )
     assert loaded.targets[0].rubric_sha256 == sha256_text(rubric)
     assert loaded.targets[0].initial_submission.name == "s000"
     assert loaded.targets[0].final_submission.name == "s010"
@@ -468,7 +463,6 @@ def test_original_rubric_judge_reuses_identical_semantic_requests(
         OriginalRubricEnsembleConfig(
             study_dir=study.source,
             output_dir=output,
-            max_retries=0,
         ),
         load_study=lambda _path: study,
         evaluate_job=evaluate,
@@ -509,7 +503,6 @@ def test_original_rubric_judge_reuses_identical_semantic_requests(
         OriginalRubricEnsembleConfig(
             study_dir=study.source,
             output_dir=output,
-            max_retries=0,
             resume=True,
         ),
         load_study=lambda _path: study,
@@ -543,7 +536,6 @@ def test_original_rubric_judge_rejects_cap_before_output_or_dispatch(
         OriginalRubricEnsembleConfig(
             study_dir=study.source,
             output_dir=output,
-            max_retries=0,
         ),
         load_study=lambda _path: study,
         evaluate_job=evaluate,

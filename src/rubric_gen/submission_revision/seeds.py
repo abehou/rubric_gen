@@ -430,7 +430,6 @@ class SeedSetRunner:
             rubric_name=str(self.protocol["rubric_name"]),
             rubric_set=None,
             max_review_chars=self.protocol["max_review_chars"],  # type: ignore[arg-type]
-            max_retries=int(self.protocol["judge_max_retries"]),
         )
         rubric = resolve_optimizer_rubric(judge_config)
         return FrozenRubricJudge(judge_config, rubric)

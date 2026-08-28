@@ -97,48 +97,6 @@ class EvidencePrompt:
         )
 
 
-class CostBudgetExceeded(RuntimeError):
-    pass
-
-
-def _retry_disposition(exc: Exception) -> tuple[bool, bool]:
-    """Return (retryable, opens_provider_circuit)."""
-
-    message = str(exc).lower()
-    body = getattr(exc, "body", None)
-    serialized_body = json.dumps(body, default=str).lower() if body is not None else ""
-    combined = message + " " + serialized_body
-    unavailable_markers = (
-        "insufficient_quota",
-        "billing quota",
-        "prepayment credits are depleted",
-        "credit balance is too low",
-    )
-    if any(marker in combined for marker in unavailable_markers):
-        return False, True
-    if isinstance(exc, (CostBudgetExceeded, FileExistsError)):
-        return False, False
-    status = getattr(exc, "status_code", None)
-    if status in {400, 401, 403, 404, 405, 413, 422}:
-        return False, False
-    if isinstance(exc, ValueError):
-        retryable_parse_error = (
-            "model response" in message or "model verdict" in message
-        )
-        return retryable_parse_error, False
-    if status == 429:
-        return True, False
-    if isinstance(status, int) and 500 <= status <= 599:
-        return True, False
-    transient_markers = (
-        "transient", "timeout", "timed out", "connection", "temporarily unavailable",
-        "rate limit", "http 500", "http 502", "http 503", "http 504",
-    )
-    return any(marker in combined for marker in transient_markers), False
-
-
-
-
 def _fragment_line(line: str, limit: int) -> list[str]:
     if len(line) <= limit:
         return [line]

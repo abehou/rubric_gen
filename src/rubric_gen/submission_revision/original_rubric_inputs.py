@@ -11,7 +11,6 @@ from typing import Callable, Iterable
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
-from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.runtime.vllm import normalize_vllm_base_url
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -114,19 +113,11 @@ class OriginalRubricEnsembleConfig:
     study_dir: Path
     output_dir: Path
     max_concurrency: int = 3
-    max_retries: int = 1
     resume: bool = False
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
             raise ValueError("max_concurrency must be positive")
-        if (
-            type(self.max_retries) is not int
-            or not 0 <= self.max_retries <= MAX_TRANSIENT_RETRIES
-        ):
-            raise ValueError(
-                f"max_retries must be between 0 and {MAX_TRANSIENT_RETRIES}"
-            )
         if type(self.resume) is not bool:
             raise ValueError("resume must be a boolean")
 
@@ -230,7 +221,6 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
                     seed_run_dir,
                     paraphrase_run_dir,
                     vllm_endpoints=sealed_endpoints,
-                    judgment_reuse_root=source / "shared-judgments",
                 )
             )
             progress.update()
@@ -387,7 +377,6 @@ def _load_completed_target(
     paraphrase_run_dir: Path,
     *,
     vllm_endpoints: dict[str, str],
-    judgment_reuse_root: Path,
 ) -> OriginalRubricTarget:
     assignment_id = str(assignment["assignment_id"])
     experiment_dir = resolve_study_experiment(
@@ -402,7 +391,6 @@ def _load_completed_target(
         seed_run_dir,
         paraphrase_run_dir,
         vllm_endpoints=vllm_endpoints,
-        judgment_reuse_root=judgment_reuse_root,
     )
     manifest = read_json_object(
         experiment_dir / "manifest.json",
@@ -504,7 +492,6 @@ def build_original_rubric_judge(
         rubric_name=job.target.rubric_name,
         rubric_set=None,
         max_review_chars=job.target.max_review_chars,
-        max_retries=config.max_retries,
     )
     rubric = resolve_optimizer_rubric(judge_config)
     if rubric.sha256 != job.target.rubric_sha256:
@@ -543,9 +530,7 @@ def validated_scoring_identity(
         or any(
             not is_sha256(identity.get(key))
             for key in (
-                "judge_source_sha256",
-                "judge_runner_sha256",
-                "scorer_module_sha256",
+                "scoring_implementation_sha256",
             )
         )
     ):

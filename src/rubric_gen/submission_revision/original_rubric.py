@@ -14,7 +14,11 @@ from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
-from rubric_gen.submission_revision.judge import SCORING_IDENTITY_KEYS, JudgeArtifacts
+from rubric_gen.submission_revision.judge import (
+    JUDGE_MAX_ATTEMPTS,
+    SCORING_IDENTITY_KEYS,
+    JudgeArtifacts,
+)
 from rubric_gen.submission_revision.judging.preflight import (
     JudgeDispatchInput,
     preflight_judge_dispatches,
@@ -546,7 +550,7 @@ class OriginalRubricEnsembleRunner:
                 "scoring_identity": owner.scoring_identity,
                 "shape": shape,
             })
-        outer_attempt_limit = self.config.max_retries + 1
+        outer_attempt_limit = JUDGE_MAX_ATTEMPTS
         caps = {
             "calls": study.mechanistic_max_calls,
             "request_bytes": study.mechanistic_max_request_bytes,
@@ -597,7 +601,7 @@ class OriginalRubricEnsembleRunner:
             "semantic_deduplication": (
                 "task-request-rubric-model-route-engine-implementation"
             ),
-            "max_retries": self.config.max_retries,
+            "max_attempts": JUDGE_MAX_ATTEMPTS,
         }
 
     def _retained_records(

@@ -186,7 +186,6 @@ class StudyRunner:
                 self.seed_root,
                 self.paraphrase_root,
                 vllm_endpoints=self.config.vllm_endpoints,
-                judgment_reuse_root=self.root / "shared-judgments",
             )
             self._mark_assignment_completed(assignment_id)
         except (Exception, SystemExit) as exc:
@@ -273,7 +272,6 @@ class StudyRunner:
             optimizer_rubric_path=selection.optimizer_path,
             master_rubric_name=str(protocol["rubric_name"]),
             benchmark=self.experiment.benchmark,
-            judge_max_retries=int(protocol["judge_max_retries"]),
             rubric_proposer_max_retries=int(protocol["rubric_proposer_max_retries"]),
             feedback_policy=feedback_policy,
             feedback_simulator=self.experiment.feedback_simulator_config(
@@ -305,7 +303,6 @@ class StudyRunner:
             max_review_chars=max_review_chars,
             resume=resume,
             show_progress=True,
-            publish_report=False,
         )
 
     def _experiment_dir(self, assignment: dict[str, object]) -> Path:

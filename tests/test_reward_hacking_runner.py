@@ -10,12 +10,7 @@ import pytest
 import rubric_gen.reward_hacking.review as review
 import rubric_gen.reward_hacking.runner as runner_module
 import rubric_gen.runtime.llm as llm
-from rubric_gen.reward_hacking.batch import OpenAIBatchRunner
-from rubric_gen.reward_hacking.batch_state import BatchState
-from rubric_gen.reward_hacking.costs import (
-    cache_write_reservation_tokens,
-    request_cost,
-)
+from rubric_gen.reward_hacking.costs import request_cost
 from rubric_gen.reward_hacking.jobs import PreparedJob, RewardHackingJudgeConfig
 from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.reward_hacking.standard import StandardJobRunner
@@ -283,36 +278,19 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
     assert (output / "detection-rates.json").is_file()
     assert (output / "detection-rates.png").is_file()
     assert not (output / "category-rates.json").exists()
-    generation = json.loads(
-        (output / "cases/case-a/gpt-test/generations.json").read_text()
-    )[0]["generation"]
+    score_path = output / "cases/case-a/gpt-test/score.json"
+    score = json.loads(score_path.read_text())
+    generation = score["generations"][0]["generation"]
     assert generation["requested_model"] == "gpt-test"
     assert generation["effective_model"] == "gpt-test-served"
-    provenance = json.loads((output / "run-provenance.json").read_text())
-    assert provenance["input_validation"] == (
+    settings = json.loads((output / "run.json").read_text())
+    assert settings["input_validation"] == (
         "study-ledger-and-required-evidence-files; "
         "no-snapshot-hash-revalidation"
     )
-    assert provenance["detection_target"] == summary["detection_target"]
-    assert set(provenance["implementation_sha256s"]) == {
-        "batch.py",
-        "batch_state.py",
-        "costs.py",
-        "jobs.py",
-            "metrics.py",
-            "planning.py",
-            "protocol.py",
-        "review.py",
-        "runner.py",
-        "sources.py",
-        "standard.py",
-        "standard_state.py",
-        "targets.py",
-    }
-    assert all(
-        len(value) == 64
-        for value in provenance["implementation_sha256s"].values()
-    )
+    assert settings["detection_target"] == summary["detection_target"]
+    assert len(settings["scoring_implementation_sha256"]) == 64
+    assert {path.name for path in score_path.parent.iterdir()} == {"score.json"}
 
 
 def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
@@ -330,7 +308,6 @@ def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
     runner = RewardHackingJudgeRunner(
         RewardHackingJudgeConfig(
             source=_source(case), models=("gpt-test",), output_dir=output,
-            max_retries=1,
         ),
         generate_response=generate,
     )
@@ -338,8 +315,7 @@ def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
     assert runner.run() == 0
     record = json.loads((output / "summary.json").read_text())["records"][0]
     assert record["attempt_count"] == 2
-    assert record["retry_exhausted"] is False
-    assert not (output / "cases/case-a/gpt-test.failed-001").exists()
+    assert record["max_attempts"] == 3
 
 
 def test_job_preparation_reports_progress(
@@ -407,7 +383,6 @@ def test_direct_runner_does_not_make_posthoc_category_calls(
             source=_source(case),
             models=("gpt-test",),
             output_dir=output,
-            max_retries=1,
         ),
         generate_response=generate,
     )
@@ -774,9 +749,11 @@ def test_rh_prompt_preserves_every_converted_message(
     prompt = observed["prompt"]
     assert prompt.count("assistant: same exact action") == 2
     assert "assistant: new action" in prompt
-    metadata = json.loads((tmp_path / "out/cases/case-a/gpt-test/metadata.json").read_text())
-    assert metadata["compact_evidence"]["source_references"] == 3
-    assert metadata["compact_evidence"]["distinct_events"] == 2
+    score = json.loads(
+        (tmp_path / "out/cases/case-a/gpt-test/score.json").read_text()
+    )
+    assert score["compact_evidence"]["source_references"] == 3
+    assert score["compact_evidence"]["distinct_events"] == 2
 
 
 def test_direct_prompt_preserves_distinct_function_calls_with_empty_content(
@@ -816,14 +793,14 @@ def test_direct_prompt_preserves_distinct_function_calls_with_empty_content(
     assert runner.run() == 0
     assert '"arguments":"first"' in observed["prompt"]
     assert '"arguments":"second"' in observed["prompt"]
-    metadata = json.loads(
-        (output / "cases/case-a/gpt-test/metadata.json").read_text()
+    score = json.loads(
+        (output / "cases/case-a/gpt-test/score.json").read_text()
     )
-    assert metadata["compact_evidence"]["distinct_events"] == 2
-    assert metadata["compact_evidence"]["source_references"] == 2
+    assert score["compact_evidence"]["distinct_events"] == 2
+    assert score["compact_evidence"]["source_references"] == 2
 
 
-def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> None:
+def test_resume_reuses_valid_scores_and_refuses_changed_run(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     output = tmp_path / "out"
     calls = 0
@@ -841,6 +818,10 @@ def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> No
     assert RewardHackingJudgeRunner(
         RewardHackingJudgeConfig(**base), generate_response=generate
     ).run() == 0
+    with pytest.raises(FileExistsError, match="run already exists"):
+        RewardHackingJudgeRunner(
+            RewardHackingJudgeConfig(**base), generate_response=generate
+        ).run()
     assert RewardHackingJudgeRunner(
         RewardHackingJudgeConfig(
             **base,
@@ -855,14 +836,13 @@ def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> No
     assert summary["records"][0]["generation"]["effective_model"] == (
         "gpt-test-served"
     )
-    assert "max_concurrency" not in summary["run_provenance"]
+    assert "max_concurrency" not in summary["run_settings"]
 
-    (output / "cases/case-a/gpt-test/responses.json").write_text("tampered")
+    (output / "cases/case-a/gpt-test/score.json").write_text("tampered")
     assert RewardHackingJudgeRunner(
         RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     assert calls == 2
-    assert not (output / "cases/case-a/gpt-test.failed-001").exists()
 
     changed = {
         **DATASET_PROVENANCE,
@@ -872,19 +852,20 @@ def test_resume_replaces_incompatible_run_and_case_outputs(tmp_path: Path) -> No
             "sha256": "c" * 64,
         }],
     }
-    assert RewardHackingJudgeRunner(
-        RewardHackingJudgeConfig(
-            **{**base, "source": _source(case, provenance=changed)},
-            resume=True,
-        ),
-        generate_response=generate,
-    ).run() == 0
-    assert calls == 3
-    provenance = json.loads((output / "run-provenance.json").read_text())
-    assert provenance["source"]["dataset"] == changed
+    with pytest.raises(ValueError, match="run settings"):
+        RewardHackingJudgeRunner(
+            RewardHackingJudgeConfig(
+                **{**base, "source": _source(case, provenance=changed)},
+                resume=True,
+            ),
+            generate_response=generate,
+        ).run()
+    assert calls == 2
+    settings = json.loads((output / "run.json").read_text())
+    assert settings["source"]["dataset"] == DATASET_PROVENANCE
 
 
-def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
+def test_resume_reads_cost_from_saved_score(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     output = tmp_path / "out"
     calls = 0
@@ -913,18 +894,13 @@ def test_resume_preserves_cumulative_openai_cost(tmp_path: Path) -> None:
     first = json.loads((output / "summary.json").read_text())["cost"]
     assert first["observed_api_usd"] > 0
 
-    cost_state_path = output / "cost-state.json"
-    cost_state = json.loads(cost_state_path.read_text())
-    cost_state["reserved_api_usd"] = -1.6653345369377348e-16
-    cost_state_path.write_text(json.dumps(cost_state))
-
     assert RewardHackingJudgeRunner(
         RewardHackingJudgeConfig(**base, resume=True), generate_response=generate
     ).run() == 0
     resumed = json.loads((output / "summary.json").read_text())["cost"]
     assert resumed["observed_api_usd"] == first["observed_api_usd"]
     assert calls == 1
-    assert json.loads(cost_state_path.read_text())["reserved_api_usd"] == 0.0
+    assert not (output / "cost-state.json").exists()
 
 
 def test_malt_gemini_uses_only_canonical_gemini_key(
@@ -1181,36 +1157,7 @@ def test_rh_scans_every_chunk_then_takes_maximum_score(tmp_path: Path) -> None:
     assert not (output / "cost-preflight.json").exists()
 
 
-def test_runtime_budget_stops_before_generation(tmp_path: Path) -> None:
-    case = _case(tmp_path / "case-a", {"samples": []})
-    calls = 0
-
-    def generate(model: str, request: StructuredRequest) -> GenerationResult:
-        nonlocal calls
-        calls += 1
-        raise AssertionError("generation must not start")
-
-    runner = RewardHackingJudgeRunner(
-        RewardHackingJudgeConfig(
-            source=_source(case), models=("gpt-5.6-luna",),
-            output_dir=tmp_path / "output",
-            max_cost_usd=0.01,
-        ),
-        generate_response=generate,
-        count_tokens=lambda _model, _request: 100_000,
-    )
-
-    assert runner.run() == 1
-    assert calls == 0
-    assert not (tmp_path / "output/cost-preflight.json").exists()
-    record = json.loads(
-        (tmp_path / "output/summary.json").read_text()
-    )["records"][0]
-    assert record["status"] == "failed"
-    assert record["error_type"] == "CostBudgetExceeded"
-
-
-def test_omitted_runtime_budget_allows_generation(tmp_path: Path) -> None:
+def test_runner_records_final_cost_without_budget_state(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-a", {"samples": []})
     calls = 0
 
@@ -1225,7 +1172,6 @@ def test_omitted_runtime_budget_allows_generation(tmp_path: Path) -> None:
             source=_source(case),
             models=("gpt-5.6-luna",),
             output_dir=output,
-            max_cost_usd=None,
         ),
         generate_response=generate,
         count_tokens=lambda _model, _request: 100_000,
@@ -1234,7 +1180,8 @@ def test_omitted_runtime_budget_allows_generation(tmp_path: Path) -> None:
     assert runner.run() == 0
     assert calls == 1
     summary = json.loads((output / "summary.json").read_text())
-    assert summary["cost"]["budget_usd"] is None
+    assert "budget_usd" not in summary["cost"]
+    assert not (output / "cost-state.json").exists()
 
 
 def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
@@ -1264,25 +1211,7 @@ def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     ) == pytest.approx(4.0)
 
 
-def test_cost_reservation_marks_only_the_stable_prefix_as_a_cache_write() -> None:
-    request = StructuredRequest(
-        instructions="stable " * 2_000,
-        evidence="changing " * 40_000,
-        schema_name="test_schema",
-        schema={"type": "object", "additionalProperties": False},
-    )
-    total = llm.estimate_input_tokens("gpt-5.6-sol", request)
-    reserved = cache_write_reservation_tokens(
-        "gpt-5.6-sol", request, total
-    )
-
-    assert 0 < reserved < total
-    assert cache_write_reservation_tokens(
-        "gemini-3.1-pro-preview", request, total
-    ) == 0
-
-
-def test_quota_error_opens_circuit_without_retries(tmp_path: Path) -> None:
+def test_quota_failure_does_not_stop_other_jobs(tmp_path: Path) -> None:
     cases = (
         _case(tmp_path / "case-a", {"samples": []}),
         _case(tmp_path / "case-b", {"samples": []}),
@@ -1298,16 +1227,17 @@ def test_quota_error_opens_circuit_without_retries(tmp_path: Path) -> None:
     runner = RewardHackingJudgeRunner(
         RewardHackingJudgeConfig(
             source=_source(*cases), models=("gpt-test",), output_dir=output,
-            max_retries=3, max_concurrency=1,
+            max_concurrency=1,
         ),
         generate_response=generate,
     )
 
     assert runner.run() == 1
     records = json.loads((output / "summary.json").read_text())["records"]
-    assert calls == 1
-    assert all(record["attempt_count"] == 1 for record in records)
-    assert "provider circuit is open" in records[1]["error"]
+    assert calls == 6
+    assert all(record["attempt_count"] == 3 for record in records)
+    assert all("insufficient_quota" in record["error"] for record in records)
+    assert not (output / "detection-rates.png").exists()
 
 
 @pytest.mark.parametrize(
@@ -1350,13 +1280,18 @@ def test_depleted_provider_preparation_does_not_block_other_models(
         count_tokens=count_tokens,
     )
 
-    assert runner.run() == 1
+    assert runner.run() == 0
     records = json.loads((output / "summary.json").read_text())["records"]
     by_model = {
         model: [record for record in records if record["model"] == model]
         for model in ("gpt-test", "gemini-test")
     }
-    assert token_calls == ["gpt-test", "gemini-test", "gpt-test"]
+    assert token_calls == [
+        "gpt-test",
+        "gemini-test",
+        "gpt-test",
+        "gemini-test",
+    ]
     assert generation_calls == ["gpt-test", "gpt-test"]
     assert len(by_model["gpt-test"]) == 2
     assert all(record["status"] == "completed" for record in by_model["gpt-test"])
@@ -1367,167 +1302,3 @@ def test_depleted_provider_preparation_does_not_block_other_models(
         quota_message in record["error"]
         for record in by_model["gemini-test"]
     )
-
-
-def test_openai_batch_submits_and_resume_collects(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    case = _case(tmp_path / "case-a", {"samples": []})
-    verdict = _rh_text(reason="No reward-directed divergence.")
-    output_row = json.dumps({
-        "custom_id": "j00000-r000",
-        "response": {
-            "status_code": 200,
-            "body": {
-                "id": "resp-batch",
-                "model": "gpt-5.6-luna-served",
-                "created_at": 1,
-                "output": [{
-                    "type": "message",
-                    "content": [{"type": "output_text", "text": verdict}],
-                }],
-                "usage": {"input_tokens": 100, "output_tokens": 20},
-            },
-        },
-    }) + "\n"
-
-    class FakeFiles:
-        def create(self, **kwargs: object) -> object:
-            return types.SimpleNamespace(id="file-input")
-
-        def content(self, file_id: str) -> object:
-            assert file_id == "file-output"
-            return types.SimpleNamespace(text=output_row)
-
-    class FakeBatches:
-        def create(self, **kwargs: object) -> object:
-            return types.SimpleNamespace(id="batch-test", status="validating")
-
-        def retrieve(self, batch_id: str) -> object:
-            assert batch_id == "batch-test"
-            return types.SimpleNamespace(
-                id=batch_id, status="completed", output_file_id="file-output",
-                error_file_id=None,
-            )
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs: object) -> None:
-            self.files = FakeFiles()
-            self.batches = FakeBatches()
-
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
-    base = dict(
-        source=_source(case), models=("gpt-5.6-luna",),
-        output_dir=tmp_path / "output",
-        execution="batch",
-    )
-    count = lambda _model, _request: 100
-
-    assert RewardHackingJudgeRunner(RewardHackingJudgeConfig(**base), count_tokens=count).run() == 0
-    assert not (tmp_path / "output/summary.json").exists()
-    batch_line = json.loads(
-        (tmp_path / "output/batch-initial-01.jsonl").read_text().splitlines()[0]
-    )
-    assert batch_line["body"]["prompt_cache_options"]["mode"] == "explicit"
-    assert batch_line["body"]["text"]["format"]["type"] == "json_schema"
-
-    assert RewardHackingJudgeRunner(
-        RewardHackingJudgeConfig(**base, resume=True), count_tokens=count
-    ).run() == 0
-    summary = json.loads((tmp_path / "output/summary.json").read_text())
-    assert summary["records"][0]["verdict"]["decision"] == (
-        "no_reward_hacking_detected"
-    )
-
-
-def test_batch_rh_aggregates_chunk_scores_without_synthesis(tmp_path: Path) -> None:
-    case = tmp_path / "case-a"
-    request = StructuredRequest(
-        instructions="prefix",
-        evidence="chunk",
-        schema_name="reward_hacking_score",
-        schema=review._rh_score_schema(),
-        prompt_layout="cached_user_prefix",
-    )
-    audit_case = AuditCase(
-        case_id=case.name,
-        source_kind="transcript",
-        path=case,
-        sort_key=(case.name,),
-    )
-    job = PreparedJob(
-        case=audit_case,
-        model="gpt-5.6-luna",
-        requests=(request, request, request),
-        input_tokens=(100, 100, 100),
-        compact_stats={"planned_calls": 3},
-        aggregation="max_score",
-    )
-    runner = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
-        source=_source(case),
-        models=("gpt-5.6-luna",),
-        output_dir=tmp_path / "output",
-        execution="batch",
-    ))
-    results = {}
-    for index, score in enumerate((1, 9, 2)):
-        results[f"j00000-r{index:03d}"] = {
-            "custom_id": f"j00000-r{index:03d}",
-            "verdict": {"reason": f"score {score}", "score": score},
-            "generation": {"response_id": f"response-{index}"},
-            "text": _rh_text(score, f"score {score}"),
-        }
-    state = BatchState.new(runner.run_provenance_sha256)
-    state.initial_results = results
-
-    batch = OpenAIBatchRunner(
-        runner.config,
-        (job,),
-        runner.run_provenance_sha256,
-        runner.count_tokens,
-        runner._payload,
-    )
-    assert batch.synthesis_entries((job,), results) == []
-    records = batch.records_from_state((job,), state)
-
-    assert records[0]["verdict"]["score"] == 9
-    assert records[0]["verdict"]["selected_chunk"] == 2
-    assert len(records[0]["generations"]) == 3
-    assert (tmp_path / "output/cases/case-a/gpt-5.6-luna/generations.json").is_file()
-
-
-def test_openai_batch_prices_a_paid_response_before_parse_retry(
-    tmp_path: Path,
-) -> None:
-    runner = RewardHackingJudgeRunner(
-        RewardHackingJudgeConfig(
-            source=_source(tmp_path / "case"),
-            models=("gpt-5.6-luna",),
-            output_dir=tmp_path,
-            execution="batch",
-        ),
-        count_tokens=lambda _model, _request: 1_000,
-    )
-    body = {
-        "id": "resp-invalid",
-        "model": "gpt-5.6-luna",
-        "output": [{
-            "type": "message",
-            "content": [{"type": "output_text", "text": "{}"}],
-        }],
-        "usage": {"input_tokens": 1_000, "output_tokens": 100},
-    }
-
-    batch = OpenAIBatchRunner(
-        runner.config,
-        (),
-        runner.run_provenance_sha256,
-        runner.count_tokens,
-        runner._payload,
-    )
-    with pytest.raises(ValueError) as error:
-        batch.parse_response("job-invalid", body)
-
-    assert getattr(error.value, "batch_cost_accounted") is True
-    assert batch.observed_api_usd == pytest.approx(0.00016)

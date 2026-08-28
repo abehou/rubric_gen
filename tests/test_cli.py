@@ -271,13 +271,11 @@ def test_judge_accepts_only_the_strong_original_rubric_workflow() -> None:
         "--experiment", "experiment.yaml",
         "--output-dir", "runs/judge",
         "--max-concurrency", "2",
-        "--max-retries", "0",
         "--resume",
     ])
     assert judge.experiment == "experiment.yaml"
     assert judge.output_dir == "runs/judge"
     assert judge.max_concurrency == 2
-    assert judge.max_retries == 0
     assert judge.resume is True
     assert not hasattr(judge, "models")
     assert not hasattr(judge, "vllm")
@@ -290,6 +288,7 @@ def test_judge_accepts_only_the_strong_original_rubric_workflow() -> None:
         ["--study-dir", "runs/study"],
         ["--models", "gpt-5.6-sol"],
         ["--vllm", "http://qwen27:43117::Qwen/Qwen3.6-27B"],
+        ["--max-retries", "0"],
     ],
 )
 def test_judge_rejects_removed_interfaces(legacy_args: list[str]) -> None:

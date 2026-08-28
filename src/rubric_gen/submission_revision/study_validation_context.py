@@ -14,7 +14,9 @@ from rubric_gen.submission_revision.artifacts import (
     sha256_file,
     tree_sha256,
 )
-from rubric_gen.submission_revision.evolution import rubric_generation_implementation_identity
+from rubric_gen.submission_revision.evolution import (
+    rubric_generation_implementation_sha256,
+)
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.judge import (
@@ -22,10 +24,6 @@ from rubric_gen.submission_revision.judge import (
     FrozenRubricJudge,
     SubmissionJudgeConfig,
     resolve_optimizer_rubric,
-)
-from rubric_gen.submission_revision.judgment_reuse import (
-    ExactJudgmentReuseStore,
-    ExactSimulatorReuseStore,
 )
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
@@ -74,8 +72,6 @@ class ValidationContext:
     revision_rounds: int
     expected_ids: tuple[str, ...]
     scoring: ScoringSetup
-    reuse_store: ExactJudgmentReuseStore | None
-    simulator_reuse_store: ExactSimulatorReuseStore | None
 
 
 def build_validation_context(
@@ -85,7 +81,6 @@ def build_validation_context(
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
     endpoints: dict[str, str],
-    judgment_reuse_root: Path | None,
 ) -> ValidationContext:
     if experiment_dir.is_symlink() or not experiment_dir.is_dir():
         raise RuntimeError(f"revision is not a regular directory: {experiment_dir}")
@@ -182,16 +177,6 @@ def build_validation_context(
         revision_rounds=revision_rounds,
         expected_ids=expected_ids,
         scoring=scoring,
-        reuse_store=(
-            ExactJudgmentReuseStore(judgment_reuse_root / "judge")
-            if judgment_reuse_root is not None
-            else None
-        ),
-        simulator_reuse_store=(
-            ExactSimulatorReuseStore(judgment_reuse_root / "simulated-user")
-            if judgment_reuse_root is not None
-            else None
-        ),
     )
 
 
@@ -229,7 +214,6 @@ def _build_scoring_setup(
         rubric_set=None,
         rubric_path=selection.optimizer_path,
         max_review_chars=max_review_chars,
-        max_retries=int(protocol["judge_max_retries"]),
     )
     initial_rubric = resolve_optimizer_rubric(judge_config)
     initial_judge = FrozenRubricJudge(judge_config, initial_rubric)
@@ -320,13 +304,12 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "rubric_semantic_judge_max_output_tokens": protocol[
             "rubric_semantic_judge_max_output_tokens_per_call"
         ],
-        "rubric_generation_implementation_identity": (
-            rubric_generation_implementation_identity()
+        "rubric_generation_implementation_sha256": (
+            rubric_generation_implementation_sha256()
         ),
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
         "judge_base_url": context.endpoints.get(str(protocol["judge_model"])),
-        "judge_max_retries": protocol["judge_max_retries"],
         "max_review_chars": protocol["max_review_chars"],
         "initial_rubric_path": str(context.selection.optimizer_path.resolve()),
         "initial_bank_sha256": scoring.initial_generation.bank.content_sha256,

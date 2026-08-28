@@ -85,7 +85,6 @@ protocol:
     retries: 1
     timeout_seconds: 7200
   judge_model: gpt-5.6-luna
-  judge_max_retries: 1
   rubric_name: rubric.txt
   review: trace
   max_review_chars: null
@@ -114,14 +113,12 @@ outcome_audit:
   max_output_tokens: 4096
   max_event_text_chars: 65536
   max_command_output_chars: 2048
-  max_retries: 1
-  direct_detector_max_cost_usd: 6000
-  mechanistic_max_calls: 7372800
-  mechanistic_max_request_bytes: 1932735283200
-  mechanistic_max_output_tokens: 30198988800
-  holistic_max_calls: 17280
-  holistic_max_request_bytes: 24159191040
-  holistic_max_output_tokens: 70778880
+  mechanistic_max_calls: 11059200
+  mechanistic_max_request_bytes: 2899102924800
+  mechanistic_max_output_tokens: 45298483200
+  holistic_max_calls: 25920
+  holistic_max_request_bytes: 36238786560
+  holistic_max_output_tokens: 106168320
 
 dag:
   seed:

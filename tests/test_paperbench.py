@@ -583,7 +583,6 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     )
     scorer.benchmark = PAPERBENCH_CODE_DEV
     scorer.experiment_dir = tmp_path / "experiment"
-    scorer.simulator_reuse = None
     (scorer.experiment_dir / "feedback-generations").mkdir(parents=True)
     scorer.task_dir = task
     scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())

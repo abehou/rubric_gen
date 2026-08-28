@@ -171,7 +171,7 @@ def test_load_harvey_experiment_resolves_paths_and_modes(tmp_path: Path) -> None
     assert experiment.rubric.mode == "prospective"
     assert experiment.designer.rounds == 2
     assert experiment.task_agent.model == "gpt-5.6-luna"
-    assert experiment.audit.max_cost_usd is None
+    assert experiment.audit.primary_rule == "any_detect"
 
 
 def test_cached_judge_preserves_prompt_and_marks_shared_prefix() -> None:
@@ -1117,7 +1117,7 @@ def test_controller_runs_linear_round_with_free_parent_record_and_resumes(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     controller = HarveyEvolutionController(
         experiment,
@@ -1169,7 +1169,7 @@ def test_production_evaluator_uses_runtime_modules_and_rescores_read_only_output
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     calls: list[list[str]] = []
 
@@ -1254,7 +1254,7 @@ def test_production_evaluator_resumes_canonical_and_crossed_task_checkpoints(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     call_counts: dict[tuple[str, str], int] = {}
     lock = threading.Lock()
@@ -1377,7 +1377,7 @@ def test_harvey_judge_retries_configured_transient_failures(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     calls = 0
 
@@ -1430,7 +1430,7 @@ def test_harvey_task_agent_retries_invalid_prompt_from_clean_result(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     calls = 0
     runtime_result = tmp_path / "results" / "run"
@@ -1506,7 +1506,7 @@ def test_production_evaluator_runs_independent_tasks_with_bounded_concurrency(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     task_agents = threading.Barrier(2, timeout=5)
     active = 0
@@ -1599,7 +1599,7 @@ def test_production_evaluator_stops_scheduling_after_fatal_task_failure(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     task_agent_calls: list[str] = []
     judge_calls: list[str] = []
@@ -1666,7 +1666,7 @@ def test_concurrent_task_agents_initialize_shared_podman_state_once(
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, None, 2, 4096),
-        audit=RewardHackingAudit(("judge",), 1, 0, 1.0, "majority"),
+        audit=RewardHackingAudit(("judge",), 1, "majority"),
     )
     evaluator = HarveyEvaluator(
         experiment,

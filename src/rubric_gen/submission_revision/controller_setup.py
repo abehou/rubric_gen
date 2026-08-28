@@ -19,7 +19,6 @@ from rubric_gen.submission_revision.judge import (
 )
 from rubric_gen.submission_revision.judgment_reuse import (
     ExactJudgmentReuseStore,
-    ExactSimulatorReuseStore,
 )
 from rubric_gen.submission_revision.models import (
     RevisionDependencies,
@@ -52,7 +51,6 @@ class RevisionSetup:
     experiment_dir: Path
     task_dir: Path
     judgment_reuse: ExactJudgmentReuseStore | None
-    simulator_reuse: ExactSimulatorReuseStore | None
     initial_rubric: FrozenRubric
     bank_policy: RubricBankPolicy
     initial_bank: RubricBankGeneration
@@ -269,11 +267,6 @@ def build_revision_setup(
         if judgment_reuse_root is not None
         else None
     )
-    simulator_reuse = (
-        ExactSimulatorReuseStore(judgment_reuse_root / "simulated-user")
-        if judgment_reuse_root is not None
-        else None
-    )
     initial_rubric = resolve_optimizer_rubric(config.judge_config())
     initial_bank = _initial_bank(initial_rubric)
     bank_policy = RubricBankPolicy(config.rubric_policy)
@@ -321,7 +314,6 @@ def build_revision_setup(
         experiment_dir=experiment_dir,
         task_dir=task_dir,
         judgment_reuse=judgment_reuse,
-        simulator_reuse=simulator_reuse,
         initial_rubric=initial_rubric,
         bank_policy=bank_policy,
         initial_bank=initial_bank,

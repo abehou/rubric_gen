@@ -679,3 +679,17 @@
 - **15:21 PDT** — Split evolution, reward-hacking model-panel execution, and submission revision control into focused owners, with every new module below 1,000 lines. The full suite has 727 passes, one skip, and the same 12 unrelated Codex-auth and paraphrase-fixture failures.
 - **16:33 PDT** — Split study validation, original-rubric ensembles, paraphrase pools, and full-rubric judging into explicit protocol, input, execution, validation, and summary owners; no source module exceeds 1,000 lines. Fixed stale test isolation for paraphrase and Codex-auth boundaries, and the full suite now has 744 passes and one skip.
 - **16:46 PDT** — Extracted bounded reward-hacking request planning from the panel coordinator, reducing its worst planning complexity from 38 to 5. The final full suite remains green with 744 passes and one skip.
+
+## 2026-08-28
+
+- **12:08 PDT** — Chose a simpler artifact design: keep hard-link snapshot deduplication, make saved snapshot files read-only, and trim unneeded files from older snapshots after completion. Delete temporary judge workspaces after saving the score, cost, and raw response; the final submission snapshot stays complete.
+- **12:25 PDT** — Made each valid saved score file the sole completion signal for its judge job. Separate status and completion files will be removed.
+- **12:26 PDT** — Limited each judge job to three total attempts. A job fails after the third unsuccessful attempt, without a separate provider-wide stop mechanism.
+- **12:26 PDT** — A run with failed judge jobs will still finish and plot its successful results. Each plot will show the number of missing results.
+- **12:27 PDT** — Resume will retry every judge job that lacks a valid score file. Permanent failure files will not be stored.
+- **12:27 PDT** — A judge implementation change will require a new run instead of mixing old and new scores. The old run remains unchanged.
+- **12:28 PDT** — A run with no successful judge jobs will fail and will not create an empty plot.
+- **12:29 PDT** — Run identity will store readable model, rubric, and judge settings directly. Only the scoring implementation will use one combined hash.
+- **12:29 PDT** — Completed run folders will remain until the user deletes them. The workflow will not automatically delete old runs.
+- **12:30 PDT** — Plot generation will produce PNG files only. Formatted reports and other plot formats will be removed.
+- **13:47 PDT** — Implemented the simplified workflow: synchronous judging, atomic score files, three attempts, assignment-local cache copies, restart-only incomplete generation, reduced resume checks, and PNG-only plots. Removed Batch state, cost reservations, provider circuits, response ledgers, report writers, and obsolete compatibility fields; the full suite passes with 725 tests and one skip.

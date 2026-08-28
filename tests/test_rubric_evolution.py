@@ -270,22 +270,7 @@ def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
 
 
 def test_generation_identity_covers_history_and_scoring_code() -> None:
-    assert set(evolution_module.rubric_generation_implementation_identity()) >= {
-        "evolution_sha256",
-        "evolution_artifacts_sha256",
-        "evolution_ledger_sha256",
-        "evolution_protocol_sha256",
-        "evolution_provider_sha256",
-        "evolution_serialization_sha256",
-        "evolution_store_sha256",
-        "artifact_history_builder_sha256",
-        "rubric_bank_sha256",
-        "rubric_bank_lifecycle_sha256",
-        "bank_scoring_sha256",
-        "full_rubric_judge_sha256",
-        "judge_models_sha256",
-        "judge_scoring_sha256",
-    }
+    assert len(evolution_module.rubric_generation_implementation_sha256()) == 64
 
 
 def test_provider_contract_rejects_oversized_request_before_dispatch() -> None:
@@ -795,8 +780,6 @@ def test_invalid_semantic_review_retries_then_abandons_the_criterion(
     first = _replace(_proposer(run_semantic=invalid_review), tmp_path)
     assert calls == 2
     assert first.bank.items[0].elicited_criteria == ()
-    ledger = tmp_path / "bank-0001.provider-attempts.json"
-    assert ledger.stat().st_mode & 0o222 == 0
 
     resumed_calls = 0
 
@@ -855,10 +838,10 @@ def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> 
     assert second == first
     assert calls == 0
     generation_root = tmp_path / "bank-0001"
-    assert all(path.stat().st_mode & 0o222 == 0 for path in generation_root.iterdir())
+    assert all(path.stat().st_mode & 0o200 for path in generation_root.iterdir())
 
 
-def test_provider_failure_retries_and_resume_does_not_add_calls(
+def test_incomplete_generation_restarts_from_the_first_stage(
     tmp_path: Path,
 ) -> None:
     calls = 0
@@ -873,26 +856,7 @@ def test_provider_failure_retries_and_resume_does_not_add_calls(
     assert calls == 2
     with pytest.raises(RuntimeError, match="failed after 2 calls"):
         _replace(_proposer(fail), tmp_path)
-    assert calls == 2
-
-
-def test_out_of_order_ledger_prefix_fails_before_dispatch(tmp_path: Path) -> None:
-    _replace(_proposer(), tmp_path)
-    ledger = tmp_path / "bank-0001.provider-attempts.json"
-    ledger.chmod(0o600)
-    value = json.loads(ledger.read_text())
-    value["attempts"][0]["role"] = "criteria"
-    ledger.write_text(json.dumps(value))
-    calls = 0
-
-    def forbidden(**_kwargs):
-        nonlocal calls
-        calls += 1
-        raise AssertionError("provider must not run")
-
-    with pytest.raises(RuntimeError, match="prefix differs"):
-        _replace(_proposer(forbidden, forbidden), tmp_path)
-    assert calls == 0
+    assert calls == 4
 
 
 def test_model_identity_mismatch_fails_closed(tmp_path: Path) -> None:
@@ -915,7 +879,7 @@ def test_generation_file_tampering_fails_closed(tmp_path: Path) -> None:
     proposal = tmp_path / "bank-0001" / "criterion-proposal.json"
     proposal.chmod(0o600)
     proposal.write_text(json.dumps({"criteria": []}))
-    with pytest.raises(RuntimeError, match="file changed"):
+    with pytest.raises(RuntimeError, match="generation changed"):
         _replace(_proposer(), tmp_path)
 
 

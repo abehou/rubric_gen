@@ -228,7 +228,6 @@ def build_parser() -> argparse.ArgumentParser:
     judge.add_argument("--experiment", required=True)
     judge.add_argument("--output-dir")
     judge.add_argument("--max-concurrency", type=int, default=3)
-    judge.add_argument("--max-retries", type=int, default=1)
     judge.add_argument("--resume", action="store_true")
     judge.set_defaults(handler=_judge)
 

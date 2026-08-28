@@ -23,9 +23,6 @@ from rubric_gen.submission_revision.controller import (
     SubmissionRevisionController,
 )
 from rubric_gen.submission_revision.controller_scoring import RevisionScorer
-from rubric_gen.submission_revision.controller_recovery_artifacts import (
-    fixed_original_attempt_id,
-)
 from rubric_gen.submission_revision.judge import (
     FrozenRubricJudge,
     JudgeArtifacts,
@@ -359,7 +356,6 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
         ),
         "review": config.review,
         "judge_model": config.judge_model,
-        "judge_max_retries": config.judge_max_retries,
         "max_review_chars": config.max_review_chars,
         "rubric_name": config.master_rubric_name,
         "solver": {
@@ -535,12 +531,16 @@ class FakeJudge:
             }},
             "reasoning": "checked",
         }))
+        reward = output / "reward.json"
+        reward.write_text(json.dumps({"reward": score / 100}))
+        usage = output / "usage.json"
+        usage.write_text(json.dumps({"usage": {}}))
         validation = output / "score_validation.json"
         validation.write_text(json.dumps({
             **self.identity,
             "review_input_sha256": sha256_text(review_text),
             "answer_input_sha256": sha256_text(answer_text),
-            "task": submission_dir.parents[2].name,
+            "task": self.task_name,
             "run_identity": str(output),
             "repeat_index": 1,
             "score": float(score),
@@ -548,7 +548,9 @@ class FakeJudge:
             "raw_score": float(score),
             "criterion_level_votes": {"criterion_1": [level] * 5},
             "criterion_scores": {"criterion_1": float(score)},
+            "reward_sha256": sha256_file(reward),
             "evaluation_sha256": sha256_file(evaluation),
+            "usage_sha256": sha256_file(usage),
         }))
         return JudgeArtifacts(validation, evaluation)
 
@@ -902,18 +904,17 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
     )
 
     assert fixed_score == 72
-    attempt_id = fixed_original_attempt_id(
-        config.assignment_id,
-        "s001",
-        controller.initial_rubric.sha256,
-    )
     assert (
         config.experiment_dir
-        / "evaluations"
+        / "judgments"
         / "s001"
         / controller.initial_rubric.sha256
-        / attempt_id
     ).is_dir()
+    assert not any(
+        (config.experiment_dir / "evaluations" / "s001").rglob(
+            "score_validation.json"
+        )
+    )
 
 
 def test_fixed_paraphrase_accepts_separate_master_rubric_score(
@@ -965,18 +966,17 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
     )
 
     assert fixed_score == 72
-    attempt_id = fixed_original_attempt_id(
-        config.assignment_id,
-        "s001",
-        controller.master_rubric.sha256,
-    )
     assert (
         config.experiment_dir
-        / "evaluations"
+        / "judgments"
         / "s001"
         / controller.master_rubric.sha256
-        / attempt_id
     ).is_dir()
+    assert not any(
+        (config.experiment_dir / "evaluations" / "s001").rglob(
+            "score_validation.json"
+        )
+    )
 
 
 def test_revision_rejects_seed_judgment_from_a_different_code_build(
@@ -985,9 +985,7 @@ def test_revision_rejects_seed_judgment_from_a_different_code_build(
     task = _write_task(tmp_path)
     stale_identity = _identity(task)
     stale_identity.update({
-        "judge_source_sha256": "a" * 64,
-        "judge_runner_sha256": "b" * 64,
-        "scorer_module_sha256": "c" * 64,
+        "scoring_implementation_sha256": "a" * 64,
     })
     config = _config(
         tmp_path,
@@ -1192,13 +1190,10 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     invalid_generation_root.rmdir()
 
     evaluation = next(
-        (config.experiment_dir / "evaluations" / "s001").glob(
-            "*/*/run/judges/trace/da-1-1/evaluation.json"
-        )
+        (config.experiment_dir / "judgments" / "s001").glob("*/evaluation.json")
     )
-    evaluation.chmod(stat.S_IRUSR | stat.S_IWUSR)
     evaluation.write_text("{}")
-    with pytest.raises(RuntimeError, match="evaluation disagrees"):
+    with pytest.raises(RuntimeError, match="score validation changed"):
         validate_completed_revision(
             config.experiment_dir,
             assignment,
@@ -1208,7 +1203,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
         )
 
 
-def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
+def test_shared_judgments_cross_conditions_copy_locally_and_resume(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1380,28 +1375,23 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
     assert len(list((shared_root / "judge" / "entries").iterdir())) == 3
 
     for config in (first_config, second_config):
-        initial_aliases = list(
-            (
-                config.experiment_dir
-                / "judgment-aliases"
-                / "s000"
-            ).glob("*.json")
+        initial_judgments = list(
+            (config.experiment_dir / "judgments" / "s000").iterdir()
         )
-        assert len(initial_aliases) == 1
-        assert json.loads(initial_aliases[0].read_text())["rubric_sha256"] == (
+        assert [path.name for path in initial_judgments] == [
             sha256_file(optimizer_path)
+        ]
+        later_judgments = list(
+            (config.experiment_dir / "judgments" / "s001").iterdir()
         )
-        later_aliases = list(
-            (
-                config.experiment_dir
-                / "judgment-aliases"
-                / "s001"
-            ).glob("*.json")
+        assert {path.name for path in later_judgments} == {
+            sha256_file(optimizer_path),
+            sha256_file(master_path),
+        }
+        assert all(
+            (path / "score_validation.json").is_file()
+            for path in (*initial_judgments, *later_judgments)
         )
-        assert {
-            json.loads(path.read_text())["rubric_sha256"]
-            for path in later_aliases
-        } == {sha256_file(optimizer_path), sha256_file(master_path)}
 
     resumed_session = FakeSession()
     resumed_optimizer = ReuseJudge(
@@ -1454,7 +1444,6 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
         _design(second_config, task),
         second_config.seed_run_dir,
         tmp_path / "paraphrases",
-        judgment_reuse_root=shared_root,
     )
     assert not (second_config.experiment_dir / "evaluations").exists()
 
@@ -1568,7 +1557,7 @@ def test_study_validates_every_elicitation_generation_record(
             / "rubric-generations/bank-0001/generation.json"
         ).read_text()
     )
-    assert generation["criterion_edit_stage"] == []
+    assert generation["criterion_edit_attempt_count"] == 0
     assignment = {
         "assignment_id": config.assignment_id,
         "task_id": task.name,
@@ -1607,7 +1596,7 @@ def test_study_validates_every_elicitation_generation_record(
     metadata = json.loads(metadata_path.read_text())
     metadata["context"]["proposer"]["model"] = "tampered-proposer"
     metadata_path.write_text(json.dumps(metadata))
-    with pytest.raises(RuntimeError, match="rubric generation file changed"):
+    with pytest.raises(RuntimeError, match="completed rubric generation changed"):
         validate_completed_revision(
             config.experiment_dir,
             assignment,
@@ -1656,7 +1645,7 @@ def test_controller_scores_one_rubric_exactly(
     assert sorted(
         path.name
         for path in (config.experiment_dir / "rubric-generations").iterdir()
-    ) == ["bank-0001", "bank-0001.provider-attempts.json"]
+    ) == ["bank-0001"]
     assert evaluation["score"] == 65
     assert evaluation["canonical_original_score"] == 65
     assert evaluation["weighted_elicited_penalty"] == 0
@@ -2116,12 +2105,7 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
     assert proposal.is_dir()
     assert not elicited_bank.exists()
     proposal_root = proposal.parent
-    ledger_temp = (
-        proposal_root
-        / ".bank-0001.provider-attempts.json.abcdefgh.tmp"
-    )
     stage = proposal_root / ".bank-0001.abcdefgh"
-    ledger_temp.write_text("partial ledger\n", encoding="utf-8")
     stage.mkdir()
     (stage / "partial.json").write_text("{}\n", encoding="utf-8")
 
@@ -2175,7 +2159,6 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
         resumed.run()
 
     assert elicited_bank.is_dir()
-    assert not ledger_temp.exists()
     assert not stage.exists()
     assert provider_calls == 0
     assert resumed_session.prompts == []
@@ -2189,7 +2172,7 @@ def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
 ) -> None:
     root = tmp_path / "rubric-generations"
     root.mkdir()
-    residue = root / ".bank-0001.provider-attempts.json.abcdefgh.tmp"
+    residue = root / ".bank-0001.abcdefgh"
     if kind == "symlink":
         target = tmp_path / "target"
         target.write_text("do not remove\n", encoding="utf-8")
@@ -2197,7 +2180,7 @@ def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
     else:
         os.mkfifo(residue)
 
-    with pytest.raises(RuntimeError, match="not a regular file"):
+    with pytest.raises(RuntimeError, match="not a directory"):
         recovery_artifacts.remove_owned_rubric_generation_residue(
             root,
             max_generation_round=1,

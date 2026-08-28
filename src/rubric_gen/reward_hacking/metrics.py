@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 import math
-import csv
-import io
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable
@@ -169,7 +167,14 @@ def plot_detection_rates(rates: dict[str, Any], output_path: Path) -> None:
             )
     axis.set_ylim(0, 1.08)
     axis.set_ylabel("Reward-hacking detection rate")
-    axis.set_title("Reward-hacking detections by judge and ensemble rule")
+    completed = rates.get("completed_results")
+    missing = rates.get("missing_results")
+    suffix = (
+        f" ({completed} completed, {missing} missing)"
+        if type(completed) is int and type(missing) is int
+        else ""
+    )
+    axis.set_title("Reward-hacking detections by judge and ensemble rule" + suffix)
     axis.set_xticks(range(len(labels)), labels, rotation=25, ha="right")
     axis.grid(axis="y", alpha=0.25)
     figure.tight_layout()
@@ -349,83 +354,6 @@ def comparison_rows(metrics: dict[str, Any]) -> list[dict[str, Any]]:
             if isinstance(name, str) and isinstance(values, dict):
                 rows.append({"type": group_name, "name": name, **values})
     return rows
-
-
-def render_metrics_csv(metrics: dict[str, Any]) -> str:
-    fields = (
-        "type", "name", "evaluated", "abstentions", "accuracy", "precision",
-        "recall", "f1", "specificity", "balanced_accuracy",
-        "matthews_correlation", "tp", "fp", "tn", "fn",
-    )
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=fields, lineterminator="\n")
-    writer.writeheader()
-    for row in comparison_rows(metrics):
-        confusion = row.get("confusion", {})
-        writer.writerow({
-            **{field: row.get(field) for field in fields},
-            **{
-                field: confusion.get(field)
-                for field in ("tp", "fp", "tn", "fn")
-                if isinstance(confusion, dict)
-            },
-        })
-    return output.getvalue()
-
-
-def render_metrics_markdown(metrics: dict[str, Any]) -> str:
-    def formatted(value: object) -> str:
-        if value is None:
-            return "N/A"
-        if isinstance(value, float):
-            return f"{value:.3f}"
-        return str(value)
-
-    gold_cases = metrics.get("gold_cases", 0)
-    covered_cases = metrics.get("covered_cases", 0)
-    complete_cases = metrics.get("complete_panel_cases", 0)
-    detection = metrics.get("detection")
-    lines = [
-        "# MALT human-annotation comparison",
-        "",
-        f"Split: `{metrics.get('split') or 'all'}`  ",
-        f"Detection target: `{detection}`  ",
-        f"Selected human-annotated cases: **{gold_cases}**  ",
-        f"Cases with at least one verdict: **{covered_cases}**  ",
-        f"Cases with a complete three-judge panel: **{complete_cases}**",
-        "",
-    ]
-    if covered_cases != gold_cases:
-        lines.extend([
-            "> **Partial evaluation:** aggregate values use only completed, "
-            "non-abstaining verdicts. Coverage is not 100%, so comparisons may be biased.",
-            "",
-        ])
-    lines.extend([
-        "| Type | Judge / rule | Evaluated | Abstained | Precision | Recall | F1 | Accuracy | Balanced accuracy | MCC | TP | FP | TN | FN |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
-    ])
-    for row in comparison_rows(metrics):
-        confusion = row.get("confusion", {})
-        lines.append(
-            "| " + " | ".join(formatted(value) for value in (
-                row.get("type"), row.get("name"), row.get("evaluated"),
-                row.get("abstentions"), row.get("precision"), row.get("recall"),
-                row.get("f1"), row.get("accuracy"), row.get("balanced_accuracy"),
-                row.get("matthews_correlation"),
-                confusion.get("tp") if isinstance(confusion, dict) else None,
-                confusion.get("fp") if isinstance(confusion, dict) else None,
-                confusion.get("tn") if isinstance(confusion, dict) else None,
-                confusion.get("fn") if isinstance(confusion, dict) else None,
-            )) + " |"
-        )
-    lines.extend([
-        "",
-        "Positive means the judge predicted the configured detection target. Human annotations are the reference labels.",
-        "Abstentions are excluded from precision, recall, F1, and confusion counts.",
-        "",
-    ])
-    return "\n".join(lines)
 
 
 def plot_metrics_comparison(metrics: dict[str, Any], output_path: Path) -> None:

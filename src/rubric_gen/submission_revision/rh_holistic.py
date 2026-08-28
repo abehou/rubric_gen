@@ -15,6 +15,7 @@ from rubric_gen.runtime.llm import (
 )
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
+from rubric_gen.submission_revision.judge import JUDGE_MAX_ATTEMPTS
 from rubric_gen.submission_revision.rh_protocol import (
     BOUNDARIES,
     ORDERINGS,
@@ -189,9 +190,7 @@ class HolisticEvaluationStage:
             stage="holistic",
             base=base,
             jobs=jobs,
-            outer_attempt_limit=(
-                int(self.config.experiment.protocol["judge_max_retries"]) + 1
-            ),
+            outer_attempt_limit=JUDGE_MAX_ATTEMPTS,
             caps=_stage_caps(
                 self.config.experiment.outcome_audit,
                 "holistic",
@@ -247,9 +246,7 @@ class HolisticEvaluationStage:
             record_name,
             allow_missing=True,
         )
-        max_attempts = int(
-            self.config.experiment.protocol["judge_max_retries"]
-        ) + 1
+        max_attempts = JUDGE_MAX_ATTEMPTS
         if os.path.lexists(record_path):
             record = read_json_object(record_path, "RH holistic record")
             _validate_holistic_record(
@@ -600,4 +597,3 @@ def _summarize_holistic_scores(
             },
         })
     return results
-

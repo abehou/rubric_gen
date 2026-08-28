@@ -8,11 +8,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from numbers import Real
 
-from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.runtime.agents.costs import RunCost
 from rubric_gen.submission_revision.evolution_serialization import (
     canonical_json,
-    canonical_sha256,
 )
 
 
@@ -93,30 +91,6 @@ class ProviderContract:
             ),
         }
 
-    def request_identity(
-        self,
-        *,
-        role: str,
-        instructions: str,
-        evidence: str,
-        response_schema: dict[str, object],
-        implementation_identity: dict[str, str],
-    ) -> dict[str, object]:
-        size = request_bytes(instructions, evidence, response_schema)
-        if size > self.max_request_bytes:
-            raise ValueError(
-                f"{role} request is {size} UTF-8 bytes; "
-                f"limit is {self.max_request_bytes}"
-            )
-        return {
-            "role": role,
-            "contract": self.record(),
-            "prompt_sha256": sha256_text(instructions + "\0" + evidence),
-            "response_schema_sha256": canonical_sha256(response_schema),
-            "request_bytes": size,
-            "implementation_identity": implementation_identity,
-        }
-
     def validate_output(self, output: StructuredProviderOutput) -> None:
         if not isinstance(output, StructuredProviderOutput):
             raise RuntimeError("provider returned the wrong output type")
@@ -164,59 +138,6 @@ def request_bytes(
     return len(
         (instructions + "\0" + evidence + "\0" + canonical_json(response_schema))
         .encode("utf-8")
-    )
-
-
-def attempt_record(
-    output: StructuredProviderOutput,
-    *,
-    attempt: int,
-) -> dict[str, object]:
-    return {
-        "attempt": attempt,
-        "response_sha256": sha256_text(output.response_text),
-        "cost": output.cost,
-        "generation": output.generation,
-    }
-
-
-def failed_attempt_record(attempt: int, error: str) -> dict[str, object]:
-    """Return one auditable stage attempt with no provider response."""
-
-    return {
-        "attempt": attempt,
-        "response_sha256": None,
-        "cost": None,
-        "generation": None,
-        "validation_error": error,
-    }
-
-
-def serialize_output(output: StructuredProviderOutput) -> dict[str, object]:
-    return {
-        "response": output.response_text,
-        "cost": output.cost,
-        "generation": output.generation,
-    }
-
-
-def deserialize_output(value: object) -> StructuredProviderOutput:
-    if not isinstance(value, dict) or set(value) != {
-        "response", "cost", "generation"
-    }:
-        raise RuntimeError("provider ledger output has invalid fields")
-    response = value["response"]
-    cost = value["cost"]
-    generation = value["generation"]
-    if type(response) is not str or not response.strip():
-        raise RuntimeError("provider ledger response is empty")
-    if not _valid_cost(cost) or not _valid_generation(generation):
-        raise RuntimeError("provider ledger output metadata is invalid")
-    assert isinstance(cost, dict) and isinstance(generation, dict)
-    return StructuredProviderOutput(
-        response_text=response,
-        cost=dict(cost),
-        generation=dict(generation),
     )
 
 

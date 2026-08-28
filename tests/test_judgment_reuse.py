@@ -15,17 +15,15 @@ from rubric_gen.submission_revision.judge import (
 )
 from rubric_gen.submission_revision.judgment_reuse import (
     ExactJudgmentReuseStore,
-    ExactSimulatorReuseStore,
     exact_judgment_request,
-    exact_simulator_request,
+    load_judgment_copy,
+    persist_judgment_copy,
 )
 
 
 def _identity(rubric_sha256: str) -> dict[str, object]:
     value = {
-        "judge_source_sha256": "1" * 64,
-        "judge_runner_sha256": "2" * 64,
-        "scorer_module_sha256": "3" * 64,
+        "scoring_implementation_sha256": "1" * 64,
         "effective_judge_model": "judge-model",
         "judge_api_base": None,
         "benchmark": "paperbench-code-dev",
@@ -133,40 +131,38 @@ def test_exact_request_reuses_one_canonical_artifact_set_across_assignments(
     )
     assert calls == 1
     assert first == second
-    assert json.loads(first.artifacts.evaluation_path.read_text())[
+    assert json.loads(first.evaluation_path.read_text())[
         "paperbench_structured"
     ]["dispersion"] == {"min_score": 43, "max_score": 64}
 
-    fixed_alias = store.persist_alias(
+    fixed_copy = persist_judgment_copy(
         experiment_dir=tmp_path / "fixed",
-        assignment_id="fixed",
-        replicate=1,
         submission_id="s000",
         rubric_sha256=rubric_sha256,
-        reused=first,
+        request=request,
+        source=first,
     )
-    adaptive_alias = store.persist_alias(
+    adaptive_copy = persist_judgment_copy(
         experiment_dir=tmp_path / "adaptive",
-        assignment_id="adaptive",
-        replicate=1,
         submission_id="s000",
         rubric_sha256=rubric_sha256,
-        reused=second,
+        request=request,
+        source=second,
     )
-    assert json.loads(fixed_alias.read_text())["request_sha256"] == (
-        json.loads(adaptive_alias.read_text())["request_sha256"]
+    assert fixed_copy.evaluation_path != adaptive_copy.evaluation_path
+    assert (
+        fixed_copy.evaluation_path.read_bytes()
+        == adaptive_copy.evaluation_path.read_bytes()
     )
-    assert store.validate_alias(
-        adaptive_alias,
-        assignment_id="adaptive",
-        replicate=1,
+    assert load_judgment_copy(
+        experiment_dir=tmp_path / "adaptive",
         submission_id="s000",
         rubric_sha256=rubric_sha256,
         expected_request=request,
-    ) == second
+    ) == adaptive_copy
 
 
-def test_alias_and_canonical_artifact_tampering_fail_closed(tmp_path: Path) -> None:
+def test_local_and_canonical_artifact_tampering_fail_closed(tmp_path: Path) -> None:
     rubric_sha256 = sha256_text("rubric")
     request = exact_judgment_request(
         task_id="task-a",
@@ -189,139 +185,37 @@ def test_alias_and_canonical_artifact_tampering_fail_closed(tmp_path: Path) -> N
         },
         generate=lambda: _artifacts(tmp_path / "provider-output", request=request),
     )
-    alias = store.persist_alias(
+    local = persist_judgment_copy(
         experiment_dir=tmp_path / "fixed",
-        assignment_id="fixed",
-        replicate=1,
         submission_id="s000",
         rubric_sha256=rubric_sha256,
-        reused=reused,
+        request=request,
+        source=reused,
     )
-    alias.chmod(0o600)
-    value = json.loads(alias.read_text())
-    value["request_sha256"] = "0" * 64
-    alias.write_text(json.dumps(value))
-    with pytest.raises(RuntimeError, match="another request"):
-        store.validate_alias(
-            alias,
-            assignment_id="fixed",
-            replicate=1,
+    local.evaluation_path.write_text("{}")
+    with pytest.raises(RuntimeError, match="score validation changed"):
+        load_judgment_copy(
+            experiment_dir=tmp_path / "fixed",
             submission_id="s000",
             rubric_sha256=rubric_sha256,
             expected_request=request,
         )
-    alias.write_text(json.dumps({**value, "request_sha256": reused.request_sha256}))
-    evaluation = reused.artifacts.evaluation_path
-    evaluation.chmod(0o600)
+    evaluation = reused.evaluation_path
     evaluation.write_text("{}")
     with pytest.raises(RuntimeError, match="provenance"):
-        store.validate_alias(
-            alias,
-            assignment_id="fixed",
-            replicate=1,
-            submission_id="s000",
-            rubric_sha256=rubric_sha256,
-            expected_request=request,
-        )
-
-
-def test_simulated_user_pipeline_reuses_both_provider_generations(tmp_path: Path) -> None:
-    simulator = {"implementation_sha256": "1" * 64, "model": "simulator"}
-    bank_sha256 = sha256_text("bank")
-    request = exact_simulator_request(
-        experiment_id="study-a",
-        task_id="task-a",
-        replicate=1,
-        instruction="Solve.",
-        bank_sha256=bank_sha256,
-        current_submission="same submission",
-        simulator_identity=simulator,
-    )
-    store = ExactSimulatorReuseStore(tmp_path / "shared-simulator")
-    calls = 0
-
-    def generate() -> dict[str, object]:
-        nonlocal calls
-        calls += 1
-        return {
-            "kind": "submission-simulated-user-feedback",
-            "experiment_id": "study-a",
-            "assignment_id": "fixed",
-            "submission_id": "s000",
-            "generation_round": 0,
-            "bank_sha256": bank_sha256,
-            "simulator": simulator,
-            "attempt_count": 1,
-            "output": {
-                "referenced_criteria": ["member:criterion_1"],
-                "concern_categories": ["clarity"],
-                "comment": "Clarify the result.",
+        store.resolve(
+            request=request,
+            producer={
+                "assignment_id": "fixed",
+                "condition_id": "fixed",
+                "replicate": 1,
+                "submission_id": "s000",
+                "rubric_sha256": rubric_sha256,
+                "judge_attempt_id": "1" * 32,
             },
-            "selection_generation": {"response_id": "selection-one"},
-            "comment_generation": {"response_id": "comment-one"},
-        }
-
-    producer = {
-        "assignment_id": "fixed",
-        "condition_id": "fixed",
-        "replicate": 1,
-        "submission_id": "s000",
-        "generation_round": 0,
-    }
-    first = store.resolve(request=request, producer=producer, generate=generate)
-    second = store.resolve(
-        request=request,
-        producer={**producer, "assignment_id": "adaptive", "condition_id": "adaptive"},
-        generate=generate,
-    )
-    assert first == second
-    assert calls == 1
-    record = store.assignment_record(
-        second,
-        experiment_id="study-a",
-        assignment_id="adaptive",
-        submission_id="s000",
-        generation_round=0,
-        bank_sha256=bank_sha256,
-        simulator_identity=simulator,
-    )
-    assert record["selection_generation"] == {"response_id": "selection-one"}
-    alias = store.persist_alias(
-        experiment_dir=tmp_path / "adaptive",
-        assignment_id="adaptive",
-        replicate=1,
-        submission_id="s000",
-        reused=second,
-    )
-    assert store.validate_alias(
-        alias,
-        assignment_id="adaptive",
-        replicate=1,
-        submission_id="s000",
-        expected_request=request,
-    ) == second
-
-    alias_target = alias.with_suffix(".target")
-    alias.rename(alias_target)
-    alias.symlink_to(alias_target.name)
-    with pytest.raises(RuntimeError, match="symbolic link"):
-        store.validate_alias(
-            alias,
-            assignment_id="adaptive",
-            replicate=1,
-            submission_id="s000",
-            expected_request=request,
+            generate=lambda: pytest.fail("tampered cache dispatched a judgment"),
         )
 
-    entry = store.entries / second.request_sha256
-    entry_target = store.entries / (second.request_sha256 + ".target")
-    entry.rename(entry_target)
-    entry.symlink_to(entry_target.name, target_is_directory=True)
-    with pytest.raises(RuntimeError, match="symbolic link"):
-        store.load(
-            request_sha256=second.request_sha256,
-            expected_request=request,
-        )
 
 
 def test_replicates_have_distinct_canonical_judgments(tmp_path: Path) -> None:
@@ -364,10 +258,13 @@ def test_replicates_have_distinct_canonical_judgments(tmp_path: Path) -> None:
         ))
 
     assert calls == 2
-    assert results[0].request_sha256 != results[1].request_sha256
+    assert (
+        results[0].score_validation_path.parent.name
+        != results[1].score_validation_path.parent.name
+    )
 
 
-def test_valid_alias_cannot_redirect_to_another_valid_request(
+def test_local_copy_cannot_validate_as_another_request(
     tmp_path: Path,
 ) -> None:
     rubric_sha256 = sha256_text("rubric")
@@ -401,101 +298,19 @@ def test_valid_alias_cannot_redirect_to_another_valid_request(
                 answer_text=("same answer", "different answer")[index - 1],
             ),
         ))
-    alias = store.persist_alias(
+    persist_judgment_copy(
         experiment_dir=tmp_path / "condition-1",
-        assignment_id="condition-1",
-        replicate=1,
         submission_id="s000",
         rubric_sha256=rubric_sha256,
-        reused=reused[0],
+        request=requests[0],
+        source=reused[0],
     )
-    alias.chmod(0o600)
-    value = json.loads(alias.read_text())
-    value.update({
-        "request_sha256": reused[1].request_sha256,
-        "canonical_entry": reused[1].canonical_entry,
-        "canonical_record_sha256": reused[1].canonical_record_sha256,
-        "score_validation_sha256": sha256_file(
-            reused[1].artifacts.score_validation_path
-        ),
-        "evaluation_sha256": sha256_file(reused[1].artifacts.evaluation_path),
-    })
-    alias.write_text(json.dumps(value))
-
-    with pytest.raises(RuntimeError, match="another request"):
-        store.validate_alias(
-            alias,
-            assignment_id="condition-1",
-            replicate=1,
+    with pytest.raises(RuntimeError, match="score validation changed"):
+        load_judgment_copy(
+            experiment_dir=tmp_path / "condition-1",
             submission_id="s000",
             rubric_sha256=rubric_sha256,
-            expected_request=requests[0],
-        )
-
-
-@pytest.mark.parametrize(
-    "forged_hash",
-    ["../" + "0" * 64, "/tmp/" + "0" * 64],
-)
-def test_simulator_alias_rejects_path_traversal(
-    tmp_path: Path,
-    forged_hash: str,
-) -> None:
-    simulator = {"implementation_sha256": "1" * 64, "model": "simulator"}
-    bank_sha256 = sha256_text("bank")
-    request = exact_simulator_request(
-        experiment_id="study-a",
-        task_id="task-a",
-        replicate=1,
-        instruction="Solve.",
-        bank_sha256=bank_sha256,
-        current_submission="same submission",
-        simulator_identity=simulator,
-    )
-    store = ExactSimulatorReuseStore(tmp_path / "shared-simulator")
-    generated = {
-        "kind": "submission-simulated-user-feedback",
-        "experiment_id": "study-a",
-        "assignment_id": "fixed",
-        "submission_id": "s000",
-        "generation_round": 0,
-        "bank_sha256": bank_sha256,
-        "simulator": simulator,
-        "attempt_count": 1,
-        "output": {"comment": "Clarify."},
-        "selection_generation": {"response_id": "selection"},
-        "comment_generation": {"response_id": "comment"},
-    }
-    reused = store.resolve(
-        request=request,
-        producer={
-            "assignment_id": "fixed",
-            "condition_id": "fixed",
-            "replicate": 1,
-            "submission_id": "s000",
-            "generation_round": 0,
-        },
-        generate=lambda: generated,
-    )
-    alias = store.persist_alias(
-        experiment_dir=tmp_path / "fixed",
-        assignment_id="fixed",
-        replicate=1,
-        submission_id="s000",
-        reused=reused,
-    )
-    alias.chmod(0o600)
-    value = json.loads(alias.read_text())
-    value["request_sha256"] = forged_hash
-    alias.write_text(json.dumps(value))
-
-    with pytest.raises(RuntimeError, match="invalid identity"):
-        store.validate_alias(
-            alias,
-            assignment_id="fixed",
-            replicate=1,
-            submission_id="s000",
-            expected_request=request,
+            expected_request=requests[1],
         )
 
 
@@ -571,12 +386,7 @@ def test_failed_publish_leaves_no_partial_entry_and_can_retry(
             generate=lambda: incomplete,
         )
 
-    request_sha256 = store.request_sha256(request)
-    assert not (store.entries / request_sha256).exists()
-    assert not any(
-        path.name.startswith(f".{request_sha256}.")
-        for path in store.entries.iterdir()
-    )
+    assert not any(store.entries.iterdir())
 
     result = store.resolve(
         request=request,
@@ -585,10 +395,10 @@ def test_failed_publish_leaves_no_partial_entry_and_can_retry(
             tmp_path / "complete-output", request=request
         ),
     )
-    assert result.request_sha256 == request_sha256
+    assert result.score_validation_path.parent.parent == store.entries
 
 
-def test_canonical_judgment_can_resume_before_alias_publication(
+def test_canonical_judgment_can_resume_before_local_copy(
     tmp_path: Path,
 ) -> None:
     rubric_sha256 = sha256_text("rubric")
@@ -619,27 +429,24 @@ def test_canonical_judgment_can_resume_before_alias_publication(
         producer=producer,
         generate=lambda: pytest.fail("resume dispatched another judgment"),
     )
-    alias = store.persist_alias(
+    local = persist_judgment_copy(
         experiment_dir=tmp_path / "fixed",
-        assignment_id="fixed",
-        replicate=1,
         submission_id="s000",
         rubric_sha256=rubric_sha256,
-        reused=second,
+        request=request,
+        source=second,
     )
 
     assert second == first
-    assert store.validate_alias(
-        alias,
-        assignment_id="fixed",
-        replicate=1,
+    assert load_judgment_copy(
+        experiment_dir=tmp_path / "fixed",
         submission_id="s000",
         rubric_sha256=rubric_sha256,
         expected_request=request,
-    ) == first
+    ) == local
 
 
-def test_symlinked_alias_and_canonical_entry_fail_closed(tmp_path: Path) -> None:
+def test_symlinked_local_and_canonical_entries_fail_closed(tmp_path: Path) -> None:
     rubric_sha256 = sha256_text("rubric")
     request = exact_judgment_request(
         task_id="task-a",
@@ -662,150 +469,39 @@ def test_symlinked_alias_and_canonical_entry_fail_closed(tmp_path: Path) -> None
         },
         generate=lambda: _artifacts(tmp_path / "provider-output", request=request),
     )
-    alias = store.persist_alias(
+    local = persist_judgment_copy(
         experiment_dir=tmp_path / "fixed",
-        assignment_id="fixed",
-        replicate=1,
         submission_id="s000",
         rubric_sha256=rubric_sha256,
-        reused=reused,
+        request=request,
+        source=reused,
     )
-    alias_target = alias.with_suffix(".target")
-    alias.rename(alias_target)
-    alias.symlink_to(alias_target.name)
+    local_root = local.score_validation_path.parent
+    local_target = local_root.with_name(local_root.name + ".target")
+    local_root.rename(local_target)
+    local_root.symlink_to(local_target.name, target_is_directory=True)
     with pytest.raises(RuntimeError, match="symbolic link"):
-        store.validate_alias(
-            alias,
-            assignment_id="fixed",
-            replicate=1,
+        load_judgment_copy(
+            experiment_dir=tmp_path / "fixed",
             submission_id="s000",
             rubric_sha256=rubric_sha256,
             expected_request=request,
         )
 
-    entry = store.entries / reused.request_sha256
-    entry_target = store.entries / (reused.request_sha256 + ".target")
+    entry = reused.score_validation_path.parent
+    entry_target = entry.with_name(entry.name + ".target")
     entry.rename(entry_target)
     entry.symlink_to(entry_target.name, target_is_directory=True)
     with pytest.raises(RuntimeError, match="symbolic link"):
-        store.load(
-            request_sha256=reused.request_sha256,
-            expected_request=request,
-        )
-
-
-def test_concurrent_resolves_publish_one_simulator_result(
-    tmp_path: Path,
-) -> None:
-    simulator = {"implementation_sha256": "1" * 64, "model": "simulator"}
-    bank_sha256 = sha256_text("bank")
-    request = exact_simulator_request(
-        experiment_id="study-a",
-        task_id="task-a",
-        replicate=1,
-        instruction="Solve.",
-        bank_sha256=bank_sha256,
-        current_submission="same submission",
-        simulator_identity=simulator,
-    )
-    store = ExactSimulatorReuseStore(tmp_path / "shared-simulator")
-    count_lock = threading.Lock()
-    calls = 0
-
-    def generate() -> dict[str, object]:
-        nonlocal calls
-        with count_lock:
-            calls += 1
-        return {
-            "kind": "submission-simulated-user-feedback",
-            "experiment_id": "study-a",
-            "assignment_id": "fixed",
-            "submission_id": "s000",
-            "generation_round": 0,
-            "bank_sha256": bank_sha256,
-            "simulator": simulator,
-            "attempt_count": 1,
-            "output": {"comment": "Clarify."},
-            "selection_generation": {"response_id": "selection"},
-            "comment_generation": {"response_id": "comment"},
-        }
-
-    def resolve(index: int):
-        return store.resolve(
-            request=request,
-            producer={
-                "assignment_id": f"condition-{index}",
-                "condition_id": f"condition-{index}",
-                "replicate": 1,
-                "submission_id": "s000",
-                "generation_round": 0,
-            },
-            generate=generate,
-        )
-
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results = list(pool.map(resolve, (1, 2)))
-
-    assert calls == 1
-    assert results[0] == results[1]
-
-
-def test_failed_simulator_publish_leaves_no_partial_entry_and_can_retry(
-    tmp_path: Path,
-) -> None:
-    simulator = {"implementation_sha256": "1" * 64, "model": "simulator"}
-    bank_sha256 = sha256_text("bank")
-    request = exact_simulator_request(
-        experiment_id="study-a",
-        task_id="task-a",
-        replicate=1,
-        instruction="Solve.",
-        bank_sha256=bank_sha256,
-        current_submission="same submission",
-        simulator_identity=simulator,
-    )
-    store = ExactSimulatorReuseStore(tmp_path / "shared-simulator")
-    producer = {
-        "assignment_id": "fixed",
-        "condition_id": "fixed",
-        "replicate": 1,
-        "submission_id": "s000",
-        "generation_round": 0,
-    }
-    incomplete = {
-        "kind": "submission-simulated-user-feedback",
-        "experiment_id": "study-a",
-        "assignment_id": "fixed",
-        "submission_id": "s000",
-        "generation_round": 0,
-        "bank_sha256": bank_sha256,
-        "simulator": simulator,
-        "attempt_count": 1,
-        "output": {"comment": "Clarify."},
-        "selection_generation": {"response_id": "selection"},
-    }
-
-    with pytest.raises(RuntimeError, match="simulated-user generator record"):
         store.resolve(
             request=request,
-            producer=producer,
-            generate=lambda: incomplete,
+            producer={
+                "assignment_id": "fixed",
+                "condition_id": "fixed",
+                "replicate": 1,
+                "submission_id": "s000",
+                "rubric_sha256": rubric_sha256,
+                "judge_attempt_id": "1" * 32,
+            },
+            generate=lambda: pytest.fail("symlinked cache dispatched a judgment"),
         )
-
-    request_sha256 = store.request_sha256(request)
-    assert not (store.entries / request_sha256).exists()
-    assert not any(
-        path.name.startswith(f".{request_sha256}.")
-        for path in store.entries.iterdir()
-    )
-
-    complete = {
-        **incomplete,
-        "comment_generation": {"response_id": "comment"},
-    }
-    result = store.resolve(
-        request=request,
-        producer=producer,
-        generate=lambda: complete,
-    )
-    assert result.request_sha256 == request_sha256

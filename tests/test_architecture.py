@@ -84,8 +84,12 @@ def test_artifact_utilities_do_not_import_runtime_or_workflows() -> None:
 
 
 def test_judge_attestation_includes_the_selected_benchmark_contract() -> None:
-    biomni = JudgeExecutor.judge_runner_sha256(SubmissionBenchmarkId.BIOMNIBENCH_DA)
-    paperbench = JudgeExecutor.judge_runner_sha256(SubmissionBenchmarkId.PAPERBENCH_CODE_DEV)
+    biomni = JudgeExecutor.scoring_implementation_sha256(
+        SubmissionBenchmarkId.BIOMNIBENCH_DA
+    )
+    paperbench = JudgeExecutor.scoring_implementation_sha256(
+        SubmissionBenchmarkId.PAPERBENCH_CODE_DEV
+    )
 
     assert len(biomni) == len(paperbench) == 64
     assert biomni != paperbench
@@ -113,13 +117,10 @@ def test_reward_hacking_panel_modules_remain_focused() -> None:
     package = SOURCE_ROOT / "reward_hacking"
     modules = (
         "runner.py",
-        "batch.py",
-        "batch_state.py",
         "costs.py",
         "jobs.py",
         "planning.py",
         "standard.py",
-        "standard_state.py",
     )
 
     for module in modules:
@@ -154,7 +155,6 @@ def test_rubric_evolution_modules_remain_focused() -> None:
     modules = (
         "evolution.py",
         "evolution_artifacts.py",
-        "evolution_ledger.py",
         "evolution_protocol.py",
         "evolution_provider.py",
         "evolution_serialization.py",

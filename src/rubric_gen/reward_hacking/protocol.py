@@ -39,8 +39,7 @@ DEFAULT_RH_MAX_INPUT_TOKENS = 250_000
 DEFAULT_RH_MAX_OUTPUT_TOKENS = 4_096
 DEFAULT_RH_MAX_EVENT_TEXT_CHARS = 65_536
 DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS = 2_048
-DEFAULT_RH_MAX_RETRIES = 1
-DEFAULT_DIRECT_DETECTOR_MAX_COST_USD = 1_500.0
+RH_JUDGE_MAX_ATTEMPTS = 3
 DEFAULT_MECHANISTIC_MAX_CALLS = 2_048
 DEFAULT_MECHANISTIC_MAX_REQUEST_BYTES = 536_870_912
 DEFAULT_MECHANISTIC_MAX_OUTPUT_TOKENS = 8_388_608
@@ -62,10 +61,6 @@ def outcome_audit_protocol(
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS,
     max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
     max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
-    max_retries: int = DEFAULT_RH_MAX_RETRIES,
-    direct_detector_max_cost_usd: float = (
-        DEFAULT_DIRECT_DETECTOR_MAX_COST_USD
-    ),
     mechanistic_max_calls: int = DEFAULT_MECHANISTIC_MAX_CALLS,
     mechanistic_max_request_bytes: int = DEFAULT_MECHANISTIC_MAX_REQUEST_BYTES,
     mechanistic_max_output_tokens: int = DEFAULT_MECHANISTIC_MAX_OUTPUT_TOKENS,
@@ -123,14 +118,6 @@ def outcome_audit_protocol(
             "audit max command output characters must be between 512 and "
             "max_event_text_chars"
         )
-    if type(max_retries) is not int or max_retries < 0:
-        raise ValueError("audit max retries must be a non-negative integer")
-    if isinstance(direct_detector_max_cost_usd, bool) or not isinstance(
-        direct_detector_max_cost_usd, (int, float)
-    ) or not math.isfinite(float(direct_detector_max_cost_usd)) or (
-        direct_detector_max_cost_usd <= 0
-    ):
-        raise ValueError("direct detector API cost budget must be positive")
     stage_caps = {
         "mechanistic_max_calls": mechanistic_max_calls,
         "mechanistic_max_request_bytes": mechanistic_max_request_bytes,
@@ -154,10 +141,7 @@ def outcome_audit_protocol(
         "max_output_tokens": max_output_tokens,
         "max_event_text_chars": max_event_text_chars,
         "max_command_output_chars": max_command_output_chars,
-        "max_retries": max_retries,
-        "direct_detector_max_cost_usd": float(
-            direct_detector_max_cost_usd
-        ),
+        "max_attempts": RH_JUDGE_MAX_ATTEMPTS,
         **stage_caps,
         "prompt_cache": RH_PROMPT_CACHE_POLICY,
         "input_validation": RH_INPUT_VALIDATION_POLICY,
@@ -170,7 +154,6 @@ def outcome_audit_protocol(
             "score_range": [0, 10],
             "derived_decision": MALT_RH_DECISION_RULE,
         },
-        "execution": "standard",
         "blinding": (
             "withhold manifest treatment metadata, judge reasoning, rubric text, "
             "feedback not shown before a later revision, solver model, and "

@@ -87,7 +87,7 @@ def _payload(root: Path) -> dict[str, object]:
                 "max_retries": 1,
             },
             "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "low", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
-            "judge_model": "test-judge", "judge_max_retries": 1,
+            "judge_model": "test-judge",
             "rubric_name": "rubric.txt", "review": "trace", "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
             "rubric_semantic_judge_model": "gpt-5.6-luna",
@@ -108,7 +108,6 @@ def _payload(root: Path) -> dict[str, object]:
                 "verifier_exploitation": 1,
                 "dynamic_rubric_gap": 1,
             },
-            "direct_detector_max_cost_usd": 100,
             "mechanistic_max_calls": 1_024,
             "mechanistic_max_request_bytes": 268_435_456,
             "mechanistic_max_output_tokens": 4_194_304,
@@ -330,8 +329,6 @@ def test_experiment_requires_positive_integer_stage_caps(
         ("prompt", 7, "protocol prompt"),
         ("judge_model", None, "judge_model"),
         ("judge_model", 7, "judge_model"),
-        ("judge_max_retries", "1", "judge_max_retries"),
-        ("judge_max_retries", -1, "judge_max_retries"),
         ("rubric_name", "../rubric.txt", "safe basename"),
         ("rubric_name", "", "safe basename"),
         ("max_review_chars", 0, "max_review_chars"),
@@ -619,7 +616,6 @@ def test_experiment_rejects_obsolete_protocol_level_feedback_policy(
         ("models", ["judge-a", 3], "list of strings"),
         ("primary_rule", 1, "primary_rule must be a string"),
         ("max_input_tokens", "250000", "max input tokens"),
-        ("max_retries", "1", "max retries"),
     ],
 )
 def test_experiment_rejects_outcome_audit_value_coercion(

@@ -11,7 +11,6 @@ from typing import Any
 
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
-from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES
 from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
@@ -274,7 +273,6 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         "models",
         "primary_rule",
         "loss_weights",
-        "direct_detector_max_cost_usd",
         "mechanistic_max_calls",
         "mechanistic_max_request_bytes",
         "mechanistic_max_output_tokens",
@@ -287,14 +285,13 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         "max_output_tokens",
         "max_event_text_chars",
         "max_command_output_chars",
-        "max_retries",
     }
     if not required_audit_keys <= set(audit) or not set(audit) <= (
         required_audit_keys | optional_audit_keys
     ):
         raise ValueError(
             "outcome_audit keys must be exactly the required models, primary_rule, "
-            "loss_weights, direct detector budget, and stage caps, plus supported "
+            "loss_weights and stage caps, plus supported "
             "input limits"
         )
     audit_models = audit["models"]
@@ -318,10 +315,6 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         max_output_tokens=audit.get("max_output_tokens", 4_096),
         max_event_text_chars=audit.get("max_event_text_chars", 65_536),
         max_command_output_chars=audit.get("max_command_output_chars", 2_048),
-        max_retries=audit.get("max_retries", 1),
-        direct_detector_max_cost_usd=audit[
-            "direct_detector_max_cost_usd"
-        ],
         mechanistic_max_calls=audit["mechanistic_max_calls"],
         mechanistic_max_request_bytes=audit[
             "mechanistic_max_request_bytes"
@@ -434,7 +427,7 @@ def _validate_protocol(protocol: object) -> None:
     base_keys = {
         "revision_rounds", "prompt", "feedback_simulator", "solver",
         "judge_model",
-        "judge_max_retries", "rubric_name", "review", "max_review_chars",
+        "rubric_name", "review", "max_review_chars",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",
         "rubric_semantic_judge_model",
@@ -457,14 +450,6 @@ def _validate_protocol(protocol: object) -> None:
         "judge_model"
     ].strip():
         raise ValueError("judge_model must be a nonempty string")
-    if (
-        type(protocol["judge_max_retries"]) is not int
-        or not 0 <= protocol["judge_max_retries"] <= MAX_TRANSIENT_RETRIES
-    ):
-        raise ValueError(
-            "judge_max_retries must be between 0 and "
-            f"{MAX_TRANSIENT_RETRIES}"
-        )
     safe_basename(protocol["rubric_name"], "rubric_name")
     max_review_chars = protocol["max_review_chars"]
     if max_review_chars is not None and (

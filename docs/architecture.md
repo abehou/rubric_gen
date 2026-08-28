@@ -24,7 +24,7 @@ completed revisions into blinded evidence sources.
 Rubric-bank code has two ownership layers.
 
 - `rubric_bank.py` owns domain models, rendering, aggregation, and lineage rules.
-- `rubric_bank_lifecycle.py` owns schedules and immutable generation storage.
+- `rubric_bank_lifecycle.py` owns schedules and atomic generation storage.
 
 Rubric evolution has explicit protocol and durability boundaries.
 
@@ -32,9 +32,8 @@ Rubric evolution has explicit protocol and durability boundaries.
 - `evolution_artifacts.py` owns blinded artifact-history contracts.
 - `evolution_protocol.py` owns prompts, schemas, evidence, and response validation.
 - `evolution_provider.py` owns the structured provider contract and output type.
-- `evolution_ledger.py` owns exact provider-call recording and replay.
 - `evolution_store.py` owns atomic generation publication.
-- `evolution_serialization.py` owns canonical JSON used by replay identities.
+- `evolution_serialization.py` owns strict JSON and content-identity helpers.
 
 Judge execution also uses explicit ownership. `judging/runner.py` coordinates the
 workflow. It calls `judging/artifacts.py` and `judging/executor.py` directly.
@@ -90,10 +89,7 @@ and aggregate metrics. Its panel workflow has explicit owners.
 - `planning.py` sizes direct, chunked, and MALT monitor requests.
 - `costs.py` owns usage normalization and provider pricing.
 - `runner.py` coordinates standard request execution.
-- `standard.py` owns one standard job and its resume artifacts.
-- `standard_state.py` owns crash-conservative standard cost state.
-- `batch.py` owns OpenAI Batch transitions and result publication.
-- `batch_state.py` validates and persists the exact Batch state.
+- `standard.py` owns one synchronous job and its atomic `score.json` artifact.
 
 The runner accepts one evidence source. It does not parse benchmark datasets or
 revision manifests.

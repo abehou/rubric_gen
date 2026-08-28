@@ -105,23 +105,17 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
         )
 
     primary_rule = str(study.protocol["primary_rule"])
-    max_retries = int(study.protocol["max_retries"])
     max_input_tokens = int(study.protocol["max_input_tokens"])
     max_output_tokens = int(study.protocol["max_output_tokens"])
     max_event_text_chars = int(study.protocol["max_event_text_chars"])
     max_command_output_chars = int(study.protocol["max_command_output_chars"])
-    direct_detector_max_cost_usd = float(
-        study.protocol["direct_detector_max_cost_usd"]
-    )
-    execution = str(study.protocol["execution"])
     mode = "vllm" if config.base_urls else "ensemble"
     identity = (
         f"{mode}--detect-{config.detection}--source-{study.experiment_id}"
         f"--mi-{max_input_tokens}"
-        f"--direct-budget-{direct_detector_max_cost_usd:g}"
         f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
         f"--mco-{max_command_output_chars}"
-        f"--exec-{execution}--primary-{primary_rule}"
+        f"--primary-{primary_rule}"
     )
     evaluation_dir = _evaluation_dir(
         config.output_dir,
@@ -140,15 +134,12 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
         base_urls=config.base_urls,
         output_dir=evaluation_dir,
         max_concurrency=config.max_concurrency,
-        max_retries=max_retries,
         resume=resume_evaluation,
         detection=config.detection,
         max_input_tokens=max_input_tokens,
         max_output_tokens=max_output_tokens,
         max_event_text_chars=max_event_text_chars,
         max_command_output_chars=max_command_output_chars,
-        max_cost_usd=direct_detector_max_cost_usd,
-        execution=execution,
         primary_rule=primary_rule,
     )).run()
     print(f"Wrote direct reward-hacking judgments: {evaluation_dir / 'summary.json'}")

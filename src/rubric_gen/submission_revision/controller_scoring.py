@@ -12,7 +12,6 @@ from pathlib import Path
 from rubric_gen.artifacts.serialization import write_json_atomic as _write_json_atomic
 from rubric_gen.benchmarks import SubmissionBenchmark
 from rubric_gen.submission_revision.artifacts import (
-    make_read_only as _make_read_only,
     read_json_object as _read_json_object,
     sha256_file as _sha256_file,
     tree_sha256 as _tree_sha256,
@@ -38,9 +37,10 @@ from rubric_gen.submission_revision.judge import (
 from rubric_gen.submission_revision.judging.models import RUBRIC_PATH_SOURCE
 from rubric_gen.submission_revision.judgment_reuse import (
     ExactJudgmentReuseStore,
-    ExactSimulatorReuseStore,
+    discard_temporary_judgment,
     exact_judgment_request,
-    exact_simulator_request,
+    load_judgment_copy,
+    persist_judgment_copy,
 )
 from rubric_gen.submission_revision.models import (
     RevisionDependencies,
@@ -48,7 +48,6 @@ from rubric_gen.submission_revision.models import (
     RevisionState as _RevisionState,
     SubmissionRevisionConfig,
 )
-from rubric_gen.submission_revision.reports import publish_revision_report
 from rubric_gen.submission_revision.rubric_bank import (
     RubricBank,
     RubricBankItem,
@@ -87,7 +86,6 @@ class RevisionScorer:
         master_judge: SubmissionJudge,
         seed: ResolvedSeed,
         judgment_reuse: ExactJudgmentReuseStore | None,
-        simulator_reuse: ExactSimulatorReuseStore | None,
         reuse_seed_judgment: bool,
         reuse_seed_master_judgment: bool,
         instruction_sha256: str,
@@ -106,7 +104,6 @@ class RevisionScorer:
         self.master_judge = master_judge
         self.seed = seed
         self.judgment_reuse = judgment_reuse
-        self.simulator_reuse = simulator_reuse
         self.reuse_seed_judgment = reuse_seed_judgment
         self.reuse_seed_master_judgment = reuse_seed_master_judgment
         self.instruction_sha256 = instruction_sha256
@@ -120,6 +117,68 @@ class RevisionScorer:
             )
         if _tree_sha256(self.task_dir / "environment" / "data") != self.data_sha256:
             raise RuntimeError("canonical task data changed during the experiment")
+
+    def assignment_judgment(
+        self,
+        *,
+        judge: SubmissionJudge,
+        submission_dir: Path,
+        submission_id: str,
+        rubric_sha256: str,
+        attempt_id: str,
+        allow_generation: bool,
+    ) -> JudgeArtifacts:
+        """Load or create the assignment-owned copy of one judgment."""
+
+        review_text, answer_text = judge.review_inputs(submission_dir)
+        request = exact_judgment_request(
+            task_id=self.task_dir.name,
+            replicate=self.config.replicate,
+            rubric_sha256=rubric_sha256,
+            review_text=review_text,
+            answer_text=answer_text,
+            scoring_identity=judge.scoring_identity(),
+        )
+        if not allow_generation:
+            return load_judgment_copy(
+                experiment_dir=self.experiment_dir,
+                submission_id=submission_id,
+                rubric_sha256=rubric_sha256,
+                expected_request=request,
+            )
+
+        generated: JudgeArtifacts | None = None
+
+        def generate() -> JudgeArtifacts:
+            nonlocal generated
+            generated = judge.evaluate(submission_dir, attempt_id)
+            return generated
+
+        if self.judgment_reuse is None:
+            source = generate()
+        else:
+            source = self.judgment_reuse.resolve(
+                request=request,
+                producer={
+                    "assignment_id": self.config.assignment_id,
+                    "condition_id": self.config.condition_id,
+                    "replicate": self.config.replicate,
+                    "submission_id": submission_id,
+                    "rubric_sha256": rubric_sha256,
+                    "judge_attempt_id": attempt_id,
+                },
+                generate=generate,
+            )
+        artifacts = persist_judgment_copy(
+            experiment_dir=self.experiment_dir,
+            submission_id=submission_id,
+            rubric_sha256=rubric_sha256,
+            request=request,
+            source=source,
+        )
+        if generated is not None:
+            discard_temporary_judgment(self.experiment_dir, generated)
+        return artifacts
 
     def compile_offline_bank(self) -> None:
         """Compile the sole offline rubric before any treatment boundary."""
@@ -146,7 +205,7 @@ class RevisionScorer:
         )
 
     def run_judge_boundary(self, state: _RevisionState) -> None:
-        self.validate_scored_boundaries(state)
+        self.validate_latest_boundary(state)
         submission_id = state.submission_ids[-1]
         turn_index = state.next_turn_index - 1
         attempt_id = state.judge_attempts.get(submission_id)
@@ -183,43 +242,15 @@ class RevisionScorer:
                 validation_path, evaluation_path, _ = self.seed.judgment
                 artifacts = JudgeArtifacts(validation_path, evaluation_path)
                 seeded = True
-            elif self.judgment_reuse is not None:
-                request = exact_judgment_request(
-                    task_id=self.task_dir.name,
-                    replicate=self.config.replicate,
-                    rubric_sha256=item.rubric.content_sha256,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                    scoring_identity=judge.scoring_identity(),
-                )
-
-                def generate() -> JudgeArtifacts:
-                    return judge.evaluate(submission_dir, attempt_id)
-
-                reused = self.judgment_reuse.resolve(
-                    request=request,
-                    producer={
-                        "assignment_id": self.config.assignment_id,
-                        "condition_id": self.config.condition_id,
-                        "replicate": self.config.replicate,
-                        "submission_id": submission_id,
-                        "rubric_sha256": item.rubric.content_sha256,
-                        "judge_attempt_id": attempt_id,
-                    },
-                    generate=generate,
-                )
-                self.judgment_reuse.persist_alias(
-                    experiment_dir=self.experiment_dir,
-                    assignment_id=self.config.assignment_id,
-                    replicate=self.config.replicate,
+            else:
+                artifacts = self.assignment_judgment(
+                    judge=judge,
+                    submission_dir=submission_dir,
                     submission_id=submission_id,
                     rubric_sha256=item.rubric.content_sha256,
-                    reused=reused,
+                    attempt_id=attempt_id,
+                    allow_generation=True,
                 )
-                artifacts = reused.artifacts
-                seeded = False
-            else:
-                artifacts = judge.evaluate(submission_dir, attempt_id)
                 seeded = False
             self.verify_round_scoring_identity(
                 artifacts.score_validation_path,
@@ -269,7 +300,6 @@ class RevisionScorer:
                 raise RuntimeError("existing bank evaluation changed")
         else:
             _write_json_atomic(bank_evaluation_path, bank_evaluation)
-            _make_read_only(bank_evaluation_path)
         feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
         if feedback_path.exists():
             if (
@@ -279,7 +309,6 @@ class RevisionScorer:
                 raise RuntimeError("existing feedback disagrees with judge artifacts")
         else:
             _write_json_atomic(feedback_path, feedback.payload)
-            _make_read_only(feedback_path)
         next_bank: dict[str, object] | None = None
         if (
             self.bank_policy is RubricBankPolicy.ONLINE_ELICITATION
@@ -320,7 +349,6 @@ class RevisionScorer:
         state.next_prompt = feedback.prompt
         state.phase = _RevisionPhase.READY_FOR_TURN
         self.store.write_state(state)
-        self.publish_progress_report(state, submission_id)
         self.store.append_event(
             {
                 "event": "submission_judged",
@@ -464,54 +492,11 @@ class RevisionScorer:
             raise RuntimeError(
                 f"simulated-user generation is an invalid symlink: {generation_path}"
             )
-        reuse_request: dict[str, object] | None = None
-        instruction: str | None = None
-        current_submission: str | None = None
-        if self.simulator_reuse is not None:
-            instruction = (self.task_dir / "instruction.md").read_text(
-                encoding="utf-8"
-            )
-            current_submission = self.benchmark.render_submission(
-                submission_dir / "workspace"
-            )
-            reuse_request = exact_simulator_request(
-                experiment_id=self.config.experiment_id,
-                task_id=self.task_dir.name,
-                replicate=self.config.replicate,
-                instruction=instruction,
-                bank_sha256=bank.content_sha256,
-                current_submission=current_submission,
-                simulator_identity=simulator.identity(),
-            )
         if generation_path.is_file():
             generation = _read_json_object(
                 generation_path,
                 "simulated-user generation",
             )
-            if self.simulator_reuse is not None:
-                assert reuse_request is not None
-                reused = self.simulator_reuse.validate_alias(
-                    self.experiment_dir
-                    / "simulated-user-aliases"
-                    / f"{submission_id}.json",
-                    assignment_id=self.config.assignment_id,
-                    replicate=self.config.replicate,
-                    submission_id=submission_id,
-                    expected_request=reuse_request,
-                )
-                expected_generation = self.simulator_reuse.assignment_record(
-                    reused,
-                    experiment_id=self.config.experiment_id,
-                    assignment_id=self.config.assignment_id,
-                    submission_id=submission_id,
-                    generation_round=generation_round,
-                    bank_sha256=bank.content_sha256,
-                    simulator_identity=simulator.identity(),
-                )
-                if generation != expected_generation:
-                    raise RuntimeError(
-                        "simulated-user generation differs from its shared artifact"
-                    )
         else:
             if os.path.lexists(generation_path):
                 raise RuntimeError(
@@ -523,61 +508,18 @@ class RevisionScorer:
                     f"missing simulated-user generation for {submission_id}"
                 )
             workspace = submission_dir / "workspace"
-            if instruction is None:
-                instruction = (self.task_dir / "instruction.md").read_text(
+            generation = simulator.generate(
+                experiment_id=self.config.experiment_id,
+                assignment_id=self.config.assignment_id,
+                submission_id=submission_id,
+                generation_round=generation_round,
+                instruction=(self.task_dir / "instruction.md").read_text(
                     encoding="utf-8"
-                )
-            if current_submission is None:
-                current_submission = self.benchmark.render_submission(workspace)
-            if self.simulator_reuse is not None:
-                assert reuse_request is not None
-                reused = self.simulator_reuse.resolve(
-                    request=reuse_request,
-                    producer={
-                        "assignment_id": self.config.assignment_id,
-                        "condition_id": self.config.condition_id,
-                        "replicate": self.config.replicate,
-                        "submission_id": submission_id,
-                        "generation_round": generation_round,
-                    },
-                    generate=lambda: simulator.generate(
-                        experiment_id=self.config.experiment_id,
-                        assignment_id=self.config.assignment_id,
-                        submission_id=submission_id,
-                        generation_round=generation_round,
-                        instruction=instruction,
-                        bank=bank,
-                        current_submission=current_submission,
-                    ),
-                )
-                self.simulator_reuse.persist_alias(
-                    experiment_dir=self.experiment_dir,
-                    assignment_id=self.config.assignment_id,
-                    replicate=self.config.replicate,
-                    submission_id=submission_id,
-                    reused=reused,
-                )
-                generation = self.simulator_reuse.assignment_record(
-                    reused,
-                    experiment_id=self.config.experiment_id,
-                    assignment_id=self.config.assignment_id,
-                    submission_id=submission_id,
-                    generation_round=generation_round,
-                    bank_sha256=bank.content_sha256,
-                    simulator_identity=simulator.identity(),
-                )
-            else:
-                generation = simulator.generate(
-                    experiment_id=self.config.experiment_id,
-                    assignment_id=self.config.assignment_id,
-                    submission_id=submission_id,
-                    generation_round=generation_round,
-                    instruction=instruction,
-                    bank=bank,
-                    current_submission=current_submission,
-                )
+                ),
+                bank=bank,
+                current_submission=self.benchmark.render_submission(workspace),
+            )
             _write_json_atomic(generation_path, generation)
-            _make_read_only(generation_path)
         comment = simulator.validate(
             generation,
             experiment_id=self.config.experiment_id,
@@ -598,12 +540,12 @@ class RevisionScorer:
             benchmark=self.config.benchmark,
         )
 
-    def publish_progress_report(
+    def publish_final_plot(
         self,
         state: _RevisionState,
         submission_id: str,
     ) -> None:
-        """Best-effort publication that cannot abort a scientific revision."""
+        """Create the final PNG plot without changing the completed run."""
         try:
             write_revision_score_plot(
                 state.scores,
@@ -612,12 +554,10 @@ class RevisionScorer:
                 task_id=self.task_dir.name,
                 feedback_policy=FeedbackPolicy(self.config.feedback_policy).value,
             )
-            if self.config.publish_report:
-                publish_revision_report(self.experiment_dir)
         except Exception as exc:
             self.store.append_event(
                 {
-                    "event": "report_publication_failed",
+                    "event": "plot_publication_failed",
                     "submission_id": submission_id,
                     "error_type": type(exc).__name__,
                     "error": str(exc) or type(exc).__name__,
@@ -723,68 +663,19 @@ class RevisionScorer:
             artifacts = active_member_artifacts.get(self.master_rubric.sha256)
             if artifacts is None:
                 raise RuntimeError("active bank lacks the master judgment")
-        elif self.judgment_reuse is not None:
-            review_text, answer_text = self.master_judge.review_inputs(submission_dir)
-            request = exact_judgment_request(
-                task_id=self.task_dir.name,
-                replicate=self.config.replicate,
-                rubric_sha256=self.master_rubric.sha256,
-                review_text=review_text,
-                answer_text=answer_text,
-                scoring_identity=self.master_judge.scoring_identity(),
-            )
-            attempt_id = fixed_original_attempt_id(
-                self.config.assignment_id,
-                submission_id,
-                self.master_rubric.sha256,
-            )
-            if allow_generation:
-                reused = self.judgment_reuse.resolve(
-                    request=request,
-                    producer={
-                        "assignment_id": self.config.assignment_id,
-                        "condition_id": self.config.condition_id,
-                        "replicate": self.config.replicate,
-                        "submission_id": submission_id,
-                        "rubric_sha256": self.master_rubric.sha256,
-                        "judge_attempt_id": attempt_id,
-                    },
-                    generate=lambda: self.master_judge.evaluate(
-                        submission_dir,
-                        attempt_id,
-                    ),
-                )
-                self.judgment_reuse.persist_alias(
-                    experiment_dir=self.experiment_dir,
-                    assignment_id=self.config.assignment_id,
-                    replicate=self.config.replicate,
-                    submission_id=submission_id,
-                    rubric_sha256=self.master_rubric.sha256,
-                    reused=reused,
-                )
-            else:
-                reused = self.judgment_reuse.validate_alias(
-                    self.experiment_dir
-                    / "judgment-aliases"
-                    / submission_id
-                    / (self.judgment_reuse.request_sha256(request) + ".json"),
-                    assignment_id=self.config.assignment_id,
-                    replicate=self.config.replicate,
-                    submission_id=submission_id,
-                    rubric_sha256=self.master_rubric.sha256,
-                    expected_request=request,
-                )
-            artifacts = reused.artifacts
         else:
             attempt_id = fixed_original_attempt_id(
                 self.config.assignment_id,
                 submission_id,
                 self.master_rubric.sha256,
             )
-            artifacts = (
-                self.master_judge.evaluate(submission_dir, attempt_id)
-                if allow_generation
-                else self.master_judge.validate(submission_dir, attempt_id)
+            artifacts = self.assignment_judgment(
+                judge=self.master_judge,
+                submission_dir=submission_dir,
+                submission_id=submission_id,
+                rubric_sha256=self.master_rubric.sha256,
+                attempt_id=attempt_id,
+                allow_generation=allow_generation,
             )
         self.verify_round_scoring_identity(
             artifacts.score_validation_path,
@@ -850,119 +741,97 @@ class RevisionScorer:
         if identity["rendered_rubric_sha256"] != rubric.sha256:
             raise RuntimeError("round score attests a different rubric")
 
-    def validate_scored_boundaries(self, state: _RevisionState) -> None:
-        for index, score in enumerate(state.scores):
-            submission_id = f"s{index:03d}"
-            submission_dir = self.experiment_dir / "submissions" / submission_id
-            _verify_submission_snapshot(submission_dir)
-            attempt_id = state.judge_attempts.get(submission_id)
-            if attempt_id is None:
-                raise RuntimeError("scored submission has no judge attempt identity")
-            bank = self.active_bank_generation(index).bank
-            member_artifacts: dict[str, JudgeArtifacts] = {}
-            for item in bank.items:
-                rubric, judge = self.bank_member_runtime(
-                    item, bank.generation_round
-                )
-                seeded = (
-                    index == 0
-                    and item.rubric.content_sha256 == self.initial_rubric.sha256
-                    and self.reuse_seed_judgment
-                )
-                if seeded:
-                    validation_path, evaluation_path, _ = self.seed.judgment
-                    artifacts = JudgeArtifacts(validation_path, evaluation_path)
-                elif self.judgment_reuse is not None:
-                    review_text, answer_text = judge.review_inputs(submission_dir)
-                    expected_request = exact_judgment_request(
-                        task_id=self.task_dir.name,
-                        replicate=self.config.replicate,
-                        rubric_sha256=item.rubric.content_sha256,
-                        review_text=review_text,
-                        answer_text=answer_text,
-                        scoring_identity=judge.scoring_identity(),
-                    )
-                    alias_path = (
-                        self.experiment_dir
-                        / "judgment-aliases"
-                        / submission_id
-                        / (
-                            self.judgment_reuse.request_sha256(expected_request)
-                            + ".json"
-                        )
-                    )
-                    reused = self.judgment_reuse.validate_alias(
-                        alias_path,
-                        assignment_id=self.config.assignment_id,
-                        replicate=self.config.replicate,
-                        submission_id=submission_id,
-                        rubric_sha256=item.rubric.content_sha256,
-                        expected_request=expected_request,
-                    )
-                    artifacts = reused.artifacts
-                    seeded = False
-                else:
-                    artifacts = judge.validate(submission_dir, attempt_id)
-                self.verify_round_scoring_identity(
-                    artifacts.score_validation_path,
-                    rubric,
-                    judge,
-                    seeded=seeded,
-                )
-                member_artifacts[item.rubric.content_sha256] = artifacts
-            expected_fixed_score, fixed_original_artifacts = (
-                self.fixed_original_judgment(
+    def validate_latest_boundary(self, state: _RevisionState) -> None:
+        """Validate only the latest completed score needed for resume."""
+
+        if not state.scores:
+            return
+        index = len(state.scores) - 1
+        submission_id = f"s{index:03d}"
+        submission_dir = self.experiment_dir / "submissions" / submission_id
+        _verify_submission_snapshot(submission_dir)
+        attempt_id = state.judge_attempts.get(submission_id)
+        if attempt_id is None:
+            raise RuntimeError("scored submission has no judge attempt identity")
+        bank = self.active_bank_generation(index).bank
+        member_artifacts: dict[str, JudgeArtifacts] = {}
+        for item in bank.items:
+            rubric, judge = self.bank_member_runtime(item, bank.generation_round)
+            seeded = (
+                index == 0
+                and item.rubric.content_sha256 == self.initial_rubric.sha256
+                and self.reuse_seed_judgment
+            )
+            if seeded:
+                validation_path, evaluation_path, _ = self.seed.judgment
+                artifacts = JudgeArtifacts(validation_path, evaluation_path)
+            else:
+                artifacts = self.assignment_judgment(
+                    judge=judge,
                     submission_dir=submission_dir,
                     submission_id=submission_id,
-                    turn_index=index,
-                    active_member_artifacts=member_artifacts,
+                    rubric_sha256=item.rubric.content_sha256,
+                    attempt_id=attempt_id,
                     allow_generation=False,
                 )
+            self.verify_round_scoring_identity(
+                artifacts.score_validation_path,
+                rubric,
+                judge,
+                seeded=seeded,
             )
-            projected = self.project_boundary_feedback(
-                artifacts=member_artifacts,
-                bank=bank,
-                submission_id=submission_id,
-                generation_round=bank.generation_round,
-                submission_dir=submission_dir,
-                allow_generation=False,
-                fixed_original_score=expected_fixed_score,
-                fixed_original_artifacts=fixed_original_artifacts,
+            member_artifacts[item.rubric.content_sha256] = artifacts
+        expected_fixed_score, fixed_original_artifacts = self.fixed_original_judgment(
+            submission_dir=submission_dir,
+            submission_id=submission_id,
+            turn_index=index,
+            active_member_artifacts=member_artifacts,
+            allow_generation=False,
+        )
+        projected = self.project_boundary_feedback(
+            artifacts=member_artifacts,
+            bank=bank,
+            submission_id=submission_id,
+            generation_round=bank.generation_round,
+            submission_dir=submission_dir,
+            allow_generation=False,
+            fixed_original_score=expected_fixed_score,
+            fixed_original_artifacts=fixed_original_artifacts,
+        )
+        feedback = _read_json_object(
+            self.experiment_dir / "feedback" / f"{submission_id}.json",
+            "revision feedback",
+        )
+        if projected.score != state.scores[index] or feedback != projected.payload:
+            raise RuntimeError(
+                "stored feedback disagrees with validated judge artifacts"
             )
-            feedback = _read_json_object(
-                self.experiment_dir / "feedback" / f"{submission_id}.json",
-                "revision feedback",
-            )
-            if projected.score != score or feedback != projected.payload:
-                raise RuntimeError(
-                    "stored feedback disagrees with validated judge artifacts"
-                )
-            bank_evaluation = _read_json_object(
-                self.experiment_dir
-                / "bank-evaluations"
-                / f"{submission_id}.json",
-                "bank evaluation",
-            )
-            review_text, answer_text = self.dependencies.judge.review_inputs(
-                submission_dir
-            )
-            expected_bank_evaluation = self.bank_evaluation_record(
+        bank_evaluation = _read_json_object(
+            self.experiment_dir
+            / "bank-evaluations"
+            / f"{submission_id}.json",
+            "bank evaluation",
+        )
+        review_text, answer_text = self.dependencies.judge.review_inputs(
+            submission_dir
+        )
+        expected_bank_evaluation = self.bank_evaluation_record(
+            bank,
+            member_artifacts,
+            submission_id,
+            preflight_bank_dispatch(
                 bank,
-                member_artifacts,
-                submission_id,
-                preflight_bank_dispatch(
-                    bank,
-                    benchmark=self.config.benchmark,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                ),
-                expected_fixed_score,
+                benchmark=self.config.benchmark,
+                review_text=review_text,
+                answer_text=answer_text,
+            ),
+            expected_fixed_score,
+        )
+        if bank_evaluation != expected_bank_evaluation:
+            raise RuntimeError(
+                "stored bank evaluation disagrees with member artifacts"
             )
-            if bank_evaluation != expected_bank_evaluation:
-                raise RuntimeError(
-                    "stored bank evaluation disagrees with member artifacts"
-                )
-            if expected_fixed_score != state.fixed_original_scores[index]:
-                raise RuntimeError(
-                    "stored fixed-original score disagrees with judge artifacts"
-                )
+        if expected_fixed_score != state.fixed_original_scores[index]:
+            raise RuntimeError(
+                "stored fixed-original score disagrees with judge artifacts"
+            )
