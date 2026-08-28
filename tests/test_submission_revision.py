@@ -21,6 +21,9 @@ from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.controller import (
     SubmissionRevisionController,
+)
+from rubric_gen.submission_revision.controller_scoring import RevisionScorer
+from rubric_gen.submission_revision.controller_recovery_artifacts import (
     fixed_original_attempt_id,
 )
 from rubric_gen.submission_revision.judge import (
@@ -55,14 +58,11 @@ from rubric_gen.submission_revision.user_simulator import (
     SimulatedUserGeneration,
     SimulatedUserRequest,
 )
-from rubric_gen.submission_revision.evolution import (
-    BankProposerOutput,
-    RubricBankProposer,
-    SemanticReviewerOutput,
-)
-from rubric_gen.submission_revision.study import (
-    _expected_bank_names,
-    validate_completed_revision,
+from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution_provider import StructuredProviderOutput
+from rubric_gen.submission_revision.study_validation import validate_completed_revision
+from rubric_gen.submission_revision.study_validation_artifacts import (
+    expected_bank_names,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -75,9 +75,10 @@ from rubric_gen.submission_revision.rubric_bank import (
     render_augmented_rubric,
 )
 from rubric_gen.artifacts.hashing import sha256_text
-import rubric_gen.submission_revision.study as study_module
-import rubric_gen.submission_revision.controller as controller_module
-import rubric_gen.submission_revision.judging.full_rubric_judge as full_rubric_module
+import rubric_gen.submission_revision.paraphrase_validation as paraphrase_validation_module
+import rubric_gen.submission_revision.controller_scoring as scoring_module
+import rubric_gen.submission_revision.controller_recovery_artifacts as recovery_artifacts
+import rubric_gen.submission_revision.judging.full_rubric_protocol as full_rubric_protocol_module
 
 
 EXPERIMENT_ID = "test-experiment"
@@ -109,7 +110,16 @@ def _resolve_test_paraphrase(monkeypatch: pytest.MonkeyPatch) -> None:
             master_sha256=digest,
         )
 
-    monkeypatch.setattr(study_module, "resolve_paraphrase_selection", resolve)
+    monkeypatch.setattr(
+        paraphrase_validation_module,
+        "validate_paraphrase_run",
+        lambda *_: None,
+    )
+    monkeypatch.setattr(
+        paraphrase_validation_module,
+        "resolve_paraphrase_selection",
+        resolve,
+    )
 
 
 _TEST_SCORE_LEVELS = {
@@ -405,18 +415,18 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
 
 
 def test_expected_bank_generations_use_condition_metadata() -> None:
-    assert _expected_bank_names(
+    assert expected_bank_names(
         {
             "condition_id": "arbitrary-name",
             "rubric_policy": "online_elicitation",
         },
         3,
     ) == ["bank-0000", "bank-0001"]
-    assert _expected_bank_names(
+    assert expected_bank_names(
         {"condition_id": "misleading", "rubric_policy": "fixed"},
         3,
     ) == ["bank-0000"]
-    assert _expected_bank_names(
+    assert expected_bank_names(
         {"condition_id": "misleading", "rubric_policy": "offline_elicitation"},
         7,
     ) == ["bank-0000", "bank-0001"]
@@ -581,7 +591,7 @@ def test_seed_materialization_makes_only_the_live_solution_tree_writable(
     live.mkdir()
 
     try:
-        controller._materialize_seed(live)
+        controller.workspaces.materialize_seed(live)
 
         live_package = live / "package"
         assert live_package.stat().st_mode & stat.S_IWUSR
@@ -630,7 +640,7 @@ def test_scored_snapshot_restore_makes_only_the_live_copy_writable(
     make_tree_read_only(live)
 
     try:
-        controller._restore_last_scored_workspace(
+        controller.workspaces.restore_last_scored_workspace(
             SimpleNamespace(submission_ids=["s000"]),
             live,
         )
@@ -650,9 +660,9 @@ def test_scored_snapshot_restore_makes_only_the_live_copy_writable(
 def _criterion_elicitation_proposer(
     config: SubmissionRevisionConfig,
     *,
-    run_proposer: Callable[..., BankProposerOutput] | None = None,
+    run_proposer: Callable[..., StructuredProviderOutput] | None = None,
 ) -> RubricBankProposer:
-    def propose(**kwargs) -> BankProposerOutput:
+    def propose(**kwargs) -> StructuredProviderOutput:
         stage = kwargs["stage"]
         schema = kwargs["response_schema"]
         if stage == "differences":
@@ -675,8 +685,8 @@ def _criterion_elicitation_proposer(
             value = {"criteria": []}
         else:
             raise AssertionError(f"unexpected proposer stage: {stage}")
-        return BankProposerOutput(
-            proposal_text=json.dumps(value),
+        return StructuredProviderOutput(
+            response_text=json.dumps(value),
             cost={
                 "cost_usd": None,
                 "estimated_cost_usd": 0.01,
@@ -692,7 +702,7 @@ def _criterion_elicitation_proposer(
             },
         )
 
-    def review(**kwargs) -> SemanticReviewerOutput:
+    def review(**kwargs) -> StructuredProviderOutput:
         proposed = json.loads(kwargs["evidence"])["proposed_criteria"]
         value = {
             "actions": [
@@ -708,7 +718,7 @@ def _criterion_elicitation_proposer(
                 for criterion in proposed
             ],
         }
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps(value),
             cost={
                 "cost_usd": None,
@@ -745,7 +755,7 @@ def _criterion_elicitation_proposer(
 
 
 def test_bank_member_uses_canonical_judge_source() -> None:
-    rubric = SubmissionRevisionController._frozen_bank_member(
+    rubric = RevisionScorer.frozen_bank_member(
         "candidate rubric\n",
         "a" * 64,
     )
@@ -782,7 +792,25 @@ def test_controller_rejects_an_injected_bank_proposer_contract_mismatch(
         rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
     proposer = _criterion_elicitation_proposer(config)
-    setattr(proposer, field, different)
+    proposer_fields = {"model", "base_url", "service_tier"}
+    semantic_fields = {
+        "semantic_judge_model": "model",
+        "semantic_judge_base_url": "base_url",
+        "semantic_judge_max_request_bytes": "max_request_bytes",
+        "semantic_judge_max_output_tokens": "max_output_tokens",
+    }
+    if field in proposer_fields:
+        proposer.proposer_contract = replace(
+            proposer.proposer_contract,
+            **{field: different},
+        )
+    elif field in semantic_fields:
+        proposer.semantic_reviewer_contract = replace(
+            proposer.semantic_reviewer_contract,
+            **{semantic_fields[field]: different},
+        )
+    else:
+        setattr(proposer, field, different)
 
     with pytest.raises(ValueError, match="contract differs"):
         SubmissionRevisionController(
@@ -859,13 +887,13 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
             ),
         ),
     )
-    controller._active_bank_generation = lambda _turn: SimpleNamespace(  # type: ignore[method-assign]
+    controller.scoring.active_bank_generation = lambda _turn: SimpleNamespace(  # type: ignore[method-assign]
         bank=elicited_bank
     )
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
 
-    fixed_score, _ = controller._fixed_original_judgment(
+    fixed_score, _ = controller.scoring.fixed_original_judgment(
         submission_dir=submission,
         submission_id="s001",
         turn_index=1,
@@ -924,11 +952,11 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
             master_judge=master_judge,
         ),
     )
-    controller._active_bank_generation = lambda _turn: controller.initial_bank  # type: ignore[method-assign]
+    controller.scoring.active_bank_generation = lambda _turn: controller.initial_bank  # type: ignore[method-assign]
     submission = config.experiment_dir / "submissions" / "s001"
     submission.mkdir(parents=True)
 
-    fixed_score, _ = controller._fixed_original_judgment(
+    fixed_score, _ = controller.scoring.fixed_original_judgment(
         submission_dir=submission,
         submission_id="s001",
         turn_index=1,
@@ -1410,7 +1438,7 @@ def test_shared_judgments_cross_conditions_preserve_seed_and_alias_only_resume(
         master_sha256=sha256_file(master_path),
     )
     monkeypatch.setattr(
-        study_module,
+        paraphrase_validation_module,
         "resolve_paraphrase_selection",
         lambda *_args, **_kwargs: selection,
     )
@@ -1464,9 +1492,9 @@ def test_paperbench_bank_preflight_failure_dispatches_no_member_judges(
         config,
         RevisionDependencies(session=FakeSession(), judge=judge),
     )
-    controller.reuse_seed_judgment = False
+    controller.scoring.reuse_seed_judgment = False
     monkeypatch.setattr(
-        full_rubric_module,
+        full_rubric_protocol_module,
         "FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL",
         1,
     )
@@ -1506,7 +1534,7 @@ def test_study_validates_every_elicitation_generation_record(
         ),
     )
     member_judges: dict[str, FakeJudge] = {}
-    original_runtime = controller._bank_member_runtime
+    original_runtime = controller.scoring.bank_member_runtime
 
     def runtime(item: RubricBankItem, generation_round: int):
         rubric_hash = item.rubric.content_sha256
@@ -1525,11 +1553,14 @@ def test_study_validates_every_elicitation_generation_record(
                 identity=identity,
             )
         return (
-            controller._frozen_bank_member(item.rubric.content, rubric_hash),
+            controller.scoring.frozen_bank_member(
+                item.rubric.content,
+                rubric_hash,
+            ),
             member_judges[rubric_hash],
         )
 
-    controller._bank_member_runtime = runtime  # type: ignore[method-assign]
+    controller.scoring.bank_member_runtime = runtime  # type: ignore[method-assign]
     controller.run()
     generation = json.loads(
         (
@@ -2013,18 +2044,22 @@ def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
     session = FakeSession()
     judge = FakeJudge(task, (80, 90), tmp_path / "judge")
 
-    class InterruptAfterSeed(SubmissionRevisionController):
-        def _append_event(self, payload: dict[str, object]) -> None:
-            super()._append_event(payload)
-            if payload.get("event") == "submission_judged" and payload.get(
-                "submission_id"
-            ) == "s000":
-                raise KeyboardInterrupt
+    interrupted = SubmissionRevisionController(
+        config,
+        RevisionDependencies(session=session, judge=judge),
+    )
+    append_event = interrupted.store.append_event
 
+    def interrupt_after_seed(payload: dict[str, object]) -> None:
+        append_event(payload)
+        if payload.get("event") == "submission_judged" and payload.get(
+            "submission_id"
+        ) == "s000":
+            raise KeyboardInterrupt
+
+    interrupted.store.append_event = interrupt_after_seed
     with pytest.raises(KeyboardInterrupt):
-        InterruptAfterSeed(
-            config, RevisionDependencies(session=session, judge=judge)
-        ).run()
+        interrupted.run()
     assert judge.calls == 0
     result = SubmissionRevisionController(
         replace(config, resume=True),
@@ -2046,7 +2081,7 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
         assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
         rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
-    original_persist = controller_module.persist_rubric_bank
+    original_persist = scoring_module.persist_rubric_bank
 
     class SimulatedCrash(RuntimeError):
         pass
@@ -2058,7 +2093,7 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
         return original_persist(*args, **kwargs)
 
     monkeypatch.setattr(
-        controller_module,
+        scoring_module,
         "persist_rubric_bank",
         crash_before_elicited_bank,
     )
@@ -2091,13 +2126,13 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
     (stage / "partial.json").write_text("{}\n", encoding="utf-8")
 
     monkeypatch.setattr(
-        controller_module,
+        scoring_module,
         "persist_rubric_bank",
         original_persist,
     )
     provider_calls = 0
 
-    def reject_provider_call(**_kwargs) -> BankProposerOutput:
+    def reject_provider_call(**_kwargs) -> StructuredProviderOutput:
         nonlocal provider_calls
         provider_calls += 1
         raise AssertionError("resume called the rubric proposer provider")
@@ -2125,13 +2160,6 @@ def test_resume_persists_one_sealed_proposal_ahead_before_dispatch(
                 config,
                 run_proposer=reject_provider_call,
             ),
-        ),
-    )
-    monkeypatch.setattr(
-        controller_module,
-        "RubricBankProposer",
-        lambda **_kwargs: pytest.fail(
-            "resume constructed a proposer instead of replaying on its dependency"
         ),
     )
 
@@ -2170,7 +2198,7 @@ def test_resume_rejects_owned_generation_residue_with_the_wrong_file_type(
         os.mkfifo(residue)
 
     with pytest.raises(RuntimeError, match="not a regular file"):
-        controller_module._remove_owned_rubric_generation_residue(
+        recovery_artifacts.remove_owned_rubric_generation_residue(
             root,
             max_generation_round=1,
         )
@@ -2186,7 +2214,7 @@ def test_resume_rejects_obsolete_semantic_rejection_artifact(
     (root / "bank-0001.semantic-rejection.json").write_text("{}\n")
 
     with pytest.raises(RuntimeError, match="invalid entry"):
-        controller_module._rubric_generation_entries(root)
+        recovery_artifacts.rubric_generation_entries(root)
 
 
 def test_resume_rejects_elicited_bank_without_sealed_proposal(
@@ -2201,7 +2229,7 @@ def test_resume_rejects_elicited_bank_without_sealed_proposal(
         assignment_id=f"{task.name}--rep-001--base-offline-elicitation",
         rubric_policy=RubricBankPolicy.OFFLINE_ELICITATION,
     )
-    original_persist = controller_module.persist_rubric_bank
+    original_persist = scoring_module.persist_rubric_bank
 
     class SimulatedCrash(RuntimeError):
         pass
@@ -2224,7 +2252,7 @@ def test_resume_rejects_elicited_bank_without_sealed_proposal(
         return result
 
     monkeypatch.setattr(
-        controller_module,
+        scoring_module,
         "persist_rubric_bank",
         persist_bank_then_hide_proposal,
     )
@@ -2249,14 +2277,14 @@ def test_resume_rejects_elicited_bank_without_sealed_proposal(
         config.experiment_dir / "rubric-generations" / "bank-0001"
     ).exists()
     monkeypatch.setattr(
-        controller_module,
+        scoring_module,
         "persist_rubric_bank",
         original_persist,
     )
 
     provider_calls = 0
 
-    def reject_provider_call(**_kwargs) -> BankProposerOutput:
+    def reject_provider_call(**_kwargs) -> StructuredProviderOutput:
         nonlocal provider_calls
         provider_calls += 1
         raise AssertionError("resume called the rubric proposer provider")
@@ -2291,20 +2319,23 @@ def test_judge_resume_accepts_the_persisted_historical_prompt(tmp_path: Path) ->
     session = FakeSession()
     judge = FakeJudge(task, (80, 90), tmp_path / "judge")
 
-    class InterruptDuringSeedJudge(SubmissionRevisionController):
-        interrupted = False
+    interrupted = SubmissionRevisionController(
+        config,
+        RevisionDependencies(session=session, judge=judge),
+    )
+    write_state = interrupted.store.write_state
+    did_interrupt = False
 
-        def _write_state(self, state) -> None:
-            super()._write_state(state)
-            if state.phase.value == "judge_in_progress" and not self.interrupted:
-                self.interrupted = True
-                raise KeyboardInterrupt
+    def interrupt_during_seed_judge(state) -> None:
+        nonlocal did_interrupt
+        write_state(state)
+        if state.phase.value == "judge_in_progress" and not did_interrupt:
+            did_interrupt = True
+            raise KeyboardInterrupt
 
+    interrupted.store.write_state = interrupt_during_seed_judge
     with pytest.raises(KeyboardInterrupt):
-        InterruptDuringSeedJudge(
-            config,
-            RevisionDependencies(session=session, judge=judge),
-        ).run()
+        interrupted.run()
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
     assert state["phase"] == "judge_in_progress"
@@ -2328,18 +2359,22 @@ def test_resume_rebuilds_missing_live_workspace_from_sealed_submission(
     session = FakeSession()
     judge = FakeJudge(task, (80, 90), tmp_path / "judge")
 
-    class InterruptAfterSeed(SubmissionRevisionController):
-        def _append_event(self, payload: dict[str, object]) -> None:
-            super()._append_event(payload)
-            if payload.get("event") == "submission_judged" and payload.get(
-                "submission_id"
-            ) == "s000":
-                raise KeyboardInterrupt
+    interrupted = SubmissionRevisionController(
+        config,
+        RevisionDependencies(session=session, judge=judge),
+    )
+    append_event = interrupted.store.append_event
 
+    def interrupt_after_seed(payload: dict[str, object]) -> None:
+        append_event(payload)
+        if payload.get("event") == "submission_judged" and payload.get(
+            "submission_id"
+        ) == "s000":
+            raise KeyboardInterrupt
+
+    interrupted.store.append_event = interrupt_after_seed
     with pytest.raises(KeyboardInterrupt):
-        InterruptAfterSeed(
-            config, RevisionDependencies(session=session, judge=judge)
-        ).run()
+        interrupted.run()
     manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
     old_live_root = Path(manifest["live_workspace_dir"]).parent
     remove_live_tree(old_live_root, config.experiment_dir)
@@ -2446,20 +2481,31 @@ def test_resume_promotes_an_existing_valid_submission_snapshot(
     judge = FakeJudge(task, (80, 90), tmp_path / "judge")
     dependencies = RevisionDependencies(session=session, judge=judge)
 
-    class InterruptAfterSnapshot(SubmissionRevisionController):
-        interrupted = False
+    interrupted = SubmissionRevisionController(config, dependencies)
+    snapshot_submission = interrupted.workspaces.snapshot_submission
+    did_interrupt = False
 
-        def _snapshot_submission(self, submission_id, workspace, trajectories, session_id):
-            result = super()._snapshot_submission(
-                submission_id, workspace, trajectories, session_id
-            )
-            if submission_id == "s001" and not self.interrupted:
-                self.interrupted = True
-                raise KeyboardInterrupt
-            return result
+    def interrupt_after_snapshot(
+        submission_id,
+        workspace,
+        trajectories,
+        session_id,
+    ):
+        nonlocal did_interrupt
+        result = snapshot_submission(
+            submission_id,
+            workspace,
+            trajectories,
+            session_id,
+        )
+        if submission_id == "s001" and not did_interrupt:
+            did_interrupt = True
+            raise KeyboardInterrupt
+        return result
 
+    interrupted.workspaces.snapshot_submission = interrupt_after_snapshot
     with pytest.raises(KeyboardInterrupt):
-        InterruptAfterSnapshot(config, dependencies).run()
+        interrupted.run()
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
     state["phase"] = "turn_in_progress"
@@ -2554,16 +2600,19 @@ def test_interrupted_attempt_artifacts_restore_boundary_and_restart_session(
     judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
     dependencies = RevisionDependencies(session=session, judge=judge)
 
-    class InterruptAfterFirstRevision(SubmissionRevisionController):
-        def _append_event(self, payload: dict[str, object]) -> None:
-            super()._append_event(payload)
-            if payload.get("event") == "submission_judged" and payload.get(
-                "submission_id"
-            ) == "s001":
-                raise KeyboardInterrupt
+    interrupted = SubmissionRevisionController(config, dependencies)
+    append_event = interrupted.store.append_event
 
+    def interrupt_after_first_revision(payload: dict[str, object]) -> None:
+        append_event(payload)
+        if payload.get("event") == "submission_judged" and payload.get(
+            "submission_id"
+        ) == "s001":
+            raise KeyboardInterrupt
+
+    interrupted.store.append_event = interrupt_after_first_revision
     with pytest.raises(KeyboardInterrupt):
-        InterruptAfterFirstRevision(config, dependencies).run()
+        interrupted.run()
 
     state_path = config.experiment_dir / "state.json"
     manifest_path = config.experiment_dir / "manifest.json"

@@ -33,7 +33,7 @@ from .models import (
     ResolvedRubric,
     grading_engine_for_benchmark,
 )
-from .full_rubric_judge import (
+from .full_rubric_protocol import (
     FULL_RUBRIC_ENGINE_IDENTITY,
     FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
     FullRubricJudgeError,

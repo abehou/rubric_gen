@@ -1,22 +1,24 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 
 import rubric_gen.submission_revision.evolution as evolution_module
+import rubric_gen.submission_revision.evolution_protocol as protocol_module
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
-from rubric_gen.submission_revision.evolution import (
+from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
     ArtifactPair,
-    BankProposerOutput,
     BlindedArtifact,
-    RubricBankProposer,
-    SemanticReviewerOutput,
+)
+from rubric_gen.submission_revision.evolution_provider import (
+    ProviderContract,
+    StructuredProviderOutput,
 )
 from rubric_gen.submission_revision.rubric_bank import (
     CompleteRubric,
@@ -106,9 +108,9 @@ def _generation(model: str, response_id: str) -> dict[str, object]:
     }
 
 
-def _proposer_output(value: object, response_id: str) -> BankProposerOutput:
-    return BankProposerOutput(
-        proposal_text=json.dumps(value),
+def _proposer_output(value: object, response_id: str) -> StructuredProviderOutput:
+    return StructuredProviderOutput(
+        response_text=json.dumps(value),
         cost=_cost(),
         generation=_generation("proposer", response_id),
     )
@@ -153,7 +155,7 @@ def _semantic_output(
     *,
     evidence: str,
     drop_indices: tuple[int, ...] = (),
-) -> SemanticReviewerOutput:
+) -> StructuredProviderOutput:
     del schema
     proposed = json.loads(evidence)["proposed_criteria"]
     response = {
@@ -180,7 +182,7 @@ def _semantic_output(
             for index, criterion in enumerate(proposed)
         ],
     }
-    return SemanticReviewerOutput(
+    return StructuredProviderOutput(
         response_text=json.dumps(response),
         cost=_cost(),
         generation=_generation("semantic", "semantic-review"),
@@ -244,9 +246,9 @@ def _replace(
 
 
 def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
-    difference = evolution_module._difference_instructions().lower()
-    criterion = evolution_module._criterion_instructions().lower()
-    semantic = " ".join(evolution_module._editor_instructions().lower().split())
+    difference = protocol_module.difference_instructions().lower()
+    criterion = protocol_module.criterion_instructions().lower()
+    semantic = " ".join(protocol_module.editor_instructions().lower().split())
 
     assert "do not rank" in difference
     assert "every unordered pair" in difference
@@ -270,6 +272,12 @@ def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
 def test_generation_identity_covers_history_and_scoring_code() -> None:
     assert set(evolution_module.rubric_generation_implementation_identity()) >= {
         "evolution_sha256",
+        "evolution_artifacts_sha256",
+        "evolution_ledger_sha256",
+        "evolution_protocol_sha256",
+        "evolution_provider_sha256",
+        "evolution_serialization_sha256",
+        "evolution_store_sha256",
         "artifact_history_builder_sha256",
         "rubric_bank_sha256",
         "rubric_bank_lifecycle_sha256",
@@ -278,6 +286,25 @@ def test_generation_identity_covers_history_and_scoring_code() -> None:
         "judge_models_sha256",
         "judge_scoring_sha256",
     }
+
+
+def test_provider_contract_rejects_oversized_request_before_dispatch() -> None:
+    contract = ProviderContract(
+        model="test-model",
+        base_url=None,
+        max_output_tokens=10,
+        max_request_bytes=1,
+        service_tier=None,
+    )
+
+    with pytest.raises(ValueError, match="request is"):
+        contract.generate(
+            instructions="instructions",
+            evidence="evidence",
+            response_schema={"type": "object"},
+            request_context="test provider",
+            schema_name="test_schema",
+        )
 
 
 def test_artifact_history_requires_the_complete_pair_graph() -> None:
@@ -365,7 +392,7 @@ def test_only_difference_discovery_sees_raw_artifacts(tmp_path: Path) -> None:
 
 
 def test_editor_evidence_does_not_duplicate_the_original_rubric() -> None:
-    evidence = json.loads(evolution_module._editor_evidence(
+    evidence = json.loads(protocol_module.editor_evidence(
         instruction="Solve the analysis task.",
         current_bank=_initial_bank(),
         artifact_history=_history(),
@@ -410,7 +437,7 @@ def test_criterion_needs_support_from_two_pairs_before_review(tmp_path: Path) ->
 
 
 def test_criterion_schema_leaves_distinctness_to_local_validation() -> None:
-    schema = evolution_module._criterion_schema(
+    schema = protocol_module.criterion_schema(
         3,
         ("A", "B", "C"),
         _history(),
@@ -537,7 +564,7 @@ def test_editor_cannot_introduce_a_novel_numeric_target(tmp_path: Path) -> None:
         source["level_descriptions"][0]["description"] = (
             "Reports an enrichment ratio of approximately 1.39-fold."
         )
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps({"actions": [{
                 "action": "rewrite",
                 "source_criterion_ids": [source["criterion_id"]],
@@ -564,8 +591,8 @@ def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
         if kwargs["stage"] == "differences":
             difference_calls += 1
             if difference_calls == 1:
-                return BankProposerOutput(
-                    proposal_text="not json",
+                return StructuredProviderOutput(
+                    response_text="not json",
                     cost=_cost(),
                     generation=_generation("proposer", "bad"),
                 )
@@ -662,7 +689,7 @@ def test_reviewer_can_accept_one_criterion_and_drop_another(
 def test_reviewer_rewrite_replaces_the_proposed_criterion(tmp_path: Path) -> None:
     def review(**kwargs):
         source = json.loads(kwargs["evidence"])["proposed_criteria"][0]
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps({"actions": [{
                 "action": "rewrite",
                 "source_criterion_ids": [source["criterion_id"]],
@@ -692,7 +719,7 @@ def test_reviewer_rewrite_can_replace_support_from_the_full_history(
 
     def review(**kwargs):
         source = json.loads(kwargs["evidence"])["proposed_criteria"][0]
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps({"actions": [{
                 "action": "rewrite",
                 "source_criterion_ids": [source["criterion_id"]],
@@ -726,7 +753,7 @@ def test_reviewer_merge_combines_two_proposals(tmp_path: Path) -> None:
     def review(**kwargs):
         proposed = json.loads(kwargs["evidence"])["proposed_criteria"]
         first = proposed[0]
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps({"actions": [{
                 "action": "merge",
                 "source_criterion_ids": [
@@ -759,7 +786,7 @@ def test_invalid_semantic_review_retries_then_abandons_the_criterion(
     def invalid_review(**_kwargs):
         nonlocal calls
         calls += 1
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps({"actions": []}),
             cost=_cost(),
             generation=_generation("semantic", "invalid-semantic-review"),
@@ -804,7 +831,7 @@ def test_invalid_editor_response_gets_exact_repair_retry(tmp_path: Path) -> None
                 "support_pair_ids": source["support_pair_ids"],
                 "reason": "The criterion is valid and supported.",
             }]}
-        return SemanticReviewerOutput(
+        return StructuredProviderOutput(
             response_text=json.dumps(value),
             cost=_cost(),
             generation=_generation("semantic", f"editor-{calls}"),

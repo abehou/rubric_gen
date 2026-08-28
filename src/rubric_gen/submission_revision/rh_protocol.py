@@ -19,10 +19,10 @@ from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.judging.models import (
     grading_engine_for_benchmark,
 )
-from rubric_gen.submission_revision.judging.full_rubric_judge import (
+from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     FULL_RUBRIC_ENGINE_IDENTITY,
 )
-from rubric_gen.submission_revision.paraphrases import ParaphraseSelection
+from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
 from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 from rubric_gen.submission_revision.rubric_bank_lifecycle import RubricBankGeneration
 

@@ -10,12 +10,15 @@ import pytest
 import rubric_gen.reward_hacking.review as review
 import rubric_gen.reward_hacking.runner as runner_module
 import rubric_gen.runtime.llm as llm
-from rubric_gen.reward_hacking.review import CostBudgetExceeded
-from rubric_gen.reward_hacking.runner import (
-    PreparedJob,
-    RewardHackingJudgeConfig,
-    RewardHackingJudgeRunner,
+from rubric_gen.reward_hacking.batch import OpenAIBatchRunner
+from rubric_gen.reward_hacking.batch_state import BatchState
+from rubric_gen.reward_hacking.costs import (
+    cache_write_reservation_tokens,
+    request_cost,
 )
+from rubric_gen.reward_hacking.jobs import PreparedJob, RewardHackingJudgeConfig
+from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
+from rubric_gen.reward_hacking.standard import StandardJobRunner
 from rubric_gen.reward_hacking.sources import (
     AuditCase,
     transcript_audit_source,
@@ -127,7 +130,7 @@ def test_cache_groups_serialize_identical_model_prefixes(
         )
     ]
 
-    groups = [RewardHackingJudgeRunner._standard_cache_group(job) for job in jobs]
+    groups = [StandardJobRunner.cache_group(job) for job in jobs]
     assert groups[0] == groups[1]
     assert groups[0] != groups[2]
     assert groups[3] == groups[4]
@@ -291,7 +294,25 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
         "no-snapshot-hash-revalidation"
     )
     assert provenance["detection_target"] == summary["detection_target"]
-    assert len(provenance["implementation_sha256"]) == 64
+    assert set(provenance["implementation_sha256s"]) == {
+        "batch.py",
+        "batch_state.py",
+        "costs.py",
+        "jobs.py",
+            "metrics.py",
+            "planning.py",
+            "protocol.py",
+        "review.py",
+        "runner.py",
+        "sources.py",
+        "standard.py",
+        "standard_state.py",
+        "targets.py",
+    }
+    assert all(
+        len(value) == 64
+        for value in provenance["implementation_sha256s"].values()
+    )
 
 
 def test_direct_model_runner_retries_failed_member(tmp_path: Path) -> None:
@@ -1219,26 +1240,26 @@ def test_omitted_runtime_budget_allows_generation(tmp_path: Path) -> None:
 def test_provider_costs_apply_openai_and_gemini_long_context_tiers() -> None:
     # Luna: 300k uncached input at 2x $0.20/MTok plus 100k output at
     # 1.5x $1.20/MTok.
-    assert RewardHackingJudgeRunner._request_cost(
+    assert request_cost(
         "gpt-5.6-luna", 300_000, 100_000
     ) == pytest.approx(0.3)
     # At the threshold the ordinary tier still applies.
-    assert RewardHackingJudgeRunner._request_cost(
+    assert request_cost(
         "gpt-5.6-luna", 272_000, 100_000
     ) == pytest.approx(0.1744)
     # Gemini switches above 200k to $4 input and $18 output per MTok.
-    assert RewardHackingJudgeRunner._request_cost(
+    assert request_cost(
         "gemini-3.1-pro-preview", 300_000, 100_000
     ) == pytest.approx(3.0)
     # Gemini 3.5 Flash has one standard tier across its context window.
-    assert RewardHackingJudgeRunner._request_cost(
+    assert request_cost(
         "gemini-3.5-flash", 300_000, 100_000
     ) == pytest.approx(1.35)
     # Claude's full context uses the standard Opus 4.8 tier.
-    assert RewardHackingJudgeRunner._request_cost(
+    assert request_cost(
         "claude-opus-4-8", 300_000, 100_000
     ) == pytest.approx(4.0)
-    assert RewardHackingJudgeRunner._request_cost(
+    assert request_cost(
         "claude-opus-5", 300_000, 100_000
     ) == pytest.approx(4.0)
 
@@ -1251,12 +1272,12 @@ def test_cost_reservation_marks_only_the_stable_prefix_as_a_cache_write() -> Non
         schema={"type": "object", "additionalProperties": False},
     )
     total = llm.estimate_input_tokens("gpt-5.6-sol", request)
-    reserved = RewardHackingJudgeRunner._cache_write_reservation_tokens(
+    reserved = cache_write_reservation_tokens(
         "gpt-5.6-sol", request, total
     )
 
     assert 0 < reserved < total
-    assert RewardHackingJudgeRunner._cache_write_reservation_tokens(
+    assert cache_write_reservation_tokens(
         "gemini-3.1-pro-preview", request, total
     ) == 0
 
@@ -1452,20 +1473,23 @@ def test_batch_rh_aggregates_chunk_scores_without_synthesis(tmp_path: Path) -> N
     results = {}
     for index, score in enumerate((1, 9, 2)):
         results[f"j00000-r{index:03d}"] = {
+            "custom_id": f"j00000-r{index:03d}",
             "verdict": {"reason": f"score {score}", "score": score},
             "generation": {"response_id": f"response-{index}"},
             "text": _rh_text(score, f"score {score}"),
         }
-    state = {
-        "attempt": 1,
-        "initial_results": results,
-        "initial_failures": {},
-        "synthesis_results": {},
-        "synthesis_failures": {},
-    }
+    state = BatchState.new(runner.run_provenance_sha256)
+    state.initial_results = results
 
-    assert runner._batch_synthesis_entries((job,), results) == []
-    records = runner._batch_records((job,), state)
+    batch = OpenAIBatchRunner(
+        runner.config,
+        (job,),
+        runner.run_provenance_sha256,
+        runner.count_tokens,
+        runner._payload,
+    )
+    assert batch.synthesis_entries((job,), results) == []
+    records = batch.records_from_state((job,), state)
 
     assert records[0]["verdict"]["score"] == 9
     assert records[0]["verdict"]["selected_chunk"] == 2
@@ -1495,8 +1519,15 @@ def test_openai_batch_prices_a_paid_response_before_parse_retry(
         "usage": {"input_tokens": 1_000, "output_tokens": 100},
     }
 
+    batch = OpenAIBatchRunner(
+        runner.config,
+        (),
+        runner.run_provenance_sha256,
+        runner.count_tokens,
+        runner._payload,
+    )
     with pytest.raises(ValueError) as error:
-        runner._batch_result("job-invalid", body)
+        batch.parse_response("job-invalid", body)
 
     assert getattr(error.value, "batch_cost_accounted") is True
-    assert runner._spent_usd == pytest.approx(0.00016)
+    assert batch.observed_api_usd == pytest.approx(0.00016)

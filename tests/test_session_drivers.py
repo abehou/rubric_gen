@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -256,7 +255,11 @@ def test_agent_environment_uses_workspace_local_temporary_directory(
     (temporary / "command.out").write_text("ok\n")
 
 
-def test_codex_adapter_restores_controlled_config_between_turns(tmp_path: Path) -> None:
+def test_codex_adapter_restores_controlled_config_between_turns(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("CODEX_API_KEY", "test-key")
     paths = RunPaths(
         provider="codex",
         run_dir=tmp_path / "turn",
@@ -282,6 +285,7 @@ def test_codex_adapter_mounts_its_sandbox_helpers_read_only(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    monkeypatch.setenv("CODEX_API_KEY", "test-key")
     package_root = tmp_path / "npm" / "@openai" / "codex"
     launcher = package_root / "bin" / "codex.js"
     native = (

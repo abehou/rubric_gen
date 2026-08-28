@@ -7,7 +7,7 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmark
-from rubric_gen.submission_revision.evolution import (
+from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
     ArtifactPair,
     BlindedArtifact,

@@ -12,10 +12,12 @@ from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.paraphrases import (
     ParaphraseRunConfig,
     ParaphraseRunner,
-    _wording_template,
+)
+from rubric_gen.submission_revision.paraphrase_validation import (
     resolve_paraphrase_selection,
     validate_semantic_paraphrase,
 )
+from rubric_gen.submission_revision.paraphrase_protocol import wording_template
 
 
 def _master() -> str:
@@ -246,7 +248,7 @@ def test_paraphrase_requests_keep_each_criterion_atomic() -> None:
         "[B]: A useful bounded result has one material limitation.\n"
         "[C]: The result is missing, invalid, or unsupported.\n"
     )
-    template = _wording_template(master)
+    template = wording_template(master)
 
     assert len(template.slots) == 10
     assert [group.group_id for group in template.groups] == [
@@ -639,7 +641,7 @@ def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
     with pytest.raises(ValueError, match="changed its numbers"):
         validate_semantic_paraphrase(master, changed_number)
 
-    numeric_group = _wording_template(master).groups[1]
+    numeric_group = wording_template(master).groups[1]
     injected = dict(numeric_group.fields)
     injected["criterion_2_title"] = (
         "৫.২ " + injected["criterion_2_title"]

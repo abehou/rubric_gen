@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
-from rubric_gen.submission_revision.judging.full_rubric_judge import (
+from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     preflight_full_rubric_bank,
 )
 from rubric_gen.submission_revision.judging.models import (

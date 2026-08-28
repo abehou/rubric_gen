@@ -20,6 +20,12 @@ def test_every_submission_benchmark_has_one_native_contract() -> None:
     assert len({id(contract) for contract in contracts}) == len(SubmissionBenchmarkId)
 
 
+def test_python_modules_remain_below_giant_file_threshold() -> None:
+    for path in SOURCE_ROOT.rglob("*.py"):
+        line_count = len(path.read_text(encoding="utf-8").splitlines())
+        assert line_count < 1_000, f"{path.relative_to(SOURCE_ROOT)} has {line_count} lines"
+
+
 def test_removed_top_level_benchmark_packages_have_no_callers() -> None:
     legacy_packages = ("biomnibench", "harvey", "malt", "paperbench")
     for package in legacy_packages:
@@ -103,6 +109,30 @@ def test_reward_hacking_evaluation_modules_remain_focused() -> None:
         assert line_count < 1_000, f"{module} has {line_count} lines"
 
 
+def test_reward_hacking_panel_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "reward_hacking"
+    modules = (
+        "runner.py",
+        "batch.py",
+        "batch_state.py",
+        "costs.py",
+        "jobs.py",
+        "planning.py",
+        "standard.py",
+        "standard_state.py",
+    )
+
+    for module in modules:
+        source = (package / module).read_text(encoding="utf-8")
+        line_count = len(source.splitlines())
+        assert line_count < 1_000, f"{module} has {line_count} lines"
+
+    runner_source = (package / "runner.py").read_text(encoding="utf-8")
+    assert "class RewardHackingJudgeConfig" not in runner_source
+    assert "class PreparedJob" not in runner_source
+    assert "def _run_batch" not in runner_source
+
+
 def test_rubric_bank_and_judge_runner_modules_remain_focused() -> None:
     submission_revision = SOURCE_ROOT / "submission_revision"
     modules = (
@@ -117,3 +147,102 @@ def test_rubric_bank_and_judge_runner_modules_remain_focused() -> None:
 
     domain_source = modules[0].read_text(encoding="utf-8")
     assert "rubric_bank_lifecycle" not in domain_source
+
+
+def test_rubric_evolution_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision"
+    modules = (
+        "evolution.py",
+        "evolution_artifacts.py",
+        "evolution_ledger.py",
+        "evolution_protocol.py",
+        "evolution_provider.py",
+        "evolution_serialization.py",
+        "evolution_store.py",
+    )
+
+    sources = []
+    for module in modules:
+        source = (package / module).read_text(encoding="utf-8")
+        sources.append(source)
+        line_count = len(source.splitlines())
+        assert line_count < 1_000, f"{module} has {line_count} lines"
+
+    combined = "\n".join(sources)
+    assert "BankProposerOutput" not in combined
+    assert "SemanticReviewerOutput" not in combined
+
+
+def test_revision_controller_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision"
+    modules = (
+        "controller.py",
+        "controller_recovery.py",
+        "controller_recovery_artifacts.py",
+        "controller_scoring.py",
+        "controller_setup.py",
+        "controller_workspace.py",
+    )
+
+    for module in modules:
+        source = (package / module).read_text(encoding="utf-8")
+        line_count = len(source.splitlines())
+        assert line_count < 1_000, f"{module} has {line_count} lines"
+
+    controller = (package / "controller.py").read_text(encoding="utf-8")
+    assert "def _run_judge_boundary" not in controller
+    assert "def _recover_failed_solver_boundary" not in controller
+    assert "def _snapshot_submission" not in controller
+
+
+def test_revision_study_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision"
+    modules = (
+        "study.py",
+        "study_layout.py",
+        "study_validation.py",
+        "study_validation_artifacts.py",
+        "study_validation_context.py",
+    )
+
+    for module in modules:
+        source = (package / module).read_text(encoding="utf-8")
+        line_count = len(source.splitlines())
+        assert line_count < 1_000, f"{module} has {line_count} lines"
+
+    study = (package / "study.py").read_text(encoding="utf-8")
+    assert "def validate_completed_revision" not in study
+    assert "def resolve_study_experiment" not in study
+
+
+def test_original_rubric_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision"
+    runner = (package / "original_rubric.py").read_text(encoding="utf-8")
+    inputs = (package / "original_rubric_inputs.py").read_text(encoding="utf-8")
+    summary = (package / "original_rubric_summary.py").read_text(encoding="utf-8")
+
+    assert "class OriginalRubricEnsembleConfig" not in runner
+    assert "class OriginalRubricEnsembleRunner" not in inputs
+    assert "class OriginalRubricEnsembleRunner" not in summary
+    assert "def assignment_summaries" not in runner
+
+
+def test_paraphrase_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision"
+    workflow = (package / "paraphrases.py").read_text(encoding="utf-8")
+    protocol = (package / "paraphrase_protocol.py").read_text(encoding="utf-8")
+    validation = (package / "paraphrase_validation.py").read_text(encoding="utf-8")
+
+    assert "class WordingTemplate" not in workflow
+    assert "class ParaphraseRunner" not in protocol
+    assert "class ParaphraseSelection" not in workflow
+    assert "class ParaphraseRunner" not in validation
+
+
+def test_full_rubric_judge_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision" / "judging"
+    executor = (package / "full_rubric_judge.py").read_text(encoding="utf-8")
+    protocol = (package / "full_rubric_protocol.py").read_text(encoding="utf-8")
+
+    assert "class FullRubricRunSpec" not in executor
+    assert "def _generate_response" not in protocol

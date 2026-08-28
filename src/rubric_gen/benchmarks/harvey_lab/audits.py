@@ -14,10 +14,8 @@ from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
 from rubric_gen.benchmarks.harvey_lab.controller import candidate_id, rubric_id
 from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
 from rubric_gen.benchmarks.harvey_lab.runtime import runtime_root_from_environment
-from rubric_gen.reward_hacking.runner import (
-    RewardHackingJudgeConfig,
-    RewardHackingJudgeRunner,
-)
+from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
+from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.reward_hacking.sources import transcript_audit_source
 
 

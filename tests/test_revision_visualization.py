@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import rubric_gen.submission_revision.controller as controller_module
+import rubric_gen.submission_revision.controller_scoring as scoring_module
 from rubric_gen.submission_revision.reports import publish_revision_report
 import rubric_gen.submission_revision.visualization.revisions as revisions_module
 
@@ -82,23 +82,23 @@ def test_report_failure_does_not_abort_revision(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    controller = object.__new__(controller_module.SubmissionRevisionController)
-    controller.config = SimpleNamespace(
+    scorer = object.__new__(scoring_module.RevisionScorer)
+    scorer.config = SimpleNamespace(
         feedback_policy="semi",
         publish_report=True,
     )
-    controller.experiment_dir = tmp_path / "experiment"
-    controller.task_dir = tmp_path / "da-1-1"
+    scorer.experiment_dir = tmp_path / "experiment"
+    scorer.task_dir = tmp_path / "da-1-1"
     events: list[dict[str, object]] = []
-    controller._append_event = events.append
+    scorer.store = SimpleNamespace(append_event=events.append)
 
     def fail_plot(*args: object, **kwargs: object) -> None:
         del args, kwargs
         raise RuntimeError("matplotlib race")
 
-    monkeypatch.setattr(controller_module, "write_revision_score_plot", fail_plot)
+    monkeypatch.setattr(scoring_module, "write_revision_score_plot", fail_plot)
 
-    controller._publish_progress_report(
+    scorer.publish_progress_report(
         SimpleNamespace(scores=[54], fixed_original_scores=[54]),
         "s000",
     )

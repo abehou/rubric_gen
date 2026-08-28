@@ -13,6 +13,7 @@ import openai
 import pytest
 
 import rubric_gen.submission_revision.judging.full_rubric_judge as full_rubric_module
+import rubric_gen.submission_revision.judging.full_rubric_protocol as full_rubric_protocol
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.judging.artifacts import JudgeArtifactStore
 from rubric_gen.submission_revision.judging.executor import JudgeExecutor
@@ -23,13 +24,13 @@ from rubric_gen.submission_revision.judging.models import (
     ResolvedRubric,
     SCORE_INPUT_ATTESTATION_KEYS,
 )
-from rubric_gen.submission_revision.judging.full_rubric_judge import (
+from rubric_gen.submission_revision.judging.full_rubric_judge import grade_full_rubric
+from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     FULL_RUBRIC_ENGINE_IDENTITY,
     FULL_RUBRIC_SYSTEM_PROMPT,
     FullRubricGeneration,
     FullRubricJudgeError,
     build_full_rubric_run_spec,
-    grade_full_rubric,
     full_rubric_payload,
     parse_structured_output,
     preflight_full_rubric_bank,
@@ -137,7 +138,7 @@ def _call_usage(spec) -> list[dict[str, object]]:
             "raw_usage": {"input_tokens": 100, "output_tokens": 20},
         }
         for index, parameters in enumerate(
-            full_rubric_module._request_parameters(spec),
+            full_rubric_protocol.request_parameters(spec),
             start=1,
         )
     ]
@@ -278,12 +279,12 @@ def test_active_full_rubric_criterion_counts_fit_the_fixed_budget() -> None:
 
 
 def test_schema_bytes_are_included_and_grow_with_criterion_count() -> None:
-    small = full_rubric_module.full_rubric_cost_shape(
+    small = full_rubric_protocol.full_rubric_cost_shape(
         _many_criterion_rubric(2),
         review_text="workspace",
         answer_text="",
     )
-    large = full_rubric_module.full_rubric_cost_shape(
+    large = full_rubric_protocol.full_rubric_cost_shape(
         _many_criterion_rubric(151),
         review_text="workspace",
         answer_text="",
@@ -351,7 +352,7 @@ def test_whole_bank_preflight_rejects_aggregate_prompt_budget(
         answer_text="",
     )
     monkeypatch.setattr(
-        full_rubric_module,
+        full_rubric_protocol,
         "FULL_RUBRIC_MAX_BANK_REQUEST_CONTENT_BYTES",
         one["total_request_content_bytes"] - 1,
     )
@@ -512,7 +513,7 @@ def test_grade_runs_exactly_five_complete_calls(
             requested_model=spec.requested_model,
             effective_model=spec.requested_model,
             response_id=f"response-{repeat_index}",
-            request_parameters=full_rubric_module._request_parameters(spec)[repeat_index],
+            request_parameters=full_rubric_protocol.request_parameters(spec)[repeat_index],
             usage={"input_tokens": 100, "output_tokens": 20},
         )
 

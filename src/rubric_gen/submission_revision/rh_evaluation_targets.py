@@ -15,10 +15,8 @@ from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.judging.models import (
     grading_engine_for_benchmark,
 )
-from rubric_gen.submission_revision.paraphrases import (
-    ParaphraseSelection,
-    resolve_paraphrase_selection,
-)
+from rubric_gen.submission_revision import paraphrase_validation
+from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
 from rubric_gen.submission_revision.rh_protocol import (
     EvaluationConfig,
     EvaluationTarget,
@@ -32,7 +30,7 @@ from rubric_gen.submission_revision.rubric_bank_lifecycle import (
     load_rubric_bank,
     rubric_bank_directory,
 )
-from rubric_gen.submission_revision.study import resolve_study_experiment
+from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 
 def _load_weak_bank_score(
     experiment_dir: Path,
@@ -172,7 +170,7 @@ def load_evaluation_targets(
         for assignment in assignments
     }
     selections = {
-        key: resolve_paraphrase_selection(
+        key: paraphrase_validation.resolve_paraphrase_selection(
             config.paraphrase_dir,
             config.experiment,
             *key,

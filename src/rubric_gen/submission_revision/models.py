@@ -10,10 +10,10 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.runtime.agents.sessions import SolverSessionDriver
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
-from rubric_gen.submission_revision.evolution import (
+from rubric_gen.submission_revision.evolution import RubricBankProposer
+from rubric_gen.submission_revision.evolution_provider import (
     MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
     MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
-    RubricBankProposer,
 )
 from rubric_gen.submission_revision.rubric_bank import RubricBankPolicy
 from rubric_gen.submission_revision.judge import (

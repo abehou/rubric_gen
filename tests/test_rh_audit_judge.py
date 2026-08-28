@@ -16,7 +16,7 @@ from rubric_gen.submission_revision.judge import (
     FrozenRubric,
     SubmissionJudgeConfig,
 )
-from rubric_gen.submission_revision.judging.full_rubric_judge import (
+from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     FullRubricGeneration,
     FullRubricJudgeError,
     records_from_raw_reports,

@@ -8,13 +8,11 @@ from datetime import datetime
 from pathlib import Path
 
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
-from rubric_gen.reward_hacking.runner import (
-    RewardHackingJudgeConfig,
-    RewardHackingJudgeRunner,
-)
+from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
+from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.submission_revision.audit_evidence import revision_audit_source
 from rubric_gen.submission_revision.experiment import load_experiment
-from rubric_gen.submission_revision.study import resolve_study_experiment
+from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 
 
 @dataclass(frozen=True)

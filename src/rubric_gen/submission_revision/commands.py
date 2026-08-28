@@ -352,8 +352,10 @@ def _contains(parent: Path, child: Path) -> bool:
 
 def run_judge(args: argparse.Namespace) -> int:
     from rubric_gen.submission_revision.original_rubric import (
-        OriginalRubricEnsembleConfig,
         OriginalRubricEnsembleRunner,
+    )
+    from rubric_gen.submission_revision.original_rubric_inputs import (
+        OriginalRubricEnsembleConfig,
     )
 
     return OriginalRubricEnsembleRunner(OriginalRubricEnsembleConfig(

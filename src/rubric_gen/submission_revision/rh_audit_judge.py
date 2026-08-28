@@ -24,7 +24,7 @@ from rubric_gen.submission_revision.judge import (
     JudgeArtifacts,
     SubmissionJudgeConfig,
 )
-from rubric_gen.submission_revision.judging.full_rubric_judge import (
+from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     FULL_RUBRIC_MAX_CRITERIA,
     FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL,
     FULL_RUBRIC_MAX_TOTAL_REQUEST_CONTENT_BYTES,

@@ -11,8 +11,9 @@ import pytest
 import yaml
 
 import rubric_gen.submission_revision.commands as commands_module
-import rubric_gen.submission_revision.experiment as experiment_module
 import rubric_gen.submission_revision.study as study_module
+import rubric_gen.submission_revision.study_validation as study_validation_module
+import rubric_gen.submission_revision.paraphrase_validation as paraphrase_validation_module
 import rubric_gen.benchmarks.paperbench_code_dev.contract as paperbench_contract_module
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.seeds import (
@@ -892,7 +893,7 @@ def test_experiment_workflow_suppresses_solver_event_streams(
     )
     optimizer = experiment.task_dir(str(assignment["task_id"])) / "tests" / "rubric.txt"
     monkeypatch.setattr(
-        study_module,
+        paraphrase_validation_module,
         "resolve_paraphrase_selection",
         lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
     )
@@ -1414,9 +1415,13 @@ def test_study_resume_reclaims_interrupted_running_records(
     runner._write_manifest(manifest)
     revisions: list[object] = []
     optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
-    monkeypatch.setattr(study_module, "validate_paraphrase_run", lambda *_: None)
     monkeypatch.setattr(
-        study_module,
+        paraphrase_validation_module,
+        "validate_paraphrase_run",
+        lambda *_: None,
+    )
+    monkeypatch.setattr(
+        paraphrase_validation_module,
         "resolve_paraphrase_selection",
         lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
     )
@@ -1426,7 +1431,7 @@ def test_study_resume_reclaims_interrupted_running_records(
         lambda revision, **_kwargs: revisions.append(revision),
     )
     monkeypatch.setattr(
-        study_module,
+        study_validation_module,
         "validate_completed_revision",
         lambda *args, **kwargs: None,
     )
@@ -1474,8 +1479,16 @@ def test_study_resume_trusts_completed_records(
     def unexpected(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("resume revalidated a completed record")
 
-    monkeypatch.setattr(study_module, "validate_paraphrase_run", lambda *_: None)
-    monkeypatch.setattr(study_module, "validate_completed_revision", unexpected)
+    monkeypatch.setattr(
+        paraphrase_validation_module,
+        "validate_paraphrase_run",
+        lambda *_: None,
+    )
+    monkeypatch.setattr(
+        study_validation_module,
+        "validate_completed_revision",
+        unexpected,
+    )
     monkeypatch.setattr(study_module, "run_submission_revision", unexpected)
 
     assert runner.run() == 0
@@ -1497,9 +1510,13 @@ def test_study_reports_recorded_assignment_failures(
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
     optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
-    monkeypatch.setattr(study_module, "validate_paraphrase_run", lambda *_: None)
     monkeypatch.setattr(
-        study_module,
+        paraphrase_validation_module,
+        "validate_paraphrase_run",
+        lambda *_: None,
+    )
+    monkeypatch.setattr(
+        paraphrase_validation_module,
         "resolve_paraphrase_selection",
         lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
     )

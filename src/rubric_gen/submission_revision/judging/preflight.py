@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from .models import GradingEngine, grading_engine_for_benchmark
-from .full_rubric_judge import full_rubric_cost_shape
+from .full_rubric_protocol import full_rubric_cost_shape
 
 
 @dataclass(frozen=True)

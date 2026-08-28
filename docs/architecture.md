@@ -26,8 +26,52 @@ Rubric-bank code has two ownership layers.
 - `rubric_bank.py` owns domain models, rendering, aggregation, and lineage rules.
 - `rubric_bank_lifecycle.py` owns schedules and immutable generation storage.
 
+Rubric evolution has explicit protocol and durability boundaries.
+
+- `evolution.py` coordinates the three elicitation stages.
+- `evolution_artifacts.py` owns blinded artifact-history contracts.
+- `evolution_protocol.py` owns prompts, schemas, evidence, and response validation.
+- `evolution_provider.py` owns the structured provider contract and output type.
+- `evolution_ledger.py` owns exact provider-call recording and replay.
+- `evolution_store.py` owns atomic generation publication.
+- `evolution_serialization.py` owns canonical JSON used by replay identities.
+
 Judge execution also uses explicit ownership. `judging/runner.py` coordinates the
 workflow. It calls `judging/artifacts.py` and `judging/executor.py` directly.
+
+Submission revision control also uses explicit ownership.
+
+- `controller.py` coordinates the top-level revision state machine.
+- `controller_setup.py` builds and validates runtime dependencies.
+- `controller_scoring.py` owns judge boundaries, reuse, feedback, and replay.
+- `controller_workspace.py` owns live workspaces and sealed submissions.
+- `controller_recovery.py` owns resume and interruption recovery.
+- `controller_recovery_artifacts.py` validates recovery-only disk residue.
+
+Randomized study execution and validation use separate owners.
+
+- `study.py` owns concurrent assignment execution and its ledger.
+- `study_layout.py` owns safe assignment paths.
+- `study_validation.py` coordinates completed-revision validation.
+- `study_validation_context.py` validates experiment identity and state.
+- `study_validation_artifacts.py` validates generations, judgments, and feedback.
+
+Original-rubric ensemble execution uses two owners.
+
+- `original_rubric_inputs.py` validates studies, targets, configuration, and jobs.
+- `original_rubric.py` executes groups, resumes work, and publishes summaries.
+- `original_rubric_summary.py` aggregates judge, assignment, and condition results.
+
+Paraphrase generation separates the wire protocol from the workflow.
+
+- `paraphrase_protocol.py` owns wording slots, prompts, schemas, and validation.
+- `paraphrases.py` executes and resumes paraphrase pools.
+- `paraphrase_validation.py` validates pools and resolves deterministic selections.
+
+The full-rubric judge separates its protocol from provider execution.
+
+- `judging/full_rubric_protocol.py` owns bounds, schemas, parsing, and aggregation.
+- `judging/full_rubric_judge.py` executes provider calls and writes results.
 
 Reward-hacking evaluation uses focused modules inside `submission_revision`.
 
@@ -40,8 +84,19 @@ Reward-hacking evaluation uses focused modules inside `submission_revision`.
 - `rh_output_store.py` owns secure stage output operations.
 
 `rubric_gen.reward_hacking` owns detector prompts, model-panel execution, costs,
-and aggregate metrics. The runner accepts one evidence source. It does not parse
-benchmark datasets or revision manifests.
+and aggregate metrics. Its panel workflow has explicit owners.
+
+- `jobs.py` owns panel configuration and prepared-job contracts.
+- `planning.py` sizes direct, chunked, and MALT monitor requests.
+- `costs.py` owns usage normalization and provider pricing.
+- `runner.py` coordinates standard request execution.
+- `standard.py` owns one standard job and its resume artifacts.
+- `standard_state.py` owns crash-conservative standard cost state.
+- `batch.py` owns OpenAI Batch transitions and result publication.
+- `batch_state.py` validates and persists the exact Batch state.
+
+The runner accepts one evidence source. It does not parse benchmark datasets or
+revision manifests.
 
 `rubric_gen.evidence` and `rubric_gen.artifacts` contain small data utilities. They
 must not select a benchmark or start a workflow.

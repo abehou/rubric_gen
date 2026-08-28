@@ -11,15 +11,15 @@ from rubric_gen.benchmarks.paperbench_code_dev.contract import (
     PAPERBENCH_CODE_DEV,
     PAPERBENCH_CODE_DEV_PROMPT,
 )
-from rubric_gen.submission_revision.judging.full_rubric_judge import (
+from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     full_rubric_payload,
 )
 from rubric_gen.submission_revision.judging.models import JudgeRunConfig, JudgeTarget
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
-from rubric_gen.submission_revision.controller import SubmissionRevisionController
+from rubric_gen.submission_revision.controller_scoring import RevisionScorer
 from rubric_gen.submission_revision.artifacts import compact_historical_workspace
-import rubric_gen.submission_revision.evolution as evolution_module
-from rubric_gen.submission_revision.evolution import (
+import rubric_gen.submission_revision.evolution_protocol as protocol_module
+from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
     ArtifactPair,
     BlindedArtifact,
@@ -370,12 +370,12 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
     history = _artifact_history(
         tuple(f"artifact {index}" for index in range(1, 5))
     )
-    difference_evidence = evolution_module._difference_evidence(
+    difference_evidence = protocol_module.difference_evidence(
         instruction="Replicate the paper.",
         current_bank=bank,
         artifact_history=history,
     )
-    criterion_evidence = evolution_module._criterion_evidence(
+    criterion_evidence = protocol_module.criterion_evidence(
         instruction="Replicate the paper.",
         current_bank=bank,
         artifact_history=history,
@@ -393,7 +393,7 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
     assert "hidden-source-1" not in difference_evidence
     assert '"blinded_pair_graph"' in criterion_evidence
     assert '"program_owned_penalty_points_per_criterion":1' in criterion_evidence
-    instructions = " ".join(evolution_module._criterion_instructions().split())
+    instructions = " ".join(protocol_module.criterion_instructions().split())
     assert "at least three artifacts" in instructions
     assert "Each new criterion is penalty-only" in instructions
     assert "Do not choose points or weights" in instructions
@@ -498,7 +498,7 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     history = _artifact_history(
         (native_submission, "reference 1", "reference 2", "reference 3")
     )
-    proposed = evolution_module._difference_evidence(
+    proposed = protocol_module.difference_evidence(
         instruction="TASK",
         current_bank=current_bank,
         artifact_history=history,
@@ -573,22 +573,22 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         def validate(self, *_args, **_kwargs):
             return "Please improve the implementation evidence."
 
-    controller = object.__new__(SubmissionRevisionController)
-    controller.config = SimpleNamespace(
+    scorer = object.__new__(RevisionScorer)
+    scorer.config = SimpleNamespace(
         feedback_policy=FeedbackPolicy.USER_SIMULATOR,
         experiment_id="paperbench-simulated-user-test",
         assignment_id="paper--rep-001--base-fixed",
         prompt_profile=PromptProfile.BASE,
         benchmark=SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
     )
-    controller.benchmark = PAPERBENCH_CODE_DEV
-    controller.experiment_dir = tmp_path / "experiment"
-    controller.simulator_reuse = None
-    (controller.experiment_dir / "feedback-generations").mkdir(parents=True)
-    controller.task_dir = task
-    controller.dependencies = SimpleNamespace(feedback_simulator=Simulator())
+    scorer.benchmark = PAPERBENCH_CODE_DEV
+    scorer.experiment_dir = tmp_path / "experiment"
+    scorer.simulator_reuse = None
+    (scorer.experiment_dir / "feedback-generations").mkdir(parents=True)
+    scorer.task_dir = task
+    scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())
 
-    controller._project_boundary_feedback(
+    scorer.project_boundary_feedback(
         artifacts={
             rubric_sha256: SimpleNamespace(score_validation_path=validation)
         },

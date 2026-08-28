@@ -9,14 +9,17 @@ import pytest
 
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 import rubric_gen.submission_revision.original_rubric as original_module
+import rubric_gen.submission_revision.original_rubric_inputs as original_inputs_module
 from rubric_gen.submission_revision.original_rubric import (
-    OriginalRubricEnsembleConfig,
     OriginalRubricEnsembleRunner,
+    _job_identity,
+)
+from rubric_gen.submission_revision.original_rubric_inputs import (
+    OriginalRubricEnsembleConfig,
     OriginalRubricJob,
     OriginalRubricStudy,
     OriginalRubricTarget,
-    _job_identity,
-    _load_completed_study,
+    load_completed_original_rubric_study,
 )
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
@@ -387,14 +390,22 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
             "mechanistic_max_output_tokens": 1_000_000,
         }
 
-    monkeypatch.setattr(original_module, "load_experiment", lambda _path: FakeExperiment())
+    monkeypatch.setattr(
+        original_inputs_module,
+        "load_experiment",
+        lambda _path: FakeExperiment(),
+    )
     validations: list[dict[str, object]] = []
 
     def validate(*_args, **kwargs) -> None:
         validations.append(kwargs)
 
-    monkeypatch.setattr(original_module, "validate_completed_revision", validate)
-    loaded = _load_completed_study(source)
+    monkeypatch.setattr(
+        original_inputs_module,
+        "validate_completed_revision",
+        validate,
+    )
+    loaded = load_completed_original_rubric_study(source)
     assert validations[-1]["vllm_endpoints"] == {
         "solver-model": "http://solver.test/v1",
         "judge-model": "http://judge.test/v1",
@@ -410,12 +421,12 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
     assert loaded.targets[0].final_submission.name == "s010"
 
     (experiment_dir / "rubric" / "r0000.txt").write_text("optimizer paraphrase")
-    assert _load_completed_study(source).targets[0].rubric_sha256 == sha256_text(
+    assert load_completed_original_rubric_study(source).targets[0].rubric_sha256 == sha256_text(
         rubric
     )
     (task / "tests" / "rubric.txt").write_text("changed")
     with pytest.raises(RuntimeError, match="master rubric changed"):
-        _load_completed_study(source)
+        load_completed_original_rubric_study(source)
 
 
 def test_original_rubric_judge_rejects_output_inside_source(tmp_path: Path) -> None:

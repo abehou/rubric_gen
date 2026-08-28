@@ -16,7 +16,7 @@ from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
 from rubric_gen.submission_revision.rubric_bank import CompleteRubric, RubricBankPolicy
-from rubric_gen.submission_revision.evolution import (
+from rubric_gen.submission_revision.evolution_provider import (
     MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
     MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
 )

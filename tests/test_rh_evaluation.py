@@ -14,7 +14,8 @@ from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 from rubric_gen.submission_revision.artifacts import make_tree_read_only
 from rubric_gen.submission_revision.judge import SCORING_IDENTITY_KEYS
-from rubric_gen.submission_revision.paraphrases import ParaphraseSelection
+from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
+import rubric_gen.submission_revision.paraphrase_validation as paraphrase_validation_module
 from rubric_gen.submission_revision.rh_protocol import (
     AbsoluteHolisticJob,
     EvaluationTarget,
@@ -190,7 +191,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         load_terminal_state,
     )
     monkeypatch.setattr(
-        rh_targets,
+        paraphrase_validation_module,
         "resolve_paraphrase_selection",
         lambda *_args: object(),
     )

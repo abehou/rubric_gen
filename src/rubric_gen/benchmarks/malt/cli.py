@@ -37,11 +37,11 @@ from rubric_gen.reward_hacking.protocol import (
     DEFAULT_RH_MAX_OUTPUT_TOKENS,
     PRIMARY_RH_MODELS,
 )
-from rubric_gen.reward_hacking.runner import (
+from rubric_gen.reward_hacking.jobs import (
     DEFAULT_PANEL_MAX_COST_USD,
     RewardHackingJudgeConfig,
-    RewardHackingJudgeRunner,
 )
+from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.reward_hacking.sources import transcript_audit_source
 from rubric_gen.reward_hacking.targets import TARGETS, detection_target
 
