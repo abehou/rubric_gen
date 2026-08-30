@@ -49,7 +49,7 @@ def _initial_generation() -> RubricGeneration:
     rubric = _rubric()
     return RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=rubric,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -231,7 +231,7 @@ def _replace(
         generation_round=1,
         output_dir=root,
         artifact_history=_history(),
-        source_boundary=(
+        source_checkpoint=(
             1 if policy is RubricPolicy.ONLINE_ELICITATION else None
         ),
     )
@@ -904,27 +904,27 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
     assert calls == 0
 
 
-def test_online_and_offline_boundaries_are_not_interchangeable(tmp_path: Path) -> None:
+def test_online_and_offline_checkpoints_are_not_interchangeable(tmp_path: Path) -> None:
     proposer = _proposer()
-    with pytest.raises(ValueError, match="cannot use a live boundary"):
+    with pytest.raises(ValueError, match="cannot use a live checkpoint"):
         proposer.elicit_rubric(
             instruction="Solve.",
             original_rubric=_rubric(),
         current_generation=_initial_generation(),
             policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=1,
-            source_boundary=1,
+            source_checkpoint=1,
             output_dir=tmp_path / "offline",
             artifact_history=_history(),
         )
-    with pytest.raises(ValueError, match="matching live boundary"):
+    with pytest.raises(ValueError, match="matching live checkpoint"):
         proposer.elicit_rubric(
             instruction="Solve.",
             original_rubric=_rubric(),
         current_generation=_initial_generation(),
             policy=RubricPolicy.ONLINE_ELICITATION,
             generation_round=1,
-            source_boundary=None,
+            source_checkpoint=None,
             output_dir=tmp_path / "online",
             artifact_history=_history(),
         )

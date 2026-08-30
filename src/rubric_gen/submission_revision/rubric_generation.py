@@ -142,7 +142,7 @@ def is_valid_single_line_text(
     *,
     max_chars: int | None = None,
 ) -> bool:
-    """Return true for canonical printable text with no hidden line boundary."""
+    """Return true for canonical printable text with no hidden line break."""
 
     return bool(
         type(value) is str
@@ -524,7 +524,7 @@ class RubricGeneration:
     """Store one complete active rubric and its cumulative elicited criteria."""
 
     generation_round: int
-    source_boundary: int | None
+    source_checkpoint: int | None
     rubric: CompleteRubric
     elicited_criteria: tuple[ElicitedCriterion, ...]
     proposer_call_budget: int
@@ -535,17 +535,17 @@ class RubricGeneration:
             "generation_round",
         )
         require_nonnegative_int(self.proposer_call_budget, "proposer_call_budget")
-        if self.source_boundary is not None:
-            source_boundary = require_nonnegative_int(
-                self.source_boundary,
-                "source_boundary",
+        if self.source_checkpoint is not None:
+            source_checkpoint = require_nonnegative_int(
+                self.source_checkpoint,
+                "source_checkpoint",
             )
-            if source_boundary != generation_round:
+            if source_checkpoint != generation_round:
                 raise ValueError(
-                    "source_boundary must equal the rubric generation round"
+                    "source_checkpoint must equal the rubric generation round"
                 )
-        if generation_round == 0 and self.source_boundary is not None:
-            raise ValueError("the initial rubric cannot have a source boundary")
+        if generation_round == 0 and self.source_checkpoint is not None:
+            raise ValueError("the initial rubric cannot have a source checkpoint")
         if not isinstance(self.rubric, CompleteRubric):
             raise ValueError("rubric must be a CompleteRubric")
         if (
@@ -576,7 +576,7 @@ class RubricGeneration:
         payload = json.dumps(
             {
                 "generation_round": self.generation_round,
-                "source_boundary": self.source_boundary,
+                "source_checkpoint": self.source_checkpoint,
                 "rubric_sha256": self.rubric.content_sha256,
                 "elicited_criteria": [
                     criterion.as_dict() for criterion in self.elicited_criteria

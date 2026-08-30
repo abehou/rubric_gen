@@ -1,4 +1,4 @@
-"""Boundary-wide scoring checks for one active rubric generation."""
+"""Checkpoint-wide scoring checks for one active rubric generation."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def validate_generation_scoring_structure(
 
     Empty fixed evidence isolates rubric parsing, criterion counts, call counts,
     schema size, and rubric-only request size. The exact future artifact remains
-    unknown and receives a separate boundary-wide preflight before dispatch.
+    unknown and receives a separate checkpoint-wide preflight before dispatch.
     """
 
     if not isinstance(generation, RubricGeneration):

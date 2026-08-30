@@ -176,7 +176,7 @@ class RubricProposer:
         generation_round: int,
         output_dir: Path,
         artifact_history: ArtifactHistory,
-        source_boundary: int | None = None,
+        source_checkpoint: int | None = None,
     ) -> RubricGeneration:
         """Return the next single rubric after bounded criterion elicitation."""
 
@@ -202,10 +202,10 @@ class RubricProposer:
                 raise ValueError(
                     "offline elicitation has one pre-treatment generation"
                 )
-            if source_boundary is not None:
-                raise ValueError("offline elicitation cannot use a live boundary")
-        elif type(source_boundary) is not int or source_boundary != generation_round:
-            raise ValueError("online elicitation needs the matching live boundary")
+            if source_checkpoint is not None:
+                raise ValueError("offline elicitation cannot use a live checkpoint")
+        elif type(source_checkpoint) is not int or source_checkpoint != generation_round:
+            raise ValueError("online elicitation needs the matching live checkpoint")
         artifact_history = validate_artifact_history(artifact_history)
         context = self._context(
             instruction=instruction,
@@ -213,7 +213,7 @@ class RubricProposer:
             current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
-            source_boundary=source_boundary,
+            source_checkpoint=source_checkpoint,
             artifact_history=artifact_history,
         )
         try:
@@ -223,7 +223,7 @@ class RubricProposer:
                 current_generation=current_generation,
                 policy=policy,
                 generation_round=generation_round,
-                source_boundary=source_boundary,
+                source_checkpoint=source_checkpoint,
                 artifact_history=artifact_history,
                 context=context,
                 output_dir=output_dir,
@@ -238,7 +238,7 @@ class RubricProposer:
             current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
-            source_boundary=source_boundary,
+            source_checkpoint=source_checkpoint,
             artifact_history=artifact_history,
         )
 
@@ -273,7 +273,7 @@ class RubricProposer:
         current_generation: RubricGeneration,
         policy: RubricPolicy,
         generation_round: int,
-        source_boundary: int | None,
+        source_checkpoint: int | None,
         artifact_history: ArtifactHistory,
         context: dict[str, object],
         output_dir: Path,
@@ -337,7 +337,7 @@ class RubricProposer:
             current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
-            source_boundary=source_boundary,
+            source_checkpoint=source_checkpoint,
             edited_criteria=edited_criteria,
         )
         metadata = load_json_object(
@@ -380,7 +380,7 @@ class RubricProposer:
         current_generation: RubricGeneration,
         policy: RubricPolicy,
         generation_round: int,
-        source_boundary: int | None,
+        source_checkpoint: int | None,
         artifact_history: ArtifactHistory,
     ) -> _ProductionResult:
         difference_evidence_value = difference_evidence(
@@ -472,7 +472,7 @@ class RubricProposer:
             current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
-            source_boundary=source_boundary,
+            source_checkpoint=source_checkpoint,
             edited_criteria=edited_criteria,
         )
         return _ProductionResult(
@@ -489,7 +489,7 @@ class RubricProposer:
         current_generation: RubricGeneration,
         policy: RubricPolicy,
         generation_round: int,
-        source_boundary: int | None,
+        source_checkpoint: int | None,
         edited_criteria: tuple[ElicitedCriterion, ...],
     ) -> RubricGeneration:
         all_criteria = current_generation.elicited_criteria + edited_criteria
@@ -499,8 +499,8 @@ class RubricProposer:
         )
         generation = RubricGeneration(
             generation_round=generation_round,
-            source_boundary=(
-                source_boundary
+            source_checkpoint=(
+                source_checkpoint
                 if policy is RubricPolicy.ONLINE_ELICITATION
                 else None
             ),
@@ -614,14 +614,14 @@ class RubricProposer:
         current_generation: RubricGeneration,
         policy: RubricPolicy,
         generation_round: int,
-        source_boundary: int | None,
+        source_checkpoint: int | None,
         artifact_history: ArtifactHistory,
     ) -> dict[str, object]:
         return {
             "benchmark": self.benchmark.value,
             "policy": policy.value,
             "generation_round": generation_round,
-            "source_boundary": source_boundary,
+            "source_checkpoint": source_checkpoint,
             "instruction_sha256": sha256_text(instruction),
             "prior_generation_sha256": current_generation.generation_sha256,
             "original_rubric_sha256": original_rubric.content_sha256,

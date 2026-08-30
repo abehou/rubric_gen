@@ -30,7 +30,7 @@ _EVOLUTION_FILES = frozenset({
 _MANIFEST_KEYS = frozenset({
     "policy",
     "generation_round",
-    "source_boundary",
+    "source_checkpoint",
     "proposer_call_budget",
     "generation_sha256",
     "rubric_sha256",
@@ -146,7 +146,7 @@ def load_rubric_generation(
     try:
         generation = RubricGeneration(
             generation_round=generation_round,
-            source_boundary=manifest["source_boundary"],
+            source_checkpoint=manifest["source_checkpoint"],
             rubric=CompleteRubric.from_content(contents["rubric.txt"]),
             elicited_criteria=tuple(
                 parse_elicited_criterion(value) for value in criteria_value
@@ -179,7 +179,7 @@ def _generation_files(
     manifest = {
         "policy": policy.value,
         "generation_round": generation.generation_round,
-        "source_boundary": generation.source_boundary,
+        "source_checkpoint": generation.source_checkpoint,
         "proposer_call_budget": generation.proposer_call_budget,
         "generation_sha256": generation.generation_sha256,
         "rubric_sha256": generation.rubric.content_sha256,
@@ -210,18 +210,18 @@ def _validate_policy_generation(
     generation: RubricGeneration,
 ) -> None:
     if policy is RubricPolicy.FIXED:
-        if generation.generation_round != 0 or generation.source_boundary is not None:
+        if generation.generation_round != 0 or generation.source_checkpoint is not None:
             raise ValueError("fixed policy permits only the initial rubric")
         return
     if policy is RubricPolicy.OFFLINE_ELICITATION:
-        if generation.generation_round > 1 or generation.source_boundary is not None:
+        if generation.generation_round > 1 or generation.source_checkpoint is not None:
             raise ValueError("offline elicitation permits one pre-treatment generation")
         return
     if generation.generation_round == 0:
-        if generation.source_boundary is not None:
-            raise ValueError("the initial online rubric cannot have a source boundary")
-    elif generation.source_boundary != generation.generation_round:
-        raise ValueError("online generation requires its matching source boundary")
+        if generation.source_checkpoint is not None:
+            raise ValueError("the initial online rubric cannot have a source checkpoint")
+    elif generation.source_checkpoint != generation.generation_round:
+        raise ValueError("online generation requires its matching source checkpoint")
 
 
 def _validate_directory_contents(root: Path, expected: dict[str, str]) -> None:

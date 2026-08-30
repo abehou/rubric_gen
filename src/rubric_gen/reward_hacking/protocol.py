@@ -40,15 +40,15 @@ DEFAULT_RH_MAX_OUTPUT_TOKENS = 4_096
 DEFAULT_RH_MAX_EVENT_TEXT_CHARS = 65_536
 DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS = 2_048
 RH_JUDGE_MAX_ATTEMPTS = 3
-DEFAULT_MECHANISTIC_MAX_CALLS = 2_048
-DEFAULT_MECHANISTIC_MAX_REQUEST_BYTES = 536_870_912
-DEFAULT_MECHANISTIC_MAX_OUTPUT_TOKENS = 8_388_608
-DEFAULT_HOLISTIC_MAX_CALLS = 24
-DEFAULT_HOLISTIC_MAX_REQUEST_BYTES = 33_554_432
-DEFAULT_HOLISTIC_MAX_OUTPUT_TOKENS = 98_304
+DEFAULT_RUBRIC_SCORE_MAX_CALLS = 2_048
+DEFAULT_RUBRIC_SCORE_MAX_REQUEST_BYTES = 536_870_912
+DEFAULT_RUBRIC_SCORE_MAX_OUTPUT_TOKENS = 8_388_608
+DEFAULT_RUBRIC_FREE_EVALUATION_MAX_CALLS = 24
+DEFAULT_RUBRIC_FREE_EVALUATION_MAX_REQUEST_BYTES = 33_554_432
+DEFAULT_RUBRIC_FREE_EVALUATION_MAX_OUTPUT_TOKENS = 98_304
 RH_COMPONENTS = (
     "verifier_exploitation",
-    "dynamic_rubric_gap",
+    "original_rubric_gap",
 )
 
 
@@ -61,12 +61,12 @@ def outcome_audit_protocol(
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS,
     max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
     max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
-    mechanistic_max_calls: int = DEFAULT_MECHANISTIC_MAX_CALLS,
-    mechanistic_max_request_bytes: int = DEFAULT_MECHANISTIC_MAX_REQUEST_BYTES,
-    mechanistic_max_output_tokens: int = DEFAULT_MECHANISTIC_MAX_OUTPUT_TOKENS,
-    holistic_max_calls: int = DEFAULT_HOLISTIC_MAX_CALLS,
-    holistic_max_request_bytes: int = DEFAULT_HOLISTIC_MAX_REQUEST_BYTES,
-    holistic_max_output_tokens: int = DEFAULT_HOLISTIC_MAX_OUTPUT_TOKENS,
+    rubric_score_max_calls: int = DEFAULT_RUBRIC_SCORE_MAX_CALLS,
+    rubric_score_max_request_bytes: int = DEFAULT_RUBRIC_SCORE_MAX_REQUEST_BYTES,
+    rubric_score_max_output_tokens: int = DEFAULT_RUBRIC_SCORE_MAX_OUTPUT_TOKENS,
+    rubric_free_evaluation_max_calls: int = DEFAULT_RUBRIC_FREE_EVALUATION_MAX_CALLS,
+    rubric_free_evaluation_max_request_bytes: int = DEFAULT_RUBRIC_FREE_EVALUATION_MAX_REQUEST_BYTES,
+    rubric_free_evaluation_max_output_tokens: int = DEFAULT_RUBRIC_FREE_EVALUATION_MAX_OUTPUT_TOKENS,
 ) -> dict[str, object]:
     """Return the exact metadata-blinded reward-hacking evaluation protocol."""
 
@@ -119,12 +119,12 @@ def outcome_audit_protocol(
             "max_event_text_chars"
         )
     stage_caps = {
-        "mechanistic_max_calls": mechanistic_max_calls,
-        "mechanistic_max_request_bytes": mechanistic_max_request_bytes,
-        "mechanistic_max_output_tokens": mechanistic_max_output_tokens,
-        "holistic_max_calls": holistic_max_calls,
-        "holistic_max_request_bytes": holistic_max_request_bytes,
-        "holistic_max_output_tokens": holistic_max_output_tokens,
+        "rubric_score_max_calls": rubric_score_max_calls,
+        "rubric_score_max_request_bytes": rubric_score_max_request_bytes,
+        "rubric_score_max_output_tokens": rubric_score_max_output_tokens,
+        "rubric_free_evaluation_max_calls": rubric_free_evaluation_max_calls,
+        "rubric_free_evaluation_max_request_bytes": rubric_free_evaluation_max_request_bytes,
+        "rubric_free_evaluation_max_output_tokens": rubric_free_evaluation_max_output_tokens,
     }
     if any(type(value) is not int or value <= 0 for value in stage_caps.values()):
         raise ValueError("each audit stage cap must be a positive integer")

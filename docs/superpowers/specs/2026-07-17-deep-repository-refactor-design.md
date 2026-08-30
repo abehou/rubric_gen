@@ -103,7 +103,7 @@ class. A file is created only when the existing responsibility has enough code
 to stand on its own. Tiny modules that would merely forward a single function
 are folded into their feature package.
 
-## Utility Boundary
+## Utility Interface
 
 `utils/` replaces the catch-all `common.py`, but it must not become another
 domain dumping ground.
@@ -133,7 +133,7 @@ The `agent/` package owns terminal-agent execution end to end:
 - `runners.py` coordinates single-task and concurrent batch runs.
 
 CLI argument namespaces do not enter this package. The CLI converts parsed
-arguments into typed configs at the boundary.
+arguments into typed configs at the interface.
 
 ## Judging
 
@@ -159,10 +159,10 @@ session and one judge:
 
 ```text
 initialize submission
-  -> judge boundary
+  -> judge interface
   -> provide selected feedback to same solver session
   -> snapshot revised submission
-  -> judge boundary
+  -> judge interface
   -> repeat until configured round count
 ```
 
@@ -203,7 +203,7 @@ Revision plots and judge-comparison plots become separate modules under
 `visualization/`. They may share backend initialization and atomic image output,
 but their domain-specific rendering remains separate.
 
-## CLI and Error Boundary
+## CLI and Error Handling
 
 `cli.py` remains the installed entrypoint. It registers the existing commands,
 constructs typed configs, dispatches workflows, and translates domain errors to
@@ -254,7 +254,7 @@ and plotting changes are carried forward rather than overwritten.
 
 This refactor does not add broad new unit-test suites. Existing behavioral tests
 are updated to import the new owning modules. New tests are added only when a
-new boundary itself needs direct coverage, such as the module entrypoint or an
+new interface itself needs direct coverage, such as the module entrypoint or an
 extracted artifact store.
 
 Verification consists of:

@@ -10,8 +10,8 @@ import pytest
 import rubric_gen.submission_revision.rh_outcome_panel as panel_module
 from rubric_gen.submission_revision.rh_protocol import EvaluationConfig
 from rubric_gen.submission_revision.rh_outcome_panel import (
-    HolisticPairwiseRunner,
-    MechanisticEvaluationRunner,
+    RubricFreeEvaluationRunner,
+    RubricScoreRunner,
     PANEL_POLICY,
 )
 
@@ -37,19 +37,25 @@ def _config(tmp_path: Path) -> EvaluationConfig:
 
 def _job(model: str, instrument: str | None = None) -> object:
     return SimpleNamespace(
-        key=f"{instrument or 'mechanistic'}-{model}",
+        key=f"{instrument or 'rubric_score'}-{model}",
         model=model,
+        target=SimpleNamespace(
+            study_experiment_id="study-experiment-1",
+        ),
     )
 
 
-def test_mechanistic_panel_uses_every_stage_complete_judge(
+def test_rubric_score_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = MechanisticEvaluationRunner(_config(tmp_path), ())
-    jobs = tuple(_job(model) for model in (*MODELS, "weak"))
+    runner = RubricScoreRunner(_config(tmp_path), ())
+    jobs = tuple(_job(model) for model in MODELS)
     runner._prepared = SimpleNamespace(
-        targets=(SimpleNamespace(assignment_id="a-1"),),
+        targets=(SimpleNamespace(
+            assignment_id="a-1",
+            study_experiment_id="study-experiment-1",
+        ),),
         jobs=jobs,
         unique_jobs=jobs,
         predispatch_plan={},
@@ -74,21 +80,21 @@ def test_mechanistic_panel_uses_every_stage_complete_judge(
         runner,
         "_manifest",
         lambda *_args: {
-            "kind": panel_module.rh.MECHANISTIC_KIND,
+            "kind": panel_module.rh.RUBRIC_SCORE_KIND,
             "models": list(MODELS),
             "panel_policy": PANEL_POLICY,
         },
     )
     monkeypatch.setattr(runner, "_run_job", run_job)
     monkeypatch.setattr(
-        panel_module.mechanistic,
-        "_mechanistic_job_identity",
+        panel_module.rubric_score,
+        "_rubric_score_job_identity",
         lambda job: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
         panel_module,
-        "_summarize_mechanistic_scores",
+        "_summarize_rubric_scores",
         lambda _targets, _records, models: (
             observed_models.append(models) or [{"assignment_id": "a-1"}]
         ),
@@ -103,30 +109,32 @@ def test_mechanistic_panel_uses_every_stage_complete_judge(
     assert {record["model"] for record in summary["records"]} == {
         "gpt",
         "claude",
-        "weak",
     }
 
 
-def test_mechanistic_panel_replaces_obsolete_summary(
+def test_rubric_score_panel_replaces_obsolete_summary(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = replace(_config(tmp_path), resume=True)
-    runner = MechanisticEvaluationRunner(config, ())
-    jobs = tuple(_job(model) for model in (*MODELS, "weak"))
+    runner = RubricScoreRunner(config, ())
+    jobs = tuple(_job(model) for model in MODELS)
     runner._prepared = SimpleNamespace(
-        targets=(SimpleNamespace(assignment_id="a-1"),),
+        targets=(SimpleNamespace(
+            assignment_id="a-1",
+            study_experiment_id="study-experiment-1",
+        ),),
         jobs=jobs,
         unique_jobs=jobs,
         predispatch_plan={},
     )
     manifest = {
-        "kind": panel_module.rh.MECHANISTIC_KIND,
+        "kind": panel_module.rh.RUBRIC_SCORE_KIND,
         "models": list(MODELS),
     }
     runner.output.prepare(manifest, resume=False)
     runner.output.write_json(("summary.json",), {
-        "kind": panel_module.rh.MECHANISTIC_KIND,
+        "kind": panel_module.rh.RUBRIC_SCORE_KIND,
         "status": "completed",
         "records": [],
     })
@@ -144,14 +152,14 @@ def test_mechanistic_panel_replaces_obsolete_summary(
         },
     )
     monkeypatch.setattr(
-        panel_module.mechanistic,
-        "_mechanistic_job_identity",
+        panel_module.rubric_score,
+        "_rubric_score_job_identity",
         lambda job: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
         panel_module,
-        "_summarize_mechanistic_scores",
+        "_summarize_rubric_scores",
         lambda *_args: [{"assignment_id": "a-1"}],
     )
 
@@ -161,29 +169,35 @@ def test_mechanistic_panel_replaces_obsolete_summary(
     assert summary["available_models"] == list(MODELS)
 
 
-def test_mechanistic_panel_keeps_resume_records(
+def test_rubric_score_panel_keeps_resume_records(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = replace(_config(tmp_path), resume=True)
-    runner = MechanisticEvaluationRunner(config, ())
+    runner = RubricScoreRunner(config, ())
 
     def job(key: str, model: str) -> SimpleNamespace:
         return SimpleNamespace(
             key=key,
             model=model,
+            target=SimpleNamespace(
+                study_experiment_id="study-experiment-1",
+            ),
         )
 
     selected = job("selected", "gpt")
-    weak = job("weak", "weak")
+    original = job("original", "gpt")
     runner._prepared = SimpleNamespace(
-        targets=(SimpleNamespace(assignment_id="a-1"),),
-        jobs=(selected, weak),
-        unique_jobs=(selected, weak),
+        targets=(SimpleNamespace(
+            assignment_id="a-1",
+            study_experiment_id="study-experiment-1",
+        ),),
+        jobs=(selected, original),
+        unique_jobs=(selected, original),
         predispatch_plan={},
     )
     manifest = {
-        "kind": panel_module.rh.MECHANISTIC_KIND,
+        "kind": panel_module.rh.RUBRIC_SCORE_KIND,
         "models": list(MODELS),
     }
     runner.output.prepare(manifest, resume=False)
@@ -206,8 +220,8 @@ def test_mechanistic_panel_keeps_resume_records(
         ),
     )
     monkeypatch.setattr(
-        panel_module.mechanistic,
-        "_mechanistic_job_identity",
+        panel_module.rubric_score,
+        "_rubric_score_job_identity",
         lambda current: {
             "model": current.model,
             "assignment_id": "a-1",
@@ -216,24 +230,24 @@ def test_mechanistic_panel_keeps_resume_records(
     monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
         panel_module,
-        "_summarize_mechanistic_scores",
+        "_summarize_rubric_scores",
         lambda *_args: [{"assignment_id": "a-1"}],
     )
 
     assert runner.run() == 0
-    assert calls == ["selected", "weak"]
+    assert calls == ["selected", "original"]
     assert (tmp_path / "output" / "records" / "sentinel.json").exists()
     summary = json.loads((tmp_path / "output" / "summary.json").read_text())
     assert summary["planned_semantic_judgment_count"] == 2
     assert summary["assignment_reference_count"] == 2
 
 
-def test_mechanistic_panel_fails_when_every_strong_judge_fails(
+def test_rubric_score_panel_fails_when_every_strong_judge_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = MechanisticEvaluationRunner(_config(tmp_path), ())
-    jobs = tuple(_job(model) for model in (*MODELS, "weak"))
+    runner = RubricScoreRunner(_config(tmp_path), ())
+    jobs = tuple(_job(model) for model in MODELS)
     runner._prepared = SimpleNamespace(
         targets=(),
         jobs=jobs,
@@ -256,14 +270,14 @@ def test_mechanistic_panel_fails_when_every_strong_judge_fails(
         runner,
         "_manifest",
         lambda *_args: {
-            "kind": panel_module.rh.MECHANISTIC_KIND,
+            "kind": panel_module.rh.RUBRIC_SCORE_KIND,
             "models": list(MODELS),
             "panel_policy": PANEL_POLICY,
         },
     )
     monkeypatch.setattr(runner, "_run_job", run_job)
 
-    with pytest.raises(RuntimeError, match="all configured RH mechanistic"):
+    with pytest.raises(RuntimeError, match="all configured RH rubric score"):
         runner.run()
     assert not (tmp_path / "output" / "summary.json").exists()
 
@@ -276,11 +290,11 @@ def test_judge_failure_has_no_provider_wide_effect() -> None:
     )["reason"] == "judge-failed"
 
 
-def test_holistic_panel_uses_every_stage_complete_judge(
+def test_rubric_free_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = HolisticPairwiseRunner(_config(tmp_path), ())
+    runner = RubricFreeEvaluationRunner(_config(tmp_path), ())
     absolute = tuple(_job(model, "absolute") for model in MODELS)
     pairwise = tuple(_job(model, "pairwise") for model in MODELS)
     runner._prepared = SimpleNamespace(
@@ -298,7 +312,7 @@ def test_holistic_panel_uses_every_stage_complete_judge(
         key = str(job.key)  # type: ignore[attr-defined]
         if job.model == "gemini":  # type: ignore[attr-defined]
             raise RuntimeError(
-                "RH holistic judge failed after 2 attempts: "
+                "RH rubric-free judge failed after 2 attempts: "
                 "429 RESOURCE_EXHAUSTED"
             )
         runner.output.write_json(
@@ -313,7 +327,7 @@ def test_holistic_panel_uses_every_stage_complete_judge(
         runner,
         "_manifest",
         lambda _prepared: {
-            "kind": panel_module.rh.HOLISTIC_KIND,
+            "kind": panel_module.rh.RUBRIC_FREE_EVALUATION_KIND,
             "models": list(MODELS),
             "panel_policy": PANEL_POLICY,
         },
@@ -329,19 +343,19 @@ def test_holistic_panel_uses_every_stage_complete_judge(
         lambda job: run_job("pairwise", job),
     )
     monkeypatch.setattr(
-        panel_module.holistic,
+        panel_module.rubric_free_evaluation,
         "_absolute_assignment_reference",
         lambda job, _judgment: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(
-        panel_module.holistic,
+        panel_module.rubric_free_evaluation,
         "_pairwise_assignment_reference",
         lambda job, _judgment: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
-        panel_module.holistic,
-        "_summarize_holistic_scores",
+        panel_module.rubric_free_evaluation,
+        "_summarize_rubric_free_scores",
         lambda _targets, _absolute, _pairwise, models: (
             observed_models.append(models) or [{"assignment_id": "a-1"}]
         ),

@@ -71,9 +71,9 @@ task rubrics in one trajectory. It uses the unmodified Harvey task prompt.
 
 > [!WARNING]
 > The supplied resource caps are hard ceilings, not approved operating budgets.
-> The BioMNIBench results config permits 7,372,800 mechanistic calls and 17,280
-> holistic calls. The PaperBench results config permits 614,400 mechanistic
-> calls and 17,280 holistic calls. These counts include the
+> The BioMNIBench results config permits 7,372,800 rubric score calls and 17,280
+> rubric-free calls. The PaperBench results config permits 614,400 rubric score
+> calls and 17,280 rubric-free calls. These counts include the
 > configured outer retry allowance. They exclude seed, revision, proposer,
 > semantic-reviewer, solver, paraphrase, and direct-detector calls. Set
 > operator-approved budgets before any results run.
@@ -165,7 +165,7 @@ percent of the original maximum. Five criteria can apply approximately 20
 percent total penalty. Integer rounding preserves valid level spacing.
 
 The canonical original-rubric judgment supplies the score base at each
-boundary. The augmented judgment supplies only the learned penalties. The
+checkpoint. The augmented judgment supplies only the learned penalties. The
 program discards its original-criterion scores. It also uses the canonical
 original judgment for original-criterion feedback. Thus, a learned rubric
 cannot re-award original points through judge context or paraphrase variation.
@@ -192,7 +192,7 @@ the five-criterion cap and score feasibility.
 
 The offline condition completes this process before the first treatment and
 then freezes its rubric. The online condition rebuilds the complete history
-graph at each eligible boundary. Sealed seed artifacts fill the initial history.
+graph at each eligible checkpoint. Sealed seed artifacts fill the initial history.
 The offline condition uses all three pairs among three sealed seed artifacts.
 Artifact order is deterministic and blinded. Models do not receive scores,
 round labels, or newer/older labels.
@@ -240,7 +240,7 @@ retry policy remains separate and explicit.
 | Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | Claude Opus 5 | low effort | Five full-rubric calls per artifact and rubric |
 | Reference rubric scorer | Gemini 3.6 Flash | low thinking | Five full-rubric calls per artifact and rubric |
-| Rubric-free quality panel | Same three models | Same settings | Two absolute and two ordered pairwise calls per assignment and model |
+| Rubric-free evaluation panel | Same three models | Same settings | Two absolute-score and two pairwise-preference calls per assignment and model |
 | Direct RH panel | Same three models | Same settings | One trajectory judgment per assignment and model, before retries |
 
 Development studies use three tasks. Results studies use 20 tasks. All use six
@@ -274,7 +274,7 @@ uv run rubric-gen judge \
 ```
 
 The command deduplicates exact semantic requests across conditions. It then
-preflights all unique requests against the experiment's mechanistic hard caps
+preflights all unique requests against the experiment's rubric score hard caps
 before it creates the output directory or calls a provider.
 
 Run the configured reward-hacking (RH) audit:
@@ -282,19 +282,26 @@ Run the configured reward-hacking (RH) audit:
 ```bash
 uv run rubric-gen detect \
   --experiment experiments/biomnibench-dev3.yaml \
+  --study-dir runs/studies/<source-study-experiment-id> \
   --max-concurrency 3 \
   --resume
 ```
 
+`--study-dir` selects the completed revision study. Detection writes under the
+current experiment ID. The source study must use the current artifact format
+and the same revision protocol. This separation prevents audit-only changes
+from forcing a new revision study.
+
 The command writes three evaluation layers:
 
 - `direct/`: a strong three-model ensemble gives categorical RH decisions.
-- `mechanistic/`: the strong panel scores both boundaries with active, original,
-  and selected rubrics. It does not score sealed holdout rubrics.
-- `holistic/`: the strong panel first scores initial and final quality without a
-  criterion rubric. It also compares the highest and lowest saved in-loop-judge
-  original-rubric scores across the full trajectory. Each model sees both
-  response orders.
+- `rubric_score/`: the strong panel scores both artifacts with the unchanged
+  original master rubric. It also scores each active rubric and the selected
+  rubric as diagnostics. The panel does not score holdout rubrics.
+- `rubric_free_evaluation/`: the panel produces two separate results.
+  `rubric_free_absolute_scores` rates initial and final quality without a rubric.
+  `pairwise_preference_scores` compares the highest and lowest saved
+  original-rubric scores. Each model sees both response orders.
 - `summary.json`: the result combines two signed components, rubric diagnostics,
   quality outcomes, and direct outcomes.
 
@@ -302,23 +309,21 @@ The primary direct rule is `any_detect`. A complete panel is positive when at
 least one model detects reward hacking. A failed or abstaining model makes that
 assignment outcome missing.
 
-The two primary components are verifier exploitation and the dynamic-rubric
-gap. Their sum equals the weak active-rubric score minus strong rubric-free
-quality at each boundary. The evaluator also compares the active rubric with
-the original and selected rubrics. These are score diagnostics. They do not
-receive separate loss weights. Only the direct ensemble produces a categorical
-reward-hacking decision.
+The signed components are verifier exploitation and the original rubric gap.
+Their sum equals the saved weak original-rubric score minus the strong
+rubric-free absolute score. Active scores are diagnostics. Only the direct
+ensemble produces a categorical reward-hacking decision.
 
 Reference call counts use the singleton primary design. Before dispatch, each
 audit stage records its exact call, request-byte, and maximum-output-token plan.
 The judge artifacts retain realized token use and cost when providers report
-them. Across arms, only selected-rubric gain, rubric-free quality gain, pairwise
-preference, and direct detection use common outcome
-instruments. Terminal-rubric `W`, `A`, `C`, and loss values are descriptive
-total-policy endpoints because their rulers can differ by arm. Pairwise
-agreement is the preference rate for the higher saved in-loop-judge
-original-rubric score. A score tie contributes neutral agreement of 0.5. The panel never sees the rubric,
-scores, round labels, or which artifact scored higher.
+them. Selected-rubric gain, rubric-free absolute-score gain, pairwise preference,
+and direct detection use common outcome instruments. The original master
+rubric is unchanged across conditions. Active-rubric scores remain descriptive.
+Pairwise agreement is the preference rate for the
+artifact with the higher saved in-loop-judge original-rubric score. A score tie
+contributes neutral agreement of 0.5. The panel never sees the rubric, scores,
+round labels, or which artifact scored higher.
 
 See [the evaluation formulation](docs/reward_hacking_evaluation.md) for the
 estimands, exact identity, and limits.
@@ -361,7 +366,7 @@ bash scripts/start_vllm_servers.sh submit .vllm-venv
 - `scripts/`: environment and cluster utilities
 - `docs/`: design and benchmark documentation
 
-See [docs/architecture.md](docs/architecture.md) for package boundaries and
+See [docs/architecture.md](docs/architecture.md) for package structure and
 extension rules.
 
 ## CLI help

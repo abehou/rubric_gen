@@ -26,7 +26,7 @@ Rubric generation has two ownership layers.
 - `rubric_generation.py` owns the active-rubric model and criterion rendering.
 - `rubric_generation_store.py` owns atomic self-contained generation storage.
 
-Rubric evolution has explicit protocol and durability boundaries.
+Rubric evolution has explicit protocol and storage interfaces.
 
 - `evolution.py` coordinates the three elicitation stages.
 - `evolution_artifacts.py` owns blinded artifact-history contracts.
@@ -41,7 +41,7 @@ Submission revision control also uses explicit ownership.
 
 - `controller.py` coordinates the top-level revision state machine.
 - `controller_setup.py` builds and validates runtime dependencies.
-- `controller_scoring.py` owns judge boundaries, reuse, feedback, and replay.
+- `controller_scoring.py` owns judge checkpoints, reuse, feedback, and replay.
 - `controller_workspace.py` owns live workspaces and sealed submissions.
 - `controller_recovery.py` owns resume and interruption recovery.
 - `controller_recovery_artifacts.py` validates recovery-only disk residue.
@@ -75,8 +75,9 @@ Reward-hacking evaluation uses focused modules inside `submission_revision`.
 
 - `rh_protocol.py` owns evaluation contracts, request identities, and limits.
 - `rh_evaluation_targets.py` loads completed study assignments.
-- `rh_mechanistic.py` owns rubric-based planning and artifact validation.
-- `rh_holistic.py` owns rubric-free planning and artifact validation.
+- `rh_rubric_score.py` owns rubric score planning and artifact validation.
+- `rh_rubric_free_evaluation.py` owns rubric-free absolute scores and pairwise
+  preferences.
 - `rh_outcome_panel.py` runs both model panels and applies failure policy.
 - `rh_evaluation_report.py` combines completed stage results.
 - `rh_output_store.py` owns secure stage output operations.
@@ -121,10 +122,10 @@ Add a separate benchmark workflow under the same namespace. Keep its controller,
 dataset code, environment adapter, and artifacts inside its package.
 
 Add an RH evidence format by constructing `AuditSource` objects at the owning
-domain boundary. Do not add source-specific fields or parsing branches to the RH
+domain interface. Do not add source-specific fields or parsing branches to the RH
 runner.
 
 Do not create new top-level benchmark packages. Do not put provider clients or
 generic model calls inside a benchmark package.
 
-`tests/test_architecture.py` enforces these rules with import-boundary checks.
+`tests/test_architecture.py` enforces these rules with import checks.

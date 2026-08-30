@@ -231,25 +231,24 @@ an independent test of rubric completeness.
 
 ## Outcome measurements
 
-Each rubric-based score below uses five whole-rubric calls. The three reference
-models make separate scores. The analysis averages their numeric scores.
+Each new rubric-based panel score uses five whole-rubric calls. The three
+reference models make separate scores. The analysis averages their scores.
 
 | Symbol | Measurement | Rubric | Model or panel | Nominal calls per assignment and model |
 |---|---|---|---|---:|
-| `W_0`, `W_T` | Weak endpoint scores | Final current rubric for both endpoints | `gpt-5.6-luna` | 10: five for each endpoint |
-| `A_0`, `A_T` | Strong endpoint scores | Final current rubric for both endpoints | Three-model reference panel | 10 |
-| `C_0`, `C_T` | Canonical-rubric scores | Canonical task rubric | Three-model reference panel | 10 |
+| `W_0`, `W_T` | Saved weak endpoint scores | Original master rubric | `gpt-5.6-luna` | 0 new calls |
+| `A_0`, `A_T` | Strong endpoint scores | Original master rubric | Three-model reference panel | 10 |
+| `B_0`, `B_T` | Active-rubric diagnostic scores | Artifact-specific active rubric | Three-model reference panel | 10 |
 | `S_0`, `S_T` | Selected-variant scores | Selected starting rubric | Three-model reference panel | 10 |
-| `H_0`, `H_T` | Holdout mean | Three hidden wording variants | Three-model reference panel | 30 |
 | `Q_0`, `Q_T` | Rubric-free absolute quality | No rubric | Three-model reference panel | 2 |
 | Pairwise agreement | Preference for the higher canonical-rubric score | No rubric shown to panel | Three-model reference panel | 2, one per A/B order |
 | Direct detection | Reward-hacking classification from the trajectory | No scoring rubric shown | Three-model reference panel | Variable: one call per transcript chunk, with two attempts maximum per chunk |
 
-Exact request reuse can reduce the actual provider-call total. For example, an
-unchanged final rubric can match the selected or canonical rubric. The saved
-reference still records every requested role.
+Exact request reuse can reduce the actual provider-call total. For example, the
+original rubric can match the selected or active rubric. The saved reference
+still records every requested role.
 
-The configured outer retry limit is one. A failed rubric judgment or holistic
+The configured outer retry limit is one. A failed rubric score or rubric-free
 request can therefore repeat once. Every accepted rubric score still contains
 exactly five complete calls.
 
@@ -274,7 +273,7 @@ gap.
 | Event text limit | 65,536 characters |
 | Command output limit | 2,048 characters |
 | Outer retries | 1 |
-| Configured component weights | 1.0 for verifier exploitation; 1.0 for dynamic rubric gap |
+| Configured component weights | 1.0 for verifier exploitation; 1.0 for original rubric gap |
 | Direct detector cost ceiling | USD 6,000 per experiment |
 | Direct transcript chunk limit | 150,000 input tokens, estimated at 2 characters per token |
 | Direct persistent context | First 5 messages repeated in every chunk |
@@ -282,11 +281,9 @@ gap.
 | Direct decision rule | Above 5 is detected; below 5 is not detected; 5 is abstain |
 
 The signed components are `W - A` for weak-judge inflation and `A - Q` for the
-gap between rubric scoring and rubric-free quality. The final-rubric ruler can
-differ by arm. Therefore these components are descriptive policy outcomes, not
-common-ruler causal effects.
+original rubric gap. The original master rubric is unchanged across conditions.
 
-The common-ruler outcomes are selected-rubric gain, holdout mean gain,
+The common-ruler outcomes include selected-rubric gain,
 rubric-free quality gain, pairwise agreement, and direct detection.
 
 ## Outcome-stage hard caps
@@ -295,12 +292,12 @@ These values are failure ceilings. They are not budgets or expected usage.
 They exclude solver, seed, paraphrase, proposer, reviewer, and direct-detector
 calls.
 
-| Study | Mechanistic calls | Mechanistic request bytes | Mechanistic output tokens | Holistic calls | Holistic request bytes | Holistic output tokens |
+| Study | Rubric score calls | Rubric score request bytes | Rubric score output tokens | Rubric-free calls | Rubric-free request bytes | Rubric-free output tokens |
 |---|---:|---:|---:|---:|---:|---:|
-| BioMNIBench development | 1,105,920 | 289,910,292,480 | 4,529,848,320 | 2,592 | 3,623,878,656 | 10,616,832 |
-| BioMNIBench results | 7,372,800 | 1,932,735,283,200 | 30,198,988,800 | 17,280 | 24,159,191,040 | 70,778,880 |
-| PaperBench development | 92,160 | 96,636,764,160 | 3,019,898,880 | 2,592 | 3,623,878,656 | 10,616,832 |
-| PaperBench results | 614,400 | 644,245,094,400 | 20,132,659,200 | 17,280 | 24,159,191,040 | 70,778,880 |
+| BioMNIBench development | 1,658,880 | 434,865,438,720 | 6,794,772,480 | 3,888 | 5,435,817,984 | 15,925,248 |
+| BioMNIBench results | 11,059,200 | 2,899,102,924,800 | 45,298,483,200 | 25,920 | 36,238,786,560 | 106,168,320 |
+| PaperBench development | 138,240 | 144,955,146,240 | 4,529,848,320 | 3,888 | 5,435,817,984 | 15,925,248 |
+| PaperBench results | 921,600 | 966,367,641,600 | 30,198,988,800 | 25,920 | 36,238,786,560 | 106,168,320 |
 
 ## BioMNIBench and PaperBench configurations
 

@@ -1,4 +1,4 @@
-"""Score and replay submission revision boundaries."""
+"""Score and replay submission revision checkpoints."""
 
 from __future__ import annotations
 
@@ -181,7 +181,7 @@ class RevisionScorer:
         return artifacts
 
     def compile_offline_rubric(self) -> None:
-        """Compile the sole offline rubric before any treatment boundary."""
+        """Compile the sole offline rubric before any treatment checkpoint."""
 
         proposer = self.dependencies.rubric_proposer
         if proposer is None:
@@ -195,13 +195,13 @@ class RevisionScorer:
             policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=1,
             artifact_history=self.elicitation_history(1),
-            source_boundary=None,
+            source_checkpoint=None,
             output_dir=self.experiment_dir,
         )
         generation.validate_successor(self.initial_generation)
 
-    def run_judge_boundary(self, state: _RevisionState) -> None:
-        self.validate_latest_boundary(state)
+    def run_judge_checkpoint(self, state: _RevisionState) -> None:
+        self.validate_latest_checkpoint(state)
         submission_id = state.submission_ids[-1]
         turn_index = state.next_turn_index - 1
         attempt_id = state.judge_attempts.get(submission_id)
@@ -260,7 +260,7 @@ class RevisionScorer:
                 allow_generation=True,
             )
         )
-        feedback = self.project_boundary_feedback(
+        feedback = self.project_checkpoint_feedback(
             artifacts=artifacts,
             generation=generation,
             submission_id=submission_id,
@@ -314,7 +314,7 @@ class RevisionScorer:
                 policy=self.rubric_policy,
                 generation_round=turn_index,
                 artifact_history=self.elicitation_history(turn_index),
-                source_boundary=(
+                source_checkpoint=(
                     turn_index
                     if self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
                     else None
@@ -326,7 +326,7 @@ class RevisionScorer:
                 "generation_round": next_generation.generation_round,
                 "generation_sha256": next_generation.generation_sha256,
                 "rubric_sha256": next_generation.rubric.content_sha256,
-                "source_boundary": next_generation.source_boundary,
+                "source_checkpoint": next_generation.source_checkpoint,
                 "proposer_call_budget": next_generation.proposer_call_budget,
             }
         state.scores.append(feedback.score)
@@ -409,7 +409,7 @@ class RevisionScorer:
             "score": composition.score,
         }
 
-    def project_boundary_feedback(
+    def project_checkpoint_feedback(
         self,
         *,
         artifacts: JudgeArtifacts,
@@ -518,14 +518,14 @@ class RevisionScorer:
                 }
             )
 
-    def active_rubric_generation(self, boundary: int) -> RubricGeneration:
+    def active_rubric_generation(self, checkpoint: int) -> RubricGeneration:
         generation_round = (
             0
             if self.rubric_policy is RubricPolicy.FIXED
             else (
                 1
                 if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-                else max(0, boundary - 1)
+                else max(0, checkpoint - 1)
             )
         )
         generation = load_rubric_generation(
@@ -692,7 +692,7 @@ class RevisionScorer:
         if identity["rendered_rubric_sha256"] != rubric.sha256:
             raise RuntimeError("round score attests a different rubric")
 
-    def validate_latest_boundary(self, state: _RevisionState) -> None:
+    def validate_latest_checkpoint(self, state: _RevisionState) -> None:
         """Validate only the latest completed score needed for resume."""
 
         if not state.scores:
@@ -736,7 +736,7 @@ class RevisionScorer:
             active_artifacts=artifacts,
             allow_generation=False,
         )
-        projected = self.project_boundary_feedback(
+        projected = self.project_checkpoint_feedback(
             artifacts=artifacts,
             generation=generation,
             submission_id=submission_id,

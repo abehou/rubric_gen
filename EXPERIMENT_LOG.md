@@ -700,3 +700,15 @@
 - **14:54 PDT** — Limited rubric-generation validation to required files, hashes, and a parseable active rubric. Generations will not duplicate the original rubric or perform redundant derivation proofs.
 - **14:55 PDT** — Required every rubric generation to store cumulative elicited-criterion metadata in `criteria.json`. This data supports later evolution without reading prior generation directories.
 - **15:45 PDT** — Replaced the obsolete multi-rubric workflow with one self-contained active rubric per generation. Removed old models, storage paths, scoring, evaluation fields, tests, and documentation; the full suite passes with 705 tests and one skip.
+- **16:12 PDT** — Traced the nonconstant initial weak-to-strong gaps to terminal-rubric rescoring, not artifact differences. Offline feedback cells independently elicited stochastic rubrics from assignment-specific blinded IDs, while online terminal rubrics also depend on each live revision history.
+- **16:21 PDT** — Chose `rubric score` to replace `mechanistic`, while keeping rubric-free absolute scores and pairwise preference scores as distinct result types. Feedback-policy and rubric-policy values will remain unchanged.
+
+- **16:53 PDT** — Renamed the reward-hacking scoring stages and schemas without changing feedback-policy or rubric-policy values. The full suite passes with 705 tests and one skip.
+- **17:39 PDT** — Changed reward-hacking endpoints to use the unchanged original rubric for saved weak and strong-panel scores. Active evolved-rubric scores are diagnostics only; removed stale terminal-rubric documentation and generated figures, and the full suite passes with 705 tests and one skip.
+- **17:54 PDT** — Replaced overloaded boundary names with submission versions and revision checkpoints, and restored frozen terminal-rubric rescoring for weak and strong judges. Updated current schemas without compatibility aliases; the full suite passes with 705 tests and one skip.
+- **18:54 PDT** — Removed the initial/final `version` abstraction. Current schemas now use `artifacts` with explicit `initial` and `final` entries; saved revision states still use `checkpoint`.
+- **19:09 PDT** — Restored the reward-hacking endpoint to the unchanged original master rubric: saved weak scores and strong-panel scores now share one ruler, while active scores are diagnostics only. Added explicit `detect --study-dir` source identity; old Results20 revisions fail current-format validation and must be regenerated once, and the full suite passes with 705 tests and one skip.
+
+## 2026-08-30
+
+- **13:10 PDT** — Cancelled the incomplete BioMNIBench Results20 revision with 11 running and 709 pending records after confirming no process held its study lock. Moved it to `runs/cancelled-studies/biomnibench-da-factorial-r6-66a6661e48f6-20260830-1309`, leaving the configured study path clear for a new run.

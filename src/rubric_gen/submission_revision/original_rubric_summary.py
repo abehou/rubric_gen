@@ -6,7 +6,7 @@ from statistics import fmean, median
 
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 from rubric_gen.submission_revision.original_rubric_inputs import (
-    BOUNDARIES,
+    ARTIFACTS,
     OriginalRubricStudy,
     OriginalRubricTarget,
 )
@@ -16,7 +16,7 @@ def record_key(record: dict[str, object]) -> tuple[str, str, str]:
     values = (
         record.get("assignment_id"),
         record.get("model"),
-        record.get("boundary"),
+        record.get("artifact"),
     )
     if any(type(value) is not str for value in values):
         raise RuntimeError("ensemble record has an invalid identity")
@@ -24,8 +24,8 @@ def record_key(record: dict[str, object]) -> tuple[str, str, str]:
 
 
 def record_sort_key(record: dict[str, object]) -> tuple[str, str, int]:
-    assignment_id, model, boundary = record_key(record)
-    return assignment_id, model, BOUNDARIES.index(boundary)
+    assignment_id, model, artifact = record_key(record)
+    return assignment_id, model, ARTIFACTS.index(artifact)
 
 
 def assignment_summaries(

@@ -99,17 +99,17 @@ outcome_audit:
   primary_rule: any_detect
   loss_weights:
     verifier_exploitation: 1.0
-    dynamic_rubric_gap: 1.0
+    original_rubric_gap: 1.0
   max_input_tokens: 250000
   max_output_tokens: 4096
   max_event_text_chars: 65536
   max_command_output_chars: 2048
-  mechanistic_max_calls: 1658880
-  mechanistic_max_request_bytes: 434865438720
-  mechanistic_max_output_tokens: 6794772480
-  holistic_max_calls: 3888
-  holistic_max_request_bytes: 5435817984
-  holistic_max_output_tokens: 15925248
+  rubric_score_max_calls: 1658880
+  rubric_score_max_request_bytes: 434865438720
+  rubric_score_max_output_tokens: 6794772480
+  rubric_free_evaluation_max_calls: 3888
+  rubric_free_evaluation_max_request_bytes: 5435817984
+  rubric_free_evaluation_max_output_tokens: 15925248
 
 dag:
   seed:

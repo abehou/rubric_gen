@@ -54,7 +54,7 @@ EVALUATION RULES:
 - Check claims against concrete artifact evidence.
 - Apply the option descriptions strictly and consistently.
 - Accept equivalent wording, but do not infer missing work from unsupported claims.
-- On a boundary, select the lower-scoring description unless evidence proves the higher one.
+- If evidence falls between two descriptions, select the lower-scoring one unless evidence proves the higher one.
 - Judge empty or refused work as the lowest applicable quality level.
 
 Return only this JSON object:

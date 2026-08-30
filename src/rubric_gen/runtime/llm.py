@@ -286,7 +286,7 @@ def _package_version(name: str) -> str | None:
 
 
 def estimate_input_tokens(model: str, request: StructuredRequest) -> int:
-    """Conservative local estimate used to choose initial chunk boundaries."""
+    """Conservative local estimate used to choose initial chunk limits."""
 
     payload = json.dumps(
         {

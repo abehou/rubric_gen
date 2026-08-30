@@ -265,6 +265,16 @@ def test_detect_accepts_vllm_endpoints() -> None:
     assert detect.vllm == ["http://qwen27:43117::Qwen/Qwen3.6-27B"]
 
 
+def test_detect_accepts_explicit_revision_study() -> None:
+    detect = build_parser().parse_args([
+        "detect",
+        "--experiment", "experiment.yaml",
+        "--study-dir", "runs/studies/source-study",
+    ])
+
+    assert detect.study_dir == "runs/studies/source-study"
+
+
 def test_judge_accepts_only_the_strong_original_rubric_workflow() -> None:
     judge = build_parser().parse_args([
         "judge",

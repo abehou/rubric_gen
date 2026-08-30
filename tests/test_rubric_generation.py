@@ -59,7 +59,7 @@ def _criterion() -> ElicitedCriterion:
 def _initial() -> RubricGeneration:
     return RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=_rubric(),
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -99,7 +99,7 @@ def test_generation_contains_one_complete_active_rubric() -> None:
     criterion = _criterion()
     evolved = RubricGeneration(
         generation_round=1,
-        source_boundary=1,
+        source_checkpoint=1,
         rubric=render_augmented_rubric(initial.rubric, (criterion,)),
         elicited_criteria=(criterion,),
         proposer_call_budget=6,
@@ -116,7 +116,7 @@ def test_self_contained_generation_round_trip(tmp_path: Path) -> None:
     criterion = _criterion()
     evolved = RubricGeneration(
         generation_round=1,
-        source_boundary=1,
+        source_checkpoint=1,
         rubric=render_augmented_rubric(initial.rubric, (criterion,)),
         elicited_criteria=(criterion,),
         proposer_call_budget=6,

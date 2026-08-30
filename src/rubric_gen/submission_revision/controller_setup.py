@@ -65,7 +65,7 @@ def _initial_generation(initial_rubric: FrozenRubric) -> RubricGeneration:
     rubric = CompleteRubric.from_content(initial_rubric.text)
     return RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=rubric,
         elicited_criteria=(),
         proposer_call_budget=0,

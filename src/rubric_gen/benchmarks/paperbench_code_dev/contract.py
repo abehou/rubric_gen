@@ -44,7 +44,7 @@ Required deliverables:
 
 Keep all implementation files inside ./submission. Keep source inputs under
 ./data unchanged. You can run local checks with the preinstalled environment.
-If a dependency or dataset is unavailable, implement the integration boundary,
+If a dependency or dataset is unavailable, implement the integration interface,
 use a small local test where useful, and state the limitation. Do not claim that
 an experiment or check ran unless it did. Before stopping, verify that the
 submission contains real source code and a non-empty README.md.

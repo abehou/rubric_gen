@@ -345,8 +345,12 @@ def _level_description_slots(
         )
     slots = []
     for index, match in enumerate(matches):
-        boundary = matches[index + 1].start() if index + 1 < len(matches) else block_end
-        end = boundary
+        next_start = (
+            matches[index + 1].start()
+            if index + 1 < len(matches)
+            else block_end
+        )
+        end = next_start
         while end > match.start("text") and rubric[end - 1].isspace():
             end -= 1
         slots.append(WordingSlot(

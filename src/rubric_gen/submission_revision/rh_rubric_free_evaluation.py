@@ -17,19 +17,19 @@ from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.judge import JUDGE_MAX_ATTEMPTS
 from rubric_gen.submission_revision.rh_protocol import (
-    BOUNDARIES,
+    ARTIFACTS,
     ORDERINGS,
-    AbsoluteHolisticJob,
+    RubricFreeAbsoluteScoreJob,
     EvaluationConfig,
     EvaluationTarget,
     PairwisePreferenceJob,
-    PreparedHolisticEvaluation,
-    _absolute_holistic_request,
+    PreparedRubricFreeEvaluation,
+    _rubric_free_absolute_score_request,
     _absolute_judgment_identity,
     _accept_predispatch_plan,
     _assert_accepted_job_plan,
-    _holistic_implementation_identity,
-    _holistic_plan_entry,
+    _rubric_free_evaluation_implementation_identity,
+    _rubric_free_evaluation_plan_entry,
     _normalized_api_base,
     _pairwise_judgment_identity,
     _pairwise_preference_request,
@@ -39,7 +39,7 @@ from rubric_gen.submission_revision.rh_protocol import (
 from rubric_gen.submission_revision.rh_output_store import RhOutputStore
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
-class HolisticEvaluationStage:
+class RubricFreeEvaluationStage:
     def __init__(
         self,
         config: EvaluationConfig,
@@ -53,7 +53,7 @@ class HolisticEvaluationStage:
         self.output = RhOutputStore(config.output_dir)
         self.root = self.output.root
         self.generation_operation = generation_operation
-        self._prepared: PreparedHolisticEvaluation | None = None
+        self._prepared: PreparedRubricFreeEvaluation | None = None
 
     def preflight(self) -> None:
         """Prepare and cap all requests without output or provider calls."""
@@ -64,12 +64,12 @@ class HolisticEvaluationStage:
         models = tuple(
             str(model) for model in self.config.experiment.outcome_audit["models"]
         )
-        implementation_identity = _holistic_implementation_identity()
+        implementation_identity = _rubric_free_evaluation_implementation_identity()
         absolute_jobs = tuple(
-            AbsoluteHolisticJob(
+            RubricFreeAbsoluteScoreJob(
                 target=target,
                 model=model,
-                boundary=boundary,
+                artifact=artifact,
                 api_base=_normalized_api_base(
                     self.config.vllm_endpoints.get(model)
                 ),
@@ -77,7 +77,7 @@ class HolisticEvaluationStage:
             )
             for target in targets
             for model in models
-            for boundary in BOUNDARIES
+            for artifact in ARTIFACTS
         )
         pairwise_jobs = tuple(
             PairwisePreferenceJob(
@@ -99,7 +99,7 @@ class HolisticEvaluationStage:
         unique_pairwise_jobs = tuple({
             job.key: job for job in reversed(pairwise_jobs)
         }.values())
-        self._prepared = PreparedHolisticEvaluation(
+        self._prepared = PreparedRubricFreeEvaluation(
             targets=targets,
             models=models,
             implementation_identity=implementation_identity,
@@ -116,14 +116,14 @@ class HolisticEvaluationStage:
 
     def _predispatch_plan(
         self,
-        absolute_jobs: tuple[AbsoluteHolisticJob, ...],
+        absolute_jobs: tuple[RubricFreeAbsoluteScoreJob, ...],
         pairwise_jobs: tuple[PairwisePreferenceJob, ...],
     ) -> dict[str, object]:
         benchmarks = {
             job.target.benchmark for job in (*absolute_jobs, *pairwise_jobs)
         }
         if len(benchmarks) != 1:
-            raise RuntimeError("RH holistic jobs must use one benchmark")
+            raise RuntimeError("RH rubric-free evaluation jobs must use one benchmark")
         planned: list[
             tuple[str, str, str, str | None, StructuredRequest]
         ] = []
@@ -133,7 +133,7 @@ class HolisticEvaluationStage:
                 "absolute",
                 job.model,
                 job.api_base,
-                _absolute_holistic_request(job),
+                _rubric_free_absolute_score_request(job),
             )
             for job in absolute_jobs
         )
@@ -153,12 +153,12 @@ class HolisticEvaluationStage:
         largest_request_bytes = 0
         with TerminalProgress(
             total=len(planned),
-            description="RH holistic planning",
+            description="RH rubric-free evaluation planning",
             unit="judgment",
         ) as progress:
             for key, instrument, model, api_base, request in planned:
                 progress.set_status(key[:12])
-                entry = _holistic_plan_entry(
+                entry = _rubric_free_evaluation_plan_entry(
                     key=key,
                     instrument=instrument,
                     model=model,
@@ -187,21 +187,21 @@ class HolisticEvaluationStage:
             "output_tokens": output_tokens,
         }
         return _accept_predispatch_plan(
-            stage="holistic",
+            stage="rubric_free_evaluation",
             base=base,
             jobs=jobs,
             outer_attempt_limit=JUDGE_MAX_ATTEMPTS,
             caps=_stage_caps(
                 self.config.experiment.outcome_audit,
-                "holistic",
+                "rubric_free_evaluation",
             ),
         )
 
     def _run_absolute_job(
         self,
-        job: AbsoluteHolisticJob,
+        job: RubricFreeAbsoluteScoreJob,
     ) -> dict[str, object]:
-        request = _absolute_holistic_request(job)
+        request = _rubric_free_absolute_score_request(job)
         return self._run_structured_judgment(
             model=job.model,
             request=request,
@@ -248,8 +248,8 @@ class HolisticEvaluationStage:
         )
         max_attempts = JUDGE_MAX_ATTEMPTS
         if os.path.lexists(record_path):
-            record = read_json_object(record_path, "RH holistic record")
-            _validate_holistic_record(
+            record = read_json_object(record_path, "RH rubric-free evaluation record")
+            _validate_rubric_free_record(
                 record=record,
                 identity=identity,
                 validator=validator,
@@ -279,7 +279,7 @@ class HolisticEvaluationStage:
                 last_error = exc
         if generation is None or value is None:
             raise RuntimeError(
-                f"RH holistic judge failed after {max_attempts} attempts: "
+                f"RH rubric-free judge failed after {max_attempts} attempts: "
                 f"{last_error}"
             ) from last_error
         record = {
@@ -290,7 +290,7 @@ class HolisticEvaluationStage:
             "generation": generation.provenance(),
             "attempt_count": attempt,
         }
-        _validate_holistic_record(
+        _validate_rubric_free_record(
             record=record,
             identity=identity,
             validator=validator,
@@ -311,8 +311,8 @@ class HolisticEvaluationStage:
     ) -> None:
         prepared = self._prepared
         if prepared is None:
-            raise RuntimeError("RH holistic dispatch has no accepted stage plan")
-        current = _holistic_plan_entry(
+            raise RuntimeError("RH rubric-free evaluation dispatch has no accepted stage plan")
+        current = _rubric_free_evaluation_plan_entry(
             key=key,
             instrument=instrument,
             model=model,
@@ -320,7 +320,7 @@ class HolisticEvaluationStage:
             request=request,
         )
         _assert_accepted_job_plan(
-            stage="holistic",
+            stage="rubric_free_evaluation",
             plan=prepared.predispatch_plan,
             current=current,
         )
@@ -337,7 +337,7 @@ class HolisticEvaluationStage:
             return generate_structured_vllm(model, request, api_base)
         return generate_structured(model, request)
 def _absolute_assignment_reference(
-    job: AbsoluteHolisticJob,
+    job: RubricFreeAbsoluteScoreJob,
     judgment: dict[str, object],
 ) -> dict[str, object]:
     return {
@@ -346,7 +346,7 @@ def _absolute_assignment_reference(
         "replicate": job.target.replicate,
         "condition_id": job.target.condition_id,
         "model": job.model,
-        "boundary": job.boundary,
+        "artifact": job.artifact,
         "submission_id": job.submission.name,
         "submission_content_sha256": _submission_content_sha256(job.submission),
         "judgment_key": job.key,
@@ -409,7 +409,7 @@ def _validate_pairwise_verdict(value: object) -> None:
         raise ValueError("RH pairwise judge returned an invalid verdict")
 
 
-def _validate_holistic_record(
+def _validate_rubric_free_record(
     *,
     record: dict[str, object],
     identity: dict[str, object],
@@ -425,33 +425,33 @@ def _validate_holistic_record(
         "attempt_count",
     }
     if set(record) != set(identity) | result_keys:
-        raise RuntimeError("RH holistic record fields changed")
+        raise RuntimeError("RH rubric-free evaluation record fields changed")
     if any(record[key] != value for key, value in identity.items()):
-        raise RuntimeError("RH holistic record identity changed")
+        raise RuntimeError("RH rubric-free evaluation record identity changed")
     try:
         validator(record["verdict"])
     except ValueError as exc:
-        raise RuntimeError("RH holistic record verdict changed") from exc
+        raise RuntimeError("RH rubric-free evaluation record verdict changed") from exc
     raw_response = record["raw_response"]
     if (
         type(raw_response) is not str
         or not raw_response.strip()
         or record["raw_response_sha256"] != sha256_text(raw_response)
     ):
-        raise RuntimeError("RH holistic record raw response hash changed")
+        raise RuntimeError("RH rubric-free evaluation record raw response hash changed")
     try:
         decoded_response = load_json_strict(raw_response)
         validator(decoded_response)
     except ValueError as exc:
-        raise RuntimeError("RH holistic record raw response changed") from exc
+        raise RuntimeError("RH rubric-free evaluation record raw response changed") from exc
     if decoded_response != record["verdict"]:
-        raise RuntimeError("RH holistic record verdict disagrees with raw response")
+        raise RuntimeError("RH rubric-free evaluation record verdict disagrees with raw response")
     attempt_count = record["attempt_count"]
     if (
         type(attempt_count) is not int
         or not 1 <= attempt_count <= max_attempts
     ):
-        raise RuntimeError("RH holistic record attempt count changed")
+        raise RuntimeError("RH rubric-free evaluation record attempt count changed")
     generation = record["generation"]
     generation_keys = {
         "provider",
@@ -462,7 +462,7 @@ def _validate_holistic_record(
         "provider_metadata",
     }
     if type(generation) is not dict or set(generation) != generation_keys:
-        raise RuntimeError("RH holistic record generation fields changed")
+        raise RuntimeError("RH rubric-free evaluation record generation fields changed")
     for name in (
         "provider",
         "requested_model",
@@ -472,15 +472,15 @@ def _validate_holistic_record(
         value = generation[name]
         if type(value) is not str or not value.strip():
             raise RuntimeError(
-                f"RH holistic record generation value changed: {name}"
+                f"RH rubric-free evaluation record generation value changed: {name}"
             )
     if generation["requested_model"] != model:
-        raise RuntimeError("RH holistic record requested model changed")
+        raise RuntimeError("RH rubric-free evaluation record requested model changed")
     if (
         type(generation["request_parameters"]) is not dict
         or type(generation["provider_metadata"]) is not dict
     ):
-        raise RuntimeError("RH holistic record generation metadata changed")
+        raise RuntimeError("RH rubric-free evaluation record generation metadata changed")
 
 
 def _higher_score_preference_value(ordering: str, preferred: object) -> float:
@@ -490,7 +490,7 @@ def _higher_score_preference_value(ordering: str, preferred: object) -> float:
     return 1.0 if preferred == higher_response else 0.0
 
 
-def _summarize_holistic_scores(
+def _summarize_rubric_free_scores(
     targets: tuple[EvaluationTarget, ...],
     absolute_records: list[dict[str, object]],
     pairwise_records: list[dict[str, object]],
@@ -500,7 +500,7 @@ def _summarize_holistic_scores(
         (
             str(record["assignment_id"]),
             str(record["model"]),
-            str(record["boundary"]),
+            str(record["artifact"]),
         ): record
         for record in absolute_records
     }
@@ -570,13 +570,13 @@ def _summarize_holistic_scores(
             "replicate": target.replicate,
             "condition_id": target.condition_id,
             "rubric_policy": target.rubric_policy.value,
-            "rubric_free_quality": {
+            "rubric_free_absolute_scores": {
                 "model_scores": model_scores,
                 "initial_panel_mean": initial_mean,
                 "final_panel_mean": final_mean,
                 "panel_mean_gain": final_mean - initial_mean,
             },
-            "pairwise_preference": {
+            "pairwise_preference_scores": {
                 "rubric_score_source": (
                     "in-loop-judge-original-rubric-five-call-mean"
                 ),

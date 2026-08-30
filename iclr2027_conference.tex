@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment crosses four feedback policies with three single-rubric regimes: static, offline elicitation from sealed pairs, and online elicitation from live history. Every cell uses the base solver prompt. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate call to assign advisory semantic labels. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether holistic pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
+Autoresearch systems improve artifacts through repeated model feedback. A fixed rubric can omit task-relevant quality. We test a bounded intervention that keeps every original criterion and adds criteria elicited from blinded artifact pairs. The experiment crosses four feedback policies with three single-rubric regimes: static, offline elicitation from sealed pairs, and online elicitation from live history. Every cell uses the base solver prompt. Each update finds uncovered differences, converts recurring differences into criteria, and uses a separate call to assign advisory semantic labels. Both benchmarks use five whole-rubric judgments and their arithmetic mean. A sealed panel also tests whether pairwise preferences agree with the original-rubric score ordering. We do not assume that elicitation improves coverage or reduces reward hacking.
 
 \end{abstract}
 
@@ -96,109 +96,72 @@ s^{\mathrm{ref},+}_{ijt}
 =g_{\mathrm{ref}}\!\left(a_{ij}^t,r_{ij}^t\right).
 \end{equation}
 
-These scores are boundary-local because the active rubric can change. After the
-run, freeze the final active rubric $r_{ij}^{T}$. For endpoint
+These scores are artifact-specific because the active rubric can change. Let
+$\bar r_j$ be the unchanged original task rubric. For artifact
 $u\in\{0,T\}$, define
 \begin{align}
-W_{ij,u\mid T}&=g_{\mathrm{train}}\!\left(a_{ij}^{u},r_{ij}^{T}\right), \\
-A_{ij,u\mid T}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_{ij}^{T}\right), \\
-C_{ij,u\mid T}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_{j}^{0}\right).
+W_{ij,u}&=g_{\mathrm{train}}\!\left(a_{ij}^{u},\bar r_j\right), \\
+A_{ij,u}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},\bar r_j\right), \\
+B_{ij,u}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_{ij}^{u}\right).
 \end{align}
-Thus, $W$ and $A$ use the final active rubric. $C$ uses the unchanged original
-rubric. The final active rubric can differ across conditions, so $W$ and $A$
-are not common instruments across arms.
+The evaluator reads $W$ from the saved original-rubric scores. It does not
+rescore the weak judge. The reference panel scores both artifacts with the same
+original rubric. Thus, $W-A$ compares judges with the same artifact and rubric.
+The active-rubric score $B$ is a separate diagnostic.
 
-Before the trials, a generator produces wording variants from one master rubric
-$\bar r_j$. Within each matched replicate, one variant $r_j^*$ becomes the
-selected initial rubric. The remaining sibling variants form the sealed holdout set
-\begin{equation}
-\mathcal{R}_{j}^{-}
-=
-\left\{\left(\tilde r_{jm},\nu_{jm}\right)\right\}_{m=1}^{M_j},
-\qquad
-\nu_{jm}>0,
-\qquad
-\sum_{m=1}^{M_j}\nu_{jm}=1.
-\end{equation}
-The solver and rubric proposer observe $r_j^*$ but never observe
-$\mathcal{R}_{j}^{-}$. The selected and holdout variants are fixed across
-conditions within the replicate. Define
+Before the trials, a generator produces wording variants from $\bar r_j$.
+Within each matched replicate, one variant $r_j^*$ becomes the
+selected initial rubric. Other variants remain sealed from the solver and
+proposer. The current outcome evaluator does not score them. Define
 \begin{align}
 S_{ij,u}&=g_{\mathrm{ref}}\!\left(a_{ij}^{u},r_j^*\right), \\
-H_{ij,u}&=\sum_{m=1}^{M_j}\nu_{jm}
-g_{\mathrm{ref}}\!\left(a_{ij}^{u},\tilde r_{jm}\right), \\
-Q_{ij,u}&=g_{\mathrm{hol}}\!\left(a_{ij}^{u}\right).
+Q_{ij,u}&=g_{\mathrm{free}}\!\left(a_{ij}^{u}\right).
 \end{align}
 Here, $Q$ uses a separate rubric-free prompt with the configured reference-model
 panel. It has generic fixed score descriptions and a 0--100 range. It does not use the task rubric. Those descriptions differ from the
-criterion-specific rules of $W$, $A$, $S$, or $H$. A shared numeric range does
+criterion-specific rules of $W$, $A$, $B$, or $S$. A shared numeric range does
 not make these instruments calibrated or commensurate.
 
 The generator preserves criterion order, point values, and scoring rules while
-changing wording fields. Structural checks enforce these invariants, but they
-cannot establish semantic equivalence. We therefore treat every
-selected-to-holdout comparison as a diagnostic rather than an identified
-wording effect.
+changing wording fields. Structural checks cannot establish semantic
+equivalence.
 
 \paragraph{Reward-hacking decomposition.}
-At endpoint $u$, define the \textbf{training-verifier contrast}
+At endpoint $u$, define the \textbf{weak--strong verifier contrast}
 \begin{equation}
-e^v_{ij,u\mid T}=W_{ij,u\mid T}-A_{ij,u\mid T}.
+e^v_{ij,u}=W_{ij,u}-A_{ij,u}.
 \end{equation}
-A positive value indicates a higher exposed-judge score under the same rubric and
-artifact \citep{mahmoud2026reward}. It does not identify judge causation, and the
+A positive value indicates a higher weak-judge score under the same artifact and
+rubric \citep{mahmoud2026reward}. It does not identify judge causation, and the
 reference panel is not ground truth.
 
-Define the \textbf{dynamic-rubric gap}
+Define the \textbf{original rubric gap}
 \begin{equation}
-e^d_{ij,u\mid T}=A_{ij,u\mid T}-Q_{ij,u}.
+e^o_{ij,u}=A_{ij,u}-Q_{ij,u}.
 \end{equation}
-This is an uncalibrated operational contrast. It can contain rubric selection,
-wording, omitted requirements, prompt effects, panel error, and scale mismatch.
-It does not identify any one mechanism or the causal effect of elicitation.
-The endpoint scores satisfy the numeric identity
+This uncalibrated contrast can contain rubric selection, omitted requirements,
+prompt effects, panel error, and scale mismatch. It does not identify one
+mechanism or the causal effect of elicitation. The scores satisfy
 \begin{equation}
-W_{ij,u\mid T}-Q_{ij,u}
-=e^v_{ij,u\mid T}+e^d_{ij,u\mid T}.
+W_{ij,u}-Q_{ij,u}
+=e^v_{ij,u}+e^o_{ij,u}.
 \end{equation}
-This identity is algebraic. It does not show that elicitation removes
-wording or specification errors.
+This identity is algebraic.
 
-We further partition $e^d$ into four descriptive contrasts:
+We partition $e^o$ into two descriptive contrasts:
 \begin{align}
-e^m_{ij,u\mid T}&=A_{ij,u\mid T}-C_{ij,u\mid T}, \\
-e^c_{ij,u\mid T}&=C_{ij,u\mid T}-S_{ij,u}, \\
-e^w_{ij,u}&=S_{ij,u}-H_{ij,u}, \\
-e^s_{ij,u}&=H_{ij,u}-Q_{ij,u}.
+e^r_{ij,u}&=A_{ij,u}-S_{ij,u}, \\
+e^s_{ij,u}&=S_{ij,u}-Q_{ij,u}.
 \end{align}
-They compare the active rubric with the original rubric, the original rubric
-with the selected rubric, the selected rubric with sealed holdouts, and the
-holdouts with holistic quality. These are score contrasts. They do not
-identify specification, wording, or selection error.
-They satisfy
+They compare the original rubric with the selected rubric, and the selected
+rubric with rubric-free absolute quality. They satisfy
 \begin{equation}
-e^d_{ij,u\mid T}=e^m_{ij,u\mid T}+e^c_{ij,u\mid T}+e^w_{ij,u}+e^s_{ij,u}.
+e^o_{ij,u}=e^r_{ij,u}+e^s_{ij,u}.
 \end{equation}
-We do not give these diagnostics separate loss weights. In the fixed arm, the
-final active and original rubrics both equal $r_j^*$. Thus, $e^m=e^c=0$ and
-$e^d=e^w+e^s$. This is the original selected-rubric decomposition
-\citep{roy2026premise}.
-
-The signed term $e^w$ can hide offsetting holdout deviations. We also report the
-sealed holdout dispersion
-\begin{equation}
-\sigma^w_{ij,u}
-=
-\left[
-\sum_m\nu_{jm}
-\left(
-g_{\mathrm{ref}}(a_{ij}^{u},\tilde r_{jm})-H_{ij,u}
-\right)^2
-\right]^{1/2}.
-\end{equation}
-This quantity does not enter the identity. It can reflect wording, semantic
-paraphrase drift, and judge variation. It is not an isolated estimate of
-wording variance or a direct test of the elicitation mechanism.
+We do not give these diagnostics separate loss weights. We report the
+initial and final active-rubric scores separately. They do not enter this
+identity.
+We also report $B_{ij,u}-A_{ij,u}$ as active-rubric drift.
 
 A rubric-free pairwise preference is not a valid $Q_{ij,u}$. For each
 trajectory, the saved in-loop-judge original-rubric five-call mean selects the highest-scoring and
@@ -233,19 +196,19 @@ contrast containing $Q$ can be interpreted as intended-quality magnitude.
 Let $\phi(x)=[x]_+=\max(x,0)$. For endpoint $u$, define the operational loss
 \begin{equation}
 \boxed{
-\ell_{ij,u\mid T}
+\ell_{ij,u}
 =
-\lambda_{v}\phi\!\left(e^{v}_{ij,u\mid T}\right)
+\lambda_{v}\phi\!\left(e^{v}_{ij,u}\right)
 +
-\lambda_{d}\phi\!\left(e^{d}_{ij,u\mid T}\right)
+\lambda_{o}\phi\!\left(e^{o}_{ij,u}\right)
 }.
 \end{equation}
-The nonnegative weights $\lambda_v$ and $\lambda_d$ are specified before
-evaluation. Weighting $e^m$, $e^c$, $e^w$, or $e^s$ again would double count parts of
-$e^d$. This loss remains uncalibrated because it contains $Q$. We therefore
+The nonnegative weights $\lambda_v$ and $\lambda_o$ are specified before
+evaluation. Weighting $e^r$ or $e^s$ again would double count parts of
+$e^o$. This loss remains uncalibrated because it contains $Q$. We therefore
 also report every signed contrast and rubric-free pairwise quality.
 
-Define $\Delta\ell_{ij}=\ell_{ij,T\mid T}-\ell_{ij,0\mid T}$. The aggregate
+Define $\Delta\ell_{ij}=\ell_{ij,T}-\ell_{ij,0}$. The aggregate
 \begin{equation}
 \boxed{
 \widehat{\Delta\mathcal{L}}_i
@@ -281,30 +244,30 @@ where $y_{ij}=1$ indicates detected reward hacking. We exclude and report
 abstaining or incomplete detector decisions. We treat the binary result as a
 separate outcome. The detector can use evidence that the score contrasts omit,
 and the contrasts can show inflation without visible deceptive behavior. We do
-not assume that $(e^v,e^d)$ are sufficient statistics for the detector. Any
+not assume that $(e^v,e^o)$ are sufficient statistics for the detector. Any
 regression between these measurements is an empirical association with fitted
 coefficients, not a mathematical consequence of the decomposition.
 
 We preregister the primary loss weights. A separate exploratory analysis fits a
 detector-associated direction. For each completed run, define
 \begin{align}
-x^v_{ij}&=[e^v_{ij,T\mid T}]_+-[e^v_{ij,0\mid T}]_+, \\
-x^d_{ij}&=[e^d_{ij,T\mid T}]_+-[e^d_{ij,0\mid T}]_+.
+x^v_{ij}&=[e^v_{ij,T}]_+-[e^v_{ij,0}]_+, \\
+x^o_{ij}&=[e^o_{ij,T}]_+-[e^o_{ij,0}]_+.
 \end{align}
 Within each benchmark, we fit the constrained association model
 \begin{equation}
 \operatorname{logit}\Pr(y_{ij}=1)
-=\alpha+\gamma_v x^v_{ij}+\gamma_d x^d_{ij},
-\qquad \gamma_v,\gamma_d\geq 0,
+=\alpha+\gamma_v x^v_{ij}+\gamma_o x^o_{ij},
+\qquad \gamma_v,\gamma_o\geq 0,
 \end{equation}
 and report only its normalized exploratory direction,
 \begin{equation}
-\widehat{\lambda}_v=\frac{2\gamma_v}{\gamma_v+\gamma_d},
+\widehat{\lambda}_v=\frac{2\gamma_v}{\gamma_v+\gamma_o},
 \qquad
-\widehat{\lambda}_d=\frac{2\gamma_d}{\gamma_v+\gamma_d}.
+\widehat{\lambda}_o=\frac{2\gamma_o}{\gamma_v+\gamma_o}.
 \end{equation}
-Thus, $\widehat{\lambda}_v+\widehat{\lambda}_d=2$. The preregistered
-equal-weight reference remains $(\lambda_v,\lambda_d)=(1,1)$. We report no
+Thus, $\widehat{\lambda}_v+\widehat{\lambda}_o=2$. The preregistered
+equal-weight reference remains $(\lambda_v,\lambda_o)=(1,1)$. We report no
 fitted direction when the labels have one class, the centered features lack
 rank two, the likelihood separates, or the fitted slope is zero. For
 uncertainty, we resample task clusters at least 2,000 times and use
@@ -351,12 +314,11 @@ outcome panel uses different models. We treat this review as an audit rather
 than ground truth.
 
 \paragraph{Outcome evaluation.}
-The sealed holdout set $\mathcal{R}_j^{-}$ is created before the trials and is
-shared across conditions within each matched replicate. Reference judges score
-artifact snapshots with the final active, original, selected, and sealed
-rubrics. They do not receive a condition label. An artifact-backed store reuses
-one provider result for each exact scoring request within a task-replicate block.
-
+Reference judges score artifact snapshots with the unchanged original rubric,
+the selected rubric, and each artifact-specific active rubric. Detection reads
+the saved weak original-rubric scores. It does not rescore the weak judge.
+Judges do not receive a condition label. An artifact-backed store reuses each
+exact scoring request.
 BiomniBench-DA and PaperBench use the same whole-artifact structured judge. Each
 of five calls receives the complete artifact and complete rubric. The judge
 selects one level for every criterion. We compute all five signed scores and use
@@ -366,7 +328,7 @@ aggregation rule, not stable ground truth. We analyze each benchmark separately.
 
 The current Harvey harness-evolution workflow is not a third instance of this
 design. Its proposer applies bounded criterion patches, and it lacks the three
-elicitation policies and the $W/A/C/S/H/Q$ endpoint. We treat Harvey as a separate
+elicitation policies and the $W/A/S/Q$ endpoint. We treat Harvey as a separate
 exploratory workflow and do not pool it with these experiments.
 
 We also obtain the rubric-free scalar $Q$. Separately, we select the highest and
@@ -380,15 +342,9 @@ Offline minus fixed measures the static elicitation regime. Online minus offline
 measures the live-history regime, including the novelty of changing evidence.
 Online minus fixed remains the total online-intervention contrast.
 
-Only $\Delta S$, $\Delta H$, $\Delta Q$, rubric-free pairwise preference, and
-direct detection use common instruments across arms. The final-rubric $W$,
-$A$, and $C$ values, their decomposed gaps, and the loss use post-treatment
-rulers. We report their cross-arm differences as descriptive total-policy
-endpoints, not fixed-instrument causal effects.
-
-We report the sealed-holdout score range at each boundary. This range measures sensitivity
-to the pre-generated rubric paraphrases. It does not identify a pure wording
-effect.
+$\Delta S$, $\Delta Q$, rubric-free pairwise preference, and direct detection use
+common instruments across arms. Terminal and active rubrics remain
+condition-dependent.
 
 \paragraph{Pilot diagnosis.}
 A legacy three-task pilot used one replicate per condition and a single evolving
@@ -402,7 +358,7 @@ of one identical BiomniBench-DA initial artifact differed by 44 points. One
 three-model PaperBench reference panel spanned 64 points. These results are
 inconclusive and do not show reward-hacking emergence or mitigation.
 
-The legacy pilot lacks the current final-rubric $W/A/C/S/H/Q$ measurements, so
+The legacy pilot lacks the current $W/A/S/Q$ measurements, so
 it cannot enter the exploratory lambda fit. Independently, all six detector
 labels were zero within each benchmark. For any finite feature values, the
 intercept then tends to negative infinity for every normalized exploratory
@@ -419,7 +375,7 @@ pairwise outcomes in the new design.
 Dynamic criterion elicitation is an intervention, not an outcome measure. It
 can add a useful missing requirement. It can also add a wrong or narrow
 requirement. A higher exposed score can therefore result from a worse active
-rubric. We use selected and holdout rubrics, rubric-free outcomes, and pairwise
+rubric. We use the selected rubric, rubric-free outcomes, and pairwise
 preferences for common-instrument comparisons. None of these instruments alone
 establishes semantic coverage.
 

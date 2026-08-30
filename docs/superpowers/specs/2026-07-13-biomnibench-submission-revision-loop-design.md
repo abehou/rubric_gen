@@ -34,7 +34,7 @@ This implementation excludes changing the solver or its tools, prompt
 evolution, candidate selection, rollback, beam search, reflection-only memory,
 rubric adaptation, and rubric-generator agents.
 
-## Roles and Experimental Boundary
+## Roles and Experimental Scope
 
 There are exactly two model roles:
 
@@ -180,7 +180,7 @@ preventing summary, process, or later audit rescoring from overwriting one
 another.
 
 The temporary root is retained when an incomplete experiment is resumable from
-a clean judge boundary. Successful completion removes it, verifies that it no
+a clean judge checkpoint. Successful completion removes it, verifies that it no
 longer exists, and sets `live_workspace_removed` in the manifest. Its path is
 therefore runtime provenance rather than a portable part of the experiment.
 
@@ -196,7 +196,7 @@ revision state before judging. Its artifacts are namespaced under the submission
 and frozen-rubric hash. Every previously scored attempt is non-mutatingly
 revalidated by the existing judge runner, including its inputs, outputs, and
 scoring identity, and its feedback is re-projected from those artifacts on
-resume, before each later judge boundary, and before completion. A historical
+resume, before each later judge checkpoint, and before completion. A historical
 scored attempt that fails revalidation stops the experiment and is never
 regenerated. Only the current unscored attempt may have a partial or invalid
 root removed within the confined evaluation namespace and regenerated under its
@@ -239,7 +239,7 @@ configuration and does not alter the ordinary one-shot `AgentRunner` behavior.
 ### Feedback projector
 
 A pure projector reads validated optimizer artifacts and produces both a
-canonical feedback record and the next solver message. Keeping this boundary
+canonical feedback record and the next solver message. Keeping this interface
 pure makes `full` versus `score_only` an experiment condition rather than a
 different judging implementation.
 
@@ -259,7 +259,7 @@ review mode, and feedback policy. `trajectory` is the default review mode.
 
 Completed snapshots, evaluations, and feedback records are immutable. `--resume`
 reopens the same experiment, provider session, and retained live workspace only
-from a recorded clean judge boundary. It validates the original configuration,
+from a recorded clean judge checkpoint. It validates the original configuration,
 including the executable override, frozen rubric, scoring and task identities,
 requested solver model, any provider-reported model identity, session, immutable
 submissions, persisted judge-attempt IDs, and prior feedback before continuing.
@@ -297,7 +297,7 @@ to game.
 `RESEARCH.md` describes future judge-side rubric co-evolution over this
 submission loop without changing the solver or its tools. Future rubric
 versions must be immutable, parent-linked, and activated only at recorded
-submission boundaries. When a rubric changes, all retained submissions and the
+submission versions. When a rubric changes, all retained submissions and the
 current incumbent must be rescored under the same version before comparisons
 are made. A future frozen audit must remain
 permanently outside both solver and rubric-generator visibility.
@@ -309,7 +309,7 @@ No rubric adaptation is implemented in this milestone.
 Only two new automated tests are required:
 
 1. A fake end-to-end loop verifies one session ID across turns, rubric-blind
-   `s000`, clean-boundary resume, linear continuation after a score decrease,
+   `s000`, checkpoint resume, linear continuation after a score decrease,
    immutable snapshots, final judging, and completed-workspace cleanup.
 2. A feedback projection test verifies that `full` exposes only validated fields
    while `score_only` exposes only the total score.

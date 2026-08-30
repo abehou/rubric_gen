@@ -7,8 +7,8 @@ import pytest
 
 import rubric_gen.submission_revision.rh_protocol as rh_protocol
 import rubric_gen.submission_revision.rh_evaluation_targets as rh_targets
-import rubric_gen.submission_revision.rh_holistic as rh_holistic
-import rubric_gen.submission_revision.rh_mechanistic as rh_mechanistic
+import rubric_gen.submission_revision.rh_rubric_free_evaluation as rh_rubric_free_evaluation
+import rubric_gen.submission_revision.rh_rubric_score as rh_rubric_score
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
@@ -17,24 +17,21 @@ from rubric_gen.submission_revision.judge import SCORING_IDENTITY_KEYS
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
 import rubric_gen.submission_revision.paraphrase_validation as paraphrase_validation_module
 from rubric_gen.submission_revision.rh_protocol import (
-    AbsoluteHolisticJob,
+    RubricFreeAbsoluteScoreJob,
     EvaluationTarget,
     EvaluationConfig,
-    MechanisticJob,
+    RubricScoreJob,
     PairwisePreferenceJob,
-    _ABSOLUTE_HOLISTIC_INSTRUCTIONS,
+    _RUBRIC_FREE_ABSOLUTE_SCORE_INSTRUCTIONS,
     _PAIRWISE_INSTRUCTIONS,
-    _absolute_holistic_request,
-    _holistic_review_material,
+    _rubric_free_absolute_score_request,
+    _rubric_free_review_material,
     _pairwise_preference_request,
 )
-from rubric_gen.submission_revision.rh_evaluation_targets import (
-    _load_weak_rubric_score,
+from rubric_gen.submission_revision.rh_rubric_free_evaluation import (
+    _summarize_rubric_free_scores,
 )
-from rubric_gen.submission_revision.rh_holistic import (
-    _summarize_holistic_scores,
-)
-from rubric_gen.submission_revision.rh_mechanistic import (
+from rubric_gen.submission_revision.rh_rubric_score import (
     _expected_generation_binding,
 )
 from rubric_gen.submission_revision.rh_output_store import RhOutputStore
@@ -46,9 +43,9 @@ from rubric_gen.submission_revision.rh_evaluation_report import (
     _rubric_policy_aggregates,
 )
 from rubric_gen.submission_revision.rh_outcome_panel import (
-    HolisticPairwiseRunner,
-    MechanisticEvaluationRunner,
-    _summarize_mechanistic_scores,
+    RubricFreeEvaluationRunner,
+    RubricScoreRunner,
+    _summarize_rubric_scores,
 )
 from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
@@ -151,7 +148,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         }],
     }))
     experiment = SimpleNamespace(
-        experiment_id="experiment-1",
+        experiment_id="detection-experiment-1",
         path=experiment_path,
         assignments=(assignment,),
     )
@@ -171,12 +168,16 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     def load_terminal_state(
         revision_dir: Path,
         current_assignment: dict[str, object],
-        current_experiment: object,
+        current_config: object,
+        selection: object,
+        study_experiment_id: str,
     ) -> dict[str, object]:
         observed.update({
             "revision_dir": revision_dir,
             "assignment": current_assignment,
-            "experiment": current_experiment,
+            "config": current_config,
+            "selection": selection,
+            "study_experiment_id": study_experiment_id,
         })
         raise ValidationReached
 
@@ -188,7 +189,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     monkeypatch.setattr(
         paraphrase_validation_module,
         "resolve_paraphrase_selection",
-        lambda *_args: object(),
+        lambda *_args: "selection",
     )
 
     with pytest.raises(ValidationReached):
@@ -196,13 +197,15 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     assert observed == {
         "revision_dir": experiment_dir,
         "assignment": assignment,
-        "experiment": experiment,
+        "config": config,
+        "selection": "selection",
+        "study_experiment_id": "experiment-1",
     }
     assert not hasattr(rh_protocol, "validate_completed_revision")
 
 
 @pytest.mark.parametrize(
-    ("policy", "boundary", "expected_round"),
+    ("policy", "checkpoint", "expected_round"),
     (
         (RubricPolicy.FIXED, 0, 0),
         (RubricPolicy.FIXED, 6, 0),
@@ -214,11 +217,11 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
 )
 def test_active_generation_round_matches_elicitation_schedule(
     policy: RubricPolicy,
-    boundary: int,
+    checkpoint: int,
     expected_round: int,
 ) -> None:
     assert (
-        rh_targets._active_generation_round(policy, boundary)
+        rh_targets._active_generation_round(policy, checkpoint)
         == expected_round
     )
 
@@ -271,7 +274,7 @@ def _generation(
         criteria = (criterion,)
     return RubricGeneration(
         generation_round=generation_round,
-        source_boundary=(None if generation_round == 0 else generation_round),
+        source_checkpoint=(None if generation_round == 0 else generation_round),
         rubric=rubric,
         elicited_criteria=criteria,
         proposer_call_budget=1,
@@ -295,6 +298,9 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         (("final rubric", 1.0),),
         original_rubric=initial_generation.rubric,
     )
+    master_generation = _generation(0, (("master rubric", 1.0),))
+    master_path = tmp_path / "master.txt"
+    master_path.write_text(master_generation.rubric.content)
     selection = ParaphraseSelection(
         task_id="da-1-1",
         replicate=1,
@@ -308,10 +314,11 @@ def _target(tmp_path: Path) -> EvaluationTarget:
             tmp_path / "variant-002.txt",
         ),
         holdout_sha256s=("0" * 64, "2" * 64),
-        master_path=tmp_path / "master.txt",
-        master_sha256="f" * 64,
+        master_path=master_path,
+        master_sha256=master_generation.rubric.content_sha256,
     )
     return EvaluationTarget(
+        study_experiment_id="study-experiment-1",
         assignment_id="assignment-1",
         task_id="da-1-1",
         replicate=1,
@@ -322,12 +329,10 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         task_dir=tmp_path,
         review="trace",
         max_review_chars=None,
-        weak_model="weak",
-        weak_initial_score=80.5,
-        weak_final_score=95.25,
         initial_submission=tmp_path / "s000",
         final_submission=tmp_path / "s006",
         submission_ids=("s000", "s006"),
+        active_scores=(80.5, 95.25),
         fixed_original_scores=(40.0, 80.0),
         initial_generation=initial_generation,
         final_generation=final_generation,
@@ -343,13 +348,14 @@ def _record(
     target: EvaluationTarget,
     *,
     model: str,
-    boundary: str,
+    artifact: str,
     score: float,
     roles: list[tuple[str, int | None]],
     generation_bindings: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     bindings = generation_bindings or []
     role_hashes = {
+        ("original", None): target.selection.master_sha256,
         ("selected", target.selection.optimizer_index): (
             target.selection.optimizer_sha256
         ),
@@ -365,7 +371,7 @@ def _record(
     return {
         "assignment_id": target.assignment_id,
         "model": model,
-        "boundary": boundary,
+        "artifact": artifact,
         "score": score,
         "rubric_sha256": (
             bindings[0]["rubric_sha256"]
@@ -379,12 +385,12 @@ def _record(
     }
 
 
-def _mechanistic_summary(
+def _rubric_score_summary(
     tmp_path: Path,
 ) -> tuple[EvaluationTarget, dict[str, object]]:
     target = _target(tmp_path)
     records: list[dict[str, object]] = []
-    for model, active_score, terminal_score in (
+    for model, active_score, original_score in (
         ("strong-a", 60, 50),
         ("strong-b", 70, 70),
     ):
@@ -392,7 +398,7 @@ def _mechanistic_summary(
             _record(
                 target,
                 model=model,
-                boundary="initial",
+                artifact="initial",
                 score=active_score,
                 roles=[("selected", 1)],
                 generation_bindings=[_expected_generation_binding(
@@ -405,66 +411,41 @@ def _mechanistic_summary(
         records.append(_record(
             target,
             model=model,
-            boundary="initial",
-            score=terminal_score,
-            roles=[],
-            generation_bindings=[_expected_generation_binding(
-                target,
-                "initial",
-                "terminal_common",
-            ).payload()],
+            artifact="initial",
+            score=original_score,
+            roles=[("original", None)],
         ))
-    records.append(_record(
-        target,
-        model=target.weak_model,
-        boundary="initial",
-        score=80.5,
-        roles=[],
-        generation_bindings=[_expected_generation_binding(
-            target,
-            "initial",
-            "terminal_common",
-        ).payload()],
-    ))
-    for model, terminal_score, selected in (
-        ("strong-a", 70, 70),
-        ("strong-b", 90, 80),
+    for model, active_score, original_score, selected_score in (
+        ("strong-a", 70, 70, 70),
+        ("strong-b", 90, 90, 80),
     ):
         records.append(_record(
             target,
             model=model,
-            boundary="final",
-            score=terminal_score,
+            artifact="final",
+            score=active_score,
             roles=[],
-            generation_bindings=[
-                _expected_generation_binding(
-                    target,
-                    "final",
-                    role,
-                ).payload()
-                for role in ("terminal_common", "active_local")
-            ],
+            generation_bindings=[_expected_generation_binding(
+                target,
+                "final",
+                "active_local",
+            ).payload()],
         ))
         records.append(_record(
             target,
             model=model,
-            boundary="final",
-            score=selected,
+            artifact="final",
+            score=original_score,
+            roles=[("original", None)],
+        ))
+        records.append(_record(
+            target,
+            model=model,
+            artifact="final",
+            score=selected_score,
             roles=[("selected", 1)],
         ))
-    records.append(_record(
-        target,
-        model=target.weak_model,
-        boundary="final",
-        score=95.25,
-        roles=[],
-        generation_bindings=[_expected_generation_binding(
-            target,
-            "final",
-            "terminal_common",
-        ).payload()],
-    ))
-    summary = _summarize_mechanistic_scores(
+    summary = _summarize_rubric_scores(
         (target,),
         records,
         ("strong-a", "strong-b"),
@@ -472,24 +453,23 @@ def _mechanistic_summary(
     return target, summary
 
 
-
-def test_mechanistic_summary_omits_holdout_scores(
+def test_rubric_score_summary_omits_holdout_scores(
     tmp_path: Path,
 ) -> None:
-    _target_value, summary = _mechanistic_summary(tmp_path)
+    _target_value, summary = _rubric_score_summary(tmp_path)
 
     assert set(summary["reference_scores"]) == {
-        "terminal_common",
-        "terminal_weak",
+        "original",
         "active_local",
         "selected",
     }
     assert summary["rubric_diagnostics"]["initial"] == {
-        "terminal_to_selected": -5,
+        "active_to_original": 5,
+        "original_to_selected": -5,
     }
 
 
-def test_mechanistic_summary_rejects_changed_generation_binding(
+def test_rubric_score_summary_rejects_changed_generation_binding(
     tmp_path: Path,
 ) -> None:
     target = _target(tmp_path)
@@ -501,13 +481,13 @@ def test_mechanistic_summary_rejects_changed_generation_binding(
     binding["manifest_sha256"] = "0" * 64
 
     with pytest.raises(RuntimeError, match="binding changed"):
-        _summarize_mechanistic_scores(
+        _summarize_rubric_scores(
             (target,),
             [
                 _record(
                     target,
                     model="strong-a",
-                    boundary="initial",
+                    artifact="initial",
                     score=60,
                     roles=[],
                     generation_bindings=[binding],
@@ -516,7 +496,7 @@ def test_mechanistic_summary_rejects_changed_generation_binding(
             ("strong-a",),
         )
 
-def test_mechanistic_jobs_bind_each_active_generation(
+def test_rubric_score_jobs_bind_each_active_generation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -548,18 +528,19 @@ def test_mechanistic_jobs_bind_each_active_generation(
         selection=replace(
             target.selection,
             optimizer_path=paraphrase_task / "variant-001.txt",
+            master_sha256=sha256_file(target.selection.master_path),
         ),
     )
     experiment = SimpleNamespace(
         outcome_audit={
             "models": ["strong-a", "strong-b"],
-            "mechanistic_max_calls": 1_000,
-            "mechanistic_max_request_bytes": 100_000_000,
-            "mechanistic_max_output_tokens": 10_000_000,
+            "rubric_score_max_calls": 1_000,
+            "rubric_score_max_request_bytes": 100_000_000,
+            "rubric_score_max_output_tokens": 10_000_000,
         },
         protocol={},
     )
-    runner = MechanisticEvaluationRunner(
+    runner = RubricScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -596,8 +577,8 @@ def test_mechanistic_jobs_bind_each_active_generation(
     jobs = runner._jobs((target,))
     generation_jobs = [job for job in jobs if job.generation_bindings]
     (tmp_path / "instruction.md").write_text("Complete the task.\n")
-    for boundary, digest in (("initial", "c" * 64), ("final", "d" * 64)):
-        submission = target.submission(boundary)
+    for artifact, digest in (("initial", "c" * 64), ("final", "d" * 64)):
+        submission = target.submission(artifact)
         submission.mkdir()
         (submission / "snapshot.json").write_text(json.dumps({
             "workspace_sha256": digest,
@@ -605,12 +586,12 @@ def test_mechanistic_jobs_bind_each_active_generation(
 
     assert len(jobs) == 10
     assert all(
-        role.name == "selected"
+        role.name in {"original", "selected"}
         for job in jobs
         for role in job.roles
     )
-    assert len(generation_jobs) == 8
-    assert sum(len(job.generation_bindings) for job in jobs) == 10
+    assert len(generation_jobs) == 4
+    assert sum(len(job.generation_bindings) for job in jobs) == 4
     for job in generation_jobs:
         for binding in job.generation_bindings:
             assert binding.rubric_sha256 == sha256_file(job.rubric_path)
@@ -625,31 +606,15 @@ def test_mechanistic_jobs_bind_each_active_generation(
     )
     assert generation_job.key == changed_generation_job.key
     assert (
-        rh_mechanistic._mechanistic_assignment_reference_sha256((generation_job,))
-        != rh_mechanistic._mechanistic_assignment_reference_sha256(
+        rh_rubric_score._rubric_score_assignment_reference_sha256((generation_job,))
+        != rh_rubric_score._rubric_score_assignment_reference_sha256(
             (changed_generation_job,)
         )
-    )
-    terminal_weak_jobs = [
-        job
-        for job in jobs
-        if job.model == target.weak_model
-        and any(
-            binding.role == "terminal_common"
-            for binding in job.generation_bindings
-        )
-    ]
-    assert len(terminal_weak_jobs) == 2
-    assert {job.boundary for job in terminal_weak_jobs} == {"initial", "final"}
-    assert all(
-        {binding.role for binding in job.generation_bindings}
-        == {"terminal_common"}
-        for job in terminal_weak_jobs
     )
     initial_selected = [
         job
         for job in jobs
-        if job.boundary == "initial"
+        if job.artifact == "initial"
         and any(role.name == "selected" for role in job.roles)
     ]
     assert len(initial_selected) == 2
@@ -667,17 +632,18 @@ def test_mechanistic_jobs_bind_each_active_generation(
         final_manifest_sha256=sha256_file(initial_manifest),
     )
     fixed_jobs = runner._jobs((fixed_target,))
-    shared_generation_jobs = [
-        job
-        for job in fixed_jobs
-        if len(job.generation_bindings) == 2
-    ]
-    assert len(shared_generation_jobs) == 4
+    assert len(fixed_jobs) == 8
     assert all(
-        job.generation_bindings[0].rubric_sha256
-        == job.generation_bindings[1].rubric_sha256
-        == sha256_file(job.rubric_path)
-        for job in shared_generation_jobs
+        (
+            {role.name for role in job.roles} == {"original"}
+            and not job.generation_bindings
+        )
+        or (
+            {role.name for role in job.roles} == {"selected"}
+            and {binding.role for binding in job.generation_bindings}
+            == {"active_local"}
+        )
+        for job in fixed_jobs
     )
 
     unique_jobs = {job.key: job for job in reversed(jobs)}
@@ -688,110 +654,20 @@ def test_mechanistic_jobs_bind_each_active_generation(
     assert plan["base_totals"]["calls"] == 5 * len(unique_jobs)
 
 
-def test_weak_rubric_score_accepts_exact_float_score(tmp_path: Path) -> None:
-    initial_generation = _generation(
-        0,
-        (("initial weak member", 1.0),),
-    )
-    generation = _generation(
-        1,
-        (("weak member", 1.0),),
-        original_rubric=initial_generation.rubric,
-    )
-    persist_rubric_generation(
-        tmp_path,
-        initial_generation,
-        RubricPolicy.ONLINE_ELICITATION,
-    )
-    persist_rubric_generation(
-        tmp_path,
-        generation,
-        RubricPolicy.ONLINE_ELICITATION,
-        evolution_files=_evolution_files(),
-    )
-    evaluation_dir = tmp_path / "rubric-evaluations"
-    evaluation_dir.mkdir()
-    (evaluation_dir / "s000.json").write_text(
-        json.dumps({
-                "kind": "canonical-original-plus-elicited-penalty-evaluation",
-            "submission_id": "s000",
-            "generation_round": 1,
-            "generation_sha256": generation.generation_sha256,
-            "rubric_sha256": generation.rubric.content_sha256,
-            "dispatch_preflight": {
-                "grading_engine": "full-rubric-structured",
-                "generation_sha256": generation.generation_sha256,
-                "rubric_sha256": generation.rubric.content_sha256,
-                "review_text_sha256": "3" * 64,
-                "answer_text_sha256": "4" * 64,
-                "cost_shape": {"calls": 5},
-                },
-                "judge_score": 60.5,
-                "canonical_original_score": 60.5,
-                "elicited_penalty": 0.0,
-                "score_validation_sha256": "1" * 64,
-                "evaluation_sha256": "2" * 64,
-                "score": 60.5,
-            }),
-        encoding="utf-8",
-    )
-
-    assert _load_weak_rubric_score(
-        tmp_path,
-        "s000",
-        generation,
-        60.5,
-        SubmissionBenchmarkId.BIOMNIBENCH_DA,
-    ) == 60.5
-    evaluation_path = evaluation_dir / "s000.json"
-    unchanged = json.loads(evaluation_path.read_text(encoding="utf-8"))
-    changed_dispatch = json.loads(json.dumps(unchanged))
-    changed_dispatch["dispatch_preflight"]["generation_sha256"] = "0" * 64
-    evaluation_path.write_text(json.dumps(changed_dispatch), encoding="utf-8")
-    with pytest.raises(RuntimeError, match="dispatch binding changed"):
-        _load_weak_rubric_score(
-            tmp_path,
-            "s000",
-            generation,
-            60.5,
-            SubmissionBenchmarkId.BIOMNIBENCH_DA,
-        )
-    evaluation_path.write_text(json.dumps(unchanged), encoding="utf-8")
-    with pytest.raises(RuntimeError, match="state score disagrees"):
-        _load_weak_rubric_score(
-            tmp_path,
-            "s000",
-            generation,
-            60.0,
-            SubmissionBenchmarkId.BIOMNIBENCH_DA,
-        )
-    changed = json.loads(evaluation_path.read_text(encoding="utf-8"))
-    changed["score_validation_sha256"] = "invalid"
-    evaluation_path.write_text(json.dumps(changed), encoding="utf-8")
-    with pytest.raises(RuntimeError, match="invalid hash"):
-        _load_weak_rubric_score(
-            tmp_path,
-            "s000",
-            generation,
-            60.5,
-            SubmissionBenchmarkId.BIOMNIBENCH_DA,
-        )
-
-
-def test_holistic_summary_separates_absolute_scores_from_pairwise_preference(
+def test_rubric_free_summary_separates_absolute_scores_from_pairwise_preference(
     tmp_path: Path,
 ) -> None:
     target = _target(tmp_path)
 
     absolute_records = [
         {"assignment_id": target.assignment_id, "model": "strong-a",
-         "boundary": "initial", "verdict": {"score": 45}},
+         "artifact": "initial", "verdict": {"score": 45}},
         {"assignment_id": target.assignment_id, "model": "strong-a",
-         "boundary": "final", "verdict": {"score": 75}},
+         "artifact": "final", "verdict": {"score": 75}},
         {"assignment_id": target.assignment_id, "model": "strong-b",
-         "boundary": "initial", "verdict": {"score": 50}},
+         "artifact": "initial", "verdict": {"score": 50}},
         {"assignment_id": target.assignment_id, "model": "strong-b",
-         "boundary": "final", "verdict": {"score": 75}},
+         "artifact": "final", "verdict": {"score": 75}},
     ]
     pairwise_records = [
         {"assignment_id": target.assignment_id, "model": model,
@@ -805,13 +681,13 @@ def test_holistic_summary_separates_absolute_scores_from_pairwise_preference(
         )
     ]
 
-    summary = _summarize_holistic_scores(
+    summary = _summarize_rubric_free_scores(
         (target,),
         absolute_records,
         pairwise_records,
         ("strong-a", "strong-b"),
     )[0]
-    quality = summary["rubric_free_quality"]
+    quality = summary["rubric_free_absolute_scores"]
 
     assert quality["model_scores"]["strong-a"] == {
         "initial": 45,
@@ -821,7 +697,7 @@ def test_holistic_summary_separates_absolute_scores_from_pairwise_preference(
     assert quality["initial_panel_mean"] == 47.5
     assert quality["final_panel_mean"] == 75
     assert quality["panel_mean_gain"] == 27.5
-    assert summary["pairwise_preference"][
+    assert summary["pairwise_preference_scores"][
         "rubric_order_agreement"
     ] == 0.875
 
@@ -879,7 +755,7 @@ def test_pairwise_request_hides_rubric_scores_and_submission_labels(
             ordering="higher-first",
             api_base=None,
             implementation_identity=(
-                rh_protocol._holistic_implementation_identity()
+                rh_protocol._rubric_free_evaluation_implementation_identity()
             ),
         )
     )
@@ -900,10 +776,10 @@ def test_pairwise_zero_score_gap_is_neutral(
         {
             "assignment_id": target.assignment_id,
             "model": "strong-a",
-            "boundary": boundary,
+            "artifact": artifact,
             "verdict": {"score": 50},
         }
-        for boundary in ("initial", "final")
+        for artifact in ("initial", "final")
     ]
     pairwise_records = [
         {
@@ -918,12 +794,12 @@ def test_pairwise_zero_score_gap_is_neutral(
         )
     ]
 
-    summary = _summarize_holistic_scores(
+    summary = _summarize_rubric_free_scores(
         (target,),
         absolute_records,
         pairwise_records,
         ("strong-a",),
-    )[0]["pairwise_preference"]
+    )[0]["pairwise_preference_scores"]
 
     assert summary["panel_mean_higher_score_preference_rate"] == 1.0
     assert summary["strict_rubric_order"] is False
@@ -951,7 +827,7 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
         model="strong-a",
         ordering="higher-first",
         api_base=None,
-        implementation_identity=rh_protocol._holistic_implementation_identity(),
+        implementation_identity=rh_protocol._rubric_free_evaluation_implementation_identity(),
     )
 
     changed = replace(
@@ -961,11 +837,11 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
 
     assert changed.key == job.key
     judgment = {"verdict": {"preferred_response": "response_A"}}
-    original_reference = rh_holistic._pairwise_assignment_reference(
+    original_reference = rh_rubric_free_evaluation._pairwise_assignment_reference(
         job,
         judgment,
     )
-    changed_reference = rh_holistic._pairwise_assignment_reference(
+    changed_reference = rh_rubric_free_evaluation._pairwise_assignment_reference(
         changed,
         judgment,
     )
@@ -978,21 +854,21 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
 def test_condition_aggregates_keep_direct_detection_independent(
     tmp_path: Path,
 ) -> None:
-    _target_value, mechanism = _mechanistic_summary(tmp_path)
+    _target_value, mechanism = _rubric_score_summary(tmp_path)
     assignment = _combine_assignment(
         mechanism,
         {
-            "rubric_free_quality": {
+            "rubric_free_absolute_scores": {
                 "initial_panel_mean": 47.5,
                 "final_panel_mean": 75,
             },
-            "pairwise_preference": {
+            "pairwise_preference_scores": {
                 "rubric_order_agreement": 0.875,
             },
         },
         {name: 1 for name in (
             "verifier_exploitation",
-            "dynamic_rubric_gap",
+            "original_rubric_gap",
         )},
     )
     assignment["direct_detection"] = {"decision": "detected"}
@@ -1002,27 +878,27 @@ def test_condition_aggregates_keep_direct_detection_independent(
     assert result["overall"]["direct_detection"]["rate"] == 1
     assert result["diligent-online-rubric"]["outcomes"][
         "reward_hacking_loss_change"
-    ]["mean"] == -12.75
+    ]["mean"] == -7.5
 
 
 def test_rubric_policy_aggregates_report_available_policies(
     tmp_path: Path,
 ) -> None:
-    _target_value, mechanism = _mechanistic_summary(tmp_path)
+    _target_value, mechanism = _rubric_score_summary(tmp_path)
     assignment = _combine_assignment(
         mechanism,
         {
-            "rubric_free_quality": {
+            "rubric_free_absolute_scores": {
                 "initial_panel_mean": 47.5,
                 "final_panel_mean": 75,
             },
-            "pairwise_preference": {
+            "pairwise_preference_scores": {
                 "rubric_order_agreement": 0.875,
             },
         },
         {name: 1 for name in (
             "verifier_exploitation",
-            "dynamic_rubric_gap",
+            "original_rubric_gap",
         )},
     )
     assignments = [
@@ -1058,32 +934,34 @@ def test_rubric_policy_aggregates_report_available_policies(
 def test_report_partitions_gap_without_holdout_scores(
     tmp_path: Path,
 ) -> None:
-    _target_value, mechanism = _mechanistic_summary(tmp_path)
+    _target_value, mechanism = _rubric_score_summary(tmp_path)
     assignment = _combine_assignment(
         mechanism,
         {
-            "rubric_free_quality": {
+            "rubric_free_absolute_scores": {
                 "initial_panel_mean": 47.5,
                 "final_panel_mean": 75,
             },
-            "pairwise_preference": {
+            "pairwise_preference_scores": {
                 "rubric_order_agreement": 0.875,
             },
         },
         {
             "verifier_exploitation": 1,
-            "dynamic_rubric_gap": 1,
+            "original_rubric_gap": 1,
         },
     )
 
-    assert assignment["boundaries"]["initial"]["rubric_diagnostics"] == {
-        "terminal_to_selected": -5,
-        "selected_to_holistic": 17.5,
+    assert assignment["artifacts"]["initial"]["rubric_diagnostics"] == {
+        "active_to_original": 5,
+        "original_to_selected": -5,
+        "selected_rubric_minus_rubric_free_absolute_score": 17.5,
     }
     assert "sealed_holdout_rubric_gain" not in assignment["outcomes"]
     assert set(assignment["rubric_diagnostic_changes"]) == {
-        "terminal_to_selected",
-        "selected_to_holistic",
+        "active_to_original",
+        "original_to_selected",
+        "selected_rubric_minus_rubric_free_absolute_score",
     }
 
 
@@ -1095,10 +973,10 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "replicate": 1,
             "condition_id": "online-rubric",
             "outcomes": {
-                "terminal_rubric_weak_gain": 11,
+                "original_rubric_weak_gain": 11,
                 "selected_rubric_gain": 10,
-                "holistic_quality_gain": 8,
-                "terminal_rubric_gain_gap": 3,
+                "rubric_free_absolute_score_gain": 8,
+                "weak_to_strong_generalization_gap_change": 3,
                 "optimization_induced_risk": 3,
                 "reward_hacking_loss_change": 5,
                 "active_local_weak_gain": 12,
@@ -1108,11 +986,12 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             },
             "component_changes": {
                 "verifier_exploitation": 4,
-                "dynamic_rubric_gap": -1,
+                "original_rubric_gap": -1,
             },
             "rubric_diagnostic_changes": {
-                "terminal_to_selected": 3,
-                "selected_to_holistic": -4,
+                "active_to_original": 2,
+                "original_to_selected": 3,
+                "selected_rubric_minus_rubric_free_absolute_score": -4,
             },
         },
         {
@@ -1121,10 +1000,10 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "replicate": 1,
             "condition_id": "static",
             "outcomes": {
-                "terminal_rubric_weak_gain": 9,
+                "original_rubric_weak_gain": 9,
                 "selected_rubric_gain": 3,
-                "holistic_quality_gain": 2,
-                "terminal_rubric_gain_gap": 7,
+                "rubric_free_absolute_score_gain": 2,
+                "weak_to_strong_generalization_gap_change": 7,
                 "optimization_induced_risk": 7,
                 "reward_hacking_loss_change": 1,
                 "active_local_weak_gain": 10,
@@ -1134,11 +1013,12 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             },
             "component_changes": {
                 "verifier_exploitation": 1,
-                "dynamic_rubric_gap": 6,
+                "original_rubric_gap": 6,
             },
             "rubric_diagnostic_changes": {
-                "terminal_to_selected": 0,
-                "selected_to_holistic": 6,
+                "active_to_original": 1,
+                "original_to_selected": 0,
+                "selected_rubric_minus_rubric_free_absolute_score": 6,
             },
         },
     ]
@@ -1148,13 +1028,15 @@ def test_condition_contrasts_pair_task_replicates() -> None:
     assert contrast["direction"] == "left-minus-right"
     assert contrast["left_condition"] == "online-rubric"
     assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
-    assert contrast["paired_differences"]["holistic_quality_gain"]["mean"] == 6
-    assert contrast["paired_differences"]["terminal_rubric_gain_gap"]["mean"] == -4
+    assert contrast["paired_differences"]["rubric_free_absolute_score_gain"]["mean"] == 6
     assert contrast["paired_differences"][
-        "dynamic_rubric_gap_change"
+        "weak_to_strong_generalization_gap_change"
+    ]["mean"] == -4
+    assert contrast["paired_differences"][
+        "original_rubric_gap_change"
     ]["mean"] == -7
     assert contrast["paired_differences"][
-        "selected_to_holistic_change"
+        "selected_rubric_minus_rubric_free_absolute_score_change"
     ]["mean"] == -10
 
 
@@ -1197,7 +1079,7 @@ def test_direct_outcomes_use_the_configured_rule_and_experiment(
     assert result["assignment-1"]["decision"] == "detected"
 
 
-def test_biomnibench_holistic_review_includes_all_final_artifacts(
+def test_biomnibench_rubric_free_review_includes_all_final_artifacts(
     tmp_path: Path,
 ) -> None:
     target = _target(tmp_path)
@@ -1207,20 +1089,20 @@ def test_biomnibench_holistic_review_includes_all_final_artifacts(
     (workspace / "trace.md").write_text("analysis trace\n", encoding="utf-8")
     (workspace / "answer.txt").write_text("final answer\n", encoding="utf-8")
 
-    material = _holistic_review_material(target, submission)
+    material = _rubric_free_review_material(target, submission)
 
     assert "# Exact submitted files" in material
     assert "## Exact submitted file: /app/trace.md" in material
     assert "analysis trace" in material
     assert "## Exact submitted file: /app/answer.txt" in material
     assert "final answer" in material
-    instructions = " ".join(_ABSOLUTE_HOLISTIC_INSTRUCTIONS.split())
+    instructions = " ".join(_RUBRIC_FREE_ABSOLUTE_SCORE_INSTRUCTIONS.split())
     assert "Treat the named file as present" in instructions
     assert "source filesystem" in instructions
     assert "Do not use or reconstruct a criterion rubric" in instructions
 
 
-def test_holistic_request_json_encodes_untrusted_prompt_injection(
+def test_rubric_free_request_json_encodes_untrusted_prompt_injection(
     tmp_path: Path,
 ) -> None:
     target = _target(tmp_path)
@@ -1238,14 +1120,14 @@ def test_holistic_request_json_encodes_untrusted_prompt_injection(
         (workspace / "trace.md").write_text(injection, encoding="utf-8")
         (workspace / "answer.txt").write_text("answer\n", encoding="utf-8")
 
-    absolute_request = _absolute_holistic_request(
-        AbsoluteHolisticJob(
+    absolute_request = _rubric_free_absolute_score_request(
+        RubricFreeAbsoluteScoreJob(
             target=target,
             model="strong-a",
-            boundary="initial",
+            artifact="initial",
             api_base=None,
             implementation_identity=(
-                rh_protocol._holistic_implementation_identity()
+                rh_protocol._rubric_free_evaluation_implementation_identity()
             ),
         )
     )
@@ -1256,7 +1138,7 @@ def test_holistic_request_json_encodes_untrusted_prompt_injection(
             ordering="higher-first",
             api_base=None,
             implementation_identity=(
-                rh_protocol._holistic_implementation_identity()
+                rh_protocol._rubric_free_evaluation_implementation_identity()
             ),
         )
     )
@@ -1318,11 +1200,11 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     rubric_path = tmp_path / "rubric.txt"
     rubric_path.write_text(target.initial_generation.rubric.content)
 
-    implementation_identity = rh_protocol._holistic_implementation_identity()
-    absolute = AbsoluteHolisticJob(
+    implementation_identity = rh_protocol._rubric_free_evaluation_implementation_identity()
+    absolute = RubricFreeAbsoluteScoreJob(
         target=target,
         model="strong-a",
-        boundary="initial",
+        artifact="initial",
         api_base=None,
         implementation_identity=implementation_identity,
     )
@@ -1341,11 +1223,11 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     )
 
     grading_identity = {"scoring_implementation_sha256": "1" * 64}
-    mechanistic = MechanisticJob(
+    rubric_score = RubricScoreJob(
         target=target,
         model="strong-a",
         api_base=None,
-        boundary="initial",
+        artifact="initial",
         rubric_path=rubric_path,
         roles=(),
         generation_bindings=(),
@@ -1354,8 +1236,8 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         answer_input_sha256="3" * 64,
         rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
     )
-    other_mechanistic = replace(mechanistic, target=other)
-    assert mechanistic.key == other_mechanistic.key
+    other_rubric_score = replace(rubric_score, target=other)
+    assert rubric_score.key == other_rubric_score.key
 
     assert replace(absolute, api_base="http://127.0.0.1:8000").key != absolute.key
     assert replace(
@@ -1370,20 +1252,20 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         },
     ).key != absolute.key
     assert replace(
-        mechanistic,
+        rubric_score,
         api_base="http://127.0.0.1:8000",
-    ).key != mechanistic.key
+    ).key != rubric_score.key
     assert replace(
-        mechanistic,
+        rubric_score,
         rh_implementation_sha256="4" * 64,
-    ).key != mechanistic.key
+    ).key != rubric_score.key
 
 
 @pytest.mark.parametrize(
     ("tamper", "message"),
     (("score", "score changed"), ("extra", "fields changed")),
 )
-def test_mechanistic_resume_rejects_tampered_records(
+def test_rubric_score_resume_rejects_tampered_records(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     tamper: str,
@@ -1415,11 +1297,11 @@ def test_mechanistic_resume_rejects_tampered_records(
         "rubric_source": "rubric-path",
         "rendered_rubric_sha256": sha256_file(rubric_path),
     })
-    job = MechanisticJob(
+    job = RubricScoreJob(
         target=target,
         model="strong-a",
         api_base=None,
-        boundary="initial",
+        artifact="initial",
         rubric_path=rubric_path,
         roles=(),
         generation_bindings=(),
@@ -1428,7 +1310,7 @@ def test_mechanistic_resume_rejects_tampered_records(
         answer_input_sha256="5" * 64,
         rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
     )
-    output = tmp_path / "mechanistic-output"
+    output = tmp_path / "rubric_score-output"
     artifact_dir = output / "artifacts" / job.key / "evaluations" / "mock"
     artifact_dir.mkdir(parents=True)
     validation_path = artifact_dir / "score-validation.json"
@@ -1442,9 +1324,9 @@ def test_mechanistic_resume_rejects_tampered_records(
         "engine_execution": engine_execution,
     }))
     evaluation_path.write_text("{}")
-    attempt_id = rh_mechanistic._mechanistic_attempt_id(job)
+    attempt_id = rh_rubric_score._rubric_score_attempt_id(job)
     record = {
-        **rh_protocol._mechanistic_judgment_identity(job),
+        **rh_protocol._rubric_score_judgment_identity(job),
         "score": 50,
         "attempt_id": attempt_id,
         "validation_path": str(validation_path),
@@ -1461,12 +1343,12 @@ def test_mechanistic_resume_rejects_tampered_records(
     experiment = SimpleNamespace(
         protocol={},
         outcome_audit={
-            "holistic_max_calls": 3,
-            "holistic_max_request_bytes": 1_000_000,
-            "holistic_max_output_tokens": 10_000,
+            "rubric_free_evaluation_max_calls": 3,
+            "rubric_free_evaluation_max_request_bytes": 1_000_000,
+            "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = MechanisticEvaluationRunner(
+    runner = RubricScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1501,7 +1383,7 @@ def test_mechanistic_resume_rejects_tampered_records(
         ("generation", "generation fields changed"),
     ),
 )
-def test_holistic_resume_rejects_tampered_records(
+def test_rubric_free_resume_rejects_tampered_records(
     tmp_path: Path,
     tamper: str,
     message: str,
@@ -1516,22 +1398,22 @@ def test_holistic_resume_rejects_tampered_records(
     (submission / "snapshot.json").write_text(json.dumps({
         "workspace_sha256": "c" * 64,
     }))
-    job = AbsoluteHolisticJob(
+    job = RubricFreeAbsoluteScoreJob(
         target=target,
         model="strong-a",
-        boundary="initial",
+        artifact="initial",
         api_base=None,
         implementation_identity=(
-            rh_protocol._holistic_implementation_identity()
+            rh_protocol._rubric_free_evaluation_implementation_identity()
         ),
     )
-    output = tmp_path / "holistic-output"
+    output = tmp_path / "rubric_free_evaluation-output"
     verdict = {"score": 10, "explanation": "valid"}
     raw_response = json.dumps(verdict, separators=(",", ":"))
     record = {
         **rh_protocol._absolute_judgment_identity(
             job,
-            _absolute_holistic_request(job),
+            _rubric_free_absolute_score_request(job),
         ),
         "verdict": verdict,
         "raw_response": raw_response,
@@ -1562,12 +1444,12 @@ def test_holistic_resume_rejects_tampered_records(
     experiment = SimpleNamespace(
         protocol={},
         outcome_audit={
-            "holistic_max_calls": 3,
-            "holistic_max_request_bytes": 1_000_000,
-            "holistic_max_output_tokens": 10_000,
+            "rubric_free_evaluation_max_calls": 3,
+            "rubric_free_evaluation_max_request_bytes": 1_000_000,
+            "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = HolisticPairwiseRunner(
+    runner = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1585,7 +1467,7 @@ def test_holistic_resume_rejects_tampered_records(
         runner._run_absolute_job(job)
 
 
-def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
+def test_rubric_free_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
     target = _target(tmp_path)
     (tmp_path / "instruction.md").write_text("Complete the task.\n")
     submission = target.initial_submission
@@ -1596,16 +1478,16 @@ def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
     (submission / "snapshot.json").write_text(json.dumps({
         "workspace_sha256": "c" * 64,
     }))
-    job = AbsoluteHolisticJob(
+    job = RubricFreeAbsoluteScoreJob(
         target=target,
         model="strong-a",
-        boundary="initial",
+        artifact="initial",
         api_base=None,
         implementation_identity=(
-            rh_protocol._holistic_implementation_identity()
+            rh_protocol._rubric_free_evaluation_implementation_identity()
         ),
     )
-    output = tmp_path / "holistic-output"
+    output = tmp_path / "rubric_free_evaluation-output"
 
     def generate(model: str, _request: StructuredRequest) -> GenerationResult:
         return GenerationResult(
@@ -1623,12 +1505,12 @@ def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
     experiment = SimpleNamespace(
         protocol={},
         outcome_audit={
-            "holistic_max_calls": 3,
-            "holistic_max_request_bytes": 1_000_000,
-            "holistic_max_output_tokens": 10_000,
+            "rubric_free_evaluation_max_calls": 3,
+            "rubric_free_evaluation_max_request_bytes": 1_000_000,
+            "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = HolisticPairwiseRunner(
+    runner = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1651,7 +1533,7 @@ def test_holistic_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("changed_input", ("submission", "rubric"))
-def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
+def test_rubric_score_dispatch_rejects_input_changed_after_preflight(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     changed_input: str,
@@ -1673,11 +1555,11 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
         target.initial_generation.rubric.content
     )
     grading_identity = {"implementation": "test"}
-    job = MechanisticJob(
+    job = RubricScoreJob(
         target=target,
         model="strong-a",
         api_base=None,
-        boundary="initial",
+        artifact="initial",
         rubric_path=rubric_path,
         roles=(),
         generation_bindings=(),
@@ -1692,7 +1574,7 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
         def evaluate(_submission: Path, _attempt_id: str) -> object:
             nonlocal provider_calls
             provider_calls += 1
-            pytest.fail("changed mechanistic request reached provider dispatch")
+            pytest.fail("changed rubric score request reached provider dispatch")
 
         return SimpleNamespace(
             rubric=SimpleNamespace(text=rubric_path.read_text()),
@@ -1707,17 +1589,17 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
     experiment = SimpleNamespace(
         protocol={},
         outcome_audit={
-            "mechanistic_max_calls": 15,
-            "mechanistic_max_request_bytes": 1_000_000,
-            "mechanistic_max_output_tokens": 100_000,
+            "rubric_score_max_calls": 15,
+            "rubric_score_max_request_bytes": 1_000_000,
+            "rubric_score_max_output_tokens": 100_000,
         },
     )
-    runner = MechanisticEvaluationRunner(
+    runner = RubricScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
             paraphrase_dir=tmp_path / "paraphrases",
-            output_dir=tmp_path / "mechanistic-output",
+            output_dir=tmp_path / "rubric_score-output",
             max_concurrency=1,
         ),
         (target,),
@@ -1738,7 +1620,7 @@ def test_mechanistic_dispatch_rejects_input_changed_after_preflight(
     assert provider_calls == 0
 
 
-def test_holistic_dispatch_rejects_task_changed_after_preflight(
+def test_rubric_free_dispatch_rejects_task_changed_after_preflight(
     tmp_path: Path,
 ) -> None:
     target = _target(tmp_path)
@@ -1752,13 +1634,13 @@ def test_holistic_dispatch_rejects_task_changed_after_preflight(
     (submission / "snapshot.json").write_text(json.dumps({
         "workspace_sha256": "c" * 64,
     }))
-    job = AbsoluteHolisticJob(
+    job = RubricFreeAbsoluteScoreJob(
         target=target,
         model="strong-a",
-        boundary="initial",
+        artifact="initial",
         api_base=None,
         implementation_identity=(
-            rh_protocol._holistic_implementation_identity()
+            rh_protocol._rubric_free_evaluation_implementation_identity()
         ),
     )
     provider_calls = 0
@@ -1778,17 +1660,17 @@ def test_holistic_dispatch_rejects_task_changed_after_preflight(
     experiment = SimpleNamespace(
         protocol={},
         outcome_audit={
-            "holistic_max_calls": 3,
-            "holistic_max_request_bytes": 1_000_000,
-            "holistic_max_output_tokens": 10_000,
+            "rubric_free_evaluation_max_calls": 3,
+            "rubric_free_evaluation_max_request_bytes": 1_000_000,
+            "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = HolisticPairwiseRunner(
+    runner = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
             paraphrase_dir=tmp_path / "paraphrases",
-            output_dir=tmp_path / "holistic-output",
+            output_dir=tmp_path / "rubric_free_evaluation-output",
             max_concurrency=1,
         ),
         (target,),
@@ -1804,7 +1686,7 @@ def test_holistic_dispatch_rejects_task_changed_after_preflight(
     assert provider_calls == 0
 
 
-def test_holistic_runner_executes_one_judgment_per_semantic_request(
+def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1820,11 +1702,11 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     )
     (tmp_path / "instruction.md").write_text("Complete the task.\n")
     for current in (target, other):
-        for boundary, content, digest in (
+        for artifact, content, digest in (
             ("initial", "initial artifact\n", "c" * 64),
             ("final", "final artifact\n", "d" * 64),
         ):
-            submission = current.submission(boundary)
+            submission = current.submission(artifact)
             workspace = submission / "workspace"
             workspace.mkdir(parents=True)
             (workspace / "trace.md").write_text(content)
@@ -1853,17 +1735,17 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
 
     audit = {
         "models": ["strong-a"],
-        "holistic_max_calls": 12,
-        "holistic_max_request_bytes": 1_000_000,
-        "holistic_max_output_tokens": 100_000,
+        "rubric_free_evaluation_max_calls": 12,
+        "rubric_free_evaluation_max_request_bytes": 1_000_000,
+        "rubric_free_evaluation_max_output_tokens": 100_000,
     }
     experiment = SimpleNamespace(
         experiment_id="experiment-1",
         outcome_audit=audit,
         protocol={},
     )
-    output = tmp_path / "holistic-output"
-    runner = HolisticPairwiseRunner(
+    output = tmp_path / "rubric_free_evaluation-output"
+    runner = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1905,7 +1787,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         sha256_file(absolute_record_path)
     )
 
-    rerouted = HolisticPairwiseRunner(
+    rerouted = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1921,17 +1803,17 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     assert rerouted.run() == 0
     assert len(calls) == 8
 
-    implementation_identity = rh_protocol._holistic_implementation_identity()
+    implementation_identity = rh_protocol._rubric_free_evaluation_implementation_identity()
     with monkeypatch.context() as implementation_patch:
         implementation_patch.setattr(
-            rh_holistic,
-            "_holistic_implementation_identity",
+            rh_rubric_free_evaluation,
+            "_rubric_free_evaluation_implementation_identity",
             lambda: {
                 **implementation_identity,
                 "scoring_implementation_sha256": "f" * 64,
             },
         )
-        changed_implementation = HolisticPairwiseRunner(
+        changed_implementation = RubricFreeEvaluationRunner(
             EvaluationConfig(
                 experiment=experiment,
                 study_dir=tmp_path / "study",
@@ -1946,7 +1828,7 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
         assert changed_implementation.run() == 0
     assert len(calls) == 12
 
-    same_identity_resume = HolisticPairwiseRunner(
+    same_identity_resume = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1970,13 +1852,13 @@ def test_holistic_runner_executes_one_judgment_per_semantic_request(
     repaired_summary = json.loads((output / "summary.json").read_text())
     assert repaired_summary["absolute_records"][0]["verdict"]["score"] == 10
 
-    rejected_output = tmp_path / "rejected-holistic-output"
+    rejected_output = tmp_path / "rejected-rubric_free_evaluation-output"
     rejected_experiment = SimpleNamespace(
         experiment_id="experiment-1",
-        outcome_audit={**audit, "holistic_max_calls": 7},
+        outcome_audit={**audit, "rubric_free_evaluation_max_calls": 7},
         protocol={},
     )
-    rejected = HolisticPairwiseRunner(
+    rejected = RubricFreeEvaluationRunner(
         EvaluationConfig(
             experiment=rejected_experiment,
             study_dir=tmp_path / "study",

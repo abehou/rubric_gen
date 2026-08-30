@@ -846,7 +846,7 @@ def test_adaptive_fixed_original_score_is_separate_from_on_policy_score(
     )
     elicited_generation = RubricGeneration(
         generation_round=1,
-        source_boundary=1,
+        source_checkpoint=1,
         rubric=active_rubric,
         elicited_criteria=(elicited,),
         proposer_call_budget=4,
@@ -1810,7 +1810,7 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
     rubric = CompleteRubric.from_content(rubric_text)
     generation = RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=rubric,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -1961,7 +1961,7 @@ def test_completed_revision_validates_model_endpoint_manifest_fields(
     assert manifest["rubric_proposer_base_url"] == "http://proposer:8000/v1"
 
 
-def test_safe_boundary_resume_continues_missing_turns_without_rescoring_seed(
+def test_safe_checkpoint_resume_continues_missing_turns_without_rescoring_seed(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
@@ -2143,7 +2143,7 @@ def test_failed_solver_turn_is_sealed_and_never_misreported_as_complete(
         ).run()
 
 
-def test_failed_solver_turn_resumes_from_last_scored_boundary(
+def test_failed_solver_turn_resumes_from_last_scored_checkpoint(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
@@ -2252,7 +2252,7 @@ def test_resume_promotes_an_existing_valid_submission_snapshot(
     assert len(session.prompts) == 1
     recovered_status = json.loads(status_path.read_text())
     assert recovered_status["recovered_on_resume"] is True
-    assert recovered_status["status"] == "accepted_after_interrupted_boundary"
+    assert recovered_status["status"] == "accepted_after_interrupted_checkpoint"
 
 
 @pytest.mark.parametrize(
@@ -2307,7 +2307,7 @@ def test_prelaunch_session_failure_resumes_without_trajectory(
     ).is_file()
 
 
-def test_interrupted_attempt_artifacts_restore_boundary_and_restart_session(
+def test_interrupted_attempt_artifacts_restore_checkpoint_and_restart_session(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
@@ -2420,7 +2420,7 @@ Levels: A=40 B=20 C=0
     complete_rubric = CompleteRubric.from_content(rubric)
     generation = RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=complete_rubric,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -2483,7 +2483,7 @@ def test_rubric_feedback_uses_the_active_score(
     )
     generation = RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=anchor,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -2547,7 +2547,7 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
     active = render_augmented_rubric(anchor, (elicited,))
     generation = RubricGeneration(
         generation_round=1,
-        source_boundary=1,
+        source_checkpoint=1,
         rubric=active,
         elicited_criteria=(elicited,),
         proposer_call_budget=4,

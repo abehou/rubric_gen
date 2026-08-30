@@ -25,7 +25,7 @@ def _observation(
     *,
     detected: int,
     verifier: float,
-    dynamic: float,
+    original: float,
     task_id: str | None = None,
 ) -> LambdaObservation:
     return LambdaObservation(
@@ -34,7 +34,7 @@ def _observation(
         condition_id="online-elicitation",
         detected=detected,
         verifier_positive_part_change=verifier,
-        dynamic_positive_part_change=dynamic,
+        original_positive_part_change=original,
     )
 
 
@@ -50,17 +50,17 @@ def _assignment(
         "task_id": f"task-{assignment_id}",
         "condition_id": "fixed",
         "direct_detection": {"decision": decision},
-        "boundaries": {
+        "artifacts": {
             "initial": {
                 "components": {
                     "verifier_exploitation": initial[0],
-                    "dynamic_rubric_gap": initial[1],
+                    "original_rubric_gap": initial[1],
                 },
             },
             "final": {
                 "components": {
                     "verifier_exploitation": final[0],
-                    "dynamic_rubric_gap": final[1],
+                    "original_rubric_gap": final[1],
                 },
             },
         },
@@ -69,12 +69,11 @@ def _assignment(
 
 def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
     estimand_text = {
-        "boundaries": "current boundaries",
+        "artifacts": "current artifacts",
         "secondary_outcomes": "current secondary outcomes",
         "diagnostic_outcomes": "current diagnostic outcomes",
         "identity": "current identity",
         "rubric_elicitation": "current elicitation rule",
-        "weak_rescore": "current weak rescore",
         "common_random_numbers": "current reuse rule",
         "rubric_diagnostics": "current diagnostics",
         "direct_detector": "current direct detector",
@@ -83,21 +82,22 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
         "kind": EVALUATION_KIND,
         "status": "completed",
         "experiment_id": "experiment-a",
+        "study_experiment_id": "study-experiment-a",
         "estimand": {
             **estimand_text,
             "primary_outcomes": {
                 "direct_detection": "current direct outcome",
-                "holistic_quality_gain": "current holistic outcome",
+                "rubric_free_absolute_score_gain": "current rubric_free_evaluation outcome",
                 "selected_rubric_gain": "current selected outcome",
             },
             "score_scale": [0, 100],
             "component_order": [
                 "verifier_exploitation",
-                "dynamic_rubric_gap",
+                "original_rubric_gap",
             ],
             "loss_weights": {
                 "verifier_exploitation": 1,
-                "dynamic_rubric_gap": 1,
+                "original_rubric_gap": 1,
             },
         },
         "direct_ensemble": {},
@@ -192,7 +192,7 @@ def test_loader_requires_exact_current_summary_and_estimand(tmp_path: Path) -> N
     estimand = wrong_order["estimand"]
     assert isinstance(estimand, dict)
     estimand["component_order"] = [
-        "dynamic_rubric_gap",
+        "original_rubric_gap",
         "verifier_exploitation",
     ]
     path = tmp_path / "wrong-order.json"
@@ -211,9 +211,9 @@ def test_loader_validates_components_for_excluded_assignments(
         initial=(0, 0),
         final=(1, 2),
     )
-    boundaries = assignment["boundaries"]
-    assert isinstance(boundaries, dict)
-    final = boundaries["final"]
+    artifacts = assignment["artifacts"]
+    assert isinstance(artifacts, dict)
+    final = artifacts["final"]
     assert isinstance(final, dict)
     final.pop("components")
     path = tmp_path / "summary.json"
@@ -232,7 +232,7 @@ def test_loader_validates_components_for_excluded_assignments(
         ({"detected": True}, "detected"),
         ({"detected": 2}, "detected"),
         ({"verifier_positive_part_change": math.inf}, "finite number"),
-        ({"dynamic_positive_part_change": math.nan}, "finite number"),
+        ({"original_positive_part_change": math.nan}, "finite number"),
     ],
 )
 def test_observation_rejects_invalid_direct_values(
@@ -245,7 +245,7 @@ def test_observation_rejects_invalid_direct_values(
         "condition_id": "fixed",
         "detected": 0,
         "verifier_positive_part_change": 1.0,
-        "dynamic_positive_part_change": 2.0,
+        "original_positive_part_change": 2.0,
     }
     values.update(changes)
 
@@ -259,7 +259,7 @@ def test_all_negative_detector_outcomes_do_not_identify_lambda() -> None:
             index,
             detected=0,
             verifier=float(index),
-            dynamic=float(index * index),
+            original=float(index * index),
         )
         for index in range(6)
     )
@@ -276,7 +276,7 @@ def test_direct_fit_rejects_duplicate_assignment_ids() -> None:
         1,
         detected=0,
         verifier=0,
-        dynamic=1,
+        original=1,
     )
     duplicate = LambdaObservation(
         assignment_id=first.assignment_id,
@@ -284,7 +284,7 @@ def test_direct_fit_rejects_duplicate_assignment_ids() -> None:
         condition_id="fixed",
         detected=1,
         verifier_positive_part_change=1,
-        dynamic_positive_part_change=0,
+        original_positive_part_change=0,
     )
 
     with pytest.raises(ValueError, match="duplicate lambda assignment"):
@@ -297,7 +297,7 @@ def test_collinear_component_changes_do_not_identify_weights() -> None:
             index,
             detected=index % 2,
             verifier=float(index),
-            dynamic=float(2 * index + 3),
+            original=float(2 * index + 3),
         )
         for index in range(8)
     )
@@ -311,38 +311,38 @@ def test_constrained_logistic_fit_recovers_normalized_direction() -> None:
     rows: list[LambdaObservation] = []
     index = 0
     for verifier in (-2.0, -1.0, 0.0, 1.0, 2.0):
-        for dynamic in (-2.0, -1.0, 0.0, 1.0, 2.0):
-            probability = 1 / (1 + math.exp(-(-0.4 + 0.8 * verifier + 0.2 * dynamic)))
+        for original in (-2.0, -1.0, 0.0, 1.0, 2.0):
+            probability = 1 / (1 + math.exp(-(-0.4 + 0.8 * verifier + 0.2 * original)))
             positive_count = min(19, max(1, round(20 * probability)))
             for repeat in range(20):
                 rows.append(_observation(
                     index,
                     detected=int(repeat < positive_count),
                     verifier=verifier,
-                    dynamic=dynamic,
+                    original=original,
                 ))
                 index += 1
 
     fit = fit_normalized_lambda(rows)
-    lambda_v, lambda_d = fit.normalized_weights
+    lambda_v, lambda_o = fit.normalized_weights
 
-    assert lambda_v + lambda_d == pytest.approx(2)
+    assert lambda_v + lambda_o == pytest.approx(2)
     assert lambda_v == pytest.approx(1.6, abs=0.08)
-    assert lambda_d == pytest.approx(0.4, abs=0.08)
+    assert lambda_o == pytest.approx(0.4, abs=0.08)
 
 
 def test_constrained_fit_rejects_complete_separation() -> None:
     rows: list[LambdaObservation] = []
     index = 0
     for verifier in (-2.0, -1.0, 1.0, 2.0):
-        for dynamic in (-2.0, -1.0, 1.0, 2.0):
-            if verifier + dynamic == 0:
+        for original in (-2.0, -1.0, 1.0, 2.0):
+            if verifier + original == 0:
                 continue
             rows.append(_observation(
                 index,
-                detected=int(verifier + dynamic > 0),
+                detected=int(verifier + original > 0),
                 verifier=verifier,
-                dynamic=dynamic,
+                original=original,
             ))
             index += 1
 
@@ -354,7 +354,7 @@ def test_cluster_guard_rejects_current_paperbench_task_count() -> None:
     rows: list[LambdaObservation] = []
     index = 0
     for task_index in range(3):
-        for verifier, dynamic, positive_count in (
+        for verifier, original, positive_count in (
             (0.0, 0.0, 1),
             (1.0, 0.0, 2),
             (0.0, 1.0, 1),
@@ -364,7 +364,7 @@ def test_cluster_guard_rejects_current_paperbench_task_count() -> None:
                     index,
                     detected=int(repeat < positive_count),
                     verifier=verifier,
-                    dynamic=dynamic,
+                    original=original,
                     task_id=f"paper-task-{task_index}",
                 ))
                 index += 1
@@ -400,7 +400,7 @@ def test_task_cross_validation_requires_full_sample_identification() -> None:
             index,
             detected=0,
             verifier=float(index % 3),
-            dynamic=float(index // 3),
+            original=float(index // 3),
             task_id=f"task-{index % 12}",
         )
         for index in range(24)
@@ -420,13 +420,13 @@ def test_cluster_bootstrap_and_task_cross_validation_use_task_units() -> None:
         (1.0, 1.0, 8),
     )
     for task_index in range(12):
-        for verifier, dynamic, positive_count in cells:
+        for verifier, original, positive_count in cells:
             for repeat in range(10):
                 rows.append(_observation(
                     index,
                     detected=int(repeat < positive_count),
                     verifier=verifier,
-                    dynamic=dynamic,
+                    original=original,
                     task_id=f"task-{task_index}",
                 ))
                 index += 1

@@ -116,7 +116,7 @@ def build_online_artifact_history(
     assignment_id: str,
     generation_round: int,
 ) -> ArtifactHistory:
-    """Return all sealed seeds and all live artifacts through one boundary."""
+    """Return all sealed seeds and all live artifacts through one checkpoint."""
 
     if type(generation_round) is not int or generation_round < 1:
         raise ValueError("generation_round must be a positive integer")

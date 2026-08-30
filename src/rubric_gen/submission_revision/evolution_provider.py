@@ -1,4 +1,4 @@
-"""Structured provider boundary for rubric evolution."""
+"""Structured provider interface for rubric evolution."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ ProviderOperation = Callable[..., StructuredProviderOutput]
 
 @dataclass(frozen=True)
 class ProviderContract:
-    """Define and enforce one structured model-provider boundary."""
+    """Define and enforce one structured model-provider interface."""
 
     model: str
     base_url: str | None

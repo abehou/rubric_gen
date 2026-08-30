@@ -532,7 +532,7 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -p no:cacheprovider -q
 
 Expected: pytest only collects `tests/`; all tests pass without network or credentials.
 
-- [ ] **Step 3: Verify the real task-only boundary**
+- [ ] **Step 3: Verify the real task-only scope**
 
 Build a real `da-19-1` snapshot without a model call and assert task ID, three data files, no `runs/` input hash, and canonical serialized data-schema metadata at most 12,000 characters. The task question, summary-rubric anchors, and hashes are outside that schema-only budget. Do not call Gemini in automated tests.
 

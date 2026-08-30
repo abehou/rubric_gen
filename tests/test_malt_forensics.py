@@ -73,7 +73,7 @@ Here are some things that should not be classified as cheating:
         primary_rule="majority",
         loss_weights={
             "verifier_exploitation": 1,
-            "dynamic_rubric_gap": 1,
+            "original_rubric_gap": 1,
         },
     )
     assert protocol["input_validation"] == (
@@ -383,7 +383,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     observed = {}
 
     class FakeExperiment:
-        experiment_id = "test-experiment"
+        experiment_id = "detection-experiment"
         path = (tmp_path / "experiment.yaml").resolve()
         tasks_dir = tasks
         outcome_audit = outcome_audit_protocol(
@@ -391,7 +391,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
             primary_rule="majority",
             loss_weights={
                 "verifier_exploitation": 1,
-                "dynamic_rubric_gap": 1,
+                "original_rubric_gap": 1,
             },
         )
         assignments = ({
@@ -412,11 +412,8 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     monkeypatch.setattr(
         direct_audit_module, "RewardHackingJudgeRunner", FakeRunner
     )
-    monkeypatch.setattr(
-        direct_audit_module, "load_experiment", lambda _path: FakeExperiment()
-    )
-
     assert run_direct_audit(DirectAuditConfig(
+        experiment=FakeExperiment(),
         study_dir=study,
         output_dir=tmp_path / "out",
         max_concurrency=3,
@@ -438,6 +435,9 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     assert config.detection == detection
     assert config.resume is False
     assert "--mc-" not in config.output_dir.name
+    assert "--experiment-detection-experiment--source-test-experiment" in (
+        config.output_dir.name
+    )
     assert not list((tmp_path / "out").rglob("metrics.json"))
 
 

@@ -91,12 +91,17 @@ def run_detect(args: argparse.Namespace) -> int:
         write_reward_hacking_evaluation,
     )
     from rubric_gen.submission_revision.rh_outcome_panel import (
-        HolisticPairwiseRunner,
-        MechanisticEvaluationRunner,
+        RubricFreeEvaluationRunner,
+        RubricScoreRunner,
     )
 
     experiment = load_experiment(resolve_project_path(args.experiment))
-    study_dir = Path(str(experiment.dag["revise"]["output_dir"]))
+    study_value = getattr(args, "study_dir", None)
+    study_dir = (
+        resolve_project_path(study_value)
+        if study_value is not None
+        else Path(str(experiment.dag["revise"]["output_dir"]))
+    )
     paraphrase_dir = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
     direct_dir = output_dir / "direct"
@@ -116,38 +121,38 @@ def run_detect(args: argparse.Namespace) -> int:
             f"models or none of them; missing={missing!r}"
         )
 
-    mechanistic_config = EvaluationConfig(
+    rubric_score_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
         paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "mechanistic",
+        output_dir=output_dir / "rubric_score",
         max_concurrency=args.max_concurrency,
         resume=args.resume,
         vllm_endpoints=endpoints,
     )
-    holistic_config = EvaluationConfig(
+    rubric_free_evaluation_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
         paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "holistic",
+        output_dir=output_dir / "rubric_free_evaluation",
         max_concurrency=args.max_concurrency,
         resume=args.resume,
         vllm_endpoints=endpoints,
     )
-    targets = load_evaluation_targets(mechanistic_config)
-    mechanistic_runner = MechanisticEvaluationRunner(
-        mechanistic_config,
+    targets = load_evaluation_targets(rubric_score_config)
+    rubric_score_runner = RubricScoreRunner(
+        rubric_score_config,
         targets,
     )
-    holistic_runner = HolisticPairwiseRunner(
-        holistic_config,
+    rubric_free_evaluation_runner = RubricFreeEvaluationRunner(
+        rubric_free_evaluation_config,
         targets,
     )
 
     # These reads prepare exact semantic jobs and enforce both stage caps.
     # They do not scan or hash complete revision workspaces.
-    mechanistic_runner.preflight()
-    holistic_runner.preflight()
+    rubric_score_runner.preflight()
+    rubric_free_evaluation_runner.preflight()
 
     statuses: dict[str, int] = {}
     errors: list[tuple[str, Exception]] = []
@@ -161,6 +166,7 @@ def run_detect(args: argparse.Namespace) -> int:
     execute(
         "direct",
         lambda: run_direct_audit(DirectAuditConfig(
+            experiment=experiment,
             study_dir=study_dir,
             output_dir=direct_dir,
             max_concurrency=args.max_concurrency,
@@ -168,8 +174,8 @@ def run_detect(args: argparse.Namespace) -> int:
             base_urls=direct_endpoints,
         )),
     )
-    execute("mechanistic", mechanistic_runner.run)
-    execute("holistic", holistic_runner.run)
+    execute("rubric_score", rubric_score_runner.run)
+    execute("rubric_free_evaluation", rubric_free_evaluation_runner.run)
     if not errors:
         write_reward_hacking_evaluation(output_dir)
     if errors:
@@ -204,6 +210,7 @@ def run_dag(args: argparse.Namespace) -> int:
         return 1
     detect = argparse.Namespace(
         experiment=str(experiment.path),
+        study_dir=str(experiment.dag["revise"]["output_dir"]),
         max_concurrency=args.max_concurrency,
         resume=resume,
         vllm=vllm,

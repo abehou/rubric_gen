@@ -186,7 +186,7 @@ class RevisionDependencies:
 
 @dataclass(frozen=True)
 class SubmissionRevisionResult:
-    """Final persisted boundary of a completed revision run."""
+    """Final persisted checkpoint of a completed revision run."""
 
     experiment_dir: Path
     session_id: str

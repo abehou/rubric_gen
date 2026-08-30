@@ -17,7 +17,7 @@ from rubric_gen.submission_revision.rh_protocol import EVALUATION_KIND
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
 
-COMPONENT_NAMES = ("verifier_exploitation", "dynamic_rubric_gap")
+COMPONENT_NAMES = ("verifier_exploitation", "original_rubric_gap")
 MIN_TASK_CLUSTERS = 10
 MIN_EVENT_TASK_CLUSTERS = 5
 MIN_NONEVENT_TASK_CLUSTERS = 5
@@ -27,6 +27,7 @@ _SUMMARY_KEYS = frozenset({
     "kind",
     "status",
     "experiment_id",
+    "study_experiment_id",
     "estimand",
     "direct_ensemble",
     "predispatch_plans",
@@ -37,7 +38,7 @@ _SUMMARY_KEYS = frozenset({
     "assignments",
 })
 _ESTIMAND_KEYS = frozenset({
-    "boundaries",
+    "artifacts",
     "score_scale",
     "component_order",
     "loss_weights",
@@ -46,7 +47,6 @@ _ESTIMAND_KEYS = frozenset({
     "diagnostic_outcomes",
     "identity",
     "rubric_elicitation",
-    "weak_rescore",
     "common_random_numbers",
     "rubric_diagnostics",
     "direct_detector",
@@ -59,7 +59,7 @@ _ESTIMAND_TEXT_KEYS = _ESTIMAND_KEYS - {
 }
 _PRIMARY_OUTCOME_KEYS = frozenset({
     "direct_detection",
-    "holistic_quality_gain",
+    "rubric_free_absolute_score_gain",
     "selected_rubric_gain",
 })
 
@@ -79,7 +79,7 @@ class LambdaObservation:
     condition_id: str
     detected: int
     verifier_positive_part_change: float
-    dynamic_positive_part_change: float
+    original_positive_part_change: float
 
     def __post_init__(self) -> None:
         for field_name in ("assignment_id", "task_id", "condition_id"):
@@ -90,7 +90,7 @@ class LambdaObservation:
             raise ValueError("detected must be the integer 0 or 1")
         for field_name in (
             "verifier_positive_part_change",
-            "dynamic_positive_part_change",
+            "original_positive_part_change",
         ):
             value = getattr(self, field_name)
             if (
@@ -104,7 +104,7 @@ class LambdaObservation:
     def features(self) -> tuple[float, float]:
         return (
             self.verifier_positive_part_change,
-            self.dynamic_positive_part_change,
+            self.original_positive_part_change,
         )
 
 
@@ -119,23 +119,23 @@ class LambdaDataset:
 class LogisticFit:
     intercept: float
     verifier_coefficient: float
-    dynamic_coefficient: float
+    original_coefficient: float
     negative_log_likelihood: float
 
     @property
     def slope(self) -> float:
-        return (self.verifier_coefficient + self.dynamic_coefficient) / 2
+        return (self.verifier_coefficient + self.original_coefficient) / 2
 
     @property
     def normalized_weights(self) -> tuple[float, float]:
-        total = self.verifier_coefficient + self.dynamic_coefficient
+        total = self.verifier_coefficient + self.original_coefficient
         if total <= 0:
             raise LambdaNotIdentifiableError((
                 "the fitted non-negative detector slope is zero",
             ))
         return (
             2 * self.verifier_coefficient / total,
-            2 * self.dynamic_coefficient / total,
+            2 * self.original_coefficient / total,
         )
 
 
@@ -190,9 +190,9 @@ def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
         decision = direct.get("decision")
         if decision not in {"detected", "not_detected", "abstain", "incomplete"}:
             raise ValueError(f"invalid direct decision for {assignment_id}")
-        boundaries = _mapping(assignment, "boundaries")
-        initial = _mapping(boundaries, "initial")
-        final = _mapping(boundaries, "final")
+        artifacts = _mapping(assignment, "artifacts")
+        initial = _mapping(artifacts, "initial")
+        final = _mapping(artifacts, "final")
         initial_components = _mapping(initial, "components")
         final_components = _mapping(final, "components")
         initial_values = tuple(
@@ -218,7 +218,7 @@ def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
             condition_id=condition_id,
             detected=int(decision == "detected"),
             verifier_positive_part_change=changes[0],
-            dynamic_positive_part_change=changes[1],
+            original_positive_part_change=changes[1],
         ))
     if not observations:
         raise LambdaNotIdentifiableError((
@@ -263,9 +263,9 @@ def fit_normalized_lambda(
 ) -> LogisticFit:
     """Fit a non-negative logistic association and normalize its direction.
 
-    The model is ``logit(p_i) = alpha + gamma_v*x_v + gamma_d*x_d``.
+    The model is ``logit(p_i) = alpha + gamma_v*x_v + gamma_o*x_o``.
     Both gamma coefficients are non-negative. The reported loss weights are
-    ``lambda_k = 2*gamma_k/(gamma_v + gamma_d)``. Their sum is two.
+    ``lambda_k = 2*gamma_k/(gamma_v + gamma_o)``. Their sum is two.
     """
 
     rows = _validate_observations(observations)
@@ -283,7 +283,7 @@ def _fit_validated_rows(
         raise LambdaNotIdentifiableError((
             "the constrained logistic likelihood has no verified finite optimum",
         ))
-    if fit.verifier_coefficient + fit.dynamic_coefficient <= 1e-10:
+    if fit.verifier_coefficient + fit.original_coefficient <= 1e-10:
         raise LambdaNotIdentifiableError((
             "the fitted non-negative detector slope is zero",
         ))
@@ -360,7 +360,7 @@ def _task_cluster_bootstrap(
     task_ids = tuple(grouped)
     generator = random.Random(seed)
     verifier_values: list[float] = []
-    dynamic_values: list[float] = []
+    original_values: list[float] = []
     for _ in range(replicates):
         sampled: list[LambdaObservation] = []
         for _cluster in task_ids:
@@ -369,9 +369,9 @@ def _task_cluster_bootstrap(
             fit = _fit_validated_rows(tuple(sampled))
         except LambdaNotIdentifiableError:
             continue
-        verifier, dynamic = fit.normalized_weights
+        verifier, original = fit.normalized_weights
         verifier_values.append(verifier)
-        dynamic_values.append(dynamic)
+        original_values.append(original)
     valid_fraction = len(verifier_values) / replicates
     if valid_fraction < MIN_VALID_BOOTSTRAP_FRACTION:
         raise LambdaNotIdentifiableError((
@@ -390,9 +390,9 @@ def _task_cluster_bootstrap(
             _percentile(verifier_values, 0.025),
             _percentile(verifier_values, 0.975),
         ],
-        "dynamic_rubric_gap_95_percentile_interval": [
-            _percentile(dynamic_values, 0.025),
-            _percentile(dynamic_values, 0.975),
+        "original_rubric_gap_95_percentile_interval": [
+            _percentile(original_values, 0.025),
+            _percentile(original_values, 0.975),
         ],
     }
 
@@ -453,7 +453,7 @@ def leave_one_task_out(
             "task_id": task_id,
             "status": "completed",
             "lambda_v": weights[0],
-            "lambda_d": weights[1],
+            "lambda_o": weights[1],
             "log_loss": log_loss,
             "brier_score": brier_score,
             "intercept_only_log_loss": baseline_log_loss,
@@ -565,7 +565,7 @@ def _fit_active_set(
     return LogisticFit(
         intercept=coefficients[0],
         verifier_coefficient=unscaled[0],
-        dynamic_coefficient=unscaled[1],
+        original_coefficient=unscaled[1],
         negative_log_likelihood=current,
     )
 
@@ -708,11 +708,11 @@ def _has_nonnegative_separation(
                 if constant > tolerance:
                     return False
                 continue
-            boundary = -constant / slope
+            crossing = -constant / slope
             if slope > 0:
-                upper = min(upper, boundary)
+                upper = min(upper, crossing)
             else:
-                lower = max(lower, boundary)
+                lower = max(lower, crossing)
             if lower > upper + tolerance:
                 return False
     return lower <= 1 + tolerance and upper >= -tolerance
@@ -722,7 +722,7 @@ def _probability(fit: LogisticFit, row: LambdaObservation) -> float:
     linear = (
         fit.intercept
         + fit.verifier_coefficient * row.verifier_positive_part_change
-        + fit.dynamic_coefficient * row.dynamic_positive_part_change
+        + fit.original_coefficient * row.original_positive_part_change
     )
     return min(max(_sigmoid(linear), 1e-15), 1 - 1e-15)
 

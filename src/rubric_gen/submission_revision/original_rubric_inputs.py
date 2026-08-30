@@ -29,7 +29,7 @@ from rubric_gen.submission_revision.study_validation import validate_completed_r
 
 
 SUMMARY_KIND = "original-rubric-ensemble-rescore"
-BOUNDARIES = ("initial", "final")
+ARTIFACTS = ("initial", "final")
 
 
 @dataclass(frozen=True)
@@ -74,12 +74,12 @@ class OriginalRubricTarget:
         ):
             raise ValueError("rubric_sha256 must be lowercase SHA-256")
 
-    def submission(self, boundary: str) -> Path:
-        if boundary == "initial":
+    def submission(self, artifact: str) -> Path:
+        if artifact == "initial":
             return self.initial_submission
-        if boundary == "final":
+        if artifact == "final":
             return self.final_submission
-        raise ValueError(f"unsupported submission boundary: {boundary}")
+        raise ValueError(f"unsupported submission artifact: {artifact}")
 
 
 @dataclass(frozen=True)
@@ -87,9 +87,9 @@ class OriginalRubricStudy:
     source: Path
     experiment_id: str
     targets: tuple[OriginalRubricTarget, ...]
-    mechanistic_max_calls: int
-    mechanistic_max_request_bytes: int
-    mechanistic_max_output_tokens: int
+    rubric_score_max_calls: int
+    rubric_score_max_request_bytes: int
+    rubric_score_max_output_tokens: int
 
     def __post_init__(self) -> None:
         if not self.targets:
@@ -100,9 +100,9 @@ class OriginalRubricStudy:
         if len({target.benchmark for target in self.targets}) != 1:
             raise ValueError("original-rubric targets must use one benchmark")
         for name, value in (
-            ("mechanistic_max_calls", self.mechanistic_max_calls),
-            ("mechanistic_max_request_bytes", self.mechanistic_max_request_bytes),
-            ("mechanistic_max_output_tokens", self.mechanistic_max_output_tokens),
+            ("rubric_score_max_calls", self.rubric_score_max_calls),
+            ("rubric_score_max_request_bytes", self.rubric_score_max_request_bytes),
+            ("rubric_score_max_output_tokens", self.rubric_score_max_output_tokens),
         ):
             if type(value) is not int or value < 1:
                 raise ValueError(f"{name} must be positive")
@@ -126,21 +126,21 @@ class OriginalRubricEnsembleConfig:
 class OriginalRubricJob:
     target: OriginalRubricTarget
     model: str
-    boundary: str
+    artifact: str
 
     def __post_init__(self) -> None:
         if self.model not in PRIMARY_RH_MODELS:
             raise ValueError(f"unsupported strong judge model: {self.model}")
-        if self.boundary not in BOUNDARIES:
-            raise ValueError(f"unsupported boundary: {self.boundary}")
+        if self.artifact not in ARTIFACTS:
+            raise ValueError(f"unsupported artifact: {self.artifact}")
 
     @property
     def submission(self) -> Path:
-        return self.target.submission(self.boundary)
+        return self.target.submission(self.artifact)
 
     @property
     def key(self) -> tuple[str, str, str]:
-        return self.target.assignment_id, self.model, self.boundary
+        return self.target.assignment_id, self.model, self.artifact
 
 
 @dataclass(frozen=True)
@@ -228,14 +228,14 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
         source=source.resolve(),
         experiment_id=experiment.experiment_id,
         targets=tuple(targets),
-        mechanistic_max_calls=experiment.outcome_audit[
-            "mechanistic_max_calls"
+        rubric_score_max_calls=experiment.outcome_audit[
+            "rubric_score_max_calls"
         ],
-        mechanistic_max_request_bytes=experiment.outcome_audit[
-            "mechanistic_max_request_bytes"
+        rubric_score_max_request_bytes=experiment.outcome_audit[
+            "rubric_score_max_request_bytes"
         ],
-        mechanistic_max_output_tokens=experiment.outcome_audit[
-            "mechanistic_max_output_tokens"
+        rubric_score_max_output_tokens=experiment.outcome_audit[
+            "rubric_score_max_output_tokens"
         ],
     )
 
@@ -457,7 +457,7 @@ def original_rubric_attempt_id(job: OriginalRubricJob) -> str:
         "kind": SUMMARY_KIND,
         "assignment_id": job.target.assignment_id,
         "model": job.model,
-        "boundary": job.boundary,
+        "artifact": job.artifact,
         "submission_id": job.submission.name,
         "rubric_sha256": job.target.rubric_sha256,
         **_snapshot_identity(job),

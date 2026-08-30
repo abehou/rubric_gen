@@ -353,7 +353,7 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
     rubric = CompleteRubric.from_content(current)
     generation = RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=rubric,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -476,7 +476,7 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     current_rubric = CompleteRubric.from_content(current)
     current_generation = RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=current_rubric,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -531,7 +531,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     rubric_sha256 = rubric.content_sha256
     generation = RubricGeneration(
         generation_round=0,
-        source_boundary=None,
+        source_checkpoint=None,
         rubric=rubric,
         elicited_criteria=(),
         proposer_call_budget=0,
@@ -569,7 +569,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     scorer.task_dir = task
     scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())
 
-    scorer.project_boundary_feedback(
+    scorer.project_checkpoint_feedback(
         artifacts=SimpleNamespace(
             score_validation_path=validation,
             evaluation_path=validation,

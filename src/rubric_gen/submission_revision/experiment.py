@@ -273,12 +273,12 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         "models",
         "primary_rule",
         "loss_weights",
-        "mechanistic_max_calls",
-        "mechanistic_max_request_bytes",
-        "mechanistic_max_output_tokens",
-        "holistic_max_calls",
-        "holistic_max_request_bytes",
-        "holistic_max_output_tokens",
+        "rubric_score_max_calls",
+        "rubric_score_max_request_bytes",
+        "rubric_score_max_output_tokens",
+        "rubric_free_evaluation_max_calls",
+        "rubric_free_evaluation_max_request_bytes",
+        "rubric_free_evaluation_max_output_tokens",
     }
     optional_audit_keys = {
         "max_input_tokens",
@@ -315,16 +315,16 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         max_output_tokens=audit.get("max_output_tokens", 4_096),
         max_event_text_chars=audit.get("max_event_text_chars", 65_536),
         max_command_output_chars=audit.get("max_command_output_chars", 2_048),
-        mechanistic_max_calls=audit["mechanistic_max_calls"],
-        mechanistic_max_request_bytes=audit[
-            "mechanistic_max_request_bytes"
+        rubric_score_max_calls=audit["rubric_score_max_calls"],
+        rubric_score_max_request_bytes=audit[
+            "rubric_score_max_request_bytes"
         ],
-        mechanistic_max_output_tokens=audit[
-            "mechanistic_max_output_tokens"
+        rubric_score_max_output_tokens=audit[
+            "rubric_score_max_output_tokens"
         ],
-        holistic_max_calls=audit["holistic_max_calls"],
-        holistic_max_request_bytes=audit["holistic_max_request_bytes"],
-        holistic_max_output_tokens=audit["holistic_max_output_tokens"],
+        rubric_free_evaluation_max_calls=audit["rubric_free_evaluation_max_calls"],
+        rubric_free_evaluation_max_request_bytes=audit["rubric_free_evaluation_max_request_bytes"],
+        rubric_free_evaluation_max_output_tokens=audit["rubric_free_evaluation_max_output_tokens"],
     )
     # The YAML is concise; stable detector mechanics are supplied by the implementation.
     payload["outcome_audit"] = expected_audit

@@ -24,7 +24,7 @@ from rubric_gen.submission_revision.judging.preflight import (
     preflight_judge_dispatches,
 )
 from rubric_gen.submission_revision.original_rubric_inputs import (
-    BOUNDARIES,
+    ARTIFACTS,
     SUMMARY_KIND,
     JobOperation,
     JudgeFactory,
@@ -127,7 +127,7 @@ def _job_sort_key(job: OriginalRubricJob) -> tuple[str, int, int]:
     return (
         job.target.assignment_id,
         PRIMARY_RH_MODELS.index(job.model),
-        BOUNDARIES.index(job.boundary),
+        ARTIFACTS.index(job.artifact),
     )
 
 
@@ -147,7 +147,7 @@ def _judgment_owner(job: OriginalRubricJob) -> dict[str, str]:
     return {
         "assignment_id": job.target.assignment_id,
         "model": job.model,
-        "boundary": job.boundary,
+        "artifact": job.artifact,
     }
 
 
@@ -169,7 +169,7 @@ def _job_identity(job: OriginalRubricJob) -> dict[str, object]:
         "condition_id": job.target.condition_id,
         "experiment": str(job.target.experiment_dir),
         "model": job.model,
-        "boundary": job.boundary,
+        "artifact": job.artifact,
         "submission_id": job.submission.name,
         "rubric_sha256": job.target.rubric_sha256,
         "attempt_id": original_rubric_attempt_id(job),
@@ -359,10 +359,10 @@ class OriginalRubricEnsembleRunner:
     @staticmethod
     def _jobs(study: OriginalRubricStudy) -> tuple[OriginalRubricJob, ...]:
         return tuple(
-            OriginalRubricJob(target, model, boundary)
+            OriginalRubricJob(target, model, artifact)
             for target in study.targets
             for model in PRIMARY_RH_MODELS
-            for boundary in BOUNDARIES
+            for artifact in ARTIFACTS
         )
 
     @staticmethod
@@ -552,9 +552,9 @@ class OriginalRubricEnsembleRunner:
             })
         outer_attempt_limit = JUDGE_MAX_ATTEMPTS
         caps = {
-            "calls": study.mechanistic_max_calls,
-            "request_bytes": study.mechanistic_max_request_bytes,
-            "output_tokens": study.mechanistic_max_output_tokens,
+            "calls": study.rubric_score_max_calls,
+            "request_bytes": study.rubric_score_max_request_bytes,
+            "output_tokens": study.rubric_score_max_output_tokens,
         }
         base_totals: dict[str, int] = {}
         maximum_totals: dict[str, int] = {}
@@ -573,7 +573,7 @@ class OriginalRubricEnsembleRunner:
                     f"{maximum_totals[resource]} > {caps[resource]}"
                 )
         return {
-            "stage": "original-rubric-mechanistic",
+            "stage": "original-rubric-score",
             "accepted": True,
             "outer_attempt_limit": outer_attempt_limit,
             "caps": caps,
@@ -593,7 +593,7 @@ class OriginalRubricEnsembleRunner:
     def _protocol(self) -> dict[str, object]:
         return {
             "models": list(PRIMARY_RH_MODELS),
-            "submissions": list(BOUNDARIES),
+            "submissions": list(ARTIFACTS),
             "rubric": "original-human-written-r0000",
             "score_scale": [0, 100],
             "numeric_aggregates": ["mean", "median"],
@@ -814,7 +814,7 @@ class OriginalRubricEnsembleRunner:
         )
         complete = sum(record["status"] == "completed" for record in records)
         failed = sum(record["status"] == "failed" for record in records)
-        total = len(study.targets) * len(PRIMARY_RH_MODELS) * len(BOUNDARIES)
+        total = len(study.targets) * len(PRIMARY_RH_MODELS) * len(ARTIFACTS)
         status = (
             "completed"
             if complete == total

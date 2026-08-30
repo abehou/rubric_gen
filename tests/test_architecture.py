@@ -100,8 +100,8 @@ def test_reward_hacking_evaluation_modules_remain_focused() -> None:
     modules = (
         "rh_protocol.py",
         "rh_evaluation_targets.py",
-        "rh_mechanistic.py",
-        "rh_holistic.py",
+        "rh_rubric_score.py",
+        "rh_rubric_free_evaluation.py",
         "rh_outcome_panel.py",
         "rh_evaluation_report.py",
         "rh_output_store.py",
@@ -190,8 +190,8 @@ def test_revision_controller_modules_remain_focused() -> None:
         assert line_count < 1_000, f"{module} has {line_count} lines"
 
     controller = (package / "controller.py").read_text(encoding="utf-8")
-    assert "def _run_judge_boundary" not in controller
-    assert "def _recover_failed_solver_boundary" not in controller
+    assert "def _run_judge_checkpoint" not in controller
+    assert "def _recover_failed_solver_checkpoint" not in controller
     assert "def _snapshot_submission" not in controller
 
 

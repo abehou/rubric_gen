@@ -274,13 +274,13 @@ class SubmissionRevisionController:
                     _RevisionPhase.READY_FOR_JUDGE,
                     _RevisionPhase.JUDGE_IN_PROGRESS,
                 }:
-                    self.scoring.run_judge_boundary(state)
+                    self.scoring.run_judge_checkpoint(state)
                 if state.phase not in {
                     _RevisionPhase.READY_FOR_TURN,
                     _RevisionPhase.COMPLETED,
                 }:
                     raise RuntimeError(f"invalid revision state: {state.phase}")
-            self.scoring.validate_latest_boundary(state)
+            self.scoring.validate_latest_checkpoint(state)
             state.phase = _RevisionPhase.COMPLETED
             self.store.write_state(state)
             compaction = self.workspaces.compact_historical_submissions(state)

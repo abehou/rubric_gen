@@ -11,12 +11,13 @@ from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
 from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.submission_revision.audit_evidence import revision_audit_source
-from rubric_gen.submission_revision.experiment import load_experiment
+from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 
 
 @dataclass(frozen=True)
 class DirectAuditConfig:
+    experiment: Experiment
     study_dir: Path
     output_dir: Path
     max_concurrency: int
@@ -29,11 +30,12 @@ class DirectAuditConfig:
 class AuditStudy:
     revisions: tuple[Path, ...]
     experiment_id: str
+    study_experiment_id: str
     tasks_dir: Path
     protocol: dict[str, object]
 
 
-def load_audit_study(study_dir: Path) -> AuditStudy:
+def load_audit_study(study_dir: Path, experiment: Experiment) -> AuditStudy:
     """Validate a terminal study and return its completed revisions."""
 
     source = study_dir.resolve()
@@ -52,9 +54,8 @@ def load_audit_study(study_dir: Path) -> AuditStudy:
     ):
         raise ValueError(f"unsupported benchmark study: {source}")
 
-    experiment = load_experiment(Path(str(study["experiment_path"])))
-    if study["experiment_id"] != experiment.experiment_id:
-        raise ValueError(f"benchmark study experiment ID changed: {source}")
+    if study["experiment_path"] != str(experiment.path):
+        raise ValueError(f"benchmark study uses a different experiment: {source}")
     records = study.get("records")
     if not isinstance(records, list) or any(
         not isinstance(item, dict) for item in records
@@ -72,7 +73,7 @@ def load_audit_study(study_dir: Path) -> AuditStudy:
         status = record.get("status")
         if status not in {"completed", "failed", "invalid"}:
             raise ValueError(
-                "benchmark study must reach a terminal boundary before audit: "
+                "benchmark study must reach a terminal checkpoint before audit: "
                 f"{source}"
             )
         if status == "completed":
@@ -87,6 +88,7 @@ def load_audit_study(study_dir: Path) -> AuditStudy:
     return AuditStudy(
         revisions=tuple(revisions),
         experiment_id=experiment.experiment_id,
+        study_experiment_id=str(study["experiment_id"]),
         tasks_dir=experiment.tasks_dir.resolve(),
         protocol=experiment.outcome_audit,
     )
@@ -95,7 +97,7 @@ def load_audit_study(study_dir: Path) -> AuditStudy:
 def run_direct_audit(config: DirectAuditConfig) -> int:
     """Run the study's sealed direct audit protocol."""
 
-    study = load_audit_study(config.study_dir)
+    study = load_audit_study(config.study_dir, config.experiment)
     models = tuple(config.base_urls) if config.base_urls else PRIMARY_RH_MODELS
     expected_models = tuple(study.protocol.get("models", ()))
     if models != expected_models:
@@ -111,7 +113,8 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
     max_command_output_chars = int(study.protocol["max_command_output_chars"])
     mode = "vllm" if config.base_urls else "ensemble"
     identity = (
-        f"{mode}--detect-{config.detection}--source-{study.experiment_id}"
+        f"{mode}--detect-{config.detection}--experiment-{study.experiment_id}"
+        f"--source-{study.study_experiment_id}"
         f"--mi-{max_input_tokens}"
         f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
         f"--mco-{max_command_output_chars}"
@@ -126,7 +129,7 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
     source = revision_audit_source(
         study.revisions,
         tasks_dir=study.tasks_dir,
-        experiment_ids=(study.experiment_id,),
+        experiment_ids=(study.study_experiment_id,),
     )
     result = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
         source=source,

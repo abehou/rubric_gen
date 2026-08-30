@@ -79,8 +79,8 @@ the criteria array for each criterion_contracts item, in the same order. Array
 position identifies the criterion. Set level_index to the matching level_options
 index. Do not output criterion identifiers or level names. Do not omit or add
 items. Require concrete artifact evidence. Do not infer missing work from claims.
-On a boundary, select the lower-point level unless evidence proves the higher-point
-level. Keep each reason brief and evidence-based.
+If evidence falls between two levels, select the lower-point level unless evidence
+proves the higher level. Keep each reason brief and evidence-based.
 
 Return only the provider-enforced JSON schema. Do not calculate numerical points.
 """

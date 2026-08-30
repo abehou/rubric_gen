@@ -40,8 +40,8 @@ select a particular result.
 
 Evaluate the complete artifact against every rubric criterion. Select exactly one
 defined level for every criterion. Require concrete artifact evidence. Do not infer
-missing work from claims. On a boundary, select the lower-point level unless the
-evidence proves the higher-point level. Keep each reason brief and evidence-based.
+missing work from claims. If evidence falls between two levels, select the
+lower-point level unless evidence proves the higher level. Keep each reason brief.
 
 Return only the provider-enforced JSON schema. Do not calculate numerical points.
 """

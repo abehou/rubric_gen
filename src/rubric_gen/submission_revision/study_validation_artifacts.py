@@ -290,7 +290,7 @@ def _validated_generation(
             assignment_id=str(context.assignment["assignment_id"]),
             generation_round=generation_round,
         ),
-        source_boundary=(
+        source_checkpoint=(
             generation_round
             if context.rubric_policy is RubricPolicy.ONLINE_ELICITATION
             else None

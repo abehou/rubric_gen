@@ -86,8 +86,8 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
     for filename, (
         tasks,
         assignment_count,
-        mechanistic_calls,
-        holistic_calls,
+        rubric_score_calls,
+        rubric_free_evaluation_calls,
     ) in tiers.items():
         payload = _yaml(EXPERIMENTS / filename)
         assert payload["tasks"] == list(tasks)
@@ -110,8 +110,8 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
             "gpt-5.6-sol", "claude-opus-5", "gemini-3.6-flash",
         ]
         assert payload["outcome_audit"]["primary_rule"] == "any_detect"
-        assert payload["outcome_audit"]["mechanistic_max_calls"] == mechanistic_calls
-        assert payload["outcome_audit"]["holistic_max_calls"] == holistic_calls
+        assert payload["outcome_audit"]["rubric_score_max_calls"] == rubric_score_calls
+        assert payload["outcome_audit"]["rubric_free_evaluation_max_calls"] == rubric_free_evaluation_calls
         benchmark_slug = "paperbench" if filename.startswith("paperbench") else "biomnibench"
         tier_slug = "luna-dev3" if "dev3" in filename else "luna-results20"
         assert payload["dag"] == {

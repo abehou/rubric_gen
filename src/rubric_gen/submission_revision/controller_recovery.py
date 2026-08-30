@@ -46,7 +46,7 @@ from rubric_gen.submission_revision.store import RevisionStore
 
 
 @dataclass(frozen=True)
-class _FailedTurnBoundary:
+class _FailedTurnCheckpoint:
     turn_index: int
     turn_dir: Path
     status_path: Path
@@ -168,7 +168,7 @@ class RevisionRecovery:
             _RevisionPhase.FAILED_TURN,
             _RevisionPhase.TURN_IN_PROGRESS,
         }:
-            self._recover_failed_solver_boundary(state, workspace, manifest)
+            self._recover_failed_solver_checkpoint(state, workspace, manifest)
         self._validate_resume_state(state, workspace, manifest)
         return state, live_root, workspace
 
@@ -233,31 +233,31 @@ class RevisionRecovery:
                 }
             )
 
-    def _recover_failed_solver_boundary(
+    def _recover_failed_solver_checkpoint(
         self,
         state: _RevisionState,
         workspace: Path,
         manifest: dict[str, object],
     ) -> None:
-        """Recover a solver interruption from the last sealed boundary."""
+        """Recover a solver interruption from the last sealed checkpoint."""
 
-        boundary = self._failed_turn_boundary(state)
-        if self._recover_unfinalized_turn(state, workspace, manifest, boundary):
+        checkpoint = self._failed_turn_checkpoint(state)
+        if self._recover_unfinalized_turn(state, workspace, manifest, checkpoint):
             return
         self._validate_solver_identity(state, manifest)
-        controlled_reason = self._controlled_failure_reason(state, boundary)
+        controlled_reason = self._controlled_failure_reason(state, checkpoint)
         if controlled_reason is not None:
             self._restore_reset_and_discard(
                 state,
                 workspace,
                 manifest,
-                boundary,
+                checkpoint,
                 controlled_reason,
             )
             return
-        self._validate_turn_artifacts(boundary)
+        self._validate_turn_artifacts(checkpoint)
         status = _read_json_object(
-            boundary.status_path,
+            checkpoint.status_path,
             "failed solver turn status",
         )
         disposition = self._recovery_disposition(state, workspace, status)
@@ -266,19 +266,19 @@ class RevisionRecovery:
                 state,
                 workspace,
                 manifest,
-                boundary,
+                checkpoint,
                 "solver turn output was not safe to resume",
             )
             return
         self._promote_recovered_turn(
             state,
             workspace,
-            boundary,
+            checkpoint,
             status,
             disposition,
         )
 
-    def _failed_turn_boundary(self, state: _RevisionState) -> _FailedTurnBoundary:
+    def _failed_turn_checkpoint(self, state: _RevisionState) -> _FailedTurnCheckpoint:
         turn_index = state.next_turn_index
         if not 0 <= turn_index < self.config.revision_rounds + 1:
             raise RuntimeError("failed revision state has an invalid turn index")
@@ -289,8 +289,8 @@ class RevisionRecovery:
             or len(state.fixed_original_scores) != turn_index
             or set(state.judge_attempts) != set(state.submission_ids)
         ):
-            raise RuntimeError("failed revision state boundary counts are inconsistent")
-        self.scoring.validate_latest_boundary(state)
+            raise RuntimeError("failed revision state checkpoint counts are inconsistent")
+        self.scoring.validate_latest_checkpoint(state)
         turn_dir = self.experiment_dir / "turns" / f"turn-{turn_index:03d}"
         expected_turns = [
             self.experiment_dir / "turns" / f"turn-{index:03d}"
@@ -307,7 +307,7 @@ class RevisionRecovery:
             raise RuntimeError(
                 "failed revision state prompt disagrees with the executed turn"
             )
-        return _FailedTurnBoundary(
+        return _FailedTurnCheckpoint(
             turn_index=turn_index,
             turn_dir=turn_dir,
             status_path=turn_dir / "status.json",
@@ -317,15 +317,15 @@ class RevisionRecovery:
     @staticmethod
     def _unfinalized_turn_layout(
         state: _RevisionState,
-        boundary: _FailedTurnBoundary,
+        checkpoint: _FailedTurnCheckpoint,
     ) -> bool:
-        turn_dir = boundary.turn_dir
+        turn_dir = checkpoint.turn_dir
         attempts = turn_dir / "attempts"
         return (
             state.phase is _RevisionPhase.TURN_IN_PROGRESS
-            and boundary.turn_index > 0
-            and not os.path.lexists(boundary.status_path)
-            and not os.path.lexists(boundary.trajectory_path)
+            and checkpoint.turn_index > 0
+            and not os.path.lexists(checkpoint.status_path)
+            and not os.path.lexists(checkpoint.trajectory_path)
             and not turn_dir.is_symlink()
             and turn_dir.is_dir()
             and {path.name for path in turn_dir.iterdir()}
@@ -341,9 +341,9 @@ class RevisionRecovery:
         state: _RevisionState,
         workspace: Path,
         manifest: dict[str, object],
-        boundary: _FailedTurnBoundary,
+        checkpoint: _FailedTurnCheckpoint,
     ) -> bool:
-        if not self._unfinalized_turn_layout(state, boundary):
+        if not self._unfinalized_turn_layout(state, checkpoint):
             return False
         if (
             manifest.get("session_id") != state.session_id
@@ -357,7 +357,7 @@ class RevisionRecovery:
             state,
             workspace,
             manifest,
-            boundary,
+            checkpoint,
             "solver interrupted before finalizing turn artifacts",
         )
         return True
@@ -378,19 +378,19 @@ class RevisionRecovery:
     @staticmethod
     def _controlled_failure_reason(
         state: _RevisionState,
-        boundary: _FailedTurnBoundary,
+        checkpoint: _FailedTurnCheckpoint,
     ) -> str | None:
         if (
             state.phase is not _RevisionPhase.FAILED_TURN
-            or os.path.lexists(boundary.trajectory_path)
-            or boundary.turn_dir.is_symlink()
-            or not boundary.turn_dir.is_dir()
-            or boundary.status_path.is_symlink()
-            or not boundary.status_path.is_file()
+            or os.path.lexists(checkpoint.trajectory_path)
+            or checkpoint.turn_dir.is_symlink()
+            or not checkpoint.turn_dir.is_dir()
+            or checkpoint.status_path.is_symlink()
+            or not checkpoint.status_path.is_file()
         ):
             return None
         status = _read_json_object(
-            boundary.status_path,
+            checkpoint.status_path,
             "failed solver turn status",
         )
         errors = tuple(status.get("validation_errors") or ())
@@ -411,27 +411,27 @@ class RevisionRecovery:
         state: _RevisionState,
         workspace: Path,
         manifest: dict[str, object],
-        boundary: _FailedTurnBoundary,
+        checkpoint: _FailedTurnCheckpoint,
         reason: str,
     ) -> None:
         self.workspaces.restore_last_scored_workspace(state, workspace)
         self._discard_solver_session(state, manifest, reason=reason)
         self._reset_uncertain_solver_turn(
             state,
-            boundary.turn_dir,
-            boundary.turn_index,
+            checkpoint.turn_dir,
+            checkpoint.turn_index,
         )
 
     @staticmethod
-    def _validate_turn_artifacts(boundary: _FailedTurnBoundary) -> None:
+    def _validate_turn_artifacts(checkpoint: _FailedTurnCheckpoint) -> None:
         if (
-            boundary.turn_dir.is_symlink()
-            or not boundary.turn_dir.is_dir()
-            or boundary.status_path.is_symlink()
-            or not boundary.status_path.is_file()
-            or boundary.trajectory_path.is_symlink()
-            or not boundary.trajectory_path.is_file()
-            or boundary.trajectory_path.stat().st_size == 0
+            checkpoint.turn_dir.is_symlink()
+            or not checkpoint.turn_dir.is_dir()
+            or checkpoint.status_path.is_symlink()
+            or not checkpoint.status_path.is_file()
+            or checkpoint.trajectory_path.is_symlink()
+            or not checkpoint.trajectory_path.is_file()
+            or checkpoint.trajectory_path.stat().st_size == 0
         ):
             raise RuntimeError("failed solver turn artifacts are incomplete")
 
@@ -499,7 +499,7 @@ class RevisionRecovery:
         self,
         state: _RevisionState,
         workspace: Path,
-        boundary: _FailedTurnBoundary,
+        checkpoint: _FailedTurnCheckpoint,
         status: dict[str, object],
         disposition: _RecoveryDisposition,
     ) -> None:
@@ -507,14 +507,14 @@ class RevisionRecovery:
             raise RuntimeError("recovered solver turn has no session ID")
         self.workspaces.validate_submission_outputs(workspace)
         _solution_tree_sha256(workspace)
-        submission_id = f"s{boundary.turn_index:03d}"
+        submission_id = f"s{checkpoint.turn_index:03d}"
         submission_dir = self.experiment_dir / "submissions" / submission_id
         trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
             self.experiment_dir
             / "turns"
             / f"turn-{index:03d}"
             / "trajectory.stream.jsonl"
-            for index in range(1, boundary.turn_index + 1)
+            for index in range(1, checkpoint.turn_index + 1)
         ]
         if os.path.lexists(submission_dir):
             self.workspaces.verify_recovered_submission_snapshot(
@@ -530,21 +530,21 @@ class RevisionRecovery:
                 trajectories,
                 state.session_id,
             )
-        self._seal_recovered_turn(state, boundary, status, disposition, submission_id)
+        self._seal_recovered_turn(state, checkpoint, status, disposition, submission_id)
 
     def _seal_recovered_turn(
         self,
         state: _RevisionState,
-        boundary: _FailedTurnBoundary,
+        checkpoint: _FailedTurnCheckpoint,
         status: dict[str, object],
         disposition: _RecoveryDisposition,
         submission_id: str,
     ) -> None:
-        boundary.turn_dir.chmod(
-            stat.S_IMODE(os.lstat(boundary.turn_dir).st_mode) | stat.S_IRWXU
+        checkpoint.turn_dir.chmod(
+            stat.S_IMODE(os.lstat(checkpoint.turn_dir).st_mode) | stat.S_IRWXU
         )
-        boundary.status_path.chmod(
-            stat.S_IMODE(os.lstat(boundary.status_path).st_mode)
+        checkpoint.status_path.chmod(
+            stat.S_IMODE(os.lstat(checkpoint.status_path).st_mode)
             | stat.S_IRUSR
             | stat.S_IWUSR
         )
@@ -559,20 +559,20 @@ class RevisionRecovery:
             "status": (
                 "accepted_after_disposable_exclusion"
                 if excluded
-                else "accepted_after_interrupted_boundary"
+                else "accepted_after_interrupted_checkpoint"
             ),
             "exit_code": 0,
             "transport_exit_code": transport_exit_code,
             "recovered_on_resume": True,
         })
-        _write_json(boundary.status_path, status)
+        _write_json(checkpoint.status_path, status)
         state.submission_ids.append(submission_id)
         state.next_turn_index += 1
         state.phase = _RevisionPhase.READY_FOR_JUDGE
         self.store.write_state(state)
         self.store.append_event({
             "event": "turn_recovered",
-            "turn": boundary.turn_index,
+            "turn": checkpoint.turn_index,
             "session_id": state.session_id,
             "reason": (
                 "accepted workspace after excluding disposable run state"
@@ -644,7 +644,7 @@ class RevisionRecovery:
                 == state.next_turn_index
             )
         if not valid_counts:
-            raise RuntimeError("revision state boundary counts are inconsistent")
+            raise RuntimeError("revision state checkpoint counts are inconsistent")
         expected_submission_ids = [
             f"s{index:03d}" for index in range(state.next_turn_index)
         ]
@@ -693,9 +693,9 @@ class RevisionRecovery:
                 "submission snapshot",
             )
             if snapshot.get("workspace_sha256") != _solution_tree_sha256(workspace):
-                raise RuntimeError("live workspace changed after the last boundary")
+                raise RuntimeError("live workspace changed after the last checkpoint")
         self._validate_rubric_generation_replay()
-        self.scoring.validate_latest_boundary(state)
+        self.scoring.validate_latest_checkpoint(state)
         if manifest.get("initial_scoring_identity") != self.scoring_identity:
             raise RuntimeError("revision manifest has the wrong scoring identity")
 
@@ -757,7 +757,7 @@ class RevisionRecovery:
                 artifact_history=self.scoring.elicitation_history(
                     generation_round
                 ),
-                source_boundary=(
+                source_checkpoint=(
                     generation_round
                     if self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
                     else None

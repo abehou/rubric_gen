@@ -9,18 +9,17 @@ from statistics import fmean
 import matplotlib.pyplot as plt
 import numpy as np
 
+from rubric_gen.submission_revision.experiment import load_experiment
+
 
 FIGURE_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = FIGURE_ROOT.parents[1]
-EXPERIMENT_ID = "biomnibench-da-factorial-r6-5d56fee68932"
-SUMMARY_PATH = (
-    PROJECT_ROOT / "runs" / "detections" / EXPERIMENT_ID / "summary.json"
-)
+EXPERIMENT_PATH = PROJECT_ROOT / "experiments" / "biomnibench-results20.yaml"
 CSV_PATH = FIGURE_ROOT / "generalization_gap_changes_by_condition.csv"
 WEAK_OUTPUT_STEM = FIGURE_ROOT / "weak_to_strong_gap_change_by_condition"
 WEAK_INITIAL_OUTPUT_STEM = FIGURE_ROOT / "weak_to_strong_initial_gap_by_condition"
 WEAK_FINAL_OUTPUT_STEM = FIGURE_ROOT / "weak_to_strong_final_gap_by_condition"
-STRONG_OUTPUT_STEM = FIGURE_ROOT / "strong_to_holistic_gap_change_by_condition"
+STRONG_OUTPUT_STEM = FIGURE_ROOT / "strong_to_rubric_free_gap_change_by_condition"
 
 RUBRIC_ORDER = ("static", "offline-rubric", "online-rubric")
 RUBRIC_LABELS = {
@@ -50,8 +49,9 @@ METRICS = (
     "weak_to_strong_initial_gap",
     "weak_to_strong_final_gap",
     "weak_to_strong_gap_change",
-    "active_strong_to_holistic_gap_change",
-    "common_strong_to_holistic_gap_change",
+    "original_to_rubric_free_gap_change",
+    "active_to_original_gap_change",
+    "selected_to_rubric_free_gap_change",
 )
 BOOTSTRAP_REPLICATES = 10_000
 BOOTSTRAP_SEED = 20260827
@@ -73,8 +73,10 @@ def condition_parts(condition_id: str, rubric_policy: str) -> tuple[str, str]:
 
 
 def load_rows() -> list[dict[str, object]]:
-    summary = json.loads(SUMMARY_PATH.read_text(encoding="utf-8"))
-    if summary.get("experiment_id") != EXPERIMENT_ID:
+    experiment = load_experiment(EXPERIMENT_PATH)
+    summary_path = Path(str(experiment.dag["detect"]["output_dir"])) / "summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if summary.get("experiment_id") != experiment.experiment_id:
         raise RuntimeError("gap summary has the wrong experiment ID")
     if summary.get("status") != "completed":
         raise RuntimeError("gap summary is not complete")
@@ -92,26 +94,26 @@ def load_rows() -> list[dict[str, object]]:
         )
         component_changes = assignment["component_changes"]
         rubric_changes = assignment["rubric_diagnostic_changes"]
-        boundaries = assignment["boundaries"]
+        artifacts = assignment["artifacts"]
         if not isinstance(component_changes, dict) or not isinstance(
             rubric_changes, dict
-        ) or not isinstance(boundaries, dict):
+        ) or not isinstance(artifacts, dict):
             raise RuntimeError("gap summary contains invalid change records")
-        initial = boundaries.get("initial")
-        final = boundaries.get("final")
+        initial = artifacts.get("initial")
+        final = artifacts.get("final")
         if not isinstance(initial, dict) or not isinstance(final, dict):
-            raise RuntimeError("gap summary contains invalid boundaries")
+            raise RuntimeError("gap summary contains invalid artifacts")
         initial_components = initial.get("components")
         final_components = final.get("components")
         if not isinstance(initial_components, dict) or not isinstance(
             final_components, dict
         ):
-            raise RuntimeError("gap summary contains invalid boundary components")
+            raise RuntimeError("gap summary contains invalid artifact components")
         initial_gap = float(initial_components["verifier_exploitation"])
         final_gap = float(final_components["verifier_exploitation"])
         gap_change = float(component_changes["verifier_exploitation"])
         if not np.isclose(final_gap - initial_gap, gap_change, atol=1e-9, rtol=0):
-            raise RuntimeError("weak-to-strong gap change disagrees with boundaries")
+            raise RuntimeError("weak-to-strong gap change disagrees with artifacts")
         row: dict[str, object] = {
             "assignment_id": str(assignment["assignment_id"]),
             "task_id": str(assignment["task_id"]),
@@ -121,11 +123,14 @@ def load_rows() -> list[dict[str, object]]:
             "weak_to_strong_initial_gap": initial_gap,
             "weak_to_strong_final_gap": final_gap,
             "weak_to_strong_gap_change": gap_change,
-            "active_strong_to_holistic_gap_change": float(
-                component_changes["dynamic_rubric_gap"]
+            "original_to_rubric_free_gap_change": float(
+                component_changes["original_rubric_gap"]
             ),
-            "common_strong_to_holistic_gap_change": float(
-                rubric_changes["selected_to_holistic"]
+            "active_to_original_gap_change": float(
+                rubric_changes["active_to_original"]
+            ),
+            "selected_to_rubric_free_gap_change": float(
+                rubric_changes["selected_rubric_minus_rubric_free_absolute_score"]
             ),
         }
         if not all(np.isfinite(float(row[metric])) for metric in METRICS):
@@ -133,6 +138,20 @@ def load_rows() -> list[dict[str, object]]:
         rows.append(row)
 
     rows.sort(key=lambda row: str(row["assignment_id"]))
+    matched_initial: dict[tuple[str, int], list[float]] = defaultdict(list)
+    for row in rows:
+        matched_initial[(
+            str(row["task_id"]),
+            int(row["replicate"]),
+        )].append(float(row["weak_to_strong_initial_gap"]))
+    if any(
+        len(values) != 12
+        or not np.allclose(values, values[0], atol=1e-9, rtol=0)
+        for values in matched_initial.values()
+    ):
+        raise RuntimeError(
+            "matched initial weak-to-strong gaps are not equal across conditions"
+        )
     return rows
 
 
@@ -329,11 +348,11 @@ def plot_weak_to_strong(aggregates: list[dict[str, object]]) -> None:
     figure.savefig(WEAK_OUTPUT_STEM.with_suffix(".pdf"), facecolor="white")
 
 
-def plot_weak_to_strong_boundary(
+def plot_weak_to_strong_artifact(
     aggregates: list[dict[str, object]],
     *,
     metric: str,
-    boundary_label: str,
+    artifact_label: str,
     output_stem: Path,
 ) -> None:
     figure, axis = plt.subplots(figsize=(10.4, 6.4))
@@ -345,7 +364,7 @@ def plot_weak_to_strong_boundary(
     )
     axis.set_title(
         "BioMNIBench results20: weak-to-strong gap by condition\n"
-        f"{boundary_label} boundary · W − A",
+        f"{artifact_label} artifact · W − A",
         fontsize=14,
         fontweight="bold",
         pad=54,
@@ -374,55 +393,59 @@ def plot_weak_to_strong_boundary(
     figure.savefig(output_stem.with_suffix(".pdf"), facecolor="white")
 
 
-def plot_strong_to_holistic(aggregates: list[dict[str, object]]) -> None:
-    figure, axes = plt.subplots(1, 2, figsize=(15.2, 6.3), sharey=True)
+def plot_strong_to_rubric_free(aggregates: list[dict[str, object]]) -> None:
+    figure, axes = plt.subplots(1, 3, figsize=(19.2, 6.3), sharey=True)
     draw_grouped_bars(
         axes[0],
         aggregates,
-        "active_strong_to_holistic_gap_change",
-        ylabel="Change in strong − holistic gap (points)",
-        title="Active terminal rubric: Δ(A − Q)",
+        "original_to_rubric_free_gap_change",
+        ylabel="Change in strong − rubric-free gap (points)",
+        title="Original common rubric: Δ(A − Q)",
     )
     draw_grouped_bars(
         axes[1],
         aggregates,
-        "common_strong_to_holistic_gap_change",
+        "active_to_original_gap_change",
         ylabel="",
-        title="Common selected rubric: Δ(S − Q)",
+        title="Active-rubric drift: Δ(B − A)",
+    )
+    draw_grouped_bars(
+        axes[2],
+        aggregates,
+        "selected_to_rubric_free_gap_change",
+        ylabel="",
+        title="Selected common rubric: Δ(S − Q)",
     )
     handles, labels = axes[0].get_legend_handles_labels()
     figure.legend(
         handles,
         labels,
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.88),
+        bbox_to_anchor=(0.5, 0.89),
         ncol=4,
         frameon=False,
         title="Feedback type",
     )
     figure.suptitle(
-        "BioMNIBench results20: strong-to-holistic gap change by condition",
+        "BioMNIBench results20: strong-to-rubric-free gap change by condition",
         fontsize=15,
         fontweight="bold",
         y=0.98,
     )
     figure.text(
         0.5,
-        0.014,
+        0.015,
         "Bars show 60-assignment means. Whiskers are task-clustered 95% "
         "bootstrap intervals from 20 tasks and 3 replicates.\n"
-        "Positive values mean the rubric-based strong score gained more than "
-        "the rubric-free score. Active rubrics can differ by condition; "
-        "the selected rubric is the common-ruler diagnostic.",
+        "The original and selected rubrics are common rulers. The active panel "
+        "shows ruler drift and does not measure absolute artifact quality.",
         ha="center",
         va="bottom",
         fontsize=8.8,
         color="#444444",
     )
-    figure.subplots_adjust(top=0.75, bottom=0.20, left=0.07, right=0.99, wspace=0.12)
-    figure.savefig(
-        STRONG_OUTPUT_STEM.with_suffix(".png"), dpi=240, facecolor="white"
-    )
+    figure.subplots_adjust(top=0.76, bottom=0.22, left=0.07, right=0.99, wspace=0.16)
+    figure.savefig(STRONG_OUTPUT_STEM.with_suffix(".png"), dpi=240, facecolor="white")
     figure.savefig(STRONG_OUTPUT_STEM.with_suffix(".pdf"), facecolor="white")
 
 
@@ -430,19 +453,19 @@ def main() -> None:
     aggregates = aggregate(load_rows())
     write_csv(aggregates)
     plot_weak_to_strong(aggregates)
-    plot_weak_to_strong_boundary(
+    plot_weak_to_strong_artifact(
         aggregates,
         metric="weak_to_strong_initial_gap",
-        boundary_label="Initial",
+        artifact_label="Initial",
         output_stem=WEAK_INITIAL_OUTPUT_STEM,
     )
-    plot_weak_to_strong_boundary(
+    plot_weak_to_strong_artifact(
         aggregates,
         metric="weak_to_strong_final_gap",
-        boundary_label="Final",
+        artifact_label="Final",
         output_stem=WEAK_FINAL_OUTPUT_STEM,
     )
-    plot_strong_to_holistic(aggregates)
+    plot_strong_to_rubric_free(aggregates)
 
 
 if __name__ == "__main__":

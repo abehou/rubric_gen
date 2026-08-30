@@ -74,9 +74,9 @@ def _study(
         source=(tmp_path / "study").resolve(),
         experiment_id="test-study",
         targets=targets,
-        mechanistic_max_calls=max_calls,
-        mechanistic_max_request_bytes=1_000_000_000,
-        mechanistic_max_output_tokens=1_000_000_000,
+        rubric_score_max_calls=max_calls,
+        rubric_score_max_request_bytes=1_000_000_000,
+        rubric_score_max_output_tokens=1_000_000_000,
     )
 
 
@@ -133,16 +133,16 @@ def _completed_record(
         "scoring_identity": judge.scoring_identity(),
         "review_input_sha256": sha256_text(review_text),
         "answer_input_sha256": sha256_text(answer_text),
-        "score_validation": f"sealed/{job.model}/{job.boundary}/score.json",
+        "score_validation": f"sealed/{job.model}/{job.artifact}/score.json",
         "score_validation_sha256": "1" * 64,
-        "evaluation": f"sealed/{job.model}/{job.boundary}/evaluation.json",
+        "evaluation": f"sealed/{job.model}/{job.artifact}/evaluation.json",
         "evaluation_sha256": "2" * 64,
-        "usage": f"sealed/{job.model}/{job.boundary}/usage.json",
+        "usage": f"sealed/{job.model}/{job.artifact}/usage.json",
         "usage_sha256": "3" * 64,
     }
 
 
-def test_original_rubric_ensemble_scores_boundaries_and_resumes(
+def test_original_rubric_ensemble_scores_artifacts_and_resumes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -195,9 +195,9 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         _config: OriginalRubricEnsembleConfig,
         job: OriginalRubricJob,
     ) -> dict[str, object]:
-        observed.append((job.model, job.boundary))
+        observed.append((job.model, job.artifact))
         score = 30 + model_offsets[job.model]
-        if job.boundary == "final":
+        if job.artifact == "final":
             score += 40
         return _completed_record(job, score)
 
@@ -209,9 +209,9 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
     )
     assert runner.run() == 0
     assert sorted(observed) == sorted(
-        (model, boundary)
+        (model, artifact)
         for model in PRIMARY_RH_MODELS
-        for boundary in ("initial", "final")
+        for artifact in ("initial", "final")
     )
     summary = json.loads((output / "summary.json").read_text())
     assert summary["status"] == "completed"
@@ -251,9 +251,9 @@ def test_original_rubric_ensemble_scores_boundaries_and_resumes(
         _config: OriginalRubricEnsembleConfig,
         job: OriginalRubricJob,
     ) -> dict[str, object]:
-        validated.append((job.model, job.boundary))
+        validated.append((job.model, job.artifact))
         score = 30 + model_offsets[job.model]
-        if job.boundary == "final":
+        if job.artifact == "final":
             score += 40
         return _completed_record(job, score)
 
@@ -383,9 +383,9 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
         benchmark = SubmissionBenchmarkId.BIOMNIBENCH_DA
         assignments = (assignment,)
         outcome_audit = {
-            "mechanistic_max_calls": 100,
-            "mechanistic_max_request_bytes": 1_000_000,
-            "mechanistic_max_output_tokens": 1_000_000,
+            "rubric_score_max_calls": 100,
+            "rubric_score_max_request_bytes": 1_000_000,
+            "rubric_score_max_output_tokens": 1_000_000,
         }
 
     monkeypatch.setattr(
@@ -456,7 +456,7 @@ def test_original_rubric_judge_reuses_identical_semantic_requests(
         job: OriginalRubricJob,
     ) -> dict[str, object]:
         observed.append(job.key)
-        score = 70 if job.boundary == "final" else 30
+        score = 70 if job.artifact == "final" else 30
         return _completed_record(job, score)
 
     runner = OriginalRubricEnsembleRunner(
@@ -496,7 +496,7 @@ def test_original_rubric_judge_reuses_identical_semantic_requests(
         job: OriginalRubricJob,
     ) -> dict[str, object]:
         validated.append(job.key)
-        score = 70 if job.boundary == "final" else 30
+        score = 70 if job.artifact == "final" else 30
         return _completed_record(job, score)
 
     resumed = OriginalRubricEnsembleRunner(

@@ -160,6 +160,8 @@ def _judge(args: argparse.Namespace) -> int:
 
 def _detect(args: argparse.Namespace) -> int:
     if _experiment_kind(args.experiment) == HARVEY_EXPERIMENT_KIND:
+        if args.study_dir is not None:
+            raise ValueError("Harvey detect does not support --study-dir")
         if args.max_concurrency < 1:
             raise ValueError("--max-concurrency must be positive")
         if args.vllm:
@@ -233,6 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     detect = subparsers.add_parser("detect", help="Detect reward hacking.")
     detect.add_argument("--experiment", required=True)
+    detect.add_argument("--study-dir")
     detect.add_argument("--max-concurrency", type=int, default=3)
     detect.add_argument("--resume", action="store_true")
     add_vllm_argument(detect)

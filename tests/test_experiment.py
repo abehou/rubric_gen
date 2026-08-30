@@ -106,14 +106,14 @@ def _payload(root: Path) -> dict[str, object]:
             "primary_rule": "any_detect",
             "loss_weights": {
                 "verifier_exploitation": 1,
-                "dynamic_rubric_gap": 1,
+                "original_rubric_gap": 1,
             },
-            "mechanistic_max_calls": 1_024,
-            "mechanistic_max_request_bytes": 268_435_456,
-            "mechanistic_max_output_tokens": 4_194_304,
-            "holistic_max_calls": 96,
-            "holistic_max_request_bytes": 134_217_728,
-            "holistic_max_output_tokens": 393_216,
+            "rubric_score_max_calls": 1_024,
+            "rubric_score_max_request_bytes": 268_435_456,
+            "rubric_score_max_output_tokens": 4_194_304,
+            "rubric_free_evaluation_max_calls": 96,
+            "rubric_free_evaluation_max_request_bytes": 134_217_728,
+            "rubric_free_evaluation_max_output_tokens": 393_216,
         },
         "dag": {
             "seed": {"depends_on": [], "output_dir": "runs/seeds"},
@@ -257,7 +257,7 @@ def test_experiment_requires_exact_reward_hacking_loss_weights(
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    payload["outcome_audit"]["loss_weights"].pop("dynamic_rubric_gap")
+    payload["outcome_audit"]["loss_weights"].pop("original_rubric_gap")
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
@@ -284,12 +284,12 @@ def test_experiment_rejects_obsolete_component_weights(
 @pytest.mark.parametrize(
     "missing",
     [
-        "mechanistic_max_calls",
-        "mechanistic_max_request_bytes",
-        "mechanistic_max_output_tokens",
-        "holistic_max_calls",
-        "holistic_max_request_bytes",
-        "holistic_max_output_tokens",
+        "rubric_score_max_calls",
+        "rubric_score_max_request_bytes",
+        "rubric_score_max_output_tokens",
+        "rubric_free_evaluation_max_calls",
+        "rubric_free_evaluation_max_request_bytes",
+        "rubric_free_evaluation_max_output_tokens",
     ],
 )
 def test_experiment_requires_each_predispatch_stage_cap(
@@ -315,7 +315,7 @@ def test_experiment_requires_positive_integer_stage_caps(
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")
     payload = _payload(tmp_path)
-    payload["outcome_audit"]["mechanistic_max_calls"] = invalid
+    payload["outcome_audit"]["rubric_score_max_calls"] = invalid
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
@@ -1001,7 +1001,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         calls.append("direct")
         return 1
 
-    class MechanisticRunner:
+    class RubricScoreRunnerStub:
         def __init__(
             self,
             config: object,
@@ -1011,13 +1011,13 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
             assert loaded_targets is targets
 
         def preflight(self) -> None:
-            calls.append("mechanistic-preflight")
+            calls.append("rubric_score-preflight")
 
         def run(self) -> int:
-            calls.append("mechanistic")
+            calls.append("rubric_score")
             return 0
 
-    class HolisticRunner:
+    class RubricFreeRunnerStub:
         def __init__(
             self,
             config: object,
@@ -1027,10 +1027,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
             assert loaded_targets is targets
 
         def preflight(self) -> None:
-            calls.append("holistic-preflight")
+            calls.append("rubric_free_evaluation-preflight")
 
         def run(self) -> int:
-            calls.append("holistic")
+            calls.append("rubric_free_evaluation")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -1042,13 +1042,13 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     monkeypatch.setattr(direct_audit_module, "run_direct_audit", direct)
     monkeypatch.setattr(
         outcome_panel_module,
-        "MechanisticEvaluationRunner",
-        MechanisticRunner,
+        "RubricScoreRunner",
+        RubricScoreRunnerStub,
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "HolisticPairwiseRunner",
-        HolisticRunner,
+        "RubricFreeEvaluationRunner",
+        RubricFreeRunnerStub,
     )
     monkeypatch.setattr(
         report_module,
@@ -1066,11 +1066,11 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     assert status == 1
     assert calls == [
         "target-loading",
-        "mechanistic-preflight",
-        "holistic-preflight",
+        "rubric_score-preflight",
+        "rubric_free_evaluation-preflight",
         "direct",
-        "mechanistic",
-        "holistic",
+        "rubric_score",
+        "rubric_free_evaluation",
         "combined",
     ]
     assert len(direct_configs) == 1
@@ -1081,7 +1081,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     )
 
 
-def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
+def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1100,7 +1100,7 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     )
     calls: list[str] = []
 
-    class MechanisticRunner:
+    class RubricScoreRunnerStub:
         def __init__(
             self,
             _config: object,
@@ -1109,13 +1109,13 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
             pass
 
         def preflight(self) -> None:
-            calls.append("mechanistic-preflight")
+            calls.append("rubric_score-preflight")
 
         def run(self) -> int:
-            calls.append("mechanistic")
+            calls.append("rubric_score")
             raise RuntimeError("strong judge unavailable")
 
-    class HolisticRunner:
+    class RubricFreeRunnerStub:
         def __init__(
             self,
             _config: object,
@@ -1124,10 +1124,10 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
             pass
 
         def preflight(self) -> None:
-            calls.append("holistic-preflight")
+            calls.append("rubric_free_evaluation-preflight")
 
         def run(self) -> int:
-            calls.append("holistic")
+            calls.append("rubric_free_evaluation")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -1143,13 +1143,13 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "MechanisticEvaluationRunner",
-        MechanisticRunner,
+        "RubricScoreRunner",
+        RubricScoreRunnerStub,
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "HolisticPairwiseRunner",
-        HolisticRunner,
+        "RubricFreeEvaluationRunner",
+        RubricFreeRunnerStub,
     )
     monkeypatch.setattr(
         report_module,
@@ -1157,7 +1157,7 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
         lambda _path: calls.append("combined"),
     )
 
-    with pytest.raises(RuntimeError, match="mechanistic"):
+    with pytest.raises(RuntimeError, match="rubric_score"):
         commands_module.run_detect(argparse.Namespace(
             experiment="experiment.yaml",
             max_concurrency=3,
@@ -1166,10 +1166,10 @@ def test_detect_runs_holistic_stage_after_mechanistic_stage_exception(
         ))
 
     assert calls == [
-        "mechanistic-preflight",
-        "holistic-preflight",
-        "mechanistic",
-        "holistic",
+        "rubric_score-preflight",
+        "rubric_free_evaluation-preflight",
+        "rubric_score",
+        "rubric_free_evaluation",
     ]
 
 
@@ -1192,7 +1192,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     )
     calls: list[str] = []
 
-    class MechanisticRunner:
+    class RubricScoreRunnerStub:
         def __init__(
             self,
             _config: object,
@@ -1201,13 +1201,13 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             pass
 
         def preflight(self) -> None:
-            calls.append("mechanistic-preflight")
+            calls.append("rubric_score-preflight")
 
         def run(self) -> int:
-            calls.append("mechanistic-provider")
+            calls.append("rubric_score-provider")
             return 0
 
-    class HolisticRunner:
+    class RubricFreeRunnerStub:
         def __init__(
             self,
             _config: object,
@@ -1216,11 +1216,11 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             pass
 
         def preflight(self) -> None:
-            calls.append("holistic-preflight")
-            raise RuntimeError("holistic calls exceeds its hard cap")
+            calls.append("rubric_free_evaluation-preflight")
+            raise RuntimeError("rubric_free_evaluation calls exceeds its hard cap")
 
         def run(self) -> int:
-            calls.append("holistic-provider")
+            calls.append("rubric_free_evaluation-provider")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -1236,13 +1236,13 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "MechanisticEvaluationRunner",
-        MechanisticRunner,
+        "RubricScoreRunner",
+        RubricScoreRunnerStub,
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "HolisticPairwiseRunner",
-        HolisticRunner,
+        "RubricFreeEvaluationRunner",
+        RubricFreeRunnerStub,
     )
     monkeypatch.setattr(
         report_module,
@@ -1258,7 +1258,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             vllm=[],
         ))
 
-    assert calls == ["mechanistic-preflight", "holistic-preflight"]
+    assert calls == ["rubric_score-preflight", "rubric_free_evaluation-preflight"]
 
 
 def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> None:
