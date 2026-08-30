@@ -148,11 +148,7 @@ def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
     return RubricProposer(
         benchmark=context.experiment.benchmark,
         model=model,
-        base_url=context.endpoints.get(model),
         semantic_judge_model=str(protocol["rubric_semantic_judge_model"]),
-        semantic_judge_base_url=context.endpoints.get(
-            str(protocol["rubric_semantic_judge_model"])
-        ),
         semantic_judge_max_calls=int(
             protocol["rubric_semantic_judge_max_calls_per_assignment"]
         ),
@@ -162,9 +158,7 @@ def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
         semantic_judge_max_output_tokens=int(
             protocol["rubric_semantic_judge_max_output_tokens_per_call"]
         ),
-        service_tier=(
-            context.agent.service_tier if context.endpoints.get(model) is None else None
-        ),
+        service_tier=context.agent.service_tier,
         max_retries=int(protocol["rubric_proposer_max_retries"]),
     )
 

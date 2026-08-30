@@ -21,7 +21,6 @@ SCORE_INPUT_ATTESTATION_KEYS = {
     "answer_input_sha256",
     "scoring_implementation_sha256",
     "effective_judge_model",
-    "judge_api_base",
     "benchmark",
     "grading_engine",
     "engine_execution",
@@ -111,7 +110,6 @@ class JudgeRunConfig:
     extra_run_dirs: tuple[Path, ...] = ()
     review: str = "trace"
     model: str | None = None
-    base_url: str | None = None
     output_path: Path | None = None
     rubric_name: str | None = None
     rubric_set: Path | None = None

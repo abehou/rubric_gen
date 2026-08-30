@@ -113,10 +113,6 @@ class JudgeExecutor:
         env = os.environ.copy()
         env["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
         requested_model = self.judge_model(env)
-        if self.config.base_url is not None:
-            env["VLLM_BASE_URL"] = self.config.base_url
-        else:
-            env.pop("VLLM_BASE_URL", None)
         # Gemini must use the experiment's canonical credential.
         if requested_model.startswith("gemini"):
             env.pop("GOOGLE_API_KEY", None)
@@ -173,8 +169,6 @@ class JudgeExecutor:
                 "--seed",
                 str(execution["engine_seed"]),
             ]
-            if self.config.base_url is not None:
-                command.extend(("--api-base", self.config.base_url))
             try:
                 proc = subprocess.run(
                     command,
@@ -328,7 +322,6 @@ class JudgeExecutor:
                 metadata["execution"] != execution
                 or spec.requested_model
                 != score_input_attestation["effective_judge_model"]
-                or spec.api_base != score_input_attestation["judge_api_base"]
                 or spec.rubric_bytes != len(rubric.text.encode("utf-8"))
                 or spec.criterion_count
                 != len(parse_rubric_levels_strict(rubric.text))
@@ -460,7 +453,6 @@ class JudgeExecutor:
             review_sha256=review_sha256,
             answer_sha256=answer_sha256,
             requested_model=effective_judge_model,
-            api_base=self.config.base_url,
             benchmark=self.config.benchmark.value,
             assignment_identity=attempt.target.task,
             grading_engine=engine.value,
@@ -473,7 +465,6 @@ class JudgeExecutor:
                 review_text=review_text,
                 answer_text=answer_text,
                 requested_model=effective_judge_model,
-                api_base=self.config.base_url,
                 seed=seed,
             ).as_json()
         except (FullRubricJudgeError, ValueError) as exc:
@@ -485,7 +476,6 @@ class JudgeExecutor:
                 self._scoring_implementation_sha256()
             ),
             "effective_judge_model": effective_judge_model,
-            "judge_api_base": self.config.base_url,
             "benchmark": self.config.benchmark.value,
             "grading_engine": engine.value,
             "engine_execution": engine_execution,

@@ -6,13 +6,12 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 from rubric_gen.runtime.progress import TerminalProgress
-from rubric_gen.runtime.vllm import normalize_vllm_base_url
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
 from rubric_gen.submission_revision.judge import (
@@ -200,11 +199,6 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
 
     seed_run_dir = Path(str(study["seed_run_dir"]))
     paraphrase_run_dir = Path(str(study["paraphrase_run_dir"]))
-    sealed_endpoints = _sealed_study_vllm_endpoints(
-        source,
-        records,
-        experiment.assignments,
-    )
     targets: list[OriginalRubricTarget] = []
     with TerminalProgress(
         total=len(experiment.assignments),
@@ -220,7 +214,6 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
                     experiment,
                     seed_run_dir,
                     paraphrase_run_dir,
-                    vllm_endpoints=sealed_endpoints,
                 )
             )
             progress.update()
@@ -240,134 +233,6 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
     )
 
 
-def _sealed_study_vllm_endpoints(
-    source: Path,
-    records: dict[str, dict[str, object]],
-    assignments: Iterable[dict[str, object]],
-) -> dict[str, str]:
-    """Reconstruct one consistent historical endpoint map from sealed manifests."""
-
-    routes: dict[str, str | None] = {}
-    for assignment in assignments:
-        assignment_id = str(assignment["assignment_id"])
-        experiment_dir = resolve_study_experiment(
-            source,
-            records[assignment_id],
-            assignment,
-        )
-        manifest = read_json_object(
-            experiment_dir / "manifest.json",
-            "revision manifest",
-        )
-        _bind_manifest_endpoints(routes, manifest)
-    return {
-        model: base_url
-        for model, base_url in routes.items()
-        if base_url is not None
-    }
-
-
-def _bind_manifest_endpoints(
-    routes: dict[str, str | None],
-    manifest: dict[str, object],
-) -> None:
-    if not {"provider", "model", "solver_base_url"} <= set(manifest):
-        raise RuntimeError("revision manifest lacks solver endpoint identity")
-    provider = manifest["provider"]
-    model = manifest["model"]
-    base_url = manifest["solver_base_url"]
-    if type(provider) is not str or not provider or type(model) is not str or not model:
-        raise RuntimeError("revision manifest has an invalid solver identity")
-    if provider == "vllm":
-        _bind_endpoint_route(routes, model, base_url, context="solver")
-    elif base_url is not None:
-        raise RuntimeError("non-vLLM solver manifest has an unexpected base URL")
-    _bind_judge_endpoints(routes, manifest)
-    _bind_feedback_simulator_endpoint(routes, manifest.get("feedback_simulator"))
-
-
-def _bind_judge_endpoints(
-    routes: dict[str, str | None],
-    manifest: dict[str, object],
-) -> None:
-    for model_key, base_key, label in (
-        ("judge_model", "judge_base_url", "submission judge"),
-        ("rubric_proposer_model", "rubric_proposer_base_url", "rubric proposer"),
-        (
-            "rubric_semantic_judge_model",
-            "rubric_semantic_judge_base_url",
-            "rubric semantic judge",
-        ),
-    ):
-        if model_key not in manifest or base_key not in manifest:
-            raise RuntimeError(f"revision manifest lacks {label} endpoint identity")
-        _bind_endpoint_route(
-            routes,
-            manifest[model_key],
-            manifest[base_key],
-            context=label,
-        )
-
-
-def _bind_feedback_simulator_endpoint(
-    routes: dict[str, str | None],
-    feedback_simulator: object,
-) -> None:
-    if feedback_simulator is None:
-        return
-    if not isinstance(feedback_simulator, dict):
-        raise RuntimeError("revision manifest has invalid feedback simulator")
-    _bind_endpoint_route(
-        routes,
-        feedback_simulator.get("model"),
-        feedback_simulator.get("base_url"),
-        context="feedback simulator",
-        identity_trailing_slash=True,
-    )
-
-
-def _bind_endpoint_route(
-    routes: dict[str, str | None],
-    model: object,
-    base_url: object,
-    *,
-    context: str,
-    identity_trailing_slash: bool = False,
-) -> None:
-    if type(model) is not str or not model.strip():
-        raise RuntimeError(f"{context} has an invalid model")
-    route = _canonical_endpoint_route(
-        base_url,
-        context=context,
-        identity_trailing_slash=identity_trailing_slash,
-    )
-    if model in routes and routes[model] != route:
-        raise RuntimeError(
-            f"sealed study assigns inconsistent endpoints to model {model}"
-        )
-    routes[model] = route
-
-
-def _canonical_endpoint_route(
-    base_url: object,
-    *,
-    context: str,
-    identity_trailing_slash: bool,
-) -> str | None:
-    if base_url is None:
-        return None
-    if type(base_url) is not str or not base_url.strip():
-        raise RuntimeError(f"{context} has an invalid base URL")
-    try:
-        normalized = normalize_vllm_base_url(base_url)
-    except ValueError as exc:
-        raise RuntimeError(f"{context} has an invalid base URL") from exc
-    expected = normalized + "/" if identity_trailing_slash else normalized
-    if expected != base_url:
-        raise RuntimeError(f"{context} base URL is not canonical")
-    return normalized
-
-
 def _load_completed_target(
     source: Path,
     records: dict[str, dict[str, object]],
@@ -375,8 +240,6 @@ def _load_completed_target(
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
-    *,
-    vllm_endpoints: dict[str, str],
 ) -> OriginalRubricTarget:
     assignment_id = str(assignment["assignment_id"])
     experiment_dir = resolve_study_experiment(
@@ -390,7 +253,6 @@ def _load_completed_target(
         experiment,
         seed_run_dir,
         paraphrase_run_dir,
-        vllm_endpoints=vllm_endpoints,
     )
     manifest = read_json_object(
         experiment_dir / "manifest.json",
@@ -514,7 +376,6 @@ def validated_scoring_identity(
     identity = judge.scoring_identity()
     expected = {
         "effective_judge_model": job.model,
-        "judge_api_base": None,
         "benchmark": job.target.benchmark.value,
         "grading_engine": grading_engine_for_benchmark(
             job.target.benchmark

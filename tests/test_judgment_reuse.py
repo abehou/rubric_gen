@@ -25,7 +25,6 @@ def _identity(rubric_sha256: str) -> dict[str, object]:
     value = {
         "scoring_implementation_sha256": "1" * 64,
         "effective_judge_model": "judge-model",
-        "judge_api_base": None,
         "benchmark": "paperbench-code-dev",
         "grading_engine": "paperbench-structured",
         "review_mode": "workspace",

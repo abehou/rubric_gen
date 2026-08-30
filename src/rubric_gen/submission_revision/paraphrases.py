@@ -8,7 +8,7 @@ import os
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -19,7 +19,6 @@ from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
     generate_structured,
-    generate_structured_vllm,
 )
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -45,7 +44,6 @@ class ParaphraseRunConfig:
     experiment: Experiment
     output_dir: Path
     max_concurrency: int
-    vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
@@ -547,9 +545,6 @@ class ParaphraseRunner:
     def _generate(self, request: StructuredRequest) -> GenerationResult:
         if self._generation_operation is not None:
             return self._generation_operation(self.model, request)
-        endpoint = self.config.vllm_endpoints.get(self.model)
-        if endpoint is not None:
-            return generate_structured_vllm(self.model, request, endpoint)
         return generate_structured(self.model, request)
 
     def _archive_failure(

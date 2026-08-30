@@ -115,9 +115,7 @@ class RubricProposer:
         *,
         benchmark: SubmissionBenchmarkId,
         model: str,
-        base_url: str | None,
         semantic_judge_model: str,
-        semantic_judge_base_url: str | None,
         semantic_judge_max_calls: int,
         semantic_judge_max_request_bytes: int,
         semantic_judge_max_output_tokens: int,
@@ -149,14 +147,12 @@ class RubricProposer:
         self.max_retries = max_retries
         self.proposer_contract = ProviderContract(
             model=model,
-            base_url=base_url,
             max_output_tokens=PROPOSER_MAX_OUTPUT_TOKENS,
             max_request_bytes=PROPOSER_MAX_REQUEST_BYTES,
             service_tier=service_tier,
         )
         self.semantic_reviewer_contract = ProviderContract(
             model=semantic_judge_model,
-            base_url=semantic_judge_base_url,
             max_output_tokens=semantic_judge_max_output_tokens,
             max_request_bytes=semantic_judge_max_request_bytes,
             service_tier=service_tier,

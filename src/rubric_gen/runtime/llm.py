@@ -131,14 +131,6 @@ class StructuredRequest:
             }]
         return [{"role": "user", "content": self.evidence}]
 
-    def vllm_messages(self) -> list[dict[str, str]]:
-        if self.prompt_layout == "cached_user_prefix":
-            return [{"role": "user", "content": self.flat_prompt()}]
-        return [
-            {"role": "system", "content": self.instructions},
-            {"role": "user", "content": self.evidence},
-        ]
-
     def prompt_cache_key(self) -> str:
         return "rubric-gen-" + sha256_text(
             self.prompt_layout + "\0" + self.instructions
@@ -195,20 +187,8 @@ def openai_prompt_cache_arguments(
 def request_parameters_for_model(
     model: str,
     *,
-    base_url: str | None = None,
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> dict[str, object]:
-    if base_url is not None:
-        return {
-            "provider": "vllm",
-            "requested_model": model,
-            "base_url": base_url.rstrip("/") + "/",
-            "max_tokens": max_output_tokens,
-            "temperature": 0,
-            "client_timeout_seconds": HOSTED_REQUEST_TIMEOUT_SECONDS,
-            "client_max_retries": 0,
-            "response_format": "json_schema",
-        }
     if model.startswith("gemini"):
         return {
             "provider": "google",
@@ -518,56 +498,6 @@ def generate_structured(
             "sdk_version": _package_version("openai"),
             "created_at": metadata_value(getattr(response, "created_at", None)),
             "service_tier": metadata_value(getattr(response, "service_tier", None)),
-            "usage": metadata_value(getattr(response, "usage", None)),
-        },
-    )
-
-
-def generate_structured_vllm(
-    model: str, request_value: StructuredRequest, base_url: str
-) -> GenerationResult:
-    from openai import OpenAI
-
-    response = OpenAI(
-        base_url=base_url.rstrip("/") + "/",
-        api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
-        timeout=HOSTED_REQUEST_TIMEOUT_SECONDS,
-        max_retries=0,
-    ).chat.completions.create(
-        model=model,
-        messages=request_value.vllm_messages(),
-        max_tokens=request_value.max_output_tokens,
-        temperature=0,
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": request_value.schema_name,
-                "strict": True,
-                "schema": request_value.schema,
-            },
-        },
-    )
-    content = response.choices[0].message.content
-    if not content:
-        raise RuntimeError("vLLM returned an empty response")
-    effective_model, response_id = _response_identity(response, model)
-    return GenerationResult(
-        text=content,
-        provider="vllm",
-        requested_model=model,
-        effective_model=effective_model,
-        response_id=response_id,
-        request_parameters=request_parameters_for_model(
-            model,
-            base_url=base_url,
-            max_output_tokens=request_value.max_output_tokens,
-        ),
-        provider_metadata={
-            "openai_client_version": _package_version("openai"),
-            "created": metadata_value(getattr(response, "created", None)),
-            "system_fingerprint": metadata_value(
-                getattr(response, "system_fingerprint", None)
-            ),
             "usage": metadata_value(getattr(response, "usage", None)),
         },
     )

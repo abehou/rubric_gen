@@ -39,8 +39,6 @@ from rubric_gen.submission_revision.rh_protocol import (
     _finite_score,
     _rubric_score_judgment_identity,
     _rubric_score_plan_entry,
-    _model_route,
-    _normalized_api_base,
     _rh_implementation_sha256,
     _stage_caps,
     _submission_content_sha256,
@@ -231,13 +229,9 @@ class RubricScoreStage:
         for key in sorted(grouped.paths):
             rubric_path = grouped.paths[key]
             model = key[1]
-            api_base = _normalized_api_base(
-                self.config.vllm_endpoints.get(model)
-            )
             judge = self._new_judge(
                 target=target,
                 model=model,
-                api_base=api_base,
                 rubric_path=rubric_path,
                 artifact_key="predispatch-identity",
             )
@@ -256,7 +250,6 @@ class RubricScoreStage:
             jobs.append(RubricScoreJob(
                 target=target,
                 model=model,
-                api_base=api_base,
                 artifact=artifact,
                 rubric_path=rubric_path,
                 roles=tuple(sorted(
@@ -437,7 +430,6 @@ class RubricScoreStage:
         return self._new_judge(
             target=job.target,
             model=job.model,
-            api_base=job.api_base,
             rubric_path=job.rubric_path,
             artifact_key=job.key,
         )
@@ -447,7 +439,6 @@ class RubricScoreStage:
         *,
         target: EvaluationTarget,
         model: str,
-        api_base: str | None,
         rubric_path: Path,
         artifact_key: str,
     ) -> RhAuditRubricJudge:
@@ -457,7 +448,6 @@ class RubricScoreStage:
             benchmark=target.benchmark,
             review=target.review,
             judge_model=model,
-            base_url=api_base,
             rubric_name=None,
             rubric_set=None,
             rubric_path=rubric_path,
@@ -472,7 +462,6 @@ def _rubric_score_job_identity(job: RubricScoreJob) -> dict[str, object]:
         "replicate": job.target.replicate,
         "condition_id": job.target.condition_id,
         "model": job.model,
-        "model_route": _model_route(job.api_base),
         "artifact": job.artifact,
         "submission_id": job.submission.name,
         "submission_content_sha256": _submission_content_sha256(

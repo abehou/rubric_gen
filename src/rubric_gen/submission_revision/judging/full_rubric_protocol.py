@@ -53,17 +53,11 @@ class FullRubricJudgeError(ValueError):
 
 def provider_and_model(
     requested_model: str,
-    *,
-    api_base: str | None,
 ) -> tuple[str, str]:
     """Map one repository model name to an explicit provider route."""
 
     if type(requested_model) is not str or not requested_model.strip():
         raise ValueError("judge model must be a non-empty string")
-    if api_base is not None:
-        if type(api_base) is not str or not api_base.strip():
-            raise ValueError("judge API base must be a non-empty URL")
-        return "vllm", f"openai/{requested_model}"
     if "/" in requested_model:
         raise ValueError(
             "judge model must use the repository's unqualified model-name form"
@@ -78,7 +72,7 @@ def provider_and_model(
         return "openai", f"openai/{requested_model}"
     raise ValueError(
         f"cannot infer judge provider from model {requested_model!r}; expected a "
-        "Gemini, Claude, GPT, or o-series model, or an explicit API base"
+        "Gemini, Claude, GPT, or o-series model"
     )
 
 
@@ -88,7 +82,6 @@ def deterministic_grading_seed(
     review_sha256: str,
     answer_sha256: str,
     requested_model: str,
-    api_base: str | None,
     benchmark: str,
     assignment_identity: str,
     grading_engine: str,
@@ -103,7 +96,6 @@ def deterministic_grading_seed(
             "review_sha256": review_sha256,
             "answer_sha256": answer_sha256,
             "requested_model": requested_model,
-            "api_base": api_base,
             "benchmark": benchmark,
             "assignment_identity": assignment_identity,
             "grading_engine": grading_engine,
@@ -158,7 +150,6 @@ class FullRubricRunSpec:
 
     requested_model: str
     provider: str
-    api_base: str | None
     seed: int
     repeat_seeds: tuple[int, ...]
     criterion_count: int
@@ -177,13 +168,12 @@ class FullRubricRunSpec:
         else:
             reasoning_effort = None
         provider_seeds: list[int | None] = [
-            repeat_seed if self.provider in {"google", "vllm"} else None
+            repeat_seed if self.provider == "google" else None
             for repeat_seed in self.repeat_seeds
         ]
         return {
             "requested_model": self.requested_model,
             "provider": self.provider,
-            "api_base": self.api_base,
             "engine_seed": self.seed,
             "repeat_seeds": list(self.repeat_seeds),
             "provider_seeds": provider_seeds,
@@ -252,13 +242,9 @@ class FullRubricRunSpec:
             or any(type(seed) is not int for seed in repeat_seeds)
         ):
             raise FullRubricJudgeError("FullRubric repeat seeds are invalid")
-        api_base = value.get("api_base")
-        if api_base is not None and type(api_base) is not str:
-            raise FullRubricJudgeError("FullRubric API base is invalid")
         spec = cls(
             requested_model=value["requested_model"],
             provider=value["provider"],
-            api_base=api_base,
             seed=value["engine_seed"],
             repeat_seeds=tuple(repeat_seeds),
             criterion_count=value["criterion_count"],
@@ -273,8 +259,6 @@ class FullRubricRunSpec:
         )
         if not spec.requested_model.strip():
             raise FullRubricJudgeError("FullRubric requested model is empty")
-        if spec.api_base is not None and not spec.api_base.strip():
-            raise FullRubricJudgeError("FullRubric API base is empty")
         if not 0 <= spec.seed < 2**31:
             raise FullRubricJudgeError("FullRubric engine seed is out of range")
         expected_repeat_seeds = tuple(
@@ -310,10 +294,7 @@ class FullRubricRunSpec:
             raise FullRubricJudgeError("FullRubric output token limit changed")
         if spec.as_json() != value:
             raise FullRubricJudgeError("FullRubric execution record is not exact")
-        provider, _model = provider_and_model(
-            spec.requested_model,
-            api_base=spec.api_base,
-        )
+        provider, _model = provider_and_model(spec.requested_model)
         if provider != spec.provider:
             raise FullRubricJudgeError("FullRubric execution provider changed")
         return spec
@@ -517,7 +498,6 @@ def build_full_rubric_run_spec(
     review_text: str,
     answer_text: str,
     requested_model: str,
-    api_base: str | None,
     seed: int,
 ) -> FullRubricRunSpec:
     """Validate all call, input, and output limits before provider dispatch."""
@@ -529,10 +509,7 @@ def build_full_rubric_run_spec(
         review_text=review_text,
         answer_text=answer_text,
     )
-    provider, _litellm_model = provider_and_model(
-        requested_model,
-        api_base=api_base,
-    )
+    provider, _litellm_model = provider_and_model(requested_model)
     if provider == "openai" and (
         requested_model.startswith(("o1", "o3", "o4"))
         or (
@@ -547,7 +524,6 @@ def build_full_rubric_run_spec(
     return FullRubricRunSpec(
         requested_model=requested_model,
         provider=provider,
-        api_base=api_base,
         seed=seed,
         repeat_seeds=tuple(
             _repeat_seed(seed, index)
@@ -818,7 +794,6 @@ def request_parameters(spec: FullRubricRunSpec) -> list[dict[str, object]]:
     assert type(provider_seeds) is list
     return [
         {
-            "api_base": spec.api_base,
             "temperature": 0.0,
             "provider_seed": provider_seeds[index],
             "reasoning_effort": execution["reasoning_effort"],

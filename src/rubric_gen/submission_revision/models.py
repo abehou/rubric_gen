@@ -54,11 +54,8 @@ class SubmissionRevisionConfig:
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_policy: RubricPolicy = RubricPolicy.FIXED
     rubric_proposer_model: str = "gpt-5.6-luna"
-    rubric_proposer_base_url: str | None = None
-    rubric_semantic_judge_base_url: str | None = None
     review: str = "trace"
     judge_model: str | None = None
-    judge_base_url: str | None = None
     max_review_chars: int | None = None
     resume: bool = False
     show_progress: bool = True
@@ -152,7 +149,6 @@ class SubmissionRevisionConfig:
             benchmark=self.benchmark,
             review=self.review,
             judge_model=self.judge_model,
-            base_url=self.judge_base_url,
             rubric_name=None,
             rubric_set=None,
             rubric_path=self.optimizer_rubric_path,
@@ -166,7 +162,6 @@ class SubmissionRevisionConfig:
             benchmark=self.benchmark,
             review=self.review,
             judge_model=self.judge_model,
-            base_url=self.judge_base_url,
             rubric_name=self.master_rubric_name,
             rubric_set=None,
             rubric_path=None,

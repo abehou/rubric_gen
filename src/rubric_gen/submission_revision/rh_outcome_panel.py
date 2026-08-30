@@ -443,10 +443,6 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             "study_dir": str(self.config.study_dir.resolve()),
             "paraphrase_dir": str(self.config.paraphrase_dir.resolve()),
             "models": list(models),
-            "model_routes": {
-                model: rh._model_route(self.config.vllm_endpoints.get(model))
-                for model in sorted({job.model for job in jobs})
-            },
             "implementation_identity": rh._rubric_score_implementation_identity(
                 prepared.unique_jobs
             ),
@@ -457,7 +453,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             "artifacts": list(rh.ARTIFACTS),
             "endpoint_rubric": "original-master-rubric",
             "semantic_deduplication": (
-                "benchmark-task-content-rubric-model-route-engine-"
+                "benchmark-task-content-rubric-model-engine-"
                 "implementation-repeat; original, active, and selected roles "
                 "do not duplicate an exact "
                 "semantic request"
@@ -659,16 +655,12 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
             "study_experiment_id": _study_experiment_id(prepared.targets),
             "study_dir": str(self.config.study_dir.resolve()),
             "models": list(prepared.models),
-            "model_routes": {
-                model: rh._model_route(self.config.vllm_endpoints.get(model))
-                for model in prepared.models
-            },
             "implementation_identity": prepared.implementation_identity,
             "orderings": list(rh.ORDERINGS),
             "absolute_prompt_id": rh.ABSOLUTE_PROMPT_ID,
             "pairwise_prompt_id": rh.PAIRWISE_PROMPT_ID,
             "semantic_deduplication": (
-                "benchmark-task-content-rubric-model-route-engine-"
+                "benchmark-task-content-rubric-model-engine-"
                 "implementation-repeat-or-order"
             ),
             "predispatch_plan": prepared.predispatch_plan,

@@ -111,23 +111,14 @@ class Experiment:
         self,
         *,
         quiet: bool = False,
-        vllm_endpoints: dict[str, str] | None = None,
     ) -> AgentRunConfig:
         value = self.protocol["solver"]
         provider = value["provider"]
         model = value["model"]
         assert isinstance(provider, str) and isinstance(model, str)
-        base_url = None
-        if provider == "vllm":
-            base_url = (vllm_endpoints or {}).get(model)
-            if base_url is None:
-                raise ValueError(
-                    f"solver model {model!r} requires a matching --vllm endpoint"
-                )
         return AgentRunConfig(
             provider=provider,
             model=model,
-            base_url=base_url,
             reasoning_effort=_optional_string(value.get("reasoning_effort")),
             service_tier=_optional_string(value.get("service_tier")),
             executable=_optional_string(value.get("executable")),
@@ -139,8 +130,6 @@ class Experiment:
     def feedback_simulator_config(
         self,
         feedback_policy: FeedbackPolicy | str,
-        *,
-        vllm_endpoints: dict[str, str] | None = None,
     ) -> SimulatedUserConfig | None:
         if FeedbackPolicy(feedback_policy) is not FeedbackPolicy.USER_SIMULATOR:
             return None
@@ -150,7 +139,6 @@ class Experiment:
         assert isinstance(model, str)
         return SimulatedUserConfig(
             model=model,
-            base_url=(vllm_endpoints or {}).get(model),
             max_output_tokens=value["max_output_tokens"],
             max_aspects=value["max_aspects"],
             max_retries=value["max_retries"],

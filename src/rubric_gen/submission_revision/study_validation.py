@@ -21,8 +21,6 @@ def validate_completed_revision(
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
-    *,
-    vllm_endpoints: dict[str, str] | None = None,
 ) -> None:
     context = build_validation_context(
         experiment_dir,
@@ -30,7 +28,6 @@ def validate_completed_revision(
         experiment,
         seed_run_dir,
         paraphrase_run_dir,
-        vllm_endpoints or {},
     )
     validate_manifest(context)
     validate_state(context)

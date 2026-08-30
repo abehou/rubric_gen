@@ -22,7 +22,6 @@ from .rubric_generation_store import (
 SEED_SCORING_CONTRACT_KEYS = (
     "scoring_implementation_sha256",
     "effective_judge_model",
-    "judge_api_base",
     "benchmark",
     "grading_engine",
     "review_mode",
@@ -38,7 +37,6 @@ SEED_SCORING_CONTRACT_KEYS = (
 JUDGE_EXECUTION_CONTRACT_KEYS = (
     "scoring_implementation_sha256",
     "effective_judge_model",
-    "judge_api_base",
     "benchmark",
     "grading_engine",
     "review_mode",

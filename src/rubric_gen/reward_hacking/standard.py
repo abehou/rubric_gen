@@ -90,16 +90,12 @@ class StandardJobRunner:
         config: RewardHackingJudgeConfig,
         run_settings: dict[str, object],
         generate_response: Callable[[str, StructuredRequest], GenerationResult],
-        generate_vllm_response: Callable[
-            [str, StructuredRequest, str], GenerationResult
-        ],
         count_tokens: Callable[[str, StructuredRequest], int],
         load_payload: Callable[[AuditCase], EvidencePrompt],
     ) -> None:
         self.config = config
         self.run_settings = run_settings
         self.generate_response = generate_response
-        self.generate_vllm_response = generate_vllm_response
         self.count_tokens = count_tokens
         self.load_payload = load_payload
         self._lock = threading.Lock()
@@ -231,7 +227,6 @@ class StandardJobRunner:
             "input_tokens": list(job.input_tokens),
             "request_parameters": request_parameters_for_model(
                 job.model,
-                base_url=self.config.base_urls.get(job.model),
                 max_output_tokens=self.config.max_output_tokens,
             ),
             "aggregation": job.aggregation,
@@ -312,19 +307,12 @@ class StandardJobRunner:
         self,
         model: str,
         request: StructuredRequest,
-        *,
-        base_url: str | None,
     ) -> tuple[GenerationResult, JsonObject]:
         expected = request_parameters_for_model(
             model,
-            base_url=base_url,
             max_output_tokens=self.config.max_output_tokens,
         )
-        generation = (
-            self.generate_vllm_response(model, request, base_url)
-            if base_url is not None
-            else self.generate_response(model, request)
-        )
+        generation = self.generate_response(model, request)
         if (
             generation.requested_model != model
             or generation.provider != expected["provider"]
@@ -341,12 +329,10 @@ class StandardJobRunner:
         job: PreparedJob,
         artifacts: _GeneratedArtifacts,
     ) -> tuple[JsonObject, object]:
-        base_url = self.config.base_urls.get(job.model)
         for index, request in enumerate(job.requests, start=1):
             generation, verdict = self._request_once(
                 job.model,
                 request,
-                base_url=base_url,
             )
             artifacts.add_cost(job.model, generation)
             artifacts.raw_responses.append({
@@ -395,7 +381,6 @@ class StandardJobRunner:
         generation, verdict = self._request_once(
             job.model,
             request,
-            base_url=self.config.base_urls.get(job.model),
         )
         artifacts.add_cost(job.model, generation)
         artifacts.raw_responses.append({

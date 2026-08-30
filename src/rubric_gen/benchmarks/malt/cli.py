@@ -26,10 +26,6 @@ from rubric_gen.reward_hacking.metrics import (
 )
 from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.runtime.vllm import (
-    add_vllm_argument,
-    parse_vllm_endpoints,
-)
 from rubric_gen.reward_hacking.protocol import (
     DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
     DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
@@ -253,7 +249,6 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--ensemble", action="store_true",
                       help="Run the three direct strong-model judges.")
     mode.add_argument("--judge", metavar="MODEL", help="Run one direct model judge.")
-    add_vllm_argument(mode)  # type: ignore[arg-type]
     parser.add_argument("--max-concurrency", type=int, default=3)
     parser.add_argument(
         "--max-input-tokens", type=int, default=None,
@@ -345,9 +340,7 @@ def run(args: argparse.Namespace) -> int:
     (benchmark_root / "inventory.json").write_text(
         json.dumps(inventory, indent=2) + "\n", encoding="utf-8"
     )
-    selected_mode = bool(
-        args.ensemble or args.judge or args.vllm
-    )
+    selected_mode = bool(args.ensemble or args.judge)
     detection_root = benchmark_root / target.name
     cases_dir = detection_root / "cases"
     gold_path = detection_root / "private" / "gold.jsonl"
@@ -439,22 +432,12 @@ def run(args: argparse.Namespace) -> int:
         gold_labels=selected_gold,
         negative_top=args.negative_top,
     )
-    base_urls: dict[str, str] = {}
     if args.ensemble:
         mode_name, agent_panel, models = "ensemble", None, PRIMARY_RH_MODELS
-    elif args.judge:
+    else:
         assert args.judge
         safe_model = re.sub(r"[^A-Za-z0-9._-]+", "_", args.judge)
         mode_name, agent_panel, models = f"judge-{safe_model}", None, (args.judge,)
-    else:
-        assert args.vllm
-        base_urls = parse_vllm_endpoints(args.vllm)
-        models = tuple(base_urls)
-        identity = "-".join(
-            re.sub(r"[^A-Za-z0-9._-]+", "_", model) for model in models
-        )
-        mode_name = "vllm-" + identity
-        agent_panel = None
     mode_name += f"--detect-{target.name}--split-{args.split}"
     if args.negative_top is not None:
         mode_name += f"--all-positives--negative-top-{args.negative_top}--seed-{args.seed}"
@@ -490,7 +473,6 @@ def run(args: argparse.Namespace) -> int:
         source=transcript_audit_source(case_dirs, preparation),
         models=models, output_dir=evaluation_root,
         max_concurrency=args.max_concurrency, resume=resume_evaluation,
-        base_urls=base_urls,
         detection=target.name,
         max_input_tokens=args.max_input_tokens,
         max_output_tokens=args.max_output_tokens,

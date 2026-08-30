@@ -84,9 +84,7 @@ def _default_dependencies(
         proposer = RubricProposer(
             benchmark=config.benchmark,
             model=config.rubric_proposer_model,
-            base_url=config.rubric_proposer_base_url,
             semantic_judge_model=config.rubric_semantic_judge_model,
-            semantic_judge_base_url=config.rubric_semantic_judge_base_url,
             semantic_judge_max_calls=config.rubric_semantic_judge_max_calls,
             semantic_judge_max_request_bytes=(
                 config.rubric_semantic_judge_max_request_bytes
@@ -94,11 +92,7 @@ def _default_dependencies(
             semantic_judge_max_output_tokens=(
                 config.rubric_semantic_judge_max_output_tokens
             ),
-            service_tier=(
-                config.agent.service_tier
-                if config.rubric_proposer_base_url is None
-                else None
-            ),
+            service_tier=config.agent.service_tier,
             max_retries=config.rubric_proposer_max_retries,
         )
     return RevisionDependencies(
@@ -127,19 +121,13 @@ def _validate_proposer(
         return
     if proposer is None:
         raise ValueError("an elicitation policy requires a rubric proposer")
-    expected_service_tier = (
-        config.agent.service_tier
-        if config.rubric_proposer_base_url is None
-        else None
-    )
+    expected_service_tier = config.agent.service_tier
     actual = (
         proposer.benchmark,
         proposer.proposer_contract.model,
-        proposer.proposer_contract.base_url,
         proposer.max_retries,
         proposer.proposer_contract.service_tier,
         proposer.semantic_reviewer_contract.model,
-        proposer.semantic_reviewer_contract.base_url,
         proposer.semantic_judge_max_calls,
         proposer.semantic_reviewer_contract.max_request_bytes,
         proposer.semantic_reviewer_contract.max_output_tokens,
@@ -148,11 +136,9 @@ def _validate_proposer(
     expected = (
         config.benchmark,
         config.rubric_proposer_model,
-        config.rubric_proposer_base_url,
         config.rubric_proposer_max_retries,
         expected_service_tier,
         config.rubric_semantic_judge_model,
-        config.rubric_semantic_judge_base_url,
         config.rubric_semantic_judge_max_calls,
         config.rubric_semantic_judge_max_request_bytes,
         config.rubric_semantic_judge_max_output_tokens,

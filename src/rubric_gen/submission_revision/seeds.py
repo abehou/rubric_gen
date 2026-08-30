@@ -14,7 +14,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
@@ -50,7 +50,6 @@ class SeedSetConfig:
     experiment: Experiment
     output_dir: Path
     max_concurrency: int
-    vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
@@ -91,7 +90,6 @@ class SeedSetRunner:
         self.protocol = self.experiment.protocol
         self.agent = self.experiment.agent_config(
             quiet=True,
-            vllm_endpoints=config.vllm_endpoints
         )
 
     def run(self) -> int:
@@ -424,9 +422,6 @@ class SeedSetRunner:
             benchmark=self.experiment.benchmark,
             review=str(self.protocol["review"]),
             judge_model=str(self.protocol["judge_model"]),
-            base_url=self.config.vllm_endpoints.get(
-                str(self.protocol["judge_model"])
-            ),
             rubric_name=str(self.protocol["rubric_name"]),
             rubric_set=None,
             max_review_chars=self.protocol["max_review_chars"],  # type: ignore[arg-type]

@@ -418,7 +418,6 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         output_dir=tmp_path / "out",
         max_concurrency=3,
         resume=True,
-        base_urls={},
         detection=detection,
     )) == 0
     config = observed["config"]
@@ -576,13 +575,13 @@ def test_timestamped_evaluation_root_and_resume_latest(tmp_path: Path) -> None:
     )
 
 
-def test_vllm_dataset_default_is_deferred_until_execution() -> None:
+def test_malt_rejects_vllm_endpoint() -> None:
     parser = build_parser()
-    args = parser.parse_args([
-        "data.jsonl", "--detect", "rh", "--output-dir", "out",
-        "--vllm", "http://node:8000/v1::Qwen/Qwen3.6-27B",
-    ])
-    assert args.vllm == ["http://node:8000/v1::Qwen/Qwen3.6-27B"]
+    with pytest.raises(SystemExit):
+        parser.parse_args([
+            "data.jsonl", "--detect", "rh", "--output-dir", "out",
+            "--vllm", "http://node:8000/v1::Qwen/Qwen3.6-27B",
+        ])
 
 
 def test_prepare_rejects_duplicate_runs(tmp_path: Path) -> None:

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
 from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
 from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
 from rubric_gen.submission_revision.audit_evidence import revision_audit_source
@@ -22,7 +21,6 @@ class DirectAuditConfig:
     output_dir: Path
     max_concurrency: int
     resume: bool
-    base_urls: dict[str, str]
     detection: str = "rh"
 
 
@@ -98,22 +96,16 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
     """Run the study's sealed direct audit protocol."""
 
     study = load_audit_study(config.study_dir, config.experiment)
-    models = tuple(config.base_urls) if config.base_urls else PRIMARY_RH_MODELS
     expected_models = tuple(study.protocol.get("models", ()))
-    if models != expected_models:
-        raise ValueError(
-            "selected detector models differ from experiment.yaml: "
-            f"selected={models!r}, expected={expected_models!r}"
-        )
+    models = expected_models
 
     primary_rule = str(study.protocol["primary_rule"])
     max_input_tokens = int(study.protocol["max_input_tokens"])
     max_output_tokens = int(study.protocol["max_output_tokens"])
     max_event_text_chars = int(study.protocol["max_event_text_chars"])
     max_command_output_chars = int(study.protocol["max_command_output_chars"])
-    mode = "vllm" if config.base_urls else "ensemble"
     identity = (
-        f"{mode}--detect-{config.detection}--experiment-{study.experiment_id}"
+        f"ensemble--detect-{config.detection}--experiment-{study.experiment_id}"
         f"--source-{study.study_experiment_id}"
         f"--mi-{max_input_tokens}"
         f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
@@ -134,7 +126,6 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
     result = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
         source=source,
         models=models,
-        base_urls=config.base_urls,
         output_dir=evaluation_dir,
         max_concurrency=config.max_concurrency,
         resume=resume_evaluation,

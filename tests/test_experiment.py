@@ -224,7 +224,6 @@ def test_run_rejects_an_invalid_master_rubric_before_any_stage(
             max_concurrency=4,
             resume=False,
             restart=False,
-            vllm=[],
         ))
 
     assert calls == []
@@ -767,7 +766,7 @@ def test_seed_stage_uses_one_shared_directory_without_an_owner_id(
 
     monkeypatch.setattr(commands_module, "SeedSetRunner", FakeSeedSetRunner)
     args = argparse.Namespace(
-        experiment=str(path), max_concurrency=2, resume=True, vllm=[]
+        experiment=str(path), max_concurrency=2, resume=True
     )
 
     assert commands_module.run_seed(args) == 0
@@ -836,29 +835,6 @@ def test_yaml_experiment_rejects_broken_dag(tmp_path: Path) -> None:
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     with pytest.raises(ValueError, match="invalid dependencies"):
         load_experiment(path)
-
-
-def test_vllm_solver_requires_and_uses_matching_endpoint(tmp_path: Path) -> None:
-    _task(tmp_path, "da-1-1")
-    _task(tmp_path, "da-2-1")
-    payload = _payload(tmp_path)
-    payload["protocol"]["solver"].update({  # type: ignore[index,union-attr]
-        "provider": "vllm",
-        "model": "Qwen/Qwen3.6-27B",
-        "reasoning_effort": None,
-    })
-    path = tmp_path / "experiment.yaml"
-    path.write_text(yaml.safe_dump(payload, sort_keys=False))
-    experiment = load_experiment(path)
-
-    with pytest.raises(ValueError, match="matching --vllm endpoint"):
-        experiment.agent_config()
-    config = experiment.agent_config(vllm_endpoints={
-        "Qwen/Qwen3.6-27B": "http://qwen27:43117/v1",
-    })
-    assert config.provider == "vllm"
-    assert config.model == "Qwen/Qwen3.6-27B"
-    assert config.base_url == "http://qwen27:43117/v1"
 
 
 def test_experiment_workflow_suppresses_solver_event_streams(
@@ -965,7 +941,6 @@ def test_run_restart_reuses_seeds_and_replaces_downstream_outputs(
         max_concurrency=4,
         resume=False,
         restart=True,
-        vllm=[],
     ))
 
     assert result == 0
@@ -1060,7 +1035,6 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         experiment="experiment.yaml",
         max_concurrency=3,
         resume=True,
-        vllm=["http://weak:8000::weak-model"],
     ))
 
     assert status == 1
@@ -1074,11 +1048,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "combined",
     ]
     assert len(direct_configs) == 1
-    assert direct_configs[0].base_urls == {}
-    assert all(
-        config.vllm_endpoints == {"weak-model": "http://weak:8000/v1"}
-        for config in configs
-    )
+    assert all(not hasattr(config, "vllm_endpoints") for config in configs)
 
 
 def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
@@ -1162,7 +1132,6 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
             experiment="experiment.yaml",
             max_concurrency=3,
             resume=False,
-            vllm=[],
         ))
 
     assert calls == [
@@ -1255,7 +1224,6 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             experiment="experiment.yaml",
             max_concurrency=3,
             resume=False,
-            vllm=[],
         ))
 
     assert calls == ["rubric_score-preflight", "rubric_free_evaluation-preflight"]

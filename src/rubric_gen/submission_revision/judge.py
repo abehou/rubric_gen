@@ -33,7 +33,6 @@ from rubric_gen.submission_revision.rubrics.bundles import resolve_rubric_bundle
 SCORING_IDENTITY_KEYS = (
     "scoring_implementation_sha256",
     "effective_judge_model",
-    "judge_api_base",
     "benchmark",
     "grading_engine",
     "review_mode",
@@ -48,7 +47,6 @@ SCORING_IDENTITY_KEYS = (
 JUDGMENT_IDENTITY_KEYS = (
     "scoring_implementation_sha256",
     "effective_judge_model",
-    "judge_api_base",
     "benchmark",
     "grading_engine",
     "review_mode",
@@ -84,7 +82,6 @@ class SubmissionJudgeConfig:
     rubric_set: Path | None
     max_review_chars: int | None
     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
-    base_url: str | None = None
     rubric_path: Path | None = None
 
     def __post_init__(self) -> None:
@@ -127,7 +124,6 @@ class FrozenRubricJudge:
                 runner.scoring_implementation_sha256()
             ),
             "effective_judge_model": runner.judge_model(os.environ.copy()),
-            "judge_api_base": self.config.base_url,
             "benchmark": self.config.benchmark.value,
             "grading_engine": grading_engine_for_benchmark(
                 self.config.benchmark
@@ -255,7 +251,6 @@ class FrozenRubricJudge:
                 benchmark=self.config.benchmark,
                 review=self.config.review,
                 model=self.config.judge_model,
-                base_url=self.config.base_url,
                 rubric_name=self.config.rubric_name,
                 rubric_set=self.rubric_set,
                 rubric_path=self.config.rubric_path,

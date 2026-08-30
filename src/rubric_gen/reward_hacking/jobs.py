@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.reward_hacking.protocol import (
@@ -27,7 +27,6 @@ class RewardHackingJudgeConfig:
     output_dir: Path
     max_concurrency: int = 3
     resume: bool = False
-    base_urls: dict[str, str] = field(default_factory=dict)
     detection: str = "rh"
     max_input_tokens: int = DEFAULT_RH_MAX_INPUT_TOKENS
     max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS
@@ -43,8 +42,6 @@ class RewardHackingJudgeConfig:
             or any(type(model) is not str or not model.strip() for model in self.models)
         ):
             raise ValueError("judge models must be unique non-empty strings")
-        if not set(self.base_urls) <= set(self.models):
-            raise ValueError("vLLM endpoints must match selected judge models")
         if self.max_concurrency < 1:
             raise ValueError("max_concurrency must be at least 1")
         if not 10_000 <= self.max_input_tokens <= 272_000:

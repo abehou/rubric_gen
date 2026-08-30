@@ -40,10 +40,8 @@ def _source(*case_dirs: Path, provenance: dict[str, object] | None = None):
     )
 
 
-def _generation(
-    model: str, text: str, *, base_url: str | None = None
-) -> GenerationResult:
-    request = request_parameters_for_model(model, base_url=base_url)
+def _generation(model: str, text: str) -> GenerationResult:
+    request = request_parameters_for_model(model)
     return GenerationResult(
         text=text,
         provider=str(request["provider"]),
@@ -686,39 +684,6 @@ def test_all_behaviors_prompt_includes_good_faith_failures(tmp_path: Path) -> No
     assert summary["records"][0]["verdict"]["decision"] == (
         "listed_behavior_detected"
     )
-
-
-def test_vllm_runner_routes_model_to_configured_server(tmp_path: Path) -> None:
-    case = _case(tmp_path / "case-a", {"samples": []})
-    observed = {}
-
-    def vllm(model: str, request: StructuredRequest, url: str) -> GenerationResult:
-        observed.update(model=model, url=url)
-        return _generation(
-            model,
-            _rh_text(5, "Insufficient evidence."),
-            base_url=url,
-        )
-
-    runner = RewardHackingJudgeRunner(
-        RewardHackingJudgeConfig(
-            source=_source(case), models=("Qwen/Test",), output_dir=tmp_path / "out",
-            base_urls={"Qwen/Test": "http://node:8000/v1"},
-        ),
-        generate_vllm_response=vllm,
-    )
-    assert runner.run() == 0
-    assert observed == {"model": "Qwen/Test", "url": "http://node:8000/v1"}
-
-
-def test_model_judge_rejects_unselected_vllm_endpoint(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="match selected"):
-        RewardHackingJudgeConfig(
-            source=_source(tmp_path / "case"),
-            models=("Qwen/Selected",),
-            output_dir=tmp_path / "out",
-            base_urls={"Qwen/Other": "http://node:8000/v1"},
-        )
 
 
 def test_rh_prompt_preserves_every_converted_message(

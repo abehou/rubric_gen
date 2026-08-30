@@ -49,7 +49,6 @@ class ProviderContract:
     """Define and enforce one structured model-provider interface."""
 
     model: str
-    base_url: str | None
     max_output_tokens: int
     max_request_bytes: int
     service_tier: str | None
@@ -57,10 +56,6 @@ class ProviderContract:
     def __post_init__(self) -> None:
         if type(self.model) is not str or not self.model.strip():
             raise ValueError("provider model must be nonempty")
-        if self.base_url is not None and (
-            type(self.base_url) is not str or not self.base_url.strip()
-        ):
-            raise ValueError("provider base URL must be nonempty")
         if type(self.max_output_tokens) is not int or self.max_output_tokens < 1:
             raise ValueError("provider output-token limit must be positive")
         if type(self.max_request_bytes) is not int or self.max_request_bytes < 1:
@@ -72,23 +67,18 @@ class ProviderContract:
 
     @property
     def provider(self) -> str:
-        return "vllm" if self.base_url is not None else "openai"
+        return "openai"
 
     def record(self) -> dict[str, object]:
         return {
             "provider": self.provider,
             "model": self.model,
-            "base_url": (
-                self.base_url.rstrip("/") + "/" if self.base_url else None
-            ),
             "reasoning_effort": _REASONING_EFFORT,
             "text_verbosity": _TEXT_VERBOSITY,
             "max_output_tokens": self.max_output_tokens,
             "max_request_bytes": self.max_request_bytes,
             "client_timeout_seconds": _REQUEST_TIMEOUT_SECONDS,
-            "service_tier": (
-                self.service_tier if self.base_url is None else None
-            ),
+            "service_tier": self.service_tier,
         }
 
     def validate_output(self, output: StructuredProviderOutput) -> None:
@@ -116,10 +106,7 @@ class ProviderContract:
     ) -> StructuredProviderOutput:
         return generate_structured(
             model=self.model,
-            base_url=self.base_url,
-            service_tier=(
-                self.service_tier if self.base_url is None else None
-            ),
+            service_tier=self.service_tier,
             instructions=instructions,
             evidence=evidence,
             response_schema=response_schema,
@@ -180,7 +167,6 @@ def _valid_generation(value: object) -> bool:
 def generate_structured(
     *,
     model: str,
-    base_url: str | None,
     service_tier: str | None,
     instructions: str,
     evidence: str,
@@ -197,60 +183,6 @@ def generate_structured(
             f"limit is {max_request_bytes}"
         )
     from openai import OpenAI
-
-    if base_url is not None:
-        normalized_base_url = base_url.rstrip("/") + "/"
-        response = OpenAI(
-            base_url=normalized_base_url,
-            api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
-            timeout=_REQUEST_TIMEOUT_SECONDS,
-            max_retries=0,
-        ).chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": instructions},
-                {"role": "user", "content": evidence},
-            ],
-            max_tokens=max_output_tokens,
-            temperature=0,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": schema_name,
-                    "strict": True,
-                    "schema": response_schema,
-                },
-            },
-        )
-        text = response.choices[0].message.content or ""
-        if not text:
-            raise RuntimeError("vLLM returned an empty structured response")
-        effective_model = getattr(response, "model", None)
-        response_id = getattr(response, "id", None)
-        if type(effective_model) is not str or not effective_model.strip():
-            raise RuntimeError("vLLM response has no effective model")
-        if type(response_id) is not str or not response_id.strip():
-            raise RuntimeError("vLLM response has no response ID")
-        usage = _jsonable(getattr(response, "usage", None))
-        return StructuredProviderOutput(
-            response_text=text,
-            cost=_cost_from_usage(usage, model=model, service_tier=None),
-            generation={
-                "provider": "vllm",
-                "requested_model": model,
-                "effective_model": effective_model,
-                "response_id": response_id,
-                "request_parameters": {
-                    "base_url": normalized_base_url,
-                    "max_tokens": max_output_tokens,
-                    "temperature": 0,
-                    "client_timeout_seconds": _REQUEST_TIMEOUT_SECONDS,
-                    "client_max_retries": 0,
-                    "response_format": "json_schema",
-                },
-                "usage": usage,
-            },
-        )
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:

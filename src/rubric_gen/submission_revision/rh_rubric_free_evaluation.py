@@ -11,7 +11,6 @@ from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
     generate_structured,
-    generate_structured_vllm,
 )
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -30,7 +29,6 @@ from rubric_gen.submission_revision.rh_protocol import (
     _assert_accepted_job_plan,
     _rubric_free_evaluation_implementation_identity,
     _rubric_free_evaluation_plan_entry,
-    _normalized_api_base,
     _pairwise_judgment_identity,
     _pairwise_preference_request,
     _stage_caps,
@@ -70,9 +68,6 @@ class RubricFreeEvaluationStage:
                 target=target,
                 model=model,
                 artifact=artifact,
-                api_base=_normalized_api_base(
-                    self.config.vllm_endpoints.get(model)
-                ),
                 implementation_identity=implementation_identity,
             )
             for target in targets
@@ -84,9 +79,6 @@ class RubricFreeEvaluationStage:
                 target=target,
                 model=model,
                 ordering=ordering,
-                api_base=_normalized_api_base(
-                    self.config.vllm_endpoints.get(model)
-                ),
                 implementation_identity=implementation_identity,
             )
             for target in targets
@@ -125,14 +117,13 @@ class RubricFreeEvaluationStage:
         if len(benchmarks) != 1:
             raise RuntimeError("RH rubric-free evaluation jobs must use one benchmark")
         planned: list[
-            tuple[str, str, str, str | None, StructuredRequest]
+            tuple[str, str, str, StructuredRequest]
         ] = []
         planned.extend(
             (
                 job.key,
                 "absolute",
                 job.model,
-                job.api_base,
                 _rubric_free_absolute_score_request(job),
             )
             for job in absolute_jobs
@@ -142,7 +133,6 @@ class RubricFreeEvaluationStage:
                 job.key,
                 "pairwise",
                 job.model,
-                job.api_base,
                 _pairwise_preference_request(job),
             )
             for job in pairwise_jobs
@@ -156,13 +146,12 @@ class RubricFreeEvaluationStage:
             description="RH rubric-free evaluation planning",
             unit="judgment",
         ) as progress:
-            for key, instrument, model, api_base, request in planned:
+            for key, instrument, model, request in planned:
                 progress.set_status(key[:12])
                 entry = _rubric_free_evaluation_plan_entry(
                     key=key,
                     instrument=instrument,
                     model=model,
-                    api_base=api_base,
                     request=request,
                 )
                 content_bytes = int(entry["request_bytes"])
@@ -207,7 +196,6 @@ class RubricFreeEvaluationStage:
             request=request,
             key=job.key,
             instrument="absolute",
-            api_base=job.api_base,
             identity=_absolute_judgment_identity(job, request),
             validator=_validate_absolute_verdict,
         )
@@ -222,7 +210,6 @@ class RubricFreeEvaluationStage:
             request=request,
             key=job.key,
             instrument="pairwise",
-            api_base=job.api_base,
             identity=_pairwise_judgment_identity(job, request),
             validator=_validate_pairwise_verdict,
         )
@@ -234,7 +221,6 @@ class RubricFreeEvaluationStage:
         request: StructuredRequest,
         key: str,
         instrument: str,
-        api_base: str | None,
         identity: dict[str, object],
         validator: Callable[[object], None],
     ) -> dict[str, object]:
@@ -266,10 +252,9 @@ class RubricFreeEvaluationStage:
                     key=key,
                     instrument=instrument,
                     model=model,
-                    api_base=api_base,
                     request=request,
                 )
-                generation = self._generate(model, request, api_base)
+                generation = self._generate(model, request)
                 parsed = load_json_strict(generation.text)
                 validator(parsed)
                 assert isinstance(parsed, dict)
@@ -306,7 +291,6 @@ class RubricFreeEvaluationStage:
         key: str,
         instrument: str,
         model: str,
-        api_base: str | None,
         request: StructuredRequest,
     ) -> None:
         prepared = self._prepared
@@ -316,7 +300,6 @@ class RubricFreeEvaluationStage:
             key=key,
             instrument=instrument,
             model=model,
-            api_base=api_base,
             request=request,
         )
         _assert_accepted_job_plan(
@@ -329,12 +312,9 @@ class RubricFreeEvaluationStage:
         self,
         model: str,
         request: StructuredRequest,
-        api_base: str | None,
     ) -> GenerationResult:
         if self.generation_operation is not None:
             return self.generation_operation(model, request)
-        if api_base is not None:
-            return generate_structured_vllm(model, request, api_base)
         return generate_structured(model, request)
 def _absolute_assignment_reference(
     job: RubricFreeAbsoluteScoreJob,

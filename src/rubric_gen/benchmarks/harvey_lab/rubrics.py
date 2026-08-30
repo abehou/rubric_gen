@@ -12,7 +12,6 @@ from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
     generate_structured,
-    generate_structured_vllm,
 )
 
 
@@ -24,7 +23,6 @@ class RubricProposal:
 
 
 Generate = Callable[[str, StructuredRequest], GenerationResult]
-GenerateVllm = Callable[[str, StructuredRequest, str], GenerationResult]
 
 
 _INSTRUCTIONS = """You revise one Harvey LAB task rubric after a completed harness run.
@@ -82,18 +80,14 @@ class TaskRubricProposer:
         self,
         model: str,
         *,
-        base_url: str | None,
         max_changes: int,
         max_output_tokens: int,
         generate_response: Generate = generate_structured,
-        generate_vllm_response: GenerateVllm = generate_structured_vllm,
     ) -> None:
         self.model = model
-        self.base_url = base_url
         self.max_changes = max_changes
         self.max_output_tokens = max_output_tokens
         self.generate_response = generate_response
-        self.generate_vllm_response = generate_vllm_response
 
     def propose(
         self,
@@ -114,11 +108,7 @@ class TaskRubricProposer:
             schema=_schema(self.max_changes),
             max_output_tokens=self.max_output_tokens,
         )
-        generation = (
-            self.generate_vllm_response(self.model, request, self.base_url)
-            if self.base_url is not None
-            else self.generate_response(self.model, request)
-        )
+        generation = self.generate_response(self.model, request)
         proposal = _extract(generation.text)
         revised = self._apply(task, proposal)
         return RubricProposal(revised, proposal, generation.provenance())

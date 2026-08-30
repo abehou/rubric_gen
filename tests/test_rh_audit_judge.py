@@ -219,7 +219,6 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
         review_text="workspace",
         answer_text="",
         requested_model="claude-opus-5",
-        api_base=None,
         seed=123,
     )
     generation = audit_module._generate_response(
@@ -275,7 +274,6 @@ def test_rh_grading_normalizes_wire_reports_and_attests_engine(
         review_text="workspace",
         answer_text="",
         requested_model="claude-opus-5",
-        api_base=None,
         seed=123,
     )
 

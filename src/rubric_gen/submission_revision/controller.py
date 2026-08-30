@@ -149,19 +149,14 @@ class SubmissionRevisionController:
             "web_search": False,
             "reasoning_effort": self.config.agent.reasoning_effort,
             "service_tier": self.config.agent.service_tier,
-            "solver_base_url": self.config.agent.base_url,
             "turn_timeout_seconds": self.config.agent.timeout_seconds,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
             "rubric_policy": self.rubric_policy.value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
-            "rubric_proposer_base_url": self.config.rubric_proposer_base_url,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
             "rubric_semantic_judge_model": (
                 self.config.rubric_semantic_judge_model
-            ),
-            "rubric_semantic_judge_base_url": (
-                self.config.rubric_semantic_judge_base_url
             ),
             "rubric_semantic_judge_max_calls": (
                 self.config.rubric_semantic_judge_max_calls
@@ -177,7 +172,6 @@ class SubmissionRevisionController:
             ),
             "review": self.config.review,
             "judge_model": self.config.judge_model,
-            "judge_base_url": self.config.judge_base_url,
             "max_review_chars": self.config.max_review_chars,
             "initial_rubric_path": str(
                 self.config.optimizer_rubric_path.resolve()

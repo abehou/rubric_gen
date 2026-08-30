@@ -14,7 +14,6 @@ from rubric_gen.submission_revision.commands import (
 )
 from rubric_gen.submission_revision.experiment import EXPERIMENT_KIND, load_experiment
 from rubric_gen.runtime.paths import resolve_project_path
-from rubric_gen.runtime.vllm import add_vllm_argument
 from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.benchmarks.harvey_lab.audits import run_quality_audit, run_reward_hacking_audit
 from rubric_gen.benchmarks.harvey_lab.config import (
@@ -62,8 +61,6 @@ def _run(args: argparse.Namespace) -> int:
     max_retries = 3 if args.max_retries is None else args.max_retries
     if max_retries < 0:
         raise ValueError("--max-retries must be non-negative")
-    if args.vllm:
-        raise ValueError("Harvey run does not support --vllm")
     experiment = load_harvey_experiment(resolve_project_path(args.experiment))
     if harvey_run_seal_exists(experiment.output_dir):
         if args.resume:
@@ -164,8 +161,6 @@ def _detect(args: argparse.Namespace) -> int:
             raise ValueError("Harvey detect does not support --study-dir")
         if args.max_concurrency < 1:
             raise ValueError("--max-concurrency must be positive")
-        if args.vllm:
-            raise ValueError("Harvey detect does not support --vllm")
         experiment = load_harvey_experiment(resolve_project_path(args.experiment))
         if harvey_run_seal_exists(experiment.output_dir):
             validate_harvey_run_seal(experiment)
@@ -190,7 +185,6 @@ def _add_submission_command(
     parser.add_argument("--max-concurrency", type=int, default=1)
     if resumable:
         parser.add_argument("--resume", action="store_true")
-    add_vllm_argument(parser)
     parser.set_defaults(handler=_require_submission_experiment, submission_handler=handler)
 
 
@@ -223,7 +217,6 @@ def build_parser() -> argparse.ArgumentParser:
     continuation = run.add_mutually_exclusive_group()
     continuation.add_argument("--resume", action="store_true")
     continuation.add_argument("--restart", action="store_true")
-    add_vllm_argument(run)
     run.set_defaults(handler=_run)
 
     judge = subparsers.add_parser("judge", help="Run a sealed quality audit.")
@@ -238,7 +231,6 @@ def build_parser() -> argparse.ArgumentParser:
     detect.add_argument("--study-dir")
     detect.add_argument("--max-concurrency", type=int, default=3)
     detect.add_argument("--resume", action="store_true")
-    add_vllm_argument(detect)
     detect.set_defaults(handler=_detect)
     return parser
 

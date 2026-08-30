@@ -307,7 +307,6 @@ class AgentRunner:
         status = {
             "provider": self.provider,
             "requested_model": self.config.model,
-            "base_url": self.config.base_url,
             "task": task_dir.name,
             "task_dir": str(task_dir),
             "workspace_dir": str(paths.workspace_dir),

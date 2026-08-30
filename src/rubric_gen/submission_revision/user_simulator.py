@@ -39,7 +39,6 @@ class SimulatedUserConfig:
     """Model and output bounds for one simulated-user condition."""
 
     model: str
-    base_url: str | None = None
     max_output_tokens: int = 1_024
     max_aspects: int = 2
     max_retries: int = 1
@@ -47,10 +46,6 @@ class SimulatedUserConfig:
     def __post_init__(self) -> None:
         if type(self.model) is not str or not self.model.strip():
             raise ValueError("simulated-user model must be nonempty")
-        if self.base_url is not None and (
-            type(self.base_url) is not str or not self.base_url.strip()
-        ):
-            raise ValueError("simulated-user base_url must be nonempty when set")
         if (
             type(self.max_output_tokens) is not int
             or not 256 <= self.max_output_tokens <= 4_096
@@ -67,11 +62,6 @@ class SimulatedUserConfig:
         return {
             "implementation_sha256": sha256_file(Path(__file__)),
             "model": self.model,
-            "base_url": (
-                self.base_url.rstrip("/") + "/"
-                if self.base_url is not None
-                else None
-            ),
             "max_output_tokens": self.max_output_tokens,
             "max_aspects": self.max_aspects,
             "max_retries": self.max_retries,
@@ -305,7 +295,7 @@ class SimulatedUserFeedback:
         request_parameters = generation.get("request_parameters")
         provider = _expected_provider(self.config)
         token_key = (
-            "max_tokens" if provider in {"anthropic", "vllm"}
+            "max_tokens" if provider == "anthropic"
             else "max_output_tokens"
         )
         if (
@@ -318,9 +308,6 @@ class SimulatedUserFeedback:
             or type(request_parameters) is not dict
             or request_parameters.get(token_key) != self.config.max_output_tokens
             or type(generation.get("provider_metadata")) is not dict
-            or provider == "vllm"
-            and request_parameters.get("base_url")
-            != self.config.identity()["base_url"]
         ):
             raise ValueError("simulated-user generation has invalid provenance")
 
@@ -519,8 +506,6 @@ def _maximum_aspects(configured: int, criterion_count: int) -> int:
 
 
 def _expected_provider(config: SimulatedUserConfig) -> str:
-    if config.base_url is not None:
-        return "vllm"
     if config.model.startswith("gemini"):
         return "google"
     if config.model.startswith("claude"):
@@ -536,7 +521,6 @@ def _generate_with_hosted_model(
     from rubric_gen.runtime.llm import (
         StructuredRequest,
         generate_structured,
-        generate_structured_vllm,
     )
 
     model_request = StructuredRequest(
@@ -546,11 +530,7 @@ def _generate_with_hosted_model(
         schema=request.schema,
         max_output_tokens=request.max_output_tokens,
     )
-    generated = (
-        generate_structured_vllm(config.model, model_request, config.base_url)
-        if config.base_url is not None
-        else generate_structured(config.model, model_request)
-    )
+    generated = generate_structured(config.model, model_request)
     return SimulatedUserGeneration(
         text=generated.text,
         provider=generated.provider,

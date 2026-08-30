@@ -101,7 +101,6 @@ class HarnessDesigner:
 class RubricEvolution:
     mode: str
     proposer_model: str | None
-    proposer_base_url: str | None
     max_changes_per_task: int
     max_output_tokens: int
 
@@ -193,22 +192,18 @@ def _designer(value: object) -> HarnessDesigner:
 
 def _rubric(value: object) -> RubricEvolution:
     data = _object(value, "rubric")
-    _exact(data, {"mode", "proposer_model", "proposer_base_url", "max_changes_per_task", "max_output_tokens"}, "rubric")
+    _exact(data, {"mode", "proposer_model", "max_changes_per_task", "max_output_tokens"}, "rubric")
     mode = _text(data.get("mode"), "rubric.mode")
     if mode not in {"static", "prospective"}:
         raise ValueError("rubric.mode must be static or prospective")
     model = data.get("proposer_model")
-    base_url = data.get("proposer_base_url")
     if mode == "prospective":
         model = _text(model, "rubric.proposer_model")
-        if base_url is not None:
-            base_url = _text(base_url, "rubric.proposer_base_url")
-    elif model is not None or base_url is not None:
+    elif model is not None:
         raise ValueError("static rubric evolution must not configure a proposer")
     return RubricEvolution(
         mode=mode,
         proposer_model=model,
-        proposer_base_url=base_url,
         max_changes_per_task=_integer(data.get("max_changes_per_task", 8), "rubric.max_changes_per_task"),
         max_output_tokens=_integer(data.get("max_output_tokens", 16_384), "rubric.max_output_tokens", minimum=1_024),
     )

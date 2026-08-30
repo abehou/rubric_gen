@@ -263,52 +263,6 @@ class CodexAdapter(AgentAdapter):
         destination.chmod(0o600)
 
 
-class VllmAdapter(CodexAdapter):
-    """Use Codex's tool harness with a vLLM Responses API server."""
-
-    name = "vllm"
-
-    def prepare_run(
-        self, paths: RunPaths, config: AgentRunConfig, prompt: str
-    ) -> None:
-        AgentAdapter.prepare_run(self, paths, config, prompt)
-        if config.base_url is None:
-            raise ValueError("the vLLM solver requires a base URL")
-        codex_home = self._codex_home(paths)
-        codex_home.mkdir(parents=True, exist_ok=True, mode=0o700)
-        codex_home.chmod(0o700)
-        controlled = (
-            'model_provider = "vllm"\n'
-            "model_context_window = 262144\n"
-            + _codex_scientific_config(config)
-            + "\n[model_providers.vllm]\n"
-            + 'name = "vLLM"\n'
-            + f"base_url = {json.dumps(config.base_url)}\n"
-            + 'wire_api = "responses"\n'
-            + "request_max_retries = 0\n"
-            + "stream_max_retries = 0\n"
-            + f"stream_idle_timeout_ms = {config.timeout_seconds * 1000}\n"
-        )
-        config_path = codex_home / "config.toml"
-        if config_path.exists():
-            if config_path.is_symlink() or config_path.read_text() != controlled:
-                raise RuntimeError("controlled vLLM Codex configuration changed")
-        else:
-            config_path.write_text(controlled)
-            config_path.chmod(0o600)
-
-    def build_environment(
-        self, paths: RunPaths, config: AgentRunConfig
-    ) -> dict[str, str]:
-        environment = AgentAdapter.build_environment(self, paths, config)
-        environment["CODEX_HOME"] = str(self._codex_home(paths))
-        return environment
-
-    @staticmethod
-    def _codex_home(paths: RunPaths) -> Path:
-        return VllmAdapter._state_root(paths) / "vllm-codex"
-
-
 def _codex_sandbox_support_paths(config: AgentRunConfig) -> tuple[Path, ...]:
     executable = config.executable or "codex"
     located = shutil.which(executable)
@@ -395,7 +349,6 @@ class AgentAdapterRegistry:
                     GeminiAdapter(),
                     ClaudeAdapter(),
                     CodexAdapter(),
-                    VllmAdapter(),
                 )
             )
         }

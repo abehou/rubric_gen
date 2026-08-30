@@ -156,7 +156,6 @@ def _identity(
     task: Path,
     *,
     judge_model: str = "test-judge-model",
-    base_url: str | None = None,
     experiment_dir: Path | None = None,
 ) -> dict[str, object]:
     config = SubmissionJudgeConfig(
@@ -164,7 +163,6 @@ def _identity(
         experiment_dir=experiment_dir or task.parent.parent / "experiment",
         review="trace",
         judge_model=judge_model,
-        base_url=base_url,
         rubric_name=None,
         rubric_set=None,
         rubric_path=task / "tests" / "rubric.txt",
@@ -716,9 +714,7 @@ def _criterion_elicitation_proposer(
     return RubricProposer(
         benchmark=config.benchmark,
         model=config.rubric_proposer_model,
-        base_url=None,
         semantic_judge_model=config.rubric_semantic_judge_model,
-        semantic_judge_base_url=None,
         semantic_judge_max_calls=config.rubric_semantic_judge_max_calls,
         semantic_judge_max_request_bytes=(
             config.rubric_semantic_judge_max_request_bytes
@@ -746,11 +742,9 @@ def test_generated_rubric_uses_canonical_judge_source() -> None:
     [
         ("benchmark", SubmissionBenchmarkId.PAPERBENCH_CODE_DEV),
         ("model", "different-proposer"),
-        ("base_url", "http://127.0.0.1:9000/v1"),
         ("max_retries", 7),
         ("service_tier", "priority"),
         ("semantic_judge_model", "different-reviewer"),
-        ("semantic_judge_base_url", "http://127.0.0.1:9001/v1"),
         ("semantic_judge_max_calls", 2),
         ("semantic_judge_max_request_bytes", 999_999),
         ("semantic_judge_max_output_tokens", 16_384),
@@ -770,10 +764,9 @@ def test_controller_rejects_an_injected_rubric_proposer_contract_mismatch(
         rubric_policy=RubricPolicy.OFFLINE_ELICITATION,
     )
     proposer = _criterion_elicitation_proposer(config)
-    proposer_fields = {"model", "base_url", "service_tier"}
+    proposer_fields = {"model", "service_tier"}
     semantic_fields = {
         "semantic_judge_model": "model",
-        "semantic_judge_base_url": "base_url",
         "semantic_judge_max_request_bytes": "max_request_bytes",
         "semantic_judge_max_output_tokens": "max_output_tokens",
     }
@@ -990,7 +983,6 @@ def test_revision_rejects_seed_judgment_with_different_scoring_semantics(
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("judge_api_base", "https://different-judge.invalid/v1"),
         ("benchmark", SubmissionBenchmarkId.PAPERBENCH_CODE_DEV.value),
         ("grading_engine", "paperbench-structured"),
     ],
@@ -1023,7 +1015,6 @@ def test_revision_rejects_seed_judgment_with_different_dispatch_identity(
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("judge_api_base", "https://different-judge.invalid/v1"),
         ("benchmark", SubmissionBenchmarkId.PAPERBENCH_CODE_DEV.value),
         ("grading_engine", "paperbench-structured"),
     ],
@@ -1119,8 +1110,6 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
     assert manifest["live_workspace_removed"] is True
     assert manifest["experiment_id"] == EXPERIMENT_ID
-    assert manifest["judge_base_url"] is None
-    assert manifest["rubric_proposer_base_url"] is None
     rubric_evaluation = json.loads(
         (config.experiment_dir / "rubric-evaluations" / "s000.json").read_text()
     )
@@ -1901,64 +1890,6 @@ def test_solver_prompt_routes_generated_outputs_to_artifacts() -> None:
     assert "./artifacts/: supporting files" in prompt
     assert "Required deliverables:" in prompt
     assert "Produce exactly these local files:" not in prompt
-
-
-def test_completed_revision_validates_model_endpoint_manifest_fields(
-    tmp_path: Path,
-) -> None:
-    task = _write_task(tmp_path)
-    scoring_identity = _identity(
-        task,
-        judge_model="judge-model",
-        base_url="http://judge:8000/v1",
-        experiment_dir=tmp_path / "experiment",
-    )
-    config = replace(
-        _config(
-            tmp_path,
-            task,
-            rounds=1,
-            seed_scoring_identity=scoring_identity,
-        ),
-        judge_model="judge-model",
-        judge_base_url="http://judge:8000/v1",
-        rubric_proposer_model="proposer-model",
-        rubric_proposer_base_url="http://proposer:8000/v1",
-    )
-    SubmissionRevisionController(
-        config,
-        RevisionDependencies(
-            session=FakeSession(),
-            judge=FakeJudge(
-                task,
-                (80, 90),
-                tmp_path / "judge",
-                identity=scoring_identity,
-            ),
-        ),
-    ).run()
-    assignment = {
-        "assignment_id": config.assignment_id,
-        "task_id": task.name,
-        "replicate": 1,
-        "condition_id": config.condition_id,
-        "execution_order": 1,
-    }
-
-    validate_completed_revision(
-        config.experiment_dir,
-        assignment,
-        _design(config, task),
-        config.seed_run_dir,
-        config.experiment_dir / "paraphrases",
-        vllm_endpoints={
-            "judge-model": "http://judge:8000/v1",
-            "proposer-model": "http://proposer:8000/v1",
-        },
-    )
-    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
-    assert manifest["judge_base_url"] == "http://judge:8000/v1"
-    assert manifest["rubric_proposer_base_url"] == "http://proposer:8000/v1"
 
 
 def test_safe_checkpoint_resume_continues_missing_turns_without_rescoring_seed(

@@ -92,7 +92,6 @@ def test_scoring_identity_binds_endpoint_benchmark_and_engine(
     identity = judge.scoring_identity()
 
     assert set(identity) == set(SCORING_IDENTITY_KEYS)
-    assert identity["judge_api_base"] is None
     assert identity["benchmark"] == "biomnibench-da"
     assert identity["grading_engine"] == "full-rubric-structured"
 

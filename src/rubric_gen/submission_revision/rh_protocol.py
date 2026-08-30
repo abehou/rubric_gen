@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from numbers import Real
 from pathlib import Path
 
@@ -268,7 +268,6 @@ class GenerationBinding:
 class RubricScoreJob:
     target: EvaluationTarget
     model: str
-    api_base: str | None
     artifact: str
     rubric_path: Path
     roles: tuple[RubricRole, ...]
@@ -292,7 +291,6 @@ class RubricFreeAbsoluteScoreJob:
     target: EvaluationTarget
     model: str
     artifact: str
-    api_base: str | None
     implementation_identity: dict[str, str]
 
     @property
@@ -312,7 +310,6 @@ class PairwisePreferenceJob:
     target: EvaluationTarget
     model: str
     ordering: str
-    api_base: str | None
     implementation_identity: dict[str, str]
 
     @property
@@ -335,7 +332,6 @@ class EvaluationConfig:
     output_dir: Path
     max_concurrency: int
     resume: bool = False
-    vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
@@ -401,22 +397,6 @@ def _is_sha256(value: object) -> bool:
         and len(value) == 64
         and all(character in "0123456789abcdef" for character in value)
     )
-
-
-def _normalized_api_base(value: str | None) -> str | None:
-    if value is None:
-        return None
-    if type(value) is not str or not value.strip():
-        raise ValueError("model API base must be a non-empty string or null")
-    return value.strip().rstrip("/")
-
-
-def _model_route(api_base: str | None) -> dict[str, object]:
-    normalized = _normalized_api_base(api_base)
-    return {
-        "provider_route": "vllm" if normalized is not None else "model-default",
-        "api_base": normalized,
-    }
 
 
 def _rh_implementation_sha256() -> str:
@@ -601,7 +581,6 @@ def _rubric_score_plan_entry(
     return {
         "semantic_key": job.key,
         "model": job.model,
-        "model_route": _model_route(job.api_base),
         "task_instruction_sha256": sha256_file(
             job.target.task_dir / "instruction.md"
         ),
@@ -621,7 +600,6 @@ def _rubric_free_evaluation_plan_entry(
     key: str,
     instrument: str,
     model: str,
-    api_base: str | None,
     request: StructuredRequest,
 ) -> dict[str, object]:
     canonical_schema = json.dumps(
@@ -641,7 +619,6 @@ def _rubric_free_evaluation_plan_entry(
         "semantic_key": key,
         "instrument": instrument,
         "model": model,
-        "model_route": _model_route(api_base),
         "instructions_sha256": sha256_text(request.instructions),
         "evidence_sha256": sha256_text(request.evidence),
         "schema_sha256": sha256_text(canonical_schema),
@@ -666,7 +643,6 @@ def _rubric_score_judgment_identity(job: RubricScoreJob) -> dict[str, object]:
         "submission_content_sha256": _submission_content_sha256(job.submission),
         "rubric_sha256": sha256_file(job.rubric_path),
         "model": job.model,
-        "model_route": _model_route(job.api_base),
         "engine": grading_engine_for_benchmark(job.target.benchmark).value,
         "grading_identity": job.grading_identity,
         "review_input_sha256": job.review_input_sha256,
@@ -796,7 +772,6 @@ def _absolute_judgment_identity(
         "submission_content_sha256": _submission_content_sha256(job.submission),
         "rubric_sha256": None,
         "model": job.model,
-        "model_route": _model_route(job.api_base),
         "engine": "structured-generation",
         "implementation_identity": job.implementation_identity,
         "repeat_index": 0,
@@ -831,7 +806,6 @@ def _pairwise_judgment_identity(
         "response_B_content_sha256": _submission_content_sha256(second),
         "rubric_sha256": None,
         "model": job.model,
-        "model_route": _model_route(job.api_base),
         "engine": "structured-generation",
         "implementation_identity": job.implementation_identity,
         "repeat_index": 0,

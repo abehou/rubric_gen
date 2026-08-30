@@ -316,7 +316,6 @@ def build_rh_full_rubric_run_spec(
     review_text: str,
     answer_text: str,
     requested_model: str,
-    api_base: str | None,
     seed: int,
 ) -> RhFullRubricRunSpec:
     base = build_full_rubric_run_spec(
@@ -324,7 +323,6 @@ def build_rh_full_rubric_run_spec(
         review_text=review_text,
         answer_text=answer_text,
         requested_model=requested_model,
-        api_base=api_base,
         seed=seed,
     )
     shape = rh_full_rubric_cost_shape(
@@ -352,7 +350,6 @@ def _request_parameters(
     provider_seeds = execution["provider_seeds"]
     assert type(provider_seeds) is list
     return {
-        "api_base": spec.api_base,
         "temperature": execution["temperature"],
         "provider_seed": provider_seeds[repeat_index],
         "reasoning_effort": execution["reasoning_effort"],
@@ -373,43 +370,6 @@ def _generate_response(
     repeat_index: int,
 ) -> FullRubricGeneration:
     request_parameters = _request_parameters(spec, repeat_index)
-    if spec.provider == "vllm":
-        from openai import OpenAI
-
-        assert spec.api_base is not None
-        response = OpenAI(
-            base_url=spec.api_base.rstrip("/") + "/",
-            api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
-            timeout=FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
-            max_retries=0,
-        ).chat.completions.create(
-            model=spec.requested_model,
-            messages=[
-                {"role": "system", "content": RH_FULL_RUBRIC_SYSTEM_PROMPT},
-                {"role": "user", "content": payload},
-            ],
-            max_tokens=spec.max_output_tokens_per_call,
-            temperature=0.0,
-            seed=spec.repeat_seeds[repeat_index],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "rh_audit_rubric_evaluation",
-                    "strict": True,
-                    "schema": schema,
-                },
-            },
-        )
-        return FullRubricGeneration(
-            text=response.choices[0].message.content or "",
-            provider="vllm",
-            requested_model=spec.requested_model,
-            effective_model=str(getattr(response, "model", spec.requested_model)),
-            response_id=getattr(response, "id", None),
-            request_parameters=request_parameters,
-            usage=getattr(response, "usage", None),
-        )
-
     if spec.provider == "google":
         from google import genai
         from google.genai import types
@@ -542,7 +502,6 @@ def grade_rh_full_rubric(
     review_text: str,
     answer_text: str,
     requested_model: str,
-    api_base: str | None,
     seed: int,
 ) -> FullRubricArtifactRecords:
     """Run five audit calls with the current provider request contracts."""
@@ -552,7 +511,6 @@ def grade_rh_full_rubric(
         review_text=review_text,
         answer_text=answer_text,
         requested_model=requested_model,
-        api_base=api_base,
         seed=seed,
     )
     rubric_levels = parse_rubric_levels_strict(rubric_text)
@@ -641,7 +599,6 @@ class RhAuditRubricJudge:
                 judging / "scoring.py",
             )),
             "effective_judge_model": model,
-            "judge_api_base": self.config.base_url,
             "benchmark": self.config.benchmark.value,
             "grading_engine": grading_engine_for_benchmark(
                 self.config.benchmark
@@ -686,7 +643,6 @@ class RhAuditRubricJudge:
             review_sha256=sha256_text(review_text),
             answer_sha256=sha256_text(answer_text),
             requested_model=model,
-            api_base=self.config.base_url,
             benchmark=self.config.benchmark.value,
             assignment_identity=self.task_dir.name,
             grading_engine=str(identity["grading_engine"]),
@@ -702,7 +658,6 @@ class RhAuditRubricJudge:
                     review_text=review_text,
                     answer_text=answer_text,
                     requested_model=model,
-                    api_base=self.config.base_url,
                     seed=seed,
                 )
                 break

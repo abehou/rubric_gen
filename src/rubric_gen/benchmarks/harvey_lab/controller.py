@@ -175,7 +175,6 @@ class HarveyEvolutionController:
             assert experiment.rubric.proposer_model is not None
             self.proposer = TaskRubricProposer(
                 experiment.rubric.proposer_model,
-                base_url=experiment.rubric.proposer_base_url,
                 max_changes=experiment.rubric.max_changes_per_task,
                 max_output_tokens=experiment.rubric.max_output_tokens,
             )

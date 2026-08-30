@@ -122,7 +122,6 @@ def _spec(seed: int = 123):
         review_text="workspace",
         answer_text="",
         requested_model="gpt-5.6-luna",
-        api_base=None,
         seed=seed,
     )
 
@@ -185,7 +184,6 @@ def _attestation(spec) -> dict[str, object]:
         "answer_input_sha256": "2" * 64,
         "scoring_implementation_sha256": "4" * 64,
         "effective_judge_model": "gpt-5.6-luna",
-        "judge_api_base": None,
         "benchmark": SubmissionBenchmarkId.PAPERBENCH_CODE_DEV.value,
         "grading_engine": GradingEngine.FULL_RUBRIC_STRUCTURED.value,
         "engine_execution": spec.as_json(),
@@ -266,7 +264,6 @@ def test_active_full_rubric_criterion_counts_fit_the_fixed_budget() -> None:
             review_text="x" * 160_000,
             answer_text="",
             requested_model="gpt-5.6-luna",
-            api_base=None,
             seed=17,
         )
 
@@ -301,7 +298,6 @@ def test_preflight_rejects_context_and_criterion_limits() -> None:
             review_text="x" * 1_100_000,
             answer_text="",
             requested_model="gpt-5.6-luna",
-            api_base=None,
             seed=1,
         )
 
@@ -311,7 +307,6 @@ def test_preflight_rejects_context_and_criterion_limits() -> None:
             review_text="workspace",
             answer_text="",
             requested_model="gpt-5.6-luna",
-            api_base=None,
             seed=1,
         )
 
@@ -335,21 +330,18 @@ def test_generation_preflight_scores_one_complete_rubric() -> None:
 @pytest.mark.parametrize(
     (
         "model",
-        "api_base",
         "provider",
         "has_provider_seed",
         "reasoning_effort",
     ),
     (
-        ("gpt-5.6-sol", None, "openai", False, "none"),
-        ("claude-opus-5", None, "anthropic", False, "low"),
-        ("gemini-3.6-flash", None, "google", True, "low"),
-        ("Qwen/Qwen3.6-27B", "http://vllm/v1", "vllm", True, None),
+        ("gpt-5.6-sol", "openai", False, "none"),
+        ("claude-opus-5", "anthropic", False, "low"),
+        ("gemini-3.6-flash", "google", True, "low"),
     ),
 )
 def test_active_model_contracts_are_explicit(
     model: str,
-    api_base: str | None,
     provider: str,
     has_provider_seed: bool,
     reasoning_effort: str | None,
@@ -359,7 +351,6 @@ def test_active_model_contracts_are_explicit(
         review_text="workspace",
         answer_text="",
         requested_model=model,
-        api_base=api_base,
         seed=44,
     )
     execution = spec.as_json()
@@ -381,7 +372,6 @@ def test_full_rubric_rejects_unsupported_openai_reasoning_contract() -> None:
             review_text="workspace",
             answer_text="",
             requested_model="o3",
-            api_base=None,
             seed=44,
         )
 
@@ -450,7 +440,6 @@ def test_full_rubric_raw_score_uses_the_canonical_criterion_sum() -> None:
         review_text="workspace",
         answer_text="",
         requested_model="gpt-5.6-luna",
-        api_base=None,
         seed=123,
     )
 
@@ -490,7 +479,6 @@ def test_grade_runs_exactly_five_complete_calls(
         review_text="workspace",
         answer_text="",
         requested_model="gpt-5.6-luna",
-        api_base=None,
         seed=123,
     )
 

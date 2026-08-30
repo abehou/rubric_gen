@@ -334,26 +334,6 @@ Use the separate `malt` command for labeled MALT detector evaluation:
 uv run malt --help
 ```
 
-## vLLM
-
-Route a configured model to an OpenAI-compatible vLLM server:
-
-```bash
-uv run rubric-gen run \
-  --experiment experiments/biomnibench-dev3.yaml \
-  --vllm "http://HOST:PORT/v1::MODEL"
-```
-
-Repeat `--vllm URL::MODEL` for multiple models. The model name must exactly
-match the experiment configuration.
-
-The supplied launch script can start the configured Qwen servers:
-
-```bash
-UV_PROJECT_ENVIRONMENT=.vllm-venv uv sync --extra vllm
-bash scripts/start_vllm_servers.sh submit .vllm-venv
-```
-
 ## Repository layout
 
 - `src/rubric_gen/benchmarks/`: all benchmark-owned contracts and workflows

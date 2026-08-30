@@ -226,7 +226,6 @@ def _load_terminal_revision_state(
     condition = experiment.condition(str(assignment["condition_id"]))
     agent = experiment.agent_config(
         quiet=True,
-        vllm_endpoints=config.vllm_endpoints,
     )
     manifest_identity = {
         "kind": "rubric-gen-submission-revision-experiment",
@@ -244,24 +243,17 @@ def _load_terminal_revision_state(
         "executable": agent.executable,
         "reasoning_effort": agent.reasoning_effort,
         "service_tier": agent.service_tier,
-        "solver_base_url": agent.base_url,
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": condition["feedback_policy"],
         "prompt": protocol["prompt"],
         "rubric_policy": condition["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
-        "rubric_proposer_base_url": config.vllm_endpoints.get(
-            str(protocol["rubric_proposer_model"])
-        ),
         "rubric_proposer_max_retries": protocol[
             "rubric_proposer_max_retries"
         ],
         "rubric_semantic_judge_model": protocol[
             "rubric_semantic_judge_model"
         ],
-        "rubric_semantic_judge_base_url": config.vllm_endpoints.get(
-            str(protocol["rubric_semantic_judge_model"])
-        ),
         "rubric_semantic_judge_max_calls": protocol[
             "rubric_semantic_judge_max_calls_per_assignment"
         ],
@@ -273,9 +265,6 @@ def _load_terminal_revision_state(
         ],
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
-        "judge_base_url": config.vllm_endpoints.get(
-            str(protocol["judge_model"])
-        ),
         "max_review_chars": protocol["max_review_chars"],
         "initial_rubric_path": str(selection.optimizer_path.resolve()),
         "initial_rubric_sha256": selection.optimizer_sha256,

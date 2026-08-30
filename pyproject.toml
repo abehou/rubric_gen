@@ -16,12 +16,6 @@ dependencies = [
   "tqdm>=4.66",
 ]
 
-[project.optional-dependencies]
-vllm = [
-  "vllm>=0.19.0,<0.20",
-  "xgrammar==0.2.3",
-]
-
 [project.scripts]
 rubric-gen = "rubric_gen.cli:main"
 malt = "rubric_gen.benchmarks.malt.cli:main"

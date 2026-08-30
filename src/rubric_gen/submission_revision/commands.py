@@ -27,7 +27,6 @@ from rubric_gen.submission_revision.study import (
     _exclusive_study_lease,
 )
 from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
-from rubric_gen.runtime.vllm import parse_vllm_endpoints
 
 
 _RESTART_IDENTITY_FILES = {
@@ -40,18 +39,15 @@ _RESTART_IDENTITY_FILES = {
 
 def run_seed(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
-    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
     return SeedSetRunner(SeedSetConfig(
         experiment=experiment,
         output_dir=Path(str(experiment.dag["seed"]["output_dir"])),
         max_concurrency=args.max_concurrency,
-        vllm_endpoints=endpoints,
     )).run()
 
 
 def run_revise(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
-    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
     return StudyRunner(StudyRunConfig(
         experiment=experiment,
         seed_run_dir=Path(str(experiment.dag["seed"]["output_dir"])),
@@ -61,18 +57,15 @@ def run_revise(args: argparse.Namespace) -> int:
         output_dir=Path(str(experiment.dag["revise"]["output_dir"])),
         max_concurrency=args.max_concurrency,
         resume=args.resume,
-        vllm_endpoints=endpoints,
     )).run()
 
 
 def run_paraphrase(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
-    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
     return ParaphraseRunner(ParaphraseRunConfig(
         experiment=experiment,
         output_dir=Path(str(experiment.dag["paraphrase"]["output_dir"])),
         max_concurrency=args.max_concurrency,
-        vllm_endpoints=endpoints,
     )).run()
 
 
@@ -105,22 +98,6 @@ def run_detect(args: argparse.Namespace) -> int:
     paraphrase_dir = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
     direct_dir = output_dir / "direct"
-    endpoints = parse_vllm_endpoints(getattr(args, "vllm", []))
-    audit_models = tuple(
-        str(model) for model in experiment.outcome_audit["models"]
-    )
-    direct_endpoints = {
-        model: endpoints[model]
-        for model in audit_models
-        if model in endpoints
-    }
-    if direct_endpoints and len(direct_endpoints) != len(audit_models):
-        missing = sorted(set(audit_models) - set(direct_endpoints))
-        raise ValueError(
-            "direct RH detection requires endpoints for all configured audit "
-            f"models or none of them; missing={missing!r}"
-        )
-
     rubric_score_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
@@ -128,7 +105,6 @@ def run_detect(args: argparse.Namespace) -> int:
         output_dir=output_dir / "rubric_score",
         max_concurrency=args.max_concurrency,
         resume=args.resume,
-        vllm_endpoints=endpoints,
     )
     rubric_free_evaluation_config = EvaluationConfig(
         experiment=experiment,
@@ -137,7 +113,6 @@ def run_detect(args: argparse.Namespace) -> int:
         output_dir=output_dir / "rubric_free_evaluation",
         max_concurrency=args.max_concurrency,
         resume=args.resume,
-        vllm_endpoints=endpoints,
     )
     targets = load_evaluation_targets(rubric_score_config)
     rubric_score_runner = RubricScoreRunner(
@@ -171,7 +146,6 @@ def run_detect(args: argparse.Namespace) -> int:
             output_dir=direct_dir,
             max_concurrency=args.max_concurrency,
             resume=args.resume,
-            base_urls=direct_endpoints,
         )),
     )
     execute("rubric_score", rubric_score_runner.run)
@@ -191,14 +165,12 @@ def run_dag(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
     resume = bool(getattr(args, "resume", False))
     restart = bool(getattr(args, "restart", False))
-    vllm = getattr(args, "vllm", [])
     if resume and restart:
         raise ValueError("--resume and --restart are mutually exclusive")
     common = argparse.Namespace(
         experiment=str(experiment.path),
         max_concurrency=args.max_concurrency,
         resume=resume,
-        vllm=vllm,
     )
     if run_seed(common):
         return 1
@@ -213,7 +185,6 @@ def run_dag(args: argparse.Namespace) -> int:
         study_dir=str(experiment.dag["revise"]["output_dir"]),
         max_concurrency=args.max_concurrency,
         resume=resume,
-        vllm=vllm,
     )
     return run_detect(detect)
 

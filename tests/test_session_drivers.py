@@ -10,7 +10,7 @@ import rubric_gen.runtime.agents.adapters as adapters_module
 import rubric_gen.runtime.agents.runners as runners_module
 import rubric_gen.runtime.agents.sessions as sessions_module
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
-from rubric_gen.runtime.agents.adapters import CodexAdapter, VllmAdapter
+from rubric_gen.runtime.agents.adapters import CodexAdapter
 from rubric_gen.runtime.agents.runners import AgentRunner
 from rubric_gen.runtime.agents.sessions import (
     CliSolverSessionDriver,
@@ -357,50 +357,6 @@ def test_codex_adapter_requests_schema_constrained_final_output(tmp_path: Path) 
     )
     assert command[-1] == "-"
     assert "propose" not in command
-
-
-def test_vllm_adapter_uses_codex_responses_without_hosted_credentials(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    monkeypatch.setenv("CODEX_API_KEY", "must-not-leak")
-    monkeypatch.setenv("OPENAI_API_KEY", "must-not-leak")
-    paths = RunPaths(
-        provider="vllm",
-        run_dir=tmp_path / "turn",
-        workspace_dir=tmp_path / "workspace",
-        prompt_path=tmp_path / "turn" / "prompt.txt",
-        policy_path=tmp_path / "turn" / "policy.toml",
-        stream_path=tmp_path / "turn" / "stream.jsonl",
-        status_path=tmp_path / "turn" / "status.json",
-    )
-    config = AgentRunConfig(
-        provider="vllm",
-        model="Qwen/Qwen3.6-27B",
-        base_url="http://qwen27:43117/v1",
-        timeout_seconds=123,
-    )
-    adapter = VllmAdapter()
-    paths.workspace_dir.mkdir()
-
-    adapter.prepare_run(paths, config, "solve")
-
-    controlled = (
-        tmp_path / ".agent-state" / "vllm-codex" / "config.toml"
-    ).read_text()
-    assert 'model_provider = "vllm"' in controlled
-    assert "model_context_window = 262144" in controlled
-    assert 'base_url = "http://qwen27:43117/v1"' in controlled
-    assert 'wire_api = "responses"' in controlled
-    assert "stream_idle_timeout_ms = 123000" in controlled
-    command = adapter.build_command(paths, config, "solve")
-    assert command[-1] == "-"
-    assert "solve" not in command
-    assert command[command.index("--model") + 1] == "Qwen/Qwen3.6-27B"
-    environment = adapter.build_environment(paths, config)
-    assert "CODEX_API_KEY" not in environment
-    assert "OPENAI_API_KEY" not in environment
-    assert environment["CODEX_HOME"].endswith("/.agent-state/vllm-codex")
 
 
 def test_persistent_session_retries_in_same_session_and_preserves_all_streams(

@@ -44,7 +44,6 @@ from rubric_gen.runtime.llm import (
     count_input_tokens,
     estimate_input_tokens,
     generate_structured,
-    generate_structured_vllm,
     request_parameters_for_model,
 )
 from rubric_gen.runtime.pricing import (
@@ -85,15 +84,11 @@ class RewardHackingJudgeRunner:
     def __init__(
         self, config: RewardHackingJudgeConfig,
         *, generate_response: Callable[[str, StructuredRequest], GenerationResult] = generate_structured,
-        generate_vllm_response: Callable[
-            [str, StructuredRequest, str], GenerationResult
-        ] = generate_structured_vllm,
         count_tokens: Callable[[str, StructuredRequest], int] | None = None,
     ) -> None:
         self.config = config
         target = detection_target(config.detection)
         self.generate_response = generate_response
-        self.generate_vllm_response = generate_vllm_response
         self.count_tokens = (
             count_tokens
             if count_tokens is not None
@@ -138,7 +133,6 @@ class RewardHackingJudgeRunner:
             "model_requests": {
                 model: request_parameters_for_model(
                     model,
-                    base_url=config.base_urls.get(model),
                     max_output_tokens=config.max_output_tokens,
                 )
                 for model in config.models
@@ -254,7 +248,6 @@ class RewardHackingJudgeRunner:
             self.config,
             self.run_settings,
             self.generate_response,
-            self.generate_vllm_response,
             self.count_tokens,
             self._payload,
         )
@@ -320,7 +313,6 @@ class RewardHackingJudgeRunner:
         summary = {
             "kind": "reward-hacking-model-panel",
             "models": list(self.config.models),
-            "base_urls": self.config.base_urls,
             "max_attempts": JUDGE_MAX_ATTEMPTS,
             "detection": self.config.detection,
             "detection_target": detection_target(

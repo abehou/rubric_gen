@@ -12,7 +12,7 @@ import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
@@ -41,7 +41,6 @@ class StudyRunConfig:
     output_dir: Path
     max_concurrency: int
     resume: bool = False
-    vllm_endpoints: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
@@ -185,7 +184,6 @@ class StudyRunner:
                 self.experiment,
                 self.seed_root,
                 self.paraphrase_root,
-                vllm_endpoints=self.config.vllm_endpoints,
             )
             self._mark_assignment_completed(assignment_id)
         except (Exception, SystemExit) as exc:
@@ -262,7 +260,6 @@ class StudyRunner:
             seed_run_dir=self.seed_root,
             agent=self.experiment.agent_config(
                 quiet=True,
-                vllm_endpoints=self.config.vllm_endpoints,
             ),
             experiment_id=self.experiment.experiment_id,
             assignment_id=str(assignment["assignment_id"]),
@@ -276,14 +273,10 @@ class StudyRunner:
             feedback_policy=feedback_policy,
             feedback_simulator=self.experiment.feedback_simulator_config(
                 feedback_policy,
-                vllm_endpoints=self.config.vllm_endpoints,
             ),
             prompt_profile=PromptProfile(str(protocol["prompt"])),
             rubric_policy=RubricPolicy(str(condition["rubric_policy"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
-            rubric_proposer_base_url=self.config.vllm_endpoints.get(
-                str(protocol["rubric_proposer_model"])
-            ),
             rubric_semantic_judge_model=str(protocol["rubric_semantic_judge_model"]),
             rubric_semantic_judge_max_calls=int(
                 protocol["rubric_semantic_judge_max_calls_per_assignment"]
@@ -294,12 +287,8 @@ class StudyRunner:
             rubric_semantic_judge_max_output_tokens=int(
                 protocol["rubric_semantic_judge_max_output_tokens_per_call"]
             ),
-            rubric_semantic_judge_base_url=self.config.vllm_endpoints.get(
-                str(protocol["rubric_semantic_judge_model"])
-            ),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
-            judge_base_url=self.config.vllm_endpoints.get(str(protocol["judge_model"])),
             max_review_chars=max_review_chars,
             resume=resume,
             show_progress=True,

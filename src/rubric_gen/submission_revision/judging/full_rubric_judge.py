@@ -20,44 +20,6 @@ def _generate_response(
     repeat_index: int,
 ) -> protocol.FullRubricGeneration:
     request_parameters = protocol.request_parameters(spec)[repeat_index]
-    if spec.provider == "vllm":
-        from openai import OpenAI
-
-        assert spec.api_base is not None
-        response = OpenAI(
-            base_url=spec.api_base.rstrip("/") + "/",
-            api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
-            timeout=protocol.FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
-            max_retries=0,
-        ).chat.completions.create(
-            model=spec.requested_model,
-            messages=[
-                {"role": "system", "content": protocol.FULL_RUBRIC_SYSTEM_PROMPT},
-                {"role": "user", "content": payload},
-            ],
-            max_tokens=spec.max_output_tokens_per_call,
-            temperature=0.0,
-            seed=spec.repeat_seeds[repeat_index],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "full_rubric_structured_evaluation",
-                    "strict": True,
-                    "schema": schema,
-                },
-            },
-        )
-        text = response.choices[0].message.content or ""
-        return protocol.FullRubricGeneration(
-            text=text,
-            provider="vllm",
-            requested_model=spec.requested_model,
-            effective_model=str(getattr(response, "model", spec.requested_model)),
-            response_id=getattr(response, "id", None),
-            request_parameters=request_parameters,
-            usage=getattr(response, "usage", None),
-        )
-
     if spec.provider == "google":
         from google import genai
         from google.genai import types
@@ -186,7 +148,6 @@ def grade_full_rubric(
     review_text: str,
     answer_text: str,
     requested_model: str,
-    api_base: str | None,
     seed: int,
 ) -> protocol.FullRubricArtifactRecords:
     """Run exactly five bounded full-artifact calls and preserve every report."""
@@ -196,7 +157,6 @@ def grade_full_rubric(
         review_text=review_text,
         answer_text=answer_text,
         requested_model=requested_model,
-        api_base=api_base,
         seed=seed,
     )
     rubric_levels = parse_rubric_levels_strict(rubric_text)
@@ -235,7 +195,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--answer", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--model", required=True)
-    parser.add_argument("--api-base")
     parser.add_argument("--seed", type=int, required=True)
     return parser
 
@@ -247,7 +206,6 @@ def main(argv: list[str] | None = None) -> int:
         review_text=args.review.read_text(encoding="utf-8"),
         answer_text=args.answer.read_text(encoding="utf-8"),
         requested_model=args.model,
-        api_base=args.api_base,
         seed=args.seed,
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)

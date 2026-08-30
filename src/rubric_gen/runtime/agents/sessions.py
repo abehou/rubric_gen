@@ -311,7 +311,7 @@ class CliSolverSessionDriver:
     ) -> list[str]:
         provider = self.adapter.name
 
-        if provider in {"codex", "vllm"}:
+        if provider == "codex":
             command = self.adapter.build_command(paths, self.config, prompt)
             if command[-1] != "-":
                 raise RuntimeError("Codex adapter command must read its prompt from stdin")
@@ -543,7 +543,7 @@ class CliSolverSessionDriver:
                 value if isinstance(value, str) and value.strip() else "",
                 reported_model,
             )
-        if self.adapter.name in {"codex", "vllm"}:
+        if self.adapter.name == "codex":
             return self._codex_session_metadata(event)
         return "", None
 
@@ -576,7 +576,6 @@ class CliSolverSessionDriver:
             "provider": self.adapter.name,
             "session_id": session_id,
             "model": model,
-            "base_url": self.config.base_url,
             "service_tier": self.config.service_tier,
             "resumed": resumed,
             "exit_code": exit_code,

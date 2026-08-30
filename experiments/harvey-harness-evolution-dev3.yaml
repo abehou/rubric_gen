@@ -41,7 +41,6 @@ designer:
 rubric:
   mode: prospective
   proposer_model: gpt-5.6-sol
-  proposer_base_url: null
   max_changes_per_task: 8
   max_output_tokens: 16384
 

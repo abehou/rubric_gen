@@ -158,7 +158,6 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         paraphrase_dir=paraphrases,
         output_dir=tmp_path / "output",
         max_concurrency=1,
-        vllm_endpoints={"judge": "http://judge.test/v1"},
     )
     observed: dict[str, object] = {}
 
@@ -558,7 +557,6 @@ def test_rubric_score_jobs_bind_each_active_generation(
         identity.update({
             "scoring_implementation_sha256": "1" * 64,
             "effective_judge_model": kwargs["model"],
-            "judge_api_base": kwargs["api_base"],
             "benchmark": target_arg.benchmark.value,
             "grading_engine": "full-rubric-structured",
             "review_mode": target_arg.review,
@@ -753,7 +751,6 @@ def test_pairwise_request_hides_rubric_scores_and_submission_labels(
             target=target,
             model="strong-a",
             ordering="higher-first",
-            api_base=None,
             implementation_identity=(
                 rh_protocol._rubric_free_evaluation_implementation_identity()
             ),
@@ -826,7 +823,6 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
         target=target,
         model="strong-a",
         ordering="higher-first",
-        api_base=None,
         implementation_identity=rh_protocol._rubric_free_evaluation_implementation_identity(),
     )
 
@@ -1125,7 +1121,6 @@ def test_rubric_free_request_json_encodes_untrusted_prompt_injection(
             target=target,
             model="strong-a",
             artifact="initial",
-            api_base=None,
             implementation_identity=(
                 rh_protocol._rubric_free_evaluation_implementation_identity()
             ),
@@ -1136,7 +1131,6 @@ def test_rubric_free_request_json_encodes_untrusted_prompt_injection(
             target=target,
             model="strong-a",
             ordering="higher-first",
-            api_base=None,
             implementation_identity=(
                 rh_protocol._rubric_free_evaluation_implementation_identity()
             ),
@@ -1205,7 +1199,6 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         target=target,
         model="strong-a",
         artifact="initial",
-        api_base=None,
         implementation_identity=implementation_identity,
     )
     other_absolute = replace(absolute, target=other)
@@ -1214,7 +1207,6 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         target=target,
         model="strong-a",
         ordering="higher-first",
-        api_base=None,
         implementation_identity=implementation_identity,
     )
     assert pairwise.key == replace(pairwise, target=other).key
@@ -1226,7 +1218,6 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     rubric_score = RubricScoreJob(
         target=target,
         model="strong-a",
-        api_base=None,
         artifact="initial",
         rubric_path=rubric_path,
         roles=(),
@@ -1239,11 +1230,6 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     other_rubric_score = replace(rubric_score, target=other)
     assert rubric_score.key == other_rubric_score.key
 
-    assert replace(absolute, api_base="http://127.0.0.1:8000").key != absolute.key
-    assert replace(
-        pairwise,
-        api_base="http://127.0.0.1:8000",
-    ).key != pairwise.key
     assert replace(
         absolute,
         implementation_identity={
@@ -1251,10 +1237,6 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
             "scoring_implementation_sha256": "5" * 64,
         },
     ).key != absolute.key
-    assert replace(
-        rubric_score,
-        api_base="http://127.0.0.1:8000",
-    ).key != rubric_score.key
     assert replace(
         rubric_score,
         rh_implementation_sha256="4" * 64,
@@ -1289,7 +1271,6 @@ def test_rubric_score_resume_rejects_tampered_records(
     grading_identity.update({
         "scoring_implementation_sha256": "1" * 64,
         "effective_judge_model": "strong-a",
-        "judge_api_base": None,
         "benchmark": target.benchmark.value,
         "grading_engine": "autorubric-criterion",
         "review_mode": target.review,
@@ -1300,7 +1281,6 @@ def test_rubric_score_resume_rejects_tampered_records(
     job = RubricScoreJob(
         target=target,
         model="strong-a",
-        api_base=None,
         artifact="initial",
         rubric_path=rubric_path,
         roles=(),
@@ -1402,7 +1382,6 @@ def test_rubric_free_resume_rejects_tampered_records(
         target=target,
         model="strong-a",
         artifact="initial",
-        api_base=None,
         implementation_identity=(
             rh_protocol._rubric_free_evaluation_implementation_identity()
         ),
@@ -1482,7 +1461,6 @@ def test_rubric_free_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
         target=target,
         model="strong-a",
         artifact="initial",
-        api_base=None,
         implementation_identity=(
             rh_protocol._rubric_free_evaluation_implementation_identity()
         ),
@@ -1558,7 +1536,6 @@ def test_rubric_score_dispatch_rejects_input_changed_after_preflight(
     job = RubricScoreJob(
         target=target,
         model="strong-a",
-        api_base=None,
         artifact="initial",
         rubric_path=rubric_path,
         roles=(),
@@ -1638,7 +1615,6 @@ def test_rubric_free_dispatch_rejects_task_changed_after_preflight(
         target=target,
         model="strong-a",
         artifact="initial",
-        api_base=None,
         implementation_identity=(
             rh_protocol._rubric_free_evaluation_implementation_identity()
         ),
@@ -1787,22 +1763,6 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         sha256_file(absolute_record_path)
     )
 
-    rerouted = RubricFreeEvaluationRunner(
-        EvaluationConfig(
-            experiment=experiment,
-            study_dir=tmp_path / "study",
-            paraphrase_dir=tmp_path / "paraphrases",
-            output_dir=output,
-            max_concurrency=2,
-            resume=True,
-            vllm_endpoints={"strong-a": "http://127.0.0.1:8000/"},
-        ),
-        (target, other),
-        generation_operation=generate,
-    )
-    assert rerouted.run() == 0
-    assert len(calls) == 8
-
     implementation_identity = rh_protocol._rubric_free_evaluation_implementation_identity()
     with monkeypatch.context() as implementation_patch:
         implementation_patch.setattr(
@@ -1826,7 +1786,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
             generation_operation=generate,
         )
         assert changed_implementation.run() == 0
-    assert len(calls) == 12
+    assert len(calls) == 8
 
     same_identity_resume = RubricFreeEvaluationRunner(
         EvaluationConfig(
@@ -1841,14 +1801,14 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         generation_operation=generate,
     )
     assert same_identity_resume.run() == 0
-    assert len(calls) == 16
+    assert len(calls) == 12
 
     tampered_summary = json.loads((output / "summary.json").read_text())
     assert tampered_summary["absolute_records"][0]["verdict"]["score"] == 10
     tampered_summary["absolute_records"][0]["verdict"]["score"] = 90
     (output / "summary.json").write_text(json.dumps(tampered_summary))
     assert same_identity_resume.run() == 0
-    assert len(calls) == 16
+    assert len(calls) == 12
     repaired_summary = json.loads((output / "summary.json").read_text())
     assert repaired_summary["absolute_records"][0]["verdict"]["score"] == 10
 

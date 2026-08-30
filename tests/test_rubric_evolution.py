@@ -198,9 +198,7 @@ def _proposer(
     return RubricProposer(
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         model="proposer",
-        base_url=None,
         semantic_judge_model="semantic",
-        semantic_judge_base_url=None,
         semantic_judge_max_calls=semantic_calls,
         semantic_judge_max_request_bytes=1_048_576,
         semantic_judge_max_output_tokens=32_768,
@@ -268,7 +266,6 @@ def test_generation_identity_covers_history_and_scoring_code() -> None:
 def test_provider_contract_rejects_oversized_request_before_dispatch() -> None:
     contract = ProviderContract(
         model="test-model",
-        base_url=None,
         max_output_tokens=10,
         max_request_bytes=1,
         service_tier=None,

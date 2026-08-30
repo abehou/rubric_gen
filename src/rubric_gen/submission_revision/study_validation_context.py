@@ -62,7 +62,6 @@ class ValidationContext:
     condition: dict[str, object]
     policy: FeedbackPolicy
     rubric_policy: RubricPolicy
-    endpoints: dict[str, str]
     simulator: SimulatedUserFeedback | None
     agent: AgentRunConfig
     task_dir: Path
@@ -82,7 +81,6 @@ def build_validation_context(
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
-    endpoints: dict[str, str],
 ) -> ValidationContext:
     if experiment_dir.is_symlink() or not experiment_dir.is_dir():
         raise RuntimeError(f"revision is not a regular directory: {experiment_dir}")
@@ -91,16 +89,13 @@ def build_validation_context(
     protocol = experiment.protocol
     condition = experiment.condition(str(assignment["condition_id"]))
     policy = FeedbackPolicy(str(condition["feedback_policy"]))
-    simulator_config = experiment.feedback_simulator_config(
-        policy,
-        vllm_endpoints=endpoints,
-    )
+    simulator_config = experiment.feedback_simulator_config(policy)
     simulator = (
         SimulatedUserFeedback(simulator_config)
         if simulator_config is not None
         else None
     )
-    agent = experiment.agent_config(vllm_endpoints=endpoints)
+    agent = experiment.agent_config()
     task_dir = experiment.task_dir(str(assignment["task_id"])).resolve()
     paraphrase_validation.validate_paraphrase_run(paraphrase_run_dir, experiment)
     selection = paraphrase_validation.resolve_paraphrase_selection(
@@ -145,7 +140,6 @@ def build_validation_context(
         experiment_dir,
         experiment,
         protocol,
-        endpoints,
         task_dir,
         selection,
         rubric_policy,
@@ -167,7 +161,6 @@ def build_validation_context(
         condition=condition,
         policy=policy,
         rubric_policy=rubric_policy,
-        endpoints=endpoints,
         simulator=simulator,
         agent=agent,
         task_dir=task_dir,
@@ -186,7 +179,6 @@ def _build_scoring_setup(
     experiment_dir: Path,
     experiment: Experiment,
     protocol: dict[str, object],
-    endpoints: dict[str, str],
     task_dir: Path,
     selection: ParaphraseSelection,
     rubric_policy: RubricPolicy,
@@ -209,7 +201,6 @@ def _build_scoring_setup(
         benchmark=experiment.benchmark,
         review=str(protocol["review"]),
         judge_model=str(protocol["judge_model"]),
-        base_url=endpoints.get(str(protocol["judge_model"])),
         rubric_name=None,
         rubric_set=None,
         rubric_path=selection.optimizer_path,
@@ -281,20 +272,13 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "web_search": False,
         "reasoning_effort": agent.reasoning_effort,
         "service_tier": agent.service_tier,
-        "solver_base_url": agent.base_url,
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": context.condition["feedback_policy"],
         "prompt": protocol["prompt"],
         "rubric_policy": context.condition["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
-        "rubric_proposer_base_url": context.endpoints.get(
-            str(protocol["rubric_proposer_model"])
-        ),
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
         "rubric_semantic_judge_model": protocol["rubric_semantic_judge_model"],
-        "rubric_semantic_judge_base_url": context.endpoints.get(
-            str(protocol["rubric_semantic_judge_model"])
-        ),
         "rubric_semantic_judge_max_calls": protocol[
             "rubric_semantic_judge_max_calls_per_assignment"
         ],
@@ -309,7 +293,6 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         ),
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
-        "judge_base_url": context.endpoints.get(str(protocol["judge_model"])),
         "max_review_chars": protocol["max_review_chars"],
         "initial_rubric_path": str(context.selection.optimizer_path.resolve()),
         "initial_generation_sha256": (

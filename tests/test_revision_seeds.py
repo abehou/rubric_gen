@@ -468,7 +468,7 @@ def test_seed_stage_rejects_a_completed_stale_judge_identity(
             submission,
             experiment_dir,
         )
-        identity["judge_api_base"] = "https://stale.example.invalid"
+        identity["scoring_implementation_sha256"] = "f" * 64
         return artifacts, identity
 
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", stale_judge)
