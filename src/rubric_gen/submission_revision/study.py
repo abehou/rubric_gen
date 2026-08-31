@@ -256,7 +256,7 @@ class StudyRunner:
         return SubmissionRevisionConfig(
             task_dir=self.experiment.task_dir(str(assignment["task_id"])),
             experiment_dir=self._experiment_dir(assignment),
-            revision_rounds=int(protocol["revision_rounds"]),
+            max_revisions=int(protocol["max_revisions"]),
             seed_run_dir=self.seed_root,
             agent=self.experiment.agent_config(
                 quiet=True,

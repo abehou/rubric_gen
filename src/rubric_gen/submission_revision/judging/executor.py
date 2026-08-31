@@ -23,7 +23,6 @@ from .artifacts import (
 )
 from .models import (
     DEFAULT_JUDGE_MODEL,
-    JUDGMENT_REPEATS,
     SCORE_INPUT_ATTESTATION_KEYS,
     SCORE_VALIDATION_KEYS,
     JudgeAttempt,
@@ -40,7 +39,7 @@ from .full_rubric_protocol import (
     FullRubricRunSpec,
     build_full_rubric_run_spec,
     deterministic_grading_seed,
-    records_from_raw_reports,
+    records_from_report,
     validate_usage_record as validate_full_rubric_usage_record,
 )
 from .scoring import (
@@ -52,7 +51,7 @@ from .scoring import (
 
 
 JUDGE_SUBPROCESS_TIMEOUT_SECONDS = int(
-    JUDGMENT_REPEATS * FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS + 60
+    FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS + 60
 )
 
 
@@ -307,8 +306,7 @@ class JudgeExecutor:
             if type(metadata) is not dict or set(metadata) != {
                 "code_identity",
                 "execution",
-                "raw_reports",
-                "dispersion",
+                "raw_report",
             }:
                 raise JudgeScoreValidationError(
                     "full-rubric structured metadata is invalid"
@@ -329,10 +327,10 @@ class JudgeExecutor:
                 raise JudgeScoreValidationError(
                     "full-rubric structured execution contract changed"
                 )
-            call_usage = usage["calls"] if type(usage) is dict else None
-            expected_records = records_from_raw_reports(
+            call_usage = usage["call"] if type(usage) is dict else None
+            expected_records = records_from_report(
                 rubric_text=rubric.text,
-                raw_reports=metadata["raw_reports"],
+                raw_report=metadata["raw_report"],
                 spec=spec,
                 call_usage=call_usage,
             )
@@ -342,11 +340,8 @@ class JudgeExecutor:
             converted_score = expected_records.score
             converted_normalized_score = expected_records.normalized_score
             converted_raw_score = expected_records.raw_score
-            converted_level_votes = expected_records.criterion_level_votes
+            converted_levels = expected_records.criterion_levels
             converted_criterion_scores = expected_records.criterion_scores
-            engine_metrics: dict[str, object] = {
-                "dispersion": expected_records.dispersion
-            }
         except (FullRubricJudgeError, TypeError, ValueError, KeyError) as exc:
             raise JudgeScoreValidationError(str(exc)) from exc
         if canonical_json(reward) != canonical_json(expected_records.reward):
@@ -371,7 +366,7 @@ class JudgeExecutor:
             validated.score != converted_score
             or validated.normalized_score != converted_normalized_score
             or validated.raw_score != converted_raw_score
-            or validated.criterion_level_votes != converted_level_votes
+            or validated.criterion_levels != converted_levels
             or validated.criterion_scores != converted_criterion_scores
             or not validated.score_matches_reported
         ):
@@ -385,10 +380,7 @@ class JudgeExecutor:
             "raw_score": validated.raw_score,
             "reported_score": validated.reported_score,
             "score_matches_reported": validated.score_matches_reported,
-            "criterion_level_votes": {
-                criterion_id: list(votes)
-                for criterion_id, votes in validated.criterion_level_votes.items()
-            },
+            "criterion_levels": validated.criterion_levels,
             "criterion_scores": validated.criterion_scores,
             "rubric_source": rubric.source,
             "rubric_set_id": rubric.rubric_set_id,
@@ -399,7 +391,6 @@ class JudgeExecutor:
             "reward_sha256": hashlib.sha256(reward_raw).hexdigest(),
             "evaluation_sha256": hashlib.sha256(evaluation_raw).hexdigest(),
             "usage_sha256": hashlib.sha256(usage_raw).hexdigest(),
-            "engine_metrics": engine_metrics,
         }
 
     def valid_score_validation(
@@ -442,8 +433,6 @@ class JudgeExecutor:
     ) -> dict[str, Any]:
         self.validate_target(attempt.target)
         identities = self.target_identities(attempt.target)
-        if type(attempt.repeat_index) is not int or attempt.repeat_index < 1:
-            raise JudgeScoreValidationError("repeat_index must be a positive integer")
         review_sha256 = sha256_text(review_text)
         answer_sha256 = sha256_text(answer_text)
         engine = self.grading_engine
@@ -457,7 +446,6 @@ class JudgeExecutor:
             assignment_identity=attempt.target.task,
             grading_engine=engine.value,
             engine_release=str(engine_release),
-            repeat_index=attempt.repeat_index,
         )
         try:
             engine_execution = build_full_rubric_run_spec(
@@ -483,7 +471,6 @@ class JudgeExecutor:
             "max_review_chars": self.config.max_review_chars,
             "task": attempt.target.task,
             "run_identity": identities.canonical_run,
-            "repeat_index": attempt.repeat_index,
         }
 
     @staticmethod

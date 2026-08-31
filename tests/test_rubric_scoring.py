@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from rubric_gen.submission_revision.judging.scoring import (
@@ -19,7 +17,7 @@ RUBRIC = (
 )
 
 
-def test_recomputation_applies_penalty_and_ignores_reported_criterion_scores() -> None:
+def test_recomputation_applies_penalty() -> None:
     levels = parse_rubric_levels_strict(RUBRIC)
 
     result = validate_judge_score(
@@ -27,50 +25,50 @@ def test_recomputation_applies_penalty_and_ignores_reported_criterion_scores() -
         evaluation={
             "criteria": {
                 "criterion_1": {
-                    "level_votes": ["B", "B", "B", "A", "A"],
-                    "mean_points": 70.0,
+                    "level": "B",
+                    "points": 50,
                 },
                 "criterion_2": {
-                    "level_votes": ["C", "C", "C", "A", "A"],
-                    "mean_points": -6.0,
+                    "level": "C",
+                    "points": -10,
                 },
             }
         },
         reward={"score": 50.0},
     )
 
-    assert (result.raw_score, result.score) == (64.0, 64.0)
-    assert result.normalized_score == 0.64
+    assert (result.raw_score, result.score) == (40.0, 40.0)
+    assert result.normalized_score == 0.4
     assert result.reported_score == 50.0
     assert not result.score_matches_reported
-    assert result.criterion_level_votes == {
-        "criterion_1": ("B", "B", "B", "A", "A"),
-        "criterion_2": ("C", "C", "C", "A", "A"),
+    assert result.criterion_levels == {
+        "criterion_1": "B",
+        "criterion_2": "C",
     }
-    assert result.criterion_scores == {"criterion_1": 70.0, "criterion_2": -6.0}
+    assert result.criterion_scores == {"criterion_1": 50.0, "criterion_2": -10.0}
 
 
-def test_five_repeat_mean_is_not_rounded_to_an_integer() -> None:
+def test_score_uses_the_selected_level() -> None:
     result = validate_judge_score(
         rubric_levels={"criterion_1": {"A": 2, "B": 0}},
         evaluation={
             "criteria": {
                 "criterion_1": {
-                    "level_votes": ["A", "A", "B", "B", "B"],
-                    "mean_points": 0.8,
+                    "level": "A",
+                    "points": 2,
                 }
             }
         },
-        reward={"score": 0.8},
+        reward={"score": 2.0},
     )
 
-    assert result.score == 0.8
-    assert result.raw_score == 0.8
-    assert result.normalized_score == 0.008
+    assert result.score == 2.0
+    assert result.raw_score == 2.0
+    assert result.normalized_score == 0.02
     assert result.score_matches_reported
 
 
-def test_raw_score_uses_the_canonical_criterion_sum() -> None:
+def test_raw_score_uses_the_criterion_sum() -> None:
     result = validate_judge_score(
         rubric_levels={
             "criterion_1": {"A": 1_000_001, "B": 0},
@@ -79,22 +77,19 @@ def test_raw_score_uses_the_canonical_criterion_sum() -> None:
         evaluation={
             "criteria": {
                 "criterion_1": {
-                    "level_votes": ["B", "B", "B", "B", "A"],
-                    "mean_points": 200_000.2,
+                    "level": "A",
+                    "points": 1_000_001,
                 },
                 "criterion_2": {
-                    "level_votes": ["A", "B", "B", "B", "B"],
-                    "mean_points": -800_000.8,
+                    "level": "B",
+                    "points": -1_000_001,
                 },
             }
         },
         reward={"score": 0.0},
     )
 
-    repeat_mean = math.fsum((0, -1_000_001, -1_000_001, -1_000_001, 0)) / 5
-    criterion_sum = math.fsum(result.criterion_scores.values())
-    assert repeat_mean != criterion_sum
-    assert result.raw_score == criterion_sum
+    assert result.raw_score == 0
 
 
 def test_parser_preserves_explicit_positive_and_negative_values() -> None:
@@ -172,11 +167,11 @@ def test_parser_rejects_empty_or_incomplete_rubrics(rubric: str) -> None:
 @pytest.mark.parametrize(
     "criteria",
     (
-        {"criterion_1": {"level_votes": ["A"] * 5, "mean_points": 100.0}},
+        {"criterion_1": {"level": "A", "points": 100.0}},
         {
-            "criterion_1": {"level_votes": ["A"] * 5, "mean_points": 100.0},
-            "criterion_2": {"level_votes": ["A"] * 5, "mean_points": 0.0},
-            "criterion_3": {"level_votes": ["A"] * 5, "mean_points": 0.0},
+            "criterion_1": {"level": "A", "points": 100.0},
+            "criterion_2": {"level": "A", "points": 0.0},
+            "criterion_3": {"level": "A", "points": 0.0},
         },
     ),
 )
@@ -197,8 +192,8 @@ def test_unknown_or_inexact_level_vote_is_rejected(level: str) -> None:
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 10, "B": 0}},
             evaluation={"criteria": {"criterion_1": {
-                "level_votes": [level] * 5,
-                "mean_points": 0.0,
+                "level": level,
+                "points": 0.0,
             }}},
             reward={"score": 0.0},
         )
@@ -210,8 +205,8 @@ def test_non_string_level_vote_is_rejected(level: object) -> None:
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 10, "B": 0}},
             evaluation={"criteria": {"criterion_1": {
-                "level_votes": [level] * 5,
-                "mean_points": 0.0,
+                "level": level,
+                "points": 0.0,
             }}},
             reward={"score": 0.0},
         )
@@ -225,8 +220,8 @@ def test_reward_score_requires_an_in_range_finite_number(
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 50}},
             evaluation={"criteria": {"criterion_1": {
-                "level_votes": ["A"] * 5,
-                "mean_points": 50.0,
+                "level": "A",
+                "points": 50.0,
             }}},
             reward={"score": reported_score},
         )
@@ -243,8 +238,8 @@ def test_reward_must_be_an_object_with_exactly_one_score_key(
         validate_judge_score(
             rubric_levels={"criterion_1": {"A": 50}},
             evaluation={"criteria": {"criterion_1": {
-                "level_votes": ["A"] * 5,
-                "mean_points": 50.0,
+                "level": "A",
+                "points": 50.0,
             }}},
             reward=reward,
         )
@@ -266,8 +261,8 @@ def test_authoritative_score_is_clamped_but_raw_score_is_preserved(
     result = validate_judge_score(
         rubric_levels=parse_rubric_levels_strict(rubric),
         evaluation={"criteria": {"criterion_1": {
-            "level_votes": ["A"] * 5,
-            "mean_points": expected_raw,
+            "level": "A",
+            "points": expected_raw,
         }}},
         reward={"score": reported_score},
     )

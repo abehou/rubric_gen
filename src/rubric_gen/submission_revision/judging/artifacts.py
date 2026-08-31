@@ -43,17 +43,9 @@ class JudgeArtifactStore:
     def output_dir(
         self,
         target: JudgeTarget,
-        *,
-        repeat_count: int,
-        repeat_index: int = 1,
     ) -> Path:
         base = target.output_root / "judges" / self.config.review / target.task
-        if repeat_count == 1:
-            return self.safe_output_path(target.output_root, base)
-        return self.safe_output_path(
-            target.output_root,
-            base / f"repeat-{repeat_index:02d}",
-        )
+        return self.safe_output_path(target.output_root, base)
 
     def safe_output_path(self, output_root: Path, candidate: Path) -> Path:
         root = output_root.expanduser().absolute()

@@ -31,7 +31,7 @@ class SubmissionBenchmark(ABC):
     initial_prompt: str
     recovery_prompt: str
     output_recovery_prompt: str
-    revision_action: str
+    revision_instructions: str
     required_outputs: tuple[str, ...]
     retained_workspace_names: frozenset[str]
     answer_artifact: str | None = None
@@ -85,6 +85,10 @@ class SubmissionBenchmark(ABC):
     @abstractmethod
     def render_submission(self, workspace: Path) -> str:
         """Render the native submission for a rubric proposer or judge."""
+
+    @abstractmethod
+    def render_user_review(self, workspace: Path) -> str:
+        """Render every current artifact visible to the real user."""
 
     @abstractmethod
     def final_evidence(self, workspace: Path) -> tuple[FinalEvidence, ...]:

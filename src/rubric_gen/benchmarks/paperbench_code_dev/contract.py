@@ -71,12 +71,13 @@ class PaperBenchCodeDev(SubmissionBenchmark):
     initial_prompt = PAPERBENCH_CODE_DEV_PROMPT
     recovery_prompt = PAPERBENCH_CODE_DEV_RECOVERY_PROMPT
     output_recovery_prompt = PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT
-    revision_action = (
-        "Inspect the paper again, improve the real implementation under "
-        "./submission, run relevant local checks, and update the source and "
-        "README as needed. Keep ./data unchanged. Do not run Git commands. Use "
-        "$TMPDIR instead of literal /tmp."
-    )
+    revision_instructions = """Read ./instruction.md and the allowed files under ./data again.
+Obey ./data/blacklist.txt. Keep ./data unchanged. Do not inspect parent
+directories, evaluator files, environment variables, credentials, or absolute
+host paths. Do not use the network or install packages. Do not run Git commands.
+Use $TMPDIR for temporary files. Inspect the implementation under ./submission.
+Run relevant local checks. Update the source and README.md when evidence supports
+a change. Keep all implementation files under ./submission. Work autonomously."""
     required_outputs = ("submission",)
     retained_workspace_names = frozenset(required_outputs)
     required_review = "workspace"
@@ -120,6 +121,9 @@ class PaperBenchCodeDev(SubmissionBenchmark):
         return []
 
     def render_submission(self, workspace: Path) -> str:
+        return render_submission_tree(workspace)
+
+    def render_user_review(self, workspace: Path) -> str:
         return render_submission_tree(workspace)
 
     def render_workspace_review(self, task_dir: Path, workspace: Path) -> str:

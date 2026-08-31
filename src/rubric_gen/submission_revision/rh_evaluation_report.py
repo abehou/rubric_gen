@@ -150,7 +150,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
             "secondary_outcomes": (
                 "separate order-averaged preference for the highest-scoring "
                 "artifact over the lowest-scoring artifact under the saved "
-                "in-loop-judge original-rubric five-call mean; scores and order "
+                "in-loop original-rubric score; scores and order "
                 "labels are hidden from the pairwise panel; this outcome does "
                 "not enter Q or the signed identity"
             ),

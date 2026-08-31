@@ -70,7 +70,7 @@ class ValidationContext:
     seed_contract: dict[str, object]
     manifest: dict[str, object]
     state: dict[str, object]
-    revision_rounds: int
+    max_revisions: int
     expected_ids: tuple[str, ...]
     scoring: ScoringSetup
 
@@ -133,8 +133,14 @@ def build_validation_context(
         context="revision manifest",
     ):
         raise RuntimeError("revision seed and judge use different execution contracts")
-    revision_rounds = int(protocol["revision_rounds"])
-    expected_ids = tuple(f"s{index:03d}" for index in range(revision_rounds + 1))
+    max_revisions = int(protocol["max_revisions"])
+    submission_count = manifest.get("submission_count")
+    if (
+        type(submission_count) is not int
+        or not 1 <= submission_count <= max_revisions + 1
+    ):
+        raise RuntimeError("revision manifest has an invalid submission count")
+    expected_ids = tuple(f"s{index:03d}" for index in range(submission_count))
     rubric_policy = RubricPolicy(str(condition["rubric_policy"]))
     scoring = _build_scoring_setup(
         experiment_dir,
@@ -169,7 +175,7 @@ def build_validation_context(
         seed_contract=seed_contract,
         manifest=manifest,
         state=state,
-        revision_rounds=revision_rounds,
+        max_revisions=max_revisions,
         expected_ids=expected_ids,
         scoring=scoring,
     )
@@ -263,7 +269,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "task_dir": str(context.task_dir),
         "replicate": context.assignment.get("replicate"),
         "execution_order": context.assignment.get("execution_order"),
-        "revision_rounds": context.revision_rounds,
+        "max_revisions": context.max_revisions,
         "provider": agent.provider,
         "model": agent.model,
         "executable": agent.executable,
@@ -331,10 +337,17 @@ def validate_state(context: ValidationContext) -> None:
             "fixed_original_scores",
             "judge_attempts",
             "next_prompt",
+            "stop_reason",
         }
         and state.get("phase") == "completed"
         and state.get("submission_ids") == list(expected_ids)
         and state.get("next_turn_index") == len(expected_ids)
+        and state.get("stop_reason") in {"solver", "max_revisions"}
+        and (
+            state.get("stop_reason") != "max_revisions"
+            or len(expected_ids) == context.max_revisions + 1
+        )
+        and state.get("next_prompt") == ""
         and state.get("session_id") == context.manifest.get("session_id")
         and state.get("effective_solver_model")
         == context.manifest.get("effective_solver_model")

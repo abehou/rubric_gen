@@ -36,14 +36,15 @@ from rubric_gen.submission_revision.rubrics.bundles import (
     resolve_rubric_bundle,
 )
 
+
 _COMPLETED_STATUSES = frozenset({"completed", "skipped"})
 
 
 @dataclass(frozen=True)
 class _TaskScoreSummary:
     record: dict[str, Any]
-    scores: tuple[Real, ...]
-    normalized_scores: tuple[float, ...]
+    score: Real | None
+    normalized_score: float | None
 
 
 def _average(values: tuple[Real, ...], digits: int) -> float | None:
@@ -56,64 +57,40 @@ def _score_stddev(values: tuple[Real, ...]) -> float | None:
     return round(pstdev(values), 4) if len(values) > 1 else 0.0
 
 
-def _combined_status(records: tuple[dict[str, Any], ...]) -> str:
-    statuses = {record.get("status") for record in records}
-    for status in ("failed", "planned", "completed"):
-        if status in statuses:
-            return status
-    if statuses == {"skipped"}:
-        return "skipped"
-    return str(records[-1].get("status") or "unknown")
-
-
 def _summarize_task(
     task: str,
     records: list[dict[str, Any]],
 ) -> _TaskScoreSummary:
-    ordered = tuple(sorted(
-        records,
-        key=lambda item: int(item.get("repeat_index") or 1),
-    ))
-    scores = tuple(
-        record["score"]
-        for record in ordered
-        if record.get("status") in _COMPLETED_STATUSES
-        and not isinstance(record.get("score"), bool)
-        and isinstance(record.get("score"), Real)
+    if len(records) != 1:
+        raise RuntimeError(f"task {task} must have exactly one judgment")
+    result = records[0]
+    completed = result.get("status") in _COMPLETED_STATUSES
+    score_value = result.get("score")
+    score = (
+        score_value
+        if completed
+        and not isinstance(score_value, bool)
+        and isinstance(score_value, Real)
+        else None
     )
-    normalized_scores = tuple(
-        record["normalized_score"]
-        for record in ordered
-        if record.get("status") in _COMPLETED_STATUSES
-        and type(record.get("normalized_score")) is float
+    normalized_value = result.get("normalized_score")
+    normalized_score = (
+        normalized_value
+        if completed and type(normalized_value) is float
+        else None
     )
-    first = ordered[0]
     return _TaskScoreSummary(
-        scores=scores,
-        normalized_scores=normalized_scores,
+        score=score,
+        normalized_score=normalized_score,
         record={
             "task": task,
-            "status": _combined_status(ordered),
-            "score": scores[0] if len(ordered) == 1 and scores else None,
-            "normalized_score": (
-                normalized_scores[0]
-                if len(ordered) == 1 and normalized_scores
-                else None
-            ),
-            "scores": list(scores),
-            "normalized_scores": list(normalized_scores),
-            "mean_score": _average(scores, 4),
-            "mean_normalized_score": _average(normalized_scores, 8),
-            "score_stddev": _score_stddev(scores),
-            "min_score": min(scores) if scores else None,
-            "max_score": max(scores) if scores else None,
-            "scored_repeats": len(scores),
-            "total_repeats": len(ordered),
-            "output_dir": first.get("output_dir"),
-            "reward": first.get("reward"),
-            "evaluation": first.get("evaluation"),
-            "stdout": first.get("stdout"),
-            "attempts": list(ordered),
+            "status": result.get("status"),
+            "score": score,
+            "normalized_score": normalized_score,
+            "output_dir": result.get("output_dir"),
+            "reward": result.get("reward"),
+            "evaluation": result.get("evaluation"),
+            "stdout": result.get("stdout"),
         },
     )
 
@@ -187,11 +164,7 @@ class SubmissionJudgeRunner:
 
     def run(self) -> int:
         targets = self.discover_targets()
-        attempts = [
-            JudgeAttempt(target=target, repeat_index=repeat_index)
-            for target in targets
-            for repeat_index in range(1, self.repeat_count + 1)
-        ]
+        attempts = [JudgeAttempt(target=target) for target in targets]
         self.scores_path.parent.mkdir(parents=True, exist_ok=True)
         overall_exit = 0
         records = []
@@ -237,10 +210,6 @@ class SubmissionJudgeRunner:
     def job_count(self) -> int:
         return max(1, self.config.max_concurrency)
 
-    @property
-    def repeat_count(self) -> int:
-        return max(1, self.config.repeats)
-
     def review_attempt(
         self, attempt: JudgeAttempt, index: int, progress: "JudgeProgress"
     ) -> dict[str, Any]:
@@ -251,7 +220,7 @@ class SubmissionJudgeRunner:
             return completed
 
         progress.record(index, attempt.label, "started", {})
-        record = self.review_target(attempt.target, attempt.repeat_index)
+        record = self.review_target(attempt.target)
         progress.record(index, attempt.label, record.get("status", "completed"), record)
         progress.update()
         return record
@@ -260,7 +229,7 @@ class SubmissionJudgeRunner:
         completed = self.completed_record(attempt)
         if completed is not None:
             return completed
-        return self.review_target(attempt.target, attempt.repeat_index)
+        return self.review_target(attempt.target)
 
     def score_summary(self, records: list[dict[str, Any]]) -> dict[str, Any]:
         grouped: dict[str, list[dict[str, Any]]] = {}
@@ -271,12 +240,12 @@ class SubmissionJudgeRunner:
             for task, task_records in sorted(grouped.items())
         )
         scores = tuple(
-            score for summary in task_summaries for score in summary.scores
+            summary.score for summary in task_summaries if summary.score is not None
         )
         normalized_scores = tuple(
-            score
+            summary.normalized_score
             for summary in task_summaries
-            for score in summary.normalized_scores
+            if summary.normalized_score is not None
         )
         tasks = [summary.record for summary in task_summaries]
         return {
@@ -286,13 +255,10 @@ class SubmissionJudgeRunner:
             ).value,
             "score_instrument_scope": self.config.benchmark.value,
             "review": self.config.review,
-            "repeats": self.repeat_count,
             "max_concurrency": self.job_count,
             "total_tasks": len(tasks),
             "total_attempts": len(records),
-            "scored_tasks": sum(
-                task["scored_repeats"] > 0 for task in tasks
-            ),
+            "scored_tasks": len(scores),
             "scored_attempts": len(scores),
             "average_score": _average(scores, 4),
             "average_normalized_score": _average(normalized_scores, 8),
@@ -302,23 +268,15 @@ class SubmissionJudgeRunner:
 
     def print_score_summary(self, summary: dict[str, Any]) -> None:
         print(f"Judge scores ({summary['review']})")
-        print("task\tstatus\tmean\tnormalized_mean\tstddev\tscores")
+        print("task\tstatus\tscore\tnormalized_score")
         for task in summary["tasks"]:
-            mean = task["mean_score"] if task["mean_score"] is not None else "-"
-            stddev = task["score_stddev"] if task["score_stddev"] is not None else "-"
-            normalized_mean = (
-                task["mean_normalized_score"]
-                if task["mean_normalized_score"] is not None else "-"
-            )
-            scores = (
-                ",".join(str(score) for score in task["scores"])
-                if task["scores"]
+            score = task["score"] if task["score"] is not None else "-"
+            normalized = (
+                task["normalized_score"]
+                if task["normalized_score"] is not None
                 else "-"
             )
-            print(
-                f"{task['task']}\t{task['status']}\t{mean}\t{normalized_mean}"
-                f"\t{stddev}\t{scores}"
-            )
+            print(f"{task['task']}\t{task['status']}\t{score}\t{normalized}")
         average = summary["average_score"]
         if average is None:
             print(f"Average score: - (0/{summary['total_attempts']} scored attempts)")
@@ -333,7 +291,7 @@ class SubmissionJudgeRunner:
         if not self.config.resume or self.config.force:
             return None
         target = attempt.target
-        output_dir = self.output_dir(target, attempt.repeat_index)
+        output_dir = self.output_dir(target)
         reward_path = output_dir / "reward.json"
         evaluation_path = output_dir / "evaluation.json"
         score_validation_path = output_dir / "score_validation.json"
@@ -374,8 +332,6 @@ class SubmissionJudgeRunner:
         return {
             "task": target.task,
             "review": self.config.review,
-            "repeat_index": attempt.repeat_index,
-            "repeats": self.repeat_count,
             "run_dir": str(target.run_dir),
             "workspace_dir": str(target.workspace_dir),
             "trajectory": str(target.trajectory_path),
@@ -392,20 +348,16 @@ class SubmissionJudgeRunner:
             **self.rubric_record(rubric),
         }
 
-    def review_target(
-        self, target: JudgeTarget, repeat_index: int = 1
-    ) -> dict[str, Any]:
+    def review_target(self, target: JudgeTarget) -> dict[str, Any]:
         rubric = self.resolve_rubric(target)
         judge_path = self.find_judge(target.task_dir)
-        output_dir = self.output_dir(target, repeat_index)
+        output_dir = self.output_dir(target)
 
         review_text, answer_text = self.review_inputs(target)
 
         base_record = {
             "task": target.task,
             "review": self.config.review,
-            "repeat_index": repeat_index,
-            "repeats": self.repeat_count,
             "run_dir": str(target.run_dir),
             "workspace_dir": str(target.workspace_dir),
             "trajectory": str(target.trajectory_path),
@@ -432,17 +384,13 @@ class SubmissionJudgeRunner:
                 output,
                 review_text,
                 answer_text,
-                attempt=JudgeAttempt(target, repeat_index),
+                attempt=JudgeAttempt(target),
             )
         return {**base_record, **result}
 
-    def output_dir(self, target: JudgeTarget, repeat_index: int = 1) -> Path:
+    def output_dir(self, target: JudgeTarget) -> Path:
         self.discovery.validated_task_id(target.task)
-        return self.artifacts.output_dir(
-            target,
-            repeat_count=self.repeat_count,
-            repeat_index=repeat_index,
-        )
+        return self.artifacts.output_dir(target)
 
     def _tests_dir(self, task_dir: Path) -> Path:
         if task_dir.is_symlink() or not task_dir.is_dir():

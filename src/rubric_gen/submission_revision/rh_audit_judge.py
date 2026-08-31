@@ -37,10 +37,9 @@ from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     build_full_rubric_run_spec,
     deterministic_grading_seed,
     full_rubric_cost_shape,
-    records_from_raw_reports,
+    records_from_report,
 )
 from rubric_gen.submission_revision.judging.models import (
-    JUDGMENT_REPEATS,
     grading_engine_for_benchmark,
 )
 from rubric_gen.submission_revision.judging.scoring import (
@@ -51,7 +50,7 @@ from rubric_gen.runtime.llm import anthropic_schema
 
 RH_FULL_RUBRIC_ENGINE_IDENTITY = {
     "engine": "rh-full-rubric-structured",
-    "aggregation": "five-repeat-arithmetic-mean-signed-points",
+    "score": "single-judgment-signed-points",
     "structured_output": "fixed-count-level-index-records-json-schema",
 }
 
@@ -270,7 +269,7 @@ def rh_full_rubric_cost_shape(
         + payload_bytes
         + schema_bytes
     )
-    total_request_bytes = request_bytes * JUDGMENT_REPEATS
+    total_request_bytes = request_bytes
     if request_bytes > FULL_RUBRIC_MAX_REQUEST_CONTENT_BYTES_PER_CALL:
         raise FullRubricJudgeError(
             f"RH audit request content is {request_bytes} bytes; the per-call limit "
@@ -278,7 +277,7 @@ def rh_full_rubric_cost_shape(
         )
     if total_request_bytes > FULL_RUBRIC_MAX_TOTAL_REQUEST_CONTENT_BYTES:
         raise FullRubricJudgeError(
-            f"RH audit repeated request content totals {total_request_bytes} bytes; "
+            f"RH audit request content totals {total_request_bytes} bytes; "
             f"the limit is {FULL_RUBRIC_MAX_TOTAL_REQUEST_CONTENT_BYTES}"
         )
     return FullRubricCostShape(
@@ -344,14 +343,11 @@ def build_rh_full_rubric_run_spec(
 
 def _request_parameters(
     spec: RhFullRubricRunSpec,
-    repeat_index: int,
 ) -> dict[str, object]:
     execution = spec.as_json()
-    provider_seeds = execution["provider_seeds"]
-    assert type(provider_seeds) is list
     return {
         "temperature": execution["temperature"],
-        "provider_seed": provider_seeds[repeat_index],
+        "provider_seed": execution["provider_seed"],
         "reasoning_effort": execution["reasoning_effort"],
         "provider_storage": execution["provider_storage"],
         "prompt_cache_control": execution["prompt_cache_control"],
@@ -367,9 +363,8 @@ def _generate_response(
     *,
     payload: str,
     schema: dict[str, object],
-    repeat_index: int,
 ) -> FullRubricGeneration:
-    request_parameters = _request_parameters(spec, repeat_index)
+    request_parameters = _request_parameters(spec)
     if spec.provider == "google":
         from google import genai
         from google.genai import types
@@ -390,7 +385,7 @@ def _generate_response(
             config=types.GenerateContentConfig(
                 system_instruction=RH_FULL_RUBRIC_SYSTEM_PROMPT,
                 temperature=0.0,
-                seed=spec.repeat_seeds[repeat_index],
+                seed=spec.seed,
                 max_output_tokens=spec.max_output_tokens_per_call,
                 response_mime_type="application/json",
                 response_json_schema=schema,
@@ -504,7 +499,7 @@ def grade_rh_full_rubric(
     requested_model: str,
     seed: int,
 ) -> FullRubricArtifactRecords:
-    """Run five audit calls with the current provider request contracts."""
+    """Run one audit judgment with the current provider request contract."""
 
     spec = build_rh_full_rubric_run_spec(
         rubric_text=rubric_text,
@@ -519,29 +514,14 @@ def grade_rh_full_rubric(
         max(len(levels) for levels in rubric_levels.values()),
     )
     payload = rh_full_rubric_payload(rubric_text, review_text, answer_text)
-    reports: list[dict[str, object]] = []
-    usage: list[dict[str, object]] = []
-    for repeat_index in range(JUDGMENT_REPEATS):
-        generation = _generate_response(
-            spec,
-            payload=payload,
-            schema=schema,
-            repeat_index=repeat_index,
-        )
-        reports.append(parse_rh_structured_output(generation.text, rubric_levels))
-        usage.append(generation.usage_record())
-    expected_parameters = [
-        _request_parameters(spec, index)
-        for index in range(JUDGMENT_REPEATS)
-    ]
-    if any(
-        call.get("request_parameters") != expected
-        for call, expected in zip(usage, expected_parameters, strict=True)
-    ):
+    generation = _generate_response(spec, payload=payload, schema=schema)
+    report = parse_rh_structured_output(generation.text, rubric_levels)
+    usage = generation.usage_record()
+    if usage.get("request_parameters") != _request_parameters(spec):
         raise RuntimeError("RH full-rubric provider request contract changed")
-    records = records_from_raw_reports(
+    records = records_from_report(
         rubric_text=rubric_text,
-        raw_reports=reports,
+        raw_report=report,
         spec=spec,
         call_usage=usage,
     )
@@ -549,10 +529,6 @@ def grade_rh_full_rubric(
     structured["code_identity"] = dict(RH_FULL_RUBRIC_ENGINE_IDENTITY)
     evaluation = {
         **records.evaluation,
-        "reasoning": (
-            "The RH audit engine recomputed signed points for five complete "
-            "structured judgments and used their arithmetic mean."
-        ),
         "full_rubric_structured": structured,
     }
     usage_record = {
@@ -647,7 +623,6 @@ class RhAuditRubricJudge:
             assignment_identity=self.task_dir.name,
             grading_engine=str(identity["grading_engine"]),
             engine_release=str(RH_FULL_RUBRIC_ENGINE_IDENTITY["engine"]),
-            repeat_index=1,
         )
         last_error: Exception | None = None
         records: FullRubricArtifactRecords | None = None

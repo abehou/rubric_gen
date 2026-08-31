@@ -7,7 +7,6 @@ import re
 from dataclasses import dataclass
 from numbers import Real
 
-from rubric_gen.submission_revision.judging.models import JUDGMENT_REPEATS
 
 
 class JudgeScoreValidationError(ValueError):
@@ -21,7 +20,7 @@ class ValidatedJudgeScore:
     raw_score: float
     reported_score: float
     score_matches_reported: bool
-    criterion_level_votes: dict[str, tuple[str, ...]]
+    criterion_levels: dict[str, str]
     criterion_scores: dict[str, float]
 
 
@@ -151,7 +150,7 @@ def validate_judge_score(
     if not 0.0 <= reported_score <= 100.0:
         raise JudgeScoreValidationError("reward.score must be between 0 and 100")
 
-    criterion_level_votes: dict[str, tuple[str, ...]] = {}
+    criterion_levels: dict[str, str] = {}
     criterion_scores: dict[str, float] = {}
     for criterion_key, levels in levels_by_criterion.items():
         criterion = criteria[criterion_key]
@@ -159,42 +158,33 @@ def validate_judge_score(
             raise JudgeScoreValidationError(
                 f"evaluation.criteria.{criterion_key} must be an object"
             )
-        level_votes = criterion.get("level_votes")
-        if (
-            type(level_votes) is not list
-            or len(level_votes) != JUDGMENT_REPEATS
-            or any(type(level) is not str for level in level_votes)
-        ):
+        level = criterion.get("level")
+        if type(level) is not str:
             raise JudgeScoreValidationError(
-                f"evaluation.criteria.{criterion_key}.level_votes must contain "
-                f"exactly {JUDGMENT_REPEATS} strings"
+                f"evaluation.criteria.{criterion_key}.level must be a string"
             )
-        for level in level_votes:
-            if level not in levels:
-                raise JudgeScoreValidationError(
-                    f"evaluation.criteria.{criterion_key}.level_votes contains "
-                    "a level that the rubric does not define"
-                )
-        votes = tuple(level_votes)
-        mean_points = math.fsum(levels[level] for level in votes) / JUDGMENT_REPEATS
-        reported_mean_points = criterion.get("mean_points")
+        if level not in levels:
+            raise JudgeScoreValidationError(
+                f"evaluation.criteria.{criterion_key}.level is not in the rubric"
+            )
+        points = levels[level]
+        reported_points = criterion.get("points")
         if (
-            isinstance(reported_mean_points, bool)
-            or not isinstance(reported_mean_points, Real)
-            or not math.isfinite(float(reported_mean_points))
+            isinstance(reported_points, bool)
+            or not isinstance(reported_points, Real)
+            or not math.isfinite(float(reported_points))
             or not math.isclose(
-                float(reported_mean_points),
-                mean_points,
+                float(reported_points),
+                points,
                 rel_tol=0.0,
                 abs_tol=1e-12,
             )
         ):
             raise JudgeScoreValidationError(
-                f"evaluation.criteria.{criterion_key}.mean_points does not match "
-                "its level votes"
+                f"evaluation.criteria.{criterion_key}.points does not match its level"
             )
-        criterion_level_votes[criterion_key] = votes
-        criterion_scores[criterion_key] = mean_points
+        criterion_levels[criterion_key] = level
+        criterion_scores[criterion_key] = float(points)
 
     if normalization_maximum is not None and (
         type(normalization_maximum) is not int or normalization_maximum < 1
@@ -203,24 +193,8 @@ def validate_judge_score(
             "score normalization maximum must be a positive integer"
         )
     denominator = normalization_maximum or 100
-    repeat_raw_scores = [
-        math.fsum(
-            levels_by_criterion[criterion_key][
-                criterion_level_votes[criterion_key][repeat_index]
-            ]
-            for criterion_key in levels_by_criterion
-        )
-        for repeat_index in range(JUDGMENT_REPEATS)
-    ]
-    repeat_scores = [
-        max(0.0, min(100.0, raw_score * 100 / denominator))
-        for raw_score in repeat_raw_scores
-    ]
-    # Use the same canonical decomposition persisted in score-validation
-    # records. Mathematically equivalent aggregation orders can differ by many
-    # ulps when a rubric has hundreds of criteria and signed learned points.
     raw_score = math.fsum(criterion_scores.values())
-    score = math.fsum(repeat_scores) / JUDGMENT_REPEATS
+    score = max(0.0, min(100.0, raw_score * 100 / denominator))
     normalized_score = score / 100
     return ValidatedJudgeScore(
         score=score,
@@ -230,7 +204,7 @@ def validate_judge_score(
         score_matches_reported=math.isclose(
             score, reported_score, rel_tol=0.0, abs_tol=1e-12
         ),
-        criterion_level_votes=criterion_level_votes,
+        criterion_levels=criterion_levels,
         criterion_scores=criterion_scores,
     )
 

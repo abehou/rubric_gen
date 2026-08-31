@@ -54,7 +54,7 @@ class _SolverTurnFailure(RuntimeError):
 
 
 class SubmissionRevisionController:
-    """Run a fixed-length linear revision conversation for one task."""
+    """Run a bounded linear revision conversation for one task."""
 
     def __init__(
         self,
@@ -140,7 +140,7 @@ class SubmissionRevisionController:
             "execution_order": self.config.execution_order,
             "task_id": self.task_dir.name,
             "task_dir": str(self.task_dir),
-            "revision_rounds": self.config.revision_rounds,
+            "max_revisions": self.config.max_revisions,
             "provider": self.config.agent.provider,
             "model": self.config.agent.model,
             "executable": self.config.agent.executable,
@@ -227,13 +227,14 @@ class SubmissionRevisionController:
                     self.config.prompt_profile,
                     self.config.benchmark,
                 ),
+                stop_reason=None,
             )
         try:
             if not initialized:
                 TaskWorkspace(self.task_dir, workspace).validate()
                 self._initialize(workspace, live_root, state)
                 initialized = True
-            total = self.config.revision_rounds + 1
+            total = self.config.max_revisions + 1
             if state.phase in {
                 _RevisionPhase.TURN_IN_PROGRESS,
                 _RevisionPhase.FAILED_TURN,
@@ -274,9 +275,11 @@ class SubmissionRevisionController:
                     _RevisionPhase.COMPLETED,
                 }:
                     raise RuntimeError(f"invalid revision state: {state.phase}")
+                if state.phase is _RevisionPhase.COMPLETED:
+                    break
             self.scoring.validate_latest_checkpoint(state)
-            state.phase = _RevisionPhase.COMPLETED
-            self.store.write_state(state)
+            if state.phase is not _RevisionPhase.COMPLETED:
+                raise RuntimeError("revision run ended without a stop reason")
             compaction = self.workspaces.compact_historical_submissions(state)
             self.store.append_event(
                 {
@@ -285,6 +288,7 @@ class SubmissionRevisionController:
                     "submission_count": len(state.submission_ids),
                     "scores": state.scores,
                     "fixed_original_scores": state.fixed_original_scores,
+                    "stop_reason": state.stop_reason,
                     "historical_workspace_files_removed": compaction[0],
                     "historical_workspace_logical_bytes_removed": compaction[1],
                 }
@@ -300,6 +304,7 @@ class SubmissionRevisionController:
                 submission_ids=tuple(state.submission_ids),
                 scores=tuple(state.scores),
                 fixed_original_scores=tuple(state.fixed_original_scores),
+                stop_reason=state.stop_reason or "max_revisions",
             )
         finally:
             if completed or not initialized:
@@ -322,7 +327,7 @@ class SubmissionRevisionController:
             {
                 "kind": _REVISION_EXPERIMENT_KIND,
                 **self._experiment_identity(),
-                "submission_count": self.config.revision_rounds + 1,
+                "submission_count": 1,
                 "live_workspace_dir": str(workspace),
                 "live_workspace_removed": False,
                 "session_id": None,
@@ -337,6 +342,7 @@ class SubmissionRevisionController:
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
         ensure_artifacts_dir(workspace)
+        baseline_sha256 = _solution_tree_sha256(workspace)
         turn_index = state.next_turn_index
         state.phase = _RevisionPhase.TURN_IN_PROGRESS
         self.store.write_state(state)
@@ -344,7 +350,13 @@ class SubmissionRevisionController:
         turn_dir.mkdir(parents=True)
         (turn_dir / "prompt.txt").write_text(state.next_prompt)
         try:
-            self._execute_solver_turn(state, workspace, turn_dir, turn_index)
+            self._execute_solver_turn(
+                state,
+                workspace,
+                turn_dir,
+                turn_index,
+                baseline_sha256,
+            )
         except BaseException as exc:
             if state.phase is not _RevisionPhase.FAILED_TURN:
                 exit_code = exc.exit_code if isinstance(exc, _SolverTurnFailure) else 1
@@ -369,6 +381,7 @@ class SubmissionRevisionController:
         workspace: Path,
         turn_dir: Path,
         turn_index: int,
+        baseline_sha256: str,
     ) -> None:
 
         def record_early_session_id(session_id: str) -> None:
@@ -403,9 +416,33 @@ class SubmissionRevisionController:
         try:
             self.workspaces.verify_live_instruction(workspace)
             self.workspaces.validate_submission_outputs(workspace)
-            _solution_tree_sha256(workspace)
+            decision = self._read_revision_decision(workspace, turn_dir)
+            current_sha256 = _solution_tree_sha256(workspace)
         except (OSError, RuntimeError) as exc:
             raise _SolverTurnFailure(str(exc), 2) from exc
+        changed = current_sha256 != baseline_sha256
+        if decision == "continue" and not changed:
+            raise _SolverTurnFailure(
+                "revision decision is continue, but the submission did not change",
+                2,
+            )
+        if decision == "stop":
+            state.stop_reason = "solver"
+        if not changed:
+            state.next_prompt = ""
+            state.phase = _RevisionPhase.COMPLETED
+            self.store.write_state(state)
+            self.store.append_event(
+                {
+                    "event": "revision_stopped",
+                    "turn": turn_index,
+                    "decision": decision,
+                    "submission_changed": False,
+                    "session_id": state.session_id,
+                    "trajectory_sha256": _sha256_file(turn.trajectory_path),
+                }
+            )
+            return
         submission_id = f"s{turn_index:03d}"
         trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
             self.experiment_dir
@@ -426,12 +463,35 @@ class SubmissionRevisionController:
                 "turn": turn_index,
                 "session_id": state.session_id,
                 "trajectory_sha256": _sha256_file(turn.trajectory_path),
+                "decision": decision,
+                "submission_changed": True,
             }
         )
         state.submission_ids.append(submission_id)
         state.next_turn_index += 1
         state.phase = _RevisionPhase.READY_FOR_JUDGE
         self.store.write_state(state)
+        self.store.update_manifest({"submission_count": len(state.submission_ids)})
+
+    @staticmethod
+    def _read_revision_decision(workspace: Path, turn_dir: Path) -> str:
+        path = workspace / "revision.json"
+        try:
+            value = os.lstat(path)
+        except OSError as exc:
+            raise RuntimeError("solver did not write revision.json") from exc
+        if not stat.S_ISREG(value.st_mode):
+            raise RuntimeError("revision.json must be a regular file")
+        payload = _read_json_object(path, "revision decision")
+        if set(payload) != {"decision"} or payload["decision"] not in {
+            "continue",
+            "stop",
+        }:
+            raise RuntimeError("revision.json has an invalid decision")
+        decision = str(payload["decision"])
+        _write_json(turn_dir / "decision.json", {"decision": decision})
+        path.unlink()
+        return decision
 
     def _mark_turn_failed(
         self,

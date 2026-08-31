@@ -237,7 +237,7 @@ def _load_terminal_revision_state(
         "replicate": assignment.get("replicate"),
         "execution_order": assignment.get("execution_order"),
         "task_dir": str(experiment.task_dir(str(assignment["task_id"]))),
-        "revision_rounds": protocol["revision_rounds"],
+        "max_revisions": protocol["max_revisions"],
         "provider": agent.provider,
         "model": agent.model,
         "executable": agent.executable,
@@ -296,15 +296,18 @@ def _load_terminal_revision_state(
             "fixed_original_scores",
             "judge_attempts",
             "next_prompt",
+            "stop_reason",
         }
         or
         state.get("phase") != "completed"
         or not isinstance(submission_ids, list)
-        or len(submission_ids) < 2
+        or not submission_ids
         or any(type(value) is not str for value in submission_ids)
         or submission_ids
         != [f"s{index:03d}" for index in range(len(submission_ids))]
         or state.get("next_turn_index") != len(submission_ids)
+        or state.get("stop_reason") not in {"solver", "max_revisions"}
+        or state.get("next_prompt") != ""
         or manifest.get("submission_count") != len(submission_ids)
         or state.get("session_id") != manifest.get("session_id")
         or state.get("effective_solver_model")

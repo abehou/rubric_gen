@@ -454,7 +454,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             "endpoint_rubric": "original-master-rubric",
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-engine-"
-                "implementation-repeat; original, active, and selected roles "
+                "implementation; original, active, and selected roles "
                 "do not duplicate an exact "
                 "semantic request"
             ),
@@ -661,7 +661,7 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
             "pairwise_prompt_id": rh.PAIRWISE_PROMPT_ID,
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-engine-"
-                "implementation-repeat-or-order"
+                "implementation-or-order"
             ),
             "predispatch_plan": prepared.predispatch_plan,
         }

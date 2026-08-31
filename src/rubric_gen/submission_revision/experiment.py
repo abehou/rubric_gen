@@ -140,7 +140,9 @@ class Experiment:
         return SimulatedUserConfig(
             model=model,
             max_output_tokens=value["max_output_tokens"],
-            max_aspects=value["max_aspects"],
+            max_concerns=value["max_concerns"],
+            max_history_bytes=value["max_history_bytes"],
+            max_request_bytes=value["max_request_bytes"],
             max_retries=value["max_retries"],
         )
 
@@ -404,8 +406,8 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
     protocol = payload["protocol"]
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
-    rounds = protocol.get("revision_rounds", "invalid")
-    experiment_id = f"{benchmark}-factorial-r{rounds}-{digest}"
+    max_revisions = protocol.get("max_revisions", "invalid")
+    experiment_id = f"{benchmark}-factorial-r{max_revisions}-{digest}"
     if not _ID.fullmatch(experiment_id):
         raise ValueError("derived experiment ID is invalid")
     return experiment_id
@@ -413,7 +415,7 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
 
 def _validate_protocol(protocol: object) -> None:
     base_keys = {
-        "revision_rounds", "prompt", "feedback_simulator", "solver",
+        "max_revisions", "prompt", "feedback_simulator", "solver",
         "judge_model",
         "rubric_name", "review", "max_review_chars",
         "rubric_proposer_model",
@@ -427,8 +429,8 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError("protocol must be a mapping")
     if set(protocol) != base_keys:
         raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
-    if type(protocol["revision_rounds"]) is not int or protocol["revision_rounds"] < 1:
-        raise ValueError("revision_rounds must be positive")
+    if type(protocol["max_revisions"]) is not int or protocol["max_revisions"] < 1:
+        raise ValueError("max_revisions must be positive")
     if type(protocol["prompt"]) is not str:
         raise ValueError("protocol prompt must be a string")
     PromptProfile(protocol["prompt"])
@@ -450,7 +452,7 @@ def _validate_protocol(protocol: object) -> None:
     if (
         type(protocol["rubric_semantic_judge_max_calls_per_assignment"]) is not int
         or protocol["rubric_semantic_judge_max_calls_per_assignment"]
-        != max(1, protocol["revision_rounds"] - 1)
+        != max(1, protocol["max_revisions"] - 1)
     ):
         raise ValueError(
             "rubric semantic reviewer call cap must cover offline compilation "
@@ -514,7 +516,9 @@ def _validate_protocol(protocol: object) -> None:
     simulator_keys = {
         "model",
         "max_output_tokens",
-        "max_aspects",
+        "max_concerns",
+        "max_history_bytes",
+        "max_request_bytes",
         "max_retries",
     }
     if not isinstance(simulator, dict) or set(simulator) != simulator_keys:
@@ -525,7 +529,9 @@ def _validate_protocol(protocol: object) -> None:
     SimulatedUserConfig(
         model=simulator["model"],
         max_output_tokens=simulator["max_output_tokens"],
-        max_aspects=simulator["max_aspects"],
+        max_concerns=simulator["max_concerns"],
+        max_history_bytes=simulator["max_history_bytes"],
+        max_request_bytes=simulator["max_request_bytes"],
         max_retries=simulator["max_retries"],
     )
 

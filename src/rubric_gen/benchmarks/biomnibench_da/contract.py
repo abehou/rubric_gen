@@ -68,11 +68,12 @@ class BiomniBenchDA(SubmissionBenchmark):
     initial_prompt = BIOMNIBENCH_DA_PROMPT
     recovery_prompt = BIOMNIBENCH_DA_RECOVERY_PROMPT
     output_recovery_prompt = BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT
-    revision_action = (
-        "Re-run relevant checks and update trace.md and answer.txt. Store generated "
-        "datasets, tables, plots, logs, and other supporting outputs under "
-        "./artifacts, not ./data."
-    )
+    revision_instructions = """Read ./instruction.md again. Use only ./data as task data.
+Keep ./data unchanged. Do not read source papers, parent directories, evaluator
+files, environment variables, credentials, or absolute host paths. Do not use
+the network or install packages. Inspect trace.md, answer.txt, and ./artifacts.
+Re-run relevant checks. Update trace.md and answer.txt when evidence supports a
+change. Store generated files under ./artifacts. Work autonomously."""
     required_outputs = ("trace.md", "answer.txt")
     retained_workspace_names = frozenset(required_outputs)
     answer_artifact = "answer.txt"
@@ -92,6 +93,14 @@ class BiomniBenchDA(SubmissionBenchmark):
 
     def render_submission(self, workspace: Path) -> str:
         return (workspace / "answer.txt").read_text(encoding="utf-8")
+
+    def render_user_review(self, workspace: Path) -> str:
+        return (
+            "# trace.md\n\n"
+            + (workspace / "trace.md").read_text(encoding="utf-8")
+            + "\n\n# answer.txt\n\n"
+            + (workspace / "answer.txt").read_text(encoding="utf-8")
+        )
 
     def final_evidence(self, workspace: Path) -> tuple[FinalEvidence, ...]:
         evidence: list[FinalEvidence] = []

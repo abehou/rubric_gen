@@ -24,7 +24,7 @@ from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactPair,
     BlindedArtifact,
 )
-from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_feedback_prompt
+from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_revision_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
@@ -136,12 +136,12 @@ def test_code_dev_rubric_uses_exact_official_binary_weights() -> None:
         evaluation={
             "criteria": {
                 "criterion_1": {
-                    "level_votes": ["B"] * 5,
-                    "mean_points": 0.0,
+                    "level": "B",
+                    "points": 0.0,
                 },
                 "criterion_2": {
-                    "level_votes": ["A"] * 5,
-                    "mean_points": 3.0,
+                    "level": "A",
+                    "points": 3.0,
                 },
             }
         },
@@ -419,7 +419,7 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
     for guidance in (
         PAPERBENCH_CODE_DEV.recovery_prompt,
         PAPERBENCH_CODE_DEV.output_recovery_prompt,
-        PAPERBENCH_CODE_DEV.revision_action,
+        PAPERBENCH_CODE_DEV.revision_instructions,
     ):
         assert "Do not run Git commands" in guidance
         assert "$TMPDIR" in guidance
@@ -427,8 +427,9 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
 
 def test_paperbench_contract_owns_native_revision_language() -> None:
     contract = get_submission_benchmark(SubmissionBenchmarkId.PAPERBENCH_CODE_DEV)
-    prompt = render_feedback_prompt(
-        {"policy": "score_only", "score": 50, "generation_sha256": "0" * 64},
+    prompt = render_revision_prompt(
+        FeedbackPolicy.SCORE_ONLY,
+        {"score": 50},
         benchmark=contract.benchmark,
     )
 
@@ -541,19 +542,28 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         "score": 100.0,
         "normalized_score": 1.0,
         "raw_score": 100.0,
-        "criterion_level_votes": {"criterion_1": ["A"] * 5},
+        "criterion_levels": {"criterion_1": "A"},
         "criterion_scores": {"criterion_1": 100.0},
         "rendered_rubric_sha256": rubric_sha256,
     }))
     captured: dict[str, object] = {}
 
     class Simulator:
+        def history_requires_summary(self, _history):
+            return False
+
         def generate(self, **kwargs):
             captured.update(kwargs)
             return {"sealed": True}
 
         def validate(self, *_args, **_kwargs):
-            return "Please improve the implementation evidence."
+            return {
+                "decision": "revise",
+                "concerns": [{
+                    "category": "evidence_traceability",
+                    "feedback": "Please improve the implementation evidence.",
+                }],
+            }
 
     scorer = object.__new__(RevisionScorer)
     scorer.config = SimpleNamespace(
@@ -586,7 +596,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
             ),
         )
 
-    rendered = str(captured["current_submission"])
+    rendered = str(captured["current_artifact"])
     assert "## File: README.md" in rendered
     assert "## File: model.py" in rendered
     assert "native source" in rendered

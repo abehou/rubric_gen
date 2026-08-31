@@ -126,6 +126,12 @@ Each `conditions` entry sets `feedback_policy` to one of these values:
 - `score_only`
 - `user_simulator`
 
+The user simulator makes one feedback call after each nonterminal artifact. It
+sees the complete active rubric, the current public artifacts, and the prior
+interaction. BioMNIBench supplies both `trace.md` and `answer.txt`. Large prior
+histories use one persisted summary, while the complete current rubric and
+artifacts remain verbatim.
+
 The shared pool contains several sealed rubric-paraphrase sets. Each set has
 one rubric for every available task. A replicate selects one complete set before
 revision. All conditions in that replicate use the same selected variant as the
@@ -218,9 +224,8 @@ artifact, so the support rule does not provide independent replication.
 
 BiomniBench-DA and PaperBench use the same grading method. Each judgment sends
 the complete artifact and complete rubric in one structured call. The grader
-makes exactly five calls. It computes the signed score for each call and uses
-their arithmetic mean. It stores all five criterion-level reports and score
-dispersion.
+makes one successful call. It stores one selected level and point value for
+each criterion.
 
 The grader uses temperature zero when the provider supports that field. It
 omits the deprecated field for Claude Opus 5. It uses no provider retry. An
@@ -236,14 +241,14 @@ retry policy remains separate and explicit.
 | Difference finder | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
 | Criterion writer | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
 | Criterion editor | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five repair retries; invalid proposals are dropped after exhaustion |
-| In-loop rubric grader | GPT-5.6 Luna | none | Five full-rubric calls per artifact and rubric |
-| Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | Five full-rubric calls per artifact and rubric |
-| Reference rubric scorer | Claude Opus 5 | low effort | Five full-rubric calls per artifact and rubric |
-| Reference rubric scorer | Gemini 3.6 Flash | low thinking | Five full-rubric calls per artifact and rubric |
-| Rubric-free evaluation panel | Same three models | Same settings | Two absolute-score and two pairwise-preference calls per assignment and model |
+| In-loop rubric grader | GPT-5.6 Luna | none | One successful call per artifact and rubric |
+| Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | One successful call per artifact and rubric |
+| Reference rubric scorer | Claude Opus 5 | low effort | One successful call per artifact and rubric |
+| Reference rubric scorer | Gemini 3.6 Flash | low thinking | One successful call per artifact and rubric |
+| Rubric-free evaluation panel | Same three models | Same settings | Two absolute-score and up to two pairwise-preference calls per assignment and model |
 | Direct RH panel | Same three models | Same settings | One trajectory judgment per assignment and model, before retries |
 
-Development studies use three tasks. Results studies use 20 tasks. All use six
+Development studies use three tasks. Results studies use 20 tasks. All allow six
 revision turns, three replicates, and 12 factorial conditions. Each development
 experiment has 108 assignments. Each results experiment has 720 assignments.
 The active rubric contains at most five elicited criteria. Each accepted

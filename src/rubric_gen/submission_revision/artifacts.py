@@ -32,7 +32,7 @@ RECURSIVE_EXCLUDED_SOLUTION_NAMES = frozenset(
     }
 )
 EXCLUDED_SOLUTION_NAMES = RECURSIVE_EXCLUDED_SOLUTION_NAMES | frozenset(
-    {"data", "instruction.md", "packages"}
+    {"data", "instruction.md", "packages", "revision.json"}
 )
 RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 
@@ -70,7 +70,7 @@ REVISION_MANIFEST_KEYS = frozenset(
         "reasoning_effort",
         "replicate",
         "review",
-        "revision_rounds",
+        "max_revisions",
         "rubric_policy",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",

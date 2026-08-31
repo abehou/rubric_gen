@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from copy import deepcopy
 
 import pytest
 
@@ -11,7 +10,6 @@ from rubric_gen.submission_revision.autorubric import (
     AutoRubricAdapterError,
     AutoRubricBindings,
     build_autorubric,
-    convert_ensemble_report,
     load_autorubric_bindings,
     parse_autorubric_rubric,
 )
@@ -278,161 +276,3 @@ def test_parser_supports_paperbench_context_and_normalization() -> None:
     assert parsed.normalization_maximum == 4
     assert parsed.criteria[0].criterion_id == "criterion_7"
     assert "PaperBench leaf ID: code-a" in parsed.criteria[0].requirement
-
-
-def test_converter_uses_signed_points_and_exposes_report_metadata() -> None:
-    parsed = parse_autorubric_rubric(RUBRIC)
-    raw = report_for()
-    converted = convert_ensemble_report(parsed, raw)
-
-    assert converted.raw_score == 40.0
-    assert converted.score == 40.0
-    assert converted.normalized_score == 0.4
-    assert converted.criterion_level_votes == {
-        "criterion_1": ("B",) * 5,
-        "criterion_2": ("C",) * 5,
-    }
-    assert converted.criterion_scores == {"criterion_1": 50.0, "criterion_2": -10.0}
-    assert converted.reward == {"score": 40.0}
-    assert converted.evaluation["total_score"] == 40.0
-    assert converted.evaluation["criteria"] == {
-        "criterion_1": {
-            "level_votes": ["B"] * 5,
-            "mean_points": 50.0,
-            "reason": " | ".join(
-                f"repeat-{index}: Evidence supports this level."
-                for index in range(1, 6)
-            ),
-        },
-        "criterion_2": {
-            "level_votes": ["C"] * 5,
-            "mean_points": -10.0,
-            "reason": " | ".join(
-                f"repeat-{index}: Evidence supports this level."
-                for index in range(1, 6)
-            ),
-        },
-    }
-    assert converted.raw_report == raw
-    assert converted.raw_report["score"] == 0.99
-    assert converted.usage == {
-        "prompt_tokens": 120,
-        "completion_tokens": 30,
-        "total_tokens": 150,
-        "cache_creation_input_tokens": 4,
-        "cache_read_input_tokens": 12,
-    }
-    assert converted.completion_cost == 0.0125
-    assert converted.agreement == {
-        "mean": 1.0,
-        "criteria": {"criterion_1": 1.0, "criterion_2": 1.0},
-    }
-
-
-def test_converter_averages_five_scores_instead_of_using_snapped_verdict() -> None:
-    raw = report_for()
-    criterion = raw["report"][0]
-    for vote in criterion["multi_choice_votes"][:2]:
-        vote.update(
-            selected_index=0,
-            selected_label="[A]: Complete and correct.",
-            value=1.0,
-        )
-    criterion["final_multi_choice_verdict"]["aggregated_value"] = 0.7
-    criterion["agreement"] = 0.6
-    raw["mean_agreement"] = 0.8
-    raw["judge_scores"].update({"repeat-1": 0.5, "repeat-2": 0.5})
-
-    converted = convert_ensemble_report(parse_autorubric_rubric(RUBRIC), raw)
-
-    assert converted.criterion_level_votes["criterion_1"] == (
-        "A",
-        "A",
-        "B",
-        "B",
-        "B",
-    )
-    assert converted.criterion_scores == {"criterion_1": 70.0, "criterion_2": -10.0}
-    assert converted.dispersion["repeat_scores"] == [90.0, 90.0, 40.0, 40.0, 40.0]
-    assert converted.score == 60.0
-    assert converted.reward == {"score": 60.0}
-
-
-@pytest.mark.parametrize(
-    "mutation",
-    (
-        lambda report: report["report"][0]["multi_choice_votes"][0].update(
-            error="parse: invalid JSON"
-        ),
-        lambda report: report["report"][0]["multi_choice_votes"][0].update(
-            na=True
-        ),
-        lambda report: report["report"][0]["final_multi_choice_verdict"].update(
-            selected_label="[D]: Unknown", selected_index=3
-        ),
-        lambda report: report["report"].pop(),
-    ),
-)
-def test_converter_rejects_errors_abstentions_unknown_options_and_missing_criteria(
-    mutation,
-) -> None:
-    raw = deepcopy(report_for())
-    mutation(raw)
-
-    with pytest.raises(AutoRubricAdapterError):
-        convert_ensemble_report(parse_autorubric_rubric(RUBRIC), raw)
-
-
-def test_converter_rejects_disagreement_metadata_that_differs_from_votes() -> None:
-    raw = report_for()
-    raw["report"][0]["agreement"] = 0.5
-
-    with pytest.raises(AutoRubricAdapterError, match="does not match its votes"):
-        convert_ensemble_report(parse_autorubric_rubric(RUBRIC), raw)
-
-
-@pytest.mark.parametrize(
-    ("mutation", "message"),
-    (
-        (
-            lambda report: report["report"][0]["multi_choice_votes"][0].update(
-                weight=0.5
-            ),
-            "weight must be 1.0",
-        ),
-        (
-            lambda report: report["report"][0]["multi_choice_votes"][0].update(
-                reason=" "
-            ),
-            "reason must be nonempty",
-        ),
-        (
-            lambda report: report["report"][0]["multi_choice_votes"][0].update(
-                shuffle_order=[0, 0, 2]
-            ),
-            "exact option permutation",
-        ),
-        (
-            lambda report: report["report"][0]["final_multi_choice_verdict"].update(
-                selected_index=0,
-                selected_label="[A]: Complete and correct.",
-                value=1.0,
-                aggregated_value=1.0,
-            ),
-            "final verdict does not match mean aggregation",
-        ),
-        (
-            lambda report: report["judge_scores"].update(**{"repeat-1": 0.9}),
-            "repeat-1 score does not match",
-        ),
-    ),
-)
-def test_converter_rejects_incomplete_or_inconsistent_vote_provenance(
-    mutation,
-    message: str,
-) -> None:
-    raw = deepcopy(report_for())
-    mutation(raw)
-
-    with pytest.raises(AutoRubricAdapterError, match=message):
-        convert_ensemble_report(parse_autorubric_rubric(RUBRIC), raw)

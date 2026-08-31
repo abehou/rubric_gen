@@ -43,6 +43,9 @@ from rubric_gen.submission_revision.study_validation_context import (
     ValidationContext,
     valid_score,
 )
+from rubric_gen.submission_revision.user_simulator_history import (
+    build_simulated_user_history,
+)
 
 
 RubricArtifacts = tuple[Path, Path]
@@ -63,6 +66,20 @@ class _ArtifactRoots:
     feedback: Path
     rubric_evaluations: Path
     feedback_generations: Path
+    feedback_history_summaries: Path
+
+
+def _feedback_submission_ids(context: ValidationContext) -> tuple[str, ...]:
+    """Return submissions whose feedback was used by a solver turn."""
+
+    extra_turn = (
+        context.experiment_dir
+        / "turns"
+        / f"turn-{len(context.expected_ids):03d}"
+    )
+    if extra_turn.is_dir() and not extra_turn.is_symlink():
+        return context.expected_ids
+    return context.expected_ids[:-1]
 
 
 def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
@@ -75,10 +92,12 @@ def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
     rubric_generations = context.experiment_dir / "rubric-generations"
     _validate_rubric_generation_set(context, rubric_generations)
     expected_json = [f"{submission_id}.json" for submission_id in context.expected_ids]
+    feedback_ids = _feedback_submission_ids(context)
+    actionable_json = [f"{submission_id}.json" for submission_id in feedback_ids]
     feedback = context.experiment_dir / "feedback"
     _require_directory_names(
         feedback,
-        expected_json,
+        actionable_json,
         "revision feedback set is incomplete",
     )
     rubric_evaluations = context.experiment_dir / "rubric-evaluations"
@@ -88,15 +107,40 @@ def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
         "revision rubric evaluation set is incomplete",
     )
     feedback_generations = context.experiment_dir / "feedback-generations"
+    feedback_history_summaries = (
+        context.experiment_dir / "feedback-history-summaries"
+    )
     if context.policy is FeedbackPolicy.USER_SIMULATOR:
         _require_directory_names(
             feedback_generations,
-            expected_json,
+            actionable_json,
             "simulated-user generation set is incomplete",
+        )
+        assert context.simulator is not None
+        benchmark = get_submission_benchmark(context.experiment.benchmark)
+        summary_names = [
+            f"{submission_id}.json"
+            for submission_id in feedback_ids
+            if context.simulator.history_requires_summary(
+                build_simulated_user_history(
+                    context.experiment_dir,
+                    benchmark,
+                    int(submission_id[1:]),
+                )
+            )
+        ]
+        _validate_optional_directory_names(
+            feedback_history_summaries,
+            summary_names,
+            "simulated-user history summary set is invalid",
         )
     elif os.path.lexists(feedback_generations):
         raise RuntimeError(
             "feedback-generations is only valid for user_simulator feedback"
+        )
+    elif os.path.lexists(feedback_history_summaries):
+        raise RuntimeError(
+            "feedback-history-summaries is only valid for user_simulator feedback"
         )
     return _ArtifactRoots(
         submissions=submissions,
@@ -104,6 +148,7 @@ def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
         feedback=feedback,
         rubric_evaluations=rubric_evaluations,
         feedback_generations=feedback_generations,
+        feedback_history_summaries=feedback_history_summaries,
     )
 
 
@@ -116,6 +161,18 @@ def _require_directory_names(root: Path, expected: list[str], message: str) -> N
         raise RuntimeError(message)
 
 
+def _validate_optional_directory_names(
+    root: Path,
+    expected: list[str],
+    message: str,
+) -> None:
+    if not expected:
+        if os.path.lexists(root):
+            raise RuntimeError(message)
+        return
+    _require_directory_names(root, expected, message)
+
+
 def _validate_rubric_generation_set(
     context: ValidationContext,
     root: Path,
@@ -126,7 +183,7 @@ def _validate_rubric_generation_set(
         else (
             range(2)
             if context.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-            else range(max(1, context.revision_rounds))
+            else range(max(1, len(context.expected_ids) - 1))
         )
     )
     expected = [f"generation-{index:04d}" for index in indices]
@@ -175,9 +232,14 @@ def _validate_submission(
     read_json_object(submission / "snapshot.json", "submission snapshot")
     read_json_object(submission / "status.json", "submission status")
     feedback_path = roots.feedback / f"{submission_id}.json"
-    if feedback_path.is_symlink() or not feedback_path.is_file():
-        raise RuntimeError(f"missing feedback for {submission_id}")
     index = int(submission_id[1:])
+    has_next_turn = submission_id in _feedback_submission_ids(context)
+    if has_next_turn and (
+        feedback_path.is_symlink() or not feedback_path.is_file()
+    ):
+        raise RuntimeError(f"missing feedback for {submission_id}")
+    if not has_next_turn and os.path.lexists(feedback_path):
+        raise RuntimeError(f"terminal submission contains feedback: {submission_id}")
     generation_round = _generation_round(context.rubric_policy, index)
     generation = _validated_generation(
         context,
@@ -202,17 +264,6 @@ def _validate_submission(
         rubric_artifacts,
         fixed_score,
     )
-    projected = _project_feedback(
-        context,
-        roots,
-        submission,
-        submission_id,
-        generation_round,
-        generation,
-        rubric_artifacts,
-        fixed_artifacts,
-        fixed_score,
-    )
     expected_evaluation = _expected_rubric_evaluation(
         context,
         submission_id,
@@ -227,13 +278,28 @@ def _validate_submission(
         raise RuntimeError(f"rubric evaluation disagrees: {submission_id}")
     scores = context.state["scores"]
     assert isinstance(scores, list)
-    if (
-        read_json_object(feedback_path, "revision feedback") != projected.payload
-        or scores[index] != projected.score
-    ):
-        raise RuntimeError(
-            f"feedback disagrees with scoring artifacts: {submission_id}"
+    if scores[index] != expected_evaluation["score"]:
+        raise RuntimeError(f"score disagrees with artifacts: {submission_id}")
+    if has_next_turn:
+        projected = _project_feedback(
+            context,
+            roots,
+            submission,
+            submission_id,
+            generation_round,
+            generation,
+            rubric_artifacts,
+            fixed_artifacts,
+            fixed_score,
         )
+        if (
+            read_json_object(feedback_path, "revision feedback")
+            != projected.payload
+            or scores[index] != projected.score
+        ):
+            raise RuntimeError(
+                f"feedback disagrees with scoring artifacts: {submission_id}"
+            )
 
 
 def _generation_round(policy: RubricPolicy, submission_index: int) -> int:
@@ -518,18 +584,47 @@ def _project_feedback(
         generation_path,
         "simulated-user generation",
     )
-    comment = simulator.validate(
+    history = build_simulated_user_history(
+        context.experiment_dir,
+        get_submission_benchmark(context.experiment.benchmark),
+        int(submission_id[1:]),
+    )
+    summary_path = roots.feedback_history_summaries / f"{submission_id}.json"
+    history_summary = None
+    if simulator.history_requires_summary(history):
+        if summary_path.is_symlink() or not summary_path.is_file():
+            raise RuntimeError(
+                f"missing simulated-user history summary for {submission_id}"
+            )
+        history_summary = read_json_object(
+            summary_path,
+            "simulated-user history summary",
+        )
+        simulator.validate_history_summary(
+            history_summary,
+            experiment_id=context.experiment.experiment_id,
+            assignment_id=str(context.assignment["assignment_id"]),
+            submission_id=submission_id,
+            history=history,
+        )
+    current_artifact = get_submission_benchmark(
+        context.experiment.benchmark
+    ).render_user_review(submission / "workspace")
+    user_feedback = simulator.validate(
         simulated_record,
         experiment_id=context.experiment.experiment_id,
         assignment_id=str(context.assignment["assignment_id"]),
         submission_id=submission_id,
         generation_round=generation_round,
         generation=generation,
+        current_artifact=current_artifact,
+        history=history,
+        history_summary=history_summary,
     )
     return project_rubric_simulated_user_feedback(
         generation,
         rubric_artifacts[0],
-        comment,
+        user_feedback,
         fixed_original_score=float(fixed_score),
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,

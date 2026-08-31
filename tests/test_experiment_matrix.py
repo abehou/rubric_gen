@@ -96,10 +96,11 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
         assert payload["assignment_selection"] == "all"
         assert len(tasks) * 3 * len(expected_conditions) == assignment_count
         protocol = payload["protocol"]
-        assert protocol["revision_rounds"] == 6
+        assert protocol["max_revisions"] == 6
         assert protocol["prompt"] == "base"
         assert set(protocol["feedback_simulator"]) == {
-            "model", "max_output_tokens", "max_aspects", "max_retries",
+            "model", "max_output_tokens", "max_concerns",
+            "max_history_bytes", "max_request_bytes", "max_retries",
         }
         assert protocol["rubric_proposer_max_retries"] == 5
         assert protocol["solver"]["reasoning_effort"] == "low"

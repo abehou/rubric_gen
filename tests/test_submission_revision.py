@@ -223,8 +223,8 @@ def _write_seed_set(
         level = _TEST_SCORE_LEVELS[initial_score]
         evaluation.write_text(json.dumps({
             "criteria": {"criterion_1": {
-                "level_votes": [level] * 5,
-                "mean_points": float(initial_score),
+                "level": level,
+                "points": float(initial_score),
                 "reason": "seed",
             }},
             "reasoning": "seed",
@@ -238,11 +238,10 @@ def _write_seed_set(
             "answer_input_sha256": sha256_text(answer),
             "task": task.name,
             "run_identity": "seeded-run",
-            "repeat_index": 1,
             "score": float(initial_score),
             "normalized_score": initial_score / 100,
             "raw_score": float(initial_score),
-            "criterion_level_votes": {"criterion_1": [level] * 5},
+            "criterion_levels": {"criterion_1": level},
             "criterion_scores": {"criterion_1": float(initial_score)},
             "evaluation_sha256": sha256_file(evaluation),
         }))
@@ -290,7 +289,7 @@ def _config(
     return SubmissionRevisionConfig(
         task_dir=task,
         experiment_dir=root / "experiment",
-        revision_rounds=rounds,
+        max_revisions=rounds,
         seed_run_dir=_write_seed_set(
             root,
             task,
@@ -322,16 +321,20 @@ def _design(config: SubmissionRevisionConfig, task: Path) -> Experiment:
     simulator = config.feedback_simulator or SimulatedUserConfig(
         model="test-simulator",
         max_output_tokens=1_024,
-        max_aspects=2,
+        max_concerns=2,
+        max_history_bytes=131_072,
+        max_request_bytes=1_048_576,
         max_retries=1,
     )
     protocol: dict[str, object] = {
-        "revision_rounds": config.revision_rounds,
+        "max_revisions": config.max_revisions,
         "prompt": config.prompt_profile.value,
         "feedback_simulator": {
             "model": simulator.model,
             "max_output_tokens": simulator.max_output_tokens,
-            "max_aspects": simulator.max_aspects,
+            "max_concerns": simulator.max_concerns,
+            "max_history_bytes": simulator.max_history_bytes,
+            "max_request_bytes": simulator.max_request_bytes,
             "max_retries": simulator.max_retries,
         },
         "rubric_proposer_model": config.rubric_proposer_model,
@@ -440,6 +443,7 @@ class FakeSession:
         trajectory.write_text(json.dumps({"turn": index}) + "\n")
         (workspace / "answer.txt").write_text(f"answer-{index}\n")
         (workspace / "trace.md").write_text(f"trace-{index}\n")
+        (workspace / "revision.json").write_text('{"decision":"continue"}\n')
         return SessionTurnResult(
             session_id=session_id,
             model="test-model",
@@ -499,8 +503,8 @@ class FakeJudge:
         level = _TEST_SCORE_LEVELS[score]
         evaluation.write_text(json.dumps({
             "criteria": {"criterion_1": {
-                "level_votes": [level] * 5,
-                "mean_points": float(score),
+                "level": level,
+                "points": float(score),
                 "reason": "checked",
             }},
             "reasoning": "checked",
@@ -516,11 +520,10 @@ class FakeJudge:
             "answer_input_sha256": sha256_text(answer_text),
             "task": self.task_name,
             "run_identity": str(output),
-            "repeat_index": 1,
             "score": float(score),
             "normalized_score": score / 100,
             "raw_score": float(score),
-            "criterion_level_votes": {"criterion_1": [level] * 5},
+            "criterion_levels": {"criterion_1": level},
             "criterion_scores": {"criterion_1": float(score)},
             "reward_sha256": sha256_file(reward),
             "evaluation_sha256": sha256_file(evaluation),
@@ -1098,15 +1101,8 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
     assert state["fixed_original_scores"] == [80, 55, 70]
-    state["next_prompt"] = "persisted historical prompt\n"
-    state_path.write_text(json.dumps(state))
-    validate_completed_revision(
-        config.experiment_dir,
-        assignment,
-        _design(config, task),
-        config.seed_run_dir,
-        config.experiment_dir / "paraphrases",
-    )
+    assert state["next_prompt"] == ""
+    assert state["stop_reason"] == "max_revisions"
     manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
     assert manifest["live_workspace_removed"] is True
     assert manifest["experiment_id"] == EXPERIMENT_ID
@@ -1116,7 +1112,7 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
     preflight = rubric_evaluation["dispatch_preflight"]
     assert preflight["generation_sha256"] == rubric_evaluation["generation_sha256"]
     assert preflight["rubric_sha256"] == rubric_evaluation["rubric_sha256"]
-    assert preflight["cost_shape"]["calls"] == 5
+    assert preflight["cost_shape"]["calls"] == 1
     unexpected_generation = (
         config.experiment_dir / "rubric-generations" / "unexpected"
     )
@@ -1143,6 +1139,73 @@ def test_linear_revision_uses_shared_seed_one_session_and_exact_completion(
             config.seed_run_dir,
             config.experiment_dir / "paraphrases",
         )
+
+
+def test_solver_can_stop_without_creating_a_duplicate_submission(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=3)
+
+    class StopSession(FakeSession):
+        def _turn(
+            self, workspace: Path, prompt: str, turn_dir: Path, session_id: str
+        ) -> SessionTurnResult:
+            self.prompts.append(prompt)
+            self.sessions.append(session_id)
+            turn_dir.mkdir(parents=True, exist_ok=True)
+            trajectory = turn_dir / "trajectory.stream.jsonl"
+            trajectory.write_text('{"turn":1}\n')
+            (workspace / "revision.json").write_text('{"decision":"stop"}\n')
+            return SessionTurnResult(
+                session_id=session_id,
+                model="test-model",
+                exit_code=0,
+                trajectory_path=trajectory,
+            )
+
+    result = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=StopSession(),
+            judge=FakeJudge(task, (80,), tmp_path / "judge"),
+        ),
+    ).run()
+
+    assert result.submission_ids == ("s000",)
+    assert result.scores == (80,)
+    assert result.stop_reason == "solver"
+    assert (config.experiment_dir / "turns" / "turn-001" / "decision.json").is_file()
+    assert not (config.experiment_dir / "submissions" / "s001").exists()
+    manifest = json.loads((config.experiment_dir / "manifest.json").read_text())
+    assert manifest["submission_count"] == 1
+
+
+def test_solver_can_stop_after_one_changed_submission(tmp_path: Path) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=3)
+
+    class StopAfterChangeSession(FakeSession):
+        def _turn(
+            self, workspace: Path, prompt: str, turn_dir: Path, session_id: str
+        ) -> SessionTurnResult:
+            result = super()._turn(workspace, prompt, turn_dir, session_id)
+            (workspace / "revision.json").write_text('{"decision":"stop"}\n')
+            return result
+
+    result = SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=StopAfterChangeSession(),
+            judge=FakeJudge(task, (80, 90), tmp_path / "judge"),
+        ),
+    ).run()
+
+    assert result.submission_ids == ("s000", "s001")
+    assert result.scores == (80, 90)
+    assert result.stop_reason == "solver"
+    assert not (config.experiment_dir / "feedback" / "s001.json").exists()
+    assert not (config.experiment_dir / "submissions" / "s002").exists()
 
 
 def test_shared_judgments_cross_conditions_copy_locally_and_resume(
@@ -1232,8 +1295,8 @@ def test_shared_judgments_cross_conditions_copy_locally_and_resume(
             evaluation.write_text(json.dumps({
                 "criteria": {
                     "criterion_1": {
-                        "level_votes": [level] * 5,
-                        "mean_points": float(score),
+                        "level": level,
+                        "points": float(score),
                         "reason": "checked",
                     }
                 },
@@ -1250,11 +1313,10 @@ def test_shared_judgments_cross_conditions_copy_locally_and_resume(
                 "answer_input_sha256": sha256_text(answer_text),
                 "task": self.task_name,
                 "run_identity": str(output),
-                "repeat_index": 1,
                 "score": float(score),
                 "normalized_score": score / 100,
                 "raw_score": float(score),
-                "criterion_level_votes": {"criterion_1": [level] * 5},
+                "criterion_levels": {"criterion_1": level},
                 "criterion_scores": {"criterion_1": float(score)},
                 "reward_sha256": sha256_file(reward),
                 "evaluation_sha256": sha256_file(evaluation),
@@ -1606,72 +1668,65 @@ def test_controller_scores_one_rubric_exactly(
     )
 
 
-def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
+def test_simulated_user_feedback_sees_public_rubric_artifacts_and_history(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
-    private_value = "expected-private-value-37-of-200"
+    public_value = "expected-public-value-37-of-200"
     rubric_path = task / "tests" / "rubric.txt"
     rubric_path.write_text(
-        rubric_path.read_text() + f"Private reference: {private_value}.\n"
+        rubric_path.read_text() + f"Public reference: {public_value}.\n"
     )
     simulator_config = SimulatedUserConfig(
         model="gpt-simulated-user",
         max_output_tokens=1_024,
-        max_aspects=2,
+        max_concerns=3,
+        max_history_bytes=131_072,
+        max_request_bytes=1_048_576,
         max_retries=1,
     )
     config = replace(
-        _config(tmp_path, task, rounds=1),
+        _config(tmp_path, task, rounds=2),
         feedback_policy=FeedbackPolicy.USER_SIMULATOR,
         feedback_simulator=simulator_config,
     )
     requests: list[SimulatedUserRequest] = []
-    selection_count = 0
-    comment_count = 0
 
     def generate_user_feedback(
         requested: SimulatedUserConfig,
         request: SimulatedUserRequest,
     ) -> SimulatedUserGeneration:
-        nonlocal selection_count, comment_count
         requests.append(request)
         assert requested == simulator_config
         assert "score" not in request.evidence
         assert "judge" not in request.evidence
-        required = request.schema["required"]
-        if required == ["referenced_criteria", "concern_categories"]:
-            selection_count += 1
-            assert private_value in request.evidence
-            assert "<private_rubric>" in request.evidence
-            criterion_id = request.schema["properties"][  # type: ignore[index]
-                "referenced_criteria"
-            ]["items"]["enum"][0]
-            assert criterion_id == "criterion_1"
-            text = json.dumps({
-                "referenced_criteria": [criterion_id],
-                "concern_categories": ["evidence_traceability"],
-            })
-            response_id = f"selection-{selection_count}"
+        assert request.schema["required"] == ["decision", "concerns"]
+        assert public_value in request.evidence
+        assert "<active_rubric>" in request.evidence
+        assert "# trace.md" in request.evidence
+        assert "# answer.txt" in request.evidence
+        if len(requests) == 1:
+            assert "feedback_checkpoint" not in request.evidence
         else:
-            comment_count += 1
-            assert required == ["comment"]
-            assert private_value not in request.evidence
-            assert "<private_rubric>" not in request.evidence
-            text = json.dumps({
-                "comment": (
-                    f"The result in response {comment_count} is not yet well "
-                    "supported. Please show the decisive check and explain why "
-                    "it justifies the conclusion."
+            assert '"feedback_checkpoint":"s000"' in request.evidence
+            assert "seed-answer-1" in request.evidence
+            assert "answer-1" in request.evidence
+        text = json.dumps({
+            "decision": "revise",
+            "concerns": [{
+                "category": "evidence_traceability",
+                "feedback": (
+                    f"Response {len(requests)} needs a decisive check that "
+                    "supports its conclusion."
                 ),
-            })
-            response_id = f"comment-{comment_count}"
+            }],
+        })
         return SimulatedUserGeneration(
             text=text,
             provider="openai",
             requested_model=simulator_config.model,
             effective_model="gpt-simulated-user-served",
-            response_id=response_id,
+            response_id=f"feedback-{len(requests)}",
             request_parameters={"max_output_tokens": 1_024},
             provider_metadata={"usage": {"output_tokens": 40}},
         )
@@ -1681,7 +1736,7 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
         generator=generate_user_feedback,
     )
     session = FakeSession()
-    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
     result = SubmissionRevisionController(
         config,
         RevisionDependencies(
@@ -1691,15 +1746,14 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
         ),
     ).run()
 
-    assert result.scores == (80, 90)
-    assert len(requests) == 4
-    assert selection_count == comment_count == 2
-    assert "response 1 is not yet well supported" in session.prompts[0]
+    assert result.scores == (80, 90, 95)
+    assert len(requests) == 2
+    assert "Response 1 needs a decisive check" in session.prompts[0]
     assert "80/100" not in session.prompts[0]
     feedback = json.loads(
         (config.experiment_dir / "feedback" / "s000.json").read_text()
     )
-    assert set(feedback) == {"policy", "comment", "generation_sha256"}
+    assert set(feedback) == {"decision", "concerns"}
     generation = json.loads(
         (
             config.experiment_dir
@@ -1707,12 +1761,15 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
             / "s000.json"
         ).read_text()
     )
-    assert generation["output"]["referenced_criteria"] == ["criterion_1"]
-    assert generation["output"]["concern_categories"] == [
+    assert generation["output"]["decision"] == "revise"
+    assert generation["output"]["concerns"][0]["category"] == (
         "evidence_traceability"
-    ]
-    assert generation["selection_generation"]["response_id"] == "selection-1"
-    assert generation["comment_generation"]["response_id"] == "comment-1"
+    )
+    assert generation["feedback_generation"]["response_id"] == "feedback-1"
+    assert not (config.experiment_dir / "feedback" / "s002.json").exists()
+    assert not (
+        config.experiment_dir / "feedback-generations" / "s002.json"
+    ).exists()
 
     assignment = {
         "assignment_id": config.assignment_id,
@@ -1730,53 +1787,41 @@ def test_simulated_user_feedback_is_llm_generated_partial_and_resumable(
     )
 
 
-def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
+def test_simulated_user_enforces_zero_to_three_concerns_with_retry() -> None:
     config = SimulatedUserConfig(
         model="gpt-simulated-user",
         max_output_tokens=512,
-        max_aspects=3,
+        max_concerns=3,
+        max_history_bytes=1_024,
+        max_request_bytes=65_536,
         max_retries=1,
     )
-    selection_calls = 0
-    comment_calls = 0
+    calls = 0
 
     def generate_user_feedback(
         requested: SimulatedUserConfig,
         request: SimulatedUserRequest,
     ) -> SimulatedUserGeneration:
-        nonlocal selection_calls, comment_calls
-        if request.schema["required"] == [
-            "referenced_criteria",
-            "concern_categories",
-        ]:
-            selection_calls += 1
-            criterion_ids = request.schema["properties"][  # type: ignore[index]
-                "referenced_criteria"
-            ]["items"]["enum"]
-            selected = (
-                list(criterion_ids)
-                if selection_calls == 1
-                else [criterion_ids[0], criterion_ids[2]]
-            )
-            text = json.dumps({
-                "referenced_criteria": selected,
-                "concern_categories": ["result_reporting", "source_support"],
-            })
-            response_id = f"selection-{selection_calls}"
-        else:
-            comment_calls += 1
-            text = json.dumps({
-                "comment": (
-                    "Please strengthen the evidence and explain the conclusion."
-                ),
-            })
-            response_id = f"comment-{comment_calls}"
+        nonlocal calls
+        calls += 1
+        categories = (
+            ["result_reporting", "source_support", "clarity", "limitations"]
+            if calls == 1
+            else ["result_reporting", "source_support", "clarity"]
+        )
+        text = json.dumps({
+            "decision": "revise",
+            "concerns": [
+                {"category": category, "feedback": f"Improve {category}."}
+                for category in categories
+            ],
+        })
         return SimulatedUserGeneration(
             text=text,
             provider="openai",
             requested_model=requested.model,
             effective_model="gpt-simulated-user-served",
-            response_id=response_id,
+            response_id=f"feedback-{calls}",
             request_parameters={
                 "max_output_tokens": request.max_output_tokens,
             },
@@ -1811,16 +1856,182 @@ def test_simulated_user_enforces_non_exhaustive_rubric_attention() -> None:
         generation_round=0,
         instruction="Analyze the table.",
         generation=generation,
-        current_submission="The result is positive.",
+        current_artifact="The result is positive.",
+        history=(),
+        history_summary=None,
     )
 
-    assert selection_calls == 2
-    assert comment_calls == 1
+    assert calls == 2
     assert record["attempt_count"] == 2
-    assert record["output"]["referenced_criteria"] == [  # type: ignore[index]
-        "criterion_1",
-        "criterion_3",
+    assert len(record["output"]["concerns"]) == 3  # type: ignore[index]
+
+
+def test_simulated_user_compacts_large_history_before_feedback() -> None:
+    config = SimulatedUserConfig(
+        model="gpt-simulated-user",
+        max_output_tokens=512,
+        max_concerns=3,
+        max_history_bytes=20,
+        max_request_bytes=65_536,
+        max_retries=0,
+    )
+    requests: list[SimulatedUserRequest] = []
+
+    def generate(
+        requested: SimulatedUserConfig,
+        request: SimulatedUserRequest,
+    ) -> SimulatedUserGeneration:
+        requests.append(request)
+        text = (
+            json.dumps({"summary": "The prior user requested stronger evidence."})
+            if request.schema_name.endswith("history_summary")
+            else json.dumps({"decision": "accept", "concerns": []})
+        )
+        return SimulatedUserGeneration(
+            text=text,
+            provider="openai",
+            requested_model=requested.model,
+            effective_model="gpt-simulated-user-served",
+            response_id=f"response-{len(requests)}",
+            request_parameters={"max_output_tokens": request.max_output_tokens},
+        )
+
+    simulator = SimulatedUserFeedback(config, generator=generate)
+    history = ({
+        "feedback_checkpoint": "s000",
+        "user_feedback": {
+            "decision": "revise",
+            "concerns": [{
+                "category": "evidence_traceability",
+                "feedback": "Please provide a much stronger evidence trail.",
+            }],
+        },
+        "solver_visible_replies": ["I added the requested evidence."],
+        "revision": {
+            "from_submission": "s000",
+            "to_submission": "s001",
+            "unified_diff": "+Added evidence.\n",
+        },
+    },)
+    summary = simulator.generate_history_summary(
+        experiment_id="experiment",
+        assignment_id="assignment",
+        submission_id="s001",
+        history=history,
+    )
+    rubric = CompleteRubric.from_content(
+        "Scoring protocol: binary test contract\n"
+        "Score normalization maximum: 100\n\n"
+        "Criterion 1: Result\nDescription: Evaluate the result.\n"
+        "Levels: A=100 B=0\n[A]: Full.\n[B]: None.\n"
+    )
+    generation = RubricGeneration(
+        generation_round=0,
+        source_checkpoint=None,
+        rubric=rubric,
+        elicited_criteria=(),
+        proposer_call_budget=0,
+    )
+    record = simulator.generate(
+        experiment_id="experiment",
+        assignment_id="assignment",
+        submission_id="s001",
+        generation_round=0,
+        instruction="Analyze the table.",
+        generation=generation,
+        current_artifact="# trace.md\nChecked.\n# answer.txt\nPositive.",
+        history=history,
+        history_summary=summary,
+    )
+
+    assert len(requests) == 2
+    assert requests[0].schema_name.endswith("history_summary")
+    assert requests[1].schema_name == "submission_simulated_user_feedback"
+    assert "The prior user requested stronger evidence." in requests[1].evidence
+    assert "I added the requested evidence." in requests[1].evidence
+    assert record["history_context"]["mode"] == "summary"  # type: ignore[index]
+    assert record["output"] == {"decision": "accept", "concerns": []}
+
+
+def test_simulated_user_persists_and_validates_history_summary(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    simulator_config = SimulatedUserConfig(
+        model="gpt-simulated-user",
+        max_output_tokens=512,
+        max_concerns=3,
+        max_history_bytes=20,
+        max_request_bytes=65_536,
+        max_retries=0,
+    )
+    config = replace(
+        _config(tmp_path, task, rounds=2),
+        feedback_policy=FeedbackPolicy.USER_SIMULATOR,
+        feedback_simulator=simulator_config,
+    )
+    schema_names: list[str] = []
+
+    def generate(
+        requested: SimulatedUserConfig,
+        request: SimulatedUserRequest,
+    ) -> SimulatedUserGeneration:
+        schema_names.append(request.schema_name)
+        text = (
+            json.dumps({"summary": "The first revision added requested evidence."})
+            if request.schema_name.endswith("history_summary")
+            else json.dumps({
+                "decision": "revise",
+                "concerns": [{
+                    "category": "clarity",
+                    "feedback": "Clarify the reported conclusion.",
+                }],
+            })
+        )
+        return SimulatedUserGeneration(
+            text=text,
+            provider="openai",
+            requested_model=requested.model,
+            effective_model="gpt-simulated-user-served",
+            response_id=f"response-{len(schema_names)}",
+            request_parameters={"max_output_tokens": request.max_output_tokens},
+        )
+
+    simulator = SimulatedUserFeedback(simulator_config, generator=generate)
+    SubmissionRevisionController(
+        config,
+        RevisionDependencies(
+            session=FakeSession(),
+            judge=FakeJudge(task, (80, 90, 95), tmp_path / "judge"),
+            feedback_simulator=simulator,
+        ),
+    ).run()
+
+    assert schema_names == [
+        "submission_simulated_user_feedback",
+        "submission_simulated_user_history_summary",
+        "submission_simulated_user_feedback",
     ]
+    summary_path = (
+        config.experiment_dir / "feedback-history-summaries" / "s001.json"
+    )
+    assert summary_path.is_file()
+    summary = json.loads(summary_path.read_text())
+    assert summary["history_entry_count"] == 1
+    assert summary["history_checkpoints"] == ["s000"]
+    validate_completed_revision(
+        config.experiment_dir,
+        {
+            "assignment_id": config.assignment_id,
+            "task_id": task.name,
+            "replicate": 1,
+            "condition_id": config.condition_id,
+            "execution_order": 1,
+        },
+        _design(config, task),
+        config.seed_run_dir,
+        config.experiment_dir / "paraphrases",
+    )
 
 
 def test_solver_workspace_data_is_disposable_and_artifacts_are_persisted(
@@ -2324,13 +2535,13 @@ Levels: A=40 B=20 C=0
     evaluation.write_text(json.dumps({
         "criteria": {
             "criterion_1": {
-                "level_votes": ["A"] * 5,
-                "mean_points": 60.0,
+                "level": "A",
+                "points": 60.0,
                 "reason": "correct",
             },
             "criterion_2": {
-                "level_votes": ["B"] * 5,
-                "mean_points": 20.0,
+                "level": "B",
+                "points": 20.0,
                 "reason": "needs more evidence",
             },
         },
@@ -2340,9 +2551,9 @@ Levels: A=40 B=20 C=0
         "score": 80.0,
         "normalized_score": 0.8,
         "raw_score": 80.0,
-        "criterion_level_votes": {
-            "criterion_1": ["A"] * 5,
-            "criterion_2": ["B"] * 5,
+        "criterion_levels": {
+            "criterion_1": "A",
+            "criterion_2": "B",
         },
         "criterion_scores": {"criterion_1": 60.0, "criterion_2": 20.0},
         "rendered_rubric_sha256": rubric_sha,
@@ -2384,21 +2595,36 @@ Levels: A=40 B=20 C=0
     simulated = project_rubric_simulated_user_feedback(
         generation,
         validation,
-        "The evidence is hard to verify from the response. Please explain the "
-        "key check and connect it to the conclusion.",
+        {
+            "decision": "revise",
+            "concerns": [{
+                "category": "evidence_traceability",
+                "feedback": (
+                    "The evidence is hard to verify from the response. Please "
+                    "explain the key check and connect it to the conclusion."
+                ),
+            }],
+        },
+        fixed_original_score=80,
+    )
+    accepted = project_rubric_simulated_user_feedback(
+        generation,
+        validation,
+        {"decision": "accept", "concerns": []},
         fixed_original_score=80,
     )
     assert "needs more evidence" in full.prompt
     assert '"title": "Evidence"' in semi.prompt
     assert "needs more evidence" not in semi.prompt
     assert "Criterion 2" not in score.prompt
-    assert set(simulated.payload) == {"policy", "comment", "generation_sha256"}
+    assert set(simulated.payload) == {"decision", "concerns"}
     assert "The evidence is hard to verify" in simulated.prompt
     assert "80/100" not in simulated.prompt
     assert "needs more evidence" not in simulated.prompt
-    assert '"level_votes"' not in simulated.prompt
+    assert '"level"' not in simulated.prompt
+    assert "accepted" in accepted.prompt
     assert all(
-        "under ./artifacts, not ./data" in item.prompt
+        "Store generated files under ./artifacts" in item.prompt
         for item in (full, semi, score, simulated)
     )
     assert score.score == 80
@@ -2423,8 +2649,8 @@ def test_rubric_feedback_uses_the_active_score(
     validation = tmp_path / "validation.json"
     evaluation.write_text(json.dumps({
         "criteria": {"criterion_1": {
-            "level_votes": ["B"] * 5,
-            "mean_points": 33.0,
+            "level": "B",
+            "points": 33.0,
             "reason": "checked",
         }},
         "reasoning": "checked",
@@ -2433,7 +2659,7 @@ def test_rubric_feedback_uses_the_active_score(
         "score": 33.0,
         "normalized_score": 0.33,
         "raw_score": 33.0,
-        "criterion_level_votes": {"criterion_1": ["B"] * 5},
+        "criterion_levels": {"criterion_1": "B"},
         "criterion_scores": {"criterion_1": 33.0},
         "rendered_rubric_sha256": anchor.content_sha256,
         "evaluation_sha256": sha256_file(evaluation),
@@ -2450,7 +2676,7 @@ def test_rubric_feedback_uses_the_active_score(
     assert projected.score == 33
     assert projected.payload["score"] == 33
     assert "33/100" not in projected.prompt
-    assert projected.payload["canonical_original_score"] == 33
+    assert set(projected.payload) == {"score", "criteria"}
 
 
 def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
@@ -2487,8 +2713,8 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
     fixed_evaluation = tmp_path / "fixed-evaluation.json"
     fixed_evaluation.write_text(json.dumps({
         "criteria": {"criterion_1": {
-            "level_votes": ["B"] * 5,
-            "mean_points": 60.0,
+            "level": "B",
+            "points": 60.0,
             "reason": "The original requirement is only partial.",
         }},
         "reasoning": "Canonical original judgment.",
@@ -2498,7 +2724,7 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
         "score": 60.0,
         "normalized_score": 0.6,
         "raw_score": 60.0,
-        "criterion_level_votes": {"criterion_1": ["B"] * 5},
+        "criterion_levels": {"criterion_1": "B"},
         "criterion_scores": {"criterion_1": 60.0},
         "rendered_rubric_sha256": anchor.content_sha256,
         "evaluation_sha256": sha256_file(fixed_evaluation),
@@ -2508,13 +2734,13 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
     active_evaluation.write_text(json.dumps({
         "criteria": {
             "criterion_1": {
-                "level_votes": ["A"] * 5,
-                "mean_points": 100.0,
+                "level": "A",
+                "points": 100.0,
                 "reason": "The augmented judge incorrectly awarded full credit.",
             },
             "criterion_2": {
-                "level_votes": ["C"] * 5,
-                "mean_points": -4.0,
+                "level": "C",
+                "points": -4.0,
                 "reason": "A material claim lacks evidence.",
             },
         },
@@ -2525,9 +2751,9 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
         "score": 96.0,
         "normalized_score": 0.96,
         "raw_score": 96.0,
-        "criterion_level_votes": {
-            "criterion_1": ["A"] * 5,
-            "criterion_2": ["C"] * 5,
+        "criterion_levels": {
+            "criterion_1": "A",
+            "criterion_2": "C",
         },
         "criterion_scores": {"criterion_1": 100.0, "criterion_2": -4.0},
         "rendered_rubric_sha256": active.content_sha256,
@@ -2544,7 +2770,6 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
     )
 
     assert projected.score == 56
-    assert projected.payload["canonical_original_score"] == 60
-    assert projected.payload["elicited_penalty"] == -4
-    assert projected.payload["criteria"]["criterion_1"]["mean_points"] == 60
-    assert projected.payload["criteria"]["criterion_2"]["mean_points"] == -4
+    assert set(projected.payload) == {"score", "criteria"}
+    assert projected.payload["criteria"]["criterion_1"]["points"] == 60
+    assert projected.payload["criteria"]["criterion_2"]["points"] == -4

@@ -53,13 +53,10 @@ def _artifacts(
         "evaluation.json": {
             "total_score": 43.0,
             "paperbench_structured": {
-                "raw_reports": [
-                    {"repeat": repeat_index} for repeat_index in range(1, 6)
-                ],
-                "dispersion": {"min_score": 43, "max_score": 64},
+                "raw_report": {"score": 43.0},
             },
         },
-        "usage.json": {"calls": [{"response_id": "one-provider-result"}]},
+        "usage.json": {"call": {"response_id": "one-provider-result"}},
     }
     for name, value in payloads.items():
         (root / name).write_text(json.dumps(value))
@@ -132,7 +129,7 @@ def test_exact_request_reuses_one_canonical_artifact_set_across_assignments(
     assert first == second
     assert json.loads(first.evaluation_path.read_text())[
         "paperbench_structured"
-    ]["dispersion"] == {"min_score": 43, "max_score": 64}
+    ]["raw_report"] == {"score": 43.0}
 
     fixed_copy = persist_judgment_copy(
         experiment_dir=tmp_path / "fixed",

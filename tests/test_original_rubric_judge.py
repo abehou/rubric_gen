@@ -221,8 +221,8 @@ def test_original_rubric_ensemble_scores_artifacts_and_resumes(
         "failed": 0,
         "pending": 0,
     }
-    assert summary["predispatch_plan"]["base_totals"]["calls"] == 30
-    assert summary["predispatch_plan"]["maximum_totals"]["calls"] == 90
+    assert summary["predispatch_plan"]["base_totals"]["calls"] == 6
+    assert summary["predispatch_plan"]["maximum_totals"]["calls"] == 18
     assert summary["predispatch_plan"]["outer_attempt_limit"] == 3
     result = summary["assignments"][target.assignment_id]
     assert result["ensemble"] == {
@@ -362,7 +362,9 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
                     "implementation_sha256": "1" * 64,
                     "model": "simulator-model",
                     "max_output_tokens": 1024,
-                    "max_aspects": 2,
+                    "max_concerns": 2,
+                    "max_history_bytes": 131_072,
+                    "max_request_bytes": 1_048_576,
                     "max_attempts": 3,
                 },
             }

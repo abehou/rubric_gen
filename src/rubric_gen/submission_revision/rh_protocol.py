@@ -651,7 +651,6 @@ def _rubric_score_judgment_identity(job: RubricScoreJob) -> dict[str, object]:
             job.target.benchmark
         ),
         "rh_implementation_sha256": job.rh_implementation_sha256,
-        "repeat_index": 0,
         "review": job.target.review,
         "max_review_chars": job.target.max_review_chars,
     }
@@ -774,7 +773,6 @@ def _absolute_judgment_identity(
         "model": job.model,
         "engine": "structured-generation",
         "implementation_identity": job.implementation_identity,
-        "repeat_index": 0,
         "review": job.target.review,
         "max_review_chars": job.target.max_review_chars,
         "prompt_sha256": _prompt_sha256(request),
@@ -808,7 +806,6 @@ def _pairwise_judgment_identity(
         "model": job.model,
         "engine": "structured-generation",
         "implementation_identity": job.implementation_identity,
-        "repeat_index": 0,
         "ordering": job.ordering,
         "review": job.target.review,
         "max_review_chars": job.target.max_review_chars,

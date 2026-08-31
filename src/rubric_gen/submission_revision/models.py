@@ -33,7 +33,7 @@ class SubmissionRevisionConfig:
 
     task_dir: Path
     experiment_dir: Path
-    revision_rounds: int
+    max_revisions: int
     seed_run_dir: Path
     agent: AgentRunConfig
     experiment_id: str
@@ -62,8 +62,8 @@ class SubmissionRevisionConfig:
     progress_position: int | None = None
 
     def __post_init__(self) -> None:
-        if type(self.revision_rounds) is not int or self.revision_rounds < 0:
-            raise ValueError("revision_rounds must be a non-negative integer")
+        if type(self.max_revisions) is not int or self.max_revisions < 0:
+            raise ValueError("max_revisions must be a non-negative integer")
         if self.review not in {"trace", "trajectory", "workspace"}:
             raise ValueError("review must be trace, trajectory, or workspace")
         if (
@@ -123,7 +123,7 @@ class SubmissionRevisionConfig:
         if (
             type(self.rubric_semantic_judge_max_calls) is not int
             or self.rubric_semantic_judge_max_calls
-            != max(1, self.revision_rounds - 1)
+            != max(1, self.max_revisions - 1)
         ):
             raise ValueError(
                 "rubric semantic reviewer call cap must cover offline compilation "
@@ -188,6 +188,7 @@ class SubmissionRevisionResult:
     submission_ids: tuple[str, ...]
     scores: tuple[float, ...]
     fixed_original_scores: tuple[float, ...]
+    stop_reason: str
 
 
 class RevisionPhase(StrEnum):
@@ -214,6 +215,7 @@ class RevisionState:
     fixed_original_scores: list[float]
     judge_attempts: dict[str, str]
     next_prompt: str
+    stop_reason: str | None
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -226,6 +228,7 @@ class RevisionState:
             "fixed_original_scores": self.fixed_original_scores,
             "judge_attempts": self.judge_attempts,
             "next_prompt": self.next_prompt,
+            "stop_reason": self.stop_reason,
         }
 
     @classmethod
@@ -239,6 +242,7 @@ class RevisionState:
         fixed_original_scores = payload.get("fixed_original_scores")
         judge_attempts = payload.get("judge_attempts")
         next_prompt = payload.get("next_prompt")
+        stop_reason = payload.get("stop_reason")
         if (
             type(phase) is not str
             or type(next_turn_index) is not int
@@ -269,6 +273,7 @@ class RevisionState:
                 for key, value in judge_attempts.items()
             )
             or type(next_prompt) is not str
+            or stop_reason not in {None, "solver", "max_revisions"}
         ):
             raise RuntimeError("revision state has invalid fields")
         try:
@@ -285,4 +290,5 @@ class RevisionState:
             fixed_original_scores=[float(value) for value in fixed_original_scores],
             judge_attempts=dict(judge_attempts),
             next_prompt=next_prompt,
+            stop_reason=stop_reason,
         )

@@ -65,6 +65,9 @@ from rubric_gen.submission_revision.store import (
     extract_scoring_identity as _extract_scoring_identity,
     extract_seed_scoring_contract as _extract_seed_scoring_contract,
 )
+from rubric_gen.submission_revision.user_simulator_history import (
+    build_simulated_user_history,
+)
 from rubric_gen.submission_revision.visualization.revisions import (
     write_revision_score_plot,
 )
@@ -213,6 +216,7 @@ class RevisionScorer:
         submission_dir = self.experiment_dir / "submissions" / submission_id
         _verify_submission_snapshot(submission_dir)
         self.verify_canonical_task_inputs()
+        self.ensure_online_rubric_generation(turn_index)
         generation = self.active_rubric_generation(turn_index)
         review_text, answer_text = self.dependencies.judge.review_inputs(
             submission_dir
@@ -260,16 +264,6 @@ class RevisionScorer:
                 allow_generation=True,
             )
         )
-        feedback = self.project_checkpoint_feedback(
-            artifacts=artifacts,
-            generation=generation,
-            submission_id=submission_id,
-            generation_round=generation.generation_round,
-            submission_dir=submission_dir,
-            allow_generation=True,
-            fixed_original_score=fixed_original_score,
-            fixed_original_artifacts=fixed_original_artifacts,
-        )
         rubric_evaluation = self.rubric_evaluation_record(
             generation,
             artifacts,
@@ -277,8 +271,6 @@ class RevisionScorer:
             dispatch_preflight,
             fixed_original_score,
         )
-        if rubric_evaluation["score"] != feedback.score:
-            raise RuntimeError("rubric evaluation and feedback scores disagree")
         rubric_evaluation_path = (
             self.experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
         )
@@ -290,49 +282,46 @@ class RevisionScorer:
                 raise RuntimeError("existing rubric evaluation changed")
         else:
             _write_json_atomic(rubric_evaluation_path, rubric_evaluation)
+        has_next_turn = (
+            state.stop_reason is None and turn_index < self.config.max_revisions
+        )
+        feedback = None
         feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
-        if feedback_path.exists():
-            if (
-                _read_json_object(feedback_path, "revision feedback")
-                != feedback.payload
-            ):
-                raise RuntimeError("existing feedback disagrees with judge artifacts")
-        else:
-            _write_json_atomic(feedback_path, feedback.payload)
-        next_generation_record: dict[str, object] | None = None
-        if (
-            self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
-            and 1 <= turn_index < self.config.revision_rounds
-        ):
-            assert self.dependencies.rubric_proposer is not None
-            next_generation = self.dependencies.rubric_proposer.elicit_rubric(
-                instruction=(self.task_dir / "instruction.md").read_text(),
-                original_rubric=CompleteRubric.from_content(
-                    self.initial_rubric.text
-                ),
-                current_generation=generation,
-                policy=self.rubric_policy,
-                generation_round=turn_index,
-                artifact_history=self.elicitation_history(turn_index),
-                source_checkpoint=(
-                    turn_index
-                    if self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
-                    else None
-                ),
-                output_dir=self.experiment_dir,
+        if has_next_turn:
+            feedback = self.project_checkpoint_feedback(
+                artifacts=artifacts,
+                generation=generation,
+                submission_id=submission_id,
+                generation_round=generation.generation_round,
+                submission_dir=submission_dir,
+                allow_generation=True,
+                fixed_original_score=fixed_original_score,
+                fixed_original_artifacts=fixed_original_artifacts,
             )
-            next_generation.validate_successor(generation)
-            next_generation_record = {
-                "generation_round": next_generation.generation_round,
-                "generation_sha256": next_generation.generation_sha256,
-                "rubric_sha256": next_generation.rubric.content_sha256,
-                "source_checkpoint": next_generation.source_checkpoint,
-                "proposer_call_budget": next_generation.proposer_call_budget,
-            }
-        state.scores.append(feedback.score)
+            if rubric_evaluation["score"] != feedback.score:
+                raise RuntimeError("rubric evaluation and feedback scores disagree")
+            if feedback_path.exists():
+                if (
+                    _read_json_object(feedback_path, "revision feedback")
+                    != feedback.payload
+                ):
+                    raise RuntimeError(
+                        "existing feedback disagrees with judge artifacts"
+                    )
+            else:
+                _write_json_atomic(feedback_path, feedback.payload)
+        elif os.path.lexists(feedback_path):
+            raise RuntimeError("terminal submission must not contain feedback")
+        score = float(rubric_evaluation["score"])
+        state.scores.append(score)
         state.fixed_original_scores.append(fixed_original_score)
-        state.next_prompt = feedback.prompt
-        state.phase = _RevisionPhase.READY_FOR_TURN
+        state.next_prompt = feedback.prompt if feedback is not None else ""
+        if has_next_turn:
+            state.phase = _RevisionPhase.READY_FOR_TURN
+        else:
+            if state.stop_reason is None:
+                state.stop_reason = "max_revisions"
+            state.phase = _RevisionPhase.COMPLETED
         self.store.write_state(state)
         self.store.append_event(
             {
@@ -340,18 +329,52 @@ class RevisionScorer:
                 "submission_id": submission_id,
                 "turn": turn_index,
                 "judge_attempt_id": attempt_id,
-                "score": feedback.score,
+                "score": score,
                 "fixed_original_score": fixed_original_score,
-                "elicited_penalty": feedback.score - fixed_original_score,
+                "elicited_penalty": score - fixed_original_score,
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
-                "feedback_sha256": _sha256_file(feedback_path),
+                "feedback_sha256": (
+                    _sha256_file(feedback_path) if feedback is not None else None
+                ),
                 "rubric_evaluation_sha256": _sha256_file(rubric_evaluation_path),
                 "rubric_generation_round": generation.generation_round,
                 "generation_sha256": generation.generation_sha256,
                 "rubric_sha256": generation.rubric.content_sha256,
-                "next_generation": next_generation_record,
             }
         )
+
+    def ensure_online_rubric_generation(self, turn_index: int) -> None:
+        """Create an online rubric only when a new submission needs it."""
+
+        if self.rubric_policy is not RubricPolicy.ONLINE_ELICITATION:
+            return
+        generation_round = turn_index - 1
+        if generation_round < 1:
+            return
+        destination = rubric_generation_directory(
+            self.experiment_dir, generation_round
+        )
+        if destination.is_dir() and not destination.is_symlink():
+            return
+        proposer = self.dependencies.rubric_proposer
+        if proposer is None:
+            raise RuntimeError("online elicitation has no rubric proposer")
+        current = load_rubric_generation(
+            self.experiment_dir,
+            generation_round - 1,
+            expected_policy=self.rubric_policy,
+        )
+        generation = proposer.elicit_rubric(
+            instruction=(self.task_dir / "instruction.md").read_text(),
+            original_rubric=CompleteRubric.from_content(self.initial_rubric.text),
+            current_generation=current,
+            policy=self.rubric_policy,
+            generation_round=generation_round,
+            artifact_history=self.elicitation_history(generation_round),
+            source_checkpoint=generation_round,
+            output_dir=self.experiment_dir,
+        )
+        generation.validate_successor(current)
 
     def rubric_evaluation_record(
         self,
@@ -440,6 +463,59 @@ class RevisionScorer:
         simulator = self.dependencies.feedback_simulator
         if simulator is None:
             raise RuntimeError("simulated-user feedback generator is unavailable")
+        checkpoint = int(submission_id[1:])
+        history = build_simulated_user_history(
+            self.experiment_dir,
+            self.benchmark,
+            checkpoint,
+        )
+        current_artifact = self.benchmark.render_user_review(
+            submission_dir / "workspace"
+        )
+        summary_path = (
+            self.experiment_dir
+            / "feedback-history-summaries"
+            / f"{submission_id}.json"
+        )
+        history_summary: dict[str, object] | None = None
+        if simulator.history_requires_summary(history):
+            if summary_path.is_symlink():
+                raise RuntimeError(
+                    f"simulated-user history summary is a symlink: {summary_path}"
+                )
+            if summary_path.is_file():
+                history_summary = _read_json_object(
+                    summary_path,
+                    "simulated-user history summary",
+                )
+            else:
+                if os.path.lexists(summary_path):
+                    raise RuntimeError(
+                        "simulated-user history summary is not a regular file: "
+                        f"{summary_path}"
+                    )
+                if not allow_generation:
+                    raise RuntimeError(
+                        f"missing simulated-user history summary for {submission_id}"
+                    )
+                history_summary = simulator.generate_history_summary(
+                    experiment_id=self.config.experiment_id,
+                    assignment_id=self.config.assignment_id,
+                    submission_id=submission_id,
+                    history=history,
+                )
+                _write_json_atomic(summary_path, history_summary)
+            simulator.validate_history_summary(
+                history_summary,
+                experiment_id=self.config.experiment_id,
+                assignment_id=self.config.assignment_id,
+                submission_id=submission_id,
+                history=history,
+            )
+        elif os.path.lexists(summary_path):
+            raise RuntimeError(
+                f"unexpected simulated-user history summary for {submission_id}"
+            )
         generation_path = (
             self.experiment_dir
             / "feedback-generations"
@@ -464,7 +540,6 @@ class RevisionScorer:
                 raise RuntimeError(
                     f"missing simulated-user generation for {submission_id}"
                 )
-            workspace = submission_dir / "workspace"
             simulated_record = simulator.generate(
                 experiment_id=self.config.experiment_id,
                 assignment_id=self.config.assignment_id,
@@ -474,21 +549,26 @@ class RevisionScorer:
                     encoding="utf-8"
                 ),
                 generation=generation,
-                current_submission=self.benchmark.render_submission(workspace),
+                current_artifact=current_artifact,
+                history=history,
+                history_summary=history_summary,
             )
             _write_json_atomic(generation_path, simulated_record)
-        comment = simulator.validate(
+        user_feedback = simulator.validate(
             simulated_record,
             experiment_id=self.config.experiment_id,
             assignment_id=self.config.assignment_id,
             submission_id=submission_id,
             generation_round=generation_round,
             generation=generation,
+            current_artifact=current_artifact,
+            history=history,
+            history_summary=history_summary,
         )
         return project_rubric_simulated_user_feedback(
             generation,
             artifacts.score_validation_path,
-            comment,
+            user_feedback,
             fixed_original_score=fixed_original_score,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
@@ -736,24 +816,6 @@ class RevisionScorer:
             active_artifacts=artifacts,
             allow_generation=False,
         )
-        projected = self.project_checkpoint_feedback(
-            artifacts=artifacts,
-            generation=generation,
-            submission_id=submission_id,
-            generation_round=generation.generation_round,
-            submission_dir=submission_dir,
-            allow_generation=False,
-            fixed_original_score=expected_fixed_score,
-            fixed_original_artifacts=fixed_original_artifacts,
-        )
-        feedback = _read_json_object(
-            self.experiment_dir / "feedback" / f"{submission_id}.json",
-            "revision feedback",
-        )
-        if projected.score != state.scores[index] or feedback != projected.payload:
-            raise RuntimeError(
-                "stored feedback disagrees with validated judge artifacts"
-            )
         rubric_evaluation = _read_json_object(
             self.experiment_dir
             / "rubric-evaluations"
@@ -779,6 +841,41 @@ class RevisionScorer:
             raise RuntimeError(
                 "stored rubric evaluation disagrees with judge artifacts"
             )
+        if expected_rubric_evaluation["score"] != state.scores[index]:
+            raise RuntimeError("stored score disagrees with judge artifacts")
+        feedback_path = self.experiment_dir / "feedback" / f"{submission_id}.json"
+        following_turn = (
+            self.experiment_dir
+            / "turns"
+            / f"turn-{index + 1:03d}"
+        )
+        feedback_is_actionable = (
+            following_turn.is_dir() and not following_turn.is_symlink()
+        ) or (
+            state.phase is _RevisionPhase.READY_FOR_TURN
+            and index == len(state.scores) - 1
+        )
+        if feedback_is_actionable:
+            projected = self.project_checkpoint_feedback(
+                artifacts=artifacts,
+                generation=generation,
+                submission_id=submission_id,
+                generation_round=generation.generation_round,
+                submission_dir=submission_dir,
+                allow_generation=False,
+                fixed_original_score=expected_fixed_score,
+                fixed_original_artifacts=fixed_original_artifacts,
+            )
+            feedback = _read_json_object(feedback_path, "revision feedback")
+            if (
+                projected.score != state.scores[index]
+                or feedback != projected.payload
+            ):
+                raise RuntimeError(
+                    "stored feedback disagrees with validated judge artifacts"
+                )
+        elif os.path.lexists(feedback_path):
+            raise RuntimeError("terminal submission must not contain feedback")
         if expected_fixed_score != state.fixed_original_scores[index]:
             raise RuntimeError(
                 "stored fixed-original score disagrees with judge artifacts"

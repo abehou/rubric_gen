@@ -76,12 +76,14 @@ def _design(root: Path, task: Path) -> Experiment:
         "conditions": conditions,
         "assignments": assignments,
         "protocol": {
-            "revision_rounds": 1,
+            "max_revisions": 1,
             "prompt": "base",
             "feedback_simulator": {
                 "model": "test-simulator",
                 "max_output_tokens": 1_024,
-                "max_aspects": 2,
+                "max_concerns": 2,
+                "max_history_bytes": 131_072,
+                "max_request_bytes": 1_048_576,
                 "max_retries": 1,
             },
             "solver": {

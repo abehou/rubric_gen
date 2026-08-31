@@ -27,7 +27,7 @@ Levels: A=1 B=0
 """
 
 
-def test_biomni_stage_preflight_uses_five_full_rubric_calls() -> None:
+def test_biomni_stage_preflight_uses_one_call_per_job() -> None:
     stage = preflight_judge_dispatches(
         SubmissionBenchmarkId.BIOMNIBENCH_DA,
         iter((
@@ -38,7 +38,7 @@ def test_biomni_stage_preflight_uses_five_full_rubric_calls() -> None:
 
     assert stage["grading_engine"] == "full-rubric-structured"
     assert stage["dispatch_count"] == 2
-    assert stage["calls"] == 10
+    assert stage["calls"] == 2
     assert stage["request_bytes"] == sum(
         shape["total_request_content_bytes"] for shape in stage["jobs"]
     )
@@ -47,7 +47,7 @@ def test_biomni_stage_preflight_uses_five_full_rubric_calls() -> None:
     )
 
 
-def test_paperbench_stage_preflight_includes_all_five_repeat_calls() -> None:
+def test_paperbench_stage_preflight_uses_one_call_per_job() -> None:
     stage = preflight_judge_dispatches(
         SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
         (
@@ -58,7 +58,7 @@ def test_paperbench_stage_preflight_includes_all_five_repeat_calls() -> None:
 
     assert stage["grading_engine"] == "full-rubric-structured"
     assert stage["dispatch_count"] == 2
-    assert stage["calls"] == 10
+    assert stage["calls"] == 2
     assert stage["request_bytes"] == sum(
         shape["total_request_content_bytes"] for shape in stage["jobs"]
     )

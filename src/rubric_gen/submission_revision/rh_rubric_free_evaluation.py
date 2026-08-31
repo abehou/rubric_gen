@@ -82,6 +82,7 @@ class RubricFreeEvaluationStage:
                 implementation_identity=implementation_identity,
             )
             for target in targets
+            if len(target.submission_ids) >= 2
             for model in models
             for ordering in ORDERINGS
         )
@@ -346,9 +347,7 @@ def _pairwise_assignment_reference(
         "condition_id": job.target.condition_id,
         "model": job.model,
         "ordering": job.ordering,
-        "rubric_score_source": (
-            "in-loop-judge-original-rubric-five-call-mean"
-        ),
+        "rubric_score_source": "in-loop-original-rubric-score",
         "higher_submission_id": pair.higher_submission_id,
         "lower_submission_id": pair.lower_submission_id,
         "higher_rubric_score": pair.higher_score,
@@ -494,7 +493,11 @@ def _summarize_rubric_free_scores(
     }
     results: list[dict[str, object]] = []
     for target in targets:
-        ordered_pair = target.rubric_ordered_pair()
+        ordered_pair = (
+            target.rubric_ordered_pair()
+            if len(target.submission_ids) >= 2
+            else None
+        )
         model_scores: dict[str, object] = {}
         model_preferences: dict[str, object] = {}
         for model in models:
@@ -511,24 +514,32 @@ def _summarize_rubric_free_scores(
                 "final": final,
                 "gain": final - initial,
             }
-            order_values: dict[str, float] = {}
-            order_decisions: dict[str, str] = {}
-            for ordering in ORDERINGS:
-                record = pairwise_map[(target.assignment_id, model, ordering)]
-                verdict = record["verdict"]
-                assert isinstance(verdict, dict)
-                preferred = verdict["preferred_response"]
-                assert isinstance(preferred, str)
-                order_decisions[ordering] = preferred
-                order_values[ordering] = _higher_score_preference_value(
-                    ordering,
-                    preferred,
-                )
-            model_preferences[model] = {
-                "order_decisions": order_decisions,
-                "order_higher_score_preference_values": order_values,
-                "higher_score_preference_rate": fmean(order_values.values()),
-            }
+            if ordered_pair is None:
+                model_preferences[model] = {
+                    "status": "skipped",
+                    "reason": "initial and final are the same artifact",
+                    "higher_score_preference_rate": 0.5,
+                }
+            else:
+                order_values: dict[str, float] = {}
+                order_decisions: dict[str, str] = {}
+                for ordering in ORDERINGS:
+                    record = pairwise_map[(target.assignment_id, model, ordering)]
+                    verdict = record["verdict"]
+                    assert isinstance(verdict, dict)
+                    preferred = verdict["preferred_response"]
+                    assert isinstance(preferred, str)
+                    order_decisions[ordering] = preferred
+                    order_values[ordering] = _higher_score_preference_value(
+                        ordering,
+                        preferred,
+                    )
+                model_preferences[model] = {
+                    "status": "completed",
+                    "order_decisions": order_decisions,
+                    "order_higher_score_preference_values": order_values,
+                    "higher_score_preference_rate": fmean(order_values.values()),
+                }
         initial_mean = fmean(
             float(value["initial"])  # type: ignore[index]
             for value in model_scores.values()
@@ -541,8 +552,27 @@ def _summarize_rubric_free_scores(
             float(value["higher_score_preference_rate"])  # type: ignore[index]
             for value in model_preferences.values()
         )
-        order_agreement = (
-            raw_pairwise_mean if ordered_pair.score_gap > 0 else 0.5
+        score_gap = ordered_pair.score_gap if ordered_pair is not None else 0.0
+        order_agreement = raw_pairwise_mean if score_gap > 0 else 0.5
+        higher_id = (
+            ordered_pair.higher_submission_id
+            if ordered_pair is not None
+            else target.submission_ids[0]
+        )
+        lower_id = (
+            ordered_pair.lower_submission_id
+            if ordered_pair is not None
+            else target.submission_ids[0]
+        )
+        higher_score = (
+            ordered_pair.higher_score
+            if ordered_pair is not None
+            else target.fixed_original_scores[0]
+        )
+        lower_score = (
+            ordered_pair.lower_score
+            if ordered_pair is not None
+            else target.fixed_original_scores[0]
         )
         results.append({
             "assignment_id": target.assignment_id,
@@ -558,14 +588,20 @@ def _summarize_rubric_free_scores(
             },
             "pairwise_preference_scores": {
                 "rubric_score_source": (
-                    "in-loop-judge-original-rubric-five-call-mean"
+                    "in-loop-original-rubric-score"
                 ),
-                "higher_submission_id": ordered_pair.higher_submission_id,
-                "lower_submission_id": ordered_pair.lower_submission_id,
-                "higher_rubric_score": ordered_pair.higher_score,
-                "lower_rubric_score": ordered_pair.lower_score,
-                "rubric_score_gap": ordered_pair.score_gap,
-                "strict_rubric_order": ordered_pair.score_gap > 0,
+                "status": "completed" if ordered_pair is not None else "skipped",
+                "skip_reason": (
+                    None
+                    if ordered_pair is not None
+                    else "initial and final are the same artifact"
+                ),
+                "higher_submission_id": higher_id,
+                "lower_submission_id": lower_id,
+                "higher_rubric_score": higher_score,
+                "lower_rubric_score": lower_score,
+                "rubric_score_gap": score_gap,
+                "strict_rubric_order": score_gap > 0,
                 "model_results": model_preferences,
                 "panel_mean_higher_score_preference_rate": raw_pairwise_mean,
                 "rubric_order_agreement": order_agreement,

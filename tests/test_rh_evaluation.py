@@ -649,7 +649,7 @@ def test_rubric_score_jobs_bind_each_active_generation(
 
     assert plan["accepted"] is True
     assert plan["dispatch_count"] == len(unique_jobs)
-    assert plan["base_totals"]["calls"] == 5 * len(unique_jobs)
+    assert plan["base_totals"]["calls"] == len(unique_jobs)
 
 
 def test_rubric_free_summary_separates_absolute_scores_from_pairwise_preference(
@@ -717,6 +717,36 @@ def test_pairwise_selects_highest_and_lowest_rubric_scores(
     assert pair.higher_submission == tmp_path / "submissions" / "s002"
     assert pair.lower_submission == tmp_path / "submissions" / "s001"
     assert pair.score_gap == 70.0
+
+
+def test_pairwise_skips_when_initial_and_final_are_the_same_artifact(
+    tmp_path: Path,
+) -> None:
+    target = replace(
+        _target(tmp_path),
+        final_submission=tmp_path / "s000",
+        submission_ids=("s000",),
+        active_scores=(40.0,),
+        fixed_original_scores=(40.0,),
+    )
+    absolute_records = [
+        {
+            "assignment_id": target.assignment_id,
+            "model": "strong-a",
+            "artifact": artifact,
+            "verdict": {"score": 50},
+        }
+        for artifact in ("initial", "final")
+    ]
+
+    summary = _summarize_rubric_free_scores(
+        (target,), absolute_records, [], ("strong-a",)
+    )[0]["pairwise_preference_scores"]
+
+    assert summary["status"] == "skipped"
+    assert summary["higher_submission_id"] == "s000"
+    assert summary["lower_submission_id"] == "s000"
+    assert summary["rubric_order_agreement"] == 0.5
 
 
 def test_pairwise_request_hides_rubric_scores_and_submission_labels(

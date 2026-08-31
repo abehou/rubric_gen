@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 
 from rubric_gen.submission_revision.judging import full_rubric_protocol as protocol
-from rubric_gen.submission_revision.judging.models import JUDGMENT_REPEATS
 from rubric_gen.submission_revision.judging.scoring import parse_rubric_levels_strict
 
 
@@ -17,9 +16,8 @@ def _generate_response(
     *,
     payload: str,
     schema: dict[str, object],
-    repeat_index: int,
 ) -> protocol.FullRubricGeneration:
-    request_parameters = protocol.request_parameters(spec)[repeat_index]
+    request_parameters = protocol.request_parameters(spec)
     if spec.provider == "google":
         from google import genai
         from google.genai import types
@@ -40,7 +38,7 @@ def _generate_response(
             config=types.GenerateContentConfig(
                 system_instruction=protocol.FULL_RUBRIC_SYSTEM_PROMPT,
                 temperature=0.0,
-                seed=spec.repeat_seeds[repeat_index],
+                seed=spec.seed,
                 max_output_tokens=spec.max_output_tokens_per_call,
                 response_mime_type="application/json",
                 response_json_schema=schema,
@@ -150,7 +148,7 @@ def grade_full_rubric(
     requested_model: str,
     seed: int,
 ) -> protocol.FullRubricArtifactRecords:
-    """Run exactly five bounded full-artifact calls and preserve every report."""
+    """Run one bounded full-artifact judgment."""
 
     spec = protocol.build_full_rubric_run_spec(
         rubric_text=rubric_text,
@@ -162,22 +160,13 @@ def grade_full_rubric(
     rubric_levels = parse_rubric_levels_strict(rubric_text)
     schema = protocol.structured_output_schema(rubric_levels)
     payload = protocol.full_rubric_payload(rubric_text, review_text, answer_text)
-    reports = []
-    usage = []
-    for repeat_index in range(JUDGMENT_REPEATS):
-        generation = _generate_response(
-            spec,
-            payload=payload,
-            schema=schema,
-            repeat_index=repeat_index,
-        )
-        reports.append(protocol.parse_structured_output(generation.text, rubric_levels))
-        usage.append(generation.usage_record())
-    return protocol.records_from_raw_reports(
+    generation = _generate_response(spec, payload=payload, schema=schema)
+    report = protocol.parse_structured_output(generation.text, rubric_levels)
+    return protocol.records_from_report(
         rubric_text=rubric_text,
-        raw_reports=reports,
+        raw_report=report,
         spec=spec,
-        call_usage=usage,
+        call_usage=generation.usage_record(),
     )
 
 
@@ -213,9 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(args.output_dir / "evaluation.json", records.evaluation)
     _write_json(args.output_dir / "usage.json", records.usage)
     print(
-        "FullRubric structured judge completed "
-        f"{JUDGMENT_REPEATS} repeats; score={records.score}; "
-        f"stddev={records.dispersion['score_stddev']}"
+        f"FullRubric structured judge completed; score={records.score}"
     )
     return 0
 

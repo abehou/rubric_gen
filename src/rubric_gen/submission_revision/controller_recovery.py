@@ -144,15 +144,14 @@ class RevisionRecovery:
         if os.path.lexists(live_root):
             _validate_live_root(live_root, self.experiment_dir)
         if workspace.is_symlink() or not workspace.is_dir():
-            total = self.config.revision_rounds + 1
             if (
                 not os.path.lexists(live_root)
                 and state.phase is _RevisionPhase.COMPLETED
-                and state.next_turn_index == total
                 and len(state.submission_ids)
                 == len(state.scores)
                 == len(state.fixed_original_scores)
-                == total
+                == state.next_turn_index
+                and state.stop_reason in {"solver", "max_revisions"}
             ):
                 self._validate_resume_state(state, None, manifest)
                 return state, live_root, workspace
@@ -280,7 +279,7 @@ class RevisionRecovery:
 
     def _failed_turn_checkpoint(self, state: _RevisionState) -> _FailedTurnCheckpoint:
         turn_index = state.next_turn_index
-        if not 0 <= turn_index < self.config.revision_rounds + 1:
+        if not 0 <= turn_index < self.config.max_revisions + 1:
             raise RuntimeError("failed revision state has an invalid turn index")
         expected_ids = [f"s{index:03d}" for index in range(turn_index)]
         if (
@@ -624,7 +623,7 @@ class RevisionRecovery:
             raise RuntimeError(
                 "experiment stopped during an uncertain or failed solver turn"
             )
-        total = self.config.revision_rounds + 1
+        total = self.config.max_revisions + 1
         if not 0 <= state.next_turn_index <= total:
             raise RuntimeError("revision state has an invalid turn index")
         if state.phase in {
@@ -650,8 +649,19 @@ class RevisionRecovery:
         ]
         if state.submission_ids != expected_submission_ids:
             raise RuntimeError("revision state has invalid submission identities")
-        if state.phase is _RevisionPhase.COMPLETED and state.next_turn_index != total:
-            raise RuntimeError("completed revision state has missing submissions")
+        if state.phase is _RevisionPhase.COMPLETED:
+            if state.stop_reason is None:
+                raise RuntimeError("completed revision state has no stop reason")
+            if state.stop_reason == "max_revisions" and state.next_turn_index != total:
+                raise RuntimeError("max-revision stop has missing submissions")
+        elif state.stop_reason is not None and not (
+            state.stop_reason == "solver"
+            and state.phase in {
+                _RevisionPhase.READY_FOR_JUDGE,
+                _RevisionPhase.JUDGE_IN_PROGRESS,
+            }
+        ):
+            raise RuntimeError("incomplete revision state has a stop reason")
         if workspace is None and state.phase is not _RevisionPhase.COMPLETED:
             raise RuntimeError(
                 "live workspace is required for an incomplete experiment"
@@ -677,6 +687,14 @@ class RevisionRecovery:
             self.experiment_dir / "turns" / f"turn-{index:03d}"
             for index in range(1, state.next_turn_index)
         ]
+        if state.phase is _RevisionPhase.COMPLETED and state.stop_reason == "solver":
+            no_change_turn = (
+                self.experiment_dir
+                / "turns"
+                / f"turn-{state.next_turn_index:03d}"
+            )
+            if no_change_turn.is_dir() and not no_change_turn.is_symlink():
+                expected_turns.append(no_change_turn)
         if turn_dirs != expected_turns:
             raise RuntimeError("experiment contains an uncertain solver turn")
         if len(state.submission_ids) > len(state.scores):
@@ -711,7 +729,7 @@ class RevisionRecovery:
         maximum_generation = (
             1
             if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-            else self.config.revision_rounds - 1
+            else self.config.max_revisions - 1
         )
         remove_owned_rubric_generation_residue(
             generation_root,

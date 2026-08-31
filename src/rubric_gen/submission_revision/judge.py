@@ -290,7 +290,7 @@ class FrozenRubricJudge:
         ):
             raise RuntimeError("optimizer evaluation trajectory changed")
         output_dir = runner.output_dir(target)
-        completed = runner.completed_record(JudgeAttempt(target, 1))
+        completed = runner.completed_record(JudgeAttempt(target))
         if completed is None:
             raise RuntimeError(
                 f"invalid cached optimizer evaluation: {evaluation_root}"

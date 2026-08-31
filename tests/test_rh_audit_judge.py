@@ -19,7 +19,7 @@ from rubric_gen.submission_revision.judge import (
 from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     FullRubricGeneration,
     FullRubricJudgeError,
-    records_from_raw_reports,
+    records_from_report,
 )
 from rubric_gen.submission_revision.rh_audit_judge import (
     RH_FULL_RUBRIC_ENGINE_IDENTITY,
@@ -68,20 +68,17 @@ def _wire_report() -> dict[str, object]:
 
 def _records(**kwargs):
     spec = build_rh_full_rubric_run_spec(**kwargs)
-    usage = [
-        {
-            "provider": spec.provider,
-            "requested_model": spec.requested_model,
-            "effective_model": spec.requested_model,
-            "response_id": f"response-{index}",
-            "request_parameters": audit_module._request_parameters(spec, index),
-            "raw_usage": {"input_tokens": 1, "output_tokens": 1},
-        }
-        for index in range(5)
-    ]
-    return records_from_raw_reports(
+    usage = {
+        "provider": spec.provider,
+        "requested_model": spec.requested_model,
+        "effective_model": spec.requested_model,
+        "response_id": "response-1",
+        "request_parameters": audit_module._request_parameters(spec),
+        "raw_usage": {"input_tokens": 1, "output_tokens": 1},
+    }
+    return records_from_report(
         rubric_text=RUBRIC,
-        raw_reports=[_report() for _index in range(5)],
+        raw_report=_report(),
         spec=spec,
         call_usage=usage,
     )
@@ -225,7 +222,6 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
         spec,
         payload=rh_full_rubric_payload(RUBRIC, "workspace", ""),
         schema=rh_structured_output_schema(1, 2),
-        repeat_index=0,
     )
 
     request = captured["request"]
@@ -256,15 +252,15 @@ def test_rh_grading_normalizes_wire_reports_and_attests_engine(
 ) -> None:
     calls: list[tuple[str, dict[str, object]]] = []
 
-    def generate(spec, *, payload, schema, repeat_index):
+    def generate(spec, *, payload, schema):
         calls.append((payload, schema))
         return FullRubricGeneration(
             text=json.dumps(_wire_report()),
             provider=spec.provider,
             requested_model=spec.requested_model,
             effective_model=spec.requested_model,
-            response_id=f"response-{repeat_index}",
-            request_parameters=audit_module._request_parameters(spec, repeat_index),
+            response_id="response-1",
+            request_parameters=audit_module._request_parameters(spec),
             usage={"input_tokens": 1, "output_tokens": 1},
         )
 
@@ -277,20 +273,17 @@ def test_rh_grading_normalizes_wire_reports_and_attests_engine(
         seed=123,
     )
 
-    assert len(calls) == 5
-    assert all(
-        json.loads(payload)["criterion_contracts"] == [{
+    assert len(calls) == 1
+    assert json.loads(calls[0][0])["criterion_contracts"] == [{
             "criterion_id": "criterion_1",
             "level_options": [
                 {"level_index": 0, "level": "A"},
                 {"level_index": 1, "level": "B"},
             ],
         }]
-        for payload, _schema in calls
-    )
     assert records.score == 100
     structured = records.evaluation["full_rubric_structured"]
-    assert structured["raw_reports"] == [_report() for _index in range(5)]
+    assert structured["raw_report"] == _report()
     assert structured["code_identity"] == RH_FULL_RUBRIC_ENGINE_IDENTITY
     assert records.usage["code_identity"] == RH_FULL_RUBRIC_ENGINE_IDENTITY
 

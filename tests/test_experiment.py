@@ -78,12 +78,14 @@ def _payload(root: Path) -> dict[str, object]:
         "assignment_selection": "all",
         "conditions": _factorial_conditions(),
         "protocol": {
-            "revision_rounds": 10,
+            "max_revisions": 10,
             "prompt": "base",
             "feedback_simulator": {
                 "model": "test-simulator",
                 "max_output_tokens": 1_024,
-                "max_aspects": 2,
+                "max_concerns": 2,
+                "max_history_bytes": 131_072,
+                "max_request_bytes": 1_048_576,
                 "max_retries": 1,
             },
             "solver": {"provider": "codex", "model": "test-model", "reasoning_effort": "low", "service_tier": None, "executable": None, "retries": 1, "timeout_seconds": 60},
@@ -664,7 +666,7 @@ def test_experiment_id_changes_with_behavior_but_not_output_routing(
     assert load_experiment(routed_path).experiment_id == baseline_id
 
     changed = _payload(tmp_path)
-    changed["protocol"]["revision_rounds"] = 11  # type: ignore[index]
+    changed["protocol"]["max_revisions"] = 11  # type: ignore[index]
     changed["protocol"][
         "rubric_semantic_judge_max_calls_per_assignment"
     ] = 10  # type: ignore[index]
@@ -796,7 +798,9 @@ def test_simulated_user_feedback_requires_and_loads_model_config(
     payload["protocol"]["feedback_simulator"] = {  # type: ignore[index]
         "model": "gpt-simulated-user",
         "max_output_tokens": 1_024,
-        "max_aspects": 2,
+        "max_concerns": 2,
+        "max_history_bytes": 131_072,
+        "max_request_bytes": 1_048_576,
         "max_retries": 1,
     }
     path = tmp_path / "experiment.yaml"
@@ -808,7 +812,9 @@ def test_simulated_user_feedback_requires_and_loads_model_config(
     assert config is not None
     assert config.model == "gpt-simulated-user"
     assert config.max_output_tokens == 1_024
-    assert config.max_aspects == 2
+    assert config.max_concerns == 2
+    assert config.max_history_bytes == 131_072
+    assert config.max_request_bytes == 1_048_576
     assert experiment.feedback_simulator_config("full") is None
 
 

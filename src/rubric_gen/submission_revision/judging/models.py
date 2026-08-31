@@ -14,7 +14,6 @@ from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 
 
 DEFAULT_JUDGE_MODEL = "gpt-5.6-luna"
-JUDGMENT_REPEATS = 5
 RUBRIC_PATH_SOURCE = "rubric-path"
 SCORE_INPUT_ATTESTATION_KEYS = {
     "review_input_sha256",
@@ -28,7 +27,6 @@ SCORE_INPUT_ATTESTATION_KEYS = {
     "max_review_chars",
     "task",
     "run_identity",
-    "repeat_index",
 }
 SCORE_VALIDATION_KEYS = {
     "score",
@@ -36,7 +34,7 @@ SCORE_VALIDATION_KEYS = {
     "raw_score",
     "reported_score",
     "score_matches_reported",
-    "criterion_level_votes",
+    "criterion_levels",
     "criterion_scores",
     "rubric_source",
     "rubric_set_id",
@@ -47,7 +45,6 @@ SCORE_VALIDATION_KEYS = {
     "reward_sha256",
     "evaluation_sha256",
     "usage_sha256",
-    "engine_metrics",
 } | SCORE_INPUT_ATTESTATION_KEYS
 
 _SAFE_BASENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
@@ -119,7 +116,6 @@ class JudgeRunConfig:
     resume: bool = False
     force: bool = False
     max_concurrency: int = 1
-    repeats: int = 1
     save_input_copies: bool = True
     artifacts_dir: Path | None = None
 
@@ -177,7 +173,6 @@ class JudgeRunConfig:
             resume=getattr(args, "resume", False),
             force=getattr(args, "force", False),
             max_concurrency=max(1, getattr(args, "max_concurrency", 1)),
-            repeats=max(1, getattr(args, "repeats", 1)),
             artifacts_dir=resolved_artifacts_dir,
         )
 
@@ -199,8 +194,7 @@ class JudgeTarget:
 @dataclass(frozen=True)
 class JudgeAttempt:
     target: JudgeTarget
-    repeat_index: int
 
     @property
     def label(self) -> str:
-        return f"{self.target.task}#{self.repeat_index}"
+        return self.target.task
