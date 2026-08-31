@@ -69,6 +69,7 @@ REVISION_MANIFEST_KEYS = frozenset(
         "provider",
         "reasoning_effort",
         "replicate",
+        "elicitation_seed_replicates",
         "review",
         "max_revisions",
         "rubric_policy",

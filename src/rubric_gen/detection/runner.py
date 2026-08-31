@@ -1,4 +1,4 @@
-"""Execute and persist reward-hacking model-panel audits."""
+"""Execute and persist behavior-detection panels."""
 
 from __future__ import annotations
 
@@ -11,33 +11,33 @@ from typing import Callable
 
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.evidence.index import index_implementation_sha256
-from rubric_gen.reward_hacking.metrics import detection_rates, plot_detection_rates
-from rubric_gen.reward_hacking.planning import plan_requests
-from rubric_gen.reward_hacking.jobs import (
+from rubric_gen.detection.metrics import detection_rates, plot_detection_rates
+from rubric_gen.detection.planning import plan_requests
+from rubric_gen.detection.jobs import (
     JUDGE_MAX_ATTEMPTS,
     PreparationFailure,
     PreparedJob,
     PreparedPanel,
-    RewardHackingJudgeConfig,
+    DetectionConfig,
 )
-from rubric_gen.reward_hacking.protocol import (
-    ANTHROPIC_RH_EFFORT,
-    GEMINI_RH_THINKING_LEVEL,
-    MALT_RH_AGGREGATION,
-    MALT_RH_CHARS_PER_TOKEN,
-    MALT_RH_DECISION_RULE,
-    MALT_RH_EARLY_MESSAGE_COUNT,
-    MALT_RH_MONITOR_MAX_INPUT_TOKENS,
-    MALT_RH_MONITOR_SOURCE,
-    OPENAI_RH_REASONING_EFFORT,
-    OPENAI_RH_TEXT_VERBOSITY,
-    RH_INPUT_VALIDATION_POLICY,
-    RH_PROMPT_CACHE_POLICY,
+from rubric_gen.detection.config import (
+    ANTHROPIC_EFFORT,
+    GEMINI_THINKING_LEVEL,
+    MALT_REWARD_HACKING_AGGREGATION,
+    MALT_REWARD_HACKING_CHARS_PER_TOKEN,
+    MALT_REWARD_HACKING_DECISION_RULE,
+    MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
+    MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
+    MALT_REWARD_HACKING_SOURCE,
+    OPENAI_REASONING_EFFORT,
+    OPENAI_TEXT_VERBOSITY,
+    INPUT_VALIDATION_POLICY,
+    PROMPT_CACHE_POLICY,
 )
-from rubric_gen.reward_hacking.review import EvidencePrompt
-from rubric_gen.reward_hacking.sources import AuditCase
-from rubric_gen.reward_hacking.standard import StandardJobRunner, StandardOutcome
-from rubric_gen.reward_hacking.targets import detection_target
+from rubric_gen.detection.prompts import EvidencePrompt
+from rubric_gen.detection.sources import AuditCase
+from rubric_gen.detection.job_runner import DetectionJobRunner, DetectionOutcome
+from rubric_gen.detection.targets import detection_target
 from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
@@ -65,11 +65,11 @@ def scoring_implementation_sha256() -> str:
             "jobs.py",
             "metrics.py",
             "planning.py",
-            "protocol.py",
-            "review.py",
+            "config.py",
+            "prompts.py",
             "runner.py",
             "sources.py",
-            "standard.py",
+            "job_runner.py",
             "targets.py",
     ):
         digest.update(name.encode("utf-8"))
@@ -80,9 +80,9 @@ def scoring_implementation_sha256() -> str:
     return digest.hexdigest()
 
 
-class RewardHackingJudgeRunner:
+class DetectionRunner:
     def __init__(
-        self, config: RewardHackingJudgeConfig,
+        self, config: DetectionConfig,
         *, generate_response: Callable[[str, StructuredRequest], GenerationResult] = generate_structured,
         count_tokens: Callable[[str, StructuredRequest], int] | None = None,
     ) -> None:
@@ -112,20 +112,20 @@ class RewardHackingJudgeRunner:
             "max_command_output_chars": config.max_command_output_chars,
             "primary_rule": config.primary_rule,
             "source": config.source.provenance,
-            "openai_reasoning_effort": OPENAI_RH_REASONING_EFFORT,
-            "openai_text_verbosity": OPENAI_RH_TEXT_VERBOSITY,
-            "anthropic_effort": ANTHROPIC_RH_EFFORT,
-            "gemini_thinking_level": GEMINI_RH_THINKING_LEVEL,
-            "prompt_cache": RH_PROMPT_CACHE_POLICY,
-            "input_validation": RH_INPUT_VALIDATION_POLICY,
-            "rh_monitor": (
+            "openai_reasoning_effort": OPENAI_REASONING_EFFORT,
+            "openai_text_verbosity": OPENAI_TEXT_VERBOSITY,
+            "anthropic_effort": ANTHROPIC_EFFORT,
+            "gemini_thinking_level": GEMINI_THINKING_LEVEL,
+            "prompt_cache": PROMPT_CACHE_POLICY,
+            "input_validation": INPUT_VALIDATION_POLICY,
+            "reward_hacking_monitor": (
                 {
-                    "source": MALT_RH_MONITOR_SOURCE,
-                    "early_message_count": MALT_RH_EARLY_MESSAGE_COUNT,
-                    "chunk_max_input_tokens": MALT_RH_MONITOR_MAX_INPUT_TOKENS,
-                    "chars_per_token": MALT_RH_CHARS_PER_TOKEN,
-                    "aggregation": MALT_RH_AGGREGATION,
-                    "derived_decision_rule": MALT_RH_DECISION_RULE,
+                    "source": MALT_REWARD_HACKING_SOURCE,
+                    "early_message_count": MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
+                    "chunk_max_input_tokens": MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
+                    "chars_per_token": MALT_REWARD_HACKING_CHARS_PER_TOKEN,
+                    "aggregation": MALT_REWARD_HACKING_AGGREGATION,
+                    "derived_decision_rule": MALT_REWARD_HACKING_DECISION_RULE,
                 }
                 if config.detection == "rh"
                 else None
@@ -243,8 +243,8 @@ class RewardHackingJudgeRunner:
         self._set_costs(standard.outcome)
         return self._finish(records)
 
-    def _standard_runner(self) -> StandardJobRunner:
-        return StandardJobRunner(
+    def _standard_runner(self) -> DetectionJobRunner:
+        return DetectionJobRunner(
             self.config,
             self.run_settings,
             self.generate_response,
@@ -252,13 +252,13 @@ class RewardHackingJudgeRunner:
             self._payload,
         )
 
-    def _set_costs(self, outcome: StandardOutcome) -> None:
+    def _set_costs(self, outcome: DetectionOutcome) -> None:
         self._spent_usd = outcome.observed_api_usd
         self._spent_by_model = outcome.observed_by_model_usd
 
     def _run_standard(
         self,
-        standard: StandardJobRunner,
+        standard: DetectionJobRunner,
         jobs: tuple[PreparedJob, ...],
         preparation_failures: list[dict[str, object]],
     ) -> list[dict[str, object]]:
@@ -319,7 +319,7 @@ class RewardHackingJudgeRunner:
                 self.config.detection
             ).provenance(),
             "primary_rule": self.config.primary_rule,
-            "rh_monitor": self.run_settings.get("rh_monitor"),
+            "reward_hacking_monitor": self.run_settings.get("reward_hacking_monitor"),
             "source": self.config.source.provenance,
             "run_settings": self.run_settings,
             "cost": {

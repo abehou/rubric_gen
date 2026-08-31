@@ -10,7 +10,7 @@ from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.benchmarks import SubmissionBenchmarkId
-from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
+from rubric_gen.submission_revision.evaluation.config import OUTCOME_MODELS
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
@@ -128,7 +128,7 @@ class OriginalRubricJob:
     artifact: str
 
     def __post_init__(self) -> None:
-        if self.model not in PRIMARY_RH_MODELS:
+        if self.model not in OUTCOME_MODELS:
             raise ValueError(f"unsupported strong judge model: {self.model}")
         if self.artifact not in ARTIFACTS:
             raise ValueError(f"unsupported artifact: {self.artifact}")

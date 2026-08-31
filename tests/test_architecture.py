@@ -36,6 +36,12 @@ def test_removed_top_level_benchmark_packages_have_no_callers() -> None:
             assert f"rubric_gen.{package}" not in source
 
 
+def test_old_reward_hacking_paths_are_removed() -> None:
+    assert not (SOURCE_ROOT / "reward_hacking").exists()
+    revision = SOURCE_ROOT / "submission_revision"
+    assert not tuple(revision.glob("rh_*.py"))
+
+
 def test_shared_code_does_not_import_concrete_benchmarks() -> None:
     concrete_packages = (
         "rubric_gen.benchmarks.biomnibench_da",
@@ -43,7 +49,7 @@ def test_shared_code_does_not_import_concrete_benchmarks() -> None:
         "rubric_gen.benchmarks.malt",
         "rubric_gen.benchmarks.paperbench_code_dev",
     )
-    for package in ("runtime", "evidence", "reward_hacking", "submission_revision"):
+    for package in ("runtime", "evidence", "detection", "submission_revision"):
         for path in (SOURCE_ROOT / package).rglob("*.py"):
             source = path.read_text(encoding="utf-8")
             assert not any(name in source for name in concrete_packages)
@@ -54,12 +60,12 @@ def test_runtime_does_not_resolve_benchmarks() -> None:
         assert "rubric_gen.benchmarks" not in path.read_text(encoding="utf-8")
 
 
-def test_reward_hacking_does_not_import_workflows_or_benchmarks() -> None:
+def test_detection_does_not_import_workflows_or_benchmarks() -> None:
     forbidden = (
         "rubric_gen.submission_revision",
         "rubric_gen.benchmarks",
     )
-    for path in (SOURCE_ROOT / "reward_hacking").rglob("*.py"):
+    for path in (SOURCE_ROOT / "detection").rglob("*.py"):
         source = path.read_text(encoding="utf-8")
         assert not any(name in source for name in forbidden)
 
@@ -76,7 +82,7 @@ def test_artifact_utilities_do_not_import_runtime_or_workflows() -> None:
         "rubric_gen.runtime",
         "rubric_gen.submission_revision",
         "rubric_gen.benchmarks",
-        "rubric_gen.reward_hacking",
+        "rubric_gen.detection",
     )
     for path in (SOURCE_ROOT / "artifacts").rglob("*.py"):
         source = path.read_text(encoding="utf-8")
@@ -95,32 +101,33 @@ def test_judge_attestation_includes_the_selected_benchmark_contract() -> None:
     assert biomni != paperbench
 
 
-def test_reward_hacking_evaluation_modules_remain_focused() -> None:
-    package = SOURCE_ROOT / "submission_revision"
+def test_revision_evaluation_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "submission_revision" / "evaluation"
     modules = (
-        "rh_protocol.py",
-        "rh_evaluation_targets.py",
-        "rh_rubric_score.py",
-        "rh_rubric_free_evaluation.py",
-        "rh_outcome_panel.py",
-        "rh_evaluation_report.py",
-        "rh_output_store.py",
+        "jobs.py",
+        "targets.py",
+        "rubric_score.py",
+        "score_execution.py",
+        "absolute_score.py",
+        "pairwise_preference.py",
+        "runner.py",
+        "report.py",
+        "store.py",
     )
 
-    assert not (package / "rh_diagnostics.py").exists()
     for module in modules:
         line_count = len((package / module).read_text(encoding="utf-8").splitlines())
         assert line_count < 1_000, f"{module} has {line_count} lines"
 
 
-def test_reward_hacking_panel_modules_remain_focused() -> None:
-    package = SOURCE_ROOT / "reward_hacking"
+def test_detection_panel_modules_remain_focused() -> None:
+    package = SOURCE_ROOT / "detection"
     modules = (
         "runner.py",
         "costs.py",
         "jobs.py",
         "planning.py",
-        "standard.py",
+        "job_runner.py",
     )
 
     for module in modules:
@@ -129,7 +136,7 @@ def test_reward_hacking_panel_modules_remain_focused() -> None:
         assert line_count < 1_000, f"{module} has {line_count} lines"
 
     runner_source = (package / "runner.py").read_text(encoding="utf-8")
-    assert "class RewardHackingJudgeConfig" not in runner_source
+    assert "class DetectionConfig" not in runner_source
     assert "class PreparedJob" not in runner_source
     assert "def _run_batch" not in runner_source
 

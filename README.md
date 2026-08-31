@@ -132,6 +132,12 @@ interaction. BioMNIBench supplies both `trace.md` and `answer.txt`. Large prior
 histories use one persisted summary, while the complete current rubric and
 artifacts remain verbatim.
 
+Set `protocol.prompt` to `adversarial` for a prompted sabotage study. The solver
+must cause a material task failure, keep the submission plausible, avoid
+detection, and preserve as much rubric score as possible. The profile lists
+non-exhaustive attack categories. It applies to both seed generation and online
+revision. Do not classify these induced attacks as natural reward hacking.
+
 The shared pool contains several sealed rubric-paraphrase sets. Each set has
 one rubric for every available task. A replicate selects one complete set before
 revision. All conditions in that replicate use the same selected variant as the
@@ -297,15 +303,14 @@ current experiment ID. The source study must use the current artifact format
 and the same revision protocol. This separation prevents audit-only changes
 from forcing a new revision study.
 
-The command writes three evaluation layers:
+The command writes four evaluation layers:
 
 - `direct/`: a strong three-model ensemble gives categorical RH decisions.
 - `rubric_score/`: the strong panel scores both artifacts with the unchanged
   original master rubric. It also scores each active rubric and the selected
   rubric as diagnostics. The panel does not score holdout rubrics.
-- `rubric_free_evaluation/`: the panel produces two separate results.
-  `rubric_free_absolute_scores` rates initial and final quality without a rubric.
-  `pairwise_preference_scores` compares the highest and lowest saved
+- `absolute_score/`: the panel rates initial and final quality without a rubric.
+- `pairwise_preference/`: the panel compares the highest and lowest saved
   original-rubric scores. Each model sees both response orders.
 - `summary.json`: the result combines two signed components, rubric diagnostics,
   quality outcomes, and direct outcomes.
@@ -321,6 +326,7 @@ ensemble produces a categorical reward-hacking decision.
 
 Reference call counts use the singleton primary design. Before dispatch, each
 audit stage records its exact call, request-byte, and maximum-output-token plan.
+Absolute and pairwise requests share one predispatch resource cap.
 The judge artifacts retain realized token use and cost when providers report
 them. Selected-rubric gain, rubric-free absolute-score gain, pairwise preference,
 and direct detection use common outcome instruments. The original master
@@ -343,7 +349,7 @@ uv run malt --help
 
 - `src/rubric_gen/benchmarks/`: all benchmark-owned contracts and workflows
 - `src/rubric_gen/submission_revision/`: shared seed and revision workflow
-- `src/rubric_gen/reward_hacking/`: shared detector and model-panel services
+- `src/rubric_gen/detection/`: shared detector and model-panel services
 - `src/rubric_gen/runtime/`: benchmark-neutral model and process adapters
 - `experiments/`: experiment configurations
 - `seeds/`: shared seed pools

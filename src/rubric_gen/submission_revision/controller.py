@@ -137,6 +137,7 @@ class SubmissionRevisionController:
             "assignment_id": self.config.assignment_id,
             "condition_id": self.config.condition_id,
             "replicate": self.config.replicate,
+            "elicitation_seed_replicates": self.config.elicitation_seed_replicates,
             "execution_order": self.config.execution_order,
             "task_id": self.task_dir.name,
             "task_dir": str(self.task_dir),

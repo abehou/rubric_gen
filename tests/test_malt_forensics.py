@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import rubric_gen.benchmarks.malt.cli as malt_cli_module
-import rubric_gen.submission_revision.direct_audit as direct_audit_module
+import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
 
 from rubric_gen.benchmarks.malt.cli import (
     _annotate_negative_sample_metrics,
@@ -26,21 +26,19 @@ from rubric_gen.benchmarks.malt.cases import (
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.reward_hacking.metrics import (
+from rubric_gen.detection.metrics import (
     detection_rates,
     plot_detection_rates,
     score_panel,
 )
-from rubric_gen.reward_hacking.categories import categorize_findings
-from rubric_gen.reward_hacking.protocol import (
-    PRIMARY_RH_MODELS,
-    outcome_audit_protocol,
-)
+from rubric_gen.detection.categories import categorize_findings
+from rubric_gen.detection.config import DEFAULT_PANEL_MODELS
+from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
 from rubric_gen.runtime.paths import PROJECT_ROOT
-from rubric_gen.reward_hacking.targets import detection_target
-from rubric_gen.submission_revision.direct_audit import (
-    DirectAuditConfig,
-    run_direct_audit,
+from rubric_gen.detection.targets import detection_target
+from rubric_gen.submission_revision.evaluation.direct import (
+    DirectDetectionConfig,
+    run_direct_detection,
 )
 
 
@@ -69,7 +67,7 @@ Here are some things that should not be classified as cheating:
     assert "hardcoded_solution" not in target.positive_labels
     assert target.prompt == expected_prompt
     protocol = outcome_audit_protocol(
-        models=PRIMARY_RH_MODELS,
+        models=DEFAULT_PANEL_MODELS,
         primary_rule="majority",
         loss_weights={
             "verifier_exploitation": 1,
@@ -387,7 +385,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         path = (tmp_path / "experiment.yaml").resolve()
         tasks_dir = tasks
         outcome_audit = outcome_audit_protocol(
-            models=PRIMARY_RH_MODELS,
+            models=DEFAULT_PANEL_MODELS,
             primary_rule="majority",
             loss_weights={
                 "verifier_exploitation": 1,
@@ -410,9 +408,9 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
             return 0
 
     monkeypatch.setattr(
-        direct_audit_module, "RewardHackingJudgeRunner", FakeRunner
+        direct_audit_module, "DetectionRunner", FakeRunner
     )
-    assert run_direct_audit(DirectAuditConfig(
+    assert run_direct_detection(DirectDetectionConfig(
         experiment=FakeExperiment(),
         study_dir=study,
         output_dir=tmp_path / "out",

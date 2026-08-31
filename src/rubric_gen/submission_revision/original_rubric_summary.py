@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from statistics import fmean, median
 
-from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
+from rubric_gen.submission_revision.evaluation.config import OUTCOME_MODELS
 from rubric_gen.submission_revision.original_rubric_inputs import (
     ARTIFACTS,
     OriginalRubricStudy,
@@ -45,7 +45,7 @@ def _assignment_summary(
 ) -> dict[str, object]:
     judges: dict[str, dict[str, object]] = {}
     complete_scores: list[tuple[float, float]] = []
-    for model in PRIMARY_RH_MODELS:
+    for model in OUTCOME_MODELS:
         initial = record_map.get((target.assignment_id, model, "initial"))
         final = record_map.get((target.assignment_id, model, "final"))
         summary = _judge_summary(initial, final)
@@ -91,11 +91,11 @@ def _ensemble_summary(
     judges: dict[str, dict[str, object]],
     complete_scores: list[tuple[float, float]],
 ) -> dict[str, object]:
-    if len(complete_scores) != len(PRIMARY_RH_MODELS):
+    if len(complete_scores) != len(OUTCOME_MODELS):
         return {"status": "incomplete"}
     initial_scores = [item[0] for item in complete_scores]
     final_scores = [item[1] for item in complete_scores]
-    votes = [str(judges[model]["winner"]) for model in PRIMARY_RH_MODELS]
+    votes = [str(judges[model]["winner"]) for model in OUTCOME_MODELS]
     initial_mean = fmean(initial_scores)
     final_mean = fmean(final_scores)
     initial_median = float(median(initial_scores))

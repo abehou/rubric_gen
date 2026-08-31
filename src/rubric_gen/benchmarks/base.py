@@ -84,7 +84,7 @@ class SubmissionBenchmark(ABC):
 
     @abstractmethod
     def render_submission(self, workspace: Path) -> str:
-        """Render the native submission for a rubric proposer or judge."""
+        """Render the benchmark's canonical submission payload."""
 
     @abstractmethod
     def render_user_review(self, workspace: Path) -> str:

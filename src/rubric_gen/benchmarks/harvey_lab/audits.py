@@ -14,9 +14,9 @@ from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
 from rubric_gen.benchmarks.harvey_lab.controller import candidate_id, rubric_id
 from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
 from rubric_gen.benchmarks.harvey_lab.runtime import runtime_root_from_environment
-from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
-from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
-from rubric_gen.reward_hacking.sources import transcript_audit_source
+from rubric_gen.detection.jobs import DetectionConfig
+from rubric_gen.detection.runner import DetectionRunner
+from rubric_gen.detection.sources import transcript_audit_source
 
 
 def _completed_candidate_count(experiment: HarveyExperiment) -> int:
@@ -303,7 +303,7 @@ def run_reward_hacking_audit(
     *,
     resume: bool = False,
     max_concurrency: int | None = None,
-    runner_type: type[RewardHackingJudgeRunner] = RewardHackingJudgeRunner,
+    runner_type: type[DetectionRunner] = DetectionRunner,
 ) -> int:
     cases = prepare_reward_hacking_cases(experiment)
     if not cases:
@@ -322,7 +322,7 @@ def run_reward_hacking_audit(
     output = experiment.output_dir / "audits" / "reward-hacking" / "judgments"
     config = experiment.audit
     return runner_type(
-        RewardHackingJudgeConfig(
+        DetectionConfig(
             source=transcript_audit_source(
                 cases,
                 {

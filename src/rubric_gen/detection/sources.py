@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Callable
 
 from rubric_gen.evidence.index import render_compact_evidence
-from rubric_gen.reward_hacking.review import EvidencePrompt
-from rubric_gen.reward_hacking.targets import detection_target
+from rubric_gen.detection.prompts import EvidencePrompt
+from rubric_gen.detection.targets import detection_target
 
 
 PromptLoader = Callable[["AuditCase", str, int, int], EvidencePrompt]

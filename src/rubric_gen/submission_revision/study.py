@@ -265,6 +265,7 @@ class StudyRunner:
             assignment_id=str(assignment["assignment_id"]),
             condition_id=str(assignment["condition_id"]),
             replicate=int(assignment["replicate"]),
+            elicitation_seed_replicates=self.experiment.replicates,
             execution_order=int(assignment["execution_order"]),
             optimizer_rubric_path=selection.optimizer_path,
             master_rubric_name=str(protocol["rubric_name"]),

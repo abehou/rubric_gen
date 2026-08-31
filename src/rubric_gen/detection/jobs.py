@@ -1,37 +1,34 @@
-"""Define reward-hacking panel configuration and prepared jobs."""
+"""Define behavior-detection configuration and prepared jobs."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from rubric_gen.reward_hacking.protocol import (
-    DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
-    DEFAULT_RH_MAX_INPUT_TOKENS,
-    DEFAULT_RH_MAX_OUTPUT_TOKENS,
-    RH_JUDGE_MAX_ATTEMPTS,
+from rubric_gen.detection.config import (
+    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
+    DEFAULT_MAX_EVENT_TEXT_CHARS,
+    DEFAULT_MAX_INPUT_TOKENS,
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    JUDGE_MAX_ATTEMPTS,
 )
-from rubric_gen.reward_hacking.sources import AuditCase, AuditSource
-from rubric_gen.reward_hacking.targets import detection_target
+from rubric_gen.detection.sources import AuditCase, AuditSource
+from rubric_gen.detection.targets import detection_target
 from rubric_gen.runtime.llm import StructuredRequest
 
 
-JUDGE_MAX_ATTEMPTS = RH_JUDGE_MAX_ATTEMPTS
-
-
 @dataclass(frozen=True)
-class RewardHackingJudgeConfig:
+class DetectionConfig:
     source: AuditSource
     models: tuple[str, ...]
     output_dir: Path
     max_concurrency: int = 3
     resume: bool = False
     detection: str = "rh"
-    max_input_tokens: int = DEFAULT_RH_MAX_INPUT_TOKENS
-    max_output_tokens: int = DEFAULT_RH_MAX_OUTPUT_TOKENS
-    max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS
-    max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
+    max_input_tokens: int = DEFAULT_MAX_INPUT_TOKENS
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS
+    max_event_text_chars: int = DEFAULT_MAX_EVENT_TEXT_CHARS
+    max_command_output_chars: int = DEFAULT_MAX_COMMAND_OUTPUT_CHARS
     primary_rule: str = "any_detect"
 
     def __post_init__(self) -> None:

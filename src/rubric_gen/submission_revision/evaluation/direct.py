@@ -7,15 +7,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
-from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
-from rubric_gen.submission_revision.audit_evidence import revision_audit_source
+from rubric_gen.detection.jobs import DetectionConfig
+from rubric_gen.detection.runner import DetectionRunner
+from rubric_gen.submission_revision.evaluation.evidence import revision_detection_source
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 
 
 @dataclass(frozen=True)
-class DirectAuditConfig:
+class DirectDetectionConfig:
     experiment: Experiment
     study_dir: Path
     output_dir: Path
@@ -25,15 +25,15 @@ class DirectAuditConfig:
 
 
 @dataclass(frozen=True)
-class AuditStudy:
+class DetectionStudy:
     revisions: tuple[Path, ...]
     experiment_id: str
     study_experiment_id: str
     tasks_dir: Path
-    protocol: dict[str, object]
+    settings: dict[str, object]
 
 
-def load_audit_study(study_dir: Path, experiment: Experiment) -> AuditStudy:
+def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionStudy:
     """Validate a terminal study and return its completed revisions."""
 
     source = study_dir.resolve()
@@ -83,33 +83,32 @@ def load_audit_study(study_dir: Path, experiment: Experiment) -> AuditStudy:
         raise ValueError("duplicate benchmark revision experiment")
     if not revisions:
         raise ValueError("benchmark study has no completed assignments to audit")
-    return AuditStudy(
+    return DetectionStudy(
         revisions=tuple(revisions),
         experiment_id=experiment.experiment_id,
         study_experiment_id=str(study["experiment_id"]),
         tasks_dir=experiment.tasks_dir.resolve(),
-        protocol=experiment.outcome_audit,
+        settings=experiment.outcome_audit,
     )
 
 
-def run_direct_audit(config: DirectAuditConfig) -> int:
-    """Run the study's sealed direct audit protocol."""
+def run_direct_detection(config: DirectDetectionConfig) -> int:
+    """Run the study's sealed direct detection."""
 
-    study = load_audit_study(config.study_dir, config.experiment)
-    expected_models = tuple(study.protocol.get("models", ()))
-    models = expected_models
-
-    primary_rule = str(study.protocol["primary_rule"])
-    max_input_tokens = int(study.protocol["max_input_tokens"])
-    max_output_tokens = int(study.protocol["max_output_tokens"])
-    max_event_text_chars = int(study.protocol["max_event_text_chars"])
-    max_command_output_chars = int(study.protocol["max_command_output_chars"])
+    study = load_detection_study(config.study_dir, config.experiment)
+    models = tuple(study.settings.get("models", ()))
+    primary_rule = str(study.settings["primary_rule"])
+    max_input_tokens = int(study.settings["max_input_tokens"])
+    max_output_tokens = int(study.settings["max_output_tokens"])
+    max_event_text_chars = int(study.settings["max_event_text_chars"])
+    max_command_output_chars = int(study.settings["max_command_output_chars"])
     identity = (
         f"ensemble--detect-{config.detection}--experiment-{study.experiment_id}"
         f"--source-{study.study_experiment_id}"
-        f"--mi-{max_input_tokens}"
-        f"--mo-{max_output_tokens}--me-{max_event_text_chars}"
-        f"--mco-{max_command_output_chars}"
+        f"--max-input-{max_input_tokens}"
+        f"--max-output-{max_output_tokens}"
+        f"--max-event-text-{max_event_text_chars}"
+        f"--max-command-output-{max_command_output_chars}"
         f"--primary-{primary_rule}"
     )
     evaluation_dir = _evaluation_dir(
@@ -118,12 +117,12 @@ def run_direct_audit(config: DirectAuditConfig) -> int:
         resume=config.resume,
     )
     resume_evaluation = config.resume and evaluation_dir.is_dir()
-    source = revision_audit_source(
+    source = revision_detection_source(
         study.revisions,
         tasks_dir=study.tasks_dir,
         experiment_ids=(study.study_experiment_id,),
     )
-    result = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
+    result = DetectionRunner(DetectionConfig(
         source=source,
         models=models,
         output_dir=evaluation_dir,

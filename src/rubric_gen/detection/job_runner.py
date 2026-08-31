@@ -1,4 +1,4 @@
-"""Execute synchronous reward-hacking judge jobs."""
+"""Execute one synchronous behavior-detection job."""
 
 from __future__ import annotations
 
@@ -10,21 +10,21 @@ from pathlib import Path
 from typing import Callable
 
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.reward_hacking.costs import request_cost, usage_tokens
-from rubric_gen.reward_hacking.jobs import (
+from rubric_gen.detection.costs import request_cost, usage_tokens
+from rubric_gen.detection.jobs import (
     JUDGE_MAX_ATTEMPTS,
     PreparedJob,
-    RewardHackingJudgeConfig,
+    DetectionConfig,
 )
-from rubric_gen.reward_hacking.review import (
+from rubric_gen.detection.prompts import (
     EvidencePrompt,
-    _aggregate_rh_scores,
+    _aggregate_reward_hacking_scores,
     _extract,
     _extract_model_output,
     _synthesis_request,
-    _validate_rh_verdict,
+    _validate_reward_hacking_verdict,
 )
-from rubric_gen.reward_hacking.sources import AuditCase
+from rubric_gen.detection.sources import AuditCase
 from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
@@ -54,7 +54,7 @@ _SCORE_KEYS = {
 
 
 @dataclass(frozen=True)
-class StandardOutcome:
+class DetectionOutcome:
     observed_api_usd: float
     observed_by_model_usd: dict[str, float]
 
@@ -84,10 +84,10 @@ class _GeneratedArtifacts:
         )
 
 
-class StandardJobRunner:
+class DetectionJobRunner:
     def __init__(
         self,
-        config: RewardHackingJudgeConfig,
+        config: DetectionConfig,
         run_settings: dict[str, object],
         generate_response: Callable[[str, StructuredRequest], GenerationResult],
         count_tokens: Callable[[str, StructuredRequest], int],
@@ -103,9 +103,9 @@ class StandardJobRunner:
         self._observed_by_model_usd: dict[str, float] = {}
 
     @property
-    def outcome(self) -> StandardOutcome:
+    def outcome(self) -> DetectionOutcome:
         with self._lock:
-            return StandardOutcome(
+            return DetectionOutcome(
                 observed_api_usd=self._observed_api_usd,
                 observed_by_model_usd=dict(self._observed_by_model_usd),
             )
@@ -271,7 +271,7 @@ class StandardJobRunner:
             return False
         try:
             if self.config.detection == "rh":
-                _validate_rh_verdict(value.get("verdict"))
+                _validate_reward_hacking_verdict(value.get("verdict"))
             else:
                 _extract(json.dumps(value.get("verdict")), self.config.detection)
         except (TypeError, ValueError):
@@ -354,7 +354,7 @@ class StandardJobRunner:
         artifacts: _GeneratedArtifacts,
     ) -> tuple[JsonObject, object]:
         if job.aggregation == "max_score":
-            verdict = _aggregate_rh_scores(artifacts.verdicts)
+            verdict = _aggregate_reward_hacking_scores(artifacts.verdicts)
             selected = int(verdict["selected_chunk"]) - 1
             return verdict, artifacts.generations[selected]["generation"]
         if job.requires_synthesis:

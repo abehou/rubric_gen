@@ -9,15 +9,25 @@ from rubric_gen.submission_revision import contrasts as contrast_module
 
 
 class _Benchmark:
+    benchmark = "biomnibench-da"
+
     @staticmethod
-    def render_submission(workspace: Path) -> str:
-        return (workspace / "artifact.txt").read_text(encoding="utf-8")
+    def render_user_review(workspace: Path) -> str:
+        return (workspace / "review.txt").read_text(encoding="utf-8")
+
+    @staticmethod
+    def render_submission(_workspace: Path) -> str:
+        raise AssertionError("elicitation must use complete public review evidence")
 
 
 def _workspace(root: Path, name: str, text: str) -> Path:
     workspace = root / name / "workspace"
     workspace.mkdir(parents=True)
     (workspace / "artifact.txt").write_text(text, encoding="utf-8")
+    (workspace / "review.txt").write_text(
+        "public review: " + text,
+        encoding="utf-8",
+    )
     return workspace
 
 
@@ -34,9 +44,13 @@ def _seed_resolver(root: Path):
         *,
         provider: str,
         requested_model: str,
+        prompt_profile: str,
+        benchmark: str,
     ) -> SimpleNamespace:
         assert provider == "codex"
         assert requested_model == "gpt-5.6-luna"
+        assert prompt_profile == "base"
+        assert benchmark == "biomnibench-da"
         return SimpleNamespace(submission_dir=seeds[replicate].parent)
 
     return resolve_seed
@@ -49,6 +63,7 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
         "benchmark": _Benchmark(),
         "provider": "codex",
         "requested_model": "gpt-5.6-luna",
+        "prompt_profile": "base",
         "assignment_id": "assignment-1",
     }
 
@@ -70,6 +85,7 @@ def test_offline_history_uses_three_sealed_artifacts_once(
     }
     assert len(history.artifacts) == 3
     assert len(history.pairs) == 3
+    assert all("public review:" in item.content for item in history.artifacts)
     assert set(history.model_record()) == {"artifacts", "pairs"}
     assert "source_id" not in str(history.model_record())
 
@@ -95,6 +111,7 @@ def test_online_history_includes_every_prior_artifact_and_pair(
     }
     assert len(history.artifacts) == 9
     assert len(history.pairs) == 36
+    assert all("public review:" in item.content for item in history.artifacts)
 
 
 def test_online_first_update_does_not_repeat_current_as_every_pair_hub(

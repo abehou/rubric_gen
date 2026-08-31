@@ -1,4 +1,4 @@
-"""Run RH outcome scoring with every stage-complete strong judge."""
+"""Run evaluation outcome scoring with every stage-complete strong judge."""
 
 from __future__ import annotations
 
@@ -8,11 +8,15 @@ from dataclasses import dataclass, field
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.progress import TerminalProgress
-from rubric_gen.submission_revision import rh_protocol as rh
-from rubric_gen.submission_revision import rh_rubric_free_evaluation as rubric_free_evaluation
-from rubric_gen.submission_revision import rh_rubric_score as rubric_score
+from rubric_gen.submission_revision.evaluation import (
+    absolute_score,
+    pairwise_preference,
+    jobs as evaluation_jobs,
+    rubric_score,
+    score_execution,
+)
 from rubric_gen.submission_revision.artifacts import read_json_object
-from rubric_gen.submission_revision.rh_output_store import RhOutputStore
+from rubric_gen.submission_revision.evaluation.store import EvaluationStore
 
 
 PANEL_POLICY: dict[str, object] = {
@@ -45,7 +49,7 @@ def _failure_record(
 
 
 def _prior_failures(
-    output: RhOutputStore,
+    output: EvaluationStore,
     *,
     expected_kind: str,
     instruments: frozenset[str] | None = None,
@@ -54,7 +58,7 @@ def _prior_failures(
     if not os.path.lexists(summary_path):
         return {}
     try:
-        summary = read_json_object(summary_path, "RH outcome summary")
+        summary = read_json_object(summary_path, "evaluation outcome summary")
     except RuntimeError:
         summary_path.unlink()
         return {}
@@ -84,10 +88,10 @@ def _prior_failures(
                 and failure.get("instrument") not in instruments
             )
         ):
-            raise RuntimeError("RH outcome judge failure record is invalid")
+            raise RuntimeError("evaluation outcome judge failure record is invalid")
         key = str(failure["judgment_key"])
         if key in result:
-            raise RuntimeError("RH outcome judge failure is duplicated")
+            raise RuntimeError("evaluation outcome judge failure is duplicated")
         result[key] = failure
     return result
 
@@ -109,7 +113,7 @@ def _store_unique(
     label: str,
 ) -> None:
     if key in observations:
-        raise RuntimeError(f"duplicate RH {label} observation: {key}")
+        raise RuntimeError(f"duplicate evaluation {label} observation: {key}")
     observations[key] = score
 
 
@@ -118,15 +122,15 @@ def _rubric_score_record_context(
 ) -> tuple[str, str, float, str]:
     artifact = str(record["artifact"])
     model = str(record["model"])
-    score = rh._finite_score(record.get("score"), "RH rubric score score")
+    score = evaluation_jobs._finite_score(record.get("score"), "revision rubric score score")
     rubric_sha256 = record.get("rubric_sha256")
-    if not rh._is_sha256(rubric_sha256):
-        raise RuntimeError("RH rubric score record has an invalid rubric hash")
+    if not evaluation_jobs._is_sha256(rubric_sha256):
+        raise RuntimeError("revision rubric score record has an invalid rubric hash")
     return artifact, model, score, str(rubric_sha256)
 
 
 def _collect_generation_observations(
-    target: rh.EvaluationTarget,
+    target: evaluation_jobs.EvaluationTarget,
     record: dict[str, object],
     context: tuple[str, str, float, str],
     observations: _RubricScoreObservations,
@@ -134,24 +138,24 @@ def _collect_generation_observations(
     artifact, model, score, rubric_sha256 = context
     bindings = record.get("generation_bindings")
     if not isinstance(bindings, list):
-        raise RuntimeError("RH generation bindings are invalid")
+        raise RuntimeError("evaluation generation bindings are invalid")
     for binding in bindings:
         if not isinstance(binding, dict):
-            raise RuntimeError("RH generation binding is invalid")
+            raise RuntimeError("evaluation generation binding is invalid")
         role = binding.get("role")
         if role == "active_local":
             generation = target.generation(artifact)
         else:
-            raise RuntimeError("RH generation binding has an invalid role")
+            raise RuntimeError("evaluation generation binding has an invalid role")
         if generation.rubric.content_sha256 != rubric_sha256:
-            raise RuntimeError("RH generation binding has the wrong rubric")
+            raise RuntimeError("evaluation generation binding has the wrong rubric")
         expected = rubric_score._expected_generation_binding(
             target,
             artifact,
             str(role),
         ).payload()
         if binding != expected:
-            raise RuntimeError("RH generation binding changed")
+            raise RuntimeError("evaluation generation binding changed")
         _store_unique(
             observations.generations,
             (str(role), artifact, model, rubric_sha256),
@@ -161,7 +165,7 @@ def _collect_generation_observations(
 
 
 def _collect_rubric_role_observations(
-    target: rh.EvaluationTarget,
+    target: evaluation_jobs.EvaluationTarget,
     record: dict[str, object],
     context: tuple[str, str, float, str],
     observations: _RubricScoreObservations,
@@ -169,7 +173,7 @@ def _collect_rubric_role_observations(
     artifact, model, score, rubric_sha256 = context
     roles = record.get("rubric_roles")
     if not isinstance(roles, list):
-        raise RuntimeError("RH rubric score record has no rubric roles")
+        raise RuntimeError("revision rubric score record has no rubric roles")
     for role in roles:
         if role == {"name": "original", "variant_index": None}:
             expected_sha256 = target.selection.master_sha256
@@ -180,11 +184,11 @@ def _collect_rubric_role_observations(
             expected_sha256 = target.selection.optimizer_sha256
         else:
             raise RuntimeError(
-                "RH rubric score rubric role does not match the judged rubric"
+                "revision rubric score rubric role does not match the judged rubric"
             )
         if rubric_sha256 != expected_sha256:
             raise RuntimeError(
-                "RH rubric score rubric role does not match the judged rubric"
+                "revision rubric score rubric role does not match the judged rubric"
             )
         _store_unique(
             observations.rubrics,
@@ -195,7 +199,7 @@ def _collect_rubric_role_observations(
 
 
 def _collect_rubric_score_observations(
-    target: rh.EvaluationTarget,
+    target: evaluation_jobs.EvaluationTarget,
     records: list[dict[str, object]],
 ) -> _RubricScoreObservations:
     observations = _RubricScoreObservations()
@@ -207,7 +211,7 @@ def _collect_rubric_score_observations(
 
 
 def _summarize_rubric_scores(
-    targets: tuple[rh.EvaluationTarget, ...],
+    targets: tuple[evaluation_jobs.EvaluationTarget, ...],
     records: list[dict[str, object]],
     models: tuple[str, ...],
 ) -> list[dict[str, object]]:
@@ -230,7 +234,7 @@ def _summarize_rubric_scores(
                 artifact,
                 models,
             )
-            for artifact in rh.ARTIFACTS
+            for artifact in evaluation_jobs.ARTIFACTS
         }
         active_local = {
             artifact: rubric_score._generation_score_panel(
@@ -240,7 +244,7 @@ def _summarize_rubric_scores(
                 observations.generations,
                 models,
             )
-            for artifact in rh.ARTIFACTS
+            for artifact in evaluation_jobs.ARTIFACTS
         }
         selected = {
             artifact: rubric_score._score_panel(
@@ -250,7 +254,7 @@ def _summarize_rubric_scores(
                 artifact,
                 models,
             )
-            for artifact in rh.ARTIFACTS
+            for artifact in evaluation_jobs.ARTIFACTS
         }
         components = {
             artifact: {
@@ -259,7 +263,7 @@ def _summarize_rubric_scores(
                     - float(original[artifact]["mean"])
                 ),
             }
-            for artifact in rh.ARTIFACTS
+            for artifact in evaluation_jobs.ARTIFACTS
         }
         diagnostics = {
             artifact: {
@@ -272,7 +276,7 @@ def _summarize_rubric_scores(
                     - float(selected[artifact]["mean"])
                 ),
             }
-            for artifact in rh.ARTIFACTS
+            for artifact in evaluation_jobs.ARTIFACTS
         }
         results.append({
             "assignment_id": target.assignment_id,
@@ -282,7 +286,7 @@ def _summarize_rubric_scores(
             "rubric_policy": target.rubric_policy.value,
             "weak_original_rubric_scores": {
                 artifact: target.weak_original_score(artifact)
-                for artifact in rh.ARTIFACTS
+                for artifact in evaluation_jobs.ARTIFACTS
             },
             "active_local_scores": {
                 artifact: {
@@ -294,7 +298,7 @@ def _summarize_rubric_scores(
                     ),
                     "interpretation": "initial/final score under the active rubric",
                 }
-                for artifact in rh.ARTIFACTS
+                for artifact in evaluation_jobs.ARTIFACTS
             },
             "reference_scores": {
                 "original": original,
@@ -314,7 +318,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         self.preflight()
         prepared = self._prepared
         if prepared is None:
-            raise RuntimeError("RH rubric score preflight did not produce a plan")
+            raise RuntimeError("revision rubric score preflight did not produce a plan")
         models = tuple(
             str(model) for model in self.config.experiment.outcome_audit["models"]
         )
@@ -323,11 +327,11 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         unique_jobs = prepared.unique_jobs
         failures = _prior_failures(
             self.output,
-            expected_kind=rh.RUBRIC_SCORE_KIND,
+            expected_kind=evaluation_jobs.RUBRIC_SCORE_KIND,
         )
         jobs_by_key = {job.key: job for job in unique_jobs}
         if not set(failures) <= set(jobs_by_key):
-            raise RuntimeError("RH rubric score failure is outside the accepted plan")
+            raise RuntimeError("revision rubric score failure is outside the accepted plan")
         judgments: dict[str, dict[str, object]] = {}
         fresh_jobs = tuple(
             job for job in unique_jobs if job.key not in failures
@@ -335,7 +339,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         fatal_errors: list[BaseException] = []
         with TerminalProgress(
             total=len(fresh_jobs),
-            description="RH rubric score evaluation",
+            description="revision rubric score evaluation",
             unit="judgment",
         ) as progress:
             with ThreadPoolExecutor(
@@ -354,7 +358,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
                             job.model in models
                             and _is_judge_failure(
                                 error,
-                                "RH audit rubric judge failed after ",
+                                "rubric-score rubric judge failed after ",
                             )
                         ):
                             failures[job.key] = _failure_record(
@@ -366,7 +370,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
                             fatal_errors.append(error)
                     progress.update()
         if fatal_errors:
-            raise RuntimeError("RH rubric score non-panel job failed") from fatal_errors[0]
+            raise RuntimeError("revision rubric score non-panel job failed") from fatal_errors[0]
 
         available_models = tuple(
             model
@@ -378,7 +382,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             )
         )
         if not available_models:
-            raise RuntimeError("all configured RH rubric score judges failed")
+            raise RuntimeError("all configured revision rubric score judges failed")
         included_models = set(available_models)
         records = [
             {
@@ -392,7 +396,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             for job in prepared.jobs
             if job.model in included_models
         ]
-        records.sort(key=rh._record_sort_key)
+        records.sort(key=evaluation_jobs._record_sort_key)
         failure_records = sorted(
             failures.values(),
             key=lambda item: (str(item["model"]), str(item["judgment_key"])),
@@ -431,26 +435,26 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
 
     def _manifest(
         self,
-        prepared: rh.PreparedRubricScoreEvaluation,
+        prepared: evaluation_jobs.PreparedRubricScoreEvaluation,
         models: tuple[str, ...],
     ) -> dict[str, object]:
         jobs = prepared.jobs
         study_experiment_id = _study_experiment_id(prepared.targets)
         return {
-            "kind": rh.RUBRIC_SCORE_KIND,
+            "kind": evaluation_jobs.RUBRIC_SCORE_KIND,
             "experiment_id": self.config.experiment.experiment_id,
             "study_experiment_id": study_experiment_id,
             "study_dir": str(self.config.study_dir.resolve()),
             "paraphrase_dir": str(self.config.paraphrase_dir.resolve()),
             "models": list(models),
-            "implementation_identity": rh._rubric_score_implementation_identity(
+            "implementation_identity": evaluation_jobs._rubric_score_implementation_identity(
                 prepared.unique_jobs
             ),
             "assignment_reference_count": len(jobs),
             "assignment_reference_identity_sha256": (
                 rubric_score._rubric_score_assignment_reference_sha256(jobs)
             ),
-            "artifacts": list(rh.ARTIFACTS),
+            "artifacts": list(evaluation_jobs.ARTIFACTS),
             "endpoint_rubric": "original-master-rubric",
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-engine-"
@@ -463,21 +467,28 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         }
 
 
-class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStage):
-    """Score with strong judges that complete every rubric-free job."""
+class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
+    """Run the absolute-score and pairwise-preference instruments."""
 
     def run(self) -> int:
         self.preflight()
         prepared = self._prepared
         if prepared is None:
-            raise RuntimeError("RH rubric-free evaluation preflight did not produce a plan")
-        manifest = self._manifest(prepared)
-        self.output.prepare(manifest, self.config.resume)
-        failures = _prior_failures(
-            self.output,
-            expected_kind=rh.RUBRIC_FREE_EVALUATION_KIND,
-            instruments=frozenset({"absolute", "pairwise"}),
+            raise RuntimeError("rubric-free score preflight did not produce a plan")
+        manifests = self._manifests(prepared)
+        self.absolute_output.prepare(manifests["absolute"], self.config.resume)
+        self.pairwise_output.prepare(manifests["pairwise"], self.config.resume)
+        absolute_failures = _prior_failures(
+            self.absolute_output,
+            expected_kind=evaluation_jobs.ABSOLUTE_SCORE_KIND,
+            instruments=frozenset({"absolute"}),
         )
+        pairwise_failures = _prior_failures(
+            self.pairwise_output,
+            expected_kind=evaluation_jobs.PAIRWISE_PREFERENCE_KIND,
+            instruments=frozenset({"pairwise"}),
+        )
+        failures = {**absolute_failures, **pairwise_failures}
         unique_absolute = {
             job.key: job for job in prepared.unique_absolute_jobs
         }
@@ -486,7 +497,7 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
         }
         all_keys = set(unique_absolute) | set(unique_pairwise)
         if not set(failures) <= all_keys:
-            raise RuntimeError("RH rubric-free evaluation failure is outside the accepted plan")
+            raise RuntimeError("rubric-free score failure is outside the accepted plan")
         absolute_judgments: dict[str, dict[str, object]] = {}
         pairwise_judgments: dict[str, dict[str, object]] = {}
         jobs = [
@@ -501,7 +512,7 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
         fatal_errors: list[BaseException] = []
         with TerminalProgress(
             total=len(jobs),
-            description="RH rubric-free outcome evaluation",
+            description="absolute and pairwise scoring",
             unit="judgment",
         ) as progress:
             with ThreadPoolExecutor(
@@ -527,19 +538,24 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
                     except Exception as error:
                         if _is_judge_failure(
                             error,
-                            "RH rubric-free judge failed after ",
+                            "rubric-free score judge failed after ",
                         ):
-                            failures[job.key] = _failure_record(
+                            failure = _failure_record(
                                 key=job.key,
                                 model=job.model,
                                 instrument=instrument,
                                 error=error,
                             )
+                            failures[job.key] = failure
+                            if instrument == "absolute":
+                                absolute_failures[job.key] = failure
+                            else:
+                                pairwise_failures[job.key] = failure
                         else:
                             fatal_errors.append(error)
                     progress.update()
         if fatal_errors:
-            raise RuntimeError("RH rubric-free evaluation non-panel job failed") from fatal_errors[0]
+            raise RuntimeError("rubric-free score job failed") from fatal_errors[0]
 
         available_models = tuple(
             model
@@ -556,10 +572,10 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
             )
         )
         if not available_models:
-            raise RuntimeError("all configured RH rubric-free judges failed")
+            raise RuntimeError("all configured rubric-free score judges failed")
         available_set = set(available_models)
         absolute_records = [
-            rubric_free_evaluation._absolute_assignment_reference(
+            absolute_score.assignment_reference(
                 job,
                 absolute_judgments[job.key],
             )
@@ -567,19 +583,25 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
             if job.model in available_set
         ]
         pairwise_records = [
-            rubric_free_evaluation._pairwise_assignment_reference(
+            pairwise_preference.assignment_reference(
                 job,
                 pairwise_judgments[job.key],
             )
             for job in prepared.pairwise_jobs
             if job.model in available_set
         ]
-        absolute_records.sort(key=rh._record_sort_key)
-        pairwise_records.sort(key=rh._record_sort_key)
-        failure_records = sorted(
-            failures.values(),
+        absolute_records.sort(key=evaluation_jobs._record_sort_key)
+        pairwise_records.sort(key=evaluation_jobs._record_sort_key)
+        absolute_failure_records = sorted(
+            absolute_failures.values(),
             key=lambda item: (
-                str(item["instrument"]),
+                str(item["model"]),
+                str(item["judgment_key"]),
+            ),
+        )
+        pairwise_failure_records = sorted(
+            pairwise_failures.values(),
+            key=lambda item: (
                 str(item["model"]),
                 str(item["judgment_key"]),
             ),
@@ -590,87 +612,98 @@ class RubricFreeEvaluationRunner(rubric_free_evaluation.RubricFreeEvaluationStag
         used_pairwise = {
             key for key, job in unique_pairwise.items() if job.model in available_set
         }
-        summary = {
-            **manifest,
+        common = {
             "status": "completed",
             "panel_policy": PANEL_POLICY,
             "available_models": list(available_models),
             "failed_models": [
                 model for model in prepared.models if model not in available_set
             ],
-            "planned_semantic_judgment_counts": {
-                "absolute": len(unique_absolute),
-                "pairwise": len(unique_pairwise),
-            },
-            "successful_semantic_judgment_counts": {
-                "absolute": len(absolute_judgments),
-                "pairwise": len(pairwise_judgments),
-            },
-            "used_semantic_judgment_counts": {
-                "absolute": len(used_absolute),
-                "pairwise": len(used_pairwise),
-            },
-            "failed_semantic_judgment_count": len(failure_records),
-            "assignment_reference_counts": {
-                "absolute": len(absolute_records),
-                "pairwise": len(pairwise_records),
-            },
-            "judge_failures": failure_records,
-            "absolute_records": absolute_records,
-            "pairwise_records": pairwise_records,
+        }
+        absolute_summary = {
+            **manifests["absolute"],
+            **common,
+            "planned_semantic_judgment_count": len(unique_absolute),
+            "successful_semantic_judgment_count": len(absolute_judgments),
+            "used_semantic_judgment_count": len(used_absolute),
+            "failed_semantic_judgment_count": len(absolute_failure_records),
+            "assignment_reference_count": len(absolute_records),
+            "judge_failures": absolute_failure_records,
+            "records": absolute_records,
             "completed_record_sha256s": {
-                "absolute": {
-                    key: sha256_file(self.output.regular_file(
-                        "records", "absolute", f"{key}.json"
-                    ))
-                    for key in sorted(used_absolute)
-                },
-                "pairwise": {
-                    key: sha256_file(self.output.regular_file(
-                        "records", "pairwise", f"{key}.json"
-                    ))
-                    for key in sorted(used_pairwise)
-                },
+                key: sha256_file(self.absolute_output.regular_file(
+                    "records", f"{key}.json"
+                ))
+                for key in sorted(used_absolute)
             },
-            "assignments": rubric_free_evaluation._summarize_rubric_free_scores(
+            "assignments": absolute_score.summarize(
                 prepared.targets,
                 absolute_records,
+                available_models,
+            ),
+        }
+        pairwise_summary = {
+            **manifests["pairwise"],
+            **common,
+            "planned_semantic_judgment_count": len(unique_pairwise),
+            "successful_semantic_judgment_count": len(pairwise_judgments),
+            "used_semantic_judgment_count": len(used_pairwise),
+            "failed_semantic_judgment_count": len(pairwise_failure_records),
+            "assignment_reference_count": len(pairwise_records),
+            "judge_failures": pairwise_failure_records,
+            "records": pairwise_records,
+            "completed_record_sha256s": {
+                key: sha256_file(self.pairwise_output.regular_file(
+                    "records", f"{key}.json"
+                ))
+                for key in sorted(used_pairwise)
+            },
+            "assignments": pairwise_preference.summarize(
+                prepared.targets,
                 pairwise_records,
                 available_models,
             ),
         }
-        self._write_summary(summary)
+        self.absolute_output.write_json(("summary.json",), absolute_summary)
+        self.pairwise_output.write_json(("summary.json",), pairwise_summary)
         return 0
 
-    def _write_summary(self, summary: dict[str, object]) -> None:
-        self.output.write_json(("summary.json",), summary)
-
-    def _manifest(
+    def _manifests(
         self,
-        prepared: rh.PreparedRubricFreeEvaluation,
-    ) -> dict[str, object]:
-        return {
-            "kind": rh.RUBRIC_FREE_EVALUATION_KIND,
+        prepared: evaluation_jobs.PreparedRubricFreeScores,
+    ) -> dict[str, dict[str, object]]:
+        common = {
             "experiment_id": self.config.experiment.experiment_id,
             "study_experiment_id": _study_experiment_id(prepared.targets),
             "study_dir": str(self.config.study_dir.resolve()),
             "models": list(prepared.models),
             "implementation_identity": prepared.implementation_identity,
-            "orderings": list(rh.ORDERINGS),
-            "absolute_prompt_id": rh.ABSOLUTE_PROMPT_ID,
-            "pairwise_prompt_id": rh.PAIRWISE_PROMPT_ID,
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-engine-"
                 "implementation-or-order"
             ),
             "predispatch_plan": prepared.predispatch_plan,
         }
+        return {
+            "absolute": {
+                **common,
+                "kind": evaluation_jobs.ABSOLUTE_SCORE_KIND,
+                "artifacts": list(evaluation_jobs.ARTIFACTS),
+                "prompt_id": evaluation_jobs.ABSOLUTE_PROMPT_ID,
+            },
+            "pairwise": {
+                **common,
+                "kind": evaluation_jobs.PAIRWISE_PREFERENCE_KIND,
+                "orderings": list(evaluation_jobs.ORDERINGS),
+                "prompt_id": evaluation_jobs.PAIRWISE_PROMPT_ID,
+            },
+        }
 
 
 def _study_experiment_id(
-    targets: tuple[rh.EvaluationTarget, ...],
+    targets: tuple[evaluation_jobs.EvaluationTarget, ...],
 ) -> str:
     values = {target.study_experiment_id for target in targets}
     if len(values) != 1:
-        raise RuntimeError("RH targets must use one source study experiment ID")
+        raise RuntimeError("revision evaluation targets must use one source study experiment ID")
     return next(iter(values))

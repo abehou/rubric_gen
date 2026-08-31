@@ -7,6 +7,7 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmark
+from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
     ArtifactPair,
@@ -32,23 +33,28 @@ def _sealed_seed_artifacts(
     benchmark: SubmissionBenchmark,
     provider: str,
     requested_model: str,
-) -> tuple[_Artifact, _Artifact, _Artifact]:
+    prompt_profile: PromptProfile | str,
+    seed_replicates: int,
+) -> tuple[_Artifact, ...]:
+    if type(seed_replicates) is not int or seed_replicates < 3:
+        raise ValueError("elicitation seed count must be at least three")
     values: list[_Artifact] = []
-    for replicate in (1, 2, 3):
+    for replicate in range(1, seed_replicates + 1):
         seed = resolve_seed(
             seed_set,
             task_dir,
             replicate,
             provider=provider,
             requested_model=requested_model,
+            prompt_profile=prompt_profile,
+            benchmark=benchmark.benchmark,
         )
-        values.append(_Artifact(
-            source_id=f"sealed-seed:rep-{replicate:03d}",
-            text=benchmark.render_submission(seed.submission_dir / "workspace"),
-        ))
-    if len({value.sha256 for value in values}) != 3:
-        raise RuntimeError("offline elicitation needs three distinct sealed seeds")
-    return values[0], values[1], values[2]
+        for role, workspace in seed.elicitation_artifacts:
+            values.append(_Artifact(
+                source_id=f"sealed-seed:rep-{replicate:03d}:{role}",
+                text=benchmark.render_user_review(workspace),
+            ))
+    return tuple(values)
 
 
 def _artifact_history(
@@ -89,6 +95,8 @@ def build_offline_artifact_history(
     benchmark: SubmissionBenchmark,
     provider: str,
     requested_model: str,
+    prompt_profile: PromptProfile | str,
+    seed_replicates: int,
     assignment_id: str,
 ) -> ArtifactHistory:
     """Return the complete graph over three sealed pre-treatment artifacts."""
@@ -101,6 +109,8 @@ def build_offline_artifact_history(
             benchmark=benchmark,
             provider=provider,
             requested_model=requested_model,
+            prompt_profile=prompt_profile,
+            seed_replicates=seed_replicates,
         ),
     )
 
@@ -113,6 +123,8 @@ def build_online_artifact_history(
     benchmark: SubmissionBenchmark,
     provider: str,
     requested_model: str,
+    prompt_profile: PromptProfile | str,
+    seed_replicates: int,
     assignment_id: str,
     generation_round: int,
 ) -> ArtifactHistory:
@@ -129,7 +141,7 @@ def build_online_artifact_history(
             raise RuntimeError(f"online elicitation source is missing: {submission_id}")
         live.append(_Artifact(
             source_id=f"live:{submission_id}",
-            text=benchmark.render_submission(workspace),
+            text=benchmark.render_user_review(workspace),
         ))
     seeds = _sealed_seed_artifacts(
         seed_set=seed_set,
@@ -137,6 +149,8 @@ def build_online_artifact_history(
         benchmark=benchmark,
         provider=provider,
         requested_model=requested_model,
+        prompt_profile=prompt_profile,
+        seed_replicates=seed_replicates,
     )
     return _artifact_history(
         assignment_id=assignment_id,
@@ -153,6 +167,8 @@ def build_elicitation_artifact_history(
     benchmark: SubmissionBenchmark,
     provider: str,
     requested_model: str,
+    prompt_profile: PromptProfile | str,
+    seed_replicates: int,
     assignment_id: str,
     generation_round: int,
 ) -> ArtifactHistory:
@@ -166,6 +182,8 @@ def build_elicitation_artifact_history(
         "benchmark": benchmark,
         "provider": provider,
         "requested_model": requested_model,
+        "prompt_profile": prompt_profile,
+        "seed_replicates": seed_replicates,
         "assignment_id": assignment_id,
     }
     if online:

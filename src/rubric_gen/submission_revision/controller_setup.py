@@ -248,6 +248,8 @@ def build_revision_setup(
         config.replicate,
         provider=config.agent.provider,
         requested_model=config.agent.model,
+        prompt_profile=config.prompt_profile,
+        benchmark=config.benchmark,
     )
     resolved_dependencies = dependencies or _default_dependencies(
         config,

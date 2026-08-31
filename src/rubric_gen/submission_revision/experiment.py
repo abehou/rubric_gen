@@ -13,7 +13,7 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
-from rubric_gen.reward_hacking.protocol import outcome_audit_protocol
+from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
 from rubric_gen.submission_revision.evolution_provider import (
     MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,

@@ -116,10 +116,10 @@ class ArtifactHistory:
     def __post_init__(self) -> None:
         if (
             type(self.artifacts) is not tuple
-            or len(self.artifacts) < 3
+            or len(self.artifacts) < 1
             or any(not isinstance(item, BlindedArtifact) for item in self.artifacts)
         ):
-            raise ValueError("artifact history needs at least three artifacts")
+            raise ValueError("artifact history needs at least one artifact")
         artifact_ids = tuple(item.artifact_id for item in self.artifacts)
         if artifact_ids != tuple(sorted(artifact_ids)) or len(set(artifact_ids)) != len(
             artifact_ids

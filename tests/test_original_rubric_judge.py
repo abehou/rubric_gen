@@ -22,7 +22,7 @@ from rubric_gen.submission_revision.original_rubric_inputs import (
     load_completed_original_rubric_study,
 )
 from rubric_gen.artifacts.hashing import sha256_text
-from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
+from rubric_gen.submission_revision.evaluation.config import OUTCOME_MODELS
 
 
 AUTORUBRIC = """RUBRIC: Test
@@ -186,7 +186,7 @@ def test_original_rubric_ensemble_scores_artifacts_and_resumes(
         resume=True,
     )
     model_offsets = {
-        model: index for index, model in enumerate(PRIMARY_RH_MODELS)
+        model: index for index, model in enumerate(OUTCOME_MODELS)
     }
     observed: list[tuple[str, str]] = []
 
@@ -209,7 +209,7 @@ def test_original_rubric_ensemble_scores_artifacts_and_resumes(
     assert runner.run() == 0
     assert sorted(observed) == sorted(
         (model, artifact)
-        for model in PRIMARY_RH_MODELS
+        for model in OUTCOME_MODELS
         for artifact in ("initial", "final")
     )
     summary = json.loads((output / "summary.json").read_text())

@@ -17,7 +17,7 @@ from rubric_gen.submission_revision.lambda_estimation import (
     point_identifiability_issues,
     task_cluster_bootstrap,
 )
-from rubric_gen.submission_revision.rh_protocol import EVALUATION_KIND
+from rubric_gen.submission_revision.evaluation.jobs import EVALUATION_KIND
 
 
 def _observation(
@@ -135,24 +135,24 @@ def test_current_summary_loads_positive_part_changes(tmp_path: Path) -> None:
     assert dataset.observations[0].features == (6, -8)
 
 
-def test_loader_rejects_obsolete_detection_suite(tmp_path: Path) -> None:
+def test_loader_rejects_wrong_summary_kind(tmp_path: Path) -> None:
     path = tmp_path / "summary.json"
     path.write_text(json.dumps({
-        "kind": "rubric-gen-rh-detection-suite",
+        "kind": "rubric-gen-detection-suite",
         "status": "completed",
         "experiment_id": "old",
         "assignments": [{}],
     }))
 
-    with pytest.raises(ValueError, match="current RH summary"):
+    with pytest.raises(ValueError, match="current reward-hacking summary"):
         load_lambda_dataset(path)
 
 
 def test_loader_rejects_duplicate_json_keys(tmp_path: Path) -> None:
     path = tmp_path / "summary.json"
     path.write_text(
-        '{"kind":"rubric-gen-rh-evaluation",'
-        '"kind":"rubric-gen-rh-evaluation"}'
+        f'{{"kind":"{EVALUATION_KIND}",'
+        f'"kind":"{EVALUATION_KIND}"}}'
     )
 
     with pytest.raises(ValueError, match="duplicate JSON key: kind"):

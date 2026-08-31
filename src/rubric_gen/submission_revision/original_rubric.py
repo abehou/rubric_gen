@@ -11,7 +11,7 @@ from typing import Iterator
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.reward_hacking.protocol import PRIMARY_RH_MODELS
+from rubric_gen.submission_revision.evaluation.config import OUTCOME_MODELS
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.judge import (
@@ -126,7 +126,7 @@ def _dispatch_input(
 def _job_sort_key(job: OriginalRubricJob) -> tuple[str, int, int]:
     return (
         job.target.assignment_id,
-        PRIMARY_RH_MODELS.index(job.model),
+        OUTCOME_MODELS.index(job.model),
         ARTIFACTS.index(job.artifact),
     )
 
@@ -361,7 +361,7 @@ class OriginalRubricEnsembleRunner:
         return tuple(
             OriginalRubricJob(target, model, artifact)
             for target in study.targets
-            for model in PRIMARY_RH_MODELS
+            for model in OUTCOME_MODELS
             for artifact in ARTIFACTS
         )
 
@@ -592,7 +592,7 @@ class OriginalRubricEnsembleRunner:
 
     def _protocol(self) -> dict[str, object]:
         return {
-            "models": list(PRIMARY_RH_MODELS),
+            "models": list(OUTCOME_MODELS),
             "submissions": list(ARTIFACTS),
             "rubric": "original-human-written-r0000",
             "score_scale": [0, 100],
@@ -814,7 +814,7 @@ class OriginalRubricEnsembleRunner:
         )
         complete = sum(record["status"] == "completed" for record in records)
         failed = sum(record["status"] == "failed" for record in records)
-        total = len(study.targets) * len(PRIMARY_RH_MODELS) * len(ARTIFACTS)
+        total = len(study.targets) * len(OUTCOME_MODELS) * len(ARTIFACTS)
         status = (
             "completed"
             if complete == total

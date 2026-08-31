@@ -633,6 +633,8 @@ class RevisionScorer:
             benchmark=self.benchmark,
             provider=self.config.agent.provider,
             requested_model=self.config.agent.model,
+            prompt_profile=self.config.prompt_profile,
+            seed_replicates=self.config.elicitation_seed_replicates,
             assignment_id=self.config.assignment_id,
             generation_round=generation_round,
         )

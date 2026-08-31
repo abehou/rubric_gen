@@ -21,22 +21,22 @@ from rubric_gen.benchmarks.malt.cases import (
     inventory_malt,
     prepare_malt,
 )
-from rubric_gen.reward_hacking.metrics import (
+from rubric_gen.detection.metrics import (
     score_panel,
 )
 from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.reward_hacking.protocol import (
-    DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
-    DEFAULT_RH_MAX_INPUT_TOKENS,
-    DEFAULT_RH_MAX_OUTPUT_TOKENS,
-    PRIMARY_RH_MODELS,
+from rubric_gen.detection.config import (
+    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
+    DEFAULT_MAX_EVENT_TEXT_CHARS,
+    DEFAULT_MAX_INPUT_TOKENS,
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    DEFAULT_PANEL_MODELS,
 )
-from rubric_gen.reward_hacking.jobs import RewardHackingJudgeConfig
-from rubric_gen.reward_hacking.runner import RewardHackingJudgeRunner
-from rubric_gen.reward_hacking.sources import transcript_audit_source
-from rubric_gen.reward_hacking.targets import TARGETS, detection_target
+from rubric_gen.detection.jobs import DetectionConfig
+from rubric_gen.detection.runner import DetectionRunner
+from rubric_gen.detection.sources import transcript_audit_source
+from rubric_gen.detection.targets import TARGETS, detection_target
 
 
 def _sample_case_dirs(
@@ -293,19 +293,19 @@ def run(args: argparse.Namespace) -> int:
     args.seed = 42 if args.seed is None else args.seed
     args.split = "development" if args.split is None else args.split
     args.max_input_tokens = (
-        DEFAULT_RH_MAX_INPUT_TOKENS
+        DEFAULT_MAX_INPUT_TOKENS
         if args.max_input_tokens is None else args.max_input_tokens
     )
     args.max_output_tokens = (
-        DEFAULT_RH_MAX_OUTPUT_TOKENS
+        DEFAULT_MAX_OUTPUT_TOKENS
         if args.max_output_tokens is None else args.max_output_tokens
     )
     args.max_event_text_chars = (
-        DEFAULT_RH_MAX_EVENT_TEXT_CHARS
+        DEFAULT_MAX_EVENT_TEXT_CHARS
         if args.max_event_text_chars is None else args.max_event_text_chars
     )
     args.max_command_output_chars = (
-        DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS
+        DEFAULT_MAX_COMMAND_OUTPUT_CHARS
         if args.max_command_output_chars is None
         else args.max_command_output_chars
     )
@@ -433,7 +433,7 @@ def run(args: argparse.Namespace) -> int:
         negative_top=args.negative_top,
     )
     if args.ensemble:
-        mode_name, agent_panel, models = "ensemble", None, PRIMARY_RH_MODELS
+        mode_name, agent_panel, models = "ensemble", None, DEFAULT_PANEL_MODELS
     else:
         assert args.judge
         safe_model = re.sub(r"[^A-Za-z0-9._-]+", "_", args.judge)
@@ -469,7 +469,7 @@ def run(args: argparse.Namespace) -> int:
     evaluation_root = _evaluation_root(output_root, mode_name, resume=args.resume)
     resume_evaluation = bool(args.resume and evaluation_root.is_dir())
     assert models is not None
-    exit_code = RewardHackingJudgeRunner(RewardHackingJudgeConfig(
+    exit_code = DetectionRunner(DetectionConfig(
         source=transcript_audit_source(case_dirs, preparation),
         models=models, output_dir=evaluation_root,
         max_concurrency=args.max_concurrency, resume=resume_evaluation,

@@ -1,4 +1,4 @@
-"""Load completed revision assignments for reward-hacking evaluation."""
+"""Load completed assignments for revision evaluation."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
-from rubric_gen.submission_revision.rh_protocol import (
+from rubric_gen.submission_revision.evaluation.jobs import (
     EvaluationConfig,
     EvaluationTarget,
 )
@@ -45,17 +45,17 @@ def load_evaluation_targets(
         or study.get("paraphrase_run_dir") != str(config.paraphrase_dir.resolve())
         or not isinstance(study.get("records"), list)
     ):
-        raise RuntimeError("RH evaluation requires a completed source study")
+        raise RuntimeError("revision evaluation requires a completed source study")
     raw_records = study["records"]
     if any(not isinstance(record, dict) for record in raw_records):
-        raise RuntimeError("RH source study records are invalid")
+        raise RuntimeError("evaluation source study records are invalid")
     records = {str(record.get("assignment_id")): record for record in raw_records}
     assignments = config.experiment.assignments
     assignment_ids = {
         str(assignment["assignment_id"]) for assignment in assignments
     }
     if len(records) != len(raw_records) or set(records) != assignment_ids:
-        raise RuntimeError("RH source study ledger differs from the experiment")
+        raise RuntimeError("evaluation source study ledger differs from the experiment")
     selection_keys = {
         (str(assignment["task_id"]), int(assignment["replicate"]))
         for assignment in assignments
@@ -71,7 +71,7 @@ def load_evaluation_targets(
     targets: list[EvaluationTarget | None] = [None] * len(assignments)
     with TerminalProgress(
         total=len(assignments),
-        description="RH target loading",
+        description="evaluation target loading",
         unit="assignment",
     ) as progress:
         futures = {}
@@ -105,7 +105,7 @@ def load_evaluation_targets(
                 progress.set_status(assignment_id)
                 progress.update()
     if any(target is None for target in targets):
-        raise RuntimeError("RH target loading did not return every assignment")
+        raise RuntimeError("evaluation target loading did not return every assignment")
     return tuple(target for target in targets if target is not None)
 
 

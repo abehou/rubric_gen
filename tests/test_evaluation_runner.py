@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-import rubric_gen.submission_revision.rh_outcome_panel as panel_module
-from rubric_gen.submission_revision.rh_protocol import EvaluationConfig
-from rubric_gen.submission_revision.rh_outcome_panel import (
-    RubricFreeEvaluationRunner,
+import rubric_gen.submission_revision.evaluation.runner as panel_module
+from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.runner import (
+    RubricFreeScoreRunner,
     RubricScoreRunner,
     PANEL_POLICY,
 )
@@ -64,7 +64,7 @@ def test_rubric_score_panel_uses_every_stage_complete_judge(
     def run_job(job: object) -> dict[str, object]:
         if job.model == "gemini":  # type: ignore[attr-defined]
             raise RuntimeError(
-                "RH audit rubric judge failed after 2 attempts: "
+                "rubric-score rubric judge failed after 2 attempts: "
                 "429 RESOURCE_EXHAUSTED"
             )
         return {
@@ -80,7 +80,7 @@ def test_rubric_score_panel_uses_every_stage_complete_judge(
         runner,
         "_manifest",
         lambda *_args: {
-            "kind": panel_module.rh.RUBRIC_SCORE_KIND,
+            "kind": panel_module.evaluation_jobs.RUBRIC_SCORE_KIND,
             "models": list(MODELS),
             "panel_policy": PANEL_POLICY,
         },
@@ -91,7 +91,7 @@ def test_rubric_score_panel_uses_every_stage_complete_judge(
         "_rubric_score_job_identity",
         lambda job: {"model": job.model, "assignment_id": "a-1"},
     )
-    monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
+    monkeypatch.setattr(panel_module.evaluation_jobs, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
         panel_module,
         "_summarize_rubric_scores",
@@ -129,12 +129,12 @@ def test_rubric_score_panel_replaces_obsolete_summary(
         predispatch_plan={},
     )
     manifest = {
-        "kind": panel_module.rh.RUBRIC_SCORE_KIND,
+        "kind": panel_module.evaluation_jobs.RUBRIC_SCORE_KIND,
         "models": list(MODELS),
     }
     runner.output.prepare(manifest, resume=False)
     runner.output.write_json(("summary.json",), {
-        "kind": panel_module.rh.RUBRIC_SCORE_KIND,
+        "kind": panel_module.evaluation_jobs.RUBRIC_SCORE_KIND,
         "status": "completed",
         "records": [],
     })
@@ -156,7 +156,7 @@ def test_rubric_score_panel_replaces_obsolete_summary(
         "_rubric_score_job_identity",
         lambda job: {"model": job.model, "assignment_id": "a-1"},
     )
-    monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
+    monkeypatch.setattr(panel_module.evaluation_jobs, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
         panel_module,
         "_summarize_rubric_scores",
@@ -197,7 +197,7 @@ def test_rubric_score_panel_keeps_resume_records(
         predispatch_plan={},
     )
     manifest = {
-        "kind": panel_module.rh.RUBRIC_SCORE_KIND,
+        "kind": panel_module.evaluation_jobs.RUBRIC_SCORE_KIND,
         "models": list(MODELS),
     }
     runner.output.prepare(manifest, resume=False)
@@ -227,7 +227,7 @@ def test_rubric_score_panel_keeps_resume_records(
             "assignment_id": "a-1",
         },
     )
-    monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
+    monkeypatch.setattr(panel_module.evaluation_jobs, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
         panel_module,
         "_summarize_rubric_scores",
@@ -257,7 +257,7 @@ def test_rubric_score_panel_fails_when_every_strong_judge_fails(
 
     def run_job(job: object) -> dict[str, object]:
         if job.model in MODELS:  # type: ignore[attr-defined]
-            raise RuntimeError("RH audit rubric judge failed after 2 attempts: bad")
+            raise RuntimeError("rubric-score rubric judge failed after 2 attempts: bad")
         return {
             "score": 50,
             "attempt_id": "attempt",
@@ -270,14 +270,14 @@ def test_rubric_score_panel_fails_when_every_strong_judge_fails(
         runner,
         "_manifest",
         lambda *_args: {
-            "kind": panel_module.rh.RUBRIC_SCORE_KIND,
+            "kind": panel_module.evaluation_jobs.RUBRIC_SCORE_KIND,
             "models": list(MODELS),
             "panel_policy": PANEL_POLICY,
         },
     )
     monkeypatch.setattr(runner, "_run_job", run_job)
 
-    with pytest.raises(RuntimeError, match="all configured RH rubric score"):
+    with pytest.raises(RuntimeError, match="all configured revision rubric score"):
         runner.run()
     assert not (tmp_path / "output" / "summary.json").exists()
 
@@ -286,7 +286,7 @@ def test_judge_failure_has_no_provider_wide_effect() -> None:
     assert panel_module._failure_record(
         key="job-2",
         model="claude",
-        error=RuntimeError("RH audit rubric judge failed after 3 attempts: timeout"),
+        error=RuntimeError("rubric-score rubric judge failed after 3 attempts: timeout"),
     )["reason"] == "judge-failed"
 
 
@@ -294,7 +294,7 @@ def test_rubric_free_panel_uses_every_stage_complete_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runner = RubricFreeEvaluationRunner(_config(tmp_path), ())
+    runner = RubricFreeScoreRunner(_config(tmp_path), ())
     absolute = tuple(_job(model, "absolute") for model in MODELS)
     pairwise = tuple(_job(model, "pairwise") for model in MODELS)
     runner._prepared = SimpleNamespace(
@@ -312,11 +312,16 @@ def test_rubric_free_panel_uses_every_stage_complete_judge(
         key = str(job.key)  # type: ignore[attr-defined]
         if job.model == "gemini":  # type: ignore[attr-defined]
             raise RuntimeError(
-                "RH rubric-free judge failed after 2 attempts: "
+                "rubric-free score judge failed after 2 attempts: "
                 "429 RESOURCE_EXHAUSTED"
             )
-        runner.output.write_json(
-            ("records", instrument, f"{key}.json"),
+        output = (
+            runner.absolute_output
+            if instrument == "absolute"
+            else runner.pairwise_output
+        )
+        output.write_json(
+            ("records", f"{key}.json"),
             {"key": key},
         )
         return {"verdict": {}}
@@ -325,11 +330,16 @@ def test_rubric_free_panel_uses_every_stage_complete_judge(
     monkeypatch.setattr(runner, "preflight", lambda: None)
     monkeypatch.setattr(
         runner,
-        "_manifest",
+        "_manifests",
         lambda _prepared: {
-            "kind": panel_module.rh.RUBRIC_FREE_EVALUATION_KIND,
-            "models": list(MODELS),
-            "panel_policy": PANEL_POLICY,
+            "absolute": {
+                "kind": panel_module.evaluation_jobs.ABSOLUTE_SCORE_KIND,
+                "models": list(MODELS),
+            },
+            "pairwise": {
+                "kind": panel_module.evaluation_jobs.PAIRWISE_PREFERENCE_KIND,
+                "models": list(MODELS),
+            },
         },
     )
     monkeypatch.setattr(
@@ -343,27 +353,40 @@ def test_rubric_free_panel_uses_every_stage_complete_judge(
         lambda job: run_job("pairwise", job),
     )
     monkeypatch.setattr(
-        panel_module.rubric_free_evaluation,
-        "_absolute_assignment_reference",
+        panel_module.absolute_score,
+        "assignment_reference",
         lambda job, _judgment: {"model": job.model, "assignment_id": "a-1"},
     )
     monkeypatch.setattr(
-        panel_module.rubric_free_evaluation,
-        "_pairwise_assignment_reference",
+        panel_module.pairwise_preference,
+        "assignment_reference",
         lambda job, _judgment: {"model": job.model, "assignment_id": "a-1"},
     )
-    monkeypatch.setattr(panel_module.rh, "_record_sort_key", lambda row: ())
+    monkeypatch.setattr(panel_module.evaluation_jobs, "_record_sort_key", lambda row: ())
     monkeypatch.setattr(
-        panel_module.rubric_free_evaluation,
-        "_summarize_rubric_free_scores",
-        lambda _targets, _absolute, _pairwise, models: (
+        panel_module.absolute_score,
+        "summarize",
+        lambda _targets, _records, models: (
+            observed_models.append(models) or [{"assignment_id": "a-1"}]
+        ),
+    )
+    monkeypatch.setattr(
+        panel_module.pairwise_preference,
+        "summarize",
+        lambda _targets, _records, models: (
             observed_models.append(models) or [{"assignment_id": "a-1"}]
         ),
     )
 
     assert runner.run() == 0
-    assert observed_models == [("gpt", "claude")]
-    summary = json.loads((tmp_path / "output" / "summary.json").read_text())
-    assert summary["available_models"] == ["gpt", "claude"]
-    assert summary["failed_models"] == ["gemini"]
-    assert summary["failed_semantic_judgment_count"] == 2
+    assert observed_models == [("gpt", "claude"), ("gpt", "claude")]
+    absolute_summary = json.loads(
+        (tmp_path / "output" / "absolute_score" / "summary.json").read_text()
+    )
+    pairwise_summary = json.loads(
+        (tmp_path / "output" / "pairwise_preference" / "summary.json").read_text()
+    )
+    for summary in (absolute_summary, pairwise_summary):
+        assert summary["available_models"] == ["gpt", "claude"]
+        assert summary["failed_models"] == ["gemini"]
+        assert summary["failed_semantic_judgment_count"] == 1

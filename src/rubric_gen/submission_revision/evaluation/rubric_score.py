@@ -24,8 +24,8 @@ from rubric_gen.submission_revision.judging.preflight import (
     JudgeDispatchInput,
     preflight_judge_dispatches,
 )
-from rubric_gen.submission_revision.rh_audit_judge import RhAuditRubricJudge
-from rubric_gen.submission_revision.rh_protocol import (
+from rubric_gen.submission_revision.evaluation.rubric_judge import RubricScoreJudge
+from rubric_gen.submission_revision.evaluation.jobs import (
     ARTIFACTS,
     EvaluationConfig,
     EvaluationTarget,
@@ -39,11 +39,11 @@ from rubric_gen.submission_revision.rh_protocol import (
     _finite_score,
     _rubric_score_judgment_identity,
     _rubric_score_plan_entry,
-    _rh_implementation_sha256,
+    _evaluation_implementation_sha256,
     _stage_caps,
     _submission_content_sha256,
 )
-from rubric_gen.submission_revision.rh_output_store import RhOutputStore
+from rubric_gen.submission_revision.evaluation.store import EvaluationStore
 
 
 @dataclass
@@ -69,7 +69,7 @@ class _GroupedRubrics:
             generation_binding is not None
             and generation_binding.rubric_sha256 != rubric_sha256
         ):
-            raise RuntimeError("RH generation binding does not match its rubric")
+            raise RuntimeError("evaluation generation binding does not match its rubric")
         key = (rubric_sha256, model)
         self.paths.setdefault(key, resolved)
         self.roles.setdefault(key, [])
@@ -91,7 +91,7 @@ class RubricScoreStage:
     ) -> None:
         self.config = config
         self.targets = targets
-        self.output = RhOutputStore(config.output_dir)
+        self.output = EvaluationStore(config.output_dir)
         self.root = self.output.root
         self._prepared: PreparedRubricScoreEvaluation | None = None
 
@@ -122,12 +122,12 @@ class RubricScoreStage:
     ) -> dict[str, object]:
         benchmarks = {job.target.benchmark for job in jobs}
         if len(benchmarks) != 1:
-            raise RuntimeError("RH rubric score jobs must use one benchmark")
+            raise RuntimeError("revision rubric score jobs must use one benchmark")
         planned_identities: list[dict[str, object]] = []
 
         with TerminalProgress(
             total=len(jobs),
-            description="RH rubric score planning",
+            description="revision rubric score planning",
             unit="judgment",
         ) as progress:
             def dispatches() -> Iterator[JudgeDispatchInput]:
@@ -136,7 +136,7 @@ class RubricScoreStage:
                     judge = self._judge_for_job(job)
                     if judge.scoring_identity() != job.grading_identity:
                         raise RuntimeError(
-                            "RH rubric score grading identity changed before "
+                            "revision rubric score grading identity changed before "
                             "dispatch"
                         )
                     review_text, answer_text = judge.review_inputs(
@@ -147,7 +147,7 @@ class RubricScoreStage:
                         or sha256_text(answer_text) != job.answer_input_sha256
                     ):
                         raise RuntimeError(
-                            "RH rubric score request input changed before dispatch"
+                            "revision rubric score request input changed before dispatch"
                         )
                     planned_identity = _rubric_score_plan_entry(
                         job=job,
@@ -171,9 +171,9 @@ class RubricScoreStage:
             )
         raw_shapes = engine_plan.pop("jobs")
         if not isinstance(raw_shapes, list) or len(raw_shapes) != len(jobs):
-            raise RuntimeError("RH rubric score predispatch shapes are invalid")
+            raise RuntimeError("revision rubric score predispatch shapes are invalid")
         if len(planned_identities) != len(jobs):
-            raise RuntimeError("RH rubric score predispatch identities are invalid")
+            raise RuntimeError("revision rubric score predispatch identities are invalid")
         planned_jobs = [
             {**identity, "shape": shape}
             for identity, shape in zip(
@@ -201,7 +201,7 @@ class RubricScoreStage:
         models = tuple(
             str(model) for model in self.config.experiment.outcome_audit["models"]
         )
-        implementation_sha256 = _rh_implementation_sha256()
+        implementation_sha256 = _evaluation_implementation_sha256()
         request_hashes: dict[tuple[str, str], tuple[str, str]] = {}
         return tuple(
             job
@@ -238,7 +238,7 @@ class RubricScoreStage:
             grading_identity = judge.scoring_identity()
             if set(grading_identity) != set(SCORING_IDENTITY_KEYS):
                 raise RuntimeError(
-                    "RH rubric score grading identity fields changed"
+                    "revision rubric score grading identity fields changed"
                 )
             request_key = (target.assignment_id, artifact)
             if request_key not in request_hashes:
@@ -268,13 +268,13 @@ class RubricScoreStage:
                 grading_identity=grading_identity,
                 review_input_sha256=review_sha256,
                 answer_input_sha256=answer_sha256,
-                rh_implementation_sha256=implementation_sha256,
+                evaluation_implementation_sha256=implementation_sha256,
             ))
         return tuple(jobs)
 
     @staticmethod
     def _request_hashes(
-        judge: RhAuditRubricJudge,
+        judge: RubricScoreJudge,
         submission: Path,
     ) -> tuple[str, str]:
         review_text, answer_text = judge.review_inputs(submission)
@@ -334,7 +334,7 @@ class RubricScoreStage:
         identity = _rubric_score_judgment_identity(job)
         judge = self._judge_for_job(job)
         if os.path.lexists(record_path):
-            record = read_json_object(record_path, "RH rubric score record")
+            record = read_json_object(record_path, "revision rubric score record")
             attempt_id = _rubric_score_attempt_id(job)
             artifacts = judge.validate(job.submission, attempt_id)
             self.output.validate_tree("artifacts", job.key)
@@ -342,7 +342,7 @@ class RubricScoreStage:
             self.output.contained_regular_file(artifacts.evaluation_path)
             validation = read_json_object(
                 artifacts.score_validation_path,
-                "RH rubric score score validation",
+                "revision rubric score score validation",
             )
             _validate_rubric_score_record(
                 job=job,
@@ -359,15 +359,15 @@ class RubricScoreStage:
         self.output.contained_regular_file(artifacts.evaluation_path)
         validation = read_json_object(
             artifacts.score_validation_path,
-            "RH rubric score score validation",
+            "revision rubric score score validation",
         )
         score = validation.get("score")
-        normalized_score = _finite_score(score, "RH rubric score judge score")
+        normalized_score = _finite_score(score, "revision rubric score judge score")
         observed_grading_identity = {
             key: validation.get(key) for key in SCORING_IDENTITY_KEYS
         }
         if observed_grading_identity != job.grading_identity:
-            raise RuntimeError("RH rubric score result grading identity changed")
+            raise RuntimeError("revision rubric score result grading identity changed")
         if (
             validation.get("review_input_sha256")
             != job.review_input_sha256
@@ -375,7 +375,7 @@ class RubricScoreStage:
             != job.answer_input_sha256
             or not isinstance(validation.get("engine_execution"), dict)
         ):
-            raise RuntimeError("RH rubric score result dispatch identity changed")
+            raise RuntimeError("revision rubric score result dispatch identity changed")
         record = {
             **identity,
             "score": normalized_score,
@@ -396,11 +396,11 @@ class RubricScoreStage:
     def _assert_current_dispatch(
         self,
         job: RubricScoreJob,
-        judge: RhAuditRubricJudge,
+        judge: RubricScoreJudge,
     ) -> None:
         prepared = self._prepared
         if prepared is None:
-            raise RuntimeError("RH rubric score dispatch has no accepted stage plan")
+            raise RuntimeError("revision rubric score dispatch has no accepted stage plan")
         review_text, answer_text = judge.review_inputs(job.submission)
         current_plan = preflight_judge_dispatches(
             job.target.benchmark,
@@ -412,7 +412,7 @@ class RubricScoreStage:
         )
         shapes = current_plan.get("jobs")
         if not isinstance(shapes, list) or len(shapes) != 1:
-            raise RuntimeError("RH rubric score current dispatch shape is invalid")
+            raise RuntimeError("revision rubric score current dispatch shape is invalid")
         current = _rubric_score_plan_entry(
             job=job,
             judge=judge,
@@ -426,7 +426,7 @@ class RubricScoreStage:
             current=current,
         )
 
-    def _judge_for_job(self, job: RubricScoreJob) -> RhAuditRubricJudge:
+    def _judge_for_job(self, job: RubricScoreJob) -> RubricScoreJudge:
         return self._new_judge(
             target=job.target,
             model=job.model,
@@ -441,7 +441,7 @@ class RubricScoreStage:
         model: str,
         rubric_path: Path,
         artifact_key: str,
-    ) -> RhAuditRubricJudge:
+    ) -> RubricScoreJudge:
         judge_config = SubmissionJudgeConfig(
             task_dir=target.task_dir,
             experiment_dir=self.output.path("artifacts", artifact_key),
@@ -454,7 +454,7 @@ class RubricScoreStage:
             max_review_chars=target.max_review_chars,
         )
         rubric = resolve_optimizer_rubric(judge_config)
-        return RhAuditRubricJudge(judge_config, rubric)
+        return RubricScoreJudge(judge_config, rubric)
 def _rubric_score_job_identity(job: RubricScoreJob) -> dict[str, object]:
     return {
         "assignment_id": job.target.assignment_id,
@@ -479,7 +479,7 @@ def _rubric_score_job_identity(job: RubricScoreJob) -> dict[str, object]:
         "engine_release_identity": _engine_release_identity(
             job.target.benchmark
         ),
-        "rh_implementation_sha256": job.rh_implementation_sha256,
+        "evaluation_implementation_sha256": job.evaluation_implementation_sha256,
     }
 
 
@@ -500,7 +500,7 @@ def _rubric_score_assignment_reference_sha256(
     return digest.hexdigest()
 def _rubric_score_attempt_id(job: RubricScoreJob) -> str:
     return hashlib.sha256(
-        ("rh-rubric_score\0" + job.key).encode()
+        ("rubric-score\0" + job.key).encode()
     ).hexdigest()[:32]
 
 
@@ -520,28 +520,28 @@ def _validate_rubric_score_record(
         "engine_execution",
     }
     if set(record) != set(identity) | result_keys:
-        raise RuntimeError("RH rubric score record fields changed")
+        raise RuntimeError("revision rubric score record fields changed")
     if any(record[key] != value for key, value in identity.items()):
-        raise RuntimeError("RH rubric score record identity changed")
+        raise RuntimeError("revision rubric score record identity changed")
     if record["attempt_id"] != _rubric_score_attempt_id(job):
-        raise RuntimeError("RH rubric score record attempt ID changed")
+        raise RuntimeError("revision rubric score record attempt ID changed")
     if (
         record["validation_path"] != str(artifacts.score_validation_path)
         or record["evaluation_path"] != str(artifacts.evaluation_path)
     ):
-        raise RuntimeError("RH rubric score record artifact path changed")
-    score = _finite_score(record["score"], "RH rubric score record score")
+        raise RuntimeError("revision rubric score record artifact path changed")
+    score = _finite_score(record["score"], "revision rubric score record score")
     validation_score = _finite_score(
         validation.get("score"),
-        "RH rubric score validation score",
+        "revision rubric score validation score",
     )
     if score != validation_score:
-        raise RuntimeError("RH rubric score record score changed")
+        raise RuntimeError("revision rubric score record score changed")
     observed_grading_identity = {
         key: validation.get(key) for key in SCORING_IDENTITY_KEYS
     }
     if observed_grading_identity != job.grading_identity:
-        raise RuntimeError("RH rubric score validation identity changed")
+        raise RuntimeError("revision rubric score validation identity changed")
     engine_execution = validation.get("engine_execution")
     if (
         validation.get("review_input_sha256") != job.review_input_sha256
@@ -549,7 +549,7 @@ def _validate_rubric_score_record(
         or type(engine_execution) is not dict
         or record["engine_execution"] != engine_execution
     ):
-        raise RuntimeError("RH rubric score validation dispatch identity changed")
+        raise RuntimeError("revision rubric score validation dispatch identity changed")
 
 
 
@@ -584,7 +584,7 @@ def _expected_generation_binding(
         manifest_path = target.generation_manifest_path(artifact)
         manifest_sha256 = target.generation_manifest_sha256(artifact)
     else:
-        raise ValueError(f"invalid RH generation role: {role}")
+        raise ValueError(f"invalid evaluation generation role: {role}")
     return GenerationBinding(
         role=role,
         generation_round=generation.generation_round,
@@ -601,17 +601,17 @@ def _validate_rubric_score_job_bindings(job: RubricScoreJob) -> None:
         if binding.role == "active_local":
             generation = job.target.generation(job.artifact)
         else:
-            raise RuntimeError("RH generation binding has an invalid role")
+            raise RuntimeError("evaluation generation binding has an invalid role")
         if generation.rubric.content_sha256 != rubric_sha256:
-            raise RuntimeError("RH generation binding has the wrong rubric")
+            raise RuntimeError("evaluation generation binding has the wrong rubric")
         if binding != _expected_generation_binding(
             job.target,
             job.artifact,
             binding.role,
         ):
-            raise RuntimeError("RH generation binding changed")
+            raise RuntimeError("evaluation generation binding changed")
         if sha256_file(binding.manifest_path) != binding.manifest_sha256:
-            raise RuntimeError("RH generation manifest changed")
+            raise RuntimeError("evaluation generation manifest changed")
 
 
 def _generation_score_panel(
@@ -626,7 +626,7 @@ def _generation_score_panel(
         manifest_path = target.generation_manifest_path(artifact)
         manifest_sha256 = target.generation_manifest_sha256(artifact)
     else:
-        raise ValueError(f"invalid RH generation role: {role}")
+        raise ValueError(f"invalid evaluation generation role: {role}")
     rubric_sha256 = generation.rubric.content_sha256
     scores = {
         model: observations[(role, artifact, model, rubric_sha256)]

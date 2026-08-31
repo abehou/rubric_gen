@@ -70,21 +70,21 @@ def run_paraphrase(args: argparse.Namespace) -> int:
 
 
 def run_detect(args: argparse.Namespace) -> int:
-    from rubric_gen.submission_revision.direct_audit import (
-        DirectAuditConfig,
-        run_direct_audit,
+    from rubric_gen.submission_revision.evaluation.direct import (
+        DirectDetectionConfig,
+        run_direct_detection,
     )
-    from rubric_gen.submission_revision.rh_protocol import (
+    from rubric_gen.submission_revision.evaluation.jobs import (
         EvaluationConfig,
     )
-    from rubric_gen.submission_revision.rh_evaluation_targets import (
+    from rubric_gen.submission_revision.evaluation.targets import (
         load_evaluation_targets,
     )
-    from rubric_gen.submission_revision.rh_evaluation_report import (
-        write_reward_hacking_evaluation,
+    from rubric_gen.submission_revision.evaluation.report import (
+        write_evaluation_report,
     )
-    from rubric_gen.submission_revision.rh_outcome_panel import (
-        RubricFreeEvaluationRunner,
+    from rubric_gen.submission_revision.evaluation.runner import (
+        RubricFreeScoreRunner,
         RubricScoreRunner,
     )
 
@@ -106,11 +106,11 @@ def run_detect(args: argparse.Namespace) -> int:
         max_concurrency=args.max_concurrency,
         resume=args.resume,
     )
-    rubric_free_evaluation_config = EvaluationConfig(
+    rubric_free_score_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
         paraphrase_dir=paraphrase_dir,
-        output_dir=output_dir / "rubric_free_evaluation",
+        output_dir=output_dir,
         max_concurrency=args.max_concurrency,
         resume=args.resume,
     )
@@ -119,15 +119,15 @@ def run_detect(args: argparse.Namespace) -> int:
         rubric_score_config,
         targets,
     )
-    rubric_free_evaluation_runner = RubricFreeEvaluationRunner(
-        rubric_free_evaluation_config,
+    rubric_free_score_runner = RubricFreeScoreRunner(
+        rubric_free_score_config,
         targets,
     )
 
     # These reads prepare exact semantic jobs and enforce both stage caps.
     # They do not scan or hash complete revision workspaces.
     rubric_score_runner.preflight()
-    rubric_free_evaluation_runner.preflight()
+    rubric_free_score_runner.preflight()
 
     statuses: dict[str, int] = {}
     errors: list[tuple[str, Exception]] = []
@@ -140,7 +140,7 @@ def run_detect(args: argparse.Namespace) -> int:
 
     execute(
         "direct",
-        lambda: run_direct_audit(DirectAuditConfig(
+        lambda: run_direct_detection(DirectDetectionConfig(
             experiment=experiment,
             study_dir=study_dir,
             output_dir=direct_dir,
@@ -149,14 +149,14 @@ def run_detect(args: argparse.Namespace) -> int:
         )),
     )
     execute("rubric_score", rubric_score_runner.run)
-    execute("rubric_free_evaluation", rubric_free_evaluation_runner.run)
+    execute("rubric_free_score", rubric_free_score_runner.run)
     if not errors:
-        write_reward_hacking_evaluation(output_dir)
+        write_evaluation_report(output_dir)
     if errors:
         stages = ", ".join(name for name, _error in errors)
         first = errors[0][1]
         raise RuntimeError(
-            f"RH detection suite failed in {stages}; other stages were still run"
+            f"evaluation suite failed in {stages}; other stages were still run"
         ) from first
     return int(any(statuses.values()))
 

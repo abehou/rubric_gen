@@ -644,7 +644,7 @@ def test_experiment_rejects_the_removed_any_detects_rule(tmp_path: Path) -> None
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
-    with pytest.raises(ValueError, match="primary RH rule is invalid"):
+    with pytest.raises(ValueError, match="primary detection rule is invalid"):
         load_experiment(path)
 
 
@@ -959,10 +959,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import rubric_gen.submission_revision.direct_audit as direct_audit_module
-    import rubric_gen.submission_revision.rh_evaluation_targets as targets_module
-    import rubric_gen.submission_revision.rh_evaluation_report as report_module
-    import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
+    import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
+    import rubric_gen.submission_revision.evaluation.targets as targets_module
+    import rubric_gen.submission_revision.evaluation.report as report_module
+    import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
         dag={
@@ -1008,10 +1008,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
             assert loaded_targets is targets
 
         def preflight(self) -> None:
-            calls.append("rubric_free_evaluation-preflight")
+            calls.append("rubric_free_score-preflight")
 
         def run(self) -> int:
-            calls.append("rubric_free_evaluation")
+            calls.append("rubric_free_score")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -1020,7 +1020,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "load_evaluation_targets",
         lambda _config: calls.append("target-loading") or targets,
     )
-    monkeypatch.setattr(direct_audit_module, "run_direct_audit", direct)
+    monkeypatch.setattr(direct_audit_module, "run_direct_detection", direct)
     monkeypatch.setattr(
         outcome_panel_module,
         "RubricScoreRunner",
@@ -1028,12 +1028,12 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "RubricFreeEvaluationRunner",
+        "RubricFreeScoreRunner",
         RubricFreeRunnerStub,
     )
     monkeypatch.setattr(
         report_module,
-        "write_reward_hacking_evaluation",
+        "write_evaluation_report",
         lambda _path: calls.append("combined"),
     )
 
@@ -1047,10 +1047,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     assert calls == [
         "target-loading",
         "rubric_score-preflight",
-        "rubric_free_evaluation-preflight",
+        "rubric_free_score-preflight",
         "direct",
         "rubric_score",
-        "rubric_free_evaluation",
+        "rubric_free_score",
         "combined",
     ]
     assert len(direct_configs) == 1
@@ -1061,10 +1061,10 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import rubric_gen.submission_revision.direct_audit as direct_audit_module
-    import rubric_gen.submission_revision.rh_evaluation_targets as targets_module
-    import rubric_gen.submission_revision.rh_evaluation_report as report_module
-    import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
+    import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
+    import rubric_gen.submission_revision.evaluation.targets as targets_module
+    import rubric_gen.submission_revision.evaluation.report as report_module
+    import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
         dag={
@@ -1100,10 +1100,10 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
             pass
 
         def preflight(self) -> None:
-            calls.append("rubric_free_evaluation-preflight")
+            calls.append("rubric_free_score-preflight")
 
         def run(self) -> int:
-            calls.append("rubric_free_evaluation")
+            calls.append("rubric_free_score")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -1114,7 +1114,7 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     )
     monkeypatch.setattr(
         direct_audit_module,
-        "run_direct_audit",
+        "run_direct_detection",
         lambda _config: 0,
     )
     monkeypatch.setattr(
@@ -1124,12 +1124,12 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "RubricFreeEvaluationRunner",
+        "RubricFreeScoreRunner",
         RubricFreeRunnerStub,
     )
     monkeypatch.setattr(
         report_module,
-        "write_reward_hacking_evaluation",
+        "write_evaluation_report",
         lambda _path: calls.append("combined"),
     )
 
@@ -1142,9 +1142,9 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
 
     assert calls == [
         "rubric_score-preflight",
-        "rubric_free_evaluation-preflight",
+        "rubric_free_score-preflight",
         "rubric_score",
-        "rubric_free_evaluation",
+        "rubric_free_score",
     ]
 
 
@@ -1152,10 +1152,10 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import rubric_gen.submission_revision.direct_audit as direct_audit_module
-    import rubric_gen.submission_revision.rh_evaluation_targets as targets_module
-    import rubric_gen.submission_revision.rh_evaluation_report as report_module
-    import rubric_gen.submission_revision.rh_outcome_panel as outcome_panel_module
+    import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
+    import rubric_gen.submission_revision.evaluation.targets as targets_module
+    import rubric_gen.submission_revision.evaluation.report as report_module
+    import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
         dag={
@@ -1191,11 +1191,11 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             pass
 
         def preflight(self) -> None:
-            calls.append("rubric_free_evaluation-preflight")
+            calls.append("rubric_free_score-preflight")
             raise RuntimeError("rubric_free_evaluation calls exceeds its hard cap")
 
         def run(self) -> int:
-            calls.append("rubric_free_evaluation-provider")
+            calls.append("rubric_free_score-provider")
             return 0
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
@@ -1206,7 +1206,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     )
     monkeypatch.setattr(
         direct_audit_module,
-        "run_direct_audit",
+        "run_direct_detection",
         lambda _config: calls.append("direct-provider") or 0,
     )
     monkeypatch.setattr(
@@ -1216,12 +1216,12 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     )
     monkeypatch.setattr(
         outcome_panel_module,
-        "RubricFreeEvaluationRunner",
+        "RubricFreeScoreRunner",
         RubricFreeRunnerStub,
     )
     monkeypatch.setattr(
         report_module,
-        "write_reward_hacking_evaluation",
+        "write_evaluation_report",
         lambda _path: calls.append("combined"),
     )
 
@@ -1232,7 +1232,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             resume=False,
         ))
 
-    assert calls == ["rubric_score-preflight", "rubric_free_evaluation-preflight"]
+    assert calls == ["rubric_score-preflight", "rubric_free_score-preflight"]
 
 
 def test_run_restart_validates_every_output_before_removal(tmp_path: Path) -> None:

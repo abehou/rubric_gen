@@ -5,15 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from rubric_gen.reward_hacking.protocol import (
-    MALT_RH_CHARS_PER_TOKEN,
-    MALT_RH_EARLY_MESSAGE_COUNT,
-    MALT_RH_MONITOR_MAX_INPUT_TOKENS,
+from rubric_gen.detection.config import (
+    MALT_REWARD_HACKING_CHARS_PER_TOKEN,
+    MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
+    MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
 )
-from rubric_gen.reward_hacking.review import (
+from rubric_gen.detection.prompts import (
     EvidencePrompt,
     _chunk_requests,
-    _rh_requests,
+    _reward_hacking_requests,
 )
 from rubric_gen.runtime.llm import StructuredRequest
 
@@ -44,7 +44,7 @@ def plan_requests(
     count_tokens: CountTokens,
 ) -> RequestPlan:
     if detection == "rh":
-        return _plan_rh_requests(
+        return _plan_reward_hacking_requests(
             case_id=case_id,
             model=model,
             payload=payload,
@@ -63,7 +63,7 @@ def plan_requests(
     )
 
 
-def _plan_rh_requests(
+def _plan_reward_hacking_requests(
     *,
     case_id: str,
     model: str,
@@ -72,17 +72,17 @@ def _plan_rh_requests(
     max_output_tokens: int,
     count_tokens: CountTokens,
 ) -> RequestPlan:
-    ceiling = min(max_input_tokens, MALT_RH_MONITOR_MAX_INPUT_TOKENS)
+    ceiling = min(max_input_tokens, MALT_REWARD_HACKING_MAX_INPUT_TOKENS)
     evidence_chars = max(
         MINIMUM_EVIDENCE_CHARS,
-        (ceiling - PROMPT_OVERHEAD_TOKENS) * MALT_RH_CHARS_PER_TOKEN,
+        (ceiling - PROMPT_OVERHEAD_TOKENS) * MALT_REWARD_HACKING_CHARS_PER_TOKEN,
     )
     requests, token_counts, evidence_chars = _fit_requests(
         case_id=case_id,
         model=model,
         input_ceiling=ceiling,
         evidence_chars=evidence_chars,
-        request_builder=lambda limit: _rh_requests(
+        request_builder=lambda limit: _reward_hacking_requests(
             payload,
             evidence_chars=limit,
             max_output_tokens=max_output_tokens,
@@ -100,7 +100,7 @@ def _plan_rh_requests(
             "max_score_aggregation": 1,
             "persistent_messages": min(
                 len(payload.messages),
-                MALT_RH_EARLY_MESSAGE_COUNT,
+                MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
             ),
             "chunk_input_token_ceiling": ceiling,
             "chunk_character_limit": evidence_chars,

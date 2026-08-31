@@ -347,6 +347,8 @@ def _validated_generation(
             benchmark=get_submission_benchmark(context.experiment.benchmark),
             provider=context.agent.provider,
             requested_model=context.agent.model,
+            prompt_profile=str(context.protocol["prompt"]),
+            seed_replicates=context.experiment.replicates,
             assignment_id=str(context.assignment["assignment_id"]),
             generation_round=generation_round,
         ),

@@ -8,19 +8,19 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
-from rubric_gen.reward_hacking.protocol import (
-    DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
+from rubric_gen.detection.config import (
+    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
+    DEFAULT_MAX_EVENT_TEXT_CHARS,
 )
-from rubric_gen.reward_hacking.review import (
+from rubric_gen.detection.prompts import (
     EvidencePrompt,
     _materialize_exact_value_references,
 )
-from rubric_gen.reward_hacking.sources import AuditCase, AuditSource
-from rubric_gen.reward_hacking.targets import detection_target
+from rubric_gen.detection.sources import AuditCase, AuditSource
+from rubric_gen.detection.targets import detection_target
 
 
-def revision_audit_source(
+def revision_detection_source(
     revision_dirs: tuple[Path, ...],
     *,
     tasks_dir: Path,
@@ -197,13 +197,52 @@ def _normalize_event(
     return _bounded_value(normalized, max_text_chars=max_text_chars, stats=stats)
 
 
+def _stop_only_turn(
+    revision_dir: Path,
+    state: dict[str, object],
+    submission_count: int,
+) -> tuple[Path, list[str], dict[str, object]] | None:
+    """Load the terminal solver turn that did not create a submission."""
+
+    turn_dir = revision_dir / "turns" / f"turn-{submission_count:03d}"
+    if turn_dir.is_symlink():
+        raise ValueError(f"revision stop-only turn is symlinked: {turn_dir}")
+    if not turn_dir.exists():
+        return None
+    if not turn_dir.is_dir() or state.get("stop_reason") != "solver":
+        raise ValueError(f"revision has an invalid stop-only turn: {turn_dir}")
+
+    trajectory_path = turn_dir / "trajectory.stream.jsonl"
+    if trajectory_path.is_symlink() or not trajectory_path.is_file():
+        raise ValueError(f"revision stop-only turn has no trajectory: {turn_dir}")
+    decision_path = turn_dir / "decision.json"
+    if decision_path.is_symlink() or not decision_path.is_file():
+        raise ValueError(f"revision stop-only turn has no decision: {turn_dir}")
+    try:
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"revision stop-only turn has an invalid decision: {turn_dir}"
+        ) from exc
+    if decision != {"decision": "stop"}:
+        raise ValueError(f"revision stop-only turn did not stop: {turn_dir}")
+    return (
+        trajectory_path,
+        trajectory_path.read_text(
+            encoding="utf-8",
+            errors="replace",
+        ).splitlines(),
+        decision,
+    )
+
+
 def _revision_prompt(
     revision_dir: Path,
     tasks_dir: Path,
     detection: str,
     *,
-    max_event_text_chars: int = DEFAULT_RH_MAX_EVENT_TEXT_CHARS,
-    max_command_output_chars: int = DEFAULT_RH_MAX_COMMAND_OUTPUT_CHARS,
+    max_event_text_chars: int = DEFAULT_MAX_EVENT_TEXT_CHARS,
+    max_command_output_chars: int = DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
 ) -> EvidencePrompt:
     target = detection_target(detection)
     manifest = _revision_manifest(revision_dir)
@@ -326,8 +365,10 @@ def _revision_prompt(
         encoding="utf-8",
         errors="replace",
     ).splitlines()
+    stop_only_turn = _stop_only_turn(revision_dir, state, len(submission_ids))
+    stop_only_lines = stop_only_turn[1] if stop_only_turn is not None else []
     completed_item_ids: set[str] = set()
-    for line in trajectory_lines:
+    for line in trajectory_lines + stop_only_lines:
         try:
             value: object = json.loads(line)
         except json.JSONDecodeError:
@@ -371,7 +412,10 @@ def _revision_prompt(
             if normalized is not None:
                 add(f"trajectory:{line_number}", normalized)
         previous_lines = lines
-        if submission_index == len(submission_ids) - 1:
+        if (
+            submission_index == len(submission_ids) - 1
+            and stop_only_turn is None
+        ):
             continue
         feedback_path = feedback_root / f"{submission_id}.json"
         if feedback_path.is_symlink() or not feedback_path.is_file():
@@ -399,6 +443,24 @@ def _revision_prompt(
         raise ValueError(
             f"latest trajectory differs from its verified snapshot: {revision_dir}"
         )
+    if stop_only_turn is not None:
+        stop_trajectory_path, lines, decision = stop_only_turn
+        turn_name = stop_trajectory_path.parent.name
+        for line_number, line in enumerate(lines, start=1):
+            try:
+                value = json.loads(line)
+            except json.JSONDecodeError:
+                value = {"raw": line}
+            normalized = _normalize_event(
+                blind(value),
+                completed_item_ids=completed_item_ids,
+                max_text_chars=max_event_text_chars,
+                max_command_output_chars=max_command_output_chars,
+                stats=compaction_stats,
+            )
+            if normalized is not None:
+                add(f"turn:{turn_name}:trajectory:{line_number}", normalized)
+        add(f"revision_decision:{turn_name}", decision)
 
     workspace = latest / "workspace"
     try:
@@ -421,9 +483,12 @@ def _revision_prompt(
         )
 
     evidence = "\n".join(records)
+    source_bytes = trajectory_path.stat().st_size
+    if stop_only_turn is not None:
+        source_bytes += stop_only_turn[0].stat().st_size
     stats = {
-        "source_bytes": trajectory_path.stat().st_size,
-        "source_records": len(trajectory_lines),
+        "source_bytes": source_bytes,
+        "source_records": len(trajectory_lines) + len(stop_only_lines),
         "distinct_events": len(records),
         "compact_chars": len(evidence),
         "solver_feedback_records": solver_feedback_records,

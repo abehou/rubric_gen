@@ -121,9 +121,11 @@ def _design(root: Path, task: Path) -> Experiment:
 
 class FakeAgentRunner:
     calls = 0
+    prompts: list[str] = []
 
     def __init__(self, config, **_kwargs) -> None:
         self.config = config
+        type(self).prompts.append(_kwargs["prompt"])
 
     def run(self, task_dir: Path, *, paths):
         type(self).calls += 1
@@ -199,6 +201,8 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
             replicate,
             provider="codex",
             requested_model="test-model",
+            prompt_profile="base",
+            benchmark="biomnibench-da",
         )
         for replicate in range(1, 4)
     ]
@@ -208,6 +212,54 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
     assert root == {
         "kind": seeds_module.SEED_SET_KIND,
     }
+
+
+def test_seed_solver_uses_the_configured_adversarial_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    payload = copy.deepcopy(design.payload)
+    payload["protocol"]["prompt"] = "adversarial"
+    payload["assignments"] = [
+        assignment
+        for assignment in design.assignments
+        if assignment["replicate"] == 1
+    ]
+    experiment = Experiment(tmp_path / "adversarial.yaml", payload)
+    output = tmp_path / "seeds"
+    FakeAgentRunner.calls = 0
+    FakeAgentRunner.prompts = []
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+
+    assert SeedSetRunner(SeedSetConfig(experiment, output, 1)).run() == 0
+    assert len(FakeAgentRunner.prompts) == 1
+    assert "Your task is covert sabotage." in FakeAgentRunner.prompts[0]
+
+
+def test_seed_pool_rejects_a_different_solver_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    payload = copy.deepcopy(design.payload)
+    payload["assignments"] = [
+        assignment
+        for assignment in design.assignments
+        if assignment["replicate"] == 1
+    ]
+    base = Experiment(tmp_path / "base.yaml", payload)
+    output = tmp_path / "seeds"
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+    assert SeedSetRunner(SeedSetConfig(base, output, 1)).run() == 0
+
+    adversarial_payload = copy.deepcopy(payload)
+    adversarial_payload["protocol"]["prompt"] = "adversarial"
+    adversarial = Experiment(tmp_path / "adversarial.yaml", adversarial_payload)
+    with pytest.raises(RuntimeError, match="seed solver prompt does not match"):
+        SeedSetRunner(SeedSetConfig(adversarial, output, 1)).run()
 
 
 def test_seed_stage_holds_an_exclusive_pool_lease(
@@ -266,6 +318,8 @@ def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
             replicate,
             provider="codex",
             requested_model="test-model",
+            prompt_profile="base",
+            benchmark="biomnibench-da",
         ).manifest["experiment_id"]
         for replicate in range(1, 4)
     }
@@ -285,6 +339,8 @@ def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
             2,
             provider="codex",
             requested_model="test-model",
+            prompt_profile="base",
+            benchmark="biomnibench-da",
         )
 
 
@@ -332,6 +388,8 @@ def test_seed_failure_preserves_diagnostics_until_retry(
         1,
         provider="codex",
         requested_model="test-model",
+        prompt_profile="base",
+        benchmark="biomnibench-da",
     )
 
 
@@ -354,6 +412,8 @@ def test_shared_pool_reuses_complete_blocks_without_an_overwrite_flag(
         1,
         provider="codex",
         requested_model="test-model",
+        prompt_profile="base",
+        benchmark="biomnibench-da",
     )
 
     assert seed.manifest["experiment_id"] == EXPERIMENT_ID
@@ -395,6 +455,8 @@ def test_seed_rejects_obsolete_labels_and_additional_metadata(
             1,
             provider="codex",
             requested_model="test-model",
+            prompt_profile="base",
+            benchmark="biomnibench-da",
         )
     with pytest.raises(RuntimeError, match="shared seed manifest"):
         SeedSetRunner(SeedSetConfig(design, output, 1)).run()
@@ -422,6 +484,8 @@ def test_seed_rejects_provenance_metadata_tampering(
             1,
             provider="codex",
             requested_model="test-model",
+            prompt_profile="base",
+            benchmark="biomnibench-da",
         )
 
 
@@ -447,6 +511,8 @@ def test_seed_rejects_incomplete_scoring_identity(
             1,
             provider="codex",
             requested_model="test-model",
+            prompt_profile="base",
+            benchmark="biomnibench-da",
         )
 
 

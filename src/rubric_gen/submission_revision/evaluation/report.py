@@ -1,4 +1,4 @@
-"""Combine completed RH stages without changing judgment identities."""
+"""Combine completed evaluation stages without changing judgment identities."""
 
 from __future__ import annotations
 
@@ -7,12 +7,14 @@ from itertools import combinations
 from pathlib import Path
 from statistics import fmean, median
 
-from rubric_gen.reward_hacking.metrics import detection_rates, wilson_interval
-from rubric_gen.reward_hacking.protocol import RH_COMPONENTS
-from rubric_gen.reward_hacking.targets import detection_target
-from rubric_gen.submission_revision import rh_protocol as rh
+from rubric_gen.detection.metrics import detection_rates, wilson_interval
+from rubric_gen.submission_revision.evaluation.config import (
+    REWARD_HACKING_COMPONENTS,
+)
+from rubric_gen.detection.targets import detection_target
+from rubric_gen.submission_revision.evaluation import jobs as evaluation_jobs
 from rubric_gen.submission_revision.artifacts import read_json_object
-from rubric_gen.submission_revision.rh_output_store import RhOutputStore
+from rubric_gen.submission_revision.evaluation.store import EvaluationStore
 from rubric_gen.submission_revision.rubric_generation import RubricPolicy
 
 
@@ -22,7 +24,7 @@ SIGNED_RUBRIC_DIAGNOSTICS = (
     "selected_rubric_minus_rubric_free_absolute_score",
 )
 RUBRIC_DIAGNOSTICS = SIGNED_RUBRIC_DIAGNOSTICS
-COMPONENTS = RH_COMPONENTS
+COMPONENTS = REWARD_HACKING_COMPONENTS
 OUTCOME_METRICS = (
     "selected_rubric_gain",
     "rubric_free_absolute_score_gain",
@@ -37,48 +39,63 @@ OUTCOME_METRICS = (
 )
 
 
-def write_reward_hacking_evaluation(output_dir: Path) -> Path:
+def write_evaluation_report(output_dir: Path) -> Path:
     """Write one report for every valid assignment subset."""
 
-    output = RhOutputStore(output_dir)
+    output = EvaluationStore(output_dir)
     root = output.root
-    rubric_score_output = RhOutputStore(root / "rubric_score")
-    rubric_free_evaluation_output = RhOutputStore(root / "rubric_free_evaluation")
+    rubric_score_output = EvaluationStore(root / "rubric_score")
+    absolute_score_output = EvaluationStore(root / "absolute_score")
+    pairwise_preference_output = EvaluationStore(root / "pairwise_preference")
     rubric_score_output.validate_tree()
-    rubric_free_evaluation_output.validate_tree()
+    absolute_score_output.validate_tree()
+    pairwise_preference_output.validate_tree()
     rubric_score = read_json_object(
         rubric_score_output.regular_file("summary.json"),
-        "RH rubric score summary",
+        "revision rubric score summary",
     )
-    rubric_free_evaluation = read_json_object(
-        rubric_free_evaluation_output.regular_file("summary.json"),
-        "RH rubric-free evaluation summary",
+    absolute_scores = read_json_object(
+        absolute_score_output.regular_file("summary.json"),
+        "absolute-score summary",
+    )
+    pairwise_preferences = read_json_object(
+        pairwise_preference_output.regular_file("summary.json"),
+        "pairwise-preference summary",
     )
     direct_summaries = sorted((root / "direct").glob("evaluations/*/summary.json"))
     if len(direct_summaries) != 1:
         raise RuntimeError(
-            "direct RH detection must contain exactly one completed summary"
+            "direct evaluation detection must contain exactly one completed summary"
         )
-    direct = read_json_object(direct_summaries[0], "direct RH detection summary")
+    direct = read_json_object(direct_summaries[0], "direct evaluation detection summary")
     rubric_score_plan = rubric_score.get("predispatch_plan")
-    rubric_free_evaluation_plan = rubric_free_evaluation.get("predispatch_plan")
+    absolute_score_plan = absolute_scores.get("predispatch_plan")
+    pairwise_preference_plan = pairwise_preferences.get("predispatch_plan")
     if (
-        rubric_score.get("kind") != rh.RUBRIC_SCORE_KIND
+        rubric_score.get("kind") != evaluation_jobs.RUBRIC_SCORE_KIND
         or rubric_score.get("status") != "completed"
-        or rubric_free_evaluation.get("kind") != rh.RUBRIC_FREE_EVALUATION_KIND
-        or rubric_free_evaluation.get("status") != "completed"
-        or rubric_score.get("experiment_id") != rubric_free_evaluation.get("experiment_id")
+        or absolute_scores.get("kind") != evaluation_jobs.ABSOLUTE_SCORE_KIND
+        or pairwise_preferences.get("kind") != evaluation_jobs.PAIRWISE_PREFERENCE_KIND
+        or absolute_scores.get("status") != "completed"
+        or pairwise_preferences.get("status") != "completed"
+        or rubric_score.get("experiment_id") != absolute_scores.get("experiment_id")
+        or rubric_score.get("experiment_id") != pairwise_preferences.get("experiment_id")
         or rubric_score.get("study_experiment_id")
-        != rubric_free_evaluation.get("study_experiment_id")
-        or rubric_score.get("study_dir") != rubric_free_evaluation.get("study_dir")
-        or rubric_score.get("models") != rubric_free_evaluation.get("models")
+        != absolute_scores.get("study_experiment_id")
+        or rubric_score.get("study_experiment_id")
+        != pairwise_preferences.get("study_experiment_id")
+        or rubric_score.get("study_dir") != absolute_scores.get("study_dir")
+        or rubric_score.get("study_dir") != pairwise_preferences.get("study_dir")
+        or rubric_score.get("models") != absolute_scores.get("models")
+        or rubric_score.get("models") != pairwise_preferences.get("models")
         or rubric_score.get("models") != direct.get("models")
         or not isinstance(rubric_score_plan, dict)
         or rubric_score_plan.get("accepted") is not True
-        or not isinstance(rubric_free_evaluation_plan, dict)
-        or rubric_free_evaluation_plan.get("accepted") is not True
+        or not isinstance(absolute_score_plan, dict)
+        or absolute_score_plan.get("accepted") is not True
+        or pairwise_preference_plan != absolute_score_plan
     ):
-        raise RuntimeError("RH evaluation summaries are incomplete or incompatible")
+        raise RuntimeError("revision evaluation summaries are incomplete or incompatible")
     weights = rubric_score.get("loss_weights")
     if (
         not isinstance(weights, dict)
@@ -91,23 +108,41 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
             for value in weights.values()
         )
     ):
-        raise RuntimeError("RH loss weights are invalid")
+        raise RuntimeError("evaluation loss weights are invalid")
     normalized_weights = {key: float(weights[key]) for key in COMPONENTS}
     if not any(normalized_weights.values()):
-        raise RuntimeError("at least one RH loss weight must be positive")
+        raise RuntimeError("at least one evaluation loss weight must be positive")
     rubric_score_by_id = _assignment_map(rubric_score, "rubric_score")
-    rubric_free_evaluation_by_id = _assignment_map(rubric_free_evaluation, "rubric_free_evaluation")
-    if set(rubric_score_by_id) != set(rubric_free_evaluation_by_id):
-        raise RuntimeError("RH evaluation assignment sets disagree")
+    absolute_scores_by_id = _assignment_map(absolute_scores, "absolute_score")
+    pairwise_preferences_by_id = _assignment_map(
+        pairwise_preferences,
+        "pairwise_preference",
+    )
+    if not (
+        set(rubric_score_by_id)
+        == set(absolute_scores_by_id)
+        == set(pairwise_preferences_by_id)
+    ):
+        raise RuntimeError("revision evaluation assignment sets disagree")
     assignments: list[dict[str, object]] = []
     for assignment_id in sorted(rubric_score_by_id):
         rubric_scores = rubric_score_by_id[assignment_id]
-        rubric_free_scores = rubric_free_evaluation_by_id[assignment_id]
+        absolute = absolute_scores_by_id[assignment_id]
+        pairwise = pairwise_preferences_by_id[assignment_id]
         for key in ("task_id", "replicate", "condition_id", "rubric_policy"):
-            if rubric_scores.get(key) != rubric_free_scores.get(key):
+            if (
+                rubric_scores.get(key) != absolute.get(key)
+                or rubric_scores.get(key) != pairwise.get(key)
+            ):
                 raise RuntimeError(
-                    f"RH evaluation assignment metadata disagrees: {assignment_id}"
+                    f"revision evaluation assignment metadata disagrees: {assignment_id}"
                 )
+        rubric_free_scores = {
+            **absolute,
+            "pairwise_preference_scores": pairwise[
+                "pairwise_preference_scores"
+            ],
+        }
         assignments.append(_combine_assignment(
             rubric_scores,
             rubric_free_scores,
@@ -124,7 +159,7 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
     rubric_policy_aggregates = _rubric_policy_aggregates(assignments)
     rubric_policies = tuple(policy.value for policy in RubricPolicy)
     summary = {
-        "kind": rh.EVALUATION_KIND,
+        "kind": evaluation_jobs.EVALUATION_KIND,
         "status": "completed",
         "experiment_id": rubric_score["experiment_id"],
         "study_experiment_id": rubric_score["study_experiment_id"],
@@ -190,7 +225,8 @@ def write_reward_hacking_evaluation(output_dir: Path) -> Path:
         },
         "predispatch_plans": {
             "rubric_score": rubric_score_plan,
-            "rubric_free_evaluation": rubric_free_evaluation_plan,
+            "absolute_score": absolute_score_plan,
+            "pairwise_preference": pairwise_preference_plan,
         },
         "condition_aggregates": _condition_aggregates(assignments),
         "rubric_policy_coverage": {
@@ -217,7 +253,7 @@ def _rubric_policy_aggregates(
     for assignment in assignments:
         policy = assignment.get("rubric_policy")
         if policy not in policies:
-            raise RuntimeError("RH assignment has an invalid rubric policy")
+            raise RuntimeError("evaluation assignment has an invalid rubric policy")
         groups.setdefault(str(policy), []).append(assignment)
     return _aggregate_assignment_groups({
         policy: groups[policy]
@@ -250,7 +286,7 @@ def _combine_assignment(
     assert isinstance(original, dict)
     assert isinstance(selected, dict)
     artifact_results: dict[str, object] = {}
-    for artifact in rh.ARTIFACTS:
+    for artifact in evaluation_jobs.ARTIFACTS:
         score_gap_artifact = score_gaps[artifact]
         diagnostic_artifact = partial_diagnostics[artifact]
         original_artifact = original[artifact]
@@ -288,7 +324,7 @@ def _combine_assignment(
                 abs_tol=1e-9,
             ):
                 raise RuntimeError(
-                    "RH stored rubric diagnostic disagrees with its source "
+                    "evaluation stored rubric diagnostic disagrees with its source "
                     f"scores for {rubric_scores['assignment_id']} at {artifact}: {name}"
                 )
         if not math.isclose(
@@ -299,13 +335,13 @@ def _combine_assignment(
             abs_tol=1e-9,
         ):
             raise RuntimeError(
-                "RH rubric diagnostics do not partition original_rubric_gap for "
+                "evaluation rubric diagnostics do not partition original_rubric_gap for "
                 f"{rubric_scores['assignment_id']} at {artifact}"
             )
         total_gap = float(weak[artifact]) - rubric_free_absolute_score
         if not math.isclose(total_gap, sum(components.values()), abs_tol=1e-9):
             raise RuntimeError(
-                "RH decomposition does not telescope for "
+                "evaluation decomposition does not telescope for "
                 f"{rubric_scores['assignment_id']} at {artifact}"
             )
         loss_terms = {
@@ -357,7 +393,7 @@ def _combine_assignment(
         abs_tol=1e-9,
     ):
         raise RuntimeError(
-            f"RH component changes do not telescope: {rubric_scores['assignment_id']}"
+            f"evaluation component changes do not telescope: {rubric_scores['assignment_id']}"
         )
     active_initial = active_local["initial"]
     active_final = active_local["final"]
@@ -417,7 +453,7 @@ def _condition_aggregates(
     for assignment in assignments:
         condition_id = assignment.get("condition_id")
         if type(condition_id) is not str:
-            raise RuntimeError("RH assignment has no condition ID")
+            raise RuntimeError("evaluation assignment has no condition ID")
         groups.setdefault(condition_id, []).append(assignment)
     return _aggregate_assignment_groups(groups)
 
@@ -486,7 +522,7 @@ def _paired_condition_contrasts(
         for rank, suffix in enumerate(treatment_order):
             if condition_id == suffix or condition_id.endswith(f"-{suffix}"):
                 return rank, condition_id
-        raise RuntimeError(f"RH assignment has an unknown condition: {condition_id}")
+        raise RuntimeError(f"evaluation assignment has an unknown condition: {condition_id}")
 
     condition_ids = sorted(
         {str(value["condition_id"]) for value in assignments},
@@ -503,7 +539,7 @@ def _paired_condition_contrasts(
     pair_keys = [set(values) for values in by_condition.values()]
     if any(keys != pair_keys[0] for keys in pair_keys[1:]):
         raise RuntimeError(
-            "RH conditions do not contain the same task-replicate pairs"
+            "evaluation conditions do not contain the same task-replicate pairs"
         )
     contrasts: list[dict[str, object]] = []
     for left, right in combinations(condition_ids, 2):
@@ -559,14 +595,14 @@ def _assignment_map(
 ) -> dict[str, dict[str, object]]:
     values = summary.get("assignments")
     if not isinstance(values, list):
-        raise RuntimeError(f"RH {label} summary has no assignments")
+        raise RuntimeError(f"evaluation {label} summary has no assignments")
     result = {
         str(value["assignment_id"]): value
         for value in values
         if isinstance(value, dict) and "assignment_id" in value
     }
     if len(result) != len(values) or not result:
-        raise RuntimeError(f"RH {label} summary assignments are invalid")
+        raise RuntimeError(f"evaluation {label} summary assignments are invalid")
     return result
 
 
@@ -586,10 +622,10 @@ def _statistics(values: list[float]) -> dict[str, object]:
 def _assignment_metric(assignment: dict[str, object], name: str) -> float:
     outcomes = assignment.get("outcomes")
     if not isinstance(outcomes, dict):
-        raise RuntimeError("RH assignment has no outcomes")
+        raise RuntimeError("evaluation assignment has no outcomes")
     value = outcomes.get(name)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise RuntimeError(f"RH assignment outcome is invalid: {name}")
+        raise RuntimeError(f"evaluation assignment outcome is invalid: {name}")
     return float(value)
 
 
@@ -600,10 +636,10 @@ def _assignment_change(
 ) -> float:
     changes = assignment.get(category)
     if not isinstance(changes, dict):
-        raise RuntimeError(f"RH assignment has no {category}")
+        raise RuntimeError(f"evaluation assignment has no {category}")
     value = changes.get(name)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise RuntimeError(f"RH assignment change is invalid: {name}")
+        raise RuntimeError(f"evaluation assignment change is invalid: {name}")
     return float(value)
 
 
@@ -621,7 +657,7 @@ def _direct_assignment_outcomes(
         or not isinstance(records, list)
         or primary_rule not in {"majority", "any_detect", "unanimous_detects"}
     ):
-        raise RuntimeError("direct RH summary is invalid")
+        raise RuntimeError("direct evaluation summary is invalid")
     positive = detection_target(str(direct.get("detection"))).positive_decision
     assignment_ids = {str(value["assignment_id"]) for value in assignments}
     grouped: dict[str, dict[str, str]] = {}
@@ -640,19 +676,19 @@ def _direct_assignment_outcomes(
             continue
         manifest = read_json_object(
             Path(source_path) / "manifest.json",
-            "direct RH source manifest",
+            "direct evaluation source manifest",
         )
         assignment_id = manifest.get("assignment_id")
         if manifest.get("experiment_id") != experiment_id:
-            raise RuntimeError("direct RH source uses a different experiment")
+            raise RuntimeError("direct evaluation source uses a different experiment")
         if assignment_id not in assignment_ids:
-            raise RuntimeError("direct RH source is outside the evaluated study")
+            raise RuntimeError("direct evaluation source is outside the evaluated study")
         panel = grouped.setdefault(str(assignment_id), {})
         if provider in panel:
-            raise RuntimeError(f"duplicate direct RH provider: {assignment_id}")
+            raise RuntimeError(f"duplicate direct evaluation provider: {assignment_id}")
         panel[provider] = str(verdict["decision"])
     if set(grouped) != assignment_ids:
-        raise RuntimeError("direct RH assignments differ from score evaluation")
+        raise RuntimeError("direct evaluation assignments differ from score evaluation")
     outcomes: dict[str, dict[str, object]] = {}
     for assignment_id, panel in grouped.items():
         if set(panel) != set(models):

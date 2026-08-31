@@ -1,4 +1,4 @@
-"""Paired reward-hacking evaluation for submission-revision studies."""
+"""Contracts and requests for submission-revision evaluation."""
 
 from __future__ import annotations
 
@@ -29,9 +29,10 @@ from rubric_gen.submission_revision.rubric_generation import (
 )
 
 
-RUBRIC_SCORE_KIND = "rubric-gen-rh-rubric-score-evaluation"
-RUBRIC_FREE_EVALUATION_KIND = "rubric-gen-rh-rubric-free-evaluation"
-EVALUATION_KIND = "rubric-gen-rh-evaluation"
+RUBRIC_SCORE_KIND = "rubric-gen-rubric-score-evaluation"
+ABSOLUTE_SCORE_KIND = "rubric-gen-absolute-score-evaluation"
+PAIRWISE_PREFERENCE_KIND = "rubric-gen-pairwise-preference-evaluation"
+EVALUATION_KIND = "rubric-gen-revision-evaluation"
 ABSOLUTE_PROMPT_ID = "rubric-free-absolute-artifact-quality"
 PAIRWISE_PROMPT_ID = "rubric-free-pairwise-artifact-preference"
 ARTIFACTS = ("initial", "final")
@@ -275,7 +276,7 @@ class RubricScoreJob:
     grading_identity: dict[str, object]
     review_input_sha256: str
     answer_input_sha256: str
-    rh_implementation_sha256: str
+    evaluation_implementation_sha256: str
 
     @property
     def key(self) -> str:
@@ -347,7 +348,7 @@ class PreparedRubricScoreEvaluation:
 
 
 @dataclass(frozen=True)
-class PreparedRubricFreeEvaluation:
+class PreparedRubricFreeScores:
     targets: tuple[EvaluationTarget, ...]
     models: tuple[str, ...]
     implementation_identity: dict[str, str]
@@ -399,12 +400,14 @@ def _is_sha256(value: object) -> bool:
     )
 
 
-def _rh_implementation_sha256() -> str:
+def _evaluation_implementation_sha256() -> str:
     implementation_files = (
         Path(__file__),
-        Path(__file__).with_name("rh_rubric_score.py"),
-        Path(__file__).with_name("rh_rubric_free_evaluation.py"),
-        Path(__file__).parents[1] / "runtime" / "llm.py",
+        Path(__file__).with_name("rubric_score.py"),
+        Path(__file__).with_name("score_execution.py"),
+        Path(__file__).with_name("absolute_score.py"),
+        Path(__file__).with_name("pairwise_preference.py"),
+        Path(__file__).parents[2] / "runtime" / "llm.py",
     )
     digest = hashlib.sha256()
     for path in implementation_files:
@@ -415,9 +418,9 @@ def _rh_implementation_sha256() -> str:
     return digest.hexdigest()
 
 
-def _rubric_free_evaluation_implementation_identity() -> dict[str, str]:
+def _rubric_free_score_implementation_identity() -> dict[str, str]:
     return {
-        "scoring_implementation_sha256": _rh_implementation_sha256(),
+        "scoring_implementation_sha256": _evaluation_implementation_sha256(),
     }
 
 
@@ -432,7 +435,7 @@ def _rubric_score_implementation_identity(
     jobs: tuple[RubricScoreJob, ...],
 ) -> dict[str, object]:
     if not jobs:
-        raise RuntimeError("RH rubric score stage has no jobs")
+        raise RuntimeError("revision rubric score stage has no jobs")
     fields = (
         "scoring_implementation_sha256",
         "benchmark",
@@ -450,7 +453,7 @@ def _rubric_score_implementation_identity(
                 for field in fields[:1]
             )
         ):
-            raise RuntimeError("RH rubric score implementation identity is invalid")
+            raise RuntimeError("revision rubric score implementation identity is invalid")
         canonical = json.dumps(
             implementation,
             ensure_ascii=False,
@@ -458,16 +461,16 @@ def _rubric_score_implementation_identity(
             separators=(",", ":"),
         )
         implementations.setdefault(canonical, implementation)
-    rh_hashes = {job.rh_implementation_sha256 for job in jobs}
+    evaluation_hashes = {job.evaluation_implementation_sha256 for job in jobs}
     benchmarks = {job.target.benchmark for job in jobs}
     if (
-        len(rh_hashes) != 1
-        or not _is_sha256(next(iter(rh_hashes)))
+        len(evaluation_hashes) != 1
+        or not _is_sha256(next(iter(evaluation_hashes)))
         or len(benchmarks) != 1
     ):
-        raise RuntimeError("RH rubric score stage implementation changed")
+        raise RuntimeError("revision rubric score stage implementation changed")
     return {
-        "rh_evaluation_sha256": next(iter(rh_hashes)),
+        "evaluation_sha256": next(iter(evaluation_hashes)),
         "grading_implementations": [
             implementations[key] for key in sorted(implementations)
         ],
@@ -490,7 +493,7 @@ def _stage_caps(
     for resource, name in names.items():
         value = outcome_audit.get(name)
         if type(value) is not int or value < 1:
-            raise RuntimeError(f"RH stage cap is invalid: {name}")
+            raise RuntimeError(f"evaluation stage cap is invalid: {name}")
         caps[resource] = value
     return caps
 
@@ -504,25 +507,25 @@ def _accept_predispatch_plan(
     caps: dict[str, int],
 ) -> dict[str, object]:
     if type(outer_attempt_limit) is not int or outer_attempt_limit < 1:
-        raise RuntimeError("RH outer attempt limit is invalid")
+        raise RuntimeError("evaluation outer attempt limit is invalid")
     if (
         type(base.get("dispatch_count")) is not int
         or base["dispatch_count"] != len(jobs)
         or type(base.get("grading_engine")) is not str
         or type(base.get("request_byte_measurement")) is not str
     ):
-        raise RuntimeError(f"RH {stage} predispatch identity is invalid")
+        raise RuntimeError(f"evaluation {stage} predispatch identity is invalid")
     base_totals: dict[str, int] = {}
     maximum_totals: dict[str, int] = {}
     for resource in ("calls", "request_bytes", "output_tokens"):
         value = base.get(resource)
         if type(value) is not int or value < 0:
-            raise RuntimeError(f"RH {stage} predispatch plan is invalid: {resource}")
+            raise RuntimeError(f"evaluation {stage} predispatch plan is invalid: {resource}")
         base_totals[resource] = value
         maximum_totals[resource] = value * outer_attempt_limit
         if maximum_totals[resource] > caps[resource]:
             raise RuntimeError(
-                f"RH {stage} predispatch {resource} exceeds its hard cap: "
+                f"evaluation {stage} predispatch {resource} exceeds its hard cap: "
                 f"{maximum_totals[resource]} > {caps[resource]}"
             )
     return {
@@ -551,7 +554,7 @@ def _assert_accepted_job_plan(
 ) -> None:
     jobs = plan.get("jobs")
     if plan.get("accepted") is not True or not isinstance(jobs, list):
-        raise RuntimeError(f"RH {stage} accepted dispatch plan is unavailable")
+        raise RuntimeError(f"evaluation {stage} accepted dispatch plan is unavailable")
     matches = [
         item
         for item in jobs
@@ -560,7 +563,7 @@ def _assert_accepted_job_plan(
     ]
     if len(matches) != 1 or matches[0] != current:
         raise RuntimeError(
-            f"RH {stage} request changed after stage preflight"
+            f"evaluation {stage} request changed after stage preflight"
         )
 
 
@@ -595,7 +598,7 @@ def _rubric_score_plan_entry(
     }
 
 
-def _rubric_free_evaluation_plan_entry(
+def _rubric_free_score_plan_entry(
     *,
     key: str,
     instrument: str,
@@ -650,7 +653,7 @@ def _rubric_score_judgment_identity(job: RubricScoreJob) -> dict[str, object]:
         "engine_release_identity": _engine_release_identity(
             job.target.benchmark
         ),
-        "rh_implementation_sha256": job.rh_implementation_sha256,
+        "evaluation_implementation_sha256": job.evaluation_implementation_sha256,
         "review": job.target.review,
         "max_review_chars": job.target.max_review_chars,
     }

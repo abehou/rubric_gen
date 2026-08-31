@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from rubric_gen.submission_revision.rh_protocol import EVALUATION_KIND
+from rubric_gen.submission_revision.evaluation.jobs import EVALUATION_KIND
 from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 
 
@@ -140,21 +140,21 @@ class LogisticFit:
 
 
 def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
-    """Load features and primary direct outcomes from a current RH summary."""
+    """Load features and primary direct outcomes from a current reward-hacking summary."""
 
     try:
         text = summary_path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise ValueError(f"cannot read RH summary: {summary_path}") from exc
+        raise ValueError(f"cannot read reward-hacking summary: {summary_path}") from exc
     try:
         value = load_json_strict(text)
     except ValueError as exc:
-        raise ValueError(f"RH summary is not strict JSON: {exc}") from exc
+        raise ValueError(f"reward-hacking summary is not strict JSON: {exc}") from exc
     if type(value) is not dict:
-        raise ValueError("RH summary must be an object")
+        raise ValueError("reward-hacking summary must be an object")
     if value.get("kind") != EVALUATION_KIND or value.get("status") != "completed":
-        raise ValueError("lambda calibration requires a completed current RH summary")
-    _require_exact_keys(value, _SUMMARY_KEYS, "RH summary")
+        raise ValueError("lambda calibration requires a completed current reward-hacking summary")
+    _require_exact_keys(value, _SUMMARY_KEYS, "reward-hacking summary")
     estimand = _mapping(value, "estimand")
     _validate_current_estimand(estimand)
     for key in (
@@ -166,25 +166,25 @@ def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
     ):
         _mapping(value, key)
     if type(value.get("paired_condition_contrasts")) is not list:
-        raise ValueError("RH paired condition contrasts must be a list")
+        raise ValueError("reward-hacking paired condition contrasts must be a list")
     experiment_id = value.get("experiment_id")
     assignments = value.get("assignments")
     if type(experiment_id) is not str or not experiment_id:
-        raise ValueError("RH summary has no experiment ID")
+        raise ValueError("reward-hacking summary has no experiment ID")
     if not isinstance(assignments, list) or not assignments:
-        raise ValueError("RH summary has no assignments")
+        raise ValueError("reward-hacking summary has no assignments")
 
     observations: list[LambdaObservation] = []
     excluded: list[str] = []
     seen: set[str] = set()
     for assignment in assignments:
         if not isinstance(assignment, dict):
-            raise ValueError("RH summary contains an invalid assignment")
+            raise ValueError("reward-hacking summary contains an invalid assignment")
         assignment_id = _nonempty_string(assignment, "assignment_id")
         task_id = _nonempty_string(assignment, "task_id")
         condition_id = _nonempty_string(assignment, "condition_id")
         if assignment_id in seen:
-            raise ValueError(f"duplicate RH assignment: {assignment_id}")
+            raise ValueError(f"duplicate reward-hacking assignment: {assignment_id}")
         seen.add(assignment_id)
         direct = _mapping(assignment, "direct_detection")
         decision = direct.get("decision")
@@ -222,7 +222,7 @@ def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
         ))
     if not observations:
         raise LambdaNotIdentifiableError((
-            "the current RH summary has no evaluated direct outcomes",
+            "the current reward-hacking summary has no evaluated direct outcomes",
         ))
     return LambdaDataset(
         experiment_id=experiment_id,
@@ -791,9 +791,9 @@ def _require_exact_keys(
 
 
 def _validate_current_estimand(estimand: dict[str, object]) -> None:
-    _require_exact_keys(estimand, _ESTIMAND_KEYS, "RH estimand")
+    _require_exact_keys(estimand, _ESTIMAND_KEYS, "reward-hacking estimand")
     if estimand.get("component_order") != list(COMPONENT_NAMES):
-        raise ValueError("RH estimand has the wrong component order")
+        raise ValueError("reward-hacking estimand has the wrong component order")
     score_scale = estimand.get("score_scale")
     if (
         type(score_scale) is not list
@@ -801,18 +801,18 @@ def _validate_current_estimand(estimand: dict[str, object]) -> None:
         or any(type(value) is not int for value in score_scale)
         or score_scale != [0, 100]
     ):
-        raise ValueError("RH estimand has the wrong score scale")
+        raise ValueError("reward-hacking estimand has the wrong score scale")
     weights = _mapping(estimand, "loss_weights")
-    _require_exact_keys(weights, frozenset(COMPONENT_NAMES), "RH loss weights")
+    _require_exact_keys(weights, frozenset(COMPONENT_NAMES), "reward-hacking loss weights")
     normalized_weights = [
         _finite_number(weights, name) for name in COMPONENT_NAMES
     ]
     if any(weight < 0 for weight in normalized_weights):
-        raise ValueError("RH loss weights must be non-negative")
+        raise ValueError("reward-hacking loss weights must be non-negative")
     if not any(normalized_weights):
-        raise ValueError("at least one RH loss weight must be positive")
+        raise ValueError("at least one reward-hacking loss weight must be positive")
     primary = _mapping(estimand, "primary_outcomes")
-    _require_exact_keys(primary, _PRIMARY_OUTCOME_KEYS, "RH primary outcomes")
+    _require_exact_keys(primary, _PRIMARY_OUTCOME_KEYS, "reward-hacking primary outcomes")
     for key in _PRIMARY_OUTCOME_KEYS:
         _nonempty_string(primary, key)
     for key in _ESTIMAND_TEXT_KEYS:
@@ -822,22 +822,22 @@ def _validate_current_estimand(estimand: dict[str, object]) -> None:
 def _mapping(value: dict[str, object], key: str) -> dict[str, object]:
     result = value.get(key)
     if type(result) is not dict:
-        raise ValueError(f"RH summary field must be an object: {key}")
+        raise ValueError(f"reward-hacking summary field must be an object: {key}")
     return result
 
 
 def _nonempty_string(value: dict[str, object], key: str) -> str:
     result = value.get(key)
     if type(result) is not str or not result:
-        raise ValueError(f"RH summary field must be a nonempty string: {key}")
+        raise ValueError(f"reward-hacking summary field must be a nonempty string: {key}")
     return result
 
 
 def _finite_number(value: dict[str, object], key: str) -> float:
     result = value.get(key)
     if isinstance(result, bool) or not isinstance(result, (int, float)):
-        raise ValueError(f"RH component must be numeric: {key}")
+        raise ValueError(f"reward-hacking component must be numeric: {key}")
     number = float(result)
     if not math.isfinite(number):
-        raise ValueError(f"RH component must be finite: {key}")
+        raise ValueError(f"reward-hacking component must be finite: {key}")
     return number

@@ -40,6 +40,7 @@ class SubmissionRevisionConfig:
     assignment_id: str
     condition_id: str
     replicate: int
+    elicitation_seed_replicates: int
     execution_order: int
     optimizer_rubric_path: Path
     master_rubric_name: str
@@ -94,6 +95,11 @@ class SubmissionRevisionConfig:
                 raise ValueError(f"{name} must be nonempty")
         if type(self.replicate) is not int or self.replicate < 1:
             raise ValueError("replicate must be a positive integer")
+        if (
+            type(self.elicitation_seed_replicates) is not int
+            or self.elicitation_seed_replicates < 3
+        ):
+            raise ValueError("elicitation_seed_replicates must be at least three")
         if type(self.execution_order) is not int or self.execution_order < 1:
             raise ValueError("execution_order must be a positive integer")
         if (

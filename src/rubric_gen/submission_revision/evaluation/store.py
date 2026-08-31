@@ -1,4 +1,4 @@
-"""Secure output storage for reward-hacking evaluation stages."""
+"""Secure output storage for revision evaluation stages."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from rubric_gen.submission_revision.artifacts import (
 )
 
 
-class RhOutputStore:
+class EvaluationStore:
     """Keep stage output inside one symlink-free directory tree."""
 
     def __init__(self, root: Path) -> None:
@@ -33,13 +33,13 @@ class RhOutputStore:
                 or part in {".", ".."}
                 or Path(part).name != part
             ):
-                raise RuntimeError(f"RH output path component is unsafe: {part!r}")
+                raise RuntimeError(f"evaluation output path component is unsafe: {part!r}")
         candidate = self.root.joinpath(*parts)
         try:
             candidate.relative_to(self.root)
         except ValueError as exc:
             raise RuntimeError(
-                f"RH output path escapes its root: {candidate}"
+                f"evaluation output path escapes its root: {candidate}"
             ) from exc
         self._validate_path(candidate, expected=None, allow_missing=True)
         return candidate
@@ -81,7 +81,7 @@ class RhOutputStore:
         shutil.rmtree(self.root)
         if os.path.lexists(self.root):
             raise RuntimeError(
-                f"failed to replace incompatible RH output: {self.root}"
+                f"failed to replace incompatible evaluation output: {self.root}"
             )
         self._ensure_directory_path(self.root)
         self.write_json(("manifest.json",), identity)
@@ -106,7 +106,7 @@ class RhOutputStore:
             path.relative_to(self.root)
         except ValueError as exc:
             raise RuntimeError(
-                f"RH artifact path escapes its root: {candidate}"
+                f"evaluation artifact path escapes its root: {candidate}"
             ) from exc
         self._validate_path(path, expected="file", allow_missing=False)
         return path
@@ -121,7 +121,7 @@ class RhOutputStore:
                 entries = list(os.scandir(directory))
             except OSError as exc:
                 raise RuntimeError(
-                    f"cannot inspect RH output directory: {directory}"
+                    f"cannot inspect evaluation output directory: {directory}"
                 ) from exc
             for entry in entries:
                 path = Path(entry.path)
@@ -129,21 +129,21 @@ class RhOutputStore:
                     entry_stat = entry.stat(follow_symlinks=False)
                 except OSError as exc:
                     raise RuntimeError(
-                        f"cannot inspect RH output path: {path}"
+                        f"cannot inspect evaluation output path: {path}"
                     ) from exc
                 if stat.S_ISLNK(entry_stat.st_mode):
                     raise RuntimeError(
-                        f"RH output path contains a symlink: {path}"
+                        f"evaluation output path contains a symlink: {path}"
                     )
                 if stat.S_ISDIR(entry_stat.st_mode):
                     pending.append(path)
                 elif not stat.S_ISREG(entry_stat.st_mode):
-                    raise RuntimeError(f"RH output path is not regular: {path}")
+                    raise RuntimeError(f"evaluation output path is not regular: {path}")
         return root
 
     def write_json(self, parts: tuple[str, ...], value: object) -> Path:
         if not parts:
-            raise RuntimeError("RH JSON output path is empty")
+            raise RuntimeError("evaluation JSON output path is empty")
         self.ensure_directory(*parts[:-1])
         path = self.regular_file(*parts, allow_missing=True)
         write_json_atomic(path, value)
@@ -171,29 +171,29 @@ class RhOutputStore:
                 continue
             except OSError as exc:
                 raise RuntimeError(
-                    f"cannot inspect RH output path: {current}"
+                    f"cannot inspect evaluation output path: {current}"
                 ) from exc
             if stat.S_ISLNK(current_stat.st_mode):
-                raise RuntimeError(f"RH output path contains a symlink: {current}")
+                raise RuntimeError(f"evaluation output path contains a symlink: {current}")
             is_last = index == len(parts) - 1
             if not is_last and not stat.S_ISDIR(current_stat.st_mode):
                 raise RuntimeError(
-                    f"RH output path component is not a directory: {current}"
+                    f"evaluation output path component is not a directory: {current}"
                 )
             if is_last and expected == "directory" and not stat.S_ISDIR(
                 current_stat.st_mode
             ):
                 raise RuntimeError(
-                    f"RH output path is not a directory: {current}"
+                    f"evaluation output path is not a directory: {current}"
                 )
             if is_last and expected == "file" and not stat.S_ISREG(
                 current_stat.st_mode
             ):
                 raise RuntimeError(
-                    f"RH output path is not a regular file: {current}"
+                    f"evaluation output path is not a regular file: {current}"
                 )
         if missing and not allow_missing:
-            raise RuntimeError(f"RH output path is missing: {path}")
+            raise RuntimeError(f"evaluation output path is missing: {path}")
 
     @classmethod
     def _ensure_directory_path(cls, path: Path) -> None:
@@ -209,21 +209,21 @@ class RhOutputStore:
                     pass
                 except OSError as exc:
                     raise RuntimeError(
-                        f"cannot create RH output directory: {current}"
+                        f"cannot create evaluation output directory: {current}"
                     ) from exc
                 try:
                     current_stat = os.lstat(current)
                 except OSError as exc:
                     raise RuntimeError(
-                        f"cannot inspect RH output directory: {current}"
+                        f"cannot inspect evaluation output directory: {current}"
                     ) from exc
             except OSError as exc:
                 raise RuntimeError(
-                    f"cannot inspect RH output path: {current}"
+                    f"cannot inspect evaluation output path: {current}"
                 ) from exc
             if stat.S_ISLNK(current_stat.st_mode):
-                raise RuntimeError(f"RH output path contains a symlink: {current}")
+                raise RuntimeError(f"evaluation output path contains a symlink: {current}")
             if not stat.S_ISDIR(current_stat.st_mode):
                 raise RuntimeError(
-                    f"RH output path component is not a directory: {current}"
+                    f"evaluation output path component is not a directory: {current}"
                 )

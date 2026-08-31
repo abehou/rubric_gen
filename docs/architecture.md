@@ -71,25 +71,28 @@ The full-rubric judge separates its protocol from provider execution.
 - `judging/full_rubric_protocol.py` owns bounds, schemas, parsing, and aggregation.
 - `judging/full_rubric_judge.py` executes provider calls and writes results.
 
-Reward-hacking evaluation uses focused modules inside `submission_revision`.
+Revision evaluation uses focused modules in `submission_revision/evaluation`.
 
-- `rh_protocol.py` owns evaluation contracts, request identities, and limits.
-- `rh_evaluation_targets.py` loads completed study assignments.
-- `rh_rubric_score.py` owns rubric score planning and artifact validation.
-- `rh_rubric_free_evaluation.py` owns rubric-free absolute scores and pairwise
-  preferences.
-- `rh_outcome_panel.py` runs both model panels and applies failure policy.
-- `rh_evaluation_report.py` combines completed stage results.
-- `rh_output_store.py` owns secure stage output operations.
+- `jobs.py` owns evaluation contracts, request identities, and limits.
+- `config.py` owns the revision outcome-audit configuration.
+- `targets.py` loads completed study assignments.
+- `direct.py` and `evidence.py` adapt revision trajectories for direct detection.
+- `rubric_score.py` owns rubric score planning and artifact validation.
+- `absolute_score.py` owns rubric-free absolute scores.
+- `pairwise_preference.py` owns pairwise preference scores.
+- `score_execution.py` shares request execution and the combined resource cap.
+- `runner.py` runs the model panels and applies failure policy.
+- `report.py` combines completed stage results.
+- `store.py` owns secure stage output operations.
 
-`rubric_gen.reward_hacking` owns detector prompts, model-panel execution, costs,
+`rubric_gen.detection` owns detector prompts, model-panel execution, costs,
 and aggregate metrics. Its panel workflow has explicit owners.
 
 - `jobs.py` owns panel configuration and prepared-job contracts.
 - `planning.py` sizes direct, chunked, and MALT monitor requests.
 - `costs.py` owns usage normalization and provider pricing.
 - `runner.py` coordinates standard request execution.
-- `standard.py` owns one synchronous job and its atomic `score.json` artifact.
+- `job_runner.py` owns one synchronous job and its atomic `score.json` artifact.
 
 The runner accepts one evidence source. It does not parse benchmark datasets or
 revision manifests.
@@ -104,14 +107,14 @@ CLI
  ├─> benchmark workflows
  └─> submission revision
 
-benchmark integrations ─> runtime, artifacts, reward hacking
-submission revision    ─> benchmark registry, runtime, reward hacking
-reward hacking         ─> runtime, evidence, artifacts
+benchmark integrations ─> runtime, artifacts, detection
+submission revision    ─> benchmark registry, runtime, detection
+detection              ─> runtime, evidence, artifacts
 runtime                ─> integrations and artifacts
 ```
 
-Dependencies must not point in the opposite direction. In particular, shared RH
-code must not import MALT, Harvey, PaperBench, or submission-revision code.
+Dependencies must not point in the opposite direction. Shared detection code
+must not import MALT, Harvey, PaperBench, or submission-revision code.
 
 ## Extension rules
 
@@ -121,8 +124,8 @@ Add a submission benchmark as one package under `rubric_gen.benchmarks`. Impleme
 Add a separate benchmark workflow under the same namespace. Keep its controller,
 dataset code, environment adapter, and artifacts inside its package.
 
-Add an RH evidence format by constructing `AuditSource` objects at the owning
-domain interface. Do not add source-specific fields or parsing branches to the RH
+Add a detection evidence format by constructing `AuditSource` objects at the owning
+domain interface. Do not add source-specific fields or parsing branches to the
 runner.
 
 Do not create new top-level benchmark packages. Do not put provider clients or

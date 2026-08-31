@@ -5,10 +5,14 @@ from types import SimpleNamespace
 
 import pytest
 
-import rubric_gen.submission_revision.rh_protocol as rh_protocol
-import rubric_gen.submission_revision.rh_evaluation_targets as rh_targets
-import rubric_gen.submission_revision.rh_rubric_free_evaluation as rh_rubric_free_evaluation
-import rubric_gen.submission_revision.rh_rubric_score as rh_rubric_score
+import rubric_gen.submission_revision.evaluation.jobs as evaluation_jobs
+import rubric_gen.submission_revision.evaluation.targets as evaluation_targets
+import rubric_gen.submission_revision.evaluation.rubric_score as rubric_score_module
+import rubric_gen.submission_revision.evaluation.score_execution as score_execution
+from rubric_gen.submission_revision.evaluation import (
+    absolute_score,
+    pairwise_preference,
+)
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
@@ -16,7 +20,7 @@ from rubric_gen.submission_revision.artifacts import make_tree_read_only
 from rubric_gen.submission_revision.judge import SCORING_IDENTITY_KEYS
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
 import rubric_gen.submission_revision.paraphrase_validation as paraphrase_validation_module
-from rubric_gen.submission_revision.rh_protocol import (
+from rubric_gen.submission_revision.evaluation.jobs import (
     RubricFreeAbsoluteScoreJob,
     EvaluationTarget,
     EvaluationConfig,
@@ -28,22 +32,19 @@ from rubric_gen.submission_revision.rh_protocol import (
     _rubric_free_review_material,
     _pairwise_preference_request,
 )
-from rubric_gen.submission_revision.rh_rubric_free_evaluation import (
-    _summarize_rubric_free_scores,
-)
-from rubric_gen.submission_revision.rh_rubric_score import (
+from rubric_gen.submission_revision.evaluation.rubric_score import (
     _expected_generation_binding,
 )
-from rubric_gen.submission_revision.rh_output_store import RhOutputStore
-from rubric_gen.submission_revision.rh_evaluation_report import (
+from rubric_gen.submission_revision.evaluation.store import EvaluationStore
+from rubric_gen.submission_revision.evaluation.report import (
     _combine_assignment,
     _condition_aggregates,
     _direct_assignment_outcomes,
     _paired_condition_contrasts,
     _rubric_policy_aggregates,
 )
-from rubric_gen.submission_revision.rh_outcome_panel import (
-    RubricFreeEvaluationRunner,
+from rubric_gen.submission_revision.evaluation.runner import (
+    RubricFreeScoreRunner,
     RubricScoreRunner,
     _summarize_rubric_scores,
 )
@@ -60,29 +61,43 @@ from rubric_gen.submission_revision.rubric_generation_store import (
 )
 
 
+def _summarize_scores(
+    targets: tuple[EvaluationTarget, ...],
+    absolute_records: list[dict[str, object]],
+    pairwise_records: list[dict[str, object]],
+    models: tuple[str, ...],
+) -> list[dict[str, object]]:
+    absolute = absolute_score.summarize(targets, absolute_records, models)
+    pairwise = pairwise_preference.summarize(targets, pairwise_records, models)
+    return [
+        {**absolute_item, **pairwise_item}
+        for absolute_item, pairwise_item in zip(absolute, pairwise, strict=True)
+    ]
+
+
 @pytest.mark.parametrize("component", ("records", "artifacts"))
-def test_rh_output_store_rejects_symlinked_stage_tree(
+def test_evaluation_store_rejects_symlinked_stage_tree(
     tmp_path: Path,
     component: str,
 ) -> None:
     root = tmp_path / "output"
     outside = tmp_path / "outside"
     outside.mkdir()
-    store = RhOutputStore(root)
+    store = EvaluationStore(root)
     store.prepare({"kind": "test-stage"}, resume=False)
     (root / component).symlink_to(outside, target_is_directory=True)
 
     with pytest.raises(RuntimeError, match="contains a symlink"):
-        RhOutputStore(root).prepare({"kind": "test-stage"}, resume=True)
+        EvaluationStore(root).prepare({"kind": "test-stage"}, resume=True)
 
 
-def test_rh_output_store_rejects_record_symlink_and_path_escape(
+def test_evaluation_store_rejects_record_symlink_and_path_escape(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "output"
     outside = tmp_path / "outside.json"
     outside.write_text("{}")
-    store = RhOutputStore(root)
+    store = EvaluationStore(root)
     store.prepare({"kind": "test-stage"}, resume=False)
     store.ensure_directory("records", "absolute")
     (root / "records" / "absolute" / "record.json").symlink_to(outside)
@@ -93,11 +108,11 @@ def test_rh_output_store_rejects_record_symlink_and_path_escape(
         store.path("records", "..", "outside.json")
 
 
-def test_rh_output_store_resume_replaces_incompatible_stage(
+def test_evaluation_store_resume_replaces_incompatible_stage(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "output"
-    store = RhOutputStore(root)
+    store = EvaluationStore(root)
     store.prepare({"kind": "old-stage"}, resume=False)
     store.write_json(("records", "old.json"), {"score": 10})
     make_tree = root / "sealed"
@@ -181,7 +196,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         raise ValidationReached
 
     monkeypatch.setattr(
-        rh_targets,
+        evaluation_targets,
         "_load_terminal_revision_state",
         load_terminal_state,
     )
@@ -192,7 +207,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     )
 
     with pytest.raises(ValidationReached):
-        rh_targets.load_evaluation_targets(config)
+        evaluation_targets.load_evaluation_targets(config)
     assert observed == {
         "revision_dir": experiment_dir,
         "assignment": assignment,
@@ -200,7 +215,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         "selection": "selection",
         "study_experiment_id": "experiment-1",
     }
-    assert not hasattr(rh_protocol, "validate_completed_revision")
+    assert not hasattr(evaluation_jobs, "validate_completed_revision")
 
 
 @pytest.mark.parametrize(
@@ -220,7 +235,7 @@ def test_active_generation_round_matches_elicitation_schedule(
     expected_round: int,
 ) -> None:
     assert (
-        rh_targets._active_generation_round(policy, checkpoint)
+        evaluation_targets._active_generation_round(policy, checkpoint)
         == expected_round
     )
 
@@ -604,8 +619,8 @@ def test_rubric_score_jobs_bind_each_active_generation(
     )
     assert generation_job.key == changed_generation_job.key
     assert (
-        rh_rubric_score._rubric_score_assignment_reference_sha256((generation_job,))
-        != rh_rubric_score._rubric_score_assignment_reference_sha256(
+        rubric_score_module._rubric_score_assignment_reference_sha256((generation_job,))
+        != rubric_score_module._rubric_score_assignment_reference_sha256(
             (changed_generation_job,)
         )
     )
@@ -679,7 +694,7 @@ def test_rubric_free_summary_separates_absolute_scores_from_pairwise_preference(
         )
     ]
 
-    summary = _summarize_rubric_free_scores(
+    summary = _summarize_scores(
         (target,),
         absolute_records,
         pairwise_records,
@@ -739,7 +754,7 @@ def test_pairwise_skips_when_initial_and_final_are_the_same_artifact(
         for artifact in ("initial", "final")
     ]
 
-    summary = _summarize_rubric_free_scores(
+    summary = _summarize_scores(
         (target,), absolute_records, [], ("strong-a",)
     )[0]["pairwise_preference_scores"]
 
@@ -782,7 +797,7 @@ def test_pairwise_request_hides_rubric_scores_and_submission_labels(
             model="strong-a",
             ordering="higher-first",
             implementation_identity=(
-                rh_protocol._rubric_free_evaluation_implementation_identity()
+                evaluation_jobs._rubric_free_score_implementation_identity()
             ),
         )
     )
@@ -821,7 +836,7 @@ def test_pairwise_zero_score_gap_is_neutral(
         )
     ]
 
-    summary = _summarize_rubric_free_scores(
+    summary = _summarize_scores(
         (target,),
         absolute_records,
         pairwise_records,
@@ -853,7 +868,7 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
         target=target,
         model="strong-a",
         ordering="higher-first",
-        implementation_identity=rh_protocol._rubric_free_evaluation_implementation_identity(),
+        implementation_identity=evaluation_jobs._rubric_free_score_implementation_identity(),
     )
 
     changed = replace(
@@ -863,11 +878,11 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
 
     assert changed.key == job.key
     judgment = {"verdict": {"preferred_response": "response_A"}}
-    original_reference = rh_rubric_free_evaluation._pairwise_assignment_reference(
+    original_reference = pairwise_preference.assignment_reference(
         job,
         judgment,
     )
-    changed_reference = rh_rubric_free_evaluation._pairwise_assignment_reference(
+    changed_reference = pairwise_preference.assignment_reference(
         changed,
         judgment,
     )
@@ -1152,7 +1167,7 @@ def test_rubric_free_request_json_encodes_untrusted_prompt_injection(
             model="strong-a",
             artifact="initial",
             implementation_identity=(
-                rh_protocol._rubric_free_evaluation_implementation_identity()
+                evaluation_jobs._rubric_free_score_implementation_identity()
             ),
         )
     )
@@ -1162,7 +1177,7 @@ def test_rubric_free_request_json_encodes_untrusted_prompt_injection(
             model="strong-a",
             ordering="higher-first",
             implementation_identity=(
-                rh_protocol._rubric_free_evaluation_implementation_identity()
+                evaluation_jobs._rubric_free_score_implementation_identity()
             ),
         )
     )
@@ -1224,7 +1239,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     rubric_path = tmp_path / "rubric.txt"
     rubric_path.write_text(target.initial_generation.rubric.content)
 
-    implementation_identity = rh_protocol._rubric_free_evaluation_implementation_identity()
+    implementation_identity = evaluation_jobs._rubric_free_score_implementation_identity()
     absolute = RubricFreeAbsoluteScoreJob(
         target=target,
         model="strong-a",
@@ -1241,7 +1256,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     )
     assert pairwise.key == replace(pairwise, target=other).key
     assert implementation_identity["scoring_implementation_sha256"] == (
-        rh_protocol._rh_implementation_sha256()
+        evaluation_jobs._evaluation_implementation_sha256()
     )
 
     grading_identity = {"scoring_implementation_sha256": "1" * 64}
@@ -1255,7 +1270,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
         grading_identity=grading_identity,
         review_input_sha256="2" * 64,
         answer_input_sha256="3" * 64,
-        rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
+        evaluation_implementation_sha256=evaluation_jobs._evaluation_implementation_sha256(),
     )
     other_rubric_score = replace(rubric_score, target=other)
     assert rubric_score.key == other_rubric_score.key
@@ -1269,7 +1284,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     ).key != absolute.key
     assert replace(
         rubric_score,
-        rh_implementation_sha256="4" * 64,
+        evaluation_implementation_sha256="4" * 64,
     ).key != rubric_score.key
 
 
@@ -1318,7 +1333,7 @@ def test_rubric_score_resume_rejects_tampered_records(
         grading_identity=grading_identity,
         review_input_sha256="4" * 64,
         answer_input_sha256="5" * 64,
-        rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
+        evaluation_implementation_sha256=evaluation_jobs._evaluation_implementation_sha256(),
     )
     output = tmp_path / "rubric_score-output"
     artifact_dir = output / "artifacts" / job.key / "evaluations" / "mock"
@@ -1334,9 +1349,9 @@ def test_rubric_score_resume_rejects_tampered_records(
         "engine_execution": engine_execution,
     }))
     evaluation_path.write_text("{}")
-    attempt_id = rh_rubric_score._rubric_score_attempt_id(job)
+    attempt_id = rubric_score_module._rubric_score_attempt_id(job)
     record = {
-        **rh_protocol._rubric_score_judgment_identity(job),
+        **evaluation_jobs._rubric_score_judgment_identity(job),
         "score": 50,
         "attempt_id": attempt_id,
         "validation_path": str(validation_path),
@@ -1413,20 +1428,20 @@ def test_rubric_free_resume_rejects_tampered_records(
         model="strong-a",
         artifact="initial",
         implementation_identity=(
-            rh_protocol._rubric_free_evaluation_implementation_identity()
+            evaluation_jobs._rubric_free_score_implementation_identity()
         ),
     )
     output = tmp_path / "rubric_free_evaluation-output"
     verdict = {"score": 10, "explanation": "valid"}
     raw_response = json.dumps(verdict, separators=(",", ":"))
     record = {
-        **rh_protocol._absolute_judgment_identity(
+        **evaluation_jobs._absolute_judgment_identity(
             job,
             _rubric_free_absolute_score_request(job),
         ),
         "verdict": verdict,
         "raw_response": raw_response,
-        "raw_response_sha256": rh_protocol.sha256_text(raw_response),
+        "raw_response_sha256": evaluation_jobs.sha256_text(raw_response),
         "generation": {
             "provider": "test",
             "requested_model": job.model,
@@ -1447,7 +1462,7 @@ def test_rubric_free_resume_rejects_tampered_records(
         record["attempt_count"] = 0
     else:
         record["generation"]["unexpected"] = True  # type: ignore[index]
-    record_path = output / "records" / "absolute" / f"{job.key}.json"
+    record_path = output / "absolute_score" / "records" / f"{job.key}.json"
     record_path.parent.mkdir(parents=True)
     record_path.write_text(json.dumps(record))
     experiment = SimpleNamespace(
@@ -1458,7 +1473,7 @@ def test_rubric_free_resume_rejects_tampered_records(
             "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = RubricFreeEvaluationRunner(
+    runner = RubricFreeScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1492,7 +1507,7 @@ def test_rubric_free_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
         model="strong-a",
         artifact="initial",
         implementation_identity=(
-            rh_protocol._rubric_free_evaluation_implementation_identity()
+            evaluation_jobs._rubric_free_score_implementation_identity()
         ),
     )
     output = tmp_path / "rubric_free_evaluation-output"
@@ -1518,7 +1533,7 @@ def test_rubric_free_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
             "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = RubricFreeEvaluationRunner(
+    runner = RubricFreeScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1536,7 +1551,7 @@ def test_rubric_free_output_rejects_duplicate_json_keys(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="duplicate JSON key: score"):
         runner._run_absolute_job(job)
     assert not (
-        output / "records" / "absolute" / f"{job.key}.json"
+        output / "absolute_score" / "records" / f"{job.key}.json"
     ).exists()
 
 
@@ -1571,9 +1586,9 @@ def test_rubric_score_dispatch_rejects_input_changed_after_preflight(
         roles=(),
         generation_bindings=(),
         grading_identity=grading_identity,
-        review_input_sha256=rh_protocol.sha256_text("original trace\n"),
-        answer_input_sha256=rh_protocol.sha256_text("answer\n"),
-        rh_implementation_sha256=rh_protocol._rh_implementation_sha256(),
+        review_input_sha256=evaluation_jobs.sha256_text("original trace\n"),
+        answer_input_sha256=evaluation_jobs.sha256_text("answer\n"),
+        evaluation_implementation_sha256=evaluation_jobs._evaluation_implementation_sha256(),
     )
     provider_calls = 0
 
@@ -1646,7 +1661,7 @@ def test_rubric_free_dispatch_rejects_task_changed_after_preflight(
         model="strong-a",
         artifact="initial",
         implementation_identity=(
-            rh_protocol._rubric_free_evaluation_implementation_identity()
+            evaluation_jobs._rubric_free_score_implementation_identity()
         ),
     )
     provider_calls = 0
@@ -1671,7 +1686,7 @@ def test_rubric_free_dispatch_rejects_task_changed_after_preflight(
             "rubric_free_evaluation_max_output_tokens": 10_000,
         },
     )
-    runner = RubricFreeEvaluationRunner(
+    runner = RubricFreeScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1751,7 +1766,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         protocol={},
     )
     output = tmp_path / "rubric_free_evaluation-output"
-    runner = RubricFreeEvaluationRunner(
+    runner = RubricFreeScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1767,43 +1782,52 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
     assert calls == []
     assert not output.exists()
     assert runner.run() == 0
-    summary = json.loads((output / "summary.json").read_text())
-    manifest = json.loads((output / "manifest.json").read_text())
+    absolute_summary = json.loads(
+        (output / "absolute_score" / "summary.json").read_text()
+    )
+    pairwise_summary = json.loads(
+        (output / "pairwise_preference" / "summary.json").read_text()
+    )
+    absolute_manifest = json.loads(
+        (output / "absolute_score" / "manifest.json").read_text()
+    )
+    pairwise_manifest = json.loads(
+        (output / "pairwise_preference" / "manifest.json").read_text()
+    )
     assert len(calls) == 4
-    expected_judgment_counts = {"absolute": 2, "pairwise": 2}
-    assert summary["planned_semantic_judgment_counts"] == expected_judgment_counts
-    assert summary["successful_semantic_judgment_counts"] == expected_judgment_counts
-    assert summary["used_semantic_judgment_counts"] == expected_judgment_counts
-    assert summary["assignment_reference_counts"] == {
-        "absolute": 4,
-        "pairwise": 4,
-    }
-    assert summary["predispatch_plan"]["accepted"] is True
-    assert summary["predispatch_plan"]["base_totals"]["calls"] == 4
-    assert manifest["predispatch_plan"] == summary["predispatch_plan"]
-    assert len(summary["completed_record_sha256s"]["absolute"]) == 2
-    assert len(summary["completed_record_sha256s"]["pairwise"]) == 2
-    absolute_key = next(iter(summary["completed_record_sha256s"]["absolute"]))
-    absolute_record_path = output / "records" / "absolute" / f"{absolute_key}.json"
+    for summary in (absolute_summary, pairwise_summary):
+        assert summary["planned_semantic_judgment_count"] == 2
+        assert summary["successful_semantic_judgment_count"] == 2
+        assert summary["used_semantic_judgment_count"] == 2
+        assert summary["assignment_reference_count"] == 4
+        assert summary["predispatch_plan"]["accepted"] is True
+        assert summary["predispatch_plan"]["base_totals"]["calls"] == 4
+        assert len(summary["completed_record_sha256s"]) == 2
+    assert absolute_manifest["predispatch_plan"] == absolute_summary["predispatch_plan"]
+    assert pairwise_manifest["predispatch_plan"] == pairwise_summary["predispatch_plan"]
+    absolute_key = next(iter(absolute_summary["completed_record_sha256s"]))
+    absolute_record_path = (
+        output / "absolute_score" / "records" / f"{absolute_key}.json"
+    )
     absolute_record = json.loads(absolute_record_path.read_text())
-    assert absolute_record["raw_response_sha256"] == rh_protocol.sha256_text(
+    assert absolute_record["raw_response_sha256"] == evaluation_jobs.sha256_text(
         absolute_record["raw_response"]
     )
-    assert summary["completed_record_sha256s"]["absolute"][absolute_key] == (
+    assert absolute_summary["completed_record_sha256s"][absolute_key] == (
         sha256_file(absolute_record_path)
     )
 
-    implementation_identity = rh_protocol._rubric_free_evaluation_implementation_identity()
+    implementation_identity = evaluation_jobs._rubric_free_score_implementation_identity()
     with monkeypatch.context() as implementation_patch:
         implementation_patch.setattr(
-            rh_rubric_free_evaluation,
-            "_rubric_free_evaluation_implementation_identity",
+            score_execution,
+            "_rubric_free_score_implementation_identity",
             lambda: {
                 **implementation_identity,
                 "scoring_implementation_sha256": "f" * 64,
             },
         )
-        changed_implementation = RubricFreeEvaluationRunner(
+        changed_implementation = RubricFreeScoreRunner(
             EvaluationConfig(
                 experiment=experiment,
                 study_dir=tmp_path / "study",
@@ -1818,7 +1842,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         assert changed_implementation.run() == 0
     assert len(calls) == 8
 
-    same_identity_resume = RubricFreeEvaluationRunner(
+    same_identity_resume = RubricFreeScoreRunner(
         EvaluationConfig(
             experiment=experiment,
             study_dir=tmp_path / "study",
@@ -1833,14 +1857,20 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
     assert same_identity_resume.run() == 0
     assert len(calls) == 12
 
-    tampered_summary = json.loads((output / "summary.json").read_text())
-    assert tampered_summary["absolute_records"][0]["verdict"]["score"] == 10
-    tampered_summary["absolute_records"][0]["verdict"]["score"] = 90
-    (output / "summary.json").write_text(json.dumps(tampered_summary))
+    tampered_summary = json.loads(
+        (output / "absolute_score" / "summary.json").read_text()
+    )
+    assert tampered_summary["records"][0]["verdict"]["score"] == 10
+    tampered_summary["records"][0]["verdict"]["score"] = 90
+    (output / "absolute_score" / "summary.json").write_text(
+        json.dumps(tampered_summary)
+    )
     assert same_identity_resume.run() == 0
     assert len(calls) == 12
-    repaired_summary = json.loads((output / "summary.json").read_text())
-    assert repaired_summary["absolute_records"][0]["verdict"]["score"] == 10
+    repaired_summary = json.loads(
+        (output / "absolute_score" / "summary.json").read_text()
+    )
+    assert repaired_summary["records"][0]["verdict"]["score"] == 10
 
     rejected_output = tmp_path / "rejected-rubric_free_evaluation-output"
     rejected_experiment = SimpleNamespace(
@@ -1848,7 +1878,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         outcome_audit={**audit, "rubric_free_evaluation_max_calls": 7},
         protocol={},
     )
-    rejected = RubricFreeEvaluationRunner(
+    rejected = RubricFreeScoreRunner(
         EvaluationConfig(
             experiment=rejected_experiment,
             study_dir=tmp_path / "study",

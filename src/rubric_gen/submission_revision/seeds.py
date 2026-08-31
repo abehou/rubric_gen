@@ -18,9 +18,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from rubric_gen.benchmarks import get_submission_benchmark
+from rubric_gen.benchmarks import (
+    SubmissionBenchmark,
+    SubmissionBenchmarkId,
+    get_submission_benchmark,
+)
 from rubric_gen.runtime.agents.models import RunPaths
-from rubric_gen.submission_revision.prompts import solver_prompt
+from rubric_gen.submission_revision.prompts import PromptProfile, solver_prompt
 from rubric_gen.runtime.agents.runners import AgentRunner
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.artifacts import (
@@ -82,6 +86,20 @@ class ResolvedSeed:
             identity,
         )
 
+    @property
+    def elicitation_artifacts(self) -> tuple[tuple[str, Path], ...]:
+        """Return every structurally valid public artifact in this seed block."""
+
+        primary_role = self.manifest["primary_elicitation_role"]
+        attempt = self.manifest["elicitation_attempt"]
+        assert isinstance(primary_role, str) and isinstance(attempt, dict)
+        artifacts = [(primary_role, self.submission_dir / "workspace")]
+        if attempt["included"]:
+            role = attempt["role"]
+            assert isinstance(role, str)
+            artifacts.append((role, self.seed_root / "elicitation_attempt" / "workspace"))
+        return tuple(artifacts)
+
 
 class SeedSetRunner:
     def __init__(self, config: SeedSetConfig) -> None:
@@ -91,6 +109,32 @@ class SeedSetRunner:
         self.agent = self.experiment.agent_config(
             quiet=True,
         )
+        self.solver_prompt = solver_prompt(
+            str(self.protocol["prompt"]),
+            self.experiment.benchmark,
+        )
+        self.solver_prompt_sha256 = sha256_text(self.solver_prompt)
+        self.primary_profile = PromptProfile(str(self.protocol["prompt"]))
+        self.primary_elicitation_role = (
+            "adversarial"
+            if self.primary_profile is PromptProfile.ADVERSARIAL
+            else "clean"
+        )
+        self.attempt_profile = (
+            PromptProfile.BASE
+            if self.primary_profile is PromptProfile.ADVERSARIAL
+            else PromptProfile.ADVERSARIAL
+        )
+        self.attempt_elicitation_role = (
+            "clean"
+            if self.primary_elicitation_role == "adversarial"
+            else "adversarial"
+        )
+        self.attempt_prompt = solver_prompt(
+            self.attempt_profile,
+            self.experiment.benchmark,
+        )
+        self.attempt_prompt_sha256 = sha256_text(self.attempt_prompt)
 
     def run(self) -> int:
         root = self.config.output_dir.resolve()
@@ -180,14 +224,10 @@ class SeedSetRunner:
         return int(bool(failures))
 
     def _jobs(self) -> list[tuple[Path, int]]:
-        earliest: dict[tuple[str, int], int] = {}
-        for assignment in self.experiment.assignments:
-            key = (str(assignment["task_id"]), int(assignment["replicate"]))
-            order = int(assignment["execution_order"])
-            earliest[key] = min(order, earliest.get(key, order))
         return [
             (self.experiment.task_dir(task_id), replicate)
-            for task_id, replicate in sorted(earliest, key=earliest.__getitem__)
+            for task_id in self.experiment.task_ids
+            for replicate in range(1, self.experiment.replicates + 1)
         ]
 
     @staticmethod
@@ -232,6 +272,9 @@ class SeedSetRunner:
                 replicate,
                 provider=self.agent.provider,
                 requested_model=self.agent.model,
+                solver_prompt_sha256=self.solver_prompt_sha256,
+                primary_profile=self.primary_profile,
+                benchmark=self.experiment.benchmark,
             )
             expected_identity = self._initial_judge(
                 task,
@@ -275,7 +318,7 @@ class SeedSetRunner:
             benchmark = get_submission_benchmark(self.experiment.benchmark)
             exit_code, paths = AgentRunner(
                 self.agent,
-                prompt=solver_prompt(benchmark=self.experiment.benchmark),
+                prompt=self.solver_prompt,
                 output_errors=benchmark.output_errors,
             ).run(task_dir.resolve(), paths=paths)
             if exit_code != 0:
@@ -299,9 +342,27 @@ class SeedSetRunner:
             trajectory_sha = sha256_file(trajectory)
             instruction_sha = sha256_file(task_dir / "instruction.md")
             data_sha = tree_sha256(task_dir / "environment" / "data")
+            if on_stage is not None:
+                on_stage("elicitation_attempt")
+            elicitation_attempt = self._run_elicitation_attempt(
+                destination,
+                task_dir,
+                benchmark,
+            )
+            elicitation_identity = {
+                "primary_role": self.primary_elicitation_role,
+                "attempt": elicitation_attempt,
+            }
+            elicitation_sha = sha256_text(json.dumps(
+                elicitation_identity,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ))
             seed_sha = sha256_text(
                 f"{self.experiment.experiment_id}\n{task_dir.name}\n{replicate}\n"
                 f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
+                f"{self.solver_prompt_sha256}\n{elicitation_sha}\n"
             )
             write_json_atomic(submission / "status.json", {
                 "task": task_dir.name,
@@ -349,6 +410,9 @@ class SeedSetRunner:
                 "replicate": replicate,
                 "provider": self.agent.provider,
                 "requested_model": self.agent.model,
+                "solver_prompt_sha256": self.solver_prompt_sha256,
+                "primary_elicitation_role": self.primary_elicitation_role,
+                "elicitation_attempt": elicitation_attempt,
                 "instruction_sha256": instruction_sha,
                 "data_sha256": data_sha,
                 "workspace_sha256": workspace_sha,
@@ -364,6 +428,44 @@ class SeedSetRunner:
             make_tree_read_only(destination)
         finally:
             shutil.rmtree(temporary, ignore_errors=True)
+
+    def _run_elicitation_attempt(
+        self,
+        destination: Path,
+        task_dir: Path,
+        benchmark: SubmissionBenchmark,
+    ) -> dict[str, object]:
+        attempt_root = destination / "elicitation_attempt"
+        run_dir = attempt_root / "run"
+        paths = RunPaths(
+            provider=self.agent.provider,
+            run_dir=run_dir,
+            workspace_dir=attempt_root / "workspace",
+            prompt_path=run_dir / "prompt.txt",
+            policy_path=run_dir / "no-web-policy.toml",
+            stream_path=run_dir / "trajectory.stream.jsonl",
+            status_path=run_dir / "status.json",
+        )
+        exit_code, paths = AgentRunner(
+            self.agent,
+            prompt=self.attempt_prompt,
+            output_errors=benchmark.output_errors,
+        ).run(task_dir.resolve(), paths=paths)
+        if not paths.prompt_path.is_file():
+            paths.prompt_path.write_text(self.attempt_prompt, encoding="utf-8")
+        if not paths.stream_path.is_file() or not paths.status_path.is_file():
+            raise RuntimeError("elicitation attempt did not persist its run records")
+        workspace_sha = solution_tree_sha256(paths.workspace_dir)
+        return {
+            "role": self.attempt_elicitation_role,
+            "profile": self.attempt_profile.value,
+            "included": exit_code == 0,
+            "exit_code": exit_code,
+            "prompt_sha256": sha256_file(paths.prompt_path),
+            "workspace_sha256": workspace_sha,
+            "trajectory_sha256": sha256_file(paths.stream_path),
+            "status_sha256": sha256_file(paths.status_path),
+        }
 
     @staticmethod
     def _preserve_solver_failure(
@@ -437,6 +539,8 @@ def resolve_seed(
     *,
     provider: str,
     requested_model: str,
+    prompt_profile: PromptProfile | str,
+    benchmark: SubmissionBenchmarkId | str,
 ) -> ResolvedSeed:
     root = seed_set.resolve()
     if seed_set.is_symlink() or not (root / "manifest.json").is_file():
@@ -453,6 +557,9 @@ def resolve_seed(
         replicate,
         provider=provider,
         requested_model=requested_model,
+        solver_prompt_sha256=sha256_text(solver_prompt(prompt_profile, benchmark)),
+        primary_profile=PromptProfile(prompt_profile),
+        benchmark=SubmissionBenchmarkId(benchmark),
     )
 
 
@@ -463,6 +570,9 @@ def _resolve_task_seed(
     *,
     provider: str,
     requested_model: str,
+    solver_prompt_sha256: str,
+    primary_profile: PromptProfile,
+    benchmark: SubmissionBenchmarkId,
 ) -> ResolvedSeed:
     if type(replicate) is not int or replicate < 1:
         raise ValueError("replicate must be a positive integer")
@@ -478,7 +588,8 @@ def _resolve_task_seed(
         ) from exc
     required = {
         "kind", "experiment_id", "task_id", "replicate", "provider",
-        "requested_model", "instruction_sha256", "data_sha256",
+        "requested_model", "solver_prompt_sha256", "instruction_sha256",
+        "primary_elicitation_role", "elicitation_attempt", "data_sha256",
         "workspace_sha256", "trajectory_sha256", "score_validation_sha256",
         "evaluation_sha256", "usage_sha256", "scoring_identity",
         "judgment_sha256", "seed_sha256", "source_status",
@@ -494,11 +605,40 @@ def _resolve_task_seed(
         or manifest.get("replicate") != replicate
         or manifest.get("provider") != provider
         or manifest.get("requested_model") != requested_model
+        or type(manifest.get("solver_prompt_sha256")) is not str
+        or manifest.get("primary_elicitation_role") not in {"clean", "adversarial"}
+        or not isinstance(manifest.get("elicitation_attempt"), dict)
         or not isinstance(manifest.get("source_status"), dict)
         or manifest["source_status"].get("exit_code") != 0  # type: ignore[union-attr]
         or manifest["source_status"].get("provider") != provider  # type: ignore[union-attr]
     ):
         raise RuntimeError(f"invalid seed for {task_dir.name} replicate {replicate}")
+    if manifest["solver_prompt_sha256"] != solver_prompt_sha256:
+        raise RuntimeError(
+            f"seed solver prompt does not match for {task_dir.name} "
+            f"replicate {replicate}"
+        )
+    expected_primary_role = (
+        "adversarial"
+        if primary_profile is PromptProfile.ADVERSARIAL
+        else "clean"
+    )
+    expected_attempt_profile = (
+        PromptProfile.BASE
+        if primary_profile is PromptProfile.ADVERSARIAL
+        else PromptProfile.ADVERSARIAL
+    )
+    expected_attempt_role = (
+        "clean" if expected_primary_role == "adversarial" else "adversarial"
+    )
+    if manifest["primary_elicitation_role"] != expected_primary_role:
+        raise RuntimeError(f"seed elicitation role changed for {task_dir.name}")
+    attempt = _validate_elicitation_attempt(
+        seed_root,
+        get_submission_benchmark(benchmark),
+        expected_profile=expected_attempt_profile,
+        expected_role=expected_attempt_role,
+    )
     submission = seed_root / "submission"
     workspace_sha = solution_tree_sha256(submission / "workspace")
     trajectory_sha = sha256_file(submission / "trajectory.stream.jsonl")
@@ -521,6 +661,7 @@ def _resolve_task_seed(
     solution_sha = sha256_text(
         f"{owner}\n{task_dir.name}\n{replicate}\n"
         f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
+        f"{solver_prompt_sha256}\n{_elicitation_identity_sha(expected_primary_role, attempt)}\n"
     )
     if (
         manifest.get("instruction_sha256") != instruction_sha
@@ -542,6 +683,88 @@ def _resolve_task_seed(
         submission,
         manifest,
     )
+
+
+def _validate_elicitation_attempt(
+    seed_root: Path,
+    benchmark: SubmissionBenchmark,
+    *,
+    expected_profile: PromptProfile,
+    expected_role: str,
+) -> dict[str, object]:
+    manifest = json.loads((seed_root / "manifest.json").read_text())
+    attempt = manifest.get("elicitation_attempt")
+    required = {
+        "role", "profile", "included", "exit_code", "prompt_sha256",
+        "workspace_sha256", "trajectory_sha256", "status_sha256",
+    }
+    if (
+        not isinstance(attempt, dict)
+        or set(attempt) != required
+        or attempt.get("role") != expected_role
+        or attempt.get("profile") != expected_profile.value
+        or type(attempt.get("included")) is not bool
+        or type(attempt.get("exit_code")) is not int
+        or any(
+            type(attempt.get(field)) is not str
+            for field in (
+                "prompt_sha256", "workspace_sha256", "trajectory_sha256",
+                "status_sha256",
+            )
+        )
+    ):
+        raise RuntimeError("seed elicitation attempt has invalid fields")
+    root = seed_root / "elicitation_attempt"
+    run = root / "run"
+    workspace = root / "workspace"
+    prompt = run / "prompt.txt"
+    trajectory = run / "trajectory.stream.jsonl"
+    status_path = run / "status.json"
+    if (
+        root.is_symlink()
+        or not root.is_dir()
+        or workspace.is_symlink()
+        or not workspace.is_dir()
+        or any(path.is_symlink() or not path.is_file() for path in (
+            prompt, trajectory, status_path,
+        ))
+    ):
+        raise RuntimeError("seed elicitation attempt is incomplete")
+    try:
+        status = json.loads(status_path.read_text())
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("seed elicitation attempt status is invalid") from exc
+    expected_prompt_sha = sha256_text(
+        solver_prompt(expected_profile, benchmark.benchmark)
+    )
+    structurally_valid = (
+        attempt["exit_code"] == 0
+        and isinstance(status, dict)
+        and status.get("exit_code") == 0
+        and not benchmark.output_errors(workspace)
+    )
+    if (
+        attempt["included"] is not structurally_valid
+        or attempt["prompt_sha256"] != expected_prompt_sha
+        or attempt["prompt_sha256"] != sha256_file(prompt)
+        or attempt["workspace_sha256"] != solution_tree_sha256(workspace)
+        or attempt["trajectory_sha256"] != sha256_file(trajectory)
+        or attempt["status_sha256"] != sha256_file(status_path)
+    ):
+        raise RuntimeError("seed elicitation attempt failed integrity validation")
+    return attempt
+
+
+def _elicitation_identity_sha(
+    primary_role: str,
+    attempt: dict[str, object],
+) -> str:
+    return sha256_text(json.dumps(
+        {"primary_role": primary_role, "attempt": attempt},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ))
 
 
 def _seed_root(root: Path, task_id: str, replicate: int) -> Path:

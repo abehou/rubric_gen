@@ -110,6 +110,8 @@ def build_validation_context(
         int(assignment["replicate"]),
         provider=agent.provider,
         requested_model=agent.model,
+        prompt_profile=str(protocol["prompt"]),
+        benchmark=experiment.benchmark,
     )
     seed_identity = seed.manifest.get("scoring_identity")
     if not isinstance(seed_identity, dict):
@@ -268,6 +270,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "task_id": context.assignment.get("task_id"),
         "task_dir": str(context.task_dir),
         "replicate": context.assignment.get("replicate"),
+        "elicitation_seed_replicates": context.experiment.replicates,
         "execution_order": context.assignment.get("execution_order"),
         "max_revisions": context.max_revisions,
         "provider": agent.provider,
