@@ -160,7 +160,7 @@ def main() -> None:
     )
 
     with (HERE / "threshold_metrics.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -180,7 +180,11 @@ def main() -> None:
             "calibrated_panel_positive": panel_score(case_id) >= selected_threshold,
         })
     with (HERE / "case_scores_and_labels.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(case_rows[0]))
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(case_rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(case_rows)
 
@@ -203,7 +207,11 @@ def main() -> None:
             "calibrated_detector_positive_rate": predicted / len(values),
         })
     with (HERE / "condition_rates.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(condition_rows[0]))
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(condition_rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(condition_rows)
 
