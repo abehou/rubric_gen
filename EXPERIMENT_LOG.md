@@ -819,3 +819,4 @@
 
 - **00:03 PDT** — The focused study has 20 completed, 48 running, 290 pending, and two failed assignments. The second failure exhausted both app-server initialization attempts on a blank JSON-RPC line, so the transport defect is rare rather than fully resolved and the current study is not a complete result.
 - **00:18 PDT** — Stopped the incomplete focused study before changing its hashed simulator implementation. Simulated-user feedback now normalizes surrounding whitespace, permits repeated valid categories, and preserves rejected attempts; all 721 tests pass with one skip.
+- **00:23 PDT** — Restored and staged the complete generalization-gap figure package from commit `f3e4b0d`. The CSV and four PNG/PDF pairs remain bound to the completed `biomnibench-da-factorial-r6-5d56fee68932` study rather than the incomplete current Results20 runs.
