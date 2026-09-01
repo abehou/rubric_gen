@@ -48,6 +48,8 @@ class SolverSessionDriver(Protocol):
         session_id: str,
     ) -> SessionTurnResult: ...
 
+    def close(self) -> None: ...
+
 
 class CliSolverSessionDriver:
     """Run one solver conversation across multiple provider CLI invocations."""
@@ -61,6 +63,8 @@ class CliSolverSessionDriver:
     ) -> None:
         self.config = config or AgentRunConfig()
         self.contract = contract
+        if self.config.provider == "codex":
+            raise ValueError("Codex persistent sessions require CodexSdkSessionDriver")
         if not 0 <= self.config.retries <= MAX_TRANSIENT_RETRIES:
             raise ValueError(
                 "Persistent-session retries must be between 0 and "
@@ -72,6 +76,9 @@ class CliSolverSessionDriver:
         self.adapter = self.registry.get(self.config.provider)
         self._session_workspaces: dict[str, Path] = {}
         self._session_models: dict[str, str] = {}
+
+    def close(self) -> None:
+        """Release provider resources held by this driver."""
 
     def start(
         self,
@@ -311,16 +318,6 @@ class CliSolverSessionDriver:
     ) -> list[str]:
         provider = self.adapter.name
 
-        if provider == "codex":
-            command = self.adapter.build_command(paths, self.config, prompt)
-            if command[-1] != "-":
-                raise RuntimeError("Codex adapter command must read its prompt from stdin")
-            if resume:
-                exec_index = command.index("exec")
-                command.insert(exec_index + 1, "resume")
-                command[-1:] = [session_id, "-"]
-            return command
-
         # Start from the ordinary adapter command so provider-native model,
         # permission, no-web, sandbox, and trust behavior stays aligned.
         command = self.adapter.build_command(paths, self.config, prompt)
@@ -543,8 +540,6 @@ class CliSolverSessionDriver:
                 value if isinstance(value, str) and value.strip() else "",
                 reported_model,
             )
-        if self.adapter.name == "codex":
-            return self._codex_session_metadata(event)
         return "", None
 
     def _bind_workspace(self, session_id: str, workspace: Path) -> None:
@@ -602,26 +597,3 @@ class CliSolverSessionDriver:
         paths.status_path.write_text(
             json.dumps(status, indent=2, sort_keys=True) + "\n"
         )
-
-    @staticmethod
-    def _codex_session_metadata(
-        event: dict[str, object],
-    ) -> tuple[str, str | None]:
-        if event.get("type") not in {
-            "thread.started",
-            "session.started",
-            "conversation.started",
-        }:
-            return "", None
-        model = event.get("model")
-        reported_model = model if isinstance(model, str) and model.strip() else None
-        for key in ("thread_id", "session_id", "conversation_id"):
-            value = event.get(key)
-            if isinstance(value, str) and value.strip():
-                return value, reported_model
-        thread = event.get("thread")
-        if isinstance(thread, dict):
-            value = thread.get("id")
-            if isinstance(value, str) and value.strip():
-                return value, reported_model
-        return "", None

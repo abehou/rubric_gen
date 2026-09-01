@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
@@ -15,14 +14,12 @@ from rubric_gen.submission_revision.evaluation import (
     rubric_score,
     score_execution,
 )
-from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.evaluation.store import EvaluationStore
 
 
 PANEL_POLICY: dict[str, object] = {
-    "aggregation": "arithmetic-mean-over-stage-complete-judges",
-    "minimum_stage_complete_judges": 1,
-    "configured_judge_failure_scope": "whole-stage",
+    "aggregation": "arithmetic-mean-over-complete-configured-panel",
+    "configured_judge_failure_scope": "incomplete-stage",
 }
 
 
@@ -46,54 +43,6 @@ def _failure_record(
     if instrument is not None:
         record["instrument"] = instrument
     return record
-
-
-def _prior_failures(
-    output: EvaluationStore,
-    *,
-    expected_kind: str,
-    instruments: frozenset[str] | None = None,
-) -> dict[str, dict[str, object]]:
-    summary_path = output.regular_file("summary.json", allow_missing=True)
-    if not os.path.lexists(summary_path):
-        return {}
-    try:
-        summary = read_json_object(summary_path, "evaluation outcome summary")
-    except RuntimeError:
-        summary_path.unlink()
-        return {}
-    failures = summary.get("judge_failures")
-    if (
-        summary.get("kind") != expected_kind
-        or summary.get("status") != "completed"
-        or summary.get("panel_policy") != PANEL_POLICY
-        or not isinstance(failures, list)
-    ):
-        summary_path.unlink()
-        return {}
-    result: dict[str, dict[str, object]] = {}
-    expected_fields = {"judgment_key", "model", "reason", "error_type"}
-    if instruments is not None:
-        expected_fields.add("instrument")
-    for failure in failures:
-        if (
-            not isinstance(failure, dict)
-            or set(failure) != expected_fields
-            or type(failure.get("judgment_key")) is not str
-            or type(failure.get("model")) is not str
-            or failure.get("reason") != "judge-failed"
-            or type(failure.get("error_type")) is not str
-            or (
-                instruments is not None
-                and failure.get("instrument") not in instruments
-            )
-        ):
-            raise RuntimeError("evaluation outcome judge failure record is invalid")
-        key = str(failure["judgment_key"])
-        if key in result:
-            raise RuntimeError("evaluation outcome judge failure is duplicated")
-        result[key] = failure
-    return result
 
 
 @dataclass
@@ -282,6 +231,7 @@ def _summarize_rubric_scores(
             "assignment_id": target.assignment_id,
             "task_id": target.task_id,
             "replicate": target.replicate,
+            "solver_id": target.solver_id,
             "condition_id": target.condition_id,
             "rubric_policy": target.rubric_policy.value,
             "weak_original_rubric_scores": {
@@ -325,20 +275,11 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         manifest = self._manifest(prepared, models)
         self.output.prepare(manifest, self.config.resume)
         unique_jobs = prepared.unique_jobs
-        failures = _prior_failures(
-            self.output,
-            expected_kind=evaluation_jobs.RUBRIC_SCORE_KIND,
-        )
-        jobs_by_key = {job.key: job for job in unique_jobs}
-        if not set(failures) <= set(jobs_by_key):
-            raise RuntimeError("revision rubric score failure is outside the accepted plan")
+        failures: dict[str, dict[str, object]] = {}
         judgments: dict[str, dict[str, object]] = {}
-        fresh_jobs = tuple(
-            job for job in unique_jobs if job.key not in failures
-        )
         fatal_errors: list[BaseException] = []
         with TerminalProgress(
-            total=len(fresh_jobs),
+            total=len(unique_jobs),
             description="revision rubric score evaluation",
             unit="judgment",
         ) as progress:
@@ -347,12 +288,13 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             ) as pool:
                 futures = {
                     pool.submit(self._run_job, job): job
-                    for job in fresh_jobs
+                    for job in unique_jobs
                 }
                 for future in as_completed(futures):
                     job = futures[future]
                     try:
                         judgments[job.key] = future.result()
+                        failures.pop(job.key, None)
                     except Exception as error:
                         if (
                             job.model in models
@@ -372,18 +314,15 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         if fatal_errors:
             raise RuntimeError("revision rubric score non-panel job failed") from fatal_errors[0]
 
-        available_models = tuple(
+        missing_models = tuple(
             model
             for model in models
-            if all(
-                job.key in judgments
+            if any(
+                job.key not in judgments
                 for job in unique_jobs
                 if job.model == model
             )
         )
-        if not available_models:
-            raise RuntimeError("all configured revision rubric score judges failed")
-        included_models = set(available_models)
         records = [
             {
                 **rubric_score._rubric_score_job_identity(job),
@@ -394,7 +333,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
                 "evaluation_path": judgments[job.key]["evaluation_path"],
             }
             for job in prepared.jobs
-            if job.model in included_models
+            if job.key in judgments
         ]
         records.sort(key=evaluation_jobs._record_sort_key)
         failure_records = sorted(
@@ -403,32 +342,29 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         )
         summary = {
             **manifest,
-            "status": "completed",
+            "status": "incomplete" if missing_models else "completed",
             "panel_policy": PANEL_POLICY,
-            "available_models": list(available_models),
-            "failed_models": [
-                model for model in models if model not in available_models
-            ],
+            "missing_models": list(missing_models),
             "rubric_scope": "original-active-selected",
             "planned_semantic_judgment_count": len(unique_jobs),
             "successful_semantic_judgment_count": len(judgments),
-            "used_semantic_judgment_count": len({
-                job.key
-                for job in unique_jobs
-                if job.model in included_models
-            }),
+            "used_semantic_judgment_count": len(judgments),
             "failed_semantic_judgment_count": len(failure_records),
             "assignment_reference_count": len(records),
             "judge_failures": failure_records,
             "records": records,
-            "assignments": _summarize_rubric_scores(
-                prepared.targets,
-                records,
-                available_models,
+            "assignments": (
+                []
+                if missing_models
+                else _summarize_rubric_scores(
+                    prepared.targets,
+                    records,
+                    models,
+                )
             ),
         }
         self._write_summary(summary)
-        return 0
+        return 1 if missing_models else 0
 
     def _write_summary(self, summary: dict[str, object]) -> None:
         self.output.write_json(("summary.json",), summary)
@@ -478,36 +414,22 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
         manifests = self._manifests(prepared)
         self.absolute_output.prepare(manifests["absolute"], self.config.resume)
         self.pairwise_output.prepare(manifests["pairwise"], self.config.resume)
-        absolute_failures = _prior_failures(
-            self.absolute_output,
-            expected_kind=evaluation_jobs.ABSOLUTE_SCORE_KIND,
-            instruments=frozenset({"absolute"}),
-        )
-        pairwise_failures = _prior_failures(
-            self.pairwise_output,
-            expected_kind=evaluation_jobs.PAIRWISE_PREFERENCE_KIND,
-            instruments=frozenset({"pairwise"}),
-        )
-        failures = {**absolute_failures, **pairwise_failures}
+        absolute_failures: dict[str, dict[str, object]] = {}
+        pairwise_failures: dict[str, dict[str, object]] = {}
         unique_absolute = {
             job.key: job for job in prepared.unique_absolute_jobs
         }
         unique_pairwise = {
             job.key: job for job in prepared.unique_pairwise_jobs
         }
-        all_keys = set(unique_absolute) | set(unique_pairwise)
-        if not set(failures) <= all_keys:
-            raise RuntimeError("rubric-free score failure is outside the accepted plan")
         absolute_judgments: dict[str, dict[str, object]] = {}
         pairwise_judgments: dict[str, dict[str, object]] = {}
         jobs = [
             ("absolute", job)
             for job in prepared.unique_absolute_jobs
-            if job.key not in failures
         ] + [
             ("pairwise", job)
             for job in prepared.unique_pairwise_jobs
-            if job.key not in failures
         ]
         fatal_errors: list[BaseException] = []
         with TerminalProgress(
@@ -533,8 +455,10 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
                         judgment = future.result()
                         if instrument == "absolute":
                             absolute_judgments[job.key] = judgment
+                            absolute_failures.pop(job.key, None)
                         else:
                             pairwise_judgments[job.key] = judgment
+                            pairwise_failures.pop(job.key, None)
                     except Exception as error:
                         if _is_judge_failure(
                             error,
@@ -546,7 +470,6 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
                                 instrument=instrument,
                                 error=error,
                             )
-                            failures[job.key] = failure
                             if instrument == "absolute":
                                 absolute_failures[job.key] = failure
                             else:
@@ -557,30 +480,27 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
         if fatal_errors:
             raise RuntimeError("rubric-free score job failed") from fatal_errors[0]
 
-        available_models = tuple(
+        missing_models = tuple(
             model
             for model in prepared.models
-            if all(
-                job.key in absolute_judgments
+            if any(
+                job.key not in absolute_judgments
                 for job in prepared.unique_absolute_jobs
                 if job.model == model
             )
-            and all(
-                job.key in pairwise_judgments
+            or any(
+                job.key not in pairwise_judgments
                 for job in prepared.unique_pairwise_jobs
                 if job.model == model
             )
         )
-        if not available_models:
-            raise RuntimeError("all configured rubric-free score judges failed")
-        available_set = set(available_models)
         absolute_records = [
             absolute_score.assignment_reference(
                 job,
                 absolute_judgments[job.key],
             )
             for job in prepared.absolute_jobs
-            if job.model in available_set
+            if job.key in absolute_judgments
         ]
         pairwise_records = [
             pairwise_preference.assignment_reference(
@@ -588,7 +508,7 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
                 pairwise_judgments[job.key],
             )
             for job in prepared.pairwise_jobs
-            if job.model in available_set
+            if job.key in pairwise_judgments
         ]
         absolute_records.sort(key=evaluation_jobs._record_sort_key)
         pairwise_records.sort(key=evaluation_jobs._record_sort_key)
@@ -606,19 +526,12 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
                 str(item["judgment_key"]),
             ),
         )
-        used_absolute = {
-            key for key, job in unique_absolute.items() if job.model in available_set
-        }
-        used_pairwise = {
-            key for key, job in unique_pairwise.items() if job.model in available_set
-        }
+        used_absolute = set(absolute_judgments)
+        used_pairwise = set(pairwise_judgments)
         common = {
-            "status": "completed",
+            "status": "incomplete" if missing_models else "completed",
             "panel_policy": PANEL_POLICY,
-            "available_models": list(available_models),
-            "failed_models": [
-                model for model in prepared.models if model not in available_set
-            ],
+            "missing_models": list(missing_models),
         }
         absolute_summary = {
             **manifests["absolute"],
@@ -636,10 +549,14 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
                 ))
                 for key in sorted(used_absolute)
             },
-            "assignments": absolute_score.summarize(
-                prepared.targets,
-                absolute_records,
-                available_models,
+            "assignments": (
+                []
+                if missing_models
+                else absolute_score.summarize(
+                    prepared.targets,
+                    absolute_records,
+                    prepared.models,
+                )
             ),
         }
         pairwise_summary = {
@@ -658,15 +575,20 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
                 ))
                 for key in sorted(used_pairwise)
             },
-            "assignments": pairwise_preference.summarize(
-                prepared.targets,
-                pairwise_records,
-                available_models,
+            "assignments": (
+                []
+                if missing_models
+                else pairwise_preference.summarize(
+                    prepared.targets,
+                    pairwise_records,
+                    prepared.models,
+                    prepared.pairwise_order_plan,
+                )
             ),
         }
         self.absolute_output.write_json(("summary.json",), absolute_summary)
         self.pairwise_output.write_json(("summary.json",), pairwise_summary)
-        return 0
+        return 1 if missing_models else 0
 
     def _manifests(
         self,
@@ -694,7 +616,18 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
             "pairwise": {
                 **common,
                 "kind": evaluation_jobs.PAIRWISE_PREFERENCE_KIND,
-                "orderings": list(evaluation_jobs.ORDERINGS),
+                "orders": list(evaluation_jobs.PAIRWISE_ORDERS),
+                "order_assignment": "balanced-task-replicate-plan",
+                "order_plan": [
+                    {
+                        "task_id": task_id,
+                        "replicate": replicate,
+                        "order": order,
+                    }
+                    for (task_id, replicate), order in sorted(
+                        prepared.pairwise_order_plan.items()
+                    )
+                ],
                 "prompt_id": evaluation_jobs.PAIRWISE_PROMPT_ID,
             },
         }

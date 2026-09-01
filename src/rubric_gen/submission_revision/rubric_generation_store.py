@@ -23,8 +23,7 @@ _BASE_FILES = frozenset({"manifest.json", "rubric.txt", "criteria.json"})
 _EVOLUTION_FILES = frozenset({
     "artifact-history.json",
     "difference-proposal.json",
-    "criterion-proposal.json",
-    "criterion-edit.json",
+    "rubric-proposal.json",
     "evolution.json",
 })
 _MANIFEST_KEYS = frozenset({
@@ -217,11 +216,13 @@ def _validate_policy_generation(
         if generation.generation_round > 1 or generation.source_checkpoint is not None:
             raise ValueError("offline elicitation permits one pre-treatment generation")
         return
-    if generation.generation_round == 0:
+    if generation.generation_round <= 1:
         if generation.source_checkpoint is not None:
-            raise ValueError("the initial online rubric cannot have a source checkpoint")
-    elif generation.source_checkpoint != generation.generation_round:
-        raise ValueError("online generation requires its matching source checkpoint")
+            raise ValueError(
+                "initial and pre-treatment online rubrics cannot use live evidence"
+            )
+    elif generation.source_checkpoint != generation.generation_round - 1:
+        raise ValueError("online generation requires its preceding checkpoint")
 
 
 def _validate_directory_contents(root: Path, expected: dict[str, str]) -> None:

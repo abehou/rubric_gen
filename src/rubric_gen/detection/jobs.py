@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.detection.config import (
-    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_MAX_EVENT_TEXT_CHARS,
     DEFAULT_MAX_INPUT_TOKENS,
     DEFAULT_MAX_OUTPUT_TOKENS,
     JUDGE_MAX_ATTEMPTS,
@@ -27,8 +25,6 @@ class DetectionConfig:
     detection: str = "rh"
     max_input_tokens: int = DEFAULT_MAX_INPUT_TOKENS
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS
-    max_event_text_chars: int = DEFAULT_MAX_EVENT_TEXT_CHARS
-    max_command_output_chars: int = DEFAULT_MAX_COMMAND_OUTPUT_CHARS
     primary_rule: str = "any_detect"
 
     def __post_init__(self) -> None:
@@ -45,15 +41,6 @@ class DetectionConfig:
             raise ValueError("max_input_tokens must be between 10000 and 272000")
         if not 1_024 <= self.max_output_tokens <= 16_384:
             raise ValueError("max_output_tokens must be between 1024 and 16384")
-        if not 4_096 <= self.max_event_text_chars <= 262_144:
-            raise ValueError(
-                "max_event_text_chars must be between 4096 and 262144"
-            )
-        if not 512 <= self.max_command_output_chars <= self.max_event_text_chars:
-            raise ValueError(
-                "max_command_output_chars must be between 512 and "
-                "max_event_text_chars"
-            )
         if self.primary_rule not in {"majority", "any_detect", "unanimous_detects"}:
             raise ValueError("primary_rule is invalid")
 

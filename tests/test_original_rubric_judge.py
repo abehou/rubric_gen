@@ -23,6 +23,7 @@ from rubric_gen.submission_revision.original_rubric_inputs import (
 )
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.submission_revision.evaluation.config import OUTCOME_MODELS
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 
 
 AUTORUBRIC = """RUBRIC: Test
@@ -52,6 +53,7 @@ def _target(tmp_path: Path) -> OriginalRubricTarget:
         assignment_id="da-1-1--rep-001--base-static",
         task_id="da-1-1",
         replicate=1,
+        solver_id="test-solver",
         condition_id="base-static",
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         experiment_dir=experiment,
@@ -314,16 +316,16 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
     (task / "tests").mkdir(parents=True)
     rubric = "Criterion 1: Valid result\nLevels: A=100 B=50 C=0\n"
     (task / "tests" / "rubric.txt").write_text(rubric)
-    assignment = {
-        "assignment_id": "da-1-1--rep-001--base-static",
-        "task_id": "da-1-1",
-        "replicate": 1,
-        "condition_id": "base-static",
-        "execution_order": 1,
-    }
+    assignment = ExperimentAssignment(
+        task_id="da-1-1",
+        replicate=1,
+        solver_id="test-solver",
+        condition_id="base-static",
+        within_block_order=1,
+        execution_order=1,
+    )
     record = {
-        **assignment,
-        "experiment_dir": "experiments/da-1-1/rep-001/base-static",
+        **assignment.record_identity(),
         "status": "completed",
     }
     source.mkdir()
@@ -336,6 +338,9 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
                 "experiment_id": "test-study",
                     "seed_run_dir": str(tmp_path / "seeds"),
                     "paraphrase_run_dir": str(tmp_path / "paraphrases"),
+                    "pretreatment_rubric_root": str(
+                        source / "pretreatment-rubrics"
+                    ),
                 "records": [record],
             }
         )
@@ -357,7 +362,6 @@ def test_load_completed_study_uses_the_sealed_master_not_optimizer_paraphrase(
                 "max_review_chars": None,
                 "judge_model": "judge-model",
                 "rubric_proposer_model": "proposer-model",
-                "rubric_semantic_judge_model": "reviewer-model",
                 "feedback_simulator": {
                     "implementation_sha256": "1" * 64,
                     "model": "simulator-model",

@@ -36,3 +36,17 @@
   date-starting section header and prefix each entry with the specific local time
   and timezone; omit routine health checks, repeated commands, and other events
   that add no new experimental knowledge.
+
+## Code review log
+
+- For every Codex interaction concerning code review, decide whether it adds a
+  meaningful unresolved implementation question, correctness risk, design concern,
+  or maintainability concern worth retaining. If it does, append an entry to the
+  repository-root `CODE_REVIEW.md` without waiting for a separate request.
+- Keep each entry to one or two concise sentences. Group entries under a
+  date-starting section header and prefix each entry with the specific local time
+  and timezone.
+- Keep experiment records and code-review records separate. Put hypotheses,
+  experiment-design decisions, runs, failures, and results in `EXPERIMENT_LOG.md`.
+  Put implementation questions and code concerns in `CODE_REVIEW.md`. If one
+  interaction contains both, write separate entries and do not duplicate text.

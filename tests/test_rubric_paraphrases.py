@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from rubric_gen.runtime.llm import GenerationResult
+import rubric_gen.submission_revision.paraphrases as paraphrases_module
+from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.paraphrases import (
     ParaphraseRunConfig,
@@ -91,6 +92,25 @@ def _experiment(
         "tasks_dir": "tasks",
         "tasks": list(task_ids),
         "randomization": {"seed": 41, "replicates": 3},
+        "seed_generator": {
+            "provider": "codex",
+            "model": "test-model",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 60,
+        },
+        "solvers": [{
+            "solver_id": "test-solver",
+            "provider": "codex",
+            "model": "test-model",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 60,
+        }],
         "assignment_selection": "all",
         "conditions": [
             {
@@ -111,7 +131,8 @@ def _experiment(
             )
         ],
         "protocol": {
-            "max_revisions": 1,
+            "max_revisions": 3,
+            "min_revisions": 3,
             "prompt": "diligent",
             "feedback_simulator": {
                 "model": "test-simulator",
@@ -121,28 +142,16 @@ def _experiment(
                 "max_request_bytes": 1_048_576,
                 "max_retries": 1,
             },
-            "solver": {
-                "provider": "codex",
-                "model": "test-model",
-                "reasoning_effort": "low",
-                "service_tier": None,
-                "executable": None,
-                "retries": 1,
-                "timeout_seconds": 60,
-            },
             "judge_model": "test-judge",
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
-            "rubric_semantic_judge_model": "test-semantic-reviewer",
-            "rubric_semantic_judge_max_calls_per_assignment": 1,
-            "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
-            "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
         },
         "rubric_paraphrases": {
             "count": 3,
+            "selected_variant": 0,
             "model": "test-paraphraser",
             "max_retries": 1,
         },
@@ -212,7 +221,8 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
     )
     assert runner.run() == 0
     assert sorted(calls) == [0, 1, 2]
-    selection = resolve_paraphrase_selection(root, experiment, "da-1-1", 1)
+    selection = resolve_paraphrase_selection(root, experiment, "da-1-1")
+    assert selection.optimizer_index == 0
     assert selection.optimizer_path.is_file()
     assert selection.optimizer_path.read_text().startswith("RUBRIC: Result quality\n")
     assert len(selection.holdout_paths) == 2
@@ -237,6 +247,56 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
     ] == ["criterion-001"]
     assert runner.run() == 0
     assert sorted(calls) == [0, 1, 2]
+
+
+def test_paraphrase_provider_call_uses_five_minute_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    experiment = _experiment(tmp_path)
+    observed: dict[str, object] = {}
+
+    def generate(
+        model: str,
+        request: StructuredRequest,
+        *,
+        timeout_seconds: float,
+    ) -> GenerationResult:
+        observed.update({
+            "model": model,
+            "request": request,
+            "timeout_seconds": timeout_seconds,
+        })
+        return GenerationResult(
+            text='{"wording": {}}',
+            provider="test",
+            requested_model=model,
+            effective_model=model,
+            response_id="response",
+            request_parameters={},
+        )
+
+    monkeypatch.setattr(paraphrases_module, "generate_structured", generate)
+    request = StructuredRequest(
+        instructions="instructions",
+        evidence="evidence",
+        schema_name="test",
+        schema={"type": "object"},
+    )
+    result = ParaphraseRunner(
+        ParaphraseRunConfig(
+            experiment=experiment,
+            output_dir=tmp_path / "paraphrases",
+            max_concurrency=1,
+        )
+    )._generate(request)
+
+    assert result.response_id == "response"
+    assert observed == {
+        "model": "test-paraphraser",
+        "request": request,
+        "timeout_seconds": 300.0,
+    }
 
 
 def test_paraphrase_requests_keep_each_criterion_atomic() -> None:
@@ -332,12 +392,8 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
         "da-2-1:1",
         "da-2-1:2",
     ]
-    first_selection = resolve_paraphrase_selection(
-        root, second, "da-1-1", 1
-    )
-    second_selection = resolve_paraphrase_selection(
-        root, second, "da-2-1", 1
-    )
+    first_selection = resolve_paraphrase_selection(root, second, "da-1-1")
+    second_selection = resolve_paraphrase_selection(root, second, "da-2-1")
     assert first_selection.optimizer_index == second_selection.optimizer_index
 
 

@@ -29,17 +29,16 @@ _SUMMARY_KEYS = frozenset({
     "experiment_id",
     "study_experiment_id",
     "estimand",
-    "direct_ensemble",
+    "direct_ensembles",
     "predispatch_plans",
-    "condition_aggregates",
-    "paired_condition_contrasts",
+    "descriptive",
     "rubric_policy_coverage",
-    "rubric_policy_aggregates",
+    "analysis",
     "assignments",
 })
 _ESTIMAND_KEYS = frozenset({
     "artifacts",
-    "score_scale",
+    "score_scales",
     "component_order",
     "loss_weights",
     "primary_outcomes",
@@ -52,7 +51,7 @@ _ESTIMAND_KEYS = frozenset({
     "direct_detector",
 })
 _ESTIMAND_TEXT_KEYS = _ESTIMAND_KEYS - {
-    "score_scale",
+    "score_scales",
     "component_order",
     "loss_weights",
     "primary_outcomes",
@@ -60,6 +59,7 @@ _ESTIMAND_TEXT_KEYS = _ESTIMAND_KEYS - {
 _PRIMARY_OUTCOME_KEYS = frozenset({
     "direct_detection",
     "rubric_free_absolute_score_gain",
+    "pairwise_preference_score",
     "selected_rubric_gain",
 })
 
@@ -158,15 +158,13 @@ def load_lambda_dataset(summary_path: Path) -> LambdaDataset:
     estimand = _mapping(value, "estimand")
     _validate_current_estimand(estimand)
     for key in (
-        "direct_ensemble",
+        "direct_ensembles",
         "predispatch_plans",
-        "condition_aggregates",
+        "descriptive",
         "rubric_policy_coverage",
-        "rubric_policy_aggregates",
+        "analysis",
     ):
         _mapping(value, key)
-    if type(value.get("paired_condition_contrasts")) is not list:
-        raise ValueError("reward-hacking paired condition contrasts must be a list")
     experiment_id = value.get("experiment_id")
     assignments = value.get("assignments")
     if type(experiment_id) is not str or not experiment_id:
@@ -794,14 +792,13 @@ def _validate_current_estimand(estimand: dict[str, object]) -> None:
     _require_exact_keys(estimand, _ESTIMAND_KEYS, "reward-hacking estimand")
     if estimand.get("component_order") != list(COMPONENT_NAMES):
         raise ValueError("reward-hacking estimand has the wrong component order")
-    score_scale = estimand.get("score_scale")
-    if (
-        type(score_scale) is not list
-        or len(score_scale) != 2
-        or any(type(value) is not int for value in score_scale)
-        or score_scale != [0, 100]
-    ):
-        raise ValueError("reward-hacking estimand has the wrong score scale")
+    score_scales = _mapping(estimand, "score_scales")
+    if score_scales != {
+        "rubric_score": [0, 100],
+        "absolute_score": [0, 100],
+        "pairwise_preference": [0, 1],
+    }:
+        raise ValueError("reward-hacking estimand has the wrong score scales")
     weights = _mapping(estimand, "loss_weights")
     _require_exact_keys(weights, frozenset(COMPONENT_NAMES), "reward-hacking loss weights")
     normalized_weights = [

@@ -20,7 +20,6 @@ from rubric_gen.submission_revision.evaluation import (
 )
 from rubric_gen.submission_revision.evaluation.jobs import (
     ARTIFACTS,
-    ORDERINGS,
     RubricFreeAbsoluteScoreJob,
     EvaluationConfig,
     EvaluationTarget,
@@ -34,6 +33,7 @@ from rubric_gen.submission_revision.evaluation.jobs import (
     _rubric_free_score_plan_entry,
     _pairwise_judgment_identity,
     _pairwise_preference_request,
+    pairwise_order_plan,
     _stage_caps,
 )
 from rubric_gen.submission_revision.evaluation.store import EvaluationStore
@@ -68,6 +68,7 @@ class RubricFreeScoreStage:
             str(model) for model in self.config.experiment.outcome_audit["models"]
         )
         implementation_identity = _rubric_free_score_implementation_identity()
+        order_plan = pairwise_order_plan(targets)
         absolute_jobs = tuple(
             RubricFreeAbsoluteScoreJob(
                 target=target,
@@ -83,13 +84,12 @@ class RubricFreeScoreStage:
             PairwisePreferenceJob(
                 target=target,
                 model=model,
-                ordering=ordering,
+                order=order_plan[(target.task_id, target.replicate)],
                 implementation_identity=implementation_identity,
             )
             for target in targets
-            if len(target.submission_ids) >= 2
+            if not target.initial_and_final_match()
             for model in models
-            for ordering in ORDERINGS
         )
         unique_absolute_jobs = tuple({
             job.key: job for job in reversed(absolute_jobs)
@@ -101,6 +101,7 @@ class RubricFreeScoreStage:
             targets=targets,
             models=models,
             implementation_identity=implementation_identity,
+            pairwise_order_plan=order_plan,
             absolute_jobs=absolute_jobs,
             pairwise_jobs=pairwise_jobs,
             unique_absolute_jobs=unique_absolute_jobs,

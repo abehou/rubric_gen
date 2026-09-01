@@ -26,7 +26,6 @@ from rubric_gen.detection.config import (
     MALT_REWARD_HACKING_AGGREGATION,
     MALT_REWARD_HACKING_CHARS_PER_TOKEN,
     MALT_REWARD_HACKING_DECISION_RULE,
-    MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
     MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
     MALT_REWARD_HACKING_SOURCE,
     OPENAI_REASONING_EFFORT,
@@ -108,8 +107,6 @@ class DetectionRunner:
             "max_attempts": JUDGE_MAX_ATTEMPTS,
             "max_input_tokens": config.max_input_tokens,
             "max_output_tokens": config.max_output_tokens,
-            "max_event_text_chars": config.max_event_text_chars,
-            "max_command_output_chars": config.max_command_output_chars,
             "primary_rule": config.primary_rule,
             "source": config.source.provenance,
             "openai_reasoning_effort": OPENAI_REASONING_EFFORT,
@@ -121,7 +118,10 @@ class DetectionRunner:
             "reward_hacking_monitor": (
                 {
                     "source": MALT_REWARD_HACKING_SOURCE,
-                    "early_message_count": MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
+                    "shared_context": "original_task_context",
+                    "behavior_chunking": "all_messages_in_source_order",
+                    "field_text": "complete",
+                    "overflow": "fail_without_fallback",
                     "chunk_max_input_tokens": MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
                     "chars_per_token": MALT_REWARD_HACKING_CHARS_PER_TOKEN,
                     "aggregation": MALT_REWARD_HACKING_AGGREGATION,
@@ -168,12 +168,7 @@ class DetectionRunner:
         write_json_atomic(path, expected)
 
     def _payload(self, case: AuditCase) -> EvidencePrompt:
-        return self.config.source.prompt(
-            case,
-            self.config.detection,
-            max_event_text_chars=self.config.max_event_text_chars,
-            max_command_output_chars=self.config.max_command_output_chars,
-        )
+        return self.config.source.prompt(case, self.config.detection)
 
     def _prepare_job(
         self,

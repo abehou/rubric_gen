@@ -25,10 +25,11 @@ Rubric generation has two ownership layers.
 
 - `rubric_generation.py` owns the active-rubric model and criterion rendering.
 - `rubric_generation_store.py` owns atomic self-contained generation storage.
+- `pretreatment_rubrics.py` owns shared baseline compilation and exact installation.
 
 Rubric evolution has explicit protocol and storage interfaces.
 
-- `evolution.py` coordinates the three elicitation stages.
+- `evolution.py` coordinates difference discovery and complete-set rubric proposal.
 - `evolution_artifacts.py` owns blinded artifact-history contracts.
 - `evolution_protocol.py` owns prompts, schemas, evidence, and response validation.
 - `evolution_provider.py` owns the structured provider contract and output type.
@@ -64,7 +65,7 @@ Paraphrase generation separates the wire protocol from the workflow.
 
 - `paraphrase_protocol.py` owns wording slots, prompts, schemas, and validation.
 - `paraphrases.py` executes and resumes paraphrase pools.
-- `paraphrase_validation.py` validates pools and resolves deterministic selections.
+- `paraphrase_validation.py` validates pools and resolves the fixed experiment selection.
 
 The full-rubric judge separates its protocol from provider execution.
 
@@ -76,13 +77,19 @@ Revision evaluation uses focused modules in `submission_revision/evaluation`.
 - `jobs.py` owns evaluation contracts, request identities, and limits.
 - `config.py` owns the revision outcome-audit configuration.
 - `targets.py` loads completed study assignments.
-- `direct.py` and `evidence.py` adapt revision trajectories for direct detection.
+- `direct.py`, `evidence.py`, and `evidence_ledger.py` adapt full and fixed
+  post-update revision windows. The ledger reads each chronological turn once.
 - `rubric_score.py` owns rubric score planning and artifact validation.
 - `absolute_score.py` owns rubric-free absolute scores.
 - `pairwise_preference.py` owns pairwise preference scores.
 - `score_execution.py` shares request execution and the combined resource cap.
 - `runner.py` runs the model panels and applies failure policy.
-- `report.py` combines completed stage results.
+- `analysis_observations.py` validates immutable analysis rows.
+- `analysis.py` constructs descriptive summaries and paired task-level effects.
+- `analysis_resampling.py` owns task-clustered bootstrap intervals.
+- `analysis_results.py` owns validated immutable inferential result types.
+- `report.py` validates and combines completed stage results.
+  It binds analysis code and input hashes to each report.
 - `store.py` owns secure stage output operations.
 
 `rubric_gen.detection` owns detector prompts, model-panel execution, costs,

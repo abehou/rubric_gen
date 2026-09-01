@@ -188,6 +188,7 @@ def request_parameters_for_model(
     model: str,
     *,
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+    timeout_seconds: float = HOSTED_REQUEST_TIMEOUT_SECONDS,
 ) -> dict[str, object]:
     if model.startswith("gemini"):
         return {
@@ -205,7 +206,7 @@ def request_parameters_for_model(
             "requested_model": model,
             "max_tokens": max_output_tokens,
             "effort": ANTHROPIC_EFFORT,
-            "client_timeout_seconds": HOSTED_REQUEST_TIMEOUT_SECONDS,
+            "client_timeout_seconds": timeout_seconds,
             "client_max_retries": 0,
             "prompt_cache": {"ttl": "5m"},
             "response_format": "json_schema",
@@ -216,7 +217,7 @@ def request_parameters_for_model(
         "max_output_tokens": max_output_tokens,
         "reasoning_effort": OPENAI_REASONING_EFFORT,
         "text_verbosity": OPENAI_TEXT_VERBOSITY,
-        "client_timeout_seconds": HOSTED_REQUEST_TIMEOUT_SECONDS,
+        "client_timeout_seconds": timeout_seconds,
         "client_max_retries": 0,
         "response_format": "json_schema",
     }
@@ -397,12 +398,21 @@ def count_input_tokens(model: str, request: StructuredRequest) -> int:
 def generate_structured(
     model: str,
     request_value: StructuredRequest,
+    *,
+    timeout_seconds: float = HOSTED_REQUEST_TIMEOUT_SECONDS,
 ) -> GenerationResult:
+    if timeout_seconds <= 0:
+        raise ValueError("structured request timeout must be positive")
     request = request_parameters_for_model(
-        model, max_output_tokens=request_value.max_output_tokens
+        model,
+        max_output_tokens=request_value.max_output_tokens,
+        timeout_seconds=timeout_seconds,
     )
     if model.startswith("gemini"):
-        response = GeminiClient(model=model).generate_content_response(
+        response = GeminiClient(
+            model=model,
+            timeout_seconds=int(timeout_seconds),
+        ).generate_content_response(
             request_value.flat_prompt(),
             response_schema=request_value.schema,
             thinking_level=GEMINI_THINKING_LEVEL,
@@ -443,7 +453,7 @@ def generate_structured(
             arguments["system"] = request_value.anthropic_system()
         response = Anthropic(
             api_key=key,
-            timeout=HOSTED_REQUEST_TIMEOUT_SECONDS,
+            timeout=timeout_seconds,
             max_retries=0,
         ).messages.create(**arguments)
         text = "\n".join(
@@ -472,7 +482,7 @@ def generate_structured(
         raise RuntimeError("OPENAI_API_KEY must be set")
     response = OpenAI(
         api_key=key,
-        timeout=HOSTED_REQUEST_TIMEOUT_SECONDS,
+        timeout=timeout_seconds,
         max_retries=0,
     ).responses.create(
         model=model,

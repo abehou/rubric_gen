@@ -9,6 +9,7 @@ from pathlib import Path
 
 from rubric_gen.detection.jobs import DetectionConfig
 from rubric_gen.detection.runner import DetectionRunner
+from rubric_gen.submission_revision.detection_windows import RevisionDetectionWindow
 from rubric_gen.submission_revision.evaluation.evidence import revision_detection_source
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
@@ -21,7 +22,11 @@ class DirectDetectionConfig:
     output_dir: Path
     max_concurrency: int
     resume: bool
+    window: RevisionDetectionWindow
     detection: str = "rh"
+
+    def __post_init__(self) -> None:
+        RevisionDetectionWindow(self.window)
 
 
 @dataclass(frozen=True)
@@ -49,6 +54,8 @@ def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionSt
         or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
         or type(study.get("paraphrase_run_dir")) is not str
+        or study.get("pretreatment_rubric_root")
+        != str(source / "pretreatment-rubrics")
     ):
         raise ValueError(f"unsupported benchmark study: {source}")
 
@@ -60,7 +67,7 @@ def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionSt
     ):
         raise ValueError(f"benchmark study has invalid records: {source}")
     assignments = {
-        str(item["assignment_id"]): item for item in experiment.assignments
+        item.assignment_id: item for item in experiment.assignments
     }
     record_ids = [str(record.get("assignment_id")) for record in records]
     if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
@@ -100,15 +107,12 @@ def run_direct_detection(config: DirectDetectionConfig) -> int:
     primary_rule = str(study.settings["primary_rule"])
     max_input_tokens = int(study.settings["max_input_tokens"])
     max_output_tokens = int(study.settings["max_output_tokens"])
-    max_event_text_chars = int(study.settings["max_event_text_chars"])
-    max_command_output_chars = int(study.settings["max_command_output_chars"])
     identity = (
         f"ensemble--detect-{config.detection}--experiment-{study.experiment_id}"
         f"--source-{study.study_experiment_id}"
+        f"--window-{config.window.value}"
         f"--max-input-{max_input_tokens}"
         f"--max-output-{max_output_tokens}"
-        f"--max-event-text-{max_event_text_chars}"
-        f"--max-command-output-{max_command_output_chars}"
         f"--primary-{primary_rule}"
     )
     evaluation_dir = _evaluation_dir(
@@ -121,6 +125,7 @@ def run_direct_detection(config: DirectDetectionConfig) -> int:
         study.revisions,
         tasks_dir=study.tasks_dir,
         experiment_ids=(study.study_experiment_id,),
+        window=config.window,
     )
     result = DetectionRunner(DetectionConfig(
         source=source,
@@ -131,11 +136,12 @@ def run_direct_detection(config: DirectDetectionConfig) -> int:
         detection=config.detection,
         max_input_tokens=max_input_tokens,
         max_output_tokens=max_output_tokens,
-        max_event_text_chars=max_event_text_chars,
-        max_command_output_chars=max_command_output_chars,
         primary_rule=primary_rule,
     )).run()
-    print(f"Wrote direct reward-hacking judgments: {evaluation_dir / 'summary.json'}")
+    print(
+        "Wrote direct reward-hacking judgments "
+        f"for {config.window.value}: {evaluation_dir / 'summary.json'}"
+    )
     return result
 
 

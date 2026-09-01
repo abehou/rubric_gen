@@ -45,7 +45,7 @@ def _job(model: str, instrument: str | None = None) -> object:
     )
 
 
-def test_rubric_score_panel_uses_every_stage_complete_judge(
+def test_rubric_score_panel_is_incomplete_without_every_configured_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -100,16 +100,95 @@ def test_rubric_score_panel_uses_every_stage_complete_judge(
         ),
     )
 
-    assert runner.run() == 0
-    assert observed_models == [("gpt", "claude")]
+    assert runner.run() == 1
+    assert observed_models == []
     summary = json.loads((tmp_path / "output" / "summary.json").read_text())
-    assert summary["available_models"] == ["gpt", "claude"]
-    assert summary["failed_models"] == ["gemini"]
+    assert summary["status"] == "incomplete"
+    assert summary["missing_models"] == ["gemini"]
     assert summary["failed_semantic_judgment_count"] == 1
     assert {record["model"] for record in summary["records"]} == {
         "gpt",
         "claude",
     }
+
+
+def test_rubric_score_resume_retries_a_failed_exact_job(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    jobs = tuple(_job(model) for model in MODELS)
+    prepared = SimpleNamespace(
+        targets=(SimpleNamespace(
+            assignment_id="a-1",
+            study_experiment_id="study-experiment-1",
+        ),),
+        jobs=jobs,
+        unique_jobs=jobs,
+        predispatch_plan={},
+    )
+    manifest = {
+        "kind": panel_module.evaluation_jobs.RUBRIC_SCORE_KIND,
+        "models": list(MODELS),
+    }
+
+    def configure(runner: RubricScoreRunner) -> None:
+        runner._prepared = prepared
+        monkeypatch.setattr(runner, "preflight", lambda: None)
+        monkeypatch.setattr(runner, "_manifest", lambda *_args: manifest)
+        monkeypatch.setattr(
+            panel_module.rubric_score,
+            "_rubric_score_job_identity",
+            lambda job: {"model": job.model, "assignment_id": "a-1"},
+        )
+        monkeypatch.setattr(
+            panel_module.evaluation_jobs,
+            "_record_sort_key",
+            lambda row: (),
+        )
+        monkeypatch.setattr(
+            panel_module,
+            "_summarize_rubric_scores",
+            lambda *_args: [{"assignment_id": "a-1"}],
+        )
+
+    first = RubricScoreRunner(_config(tmp_path), ())
+    configure(first)
+
+    def fail_gemini(job: object) -> dict[str, object]:
+        if job.model == "gemini":  # type: ignore[attr-defined]
+            raise RuntimeError(
+                "rubric-score rubric judge failed after 2 attempts: timeout"
+            )
+        return {
+            "score": 50,
+            "attempt_id": "attempt",
+            "validation_path": "validation.json",
+            "evaluation_path": "evaluation.json",
+        }
+
+    monkeypatch.setattr(first, "_run_job", fail_gemini)
+    assert first.run() == 1
+
+    retried: list[str] = []
+    resumed = RubricScoreRunner(replace(_config(tmp_path), resume=True), ())
+    configure(resumed)
+
+    def succeed(job: object) -> dict[str, object]:
+        retried.append(str(job.key))  # type: ignore[attr-defined]
+        return {
+            "score": 50,
+            "attempt_id": "attempt",
+            "validation_path": "validation.json",
+            "evaluation_path": "evaluation.json",
+        }
+
+    monkeypatch.setattr(resumed, "_run_job", succeed)
+
+    assert resumed.run() == 0
+    assert "rubric_score-gemini" in retried
+    summary = json.loads((tmp_path / "output" / "summary.json").read_text())
+    assert summary["status"] == "completed"
+    assert summary["missing_models"] == []
 
 
 def test_rubric_score_panel_replaces_obsolete_summary(
@@ -166,7 +245,7 @@ def test_rubric_score_panel_replaces_obsolete_summary(
     assert runner.run() == 0
     summary = json.loads((tmp_path / "output" / "summary.json").read_text())
     assert summary["panel_policy"] == PANEL_POLICY
-    assert summary["available_models"] == list(MODELS)
+    assert summary["missing_models"] == []
 
 
 def test_rubric_score_panel_keeps_resume_records(
@@ -242,7 +321,7 @@ def test_rubric_score_panel_keeps_resume_records(
     assert summary["assignment_reference_count"] == 2
 
 
-def test_rubric_score_panel_fails_when_every_strong_judge_fails(
+def test_rubric_score_panel_records_incomplete_when_every_judge_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -277,9 +356,11 @@ def test_rubric_score_panel_fails_when_every_strong_judge_fails(
     )
     monkeypatch.setattr(runner, "_run_job", run_job)
 
-    with pytest.raises(RuntimeError, match="all configured revision rubric score"):
-        runner.run()
-    assert not (tmp_path / "output" / "summary.json").exists()
+    assert runner.run() == 1
+    summary = json.loads((tmp_path / "output" / "summary.json").read_text())
+    assert summary["status"] == "incomplete"
+    assert summary["missing_models"] == list(MODELS)
+    assert summary["records"] == []
 
 
 def test_judge_failure_has_no_provider_wide_effect() -> None:
@@ -290,7 +371,7 @@ def test_judge_failure_has_no_provider_wide_effect() -> None:
     )["reason"] == "judge-failed"
 
 
-def test_rubric_free_panel_uses_every_stage_complete_judge(
+def test_rubric_free_panel_is_incomplete_without_every_configured_judge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -378,8 +459,8 @@ def test_rubric_free_panel_uses_every_stage_complete_judge(
         ),
     )
 
-    assert runner.run() == 0
-    assert observed_models == [("gpt", "claude"), ("gpt", "claude")]
+    assert runner.run() == 1
+    assert observed_models == []
     absolute_summary = json.loads(
         (tmp_path / "output" / "absolute_score" / "summary.json").read_text()
     )
@@ -387,6 +468,6 @@ def test_rubric_free_panel_uses_every_stage_complete_judge(
         (tmp_path / "output" / "pairwise_preference" / "summary.json").read_text()
     )
     for summary in (absolute_summary, pairwise_summary):
-        assert summary["available_models"] == ["gpt", "claude"]
-        assert summary["failed_models"] == ["gemini"]
+        assert summary["status"] == "incomplete"
+        assert summary["missing_models"] == ["gemini"]
         assert summary["failed_semantic_judgment_count"] == 1

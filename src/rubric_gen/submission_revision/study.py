@@ -17,20 +17,66 @@ from datetime import datetime
 from pathlib import Path
 
 from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.runtime.agents.codex_sessions import CodexProviderHealthError
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.controller import run_submission_revision
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
+from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.models import SubmissionRevisionConfig
+from rubric_gen.submission_revision.pretreatment_rubrics import (
+    ensure_pretreatment_rubric,
+    shared_pretreatment_rubric_dir,
+)
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.prompts import PromptProfile
-from rubric_gen.submission_revision.rubric_generation import RubricPolicy
+from rubric_gen.submission_revision.rubric_generation import (
+    CompleteRubric,
+    RubricPolicy,
+)
+from rubric_gen.benchmarks import get_submission_benchmark
+from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.submission_revision import study_layout, study_validation
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 
 
 STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
 _STUDY_LEASE_NAME = ".study.lock"
+_PROVIDER_HEALTH_FAILURE_LIMIT = 3
+
+
+class _ProviderCircuitOpen(RuntimeError):
+    pass
+
+
+class _ProviderCircuit:
+    def __init__(self, provider: str) -> None:
+        self.provider = provider
+        self._failures = 0
+        self._reason: str | None = None
+        self._lock = threading.Lock()
+
+    def check(self) -> None:
+        with self._lock:
+            if self._reason is not None:
+                raise _ProviderCircuitOpen(
+                    f"{self.provider} provider circuit is open after "
+                    f"{self._failures} transport failures: {self._reason}"
+                )
+
+    def record_success(self) -> None:
+        with self._lock:
+            if self._reason is None:
+                self._failures = 0
+
+    def record_failure(self, error: BaseException) -> None:
+        if not isinstance(error, CodexProviderHealthError):
+            return
+        with self._lock:
+            self._failures += 1
+            if self._failures >= _PROVIDER_HEALTH_FAILURE_LIMIT:
+                self._reason = str(error)
 
 
 @dataclass(frozen=True)
@@ -69,12 +115,20 @@ class StudyRunner:
         self.root = config.output_dir.resolve()
         self.seed_root = config.seed_run_dir.resolve()
         self.paraphrase_root = config.paraphrase_run_dir.resolve()
+        self.pretreatment_root = self.root / "pretreatment-rubrics"
         self._manifest_lock = threading.Lock()
+        providers = {
+            self.experiment.solver_config(assignment.solver_id).provider
+            for assignment in self.experiment.assignments
+        }
+        self._provider_circuits = {
+            provider: _ProviderCircuit(provider) for provider in providers
+        }
 
     def run(self) -> int:
         assignments = sorted(
             self.experiment.assignments,
-            key=lambda item: int(item["execution_order"]),
+            key=lambda item: item.execution_order,
         )
         paraphrase_validation.validate_paraphrase_run(
             self.paraphrase_root,
@@ -92,11 +146,13 @@ class StudyRunner:
 
     def _run_locked(
         self,
-        assignments: list[dict[str, object]],
+        assignments: list[ExperimentAssignment],
         existed: bool,
     ) -> int:
         manifest = self._start_manifest(assignments, existed)
         pending = self._pending_assignments(manifest, assignments)
+        if pending:
+            self._prepare_pretreatment_rubrics(pending)
         self._mark_study_running(manifest)
         if not pending:
             return self._finish_study(manifest)
@@ -122,7 +178,7 @@ class StudyRunner:
 
     def _start_manifest(
         self,
-        assignments: list[dict[str, object]],
+        assignments: list[ExperimentAssignment],
         existed: bool,
     ) -> dict[str, object]:
         if not existed:
@@ -137,12 +193,12 @@ class StudyRunner:
     def _pending_assignments(
         self,
         manifest: dict[str, object],
-        assignments: list[dict[str, object]],
-    ) -> list[dict[str, object]]:
+        assignments: list[ExperimentAssignment],
+    ) -> list[ExperimentAssignment]:
         return [
             assignment
             for assignment in assignments
-            if _record_for(manifest, str(assignment["assignment_id"])).get("status")
+            if _record_for(manifest, assignment.assignment_id).get("status")
             not in {"completed", "invalid"}
         ]
 
@@ -162,12 +218,15 @@ class StudyRunner:
 
     def _execute_assignment(
         self,
-        assignment: dict[str, object],
+        assignment: ExperimentAssignment,
         positions: _ProgressPositions,
     ) -> None:
         position = positions.acquire()
-        assignment_id = str(assignment["assignment_id"])
+        assignment_id = assignment.assignment_id
+        provider = self.experiment.solver_config(assignment.solver_id).provider
+        circuit = self._provider_circuits[provider]
         try:
+            circuit.check()
             self._mark_assignment_running(assignment_id)
             experiment_dir = self._experiment_dir(assignment)
             revision = self._revision_config(
@@ -186,7 +245,9 @@ class StudyRunner:
                 self.paraphrase_root,
             )
             self._mark_assignment_completed(assignment_id)
+            circuit.record_success()
         except (Exception, SystemExit) as exc:
+            circuit.record_failure(exc)
             self._mark_assignment_failed(assignment_id, exc)
         finally:
             positions.release(position)
@@ -235,38 +296,99 @@ class StudyRunner:
             )
             self._write_manifest(manifest)
 
+    def _prepare_pretreatment_rubrics(
+        self,
+        assignments: list[ExperimentAssignment],
+    ) -> None:
+        """Compile one shared seed-learned rubric for each pending task."""
+
+        task_ids = tuple(sorted({assignment.task_id for assignment in assignments}))
+        worker_count = min(self.config.max_concurrency, len(task_ids))
+        with ThreadPoolExecutor(max_workers=worker_count) as pool:
+            futures = [
+                pool.submit(self._prepare_pretreatment_rubric, task_id)
+                for task_id in task_ids
+            ]
+            for future in as_completed(futures):
+                future.result()
+
+    def _prepare_pretreatment_rubric(self, task_id: str) -> None:
+        protocol = self.experiment.protocol
+        selection = paraphrase_validation.resolve_paraphrase_selection(
+            self.paraphrase_root,
+            self.experiment,
+            task_id,
+        )
+        rubric = CompleteRubric.from_content(
+            selection.optimizer_path.read_text(encoding="utf-8")
+        )
+        if rubric.content_sha256 != sha256_file(selection.optimizer_path):
+            raise RuntimeError("selected rubric changed during pre-treatment setup")
+        seed_agent = self.experiment.seed_agent_config(quiet=True)
+        proposer = RubricProposer(
+            benchmark=self.experiment.benchmark,
+            model=str(protocol["rubric_proposer_model"]),
+            service_tier=seed_agent.service_tier,
+            max_retries=int(protocol["rubric_proposer_max_retries"]),
+        )
+        ensure_pretreatment_rubric(
+            root=shared_pretreatment_rubric_dir(
+                self.pretreatment_root,
+                task_id,
+                rubric.content_sha256,
+            ),
+            experiment_id=self.experiment.experiment_id,
+            task_dir=self.experiment.task_dir(task_id),
+            benchmark=get_submission_benchmark(self.experiment.benchmark),
+            initial_rubric=rubric,
+            seed_set=self.seed_root,
+            seed_generator=seed_agent,
+            prompt_profile=PromptProfile(str(protocol["prompt"])),
+            seed_replicates=self.experiment.replicates,
+            proposer=proposer,
+        )
+
     def _revision_config(
         self,
-        assignment: dict[str, object],
+        assignment: ExperimentAssignment,
         *,
         resume: bool,
     ) -> SubmissionRevisionConfig:
         protocol = self.experiment.protocol
-        condition = self.experiment.condition(str(assignment["condition_id"]))
+        solver_id = assignment.solver_id
+        condition = self.experiment.condition(assignment.condition_id)
         feedback_policy = FeedbackPolicy(str(condition["feedback_policy"]))
         selection = paraphrase_validation.resolve_paraphrase_selection(
             self.paraphrase_root,
             self.experiment,
-            str(assignment["task_id"]),
-            int(assignment["replicate"]),
+            assignment.task_id,
         )
         max_review_chars = protocol["max_review_chars"]
         if max_review_chars is not None and type(max_review_chars) is not int:
             raise RuntimeError("experiment max_review_chars is invalid")
         return SubmissionRevisionConfig(
-            task_dir=self.experiment.task_dir(str(assignment["task_id"])),
+            task_dir=self.experiment.task_dir(assignment.task_id),
             experiment_dir=self._experiment_dir(assignment),
             max_revisions=int(protocol["max_revisions"]),
+            min_revisions=int(protocol["min_revisions"]),
             seed_run_dir=self.seed_root,
-            agent=self.experiment.agent_config(
+            pretreatment_rubric_dir=shared_pretreatment_rubric_dir(
+                self.pretreatment_root,
+                assignment.task_id,
+                sha256_file(selection.optimizer_path),
+            ),
+            agent=self.experiment.solver_config(
+                solver_id,
                 quiet=True,
             ),
+            seed_agent=self.experiment.seed_agent_config(quiet=True),
+            solver_id=solver_id,
             experiment_id=self.experiment.experiment_id,
-            assignment_id=str(assignment["assignment_id"]),
-            condition_id=str(assignment["condition_id"]),
-            replicate=int(assignment["replicate"]),
+            assignment_id=assignment.assignment_id,
+            condition_id=assignment.condition_id,
+            replicate=assignment.replicate,
             elicitation_seed_replicates=self.experiment.replicates,
-            execution_order=int(assignment["execution_order"]),
+            execution_order=assignment.execution_order,
             optimizer_rubric_path=selection.optimizer_path,
             master_rubric_name=str(protocol["rubric_name"]),
             benchmark=self.experiment.benchmark,
@@ -278,16 +400,6 @@ class StudyRunner:
             prompt_profile=PromptProfile(str(protocol["prompt"])),
             rubric_policy=RubricPolicy(str(condition["rubric_policy"])),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
-            rubric_semantic_judge_model=str(protocol["rubric_semantic_judge_model"]),
-            rubric_semantic_judge_max_calls=int(
-                protocol["rubric_semantic_judge_max_calls_per_assignment"]
-            ),
-            rubric_semantic_judge_max_request_bytes=int(
-                protocol["rubric_semantic_judge_max_request_bytes_per_call"]
-            ),
-            rubric_semantic_judge_max_output_tokens=int(
-                protocol["rubric_semantic_judge_max_output_tokens_per_call"]
-            ),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
             max_review_chars=max_review_chars,
@@ -295,12 +407,12 @@ class StudyRunner:
             show_progress=True,
         )
 
-    def _experiment_dir(self, assignment: dict[str, object]) -> Path:
+    def _experiment_dir(self, assignment: ExperimentAssignment) -> Path:
         return self.root / study_layout.study_experiment_relative_path(assignment)
 
     def _new_manifest(
         self,
-        assignments: list[dict[str, object]],
+        assignments: list[ExperimentAssignment],
     ) -> dict[str, object]:
         return {
             "kind": STUDY_RUN_KIND,
@@ -309,22 +421,16 @@ class StudyRunner:
             "experiment_id": self.experiment.experiment_id,
             "seed_run_dir": str(self.seed_root),
             "paraphrase_run_dir": str(self.paraphrase_root),
+            "pretreatment_rubric_root": str(self.pretreatment_root),
             "started_at": _now(),
             "finished_at": None,
             "max_concurrency_last_invocation": self.config.max_concurrency,
             "records": [self._new_record(item) for item in assignments],
         }
 
-    def _new_record(self, assignment: dict[str, object]) -> dict[str, object]:
+    def _new_record(self, assignment: ExperimentAssignment) -> dict[str, object]:
         return {
-            "assignment_id": str(assignment["assignment_id"]),
-            "task_id": str(assignment["task_id"]),
-            "replicate": int(assignment["replicate"]),
-            "condition_id": str(assignment["condition_id"]),
-            "execution_order": int(assignment["execution_order"]),
-            "experiment_dir": self._experiment_dir(assignment)
-            .relative_to(self.root)
-            .as_posix(),
+            **assignment.record_identity(),
             "status": "pending",
             "attempt_count": 0,
             "started_at": None,
@@ -340,7 +446,7 @@ class StudyRunner:
     def _validate_manifest_identity(
         self,
         manifest: dict[str, object],
-        assignments: list[dict[str, object]],
+        assignments: list[ExperimentAssignment],
     ) -> None:
         expected_identity = {
             "kind": STUDY_RUN_KIND,
@@ -348,12 +454,13 @@ class StudyRunner:
             "experiment_id": self.experiment.experiment_id,
             "seed_run_dir": str(self.seed_root),
             "paraphrase_run_dir": str(self.paraphrase_root),
+            "pretreatment_rubric_root": str(self.pretreatment_root),
         }
         if any(manifest.get(key) != value for key, value in expected_identity.items()):
             raise RuntimeError("study resume identity differs from the experiment")
         records = _records(manifest)
         if [record.get("assignment_id") for record in records] != [
-            item["assignment_id"] for item in assignments
+            item.assignment_id for item in assignments
         ]:
             raise RuntimeError("study assignment ledger differs from the experiment")
         for record, assignment in zip(records, assignments, strict=True):

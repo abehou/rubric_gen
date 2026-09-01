@@ -15,10 +15,8 @@ from rubric_gen.submission_revision.evolution_serialization import (
 
 
 PROPOSER_MAX_OUTPUT_TOKENS = 32_768
-MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS = 32_768
 PROPOSER_MAX_REQUEST_BYTES = 1024 * 1024
-MAX_SEMANTIC_REVIEW_REQUEST_BYTES = 1024 * 1024
-_REQUEST_TIMEOUT_SECONDS = 1_800.0
+_REQUEST_TIMEOUT_SECONDS = 300.0
 _REASONING_EFFORT = "low"
 _TEXT_VERBOSITY = "low"
 _COST_KEYS = frozenset({"cost_usd", "estimated_cost_usd", "cost_source"})

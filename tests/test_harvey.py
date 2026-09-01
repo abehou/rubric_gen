@@ -13,6 +13,7 @@ import pytest
 
 import rubric_gen.benchmarks.harvey_lab.designer as designer_module
 import rubric_gen.benchmarks.harvey_lab.evaluator as evaluator_module
+import rubric_gen.benchmarks.harvey_lab.study as study_module
 from rubric_gen.benchmarks.harvey_lab.audits import prepare_reward_hacking_cases, run_quality_audit
 from rubric_gen.benchmarks.harvey_lab.artifacts import tree_sha256, validate_checkout
 from rubric_gen.benchmarks.harvey_lab.config import (
@@ -20,6 +21,7 @@ from rubric_gen.benchmarks.harvey_lab.config import (
     HarveyBenchmark,
     HarveyExperiment,
     HarveyJudge,
+    HarveyRun,
     RewardHackingAudit,
     RubricEvolution,
     TaskAgent,
@@ -49,6 +51,11 @@ from rubric_gen.benchmarks.harvey_lab.seal import (
     SEAL_NAME,
     seal_harvey_run,
     validate_harvey_run_seal,
+)
+from rubric_gen.benchmarks.harvey_lab.study import (
+    HarveyStudyController,
+    allocation_record,
+    randomized_runs,
 )
 from rubric_gen.runtime.llm import GenerationResult, request_parameters_for_model
 
@@ -126,12 +133,7 @@ def _score(
     }
 
 
-def _config_text(tmp_path: Path, *, mode: str = "prospective") -> str:
-    proposer = (
-        "  proposer_model: gpt-5.6-sol\n"
-        if mode == "prospective"
-        else ""
-    )
+def _config_text(tmp_path: Path) -> str:
     return f"""kind: rubric-gen-harvey-harness-evolution-experiment
 experiment_id: harvey-test
 output_dir: output
@@ -140,7 +142,12 @@ benchmark:
   checkout: checkout
   revision: {'a' * 40}
   development_tasks: [area/task]
-  held_out_tasks: []
+  selection_tasks: [area/selection]
+  held_out_tasks: [area/held-out]
+design:
+  randomization_seed: 17
+  replicates_per_condition: 2
+  outcome_replicates: 2
 task_agent:
   model: gpt-5.6-luna
   credential_env: [OPENAI_API_KEY]
@@ -151,8 +158,8 @@ designer:
   model: gpt-5.6-sol
   rounds: 2
 rubric:
-  mode: {mode}
-{proposer}  max_changes_per_task: 3
+  proposer_model: gpt-5.6-sol
+  max_changes_per_task: 3
   max_output_tokens: 4096
 audit:
   models: [gpt-5.6-sol]
@@ -169,9 +176,91 @@ def test_load_harvey_experiment_resolves_paths_and_modes(tmp_path: Path) -> None
     assert experiment.cache_dir == tmp_path / "cache"
     assert experiment.benchmark.checkout == tmp_path / "checkout"
     assert experiment.rubric.mode == "prospective"
+    assert experiment.design.replicates_per_condition == 2
     assert experiment.designer.rounds == 2
     assert experiment.task_agent.model == "gpt-5.6-luna"
     assert experiment.audit.primary_rule == "any_detect"
+
+    runs = randomized_runs(experiment)
+    assert len(runs) == 4
+    assert {run.condition for run in runs} == {"static", "prospective"}
+    assert {run.replicate for run in runs} == {1, 2}
+    assert [run.unit_id for run in runs] == ["u0001", "u0002", "u0003", "u0004"]
+    assert sum(run.rubric.mode == "static" for run in runs) == 2
+    assert sum(run.rubric.mode == "prospective" for run in runs) == 2
+    assert runs[0].replicate == runs[1].replicate == 1
+    assert runs[2].replicate == runs[3].replicate == 2
+    assert runs[0].condition != runs[2].condition
+    assert allocation_record(experiment) == allocation_record(experiment)
+
+
+def test_harvey_experiment_rejects_task_role_overlap(tmp_path: Path) -> None:
+    path = tmp_path / "experiment.yaml"
+    path.write_text(
+        _config_text(tmp_path).replace(
+            "selection_tasks: [area/selection]",
+            "selection_tasks: [area/task]",
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="development and selection tasks overlap"):
+        load_experiment(path)
+
+
+def test_harvey_experiment_requires_replicated_conditions_and_outcomes(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "experiment.yaml"
+    path.write_text(
+        _config_text(tmp_path).replace(
+            "replicates_per_condition: 2",
+            "replicates_per_condition: 1",
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="replicates_per_condition"):
+        load_experiment(path)
+
+
+def test_harvey_study_finishes_all_evolution_before_hidden_outcomes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "experiment.yaml"
+    path.write_text(_config_text(tmp_path), encoding="utf-8")
+    experiment = load_experiment(path)
+    events: list[str] = []
+
+    class Evolution:
+        def __init__(self, run: HarveyRun, **_kwargs: object) -> None:
+            self.run_config = run
+
+        def run(self, *, resume: bool) -> int:
+            assert resume is False
+            events.append(f"evolution:{self.run_config.unit_id}")
+            return 0
+
+    monkeypatch.setattr(study_module, "HarveyEvolutionController", Evolution)
+    monkeypatch.setattr(
+        study_module,
+        "run_quality_audit",
+        lambda run, **_kwargs: events.append(f"quality:{run.unit_id}") or 0,
+    )
+    monkeypatch.setattr(
+        study_module,
+        "run_reward_hacking_audit",
+        lambda run, **_kwargs: events.append(f"detect:{run.unit_id}") or 0,
+    )
+    monkeypatch.setattr(HarveyStudyController, "_initialize", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(HarveyStudyController, "_evaluator", lambda *_args: object())
+    monkeypatch.setattr(HarveyStudyController, "_write_study", lambda *_args: None)
+
+    assert HarveyStudyController(experiment).run() == 0
+
+    kinds = [event.split(":", 1)[0] for event in events]
+    assert kinds == ["evolution"] * 4 + ["quality"] * 4 + ["detect"] * 4
 
 
 def test_cached_judge_preserves_prompt_and_marks_shared_prefix() -> None:
@@ -276,15 +365,15 @@ def test_current_harvey_score_rejects_uncached_usage_artifact() -> None:
         validate_harvey_score(old, "Harvey score")
 
 
-def test_static_harvey_experiment_rejects_proposer(tmp_path: Path) -> None:
+def test_harvey_experiment_rejects_direct_condition_selection(tmp_path: Path) -> None:
     path = tmp_path / "experiment.yaml"
-    text = _config_text(tmp_path, mode="static").replace(
-        "  max_changes_per_task: 3",
-        "  proposer_model: gpt-5.6-sol\n  max_changes_per_task: 3",
+    text = _config_text(tmp_path).replace(
+        "rubric:\n",
+        "rubric:\n  mode: static\n",
     )
     path.write_text(text, encoding="utf-8")
 
-    with pytest.raises(ValueError, match="must not configure a proposer"):
+    with pytest.raises(ValueError, match="unknown fields: mode"):
         load_experiment(path)
 
 
@@ -914,7 +1003,7 @@ class _FakeEvaluator:
         task_files: dict[str, Path],
         destination: Path,
     ) -> CandidateEvaluation:
-        value = 0.25 if identifier == "h0000" else 0.75
+        value = 0.25 if identifier.startswith("h0000") else 0.75
         scores = {}
         for task_id in task_files:
             score = _score(int(value * 4), 4, run_id=identifier, task=task_id)
@@ -1106,17 +1195,28 @@ def test_controller_runs_linear_round_with_free_parent_record_and_resumes(
     revision = _fake_checkout(checkout)
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(checkout, revision, ("area/task",), ()),
+        benchmark=HarveyBenchmark(
+            checkout,
+            revision,
+            ("area/task",),
+            ("area/task",),
+            ("area/task",),
+        ),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     controller = HarveyEvolutionController(
         experiment,
@@ -1140,7 +1240,10 @@ def test_controller_runs_linear_round_with_free_parent_record_and_resumes(
     quality = json.loads(
         (experiment.output_dir / "audits" / "quality-transfer" / "summary.json").read_text()
     )
-    assert quality["candidates"]["h0001"]["active_minus_original"] == 0.25
+    assert quality["development_candidates"]["h0001"]["active_minus_original"] == 0.25
+    assert quality["selected_candidate"] == "h0001"
+    assert quality["selected_minus_baseline_held_out"] == 0.5
+    assert len(quality["held_out_candidates"]["h0001"]["replicates"]) == 2
     cases = prepare_reward_hacking_cases(experiment)
     assert [path.name for path in cases] == ["h0001"]
     transcript = json.loads((cases[0] / "transcript.json").read_text())
@@ -1158,17 +1261,28 @@ def test_production_evaluator_uses_runtime_modules_and_rescores_read_only_output
     revision = _fake_checkout(checkout)
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(checkout, revision, ("area/task",), ()),
+        benchmark=HarveyBenchmark(
+            checkout,
+            revision,
+            ("area/task",),
+            ("area/task",),
+            ("area/task",),
+        ),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     calls: list[list[str]] = []
 
@@ -1243,17 +1357,22 @@ def test_production_evaluator_resumes_canonical_and_crossed_task_checkpoints(
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
     tasks = ("area/task", "area/task-2")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(checkout, revision, tasks, ()),
+        benchmark=HarveyBenchmark(checkout, revision, tasks, tasks, tasks),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     call_counts: dict[tuple[str, str], int] = {}
     lock = threading.Lock()
@@ -1366,17 +1485,28 @@ def test_harvey_judge_retries_configured_transient_failures(
 ) -> None:
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(tmp_path / "checkout", "a" * 40, ("area/task",), ()),
+        benchmark=HarveyBenchmark(
+            tmp_path / "checkout",
+            "a" * 40,
+            ("area/task",),
+            ("area/task",),
+            ("area/task",),
+        ),
         task_agent=TaskAgent("agent", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     calls = 0
 
@@ -1419,17 +1549,28 @@ def test_harvey_task_agent_retries_invalid_prompt_from_clean_result(
 ) -> None:
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(tmp_path / "checkout", "a" * 40, ("area/task",), ()),
+        benchmark=HarveyBenchmark(
+            tmp_path / "checkout",
+            "a" * 40,
+            ("area/task",),
+            ("area/task",),
+            ("area/task",),
+        ),
         task_agent=TaskAgent("agent", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     calls = 0
     runtime_result = tmp_path / "results" / "run"
@@ -1495,17 +1636,22 @@ def test_production_evaluator_runs_independent_tasks_with_bounded_concurrency(
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
     tasks = ("area/task", "area/task-2")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(checkout, revision, tasks, ()),
+        benchmark=HarveyBenchmark(checkout, revision, tasks, tasks, tasks),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     task_agents = threading.Barrier(2, timeout=5)
     active = 0
@@ -1588,17 +1734,22 @@ def test_production_evaluator_stops_scheduling_after_fatal_task_failure(
     tasks = ("area/task", "area/task-2", "area/task-3", "area/task-4")
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(checkout, revision, tasks, ()),
+        benchmark=HarveyBenchmark(checkout, revision, tasks, tasks, tasks),
         task_agent=TaskAgent("gpt-5.5", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     task_agent_calls: list[str] = []
     judge_calls: list[str] = []
@@ -1655,17 +1806,28 @@ def test_concurrent_task_agents_initialize_shared_podman_state_once(
 ) -> None:
     source = tmp_path / "experiment.yaml"
     source.write_text("fixture", encoding="utf-8")
-    experiment = HarveyExperiment(
+    experiment = HarveyRun(
         source=source,
         experiment_id="harvey-test",
+        study_id="harvey-study",
+        unit_id="u0001",
+        condition="static",
+        replicate=1,
         output_dir=tmp_path / "output",
         cache_dir=tmp_path / "cache",
-        benchmark=HarveyBenchmark(tmp_path / "checkout", "a" * 40, ("area/task",), ()),
+        benchmark=HarveyBenchmark(
+            tmp_path / "checkout",
+            "a" * 40,
+            ("area/task",),
+            ("area/task",),
+            ("area/task",),
+        ),
         task_agent=TaskAgent("agent", 10, 0.0, 10, None, "image", ("KEY",)),
         judge=HarveyJudge("judge", 1, ("JUDGE_KEY",)),
         designer=HarnessDesigner("codex", 1, None, None, 10, 0),
         rubric=RubricEvolution("static", None, 2, 4096),
         audit=RewardHackingAudit(("judge",), 1, "majority"),
+        outcome_replicates=2,
     )
     evaluator = HarveyEvaluator(
         experiment,

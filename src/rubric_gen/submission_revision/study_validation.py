@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from rubric_gen.submission_revision.experiment import Experiment
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 from rubric_gen.submission_revision.study_validation_artifacts import (
     validate_revision_artifacts,
 )
@@ -17,7 +18,7 @@ from rubric_gen.submission_revision.study_validation_context import (
 
 def validate_completed_revision(
     experiment_dir: Path,
-    assignment: dict[str, object],
+    assignment: ExperimentAssignment,
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,

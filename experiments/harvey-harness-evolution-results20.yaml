@@ -27,9 +27,53 @@ benchmark:
     - international-trade-sanctions/analyze-counterparty-markup-of-mitigation-agreement
     - litigation-dispute-resolution/analyze-counterparty-motion-to-dismiss
     - real-estate/analyze-counterparty-markup-of-commercial-lease-agreement
-  held_out_tasks:
+  selection_tasks:
+    - antitrust-competition/draft-antitrust-complaint
     - arbitration-international-dispute-resolution/analyze-arbitration-award-for-new-york-convention-enforcement-defenses
-    - arbitration-international-dispute-resolution/compare-arbitrator-candidates-against-selection-criteria
+    - banking-finance/analyze-credit-agreement-markup
+    - bankruptcy-restructuring/analyze-counterparty-markup-of-restructuring-support-agreement
+    - capital-markets/compare-charter-against-offering
+    - corporate-governance/analyze-eu-ai-act-high
+    - corporate-ma/analyze-cim-deal-teaser/scenario-01
+    - data-privacy-cybersecurity/analyze-counterparty-markup-of-data-processing-agreement
+    - emerging-companies-venture-capital/analyze-counterparty-markup-of-investors-rights-agreement
+    - employment-labor/analyze-iss-employment-complaint
+    - energy-natural-resources/analyze-counterparty-markup-of-credit-agreement
+    - environmental-esg/analyze-counterparty-markup-of-environmental-indemnity-agreement
+    - funds-asset-management/analyze-counterparty-markup-of-limited-partnership-agreement
+    - healthcare-life-sciences/analyze-counterparty-markup-of-clinical-trial-agreement
+    - immigration/compare-employer-corrective-action-plans-against-ice-regulatory-standards
+    - insurance/analyze-property-damage-claim-against-commercial-policy-exclusions
+    - intellectual-property/analyze-counterparty-markup-of-ip-assignment-agreement
+    - international-trade-sanctions/analyze-cross
+    - litigation-dispute-resolution/analyze-counterparty-requests-for-production-for-objectionable-and-overbroad-discovery-demands
+    - real-estate/analyze-counterparty-markup-of-commercial-real-estate-loan-agreement
+  held_out_tasks:
+    - antitrust-competition/draft-antitrust-compliance-training-materials
+    - arbitration-international-dispute-resolution/analyze-counterparty-markup-of-arbitration-agreement
+    - banking-finance/compare-borrower-covenant-compliance-analysis
+    - bankruptcy-restructuring/analyze-counterparty-plan-objection-for-meritorious-and-deficient-arguments
+    - capital-markets/compare-closing-documents-against-closing-checklist
+    - corporate-governance/analyze-flsa-overtime-rule-gap-against-current-employee-classifications
+    - corporate-ma/analyze-cim-deal-teaser/scenario-02
+    - data-privacy-cybersecurity/analyze-cpra-compliance-gaps-against-current-privacy-program
+    - emerging-companies-venture-capital/analyze-counterparty-markup-of-stock-purchase-agreement
+    - employment-labor/analyze-reasonable-accommodation-request-under-ada-requirements
+    - energy-natural-resources/analyze-counterparty-markup-of-engineering-procurement-construction-contract
+    - environmental-esg/analyze-counterparty-markup-of-settlement-agreement
+    - funds-asset-management/analyze-counterparty-markup-of-limited-partnership-interest-transfer-agreement
+    - healthcare-life-sciences/analyze-counterparty-markup-of-merger-agreement
+    - immigration/compare-i
+    - insurance/compare-commercial-insurance-policy-terms-against-coverage-specifications
+    - intellectual-property/analyze-counterparty-markup-of-joint-development-agreement
+    - international-trade-sanctions/analyze-ofac-investigative-demand-and-related-transaction-records
+    - litigation-dispute-resolution/analyze-counterpartys-motion-for-summary-judgment
+    - real-estate/analyze-counterparty-markup-of-construction-contract
+
+design:
+  randomization_seed: 20260831
+  replicates_per_condition: 3
+  outcome_replicates: 2
 
 task_agent:
   model: gpt-5.6-luna
@@ -56,7 +100,6 @@ designer:
   retries: 1
 
 rubric:
-  mode: prospective
   proposer_model: gpt-5.6-sol
   max_changes_per_task: 8
   max_output_tokens: 16384

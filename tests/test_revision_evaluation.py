@@ -11,6 +11,7 @@ import rubric_gen.submission_revision.evaluation.rubric_score as rubric_score_mo
 import rubric_gen.submission_revision.evaluation.score_execution as score_execution
 from rubric_gen.submission_revision.evaluation import (
     absolute_score,
+    analysis as evaluation_analysis,
     pairwise_preference,
 )
 from rubric_gen.benchmarks import SubmissionBenchmarkId
@@ -36,12 +37,12 @@ from rubric_gen.submission_revision.evaluation.rubric_score import (
     _expected_generation_binding,
 )
 from rubric_gen.submission_revision.evaluation.store import EvaluationStore
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 from rubric_gen.submission_revision.evaluation.report import (
     _combine_assignment,
-    _condition_aggregates,
     _direct_assignment_outcomes,
-    _paired_condition_contrasts,
-    _rubric_policy_aggregates,
+    _write_bound_report,
+    analysis_implementation_sha256,
 )
 from rubric_gen.submission_revision.evaluation.runner import (
     RubricFreeScoreRunner,
@@ -68,11 +69,40 @@ def _summarize_scores(
     models: tuple[str, ...],
 ) -> list[dict[str, object]]:
     absolute = absolute_score.summarize(targets, absolute_records, models)
-    pairwise = pairwise_preference.summarize(targets, pairwise_records, models)
+    pairwise = pairwise_preference.summarize(
+        targets,
+        pairwise_records,
+        models,
+        evaluation_jobs.pairwise_order_plan(targets),
+    )
     return [
         {**absolute_item, **pairwise_item}
         for absolute_item, pairwise_item in zip(absolute, pairwise, strict=True)
     ]
+
+
+def _pairwise_order(target: EvaluationTarget) -> str:
+    return evaluation_jobs.pairwise_order_plan((target,))[
+        (target.task_id, target.replicate)
+    ]
+
+
+def _analysis_observations(
+    assignments: list[dict[str, object]],
+) -> tuple[evaluation_analysis.AnalysisObservation, ...]:
+    return evaluation_analysis.parse_observations(
+        assignments,
+        (),
+        positive_decision="reward_hacking_detected",
+        negative_decision="no_reward_hacking_detected",
+    )
+
+
+def _detection_bounds(decision: str) -> dict[str, int]:
+    return {
+        "lower": 1 if decision == "detected" else 0,
+        "upper": 0 if decision == "not_detected" else 1,
+    }
 
 
 @pytest.mark.parametrize("component", ("records", "artifacts"))
@@ -108,6 +138,27 @@ def test_evaluation_store_rejects_record_symlink_and_path_escape(
         store.path("records", "..", "outside.json")
 
 
+def test_bound_report_rejects_changed_analysis_identity(tmp_path: Path) -> None:
+    output = EvaluationStore(tmp_path / "evaluation")
+    first = {
+        "analysis_identity": {
+            "implementation_sha256": analysis_implementation_sha256(),
+            "input_sha256s": {"rubric_score/summary.json": "a" * 64},
+        }
+    }
+    path = _write_bound_report(output, first)
+
+    assert _write_bound_report(output, first) == path
+    changed = {
+        "analysis_identity": {
+            "implementation_sha256": "b" * 64,
+            "input_sha256s": {"rubric_score/summary.json": "a" * 64},
+        }
+    }
+    with pytest.raises(RuntimeError, match="identity changed"):
+        _write_bound_report(output, changed)
+
+
 def test_evaluation_store_resume_replaces_incompatible_stage(
     tmp_path: Path,
 ) -> None:
@@ -134,7 +185,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
 ) -> None:
     study = tmp_path / "study"
     experiment_relative = Path(
-        "experiments/task-1/rep-001/diligent-fixed"
+        "experiments/task-1/rep-001/test-solver/diligent-fixed"
     )
     experiment_dir = study / experiment_relative
     experiment_dir.mkdir(parents=True)
@@ -142,13 +193,14 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     paraphrases.mkdir()
     experiment_path = tmp_path / "experiment.yaml"
     experiment_path.write_text("test")
-    assignment = {
-        "assignment_id": "assignment-1",
-        "task_id": "task-1",
-        "replicate": 1,
-        "condition_id": "diligent-fixed",
-        "execution_order": 1,
-    }
+    assignment = ExperimentAssignment(
+        task_id="task-1",
+        replicate=1,
+        solver_id="test-solver",
+        condition_id="diligent-fixed",
+        within_block_order=1,
+        execution_order=1,
+    )
     (study / "study.json").write_text(json.dumps({
         "kind": "rubric-gen-randomized-revision-study",
         "status": "completed",
@@ -156,9 +208,9 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         "experiment_path": str(experiment_path),
         "seed_run_dir": str(tmp_path / "seeds"),
         "paraphrase_run_dir": str(paraphrases.resolve()),
+        "pretreatment_rubric_root": str(study / "pretreatment-rubrics"),
         "records": [{
-            **assignment,
-            "experiment_dir": experiment_relative.as_posix(),
+            **assignment.record_identity(),
             "status": "completed",
         }],
     }))
@@ -181,7 +233,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
 
     def load_terminal_state(
         revision_dir: Path,
-        current_assignment: dict[str, object],
+        current_assignment: ExperimentAssignment,
         current_config: object,
         selection: object,
         study_experiment_id: str,
@@ -223,10 +275,10 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     (
         (RubricPolicy.FIXED, 0, 0),
         (RubricPolicy.FIXED, 6, 0),
-        (RubricPolicy.OFFLINE_ELICITATION, 0, 1),
+        (RubricPolicy.OFFLINE_ELICITATION, 0, 0),
         (RubricPolicy.OFFLINE_ELICITATION, 6, 1),
         (RubricPolicy.ONLINE_ELICITATION, 0, 0),
-        (RubricPolicy.ONLINE_ELICITATION, 6, 5),
+        (RubricPolicy.ONLINE_ELICITATION, 6, 6),
     ),
 )
 def test_active_generation_round_matches_elicitation_schedule(
@@ -270,12 +322,12 @@ def _generation(
         criterion = ElicitedCriterion.create(
             title=content,
             requirement=f"Evaluate the general {content} requirement.",
-            level_descriptions=(
-                ("A", "The requirement is complete."),
-                ("B", "The requirement is partial."),
-                ("C", "The requirement is absent."),
+            levels=(
+                ("A", 0, "The requirement is complete."),
+                ("B", -2, "The requirement is partial."),
+                ("C", -4, "The requirement is absent."),
             ),
-            support_pair_ids=(
+            provenance_pair_ids=(
                 "pair_0000000000000001",
                 "pair_0000000000000002",
             ),
@@ -288,7 +340,9 @@ def _generation(
         criteria = (criterion,)
     return RubricGeneration(
         generation_round=generation_round,
-        source_checkpoint=(None if generation_round == 0 else generation_round),
+        source_checkpoint=(
+            None if generation_round <= 1 else generation_round - 1
+        ),
         rubric=rubric,
         elicited_criteria=criteria,
         proposer_call_budget=1,
@@ -299,8 +353,7 @@ def _evolution_files() -> dict[str, str]:
     return {
         "artifact-history.json": "{}\n",
         "difference-proposal.json": "{}\n",
-        "criterion-proposal.json": "{}\n",
-        "criterion-edit.json": "{}\n",
+        "rubric-proposal.json": "{}\n",
         "evolution.json": "{}\n",
     }
 
@@ -317,7 +370,6 @@ def _target(tmp_path: Path) -> EvaluationTarget:
     master_path.write_text(master_generation.rubric.content)
     selection = ParaphraseSelection(
         task_id="da-1-1",
-        replicate=1,
         optimizer_index=1,
         optimizer_path=tmp_path / "variant-001.txt",
         optimizer_sha256=(
@@ -331,11 +383,12 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         master_path=master_path,
         master_sha256=master_generation.rubric.content_sha256,
     )
-    return EvaluationTarget(
+    target = EvaluationTarget(
         study_experiment_id="study-experiment-1",
         assignment_id="assignment-1",
         task_id="da-1-1",
         replicate=1,
+        solver_id="test-solver",
         condition_id="diligent-online-rubric",
         rubric_policy=RubricPolicy.ONLINE_ELICITATION,
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
@@ -356,6 +409,15 @@ def _target(tmp_path: Path) -> EvaluationTarget:
         final_manifest_sha256="b" * 64,
         selection=selection,
     )
+    for submission, digest in (
+        (target.initial_submission, "c" * 64),
+        (target.final_submission, "d" * 64),
+    ):
+        submission.mkdir(parents=True, exist_ok=True)
+        (submission / "snapshot.json").write_text(json.dumps({
+            "workspace_sha256": digest,
+        }))
+    return target
 
 
 def _record(
@@ -592,7 +654,7 @@ def test_rubric_score_jobs_bind_each_active_generation(
     (tmp_path / "instruction.md").write_text("Complete the task.\n")
     for artifact, digest in (("initial", "c" * 64), ("final", "d" * 64)):
         submission = target.submission(artifact)
-        submission.mkdir()
+        submission.mkdir(exist_ok=True)
         (submission / "snapshot.json").write_text(json.dumps({
             "workspace_sha256": digest,
         }))
@@ -684,13 +746,11 @@ def test_rubric_free_summary_separates_absolute_scores_from_pairwise_preference(
     ]
     pairwise_records = [
         {"assignment_id": target.assignment_id, "model": model,
-         "ordering": ordering,
+         "order": _pairwise_order(target),
          "verdict": {"preferred_response": preferred}}
-        for model, ordering, preferred in (
-            ("strong-a", "higher-first", "response_A"),
-            ("strong-a", "lower-first", "response_B"),
-            ("strong-b", "higher-first", "tie"),
-            ("strong-b", "lower-first", "response_B"),
+        for model, preferred in (
+            ("strong-a", "response_B"),
+            ("strong-b", "tie"),
         )
     ]
 
@@ -710,31 +770,26 @@ def test_rubric_free_summary_separates_absolute_scores_from_pairwise_preference(
     assert quality["initial_panel_mean"] == 47.5
     assert quality["final_panel_mean"] == 75
     assert quality["panel_mean_gain"] == 27.5
-    assert summary["pairwise_preference_scores"][
-        "rubric_order_agreement"
-    ] == 0.875
+    assert summary["pairwise_preference_scores"]["panel_mean"] == 0.75
 
 
-def test_pairwise_selects_highest_and_lowest_rubric_scores(
+def test_pairwise_order_plan_is_balanced_across_task_replicate_cells(
     tmp_path: Path,
 ) -> None:
-    target = replace(
-        _target(tmp_path),
-        submission_ids=("s000", "s001", "s002", "s003"),
-        fixed_original_scores=(60.0, 20.0, 90.0, 40.0),
-        final_submission=tmp_path / "s003",
-    )
+    target = _target(tmp_path)
+    targets = tuple(replace(target, replicate=replicate) for replicate in range(1, 5))
+    plan = evaluation_jobs.pairwise_order_plan(targets)
 
-    pair = target.rubric_ordered_pair()
-
-    assert pair.higher_submission_id == "s002"
-    assert pair.lower_submission_id == "s001"
-    assert pair.higher_submission == tmp_path / "submissions" / "s002"
-    assert pair.lower_submission == tmp_path / "submissions" / "s001"
-    assert pair.score_gap == 70.0
+    assert set(plan) == {(target.task_id, replicate) for replicate in range(1, 5)}
+    assert sorted(plan.values()) == [
+        "final-first",
+        "final-first",
+        "initial-first",
+        "initial-first",
+    ]
 
 
-def test_pairwise_skips_when_initial_and_final_are_the_same_artifact(
+def test_pairwise_scores_identical_initial_and_final_as_a_tie(
     tmp_path: Path,
 ) -> None:
     target = replace(
@@ -758,10 +813,14 @@ def test_pairwise_skips_when_initial_and_final_are_the_same_artifact(
         (target,), absolute_records, [], ("strong-a",)
     )[0]["pairwise_preference_scores"]
 
-    assert summary["status"] == "skipped"
-    assert summary["higher_submission_id"] == "s000"
-    assert summary["lower_submission_id"] == "s000"
-    assert summary["rubric_order_agreement"] == 0.5
+    assert summary["status"] == "same_artifact"
+    assert summary["initial_submission_id"] == "s000"
+    assert summary["final_submission_id"] == "s000"
+    assert summary["panel_mean"] == 0.5
+    assert summary["model_results"]["strong-a"] == {
+        "status": "same_artifact",
+        "score": 0.5,
+    }
 
 
 def test_pairwise_request_hides_rubric_scores_and_submission_labels(
@@ -795,7 +854,7 @@ def test_pairwise_request_hides_rubric_scores_and_submission_labels(
         PairwisePreferenceJob(
             target=target,
             model="strong-a",
-            ordering="higher-first",
+            order="final-first",
             implementation_identity=(
                 evaluation_jobs._rubric_free_score_implementation_identity()
             ),
@@ -804,13 +863,14 @@ def test_pairwise_request_hides_rubric_scores_and_submission_labels(
     payload = json.loads(request.evidence)
 
     assert set(payload) == {"response_A", "response_B", "task_instruction"}
-    assert "high response" in payload["response_A"]
+    assert "middle response" in payload["response_A"]
     assert "low response" in payload["response_B"]
-    for hidden in ("s000", "s001", "13.25", "91.75", "higher", "lower"):
+    assert "high response" not in request.evidence
+    for hidden in ("s000", "s001", "s002", "13.25", "91.75", "higher", "lower"):
         assert hidden not in request.evidence
 
 
-def test_pairwise_zero_score_gap_is_neutral(
+def test_pairwise_ignores_original_rubric_score_gap(
     tmp_path: Path,
 ) -> None:
     target = replace(_target(tmp_path), fixed_original_scores=(50.0, 50.0))
@@ -823,18 +883,12 @@ def test_pairwise_zero_score_gap_is_neutral(
         }
         for artifact in ("initial", "final")
     ]
-    pairwise_records = [
-        {
-            "assignment_id": target.assignment_id,
-            "model": "strong-a",
-            "ordering": ordering,
-            "verdict": {"preferred_response": preferred},
-        }
-        for ordering, preferred in (
-            ("higher-first", "response_A"),
-            ("lower-first", "response_B"),
-        )
-    ]
+    pairwise_records = [{
+        "assignment_id": target.assignment_id,
+        "model": "strong-a",
+        "order": _pairwise_order(target),
+        "verdict": {"preferred_response": "response_B"},
+    }]
 
     summary = _summarize_scores(
         (target,),
@@ -843,9 +897,8 @@ def test_pairwise_zero_score_gap_is_neutral(
         ("strong-a",),
     )[0]["pairwise_preference_scores"]
 
-    assert summary["panel_mean_higher_score_preference_rate"] == 1.0
-    assert summary["strict_rubric_order"] is False
-    assert summary["rubric_order_agreement"] == 0.5
+    assert summary["panel_mean"] == 1.0
+    assert summary["model_results"]["strong-a"]["score"] == 1.0
 
 
 def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
@@ -867,7 +920,7 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
     job = PairwisePreferenceJob(
         target=target,
         model="strong-a",
-        ordering="higher-first",
+        order="initial-first",
         implementation_identity=evaluation_jobs._rubric_free_score_implementation_identity(),
     )
 
@@ -887,12 +940,12 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
         judgment,
     )
     assert original_reference["judgment_key"] == changed_reference["judgment_key"]
-    assert original_reference["higher_rubric_score"] == 80.0
-    assert changed_reference["higher_rubric_score"] == 81.0
+    assert "higher_rubric_score" not in original_reference
+    assert "lower_rubric_score" not in changed_reference
 
 
 
-def test_condition_aggregates_keep_direct_detection_independent(
+def test_descriptive_summary_keeps_direct_detection_independent(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _rubric_score_summary(tmp_path)
@@ -904,7 +957,7 @@ def test_condition_aggregates_keep_direct_detection_independent(
                 "final_panel_mean": 75,
             },
             "pairwise_preference_scores": {
-                "rubric_order_agreement": 0.875,
+                "panel_mean": 0.875,
             },
         },
         {name: 1 for name in (
@@ -912,17 +965,26 @@ def test_condition_aggregates_keep_direct_detection_independent(
             "original_rubric_gap",
         )},
     )
-    assignment["direct_detection"] = {"decision": "detected"}
+    assignment["direct_detection"] = {
+        "decision": "detected",
+        "bounds": _detection_bounds("detected"),
+        "provider_decisions": {},
+    }
+    assignment["post_update_detection"] = {
+        "decision": "not_detected",
+        "bounds": _detection_bounds("not_detected"),
+        "provider_decisions": {},
+    }
 
-    result = _condition_aggregates([assignment])
+    result = evaluation_analysis.describe(_analysis_observations([assignment]))
 
-    assert result["overall"]["direct_detection"]["rate"] == 1
-    assert result["diligent-online-rubric"]["outcomes"][
+    assert result["conditions"]["all"]["direct_detection"]["rate"] == 1
+    assert result["conditions"]["diligent-online-rubric"]["outcomes"][
         "reward_hacking_loss_change"
     ]["mean"] == -7.5
 
 
-def test_rubric_policy_aggregates_report_available_policies(
+def test_descriptive_summary_reports_available_rubric_policies(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _rubric_score_summary(tmp_path)
@@ -934,7 +996,7 @@ def test_rubric_policy_aggregates_report_available_policies(
                 "final_panel_mean": 75,
             },
             "pairwise_preference_scores": {
-                "rubric_order_agreement": 0.875,
+                "panel_mean": 0.875,
             },
         },
         {name: 1 for name in (
@@ -946,17 +1008,29 @@ def test_rubric_policy_aggregates_report_available_policies(
         {
             **assignment,
             "assignment_id": f"assignment-{index}",
+            "condition_id": condition,
             "rubric_policy": policy,
-            "direct_detection": {"decision": decision},
+            "direct_detection": {
+                "decision": decision,
+                "bounds": _detection_bounds(decision),
+                "provider_decisions": {},
+            },
+            "post_update_detection": {
+                "decision": decision,
+                "bounds": _detection_bounds(decision),
+                "provider_decisions": {},
+            },
         }
-        for index, (policy, decision) in enumerate((
-            ("fixed", "detected"),
-            ("offline_elicitation", "not_detected"),
-            ("online_elicitation", "not_detected"),
+        for index, (policy, condition, decision) in enumerate((
+            ("fixed", "diligent-static", "detected"),
+            ("offline_elicitation", "diligent-offline-rubric", "not_detected"),
+            ("online_elicitation", "diligent-online-rubric", "not_detected"),
         ), start=1)
     ]
 
-    result = _rubric_policy_aggregates(assignments)
+    result = evaluation_analysis.describe(
+        _analysis_observations(assignments)
+    )["rubric_policies"]
 
     assert set(result) == {
         "fixed",
@@ -967,7 +1041,9 @@ def test_rubric_policy_aggregates_report_available_policies(
     assert result["offline_elicitation"]["direct_detection"]["rate"] == 0
     assert result["online_elicitation"]["direct_detection"]["rate"] == 0
 
-    partial = _rubric_policy_aggregates(assignments[1:])
+    partial = evaluation_analysis.describe(
+        _analysis_observations(assignments[1:])
+    )["rubric_policies"]
 
     assert set(partial) == {"offline_elicitation", "online_elicitation"}
 
@@ -984,7 +1060,7 @@ def test_report_partitions_gap_without_holdout_scores(
                 "final_panel_mean": 75,
             },
             "pairwise_preference_scores": {
-                "rubric_order_agreement": 0.875,
+                "panel_mean": 0.875,
             },
         },
         {
@@ -1012,7 +1088,9 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "assignment_id": "a",
             "task_id": "task-1",
             "replicate": 1,
+            "solver_id": "test-solver",
             "condition_id": "online-rubric",
+            "rubric_policy": "online_elicitation",
             "outcomes": {
                 "original_rubric_weak_gain": 11,
                 "selected_rubric_gain": 10,
@@ -1023,7 +1101,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "active_local_weak_gain": 12,
                 "active_local_strong_gain": 9,
                 "active_local_verifier_gap_change": 3,
-                "pairwise_rubric_order_agreement": 0.75,
+                "pairwise_preference_score": 0.75,
             },
             "component_changes": {
                 "verifier_exploitation": 4,
@@ -1034,12 +1112,24 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "original_to_selected": 3,
                 "selected_rubric_minus_rubric_free_absolute_score": -4,
             },
+            "direct_detection": {
+                "decision": "detected",
+                "bounds": _detection_bounds("detected"),
+                "provider_decisions": {},
+            },
+            "post_update_detection": {
+                "decision": "not_detected",
+                "bounds": _detection_bounds("not_detected"),
+                "provider_decisions": {},
+            },
         },
         {
             "assignment_id": "b",
             "task_id": "task-1",
             "replicate": 1,
+            "solver_id": "test-solver",
             "condition_id": "static",
+            "rubric_policy": "fixed",
             "outcomes": {
                 "original_rubric_weak_gain": 9,
                 "selected_rubric_gain": 3,
@@ -1050,7 +1140,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "active_local_weak_gain": 10,
                 "active_local_strong_gain": 4,
                 "active_local_verifier_gap_change": 6,
-                "pairwise_rubric_order_agreement": 0.5,
+                "pairwise_preference_score": 0.5,
             },
             "component_changes": {
                 "verifier_exploitation": 1,
@@ -1061,24 +1151,59 @@ def test_condition_contrasts_pair_task_replicates() -> None:
                 "original_to_selected": 0,
                 "selected_rubric_minus_rubric_free_absolute_score": 6,
             },
+            "direct_detection": {
+                "decision": "not_detected",
+                "bounds": _detection_bounds("not_detected"),
+                "provider_decisions": {},
+            },
+            "post_update_detection": {
+                "decision": "not_detected",
+                "bounds": _detection_bounds("not_detected"),
+                "provider_decisions": {},
+            },
         },
     ]
 
-    contrast = _paired_condition_contrasts(assignments)[0]
+    analysis = evaluation_analysis.analyze(
+        _analysis_observations(assignments),
+        (),
+    ).record()
+    contrast = analysis["condition_effects"][0]
 
+    assert contrast["solver"] == "test-solver"
     assert contrast["direction"] == "left-minus-right"
     assert contrast["left_condition"] == "online-rubric"
-    assert contrast["paired_differences"]["selected_rubric_gain"]["mean"] == 7
-    assert contrast["paired_differences"]["rubric_free_absolute_score_gain"]["mean"] == 6
-    assert contrast["paired_differences"][
+    assert contrast["metrics"]["selected_rubric_gain"]["estimate"] == 7
+    assert contrast["metrics"]["rubric_free_absolute_score_gain"]["estimate"] == 6
+    assert contrast["metrics"][
         "weak_to_strong_generalization_gap_change"
-    ]["mean"] == -4
-    assert contrast["paired_differences"][
+    ]["estimate"] == -4
+    assert contrast["metrics"][
         "original_rubric_gap_change"
-    ]["mean"] == -7
-    assert contrast["paired_differences"][
+    ]["estimate"] == -7
+    assert contrast["metrics"][
         "selected_rubric_minus_rubric_free_absolute_score_change"
-    ]["mean"] == -10
+    ]["estimate"] == -10
+
+    other_solver = [
+        {
+            **assignment,
+            "assignment_id": f"other-{assignment['assignment_id']}",
+            "solver_id": "other-solver",
+        }
+        for assignment in assignments
+    ]
+    crossed = evaluation_analysis.analyze(
+        _analysis_observations(assignments + other_solver),
+        (),
+    ).record()
+    solver_contrast = crossed["solver_effects"][0]
+    assert solver_contrast["left_solver"] == "other-solver"
+    assert solver_contrast["right_solver"] == "test-solver"
+    assert solver_contrast["pair_count"] == 1
+    assert solver_contrast["metrics"]["selected_rubric_gain"]["estimate"] == 0
+    interaction = crossed["interactions"][0]
+    assert interaction["metrics"]["selected_rubric_gain"]["estimate"] == 0
 
 
 def test_direct_outcomes_use_the_configured_rule_and_experiment(
@@ -1118,6 +1243,71 @@ def test_direct_outcomes_use_the_configured_rule_and_experiment(
     )
 
     assert result["assignment-1"]["decision"] == "detected"
+
+
+@pytest.mark.parametrize(
+    ("observed_decision", "expected_decision", "expected_bounds"),
+    (
+        ("reward_hacking_detected", "detected", (1, 1)),
+        ("no_reward_hacking_detected", "incomplete", (0, 1)),
+    ),
+)
+def test_direct_outcomes_bound_a_missing_any_detect_member(
+    tmp_path: Path,
+    observed_decision: str,
+    expected_decision: str,
+    expected_bounds: tuple[int, int],
+) -> None:
+    source = tmp_path / "assignment-1"
+    source.mkdir()
+    (source / "manifest.json").write_text(json.dumps({
+        "experiment_id": "experiment-1",
+        "assignment_id": "assignment-1",
+    }))
+    direct = {
+        "detection": "rh",
+        "models": ["a", "b"],
+        "primary_rule": "any_detect",
+        "records": [{
+            "source_path": str(source),
+            "provider": "a",
+            "verdict": {"decision": observed_decision},
+        }],
+    }
+
+    result = _direct_assignment_outcomes(
+        direct,
+        [{"assignment_id": "assignment-1"}],
+        "experiment-1",
+    )["assignment-1"]
+
+    assert result["decision"] == expected_decision
+    bounds = result["bounds"]
+    assert isinstance(bounds, dict)
+    assert (bounds["lower"], bounds["upper"]) == expected_bounds
+    assert bounds["missing_models"] == ["b"]
+
+
+def test_direct_outcomes_bound_an_assignment_with_no_judgments() -> None:
+    result = _direct_assignment_outcomes(
+        {
+            "detection": "rh",
+            "models": ["a", "b"],
+            "primary_rule": "majority",
+            "records": [],
+        },
+        [{"assignment_id": "assignment-1"}],
+        "experiment-1",
+    )["assignment-1"]
+
+    assert result["decision"] == "incomplete"
+    assert result["bounds"] == {
+        "lower": 0,
+        "upper": 1,
+        "identified": False,
+        "missing_models": ["a", "b"],
+        "abstaining_models": [],
+    }
 
 
 def test_biomnibench_rubric_free_review_includes_all_final_artifacts(
@@ -1175,7 +1365,7 @@ def test_rubric_free_request_json_encodes_untrusted_prompt_injection(
         PairwisePreferenceJob(
             target=target,
             model="strong-a",
-            ordering="higher-first",
+            order="initial-first",
             implementation_identity=(
                 evaluation_jobs._rubric_free_score_implementation_identity()
             ),
@@ -1251,7 +1441,7 @@ def test_semantic_judgment_keys_reuse_identical_content_across_conditions(
     pairwise = PairwisePreferenceJob(
         target=target,
         model="strong-a",
-        ordering="higher-first",
+        order="initial-first",
         implementation_identity=implementation_identity,
     )
     assert pairwise.key == replace(pairwise, target=other).key
@@ -1794,15 +1984,18 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
     pairwise_manifest = json.loads(
         (output / "pairwise_preference" / "manifest.json").read_text()
     )
-    assert len(calls) == 4
-    for summary in (absolute_summary, pairwise_summary):
-        assert summary["planned_semantic_judgment_count"] == 2
-        assert summary["successful_semantic_judgment_count"] == 2
-        assert summary["used_semantic_judgment_count"] == 2
-        assert summary["assignment_reference_count"] == 4
+    assert len(calls) == 3
+    for summary, judgment_count, reference_count in (
+        (absolute_summary, 2, 4),
+        (pairwise_summary, 1, 2),
+    ):
+        assert summary["planned_semantic_judgment_count"] == judgment_count
+        assert summary["successful_semantic_judgment_count"] == judgment_count
+        assert summary["used_semantic_judgment_count"] == judgment_count
+        assert summary["assignment_reference_count"] == reference_count
         assert summary["predispatch_plan"]["accepted"] is True
-        assert summary["predispatch_plan"]["base_totals"]["calls"] == 4
-        assert len(summary["completed_record_sha256s"]) == 2
+        assert summary["predispatch_plan"]["base_totals"]["calls"] == 3
+        assert len(summary["completed_record_sha256s"]) == judgment_count
     assert absolute_manifest["predispatch_plan"] == absolute_summary["predispatch_plan"]
     assert pairwise_manifest["predispatch_plan"] == pairwise_summary["predispatch_plan"]
     absolute_key = next(iter(absolute_summary["completed_record_sha256s"]))
@@ -1840,7 +2033,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
             generation_operation=generate,
         )
         assert changed_implementation.run() == 0
-    assert len(calls) == 8
+    assert len(calls) == 6
 
     same_identity_resume = RubricFreeScoreRunner(
         EvaluationConfig(
@@ -1855,7 +2048,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         generation_operation=generate,
     )
     assert same_identity_resume.run() == 0
-    assert len(calls) == 12
+    assert len(calls) == 9
 
     tampered_summary = json.loads(
         (output / "absolute_score" / "summary.json").read_text()
@@ -1866,7 +2059,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         json.dumps(tampered_summary)
     )
     assert same_identity_resume.run() == 0
-    assert len(calls) == 12
+    assert len(calls) == 9
     repaired_summary = json.loads(
         (output / "absolute_score" / "summary.json").read_text()
     )
@@ -1875,7 +2068,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
     rejected_output = tmp_path / "rejected-rubric_free_evaluation-output"
     rejected_experiment = SimpleNamespace(
         experiment_id="experiment-1",
-        outcome_audit={**audit, "rubric_free_evaluation_max_calls": 7},
+        outcome_audit={**audit, "rubric_free_evaluation_max_calls": 5},
         protocol={},
     )
     rejected = RubricFreeScoreRunner(

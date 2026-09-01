@@ -13,14 +13,12 @@ from rubric_gen.benchmarks import SubmissionBenchmark
 from rubric_gen.runtime.agents.workspaces import TaskWorkspace
 from rubric_gen.submission_revision.artifacts import (
     compact_historical_workspace as _compact_historical_workspace,
-    copy_solution_workspace as _copy_solution_workspace,
-    link_solution_workspace as _link_solution_workspace,
     make_read_only as _make_read_only,
     make_tree_owner_writable as _make_tree_owner_writable,
-    make_tree_read_only as _make_tree_read_only,
     read_json_object as _read_json_object,
     sha256_file as _sha256_file,
     solution_tree_sha256 as _solution_tree_sha256,
+    snapshot_solution_workspace as _snapshot_solution_workspace,
     tree_sha256 as _tree_sha256,
     verify_submission_snapshot as _verify_submission_snapshot,
     write_json as _write_json,
@@ -69,12 +67,24 @@ class RevisionWorkspaceManager:
                 shutil.copyfile(child, destination)
             _make_tree_owner_writable(destination)
 
-    def link_seed_snapshot(self) -> None:
+    def copy_seed_snapshot(self) -> None:
         source = self.seed.submission_dir
         destination = self.experiment_dir / "submissions" / "s000"
         destination.mkdir(parents=True)
-        _link_solution_workspace(source / "workspace", destination / "workspace")
-        os.link(source / "trajectory.stream.jsonl", destination / "trajectory.stream.jsonl")
+        _snapshot_solution_workspace(
+            source / "workspace",
+            destination / "workspace",
+        )
+        trajectory = source / "trajectory.stream.jsonl"
+        trajectory_stat = os.lstat(trajectory)
+        if not stat.S_ISREG(trajectory_stat.st_mode):
+            raise RuntimeError(f"seed trajectory is not a regular file: {trajectory}")
+        copied_trajectory = destination / "trajectory.stream.jsonl"
+        shutil.copyfile(
+            trajectory,
+            copied_trajectory,
+            follow_symlinks=False,
+        )
         _write_json(
             destination / "status.json",
             {
@@ -88,7 +98,10 @@ class RevisionWorkspaceManager:
             },
         )
         shutil.copyfile(source / "snapshot.json", destination / "snapshot.json")
-        _make_tree_read_only(destination)
+        _make_read_only(copied_trajectory)
+        _make_read_only(destination / "status.json")
+        _make_read_only(destination / "snapshot.json")
+        _make_read_only(destination)
 
     def restore_last_scored_workspace(
         self,
@@ -251,19 +264,11 @@ class RevisionWorkspaceManager:
         snapshot_workspace = submission_dir / "workspace"
         submissions_root = self.experiment_dir / "submissions"
         submissions_root.mkdir(exist_ok=True)
-        previous_workspaces = sorted(
-            path / "workspace"
-            for path in submissions_root.iterdir()
-            if path.is_dir() and path.name < submission_id
-        )
-        previous_workspace = previous_workspaces[-1] if previous_workspaces else None
         submission_dir.mkdir(parents=True)
-        copy_stats = _copy_solution_workspace(
+        snapshot_stats = _snapshot_solution_workspace(
             workspace,
             snapshot_workspace,
-            previous=previous_workspace,
         )
-        _make_tree_read_only(snapshot_workspace)
 
         cumulative = submission_dir / "trajectory.stream.jsonl"
         with cumulative.open("wb") as output:
@@ -295,11 +300,6 @@ class RevisionWorkspaceManager:
                 "session_id": session_id,
                 "workspace_sha256": workspace_sha256,
                 "trajectory_sha256": trajectory_sha256,
-                "workspace_logical_bytes": copy_stats.logical_bytes,
-                "workspace_copied_bytes": copy_stats.copied_bytes,
-                "workspace_deduplicated_bytes": copy_stats.linked_bytes,
-                "workspace_copied_files": copy_stats.copied_files,
-                "workspace_deduplicated_files": copy_stats.linked_files,
             },
         )
         for path in (cumulative, status_path, snapshot_path):
@@ -311,10 +311,8 @@ class RevisionWorkspaceManager:
                 "submission_id": submission_id,
                 "workspace_sha256": workspace_sha256,
                 "trajectory_sha256": trajectory_sha256,
-                "workspace_logical_bytes": copy_stats.logical_bytes,
-                "workspace_copied_bytes": copy_stats.copied_bytes,
-                "workspace_deduplicated_bytes": copy_stats.linked_bytes,
+                "workspace_bytes": snapshot_stats.bytes,
+                "workspace_files": snapshot_stats.files,
             }
         )
         return submission_dir
-

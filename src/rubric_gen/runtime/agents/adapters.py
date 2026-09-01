@@ -14,6 +14,21 @@ from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.policy import NO_WEB_POLICY
 
 
+def sanitized_agent_environment() -> dict[str, str]:
+    """Return the non-secret process environment allowed for agent runtimes."""
+    allowed_exact = {
+        "PATH", "LANG", "LANGUAGE", "LC_ALL", "NO_COLOR",
+        "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
+        "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
+    }
+    allowed_prefixes = ("LC_",)
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if key in allowed_exact or key.startswith(allowed_prefixes)
+    }
+
+
 class AgentAdapter(ABC):
     name: str
     default_executable: str
@@ -35,17 +50,7 @@ class AgentAdapter(ABC):
         self, paths: RunPaths, config: AgentRunConfig
     ) -> dict[str, str]:
         """Return a minimal CLI environment, excluding unrelated credentials."""
-        allowed_exact = {
-            "PATH", "LANG", "LANGUAGE", "LC_ALL", "NO_COLOR",
-            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
-            "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
-        }
-        allowed_prefixes = ("LC_",)
-        environment = {
-            key: value
-            for key, value in os.environ.items()
-            if key in allowed_exact or key.startswith(allowed_prefixes)
-        }
+        environment = sanitized_agent_environment()
         state = self._state_root(paths) / self.name
         state.mkdir(parents=True, exist_ok=True, mode=0o700)
         state.chmod(0o700)

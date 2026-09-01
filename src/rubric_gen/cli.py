@@ -15,19 +15,17 @@ from rubric_gen.submission_revision.commands import (
 from rubric_gen.submission_revision.experiment import EXPERIMENT_KIND, load_experiment
 from rubric_gen.runtime.paths import resolve_project_path
 from rubric_gen.runtime.yaml import load_yaml_strict
-from rubric_gen.benchmarks.harvey_lab.audits import run_quality_audit, run_reward_hacking_audit
 from rubric_gen.benchmarks.harvey_lab.config import (
     HARVEY_EXPERIMENT_KIND,
     load_experiment as load_harvey_experiment,
 )
-from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController
-from rubric_gen.benchmarks.harvey_lab.evaluator import HarveyEvaluator
 from rubric_gen.benchmarks.harvey_lab.runtime import runtime_root_from_environment
 from rubric_gen.benchmarks.harvey_lab.seal import (
     harvey_run_seal_exists,
     seal_harvey_run,
     validate_harvey_run_seal,
 )
+from rubric_gen.benchmarks.harvey_lab.study import HarveyStudyController
 
 
 def _experiment_kind(value: str) -> str:
@@ -71,48 +69,14 @@ def _run(args: argparse.Namespace) -> int:
             f"Harvey run is sealed; use --resume to verify it: {experiment.output_dir}"
         )
     runtime_root = runtime_root_from_environment()
-    evaluator = HarveyEvaluator(
+    status = HarveyStudyController(
         experiment,
         runtime_root=runtime_root,
         max_concurrency=args.max_concurrency,
         max_retries=max_retries,
-    )
-    status = HarveyEvolutionController(
-        experiment,
-        runtime_root=runtime_root,
-        evaluator=evaluator,
     ).run(resume=args.resume)
     if status:
         return status
-    judgments = (
-        experiment.output_dir / "audits" / "reward-hacking" / "judgments"
-    )
-    detection_started = judgments.is_dir() and any(judgments.iterdir())
-    errors: list[tuple[str, Exception]] = []
-    statuses: list[int] = []
-    for stage, operation in (
-        (
-            "quality audit",
-            lambda: run_quality_audit(experiment, evaluator=evaluator),
-        ),
-        (
-            "reward-hacking detection",
-            lambda: run_reward_hacking_audit(
-                experiment,
-                resume=args.resume and detection_started,
-                max_concurrency=args.max_concurrency,
-            ),
-        ),
-    ):
-        try:
-            statuses.append(int(operation()))
-        except Exception as exc:
-            errors.append((stage, exc))
-    if errors:
-        stages = ", ".join(stage for stage, _error in errors)
-        raise RuntimeError(f"Harvey post-run stages failed: {stages}") from errors[0][1]
-    if any(statuses):
-        return 1
     seal = seal_harvey_run(experiment)
     print(f"Harvey run sealed: {seal['artifact_tree_sha256']}")
     return 0
@@ -133,15 +97,12 @@ def _judge(args: argparse.Namespace) -> int:
             validate_harvey_run_seal(experiment)
             raise ValueError("sealed Harvey runs are immutable")
         runtime_root = runtime_root_from_environment()
-        return run_quality_audit(
+        return HarveyStudyController(
             experiment,
-            evaluator=HarveyEvaluator(
-                experiment,
-                runtime_root=runtime_root,
-                max_concurrency=args.max_concurrency,
-                max_retries=args.max_retries,
-            ),
-        )
+            runtime_root=runtime_root,
+            max_concurrency=args.max_concurrency,
+            max_retries=args.max_retries,
+        ).run_quality()
     if args.output_dir is None:
         raise ValueError("submission judge requires --output-dir")
     experiment = load_experiment(resolve_project_path(args.experiment))
@@ -165,11 +126,10 @@ def _detect(args: argparse.Namespace) -> int:
         if harvey_run_seal_exists(experiment.output_dir):
             validate_harvey_run_seal(experiment)
             raise ValueError("sealed Harvey runs are immutable")
-        return run_reward_hacking_audit(
+        return HarveyStudyController(
             experiment,
-            resume=args.resume,
             max_concurrency=args.max_concurrency,
-        )
+        ).run_detection(resume=args.resume)
     return run_submission_detect(args)
 
 

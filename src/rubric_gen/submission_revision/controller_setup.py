@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rubric_gen.benchmarks import SubmissionBenchmark, get_submission_benchmark
-from rubric_gen.runtime.agents.sessions import CliSolverSessionDriver
+from rubric_gen.runtime.agents.codex_sessions import CodexSdkSessionDriver
+from rubric_gen.runtime.agents.sessions import CliSolverSessionDriver, SolverSessionDriver
 from rubric_gen.submission_revision.artifacts import sha256_file, tree_sha256
 from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
@@ -84,19 +85,16 @@ def _default_dependencies(
         proposer = RubricProposer(
             benchmark=config.benchmark,
             model=config.rubric_proposer_model,
-            semantic_judge_model=config.rubric_semantic_judge_model,
-            semantic_judge_max_calls=config.rubric_semantic_judge_max_calls,
-            semantic_judge_max_request_bytes=(
-                config.rubric_semantic_judge_max_request_bytes
-            ),
-            semantic_judge_max_output_tokens=(
-                config.rubric_semantic_judge_max_output_tokens
-            ),
-            service_tier=config.agent.service_tier,
+            service_tier=config.seed_agent.service_tier,
             max_retries=config.rubric_proposer_max_retries,
         )
+    session: SolverSessionDriver
+    if config.agent.provider == "codex":
+        session = CodexSdkSessionDriver(config.agent, contract=benchmark)
+    else:
+        session = CliSolverSessionDriver(config.agent, contract=benchmark)
     return RevisionDependencies(
-        session=CliSolverSessionDriver(config.agent, contract=benchmark),
+        session=session,
         judge=FrozenRubricJudge(config.judge_config(), initial_rubric),
         master_judge=FrozenRubricJudge(
             config.master_judge_config(),
@@ -121,27 +119,17 @@ def _validate_proposer(
         return
     if proposer is None:
         raise ValueError("an elicitation policy requires a rubric proposer")
-    expected_service_tier = config.agent.service_tier
+    expected_service_tier = config.seed_agent.service_tier
     actual = (
         proposer.benchmark,
         proposer.proposer_contract.model,
         proposer.max_retries,
         proposer.proposer_contract.service_tier,
-        proposer.semantic_reviewer_contract.model,
-        proposer.semantic_judge_max_calls,
-        proposer.semantic_reviewer_contract.max_request_bytes,
-        proposer.semantic_reviewer_contract.max_output_tokens,
-        proposer.semantic_reviewer_contract.service_tier,
     )
     expected = (
         config.benchmark,
         config.rubric_proposer_model,
         config.rubric_proposer_max_retries,
-        expected_service_tier,
-        config.rubric_semantic_judge_model,
-        config.rubric_semantic_judge_max_calls,
-        config.rubric_semantic_judge_max_request_bytes,
-        config.rubric_semantic_judge_max_output_tokens,
         expected_service_tier,
     )
     if actual != expected:
@@ -246,8 +234,7 @@ def build_revision_setup(
         config.seed_run_dir,
         task_dir,
         config.replicate,
-        provider=config.agent.provider,
-        requested_model=config.agent.model,
+        seed_generator=config.seed_agent,
         prompt_profile=config.prompt_profile,
         benchmark=config.benchmark,
     )

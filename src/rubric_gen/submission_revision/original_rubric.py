@@ -166,6 +166,7 @@ def _job_identity(job: OriginalRubricJob) -> dict[str, object]:
         "assignment_id": job.target.assignment_id,
         "task_id": job.target.task_id,
         "replicate": job.target.replicate,
+        "solver_id": job.target.solver_id,
         "condition_id": job.target.condition_id,
         "experiment": str(job.target.experiment_dir),
         "model": job.model,

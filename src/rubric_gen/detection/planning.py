@@ -7,7 +7,6 @@ from typing import Callable
 
 from rubric_gen.detection.config import (
     MALT_REWARD_HACKING_CHARS_PER_TOKEN,
-    MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
     MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
 )
 from rubric_gen.detection.prompts import (
@@ -98,10 +97,8 @@ def _plan_reward_hacking_requests(
             "planned_calls": len(requests),
             "chunked": int(len(requests) > 1),
             "max_score_aggregation": 1,
-            "persistent_messages": min(
-                len(payload.messages),
-                MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
-            ),
+            "task_context_chars": len(payload.task_context),
+            "behavior_messages": len(payload.behavior_messages),
             "chunk_input_token_ceiling": ceiling,
             "chunk_character_limit": evidence_chars,
         },

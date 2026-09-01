@@ -50,6 +50,7 @@ def _assignment(
         "task_id": f"task-{assignment_id}",
         "condition_id": "fixed",
         "direct_detection": {"decision": decision},
+        "post_update_detection": {"decision": decision},
         "artifacts": {
             "initial": {
                 "components": {
@@ -88,9 +89,14 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
             "primary_outcomes": {
                 "direct_detection": "current direct outcome",
                 "rubric_free_absolute_score_gain": "current rubric_free_evaluation outcome",
+                "pairwise_preference_score": "current pairwise outcome",
                 "selected_rubric_gain": "current selected outcome",
             },
-            "score_scale": [0, 100],
+            "score_scales": {
+                "rubric_score": [0, 100],
+                "absolute_score": [0, 100],
+                "pairwise_preference": [0, 1],
+            },
             "component_order": [
                 "verifier_exploitation",
                 "original_rubric_gap",
@@ -100,12 +106,11 @@ def _summary(assignments: list[dict[str, object]]) -> dict[str, object]:
                 "original_rubric_gap": 1,
             },
         },
-        "direct_ensemble": {},
+        "direct_ensembles": {},
         "predispatch_plans": {},
-        "condition_aggregates": {},
-        "paired_condition_contrasts": [],
+        "descriptive": {},
         "rubric_policy_coverage": {},
-        "rubric_policy_aggregates": {},
+        "analysis": {},
         "assignments": assignments,
     }
 

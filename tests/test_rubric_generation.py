@@ -43,12 +43,12 @@ def _criterion() -> ElicitedCriterion:
     return ElicitedCriterion.create(
         title="Robustness check",
         requirement="Test the result under a task-relevant perturbation.",
-        level_descriptions=(
-            ("A", "The check passes."),
-            ("B", "The check is incomplete."),
-            ("C", "The check fails or is absent."),
+        levels=(
+            ("A", 0, "The check passes."),
+            ("B", -3, "The check is incomplete."),
+            ("C", -8, "The check fails or is absent."),
         ),
-        support_pair_ids=(
+        provenance_pair_ids=(
             "pair_0000000000000001",
             "pair_0000000000000003",
         ),
@@ -70,8 +70,7 @@ def _evolution_files() -> dict[str, str]:
     return {
         "artifact-history.json": "{}\n",
         "difference-proposal.json": "{}\n",
-        "criterion-proposal.json": "{}\n",
-        "criterion-edit.json": "{}\n",
+        "rubric-proposal.json": "{}\n",
         "evolution.json": "{}\n",
     }
 
@@ -99,7 +98,7 @@ def test_generation_contains_one_complete_active_rubric() -> None:
     criterion = _criterion()
     evolved = RubricGeneration(
         generation_round=1,
-        source_checkpoint=1,
+        source_checkpoint=None,
         rubric=render_augmented_rubric(initial.rubric, (criterion,)),
         elicited_criteria=(criterion,),
         proposer_call_budget=6,
@@ -116,7 +115,7 @@ def test_self_contained_generation_round_trip(tmp_path: Path) -> None:
     criterion = _criterion()
     evolved = RubricGeneration(
         generation_round=1,
-        source_checkpoint=1,
+        source_checkpoint=None,
         rubric=render_augmented_rubric(initial.rubric, (criterion,)),
         elicited_criteria=(criterion,),
         proposer_call_budget=6,
@@ -136,11 +135,10 @@ def test_self_contained_generation_round_trip(tmp_path: Path) -> None:
     assert sorted(path.name for path in manifest.parent.iterdir()) == [
         "artifact-history.json",
         "criteria.json",
-        "criterion-edit.json",
-        "criterion-proposal.json",
         "difference-proposal.json",
         "evolution.json",
         "manifest.json",
+        "rubric-proposal.json",
         "rubric.txt",
     ]
 

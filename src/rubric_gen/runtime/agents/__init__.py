@@ -6,6 +6,7 @@ from .models import AgentRunConfig, RunPaths
 from .policy import MAX_TRANSIENT_RETRIES, NO_WEB_POLICY
 from .runners import AgentRunner
 from .sessions import CliSolverSessionDriver, SessionTurnResult, SolverSessionDriver
+from .codex_sessions import CodexProviderHealthError, CodexSdkSessionDriver
 from .workspaces import TaskCatalog, TaskWorkspace
 
 __all__ = [
@@ -14,6 +15,8 @@ __all__ = [
     "AgentRunConfig",
     "AgentRunner",
     "CliSolverSessionDriver",
+    "CodexSdkSessionDriver",
+    "CodexProviderHealthError",
     "MAX_TRANSIENT_RETRIES",
     "NO_WEB_POLICY",
     "RunCost",

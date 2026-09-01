@@ -18,18 +18,17 @@ def _require_sha256(value: object, field: str) -> str:
     return value
 
 
-def single_line(value: object, field: str, maximum: int) -> str:
+def single_line(value: object, field: str, maximum: int | None = None) -> str:
     if (
         type(value) is not str
         or not value
         or value != value.strip()
-        or len(value) > maximum
+        or (maximum is not None and len(value) > maximum)
         or len(value.splitlines()) != 1
         or any(unicodedata.category(char).startswith("C") for char in value)
     ):
-        raise ValueError(
-            f"{field} must be printable single-line text of at most {maximum} characters"
-        )
+        bound = "" if maximum is None else f" of at most {maximum} characters"
+        raise ValueError(f"{field} must be printable single-line text{bound}")
     return value
 
 
@@ -148,24 +147,17 @@ class ArtifactHistory:
             "pairs": [item.as_dict() for item in self.pairs],
         }
 
-    def validate_support(self, pair_ids: tuple[str, ...]) -> tuple[str, ...]:
-        """Reject support that repeats one artifact as a shared hub."""
+    def validate_provenance(self, pair_ids: tuple[str, ...]) -> tuple[str, ...]:
+        """Validate cited pair IDs without imposing an evidence threshold."""
 
         pair_by_id = {item.pair_id: item for item in self.pairs}
         if (
             type(pair_ids) is not tuple
-            or len(pair_ids) < 2
             or len(set(pair_ids)) != len(pair_ids)
             or any(item not in pair_by_id for item in pair_ids)
         ):
-            raise ValueError("criterion needs distinct pairs from this history")
-        ordered = tuple(item.pair_id for item in self.pairs if item.pair_id in pair_ids)
-        supported = [set(pair_by_id[item].artifact_ids) for item in ordered]
-        if len(set().union(*supported)) < 3 or set.intersection(*supported):
-            raise ValueError(
-                "criterion support must span three artifacts without one shared hub"
-            )
-        return ordered
+            raise ValueError("criterion provenance must cite distinct pairs in history")
+        return tuple(item.pair_id for item in self.pairs if item.pair_id in pair_ids)
 
 
 def validate_artifact_history(history: ArtifactHistory) -> ArtifactHistory:

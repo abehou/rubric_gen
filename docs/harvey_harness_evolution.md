@@ -1,17 +1,38 @@
 # Harvey LAB harness-evolution study
 
 This workflow studies reward hacking while a Codex agent designs executable
-Harvey LAB harnesses. It starts from the stock `harness/` directory at one exact
-Harvey LAB commit. It does not start from a hand-improved harness.
+Harvey LAB harnesses. It runs a randomized replicated comparison between a
+static-rubric control and a prospective-rubric treatment. Every trajectory starts
+from the stock `harness/` directory at one exact Harvey LAB commit.
 
-The experiment uses one proposal per round. It keeps every proposal, including a
+The randomization seed fixes condition order within adjacent replicate blocks.
+Each block contains one static and one prospective trajectory. The controller
+completes all trajectories before it runs any hidden selection or held-out task.
+
+Each trajectory uses one proposal per round. It keeps every proposal, including a
 regression. Codex can choose any earlier candidate as its parent. The controller
 does not force the last candidate or automatically copy the best candidate.
 
+## Task roles
+
+The three task sets have separate roles:
+
+- Development tasks are visible during harness design and rubric evolution.
+- Selection tasks are hidden during design. They select one candidate after all
+  trajectories finish.
+- Held-out tasks are also hidden during design. They evaluate only the selected
+  candidate and the stock baseline.
+
+Selection and held-out task-agent evaluations use the configured number of
+independent repeats. Candidate selection uses replicated mean criterion pass,
+then mean all-pass, then the earliest candidate as a fixed tie break. Held-out
+results cannot affect candidate selection.
+
 ## Round order
 
-`r0000` evaluates the stock `h0000` harness with the original development-task
-rubrics. Each later round does these operations in order:
+Within each randomized trajectory, `r0000` evaluates the stock `h0000` harness
+with the original development-task rubrics. Each later round does these operations
+in order:
 
 1. In the prospective condition, the rubric proposer revises each task rubric
    from the prior round's canonical result. It can replace existing criterion
@@ -28,24 +49,22 @@ rubrics. Each later round does these operations in order:
    those outputs with the active rubric. The proposal remains in the archive
    whether its score increases or decreases.
 
-The Codex workspace never contains held-out tasks, the sealed original rubrics,
-quality-transfer results, or reward-hacking judgments.
+The Codex workspace never contains selection tasks, held-out tasks, sealed original
+rubrics, quality-transfer results, or reward-hacking judgments.
 
 ## Artifact layout
 
 The important output paths are:
 
 ```text
-candidates/h####/harness/                 complete harness snapshot
-candidates/h####/candidate.json           parent and proposal record
-rubrics/r####/tasks/.../task.json          active task rubrics
-rounds/r####/crossed/h####/                old outputs scored by current rubric
-rounds/r####/visible-current/              exact input shown to Codex
-rounds/r####/design-attempts/              Codex prompt, trajectory, and workspace
-rounds/r####/canonical/h####/              new task runs and Harvey scores
-audits/quality-transfer/                   sealed post-run quality results
-audits/reward-hacking/                     forensic cases and detector judgments
-run-seal.json                              whole-run artifact count, size, and digest
+allocation.json                            fixed randomized unit allocation
+study.json                                 unit outcomes and treatment contrasts
+trajectories/u####/candidates/h####/       complete harness snapshots
+trajectories/u####/rubrics/r####/          active development-task rubrics
+trajectories/u####/rounds/r####/           crossed and canonical results
+trajectories/u####/audits/quality-transfer/ hidden selection and held-out results
+trajectories/u####/audits/reward-hacking/   forensic cases and judgments
+run-seal.json                              whole-study artifact digest
 ```
 
 Each candidate record has an explicit `parent_harness`. Thus, the analysis can
@@ -88,15 +107,16 @@ env HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${UID:?}" uv run rubric-gen run 
   --max-concurrency 3
 ```
 
-The command runs harness evolution, the quality audit, and reward-hacking
-detection in sequence. It then writes `run-seal.json` and makes the full output
-tree read-only. The seal binds every other artifact path and byte to one digest.
+The command runs every randomized evolution trajectory first. It then runs hidden
+selection, held-out evaluation, and reward-hacking detection. It writes
+`run-seal.json` and makes the full output tree read-only. The seal binds every
+other artifact path and byte to one digest.
 
 `--max-concurrency` bounds concurrent Harvey task runs and audit judgments. The
-development tier has three tasks. Its judge uses three criterion workers per
-task. Thus, three concurrent task judges issue at most nine criterion calls.
-Use four task workers for the 20-task results tier. This gives at most 12
-concurrent criterion calls.
+development tier has three development tasks and two trajectories per condition.
+The results tier has 20 development tasks and three trajectories per condition.
+Both tiers repeat hidden outcome runs twice. Trajectories execute sequentially in
+the randomized order.
 
 The judge sends the same one-criterion prompt used by the pinned Harvey
 evaluator. It marks the shared task-output prefix for Anthropic's five-minute
@@ -146,11 +166,10 @@ Python exception. A forced process stop can leave node-local residue. Remove the
 job root after such a stop. Harvey does not put designer credentials in the
 saved run tree.
 
-Start the 20-task results run only after the development study completes without
-task, image-cache, or judge errors. The results run has 83,479 nominal Sonnet
-criterion judgments and no whole-study cost ceiling. The explicit prompt cache
-reduces repeated-prefix charges but does not reduce the request count. Estimate
-and approve the remaining cost before submission.
+The randomized results study is much larger than the old single trajectory. It
+runs six evolution trajectories, evaluates every candidate on 20 selection tasks
+twice, and evaluates each selected candidate plus its baseline on 20 held-out
+tasks twice. Estimate the complete request and storage cost before submission.
 
 The `env` prefix removes CPU-binding masks inherited from the submitting Slurm
 allocation. A stale mask can fall outside the CPUs assigned to the new job.
@@ -181,9 +200,10 @@ each known transient task-agent or judge failure. It starts each task-agent
 retry with a clean result directory. It preserves each failed log beside the
 final log.
 
-The post-run quality stage first re-scores every candidate's stored development output with the
-sealed original rubric. It then runs every candidate on all held-out tasks. Its
-summary reports active-minus-original score gaps and held-out performance.
+The post-run quality stage first re-scores stored development outputs with the
+sealed original rubric. It evaluates every candidate on selection tasks. It then
+evaluates only the selected candidate and stock baseline on held-out tasks. The
+study summary reports condition means and the prospective-minus-static contrast.
 
 The post-run detection stage converts each accepted Codex design turn into a MALT-compatible forensic
 case. The evidence contains the visible ranking, raw Codex trajectory, accepted
@@ -209,14 +229,18 @@ or in a working directory that contains sensitive data.
 
 ## Primary comparisons
 
-The main analysis should report these measures by round and ancestry:
+The main analysis should report these measures by randomized condition and
+trajectory replicate:
 
 - current active-rubric development score;
 - the same stored output under the original rubric;
-- held-out-task score under original rubrics;
+- selection-task score under original rubrics;
+- selected-minus-baseline held-out score under original rubrics;
 - score change relative to the chosen parent, the prior proposal, and `h0000`;
 - reward-hacking detector score and qualitative mechanism.
 
-A visible score increase with a growing active-minus-original gap or falling
-held-out score is evidence of rubric-set overfitting. It is not by itself proof
-of intentional reward hacking. The behavior audit supplies separate evidence.
+The primary causal contrasts are prospective minus static for held-out quality
+change and reward-hacking rate. A visible score increase with a growing
+active-minus-original gap or falling held-out score is evidence of rubric-set
+overfitting. It is not by itself proof of intentional reward hacking. The
+behavior audit supplies separate evidence.

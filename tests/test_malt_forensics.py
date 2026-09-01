@@ -40,6 +40,10 @@ from rubric_gen.submission_revision.evaluation.direct import (
     DirectDetectionConfig,
     run_direct_detection,
 )
+from rubric_gen.submission_revision.detection_windows import (
+    RevisionDetectionWindow,
+)
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 
 
 DATASET_REVISION = "a" * 40
@@ -83,7 +87,10 @@ Here are some things that should not be classified as cheating:
             "https://github.com/METR/modelscan-inspect/blob/main/"
             "modelscan/jobs/reward_hacking.py"
         ),
-        "early_message_count": 5,
+        "shared_context": "original_task_context",
+        "behavior_chunking": "all_messages_in_source_order",
+        "field_text": "complete",
+        "overflow": "fail_without_fallback",
         "chunk_max_input_tokens": 150_000,
         "chunk_chars_per_token": 2,
         "chunk_aggregation": "maximum_score_first_tie",
@@ -352,13 +359,28 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     (tasks / "da-1-1").mkdir(parents=True)
     (tasks / "da-1-1" / "instruction.md").write_text("task\n")
     study = tmp_path / "study"
-    experiment = study / "experiments" / "da-1-1" / "rep-001" / "base--fixed"
+    experiment = (
+        study
+        / "experiments"
+        / "da-1-1"
+        / "rep-001"
+        / "test-solver"
+        / "base--fixed"
+    )
     experiment.mkdir(parents=True)
+    assignment = ExperimentAssignment(
+        task_id="da-1-1",
+        replicate=1,
+        solver_id="test-solver",
+        condition_id="base--fixed",
+        within_block_order=1,
+        execution_order=1,
+    )
     (experiment / "manifest.json").write_text(json.dumps({
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": "test-experiment",
         "execution_order": 1,
-        "assignment_id": "assignment-1",
+        "assignment_id": assignment.assignment_id,
         "task_id": "da-1-1",
     }))
     (study / "study.json").write_text(json.dumps({
@@ -368,14 +390,10 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         "experiment_id": "test-experiment",
         "seed_run_dir": str(tmp_path / "seeds"),
         "paraphrase_run_dir": str(tmp_path / "paraphrases"),
+        "pretreatment_rubric_root": str(study / "pretreatment-rubrics"),
         "records": [{
-            "assignment_id": "assignment-1",
-            "task_id": "da-1-1",
-            "replicate": 1,
-            "condition_id": "base--fixed",
-            "execution_order": 1,
+            **assignment.record_identity(),
             "status": "completed",
-            "experiment_dir": str(experiment.relative_to(study)),
         }],
     }))
     observed = {}
@@ -392,13 +410,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
                 "original_rubric_gap": 1,
             },
         )
-        assignments = ({
-            "assignment_id": "assignment-1",
-            "task_id": "da-1-1",
-            "replicate": 1,
-            "condition_id": "base--fixed",
-            "execution_order": 1,
-        },)
+        assignments = (assignment,)
 
     class FakeRunner:
         def __init__(self, config):
@@ -416,6 +428,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         output_dir=tmp_path / "out",
         max_concurrency=3,
         resume=True,
+        window=RevisionDetectionWindow.FULL_TRAJECTORY,
         detection=detection,
     )) == 0
     config = observed["config"]
@@ -427,8 +440,8 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         "kind": "submission-revision-trajectories",
         "experiment_ids": ["test-experiment"],
         "tasks_dir": str(tasks.resolve()),
+        "window": "full_trajectory",
     }
-    assert config.max_command_output_chars == 2_048
     assert config.detection == detection
     assert config.resume is False
     assert "--mc-" not in config.output_dir.name

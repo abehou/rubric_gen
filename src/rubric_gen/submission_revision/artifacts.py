@@ -32,7 +32,7 @@ RECURSIVE_EXCLUDED_SOLUTION_NAMES = frozenset(
     }
 )
 EXCLUDED_SOLUTION_NAMES = RECURSIVE_EXCLUDED_SOLUTION_NAMES | frozenset(
-    {"data", "instruction.md", "packages", "revision.json"}
+    {"data", "instruction.md", "packages"}
 )
 RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
 
@@ -72,19 +72,19 @@ REVISION_MANIFEST_KEYS = frozenset(
         "elicitation_seed_replicates",
         "review",
         "max_revisions",
+        "min_revisions",
         "rubric_policy",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",
-        "rubric_semantic_judge_model",
-        "rubric_semantic_judge_max_calls",
-        "rubric_semantic_judge_max_request_bytes",
-        "rubric_semantic_judge_max_output_tokens",
         "rubric_generation_implementation_sha256",
         "initial_scoring_identity",
         "seed_run_dir",
+        "pretreatment_rubric_dir",
         "seed_sha256",
         "service_tier",
         "session_id",
+        "seed_generator",
+        "solver_id",
         "submission_count",
         "task_dir",
         "task_id",
@@ -103,15 +103,9 @@ def revision_manifest_keys(feedback_policy: str) -> frozenset[str]:
 
 
 @dataclass
-class SnapshotCopyStats:
-    copied_files: int = 0
-    copied_bytes: int = 0
-    linked_files: int = 0
-    linked_bytes: int = 0
-
-    @property
-    def logical_bytes(self) -> int:
-        return self.copied_bytes + self.linked_bytes
+class WorkspaceSnapshotStats:
+    files: int = 0
+    bytes: int = 0
 
 
 @dataclass
@@ -120,27 +114,22 @@ class WorkspaceCompactionStats:
     removed_logical_bytes: int = 0
 
 
-def copy_solution_workspace(
+def snapshot_solution_workspace(
     source: Path,
     destination: Path,
-    *,
-    previous: Path | None = None,
-) -> SnapshotCopyStats:
-    """Snapshot a solution, hard-linking files unchanged from the prior round."""
-    if previous is not None and (previous.is_symlink() or not previous.is_dir()):
-        raise RuntimeError(f"invalid previous solution snapshot: {previous}")
-    stats = SnapshotCopyStats()
+) -> WorkspaceSnapshotStats:
+    """Copy a live solution into an independent, read-only snapshot."""
+    stats = WorkspaceSnapshotStats()
     destination.mkdir()
     for child in sorted(source.iterdir(), key=lambda path: path.name):
         if is_excluded_solution_root(child):
             continue
-        previous_child = previous / child.name if previous is not None else None
         _copy_solution_entry(
             child,
             destination / child.name,
-            previous_child,
             stats,
         )
+    make_read_only(destination)
     return stats
 
 
@@ -181,7 +170,7 @@ def compact_historical_workspace(
             )
         stats.removed_files += removed_files
         stats.removed_logical_bytes += removed_bytes
-    make_tree_read_only(root)
+    _seal_compacted_tree(root)
     return stats
 
 
@@ -191,28 +180,38 @@ def prepare_evaluation_run(submission_dir: Path, evaluation_root: Path) -> Path:
     run_dir = evaluation_root / "run"
     workspace = run_dir / "workspace"
     run_dir.mkdir(parents=True)
-    _link_solution_workspace(submission_dir / "workspace", workspace)
-    make_tree_read_only(workspace)
-    os.link(
+    copy_immutable_workspace(submission_dir / "workspace", workspace)
+    copy_immutable_file(
         submission_dir / "trajectory.stream.jsonl",
         run_dir / "trajectory.stream.jsonl",
-        follow_symlinks=False,
     )
     source_status = read_json_object(
         submission_dir / "status.json",
         "submission status",
     )
     source_status["workspace_dir"] = str(workspace)
-    evaluation_trajectory = run_dir / "trajectory.stream.jsonl"
     evaluation_status = run_dir / "status.json"
     write_json(evaluation_status, source_status)
-    make_read_only(evaluation_trajectory)
     return run_dir
 
 
-def link_solution_workspace(source: Path, destination: Path) -> None:
-    """Hardlink an immutable solution tree without duplicating file contents."""
-    _link_solution_workspace(source, destination)
+def copy_immutable_workspace(source: Path, destination: Path) -> None:
+    """Copy a sealed solution tree without sharing mutable inode metadata."""
+    if source.is_symlink() or not source.is_dir():
+        raise RuntimeError(f"invalid immutable workspace: {source}")
+    destination.mkdir()
+    for child in sorted(source.iterdir(), key=lambda path: path.name):
+        _copy_immutable_entry(child, destination / child.name)
+    make_read_only(destination)
+
+
+def copy_immutable_file(source: Path, destination: Path) -> None:
+    """Copy one sealed file into an inode-independent sealed file."""
+    source_stat = os.lstat(source)
+    if not stat.S_ISREG(source_stat.st_mode) or source_stat.st_mode & 0o222:
+        raise RuntimeError(f"immutable source is not a read-only file: {source}")
+    shutil.copyfile(source, destination, follow_symlinks=False)
+    make_read_only(destination)
 
 
 def verify_submission_snapshot(submission_dir: Path) -> None:
@@ -378,8 +377,7 @@ def read_json_object(path: Path, context: str) -> dict[str, object]:
 def _copy_solution_entry(
     source: Path,
     destination: Path,
-    previous: Path | None,
-    stats: SnapshotCopyStats,
+    stats: WorkspaceSnapshotStats,
 ) -> None:
     if source.name in RECURSIVE_EXCLUDED_SOLUTION_NAMES:
         return
@@ -388,51 +386,20 @@ def _copy_solution_entry(
         raise RuntimeError(f"solution snapshot contains a symlink: {source}")
     if stat.S_ISDIR(source_stat.st_mode):
         destination.mkdir()
-        previous_dir = (
-            previous
-            if previous is not None
-            and not previous.is_symlink()
-            and previous.is_dir()
-            else None
-        )
         for child in sorted(source.iterdir(), key=lambda path: path.name):
             _copy_solution_entry(
                 child,
                 destination / child.name,
-                previous_dir / child.name if previous_dir is not None else None,
                 stats,
             )
+        make_read_only(destination)
         return
     if not stat.S_ISREG(source_stat.st_mode):
         raise RuntimeError(f"solution snapshot contains a special file: {source}")
-    if (
-        previous is not None
-        and not previous.is_symlink()
-        and previous.is_file()
-        and _regular_files_equal(source, previous)
-    ):
-        os.link(previous, destination, follow_symlinks=False)
-        stats.linked_files += 1
-        stats.linked_bytes += source_stat.st_size
-        return
     shutil.copyfile(source, destination, follow_symlinks=False)
-    stats.copied_files += 1
-    stats.copied_bytes += source_stat.st_size
-
-
-def _regular_files_equal(first: Path, second: Path) -> bool:
-    first_stat = os.lstat(first)
-    second_stat = os.lstat(second)
-    if not stat.S_ISREG(second_stat.st_mode) or first_stat.st_size != second_stat.st_size:
-        return False
-    with first.open("rb") as first_stream, second.open("rb") as second_stream:
-        while True:
-            first_chunk = first_stream.read(1024 * 1024)
-            second_chunk = second_stream.read(1024 * 1024)
-            if first_chunk != second_chunk:
-                return False
-            if not first_chunk:
-                return True
+    make_read_only(destination)
+    stats.files += 1
+    stats.bytes += source_stat.st_size
 
 
 def _tree_file_totals(root: Path) -> tuple[int, int]:
@@ -454,27 +421,31 @@ def _tree_file_totals(root: Path) -> tuple[int, int]:
     return files, logical_bytes
 
 
-def _link_solution_workspace(source: Path, destination: Path) -> None:
-    """Mirror an immutable snapshot without duplicating regular-file contents."""
-    if source.is_symlink() or not source.is_dir():
-        raise RuntimeError(f"invalid submission workspace: {source}")
-    destination.mkdir()
-    for child in sorted(source.iterdir(), key=lambda path: path.name):
-        _link_solution_entry(child, destination / child.name)
-
-
-def _link_solution_entry(source: Path, destination: Path) -> None:
+def _copy_immutable_entry(source: Path, destination: Path) -> None:
     source_stat = os.lstat(source)
     if stat.S_ISLNK(source_stat.st_mode):
-        raise RuntimeError(f"submission snapshot contains a symlink: {source}")
+        raise RuntimeError(f"immutable workspace contains a symlink: {source}")
     if stat.S_ISDIR(source_stat.st_mode):
         destination.mkdir()
         for child in sorted(source.iterdir(), key=lambda path: path.name):
-            _link_solution_entry(child, destination / child.name)
+            _copy_immutable_entry(child, destination / child.name)
+        make_read_only(destination)
         return
     if not stat.S_ISREG(source_stat.st_mode):
-        raise RuntimeError(f"submission snapshot contains a special file: {source}")
-    os.link(source, destination, follow_symlinks=False)
+        raise RuntimeError(f"immutable workspace contains a special file: {source}")
+    copy_immutable_file(source, destination)
+
+
+def _seal_compacted_tree(root: Path) -> None:
+    """Seal an inode-independent compacted tree and reject unsafe entries."""
+    for path in [*root.rglob("*"), root]:
+        path_stat = os.lstat(path)
+        if stat.S_ISDIR(path_stat.st_mode) or stat.S_ISREG(path_stat.st_mode):
+            make_read_only(path)
+        elif stat.S_ISLNK(path_stat.st_mode):
+            raise RuntimeError(f"immutable snapshot contains a symlink: {path}")
+        else:
+            raise RuntimeError(f"immutable snapshot contains a special file: {path}")
 
 
 def _hash_tree(

@@ -296,16 +296,13 @@ class SubmissionJudgeRunner:
         evaluation_path = output_dir / "evaluation.json"
         score_validation_path = output_dir / "score_validation.json"
         rubric = self.resolve_rubric(target)
-        judge_path = self.find_judge(target.task_dir)
         try:
             review_text, answer_text = self.review_inputs(target)
-            judge_source = judge_path.read_bytes()
         except (OSError, UnicodeError):
             return None
         score_input_attestation = self.executor.score_input_attestation(
             attempt=attempt,
             rubric=rubric,
-            judge_source=judge_source,
             review_text=review_text,
             answer_text=answer_text,
             effective_judge_model=self.judge_model(os.environ.copy()),

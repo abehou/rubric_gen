@@ -34,12 +34,17 @@ from rubric_gen.submission_revision.rubric_generation import (
 from rubric_gen.submission_revision.rubric_generation_store import (
     load_rubric_generation,
 )
-from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
+from rubric_gen.submission_revision.seeds import (
+    ResolvedSeed,
+    resolve_seed,
+    seed_generator_identity,
+)
 from rubric_gen.submission_revision.store import (
     extract_judge_execution_contract,
     extract_seed_scoring_contract,
 )
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 
 
 @dataclass(frozen=True)
@@ -56,7 +61,7 @@ class ScoringSetup:
 @dataclass(frozen=True)
 class ValidationContext:
     experiment_dir: Path
-    assignment: dict[str, object]
+    assignment: ExperimentAssignment
     experiment: Experiment
     protocol: dict[str, object]
     condition: dict[str, object]
@@ -64,20 +69,23 @@ class ValidationContext:
     rubric_policy: RubricPolicy
     simulator: SimulatedUserFeedback | None
     agent: AgentRunConfig
+    seed_agent: AgentRunConfig
     task_dir: Path
+    pretreatment_rubric_dir: Path
     selection: ParaphraseSelection
     seed: ResolvedSeed
     seed_contract: dict[str, object]
     manifest: dict[str, object]
     state: dict[str, object]
     max_revisions: int
+    min_revisions: int
     expected_ids: tuple[str, ...]
     scoring: ScoringSetup
 
 
 def build_validation_context(
     experiment_dir: Path,
-    assignment: dict[str, object],
+    assignment: ExperimentAssignment,
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
@@ -87,7 +95,7 @@ def build_validation_context(
     manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
     state = read_json_object(experiment_dir / "state.json", "revision state")
     protocol = experiment.protocol
-    condition = experiment.condition(str(assignment["condition_id"]))
+    condition = experiment.condition(assignment.condition_id)
     policy = FeedbackPolicy(str(condition["feedback_policy"]))
     simulator_config = experiment.feedback_simulator_config(policy)
     simulator = (
@@ -95,21 +103,24 @@ def build_validation_context(
         if simulator_config is not None
         else None
     )
-    agent = experiment.agent_config()
-    task_dir = experiment.task_dir(str(assignment["task_id"])).resolve()
+    agent = experiment.solver_config(assignment.solver_id)
+    seed_agent = experiment.seed_agent_config()
+    task_dir = experiment.task_dir(assignment.task_id).resolve()
+    pretreatment_value = manifest.get("pretreatment_rubric_dir")
+    if type(pretreatment_value) is not str or not pretreatment_value:
+        raise RuntimeError("revision manifest has no pre-treatment rubric path")
+    pretreatment_rubric_dir = Path(pretreatment_value)
     paraphrase_validation.validate_paraphrase_run(paraphrase_run_dir, experiment)
     selection = paraphrase_validation.resolve_paraphrase_selection(
         paraphrase_run_dir,
         experiment,
-        str(assignment["task_id"]),
-        int(assignment["replicate"]),
+        assignment.task_id,
     )
     seed = resolve_seed(
         seed_run_dir,
         task_dir,
-        int(assignment["replicate"]),
-        provider=agent.provider,
-        requested_model=agent.model,
+        assignment.replicate,
+        seed_generator=seed_agent,
         prompt_profile=str(protocol["prompt"]),
         benchmark=experiment.benchmark,
     )
@@ -136,6 +147,7 @@ def build_validation_context(
     ):
         raise RuntimeError("revision seed and judge use different execution contracts")
     max_revisions = int(protocol["max_revisions"])
+    min_revisions = int(protocol["min_revisions"])
     submission_count = manifest.get("submission_count")
     if (
         type(submission_count) is not int
@@ -171,13 +183,16 @@ def build_validation_context(
         rubric_policy=rubric_policy,
         simulator=simulator,
         agent=agent,
+        seed_agent=seed_agent,
         task_dir=task_dir,
+        pretreatment_rubric_dir=pretreatment_rubric_dir,
         selection=selection,
         seed=seed,
         seed_contract=seed_contract,
         manifest=manifest,
         state=state,
         max_revisions=max_revisions,
+        min_revisions=min_revisions,
         expected_ids=expected_ids,
         scoring=scoring,
     )
@@ -265,14 +280,16 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": context.experiment.experiment_id,
         "benchmark": str(context.experiment.benchmark),
-        "assignment_id": context.assignment.get("assignment_id"),
-        "condition_id": context.assignment.get("condition_id"),
-        "task_id": context.assignment.get("task_id"),
+        "assignment_id": context.assignment.assignment_id,
+        "condition_id": context.assignment.condition_id,
+        "solver_id": context.assignment.solver_id,
+        "task_id": context.assignment.task_id,
         "task_dir": str(context.task_dir),
-        "replicate": context.assignment.get("replicate"),
+        "replicate": context.assignment.replicate,
         "elicitation_seed_replicates": context.experiment.replicates,
-        "execution_order": context.assignment.get("execution_order"),
+        "execution_order": context.assignment.execution_order,
         "max_revisions": context.max_revisions,
+        "min_revisions": context.min_revisions,
         "provider": agent.provider,
         "model": agent.model,
         "executable": agent.executable,
@@ -287,16 +304,6 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "rubric_policy": context.condition["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
-        "rubric_semantic_judge_model": protocol["rubric_semantic_judge_model"],
-        "rubric_semantic_judge_max_calls": protocol[
-            "rubric_semantic_judge_max_calls_per_assignment"
-        ],
-        "rubric_semantic_judge_max_request_bytes": protocol[
-            "rubric_semantic_judge_max_request_bytes_per_call"
-        ],
-        "rubric_semantic_judge_max_output_tokens": protocol[
-            "rubric_semantic_judge_max_output_tokens_per_call"
-        ],
         "rubric_generation_implementation_sha256": (
             rubric_generation_implementation_sha256()
         ),
@@ -316,6 +323,10 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "instruction_sha256": sha256_file(context.task_dir / "instruction.md"),
         "data_sha256": tree_sha256(context.task_dir / "environment" / "data"),
         "seed_run_dir": str(context.seed.root),
+        "pretreatment_rubric_dir": str(
+            context.pretreatment_rubric_dir.resolve()
+        ),
+        "seed_generator": seed_generator_identity(context.seed_agent),
         "seed_sha256": context.seed.sha256,
         "submission_count": len(context.expected_ids),
         "live_workspace_removed": True,
@@ -345,7 +356,11 @@ def validate_state(context: ValidationContext) -> None:
         and state.get("phase") == "completed"
         and state.get("submission_ids") == list(expected_ids)
         and state.get("next_turn_index") == len(expected_ids)
-        and state.get("stop_reason") in {"solver", "max_revisions"}
+        and state.get("stop_reason") in {"no_change", "max_revisions"}
+        and (
+            state.get("stop_reason") != "no_change"
+            or len(expected_ids) >= context.min_revisions
+        )
         and (
             state.get("stop_reason") != "max_revisions"
             or len(expected_ids) == context.max_revisions + 1

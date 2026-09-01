@@ -11,10 +11,6 @@ from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.runtime.agents.sessions import SolverSessionDriver
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.evolution import RubricProposer
-from rubric_gen.submission_revision.evolution_provider import (
-    MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
-    MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
-)
 from rubric_gen.submission_revision.rubric_generation import RubricPolicy
 from rubric_gen.submission_revision.judge import (
     SubmissionJudge,
@@ -34,8 +30,12 @@ class SubmissionRevisionConfig:
     task_dir: Path
     experiment_dir: Path
     max_revisions: int
+    min_revisions: int
     seed_run_dir: Path
+    pretreatment_rubric_dir: Path
     agent: AgentRunConfig
+    seed_agent: AgentRunConfig
+    solver_id: str
     experiment_id: str
     assignment_id: str
     condition_id: str
@@ -44,10 +44,6 @@ class SubmissionRevisionConfig:
     execution_order: int
     optimizer_rubric_path: Path
     master_rubric_name: str
-    rubric_semantic_judge_model: str
-    rubric_semantic_judge_max_calls: int
-    rubric_semantic_judge_max_request_bytes: int
-    rubric_semantic_judge_max_output_tokens: int
     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     rubric_proposer_max_retries: int = 1
     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
@@ -65,6 +61,15 @@ class SubmissionRevisionConfig:
     def __post_init__(self) -> None:
         if type(self.max_revisions) is not int or self.max_revisions < 0:
             raise ValueError("max_revisions must be a non-negative integer")
+        if (
+            type(self.min_revisions) is not int
+            or not 0 <= self.min_revisions <= self.max_revisions
+        ):
+            raise ValueError(
+                "min_revisions must be between zero and max_revisions"
+            )
+        if not isinstance(self.pretreatment_rubric_dir, Path):
+            raise ValueError("pretreatment_rubric_dir must be a path")
         if self.review not in {"trace", "trajectory", "workspace"}:
             raise ValueError("review must be trace, trajectory, or workspace")
         if (
@@ -86,7 +91,13 @@ class SubmissionRevisionConfig:
             raise ValueError("progress_position must be a non-negative integer")
         if type(self.agent.model) is not str or not self.agent.model.strip():
             raise ValueError("submission revision requires an explicit solver model")
+        if (
+            type(self.seed_agent.model) is not str
+            or not self.seed_agent.model.strip()
+        ):
+            raise ValueError("submission revision requires an explicit seed model")
         for name, value in (
+            ("solver_id", self.solver_id),
             ("experiment_id", self.experiment_id),
             ("assignment_id", self.assignment_id),
             ("condition_id", self.condition_id),
@@ -120,33 +131,11 @@ class SubmissionRevisionConfig:
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)
         RubricPolicy(self.rubric_policy)
-        for name, model in (
-            ("rubric_proposer_model", self.rubric_proposer_model),
-            ("rubric_semantic_judge_model", self.rubric_semantic_judge_model),
-        ):
-            if type(model) is not str or not model.strip():
-                raise ValueError(f"{name} must be nonempty")
         if (
-            type(self.rubric_semantic_judge_max_calls) is not int
-            or self.rubric_semantic_judge_max_calls
-            != max(1, self.max_revisions - 1)
+            type(self.rubric_proposer_model) is not str
+            or not self.rubric_proposer_model.strip()
         ):
-            raise ValueError(
-                "rubric semantic reviewer call cap must cover offline compilation "
-                "and online updates"
-            )
-        if (
-            type(self.rubric_semantic_judge_max_request_bytes) is not int
-            or not 1 <= self.rubric_semantic_judge_max_request_bytes
-            <= MAX_SEMANTIC_REVIEW_REQUEST_BYTES
-        ):
-            raise ValueError("rubric semantic judge request-byte cap is invalid")
-        if (
-            type(self.rubric_semantic_judge_max_output_tokens) is not int
-            or not 1 <= self.rubric_semantic_judge_max_output_tokens
-            <= MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS
-        ):
-            raise ValueError("rubric semantic judge output-token cap is invalid")
+            raise ValueError("rubric_proposer_model must be nonempty")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(
@@ -279,7 +268,7 @@ class RevisionState:
                 for key, value in judge_attempts.items()
             )
             or type(next_prompt) is not str
-            or stop_reason not in {None, "solver", "max_revisions"}
+            or stop_reason not in {None, "no_change", "max_revisions"}
         ):
             raise RuntimeError("revision state has invalid fields")
         try:

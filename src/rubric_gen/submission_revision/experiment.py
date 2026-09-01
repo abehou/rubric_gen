@@ -15,15 +15,15 @@ from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
-from rubric_gen.submission_revision.evolution_provider import (
-    MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
-    MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
-)
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
 from rubric_gen.submission_revision.judging.models import safe_basename
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.artifacts.hashing import sha256_text
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
+from rubric_gen.submission_revision.detection_windows import (
+    MINIMUM_POST_UPDATE_REVISIONS,
+)
 
 
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
@@ -40,6 +40,8 @@ _IDENTITY_KEYS = (
     "tasks_dir",
     "tasks",
     "randomization",
+    "seed_generator",
+    "solvers",
     "conditions",
     "assignment_selection",
     "protocol",
@@ -74,7 +76,7 @@ class Experiment:
         return int(self.payload["randomization"]["replicates"])
 
     @property
-    def assignments(self) -> tuple[dict[str, object], ...]:
+    def assignments(self) -> tuple[ExperimentAssignment, ...]:
         return tuple(self.payload["assignments"])
 
     @property
@@ -107,25 +109,32 @@ class Experiment:
             raise ValueError(f"task is not in experiment: {task_id}")
         return self.tasks_dir / task_id
 
-    def agent_config(
+    @property
+    def solver_ids(self) -> tuple[str, ...]:
+        return tuple(str(value["solver_id"]) for value in self.payload["solvers"])
+
+    def seed_agent_config(
         self,
         *,
         quiet: bool = False,
     ) -> AgentRunConfig:
-        value = self.protocol["solver"]
-        provider = value["provider"]
-        model = value["model"]
-        assert isinstance(provider, str) and isinstance(model, str)
-        return AgentRunConfig(
-            provider=provider,
-            model=model,
-            reasoning_effort=_optional_string(value.get("reasoning_effort")),
-            service_tier=_optional_string(value.get("service_tier")),
-            executable=_optional_string(value.get("executable")),
-            retries=value["retries"],
-            timeout_seconds=value["timeout_seconds"],
-            quiet=quiet,
-        )
+        return _agent_run_config(self.payload["seed_generator"], quiet=quiet)
+
+    def solver_config(
+        self,
+        solver_id: str,
+        *,
+        quiet: bool = False,
+    ) -> AgentRunConfig:
+        matches = [
+            value for value in self.payload["solvers"]
+            if value["solver_id"] == solver_id
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"unknown solver: {solver_id}")
+        value = dict(matches[0])
+        value.pop("solver_id")
+        return _agent_run_config(value, quiet=quiet)
 
     def feedback_simulator_config(
         self,
@@ -146,6 +155,23 @@ class Experiment:
             max_retries=value["max_retries"],
         )
 
+
+def _agent_run_config(value: object, *, quiet: bool) -> AgentRunConfig:
+    if not isinstance(value, dict):
+        raise ValueError("agent configuration must be a mapping")
+    provider = value["provider"]
+    model = value["model"]
+    assert isinstance(provider, str) and isinstance(model, str)
+    return AgentRunConfig(
+        provider=provider,
+        model=model,
+        reasoning_effort=_optional_string(value.get("reasoning_effort")),
+        service_tier=_optional_string(value.get("service_tier")),
+        executable=_optional_string(value.get("executable")),
+        retries=value["retries"],
+        timeout_seconds=value["timeout_seconds"],
+        quiet=quiet,
+    )
 
 def load_experiment(path: Path) -> Experiment:
     resolved = path.resolve()
@@ -170,7 +196,8 @@ def load_experiment(path: Path) -> Experiment:
 def _validate(payload: dict[str, Any], path: Path) -> str:
     required = {
         "kind", "benchmark", "tasks_dir", "tasks",
-        "randomization", "conditions", "assignment_selection", "protocol",
+        "randomization", "seed_generator", "solvers", "conditions",
+        "assignment_selection", "protocol",
         "rubric_paraphrases", "outcome_audit", "dag",
     }
     if set(payload) != required:
@@ -196,6 +223,24 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError(
             "criterion elicitation requires at least three replicates"
         )
+    _validate_agent(payload["seed_generator"], "seed_generator")
+    solvers = payload["solvers"]
+    if not isinstance(solvers, list) or not solvers:
+        raise ValueError("solvers must be a non-empty list")
+    solver_ids: list[str] = []
+    for solver in solvers:
+        if not isinstance(solver, dict) or "solver_id" not in solver:
+            raise ValueError("each solver requires solver_id and agent fields")
+        solver_id = solver["solver_id"]
+        if type(solver_id) is not str or not _ID.fullmatch(solver_id):
+            raise ValueError("solver_id must be a portable identifier")
+        _validate_agent(
+            {key: value for key, value in solver.items() if key != "solver_id"},
+            f"solver {solver_id}",
+        )
+        solver_ids.append(solver_id)
+    if len(solver_ids) != len(set(solver_ids)):
+        raise ValueError("solver IDs must be unique")
     conditions = payload["conditions"]
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
@@ -234,18 +279,24 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         not _ID.fullmatch(value) for value in condition_ids
     ):
         raise ValueError("condition IDs must be unique portable identifiers")
+    selected_feedback_policies = {
+        feedback_policy for feedback_policy, _ in condition_pairs
+    }
+    selected_rubric_policies = {
+        rubric_policy for _, rubric_policy in condition_pairs
+    }
     expected_pairs = {
         (feedback_policy, rubric_policy)
-        for feedback_policy in FeedbackPolicy
-        for rubric_policy in RubricPolicy
+        for feedback_policy in selected_feedback_policies
+        for rubric_policy in selected_rubric_policies
     }
     if (
         len(condition_pairs) != len(expected_pairs)
         or set(condition_pairs) != expected_pairs
     ):
         raise ValueError(
-            "conditions must contain exactly one arm for each feedback-policy "
-            "and rubric-policy pair"
+            "conditions must contain exactly one arm for each selected "
+            "feedback-policy and rubric-policy pair"
         )
     _validate_assignment_selection(payload)
     _validate_protocol(payload["protocol"])
@@ -273,8 +324,6 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     optional_audit_keys = {
         "max_input_tokens",
         "max_output_tokens",
-        "max_event_text_chars",
-        "max_command_output_chars",
     }
     if not required_audit_keys <= set(audit) or not set(audit) <= (
         required_audit_keys | optional_audit_keys
@@ -291,20 +340,12 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError("outcome_audit models must be a list of strings")
     if type(audit["primary_rule"]) is not str:
         raise ValueError("outcome_audit primary_rule must be a string")
-    protocol = payload["protocol"]
-    semantic_judge_model = protocol["rubric_semantic_judge_model"]
-    if semantic_judge_model in audit_models:
-        raise ValueError(
-            "rubric semantic judge must differ from every outcome-audit model"
-        )
     expected_audit = outcome_audit_protocol(
         models=tuple(audit_models),
         primary_rule=audit["primary_rule"],
         loss_weights=audit["loss_weights"],
         max_input_tokens=audit.get("max_input_tokens", 250_000),
         max_output_tokens=audit.get("max_output_tokens", 4_096),
-        max_event_text_chars=audit.get("max_event_text_chars", 65_536),
-        max_command_output_chars=audit.get("max_command_output_chars", 2_048),
         rubric_score_max_calls=audit["rubric_score_max_calls"],
         rubric_score_max_request_bytes=audit[
             "rubric_score_max_request_bytes"
@@ -362,13 +403,19 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
 
 def _validate_rubric_paraphrases(value: object) -> None:
     if not isinstance(value, dict) or set(value) != {
-        "count", "model", "max_retries"
+        "count", "selected_variant", "model", "max_retries"
     }:
         raise ValueError(
-            "rubric_paraphrases requires count, model, and max_retries"
+            "rubric_paraphrases requires count, selected_variant, model, "
+            "and max_retries"
         )
     if type(value["count"]) is not int or value["count"] < 2:
         raise ValueError("rubric paraphrase count must be at least two")
+    if (
+        type(value["selected_variant"]) is not int
+        or not 0 <= value["selected_variant"] < value["count"]
+    ):
+        raise ValueError("selected rubric paraphrase variant is outside the pool")
     if type(value["model"]) is not str or not value["model"].strip():
         raise ValueError("rubric paraphrase model must be nonempty")
     if type(value["max_retries"]) is not int or value["max_retries"] < 0:
@@ -415,15 +462,11 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
 
 def _validate_protocol(protocol: object) -> None:
     base_keys = {
-        "max_revisions", "prompt", "feedback_simulator", "solver",
+        "max_revisions", "min_revisions", "prompt", "feedback_simulator",
         "judge_model",
         "rubric_name", "review", "max_review_chars",
         "rubric_proposer_model",
         "rubric_proposer_max_retries",
-        "rubric_semantic_judge_model",
-        "rubric_semantic_judge_max_calls_per_assignment",
-        "rubric_semantic_judge_max_request_bytes_per_call",
-        "rubric_semantic_judge_max_output_tokens_per_call",
     }
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
@@ -431,6 +474,16 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
     if type(protocol["max_revisions"]) is not int or protocol["max_revisions"] < 1:
         raise ValueError("max_revisions must be positive")
+    if (
+        type(protocol["min_revisions"]) is not int
+        or not MINIMUM_POST_UPDATE_REVISIONS
+        <= protocol["min_revisions"]
+        <= protocol["max_revisions"]
+    ):
+        raise ValueError(
+            "min_revisions must guarantee the post-update detection window and "
+            "must not exceed max_revisions"
+        )
     if type(protocol["prompt"]) is not str:
         raise ValueError("protocol prompt must be a string")
     PromptProfile(protocol["prompt"])
@@ -446,72 +499,16 @@ def _validate_protocol(protocol: object) -> None:
         type(max_review_chars) is not int or max_review_chars < 1
     ):
         raise ValueError("max_review_chars must be null or a positive integer")
-    for name in ("rubric_proposer_model", "rubric_semantic_judge_model"):
-        if type(protocol[name]) is not str or not protocol[name].strip():
-            raise ValueError(f"{name} must be nonempty")
     if (
-        type(protocol["rubric_semantic_judge_max_calls_per_assignment"]) is not int
-        or protocol["rubric_semantic_judge_max_calls_per_assignment"]
-        != max(1, protocol["max_revisions"] - 1)
+        type(protocol["rubric_proposer_model"]) is not str
+        or not protocol["rubric_proposer_model"].strip()
     ):
-        raise ValueError(
-            "rubric semantic reviewer call cap must cover offline compilation "
-            "and online updates"
-        )
-    if (
-        type(protocol["rubric_semantic_judge_max_request_bytes_per_call"])
-        is not int
-        or not 1
-        <= protocol["rubric_semantic_judge_max_request_bytes_per_call"]
-        <= MAX_SEMANTIC_REVIEW_REQUEST_BYTES
-    ):
-        raise ValueError("rubric semantic judge request-byte cap is invalid")
-    if (
-        type(protocol["rubric_semantic_judge_max_output_tokens_per_call"])
-        is not int
-        or not 1
-        <= protocol["rubric_semantic_judge_max_output_tokens_per_call"]
-        <= MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS
-    ):
-        raise ValueError("rubric semantic judge output-token cap is invalid")
+        raise ValueError("rubric_proposer_model must be nonempty")
     if (
         type(protocol["rubric_proposer_max_retries"]) is not int
         or protocol["rubric_proposer_max_retries"] < 0
     ):
         raise ValueError("rubric_proposer_max_retries must be non-negative")
-    solver = protocol["solver"]
-    solver_keys = {
-        "provider",
-        "model",
-        "reasoning_effort",
-        "service_tier",
-        "executable",
-        "retries",
-        "timeout_seconds",
-    }
-    if not isinstance(solver, dict) or set(solver) != solver_keys:
-        raise ValueError(f"solver keys must be exactly {sorted(solver_keys)}")
-    if type(solver["provider"]) is not str or not solver["provider"].strip():
-        raise ValueError("solver provider must be a nonempty string")
-    if solver["provider"] not in AgentAdapterRegistry().names:
-        raise ValueError(
-            "solver provider must be one of "
-            + ", ".join(AgentAdapterRegistry().names)
-        )
-    if type(solver["model"]) is not str or not solver["model"].strip():
-        raise ValueError("solver model must be a nonempty string")
-    if type(solver["retries"]) is not int or solver["retries"] < 0:
-        raise ValueError("solver retries must be a non-negative integer")
-    if type(solver["timeout_seconds"]) is not int or solver["timeout_seconds"] < 1:
-        raise ValueError("solver timeout_seconds must be a positive integer")
-    AgentRunConfig(
-        provider=solver["provider"], model=solver["model"],
-        reasoning_effort=_optional_string(solver["reasoning_effort"]),
-        service_tier=_optional_string(solver["service_tier"]),
-        executable=_optional_string(solver["executable"]),
-        retries=solver["retries"],
-        timeout_seconds=solver["timeout_seconds"],
-    )
     simulator = protocol["feedback_simulator"]
     simulator_keys = {
         "model",
@@ -536,34 +533,98 @@ def _validate_protocol(protocol: object) -> None:
     )
 
 
-def _randomized_assignments(payload: dict[str, Any]) -> list[dict[str, object]]:
+def _validate_agent(value: object, label: str) -> None:
+    agent_keys = {
+        "provider",
+        "model",
+        "reasoning_effort",
+        "service_tier",
+        "executable",
+        "retries",
+        "timeout_seconds",
+    }
+    if not isinstance(value, dict) or set(value) != agent_keys:
+        raise ValueError(f"{label} keys must be exactly {sorted(agent_keys)}")
+    if type(value["provider"]) is not str or not value["provider"].strip():
+        raise ValueError(f"{label} provider must be a nonempty string")
+    if value["provider"] not in AgentAdapterRegistry().names:
+        raise ValueError(
+            f"{label} provider must be one of "
+            + ", ".join(AgentAdapterRegistry().names)
+        )
+    if type(value["model"]) is not str or not value["model"].strip():
+        raise ValueError(f"{label} model must be a nonempty string")
+    if type(value["retries"]) is not int or value["retries"] < 0:
+        raise ValueError(f"{label} retries must be a non-negative integer")
+    if type(value["timeout_seconds"]) is not int or value["timeout_seconds"] < 1:
+        raise ValueError(f"{label} timeout_seconds must be a positive integer")
+    _agent_run_config(
+        value,
+        quiet=False,
+    )
+
+
+def _randomized_assignments(payload: dict[str, Any]) -> list[ExperimentAssignment]:
     rng = random.Random(payload["randomization"]["seed"])
-    assignments: list[dict[str, object]] = []
+    candidates: list[tuple[str, int, str, str, int]] = []
     for replicate in range(1, payload["randomization"]["replicates"] + 1):
         for task_id in payload["tasks"]:
-            conditions = list(payload["conditions"])
-            rng.shuffle(conditions)
-            for within_block_order, condition in enumerate(conditions, start=1):
+            arms = [
+                (solver, condition)
+                for solver in payload["solvers"]
+                for condition in payload["conditions"]
+            ]
+            rng.shuffle(arms)
+            for within_block_order, (solver, condition) in enumerate(arms, start=1):
                 condition_id = condition["condition_id"]
-                assert isinstance(condition_id, str)
-                assignments.append({
-                    "assignment_id": f"{task_id}--rep-{replicate:03d}--{condition_id}",
-                    "task_id": task_id,
-                    "replicate": replicate,
-                    "condition_id": condition_id,
-                    "within_block_order": within_block_order,
-                })
-    rng.shuffle(assignments)
+                solver_id = solver["solver_id"]
+                assert isinstance(condition_id, str) and isinstance(solver_id, str)
+                candidates.append(
+                    (
+                        task_id,
+                        replicate,
+                        solver_id,
+                        condition_id,
+                        within_block_order,
+                    )
+                )
+    rng.shuffle(candidates)
     selection = payload["assignment_selection"]
     if selection != "all":
         selected_ids = set(selection)
-        assignments = [
-            assignment for assignment in assignments
-            if assignment["assignment_id"] in selected_ids
+        candidates = [
+            candidate
+            for candidate in candidates
+            if _assignment_id(*candidate[:4]) in selected_ids
         ]
-    for execution_order, assignment in enumerate(assignments, start=1):
-        assignment["execution_order"] = execution_order
-    return assignments
+    return [
+        ExperimentAssignment(
+            task_id=task_id,
+            replicate=replicate,
+            solver_id=solver_id,
+            condition_id=condition_id,
+            within_block_order=within_block_order,
+            execution_order=execution_order,
+        )
+        for execution_order, (
+            task_id,
+            replicate,
+            solver_id,
+            condition_id,
+            within_block_order,
+        ) in enumerate(candidates, start=1)
+    ]
+
+
+def _assignment_id(
+    task_id: str,
+    replicate: int,
+    solver_id: str,
+    condition_id: str,
+) -> str:
+    return (
+        f"{task_id}--rep-{replicate:03d}--solver-{solver_id}--{condition_id}"
+    )
 
 
 def _validate_assignment_selection(payload: dict[str, Any]) -> None:
@@ -582,9 +643,11 @@ def _validate_assignment_selection(payload: dict[str, Any]) -> None:
             "assignment_selection must be 'all' or unique assignment IDs"
         )
     valid_ids = {
-        f"{task_id}--rep-{replicate:03d}--{condition['condition_id']}"
+        f"{task_id}--rep-{replicate:03d}--solver-{solver['solver_id']}--"
+        f"{condition['condition_id']}"
         for replicate in range(1, payload["randomization"]["replicates"] + 1)
         for task_id in payload["tasks"]
+        for solver in payload["solvers"]
         for condition in payload["conditions"]
     }
     unknown = sorted(set(selection) - valid_ids)

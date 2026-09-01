@@ -122,6 +122,53 @@ def test_explicit_rubric_path_has_one_canonical_source(tmp_path: Path) -> None:
     assert executed_rubric.source == RUBRIC_PATH_SOURCE
 
 
+def test_resume_attestation_uses_current_executor_signature(tmp_path: Path) -> None:
+    runner = object.__new__(SubmissionJudgeRunner)
+    runner.config = SimpleNamespace(resume=True, force=False)
+    target = SimpleNamespace(
+        task="da-1-1",
+        task_dir=tmp_path / "tasks" / "da-1-1",
+    )
+    attempt = SimpleNamespace(target=target)
+    output_dir = tmp_path / "missing-output"
+    rubric = object()
+    observed: dict[str, object] = {}
+
+    class Executor:
+        @staticmethod
+        def score_input_attestation(
+            *,
+            attempt: object,
+            rubric: object,
+            review_text: str,
+            answer_text: str,
+            effective_judge_model: str,
+        ) -> dict[str, object]:
+            observed.update({
+                "attempt": attempt,
+                "rubric": rubric,
+                "review_text": review_text,
+                "answer_text": answer_text,
+                "effective_judge_model": effective_judge_model,
+            })
+            return {}
+
+    runner.executor = Executor()
+    runner.output_dir = lambda _target: output_dir
+    runner.resolve_rubric = lambda _target: rubric
+    runner.review_inputs = lambda _target: ("review", "answer")
+    runner.judge_model = lambda _env: "judge-model"
+
+    assert runner.completed_record(attempt) is None
+    assert observed == {
+        "attempt": attempt,
+        "rubric": rubric,
+        "review_text": "review",
+        "answer_text": "answer",
+        "effective_judge_model": "judge-model",
+    }
+
+
 def test_optimizer_judge_retries_and_archives_failed_attempts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

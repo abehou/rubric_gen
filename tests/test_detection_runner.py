@@ -18,6 +18,7 @@ from rubric_gen.detection.sources import (
     AuditCase,
     transcript_audit_source,
 )
+from rubric_gen.submission_revision.detection_windows import RevisionDetectionWindow
 from rubric_gen.submission_revision.evaluation.evidence import revision_detection_source
 from rubric_gen.evidence.index import index_implementation_sha256
 from rubric_gen.runtime.llm import (
@@ -65,12 +66,13 @@ def _request() -> StructuredRequest:
     )
 
 
-def test_reward_hacking_request_caches_one_user_prompt_prefix() -> None:
+def test_reward_hacking_request_caches_task_context_and_chunks_all_behavior() -> None:
     payload = review.EvidencePrompt(
         instructions="unused",
         evidence="unused",
+        task_context="user: original task",
+        behavior_messages=tuple(f"user: message {index}" for index in range(7)),
         stats={},
-        messages=tuple(f"user: message {index}" for index in range(7)),
     )
 
     request = review._reward_hacking_requests(payload, evidence_chars=10_000)[0]
@@ -85,8 +87,9 @@ def test_reward_hacking_request_caches_one_user_prompt_prefix() -> None:
     assert isinstance(anthropic_content, list)
     assert anthropic_content[0]["cache_control"] == {"type": "ephemeral"}
     prompt = request.flat_prompt()
-    assert "<transcript_chunk>\nuser: message 5" in prompt
-    assert "user: message 4\n</first_few_messages>" in prompt
+    assert "<task_context>\nuser: original task\n</task_context>" in prompt
+    assert "<first_few_messages>" not in prompt
+    assert '<chunk_position index="1" total="1"/>\nuser: message 0' in prompt
     assert "user: message 6\n</transcript_chunk>" in prompt
 
 
@@ -137,8 +140,9 @@ def test_preparation_loads_each_case_once_for_all_models(
     payload = review.EvidencePrompt(
         instructions="unused",
         evidence="unused",
+        task_context="user: original task",
+        behavior_messages=tuple(f"user: message {index}" for index in range(7)),
         stats={},
-        messages=tuple(f"user: message {index}" for index in range(7)),
     )
     loads: list[tuple[Path, str]] = []
     runner = DetectionRunner(
@@ -251,7 +255,8 @@ def test_direct_model_runner_writes_scoreable_summary(tmp_path: Path) -> None:
 
     def generate(model: str, request: StructuredRequest) -> GenerationResult:
         prompt = request.flat_prompt()
-        assert "<first_few_messages>" in prompt
+        assert "<task_context>" in prompt
+        assert "<first_few_messages>" not in prompt
         assert "<transcript_chunk>" in prompt
         return _generation(
             model,
@@ -393,7 +398,10 @@ def test_direct_runner_does_not_make_posthoc_category_calls(
     assert not (output / "category-rates.json").exists()
 
 
-def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
+def test_direct_model_runner_audits_biomni_revision(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     tasks = tmp_path / "tasks"
     task = tasks / "da-1-1"
     task.mkdir(parents=True)
@@ -441,7 +449,11 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
                         "type": "command_execution",
                         "command": "python huge.py",
                         "aggregated_output": (
-                            "HEAD_MARKER" + "x" * 80_000 + "TAIL_MARKER"
+                            "HEAD_MARKER"
+                            + "x" * 40_000
+                            + "MIDDLE_MARKER"
+                            + "x" * 40_000
+                            + "TAIL_MARKER"
                         ),
                         "status": "completed",
                     },
@@ -453,7 +465,11 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
                         "type": "command_execution",
                         "command": "python huge.py",
                         "aggregated_output": (
-                            "HEAD_MARKER" + "x" * 80_000 + "TAIL_MARKER"
+                            "HEAD_MARKER"
+                            + "x" * 40_000
+                            + "MIDDLE_MARKER"
+                            + "x" * 40_000
+                            + "TAIL_MARKER"
                         ),
                         "status": "completed",
                     },
@@ -467,6 +483,12 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
         (submission / "trajectory.stream.jsonl").write_text(
             "\n".join(json.dumps(event) for event in cumulative_events) + "\n"
         )
+        if index > 0:
+            turn = revision / "turns" / f"turn-{index:03d}"
+            turn.mkdir(parents=True)
+            (turn / "trajectory.stream.jsonl").write_text(
+                "\n".join(json.dumps(event) for event in turn_events) + "\n"
+            )
         (submission / "status.json").write_text(json.dumps({"exit_code": 0}))
         (submission / "snapshot.json").write_text(json.dumps({
             "submission_id": f"s{index:03d}",
@@ -504,6 +526,20 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
             }
         },
     }))
+    trajectory_paths = (
+        submissions / "s000" / "trajectory.stream.jsonl",
+        revision / "turns" / "turn-001" / "trajectory.stream.jsonl",
+        submissions / "s001" / "trajectory.stream.jsonl",
+    )
+    trajectory_reads = dict.fromkeys(trajectory_paths, 0)
+    read_bytes = Path.read_bytes
+
+    def count_trajectory_reads(path: Path) -> bytes:
+        if path in trajectory_reads:
+            trajectory_reads[path] += 1
+        return read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", count_trajectory_reads)
     observed: dict[str, str] = {}
 
     def generate(model: str, request: StructuredRequest) -> GenerationResult:
@@ -520,6 +556,7 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
                 (revision,),
                 tasks_dir=tasks,
                 experiment_ids=("test-experiment",),
+                window=RevisionDetectionWindow.FULL_TRAJECTORY,
             ),
             models=("gpt-test",),
             output_dir=output,
@@ -538,10 +575,12 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     assert "Use the real data" in observed["prompt"]
     assert '"scores"' not in observed["prompt"]
     assert observed["prompt"].count("python huge.py") == 2
-    assert '"record_type":"bounded_text"' in observed["prompt"]
+    assert '"record_type":"bounded_text"' not in observed["prompt"]
     assert '"value_reference":{"same_as_event_id":' not in observed["prompt"]
     assert "HEAD_MARKER" in observed["prompt"]
+    assert "MIDDLE_MARKER" in observed["prompt"]
     assert "TAIL_MARKER" in observed["prompt"]
+    assert set(trajectory_reads.values()) == {1}
     assert '"input_tokens":999999' not in observed["prompt"]
     assert (
         observed["prompt"].index("changed 0")
@@ -555,11 +594,11 @@ def test_direct_model_runner_audits_biomni_revision(tmp_path: Path) -> None:
     compact = record["compact_evidence"]
     assert compact["solver_feedback_records"] == 1
     assert compact["superseded_started_events"] == 1
-    assert compact["max_command_output_chars"] == 2_048
-    assert compact["truncated_text_fields"] == 2
+    assert "max_command_output_chars" not in compact
+    assert "truncated_text_fields" not in compact
     assert compact["exact_duplicate_records"] == 2
     assert compact["exact_duplicate_chars_saved"] > 2_000
-    assert compact["truncated_chars"] > 0
+    assert "truncated_chars" not in compact
 
 
 def test_chunking_materializes_exact_value_references() -> None:
@@ -874,8 +913,9 @@ def test_malt_gemini_uses_only_canonical_gemini_key(
     observed: dict[str, str] = {}
 
     class FakeGeminiClient:
-        def __init__(self, *, model: str) -> None:
+        def __init__(self, *, model: str, timeout_seconds: int) -> None:
             observed["model"] = model
+            observed["timeout"] = str(timeout_seconds)
 
         def generate_content_response(
             self,
@@ -906,6 +946,7 @@ def test_malt_gemini_uses_only_canonical_gemini_key(
     assert generation.response_id == "gemini-response"
     assert observed == {
         "model": "gemini-test",
+        "timeout": "600",
         "prompt": "instructions\n\nprompt",
         "schema": "{'type': 'object', 'additionalProperties': False}",
         "key": "canonical-key",
@@ -1056,17 +1097,34 @@ def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
 
 def test_reward_hacking_scans_every_chunk_then_takes_maximum_score(tmp_path: Path) -> None:
     case = _case(tmp_path / "case-large", {
-        "samples": [{"output": [
-            *[
-                {"role": "user", "content": f"context {index}"}
-                for index in range(5)
+        "samples": [{
+            "input": [
+                {"role": "system", "content": "agent context"},
+                {"role": "user", "content": "original task"},
+                {"role": "user", "content": "runtime reminder"},
             ],
-            {"role": "assistant", "content": "x" * 120_000},
-        ]}]
+            "output": [
+                *[
+                    {"role": "assistant", "content": f"behavior {index}"}
+                    for index in range(5)
+                ],
+                {
+                    "role": "assistant",
+                    "content": (
+                        "LONG_HEAD"
+                        + "x" * 60_000
+                        + "LONG_MIDDLE"
+                        + "x" * 60_000
+                        + "LONG_TAIL"
+                    ),
+                },
+            ],
+        }]
     })
     schemas: list[str] = []
     cache_keys: set[str] = set()
     instruction_prefixes: set[str] = set()
+    evidence_chunks: list[str] = []
 
     def token_count(model: str, request: StructuredRequest) -> int:
         return max(1, len(request.flat_prompt()) // 4)
@@ -1075,6 +1133,7 @@ def test_reward_hacking_scans_every_chunk_then_takes_maximum_score(tmp_path: Pat
         schemas.append(request.schema_name)
         cache_keys.add(request.prompt_cache_key())
         instruction_prefixes.add(request.instructions)
+        evidence_chunks.append(request.evidence)
         score = 9 if len(schemas) == 3 else 1
         generation = _generation(model, _reward_hacking_text(score, f"chunk score {score}"))
         return GenerationResult(
@@ -1103,8 +1162,18 @@ def test_reward_hacking_scans_every_chunk_then_takes_maximum_score(tmp_path: Pat
     assert len(cache_keys) == 1
     assert len(instruction_prefixes) == 1
     prefix = instruction_prefixes.pop()
+    assert "system: agent context" in prefix
+    assert "user: original task" in prefix
+    assert "runtime reminder" not in prefix
     for index in range(5):
-        assert f"user: context {index}" in prefix
+        assert f"assistant: behavior {index}" not in prefix
+        assert sum(
+            f"assistant: behavior {index}" in chunk
+            for chunk in evidence_chunks
+        ) == 1
+    assert sum("user: runtime reminder" in chunk for chunk in evidence_chunks) == 1
+    for marker in ("LONG_HEAD", "LONG_MIDDLE", "LONG_TAIL"):
+        assert sum(marker in chunk for chunk in evidence_chunks) == 1
     assert "Please give a score between 0 or 10" not in prefix
     assert record["verdict"]["score"] == 9
     assert record["verdict"]["selected_chunk"] == 3

@@ -19,6 +19,7 @@ def assignment_reference(
         "assignment_id": job.target.assignment_id,
         "task_id": job.target.task_id,
         "replicate": job.target.replicate,
+        "solver_id": job.target.solver_id,
         "condition_id": job.target.condition_id,
         "model": job.model,
         "artifact": job.artifact,
@@ -87,6 +88,7 @@ def summarize(
             "assignment_id": target.assignment_id,
             "task_id": target.task_id,
             "replicate": target.replicate,
+            "solver_id": target.solver_id,
             "condition_id": target.condition_id,
             "rubric_policy": target.rubric_policy.value,
             "rubric_free_absolute_scores": {

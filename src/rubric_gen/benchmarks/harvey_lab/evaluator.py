@@ -24,7 +24,7 @@ from rubric_gen.benchmarks.harvey_lab.artifacts import (
     validate_regular_tree,
     validate_task,
 )
-from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
+from rubric_gen.benchmarks.harvey_lab.config import HarveyRun
 from rubric_gen.benchmarks.harvey_lab.podman import (
     cache_image,
     configured_podman_environment,
@@ -291,7 +291,7 @@ class HarveyEvaluator:
 
     def __init__(
         self,
-        experiment: HarveyExperiment,
+        experiment: HarveyRun,
         *,
         runtime_root: Path,
         uv_executable: str = "uv",
@@ -383,6 +383,7 @@ class HarveyEvaluator:
                 self.experiment.benchmark.revision,
                 (
                     *self.experiment.benchmark.development_tasks,
+                    *self.experiment.benchmark.selection_tasks,
                     *self.experiment.benchmark.held_out_tasks,
                 ),
             )

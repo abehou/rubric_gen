@@ -57,6 +57,7 @@ def _assignment_summary(
     return {
         "task_id": target.task_id,
         "replicate": target.replicate,
+        "solver_id": target.solver_id,
         "condition_id": target.condition_id,
         "rubric_sha256": target.rubric_sha256,
         "judges": judges,

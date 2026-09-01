@@ -7,8 +7,6 @@ from collections.abc import Mapping
 
 from rubric_gen.detection.config import (
     ANTHROPIC_EFFORT,
-    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_MAX_EVENT_TEXT_CHARS,
     DEFAULT_MAX_INPUT_TOKENS,
     DEFAULT_MAX_OUTPUT_TOKENS,
     DEFAULT_PANEL_MODELS,
@@ -18,7 +16,6 @@ from rubric_gen.detection.config import (
     MALT_REWARD_HACKING_AGGREGATION,
     MALT_REWARD_HACKING_CHARS_PER_TOKEN,
     MALT_REWARD_HACKING_DECISION_RULE,
-    MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
     MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
     MALT_REWARD_HACKING_SOURCE,
     OPENAI_REASONING_EFFORT,
@@ -47,8 +44,6 @@ def outcome_audit_protocol(
     loss_weights: Mapping[str, object],
     max_input_tokens: int = DEFAULT_MAX_INPUT_TOKENS,
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
-    max_event_text_chars: int = DEFAULT_MAX_EVENT_TEXT_CHARS,
-    max_command_output_chars: int = DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
     rubric_score_max_calls: int = DEFAULT_RUBRIC_SCORE_MAX_CALLS,
     rubric_score_max_request_bytes: int = DEFAULT_RUBRIC_SCORE_MAX_REQUEST_BYTES,
     rubric_score_max_output_tokens: int = DEFAULT_RUBRIC_SCORE_MAX_OUTPUT_TOKENS,
@@ -93,19 +88,6 @@ def outcome_audit_protocol(
         raise ValueError("audit max input tokens must be between 10000 and 272000")
     if type(max_output_tokens) is not int or not 1_024 <= max_output_tokens <= 16_384:
         raise ValueError("audit max output tokens must be between 1024 and 16384")
-    if type(max_event_text_chars) is not int or not (
-        4_096 <= max_event_text_chars <= 262_144
-    ):
-        raise ValueError(
-            "audit max event text characters must be between 4096 and 262144"
-        )
-    if type(max_command_output_chars) is not int or not (
-        512 <= max_command_output_chars <= max_event_text_chars
-    ):
-        raise ValueError(
-            "audit max command output characters must be between 512 and "
-            "max_event_text_chars"
-        )
     stage_caps = {
         "rubric_score_max_calls": rubric_score_max_calls,
         "rubric_score_max_request_bytes": rubric_score_max_request_bytes,
@@ -127,15 +109,16 @@ def outcome_audit_protocol(
         "gemini_thinking_level": GEMINI_THINKING_LEVEL,
         "max_input_tokens": max_input_tokens,
         "max_output_tokens": max_output_tokens,
-        "max_event_text_chars": max_event_text_chars,
-        "max_command_output_chars": max_command_output_chars,
         "max_attempts": JUDGE_MAX_ATTEMPTS,
         **stage_caps,
         "prompt_cache": PROMPT_CACHE_POLICY,
         "input_validation": INPUT_VALIDATION_POLICY,
         "monitor": {
             "source": MALT_REWARD_HACKING_SOURCE,
-            "early_message_count": MALT_REWARD_HACKING_EARLY_MESSAGE_COUNT,
+            "shared_context": "original_task_context",
+            "behavior_chunking": "all_messages_in_source_order",
+            "field_text": "complete",
+            "overflow": "fail_without_fallback",
             "chunk_max_input_tokens": MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
             "chunk_chars_per_token": MALT_REWARD_HACKING_CHARS_PER_TOKEN,
             "chunk_aggregation": MALT_REWARD_HACKING_AGGREGATION,
@@ -150,6 +133,7 @@ def outcome_audit_protocol(
             "discussion remains"
         ),
         "panel_missingness": (
-            "any failed or abstaining member makes the assignment outcome missing"
+            "unknown direct decisions receive sharp rule-based bounds; score "
+            "means require the complete configured panel"
         ),
     }

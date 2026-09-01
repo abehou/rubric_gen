@@ -27,8 +27,6 @@ from rubric_gen.detection.metrics import (
 from rubric_gen.runtime.paths import PROJECT_ROOT, resolve_project_path
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.detection.config import (
-    DEFAULT_MAX_COMMAND_OUTPUT_CHARS,
-    DEFAULT_MAX_EVENT_TEXT_CHARS,
     DEFAULT_MAX_INPUT_TOKENS,
     DEFAULT_MAX_OUTPUT_TOKENS,
     DEFAULT_PANEL_MODELS,
@@ -259,14 +257,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Hard per-request output ceiling.",
     )
     parser.add_argument(
-        "--max-event-text-chars", type=int, default=None,
-        help="Per-event evidence cap.",
-    )
-    parser.add_argument(
-        "--max-command-output-chars", type=int, default=None,
-        help="Per-command-output evidence cap.",
-    )
-    parser.add_argument(
         "--primary-rule",
         choices=("majority", "any_detect", "unanimous_detects"),
         default=None,
@@ -299,15 +289,6 @@ def run(args: argparse.Namespace) -> int:
     args.max_output_tokens = (
         DEFAULT_MAX_OUTPUT_TOKENS
         if args.max_output_tokens is None else args.max_output_tokens
-    )
-    args.max_event_text_chars = (
-        DEFAULT_MAX_EVENT_TEXT_CHARS
-        if args.max_event_text_chars is None else args.max_event_text_chars
-    )
-    args.max_command_output_chars = (
-        DEFAULT_MAX_COMMAND_OUTPUT_CHARS
-        if args.max_command_output_chars is None
-        else args.max_command_output_chars
     )
     args.primary_rule = "any_detect" if args.primary_rule is None else args.primary_rule
 
@@ -455,8 +436,7 @@ def run(args: argparse.Namespace) -> int:
         f"--val-{args.validation_fraction:g}"
         f"--mc-{args.max_concurrency}"
         f"--mi-{args.max_input_tokens}"
-        f"--mo-{args.max_output_tokens}--me-{args.max_event_text_chars}"
-        f"--mco-{args.max_command_output_chars}"
+        f"--mo-{args.max_output_tokens}"
         f"--primary-{args.primary_rule}"
         f"--data-{preparation_digest}"
     )
@@ -476,8 +456,6 @@ def run(args: argparse.Namespace) -> int:
         detection=target.name,
         max_input_tokens=args.max_input_tokens,
         max_output_tokens=args.max_output_tokens,
-        max_event_text_chars=args.max_event_text_chars,
-        max_command_output_chars=args.max_command_output_chars,
         primary_rule=args.primary_rule,
     )).run()
     summary_path = evaluation_root / "summary.json"

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+import os
 from pathlib import Path
 
+from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.submission_revision.feedback import (
     MAX_SIMULATED_USER_FEEDBACK_CHARS,
@@ -18,6 +20,7 @@ from rubric_gen.submission_revision.rubric_generation import RubricGeneration
 
 
 SIMULATED_USER_GENERATION_KIND = "submission-simulated-user-feedback"
+SIMULATED_USER_FAILURE_KIND = "submission-simulated-user-feedback-failure"
 SIMULATED_USER_HISTORY_SUMMARY_KIND = "submission-simulated-user-history-summary"
 MAX_SIMULATED_USER_SUMMARY_CHARS = 12_000
 
@@ -270,6 +273,7 @@ class SimulatedUserFeedback:
         current_artifact: str,
         history: InteractionHistory,
         history_summary: dict[str, object] | None,
+        failure_dir: Path,
     ) -> dict[str, object]:
         if generation.generation_round != generation_round:
             raise ValueError("simulated-user rubric has the wrong generation round")
@@ -292,6 +296,7 @@ class SimulatedUserFeedback:
         history_text = _history_text(history)
         last_error: Exception | None = None
         for attempt in range(1, self.config.max_retries + 2):
+            generated: SimulatedUserGeneration | None = None
             try:
                 generated = self._generator(self.config, request)
                 output = _parse_feedback(
@@ -331,11 +336,46 @@ class SimulatedUserFeedback:
                 return record
             except Exception as exc:
                 last_error = exc
+                self._persist_failed_attempt(
+                    failure_dir,
+                    attempt=attempt,
+                    error=exc,
+                    generated=generated,
+                )
         assert last_error is not None
         raise RuntimeError(
             "simulated-user model failed after "
             f"{self.config.max_retries + 1} attempts: {last_error}"
         ) from last_error
+
+    @staticmethod
+    def _persist_failed_attempt(
+        failure_dir: Path,
+        *,
+        attempt: int,
+        error: Exception,
+        generated: SimulatedUserGeneration | None,
+    ) -> None:
+        if os.path.lexists(failure_dir):
+            if failure_dir.is_symlink() or not failure_dir.is_dir():
+                raise RuntimeError(
+                    f"simulated-user failure path is invalid: {failure_dir}"
+                )
+        else:
+            failure_dir.mkdir(parents=True)
+        sequence = 1
+        while os.path.lexists(failure_dir / f"attempt-{sequence:03d}.json"):
+            sequence += 1
+        record: dict[str, object] = {
+            "kind": SIMULATED_USER_FAILURE_KIND,
+            "attempt": attempt,
+            "error_type": type(error).__name__,
+            "error": str(error),
+        }
+        if generated is not None:
+            record["response_text"] = generated.text
+            record["feedback_generation"] = generated.provenance()
+        write_json_atomic(failure_dir / f"attempt-{sequence:03d}.json", record)
 
     def validate(
         self,
@@ -586,7 +626,6 @@ def _validate_feedback_output(
     ):
         raise ValueError("simulated-user output has invalid decision or concerns")
     validated: list[dict[str, str]] = []
-    categories: set[str] = set()
     total_chars = 0
     for concern in concerns:
         if type(concern) is not dict or set(concern) != {"category", "feedback"}:
@@ -596,15 +635,16 @@ def _validate_feedback_output(
         if (
             type(category) is not str
             or category not in CONCERN_CATEGORIES
-            or category in categories
             or type(feedback) is not str
             or not feedback.strip()
-            or feedback != feedback.strip()
         ):
             raise ValueError("simulated-user concern has invalid values")
-        categories.add(category)
-        total_chars += len(feedback)
-        validated.append({"category": category, "feedback": feedback})
+        normalized_feedback = feedback.strip()
+        total_chars += len(normalized_feedback)
+        validated.append({
+            "category": category,
+            "feedback": normalized_feedback,
+        })
     if total_chars > MAX_SIMULATED_USER_FEEDBACK_CHARS:
         raise ValueError("simulated-user feedback is too long")
     return {"decision": decision, "concerns": validated}

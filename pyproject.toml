@@ -10,10 +10,13 @@ dependencies = [
   "complexipy>=7.0.1",
   "google-genai>=1.0.0",
   "matplotlib>=3.8",
+  "numpy>=1.26",
   "openai>=1.66.0",
+  "openai-codex==0.147.0",
   "pyarrow>=18.0",
   "pyyaml>=6.0",
   "tqdm>=4.66",
+  "websockets>=16.1",
 ]
 
 [project.scripts]

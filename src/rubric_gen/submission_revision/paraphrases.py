@@ -37,6 +37,7 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
 
 
 GenerationOperation = Callable[[str, StructuredRequest], GenerationResult]
+PARAPHRASE_REQUEST_TIMEOUT_SECONDS = 300.0
 
 
 @dataclass(frozen=True)
@@ -545,7 +546,11 @@ class ParaphraseRunner:
     def _generate(self, request: StructuredRequest) -> GenerationResult:
         if self._generation_operation is not None:
             return self._generation_operation(self.model, request)
-        return generate_structured(self.model, request)
+        return generate_structured(
+            self.model,
+            request,
+            timeout_seconds=PARAPHRASE_REQUEST_TIMEOUT_SECONDS,
+        )
 
     def _archive_failure(
         self,

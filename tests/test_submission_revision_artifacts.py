@@ -8,9 +8,9 @@ import pytest
 
 from rubric_gen.submission_revision.artifacts import (
     compact_historical_workspace,
-    copy_solution_workspace,
     make_tree_read_only,
     prepare_evaluation_run,
+    snapshot_solution_workspace,
     solution_tree_sha256,
 )
 
@@ -28,14 +28,14 @@ def test_solution_snapshot_excludes_disposable_local_uv_cache(
 
     digest = solution_tree_sha256(workspace)
     snapshot = tmp_path / "snapshot"
-    copy_solution_workspace(workspace, snapshot)
+    snapshot_solution_workspace(workspace, snapshot)
 
     assert len(digest) == 64
     assert not (snapshot / ".uv_cache").exists()
     assert (snapshot / "answer.txt").read_text() == "answer\n"
 
 
-def test_solution_snapshot_deduplicates_unchanged_files(
+def test_solution_snapshots_use_independent_inodes(
     tmp_path: Path,
 ) -> None:
     workspace = tmp_path / "workspace"
@@ -46,19 +46,17 @@ def test_solution_snapshot_deduplicates_unchanged_files(
     (workspace / "nested" / "stable.csv").write_text("x\n1\n")
     first = tmp_path / "s000"
 
-    first_stats = copy_solution_workspace(workspace, first)
+    first_stats = snapshot_solution_workspace(workspace, first)
     (workspace / "answer.txt").write_text("answer-1\n")
     second = tmp_path / "s001"
-    second_stats = copy_solution_workspace(workspace, second, previous=first)
+    second_stats = snapshot_solution_workspace(workspace, second)
 
-    assert first_stats.linked_files == 0
-    assert second_stats.copied_files == 1
-    assert second_stats.linked_files == 2
-    assert second_stats.linked_bytes == len(b"result" * 1024) + len("x\n1\n")
-    assert (first / "large-result.bin").stat().st_ino == (
+    assert first_stats.files == second_stats.files == 3
+    assert first_stats.bytes == second_stats.bytes
+    assert (first / "large-result.bin").stat().st_ino != (
         second / "large-result.bin"
     ).stat().st_ino
-    assert (first / "nested" / "stable.csv").stat().st_ino == (
+    assert (first / "nested" / "stable.csv").stat().st_ino != (
         second / "nested" / "stable.csv"
     ).stat().st_ino
     assert (first / "answer.txt").stat().st_ino != (
@@ -76,10 +74,10 @@ def test_solution_snapshot_excludes_dependency_directories(tmp_path: Path) -> No
         (dependency / "large-library.so").write_bytes(b"library")
 
     snapshot = tmp_path / "snapshot"
-    stats = copy_solution_workspace(workspace, snapshot)
+    stats = snapshot_solution_workspace(workspace, snapshot)
 
     assert (snapshot / "answer.txt").is_file()
-    assert stats.copied_files == 1
+    assert stats.files == 1
     assert all(not (snapshot / name).exists() for name in (".venv", "venv", "packages"))
 
 
@@ -103,7 +101,7 @@ def test_solution_snapshot_excludes_nested_caches_and_agent_temp(
     (cache / "module.pyc").write_bytes(b"bytecode-2")
     (temporary / "smoke.out").write_text("changed\n")
     snapshot = tmp_path / "snapshot"
-    copy_solution_workspace(workspace, snapshot)
+    snapshot_solution_workspace(workspace, snapshot)
 
     assert solution_tree_sha256(workspace) == first_digest
     assert not (snapshot / ".agent-tmp").exists()
@@ -124,7 +122,7 @@ def test_solution_snapshot_excludes_marker_identified_virtualenv(
 
     digest = solution_tree_sha256(workspace)
     snapshot = tmp_path / "snapshot"
-    copy_solution_workspace(workspace, snapshot)
+    snapshot_solution_workspace(workspace, snapshot)
 
     assert len(digest) == 64
     assert not (snapshot / environment.name).exists()
@@ -138,7 +136,7 @@ def test_solution_snapshot_rejects_non_disposable_symlink(tmp_path: Path) -> Non
     (workspace / "answer.txt").symlink_to(target)
 
     with pytest.raises(RuntimeError, match="symlink"):
-        copy_solution_workspace(workspace, tmp_path / "snapshot")
+        snapshot_solution_workspace(workspace, tmp_path / "snapshot")
 
 
 def test_historical_workspace_compaction_keeps_only_judge_inputs(
@@ -169,7 +167,7 @@ def test_historical_workspace_compaction_keeps_only_judge_inputs(
     assert repeated.removed_logical_bytes == 0
 
 
-def test_evaluation_run_hard_links_immutable_submission_inputs(
+def test_evaluation_run_copies_immutable_submission_inputs(
     tmp_path: Path,
 ) -> None:
     submission = tmp_path / "submission"
@@ -183,18 +181,31 @@ def test_evaluation_run_hard_links_immutable_submission_inputs(
         "task": "da-1-1",
         "workspace_dir": str(workspace),
     }))
+    make_tree_read_only(submission)
+    source_signatures = {
+        path: (path.stat().st_ino, path.stat().st_ctime_ns)
+        for path in (
+            workspace / "answer.txt",
+            nested / "result.txt",
+            submission / "trajectory.stream.jsonl",
+        )
+    }
 
     run = prepare_evaluation_run(submission, tmp_path / "evaluation")
 
-    assert (run / "workspace" / "answer.txt").stat().st_ino == (
+    assert (run / "workspace" / "answer.txt").stat().st_ino != (
         workspace / "answer.txt"
     ).stat().st_ino
-    assert (run / "workspace" / "nested" / "result.txt").stat().st_ino == (
+    assert (run / "workspace" / "nested" / "result.txt").stat().st_ino != (
         nested / "result.txt"
     ).stat().st_ino
-    assert (run / "trajectory.stream.jsonl").stat().st_ino == (
+    assert (run / "trajectory.stream.jsonl").stat().st_ino != (
         submission / "trajectory.stream.jsonl"
     ).stat().st_ino
+    assert {
+        path: (path.stat().st_ino, path.stat().st_ctime_ns)
+        for path in source_signatures
+    } == source_signatures
     assert json.loads((run / "status.json").read_text())["workspace_dir"] == str(
         run / "workspace"
     )

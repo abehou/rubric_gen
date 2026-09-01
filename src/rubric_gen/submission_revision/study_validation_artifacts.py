@@ -39,6 +39,10 @@ from rubric_gen.submission_revision.rubric_generation_store import (
     load_rubric_generation,
     rubric_generation_directory,
 )
+from rubric_gen.submission_revision.pretreatment_rubrics import (
+    pretreatment_blinding_scope,
+    validate_installed_pretreatment_rubric,
+)
 from rubric_gen.submission_revision.study_validation_context import (
     ValidationContext,
     valid_score,
@@ -183,7 +187,7 @@ def _validate_rubric_generation_set(
         else (
             range(2)
             if context.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-            else range(max(1, len(context.expected_ids) - 1))
+            else range(max(2, len(context.expected_ids)))
         )
     )
     expected = [f"generation-{index:04d}" for index in indices]
@@ -205,17 +209,7 @@ def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
     return RubricProposer(
         benchmark=context.experiment.benchmark,
         model=model,
-        semantic_judge_model=str(protocol["rubric_semantic_judge_model"]),
-        semantic_judge_max_calls=int(
-            protocol["rubric_semantic_judge_max_calls_per_assignment"]
-        ),
-        semantic_judge_max_request_bytes=int(
-            protocol["rubric_semantic_judge_max_request_bytes_per_call"]
-        ),
-        semantic_judge_max_output_tokens=int(
-            protocol["rubric_semantic_judge_max_output_tokens_per_call"]
-        ),
-        service_tier=context.agent.service_tier,
+        service_tier=context.seed_agent.service_tier,
         max_retries=int(protocol["rubric_proposer_max_retries"]),
     )
 
@@ -303,11 +297,11 @@ def _validate_submission(
 
 
 def _generation_round(policy: RubricPolicy, submission_index: int) -> int:
-    if policy is RubricPolicy.FIXED:
+    if policy is RubricPolicy.FIXED or submission_index == 0:
         return 0
     if policy is RubricPolicy.OFFLINE_ELICITATION:
         return 1
-    return max(0, submission_index - 1)
+    return submission_index
 
 
 def _validated_generation(
@@ -332,6 +326,17 @@ def _validated_generation(
     generation.validate_successor(prior)
     if proposer is None:
         raise RuntimeError("elicitation generation has no proposer")
+    if generation_round == 1:
+        installed = validate_installed_pretreatment_rubric(
+            source_root=context.pretreatment_rubric_dir,
+            destination_root=context.experiment_dir,
+            policy=context.rubric_policy,
+        )
+        if installed != generation:
+            raise RuntimeError(
+                "pre-treatment generation disagrees with the shared rubric"
+            )
+        return generation
     validated = proposer.elicit_rubric(
         instruction=instruction,
         original_rubric=context.scoring.initial_generation.rubric,
@@ -345,18 +350,17 @@ def _validated_generation(
             task_dir=context.task_dir,
             experiment_dir=context.experiment_dir,
             benchmark=get_submission_benchmark(context.experiment.benchmark),
-            provider=context.agent.provider,
-            requested_model=context.agent.model,
+            seed_generator=context.seed_agent,
             prompt_profile=str(context.protocol["prompt"]),
             seed_replicates=context.experiment.replicates,
-            assignment_id=str(context.assignment["assignment_id"]),
-            generation_round=generation_round,
+            blinding_scope=pretreatment_blinding_scope(
+                context.experiment.experiment_id,
+                context.task_dir.name,
+                context.scoring.initial_generation.rubric.content_sha256,
+            ),
+            source_checkpoint=generation_round - 1,
         ),
-        source_checkpoint=(
-            generation_round
-            if context.rubric_policy is RubricPolicy.ONLINE_ELICITATION
-            else None
-        ),
+        source_checkpoint=generation_round - 1,
     )
     if validated != generation:
         raise RuntimeError("rubric generation disagrees with the active rubric")
@@ -403,8 +407,8 @@ def _rubric_artifact_paths(
     _, judge = _generation_judge(context, generation)
     review_text, answer_text = judge.review_inputs(submission)
     expected_request = exact_judgment_request(
-        task_id=str(context.assignment["task_id"]),
-        replicate=int(context.assignment["replicate"]),
+        task_id=context.assignment.task_id,
+        replicate=context.assignment.replicate,
         rubric_sha256=rubric_hash,
         review_text=review_text,
         answer_text=answer_text,
@@ -535,8 +539,8 @@ def _fixed_original_artifact_paths(
         return rubric_artifacts
     review_text, answer_text = context.scoring.master_judge.review_inputs(submission)
     expected_request = exact_judgment_request(
-        task_id=str(context.assignment["task_id"]),
-        replicate=int(context.assignment["replicate"]),
+        task_id=context.assignment.task_id,
+        replicate=context.assignment.replicate,
         rubric_sha256=selection.master_sha256,
         review_text=review_text,
         answer_text=answer_text,
@@ -605,7 +609,7 @@ def _project_feedback(
         simulator.validate_history_summary(
             history_summary,
             experiment_id=context.experiment.experiment_id,
-            assignment_id=str(context.assignment["assignment_id"]),
+            assignment_id=context.assignment.assignment_id,
             submission_id=submission_id,
             history=history,
         )
@@ -615,7 +619,7 @@ def _project_feedback(
     user_feedback = simulator.validate(
         simulated_record,
         experiment_id=context.experiment.experiment_id,
-        assignment_id=str(context.assignment["assignment_id"]),
+        assignment_id=context.assignment.assignment_id,
         submission_id=submission_id,
         generation_round=generation_round,
         generation=generation,

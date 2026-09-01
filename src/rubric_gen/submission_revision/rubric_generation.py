@@ -16,10 +16,6 @@ from rubric_gen.submission_revision.autorubric import (
 
 
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
-MAX_ELICITED_CRITERIA = 5
-ELICITED_CRITERION_PENALTY_FRACTION = 0.04
-MAX_CRITERION_TITLE_CHARS = 160
-MAX_CRITERION_TEXT_CHARS = 1_000
 _SCORING_PROTOCOL_PREFIX = "Scoring protocol: "
 _ELICITED_CLAIM_SCOPE = (
     "Apply this penalty only when the submission claims or relies on this "
@@ -160,16 +156,9 @@ def is_valid_single_line_text(
 def _require_criterion_text(
     value: object,
     field_name: str,
-    *,
-    max_chars: int,
 ) -> str:
-    if (
-        not is_valid_single_line_text(value, max_chars=max_chars)
-    ):
-        raise ValueError(
-            f"{field_name} must be printable single-line text of at most "
-            f"{max_chars} characters"
-        )
+    if not is_valid_single_line_text(value):
+        raise ValueError(f"{field_name} must be printable single-line text")
     assert isinstance(value, str)
     return value
 
@@ -181,8 +170,8 @@ class ElicitedCriterion:
     criterion_id: str
     title: str
     requirement: str
-    level_descriptions: tuple[tuple[str, str], ...]
-    support_pair_ids: tuple[str, ...]
+    levels: tuple[tuple[str, int, str], ...]
+    provenance_pair_ids: tuple[str, ...]
     source_generation: int
 
     def __post_init__(self) -> None:
@@ -194,51 +183,55 @@ class ElicitedCriterion:
         _require_criterion_text(
             self.title,
             "elicited criterion title",
-            max_chars=MAX_CRITERION_TITLE_CHARS,
         )
         _require_criterion_text(
             self.requirement,
             "elicited criterion requirement",
-            max_chars=MAX_CRITERION_TEXT_CHARS,
         )
         if (
-            type(self.level_descriptions) is not tuple
-            or len(self.level_descriptions) < 2
+            type(self.levels) is not tuple
+            or len(self.levels) < 2
             or any(
                 type(item) is not tuple
-                or len(item) != 2
+                or len(item) != 3
                 or type(item[0]) is not str
                 or len(item[0]) != 1
                 or not item[0].isupper()
-                or not is_valid_single_line_text(
-                    item[1], max_chars=MAX_CRITERION_TEXT_CHARS
-                )
-                for item in self.level_descriptions
+                or type(item[1]) is not int
+                or not is_valid_single_line_text(item[2])
+                for item in self.levels
             )
         ):
             raise ValueError("elicited criterion levels are invalid")
-        labels = tuple(label for label, _ in self.level_descriptions)
+        labels = tuple(label for label, _, _ in self.levels)
         if labels != tuple(
             chr(ord("A") + index) for index in range(len(labels))
         ):
             raise ValueError("elicited criterion level labels are not contiguous")
+        points = tuple(point for _, point, _ in self.levels)
         if (
-            type(self.support_pair_ids) is not tuple
-            or len(self.support_pair_ids) < 2
-            or len(set(self.support_pair_ids)) != len(self.support_pair_ids)
+            points[0] != 0
+            or any(left <= right for left, right in zip(points, points[1:]))
+        ):
+            raise ValueError(
+                "elicited criterion points must start at zero and strictly decrease"
+            )
+        if (
+            type(self.provenance_pair_ids) is not tuple
+            or len(set(self.provenance_pair_ids)) != len(self.provenance_pair_ids)
             or any(
                 type(pair_id) is not str
                 or re.fullmatch(r"pair_[0-9a-f]{16}", pair_id) is None
-                for pair_id in self.support_pair_ids
+                for pair_id in self.provenance_pair_ids
             )
         ):
-            raise ValueError("elicited criterion needs two distinct artifact pairs")
+            raise ValueError("elicited criterion provenance is invalid")
         require_nonnegative_int(self.source_generation, "source_generation")
         expected_id = "elicited_" + sha256_text(json.dumps(
             {
                 "title": self.title,
                 "requirement": self.requirement,
-                "level_descriptions": self.level_descriptions,
+                "levels": self.levels,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -253,15 +246,15 @@ class ElicitedCriterion:
         *,
         title: str,
         requirement: str,
-        level_descriptions: tuple[tuple[str, str], ...],
-        support_pair_ids: tuple[str, ...],
+        levels: tuple[tuple[str, int, str], ...],
+        provenance_pair_ids: tuple[str, ...],
         source_generation: int,
     ) -> "ElicitedCriterion":
         payload = json.dumps(
             {
                 "title": title,
                 "requirement": requirement,
-                "level_descriptions": level_descriptions,
+                "levels": levels,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -271,8 +264,8 @@ class ElicitedCriterion:
             criterion_id="elicited_" + sha256_text(payload)[:16],
             title=title,
             requirement=requirement,
-            level_descriptions=level_descriptions,
-            support_pair_ids=support_pair_ids,
+            levels=levels,
+            provenance_pair_ids=provenance_pair_ids,
             source_generation=source_generation,
         )
 
@@ -281,11 +274,11 @@ class ElicitedCriterion:
             "criterion_id": self.criterion_id,
             "title": self.title,
             "requirement": self.requirement,
-            "level_descriptions": [
-                {"label": label, "description": description}
-                for label, description in self.level_descriptions
+            "levels": [
+                {"label": label, "points": points, "description": description}
+                for label, points, description in self.levels
             ],
-            "support_pair_ids": list(self.support_pair_ids),
+            "provenance_pair_ids": list(self.provenance_pair_ids),
             "source_generation": self.source_generation,
         }
 
@@ -295,28 +288,36 @@ def parse_elicited_criterion(value: object) -> ElicitedCriterion:
         "criterion_id",
         "title",
         "requirement",
-        "level_descriptions",
-        "support_pair_ids",
+        "levels",
+        "provenance_pair_ids",
         "source_generation",
     }:
         raise ValueError("elicited criterion has invalid fields")
-    raw_levels = value.get("level_descriptions")
+    raw_levels = value.get("levels")
     if not isinstance(raw_levels, list):
         raise ValueError("elicited criterion levels must be a list")
-    levels: list[tuple[str, str]] = []
+    levels: list[tuple[str, int, str]] = []
     for level in raw_levels:
-        if not isinstance(level, dict) or set(level) != {"label", "description"}:
+        if not isinstance(level, dict) or set(level) != {
+            "label",
+            "points",
+            "description",
+        }:
             raise ValueError("elicited criterion level has invalid fields")
-        levels.append((level["label"], level["description"]))  # type: ignore[arg-type]
-    raw_support = value.get("support_pair_ids")
-    if not isinstance(raw_support, list):
-        raise ValueError("elicited criterion support must be a list")
+        levels.append((  # type: ignore[arg-type]
+            level["label"],
+            level["points"],
+            level["description"],
+        ))
+    raw_provenance = value.get("provenance_pair_ids")
+    if not isinstance(raw_provenance, list):
+        raise ValueError("elicited criterion provenance must be a list")
     return ElicitedCriterion(
         criterion_id=value.get("criterion_id"),  # type: ignore[arg-type]
         title=value.get("title"),  # type: ignore[arg-type]
         requirement=value.get("requirement"),  # type: ignore[arg-type]
-        level_descriptions=tuple(levels),
-        support_pair_ids=tuple(raw_support),  # type: ignore[arg-type]
+        levels=tuple(levels),
+        provenance_pair_ids=tuple(raw_provenance),  # type: ignore[arg-type]
         source_generation=value.get("source_generation"),  # type: ignore[arg-type]
     )
 
@@ -382,13 +383,12 @@ def render_augmented_rubric(
     original_rubric: CompleteRubric,
     elicited_criteria: tuple[ElicitedCriterion, ...],
 ) -> CompleteRubric:
-    """Render one rubric with fixed original text and bounded added criteria."""
+    """Render one rubric with fixed original text and model-weighted penalties."""
 
     if not isinstance(original_rubric, CompleteRubric):
         raise ValueError("original_rubric must be a CompleteRubric")
     if (
         type(elicited_criteria) is not tuple
-        or len(elicited_criteria) > MAX_ELICITED_CRITERIA
         or any(not isinstance(item, ElicitedCriterion) for item in elicited_criteria)
     ):
         raise ValueError("elicited_criteria has an invalid value")
@@ -402,10 +402,9 @@ def render_augmented_rubric(
     parsed = parse_autorubric_rubric(original_rubric.content)
     protocol = _scoring_protocol(original_rubric.content)
     required_labels = ("A", "B") if protocol is not None else ("A", "B", "C")
-    if len(elicited_criteria) > elicited_criterion_capacity(original_rubric):
-        raise ValueError("elicited criteria exceed the penalty capacity")
+    original_maximum = parsed.normalization_maximum or 100
     for criterion in elicited_criteria:
-        if tuple(label for label, _ in criterion.level_descriptions) != required_labels:
+        if tuple(label for label, _, _ in criterion.levels) != required_labels:
             raise ValueError(
                 "elicited criterion levels do not match the rubric scoring protocol"
             )
@@ -415,9 +414,6 @@ def render_augmented_rubric(
     }
     if len(set(titles)) != len(titles) or set(titles) & original_titles:
         raise ValueError("elicited criteria contain duplicate criterion titles")
-
-    original_maximum = parsed.normalization_maximum or 100
-    penalty_points = elicited_criterion_penalty_points(original_rubric)
 
     lines: list[str] = []
     if parsed.context:
@@ -453,19 +449,13 @@ def render_augmented_rubric(
     offset = len(parsed.criteria)
     for index, criterion in enumerate(elicited_criteria, start=1):
         number = offset + index
-        labels = tuple(label for label, _ in criterion.level_descriptions)
-        points = (
-            (0, -penalty_points)
-            if labels == ("A", "B")
-            else (0, -max(1, penalty_points // 2), -penalty_points)
-        )
         lines.extend((
             f"Criterion {number}: {criterion.title}",
             _ELICITED_CLAIM_SCOPE + criterion.requirement,
             f"Elicited criterion ID: {criterion.criterion_id}",
             "Levels: " + " ".join(
                 f"{label}={point}"
-                for label, point in zip(labels, points, strict=True)
+                for label, point, _ in criterion.levels
             ),
         ))
         lines.extend(
@@ -476,52 +466,15 @@ def render_augmented_rubric(
                 else _ELICITED_FAILURE_SCOPE
             )
             + description
-            for label, description in criterion.level_descriptions
+            for label, _, description in criterion.levels
         )
         lines.append("")
     return CompleteRubric.from_content("\n".join(lines).rstrip() + "\n")
 
 
-def elicited_criterion_penalty_points(original_rubric: CompleteRubric) -> int:
-    """Return the fixed maximum penalty for each elicited criterion."""
-
-    if not isinstance(original_rubric, CompleteRubric):
-        raise ValueError("original_rubric must be a CompleteRubric")
-    parsed = parse_autorubric_rubric(original_rubric.content)
-    original_maximum = parsed.normalization_maximum or 100
-    minimum = 1 if _scoring_protocol(original_rubric.content) is not None else 2
-    return max(
-        minimum,
-        round(original_maximum * ELICITED_CRITERION_PENALTY_FRACTION),
-    )
-
-
-def elicited_criterion_capacity(original_rubric: CompleteRubric) -> int:
-    """Return the criterion cap that keeps total penalties near 20 percent."""
-
-    if not isinstance(original_rubric, CompleteRubric):
-        raise ValueError("original_rubric must be a CompleteRubric")
-    parsed = parse_autorubric_rubric(original_rubric.content)
-    original_maximum = parsed.normalization_maximum or 100
-    penalty_points = elicited_criterion_penalty_points(original_rubric)
-    minimum = 1 if _scoring_protocol(original_rubric.content) is not None else 2
-    total_penalty = max(
-        minimum,
-        round(
-            original_maximum
-            * ELICITED_CRITERION_PENALTY_FRACTION
-            * MAX_ELICITED_CRITERIA
-        ),
-    )
-    return min(
-        MAX_ELICITED_CRITERIA,
-        max(1, round(total_penalty / penalty_points)),
-    )
-
-
 @dataclass(frozen=True)
 class RubricGeneration:
-    """Store one complete active rubric and its cumulative elicited criteria."""
+    """Store one complete active rubric and its current elicited criteria."""
 
     generation_round: int
     source_checkpoint: int | None
@@ -540,17 +493,18 @@ class RubricGeneration:
                 self.source_checkpoint,
                 "source_checkpoint",
             )
-            if source_checkpoint != generation_round:
+            if generation_round < 2 or source_checkpoint != generation_round - 1:
                 raise ValueError(
-                    "source_checkpoint must equal the rubric generation round"
+                    "live source checkpoint must precede its rubric generation"
                 )
-        if generation_round == 0 and self.source_checkpoint is not None:
-            raise ValueError("the initial rubric cannot have a source checkpoint")
+        if generation_round <= 1 and self.source_checkpoint is not None:
+            raise ValueError(
+                "initial and pre-treatment rubrics cannot have a source checkpoint"
+            )
         if not isinstance(self.rubric, CompleteRubric):
             raise ValueError("rubric must be a CompleteRubric")
         if (
             type(self.elicited_criteria) is not tuple
-            or len(self.elicited_criteria) > MAX_ELICITED_CRITERIA
             or any(
                 not isinstance(criterion, ElicitedCriterion)
                 for criterion in self.elicited_criteria
@@ -600,7 +554,7 @@ class RubricGeneration:
         return maximum
 
     def validate_successor(self, prior: RubricGeneration) -> None:
-        """Require consecutive generation identity and append-only criteria."""
+        """Require a consecutive generation on the same original score scale."""
 
         if not isinstance(prior, RubricGeneration):
             raise ValueError("prior must be a RubricGeneration")
@@ -608,6 +562,5 @@ class RubricGeneration:
             raise ValueError("rubric generations must be consecutive")
         if self.scoring_protocol != prior.scoring_protocol:
             raise ValueError("a rubric generation cannot change scoring protocol")
-        prior_count = len(prior.elicited_criteria)
-        if self.elicited_criteria[:prior_count] != prior.elicited_criteria:
-            raise ValueError("a rubric generation cannot change prior criteria")
+        if self.normalization_maximum != prior.normalization_maximum:
+            raise ValueError("a rubric generation cannot change score normalization")

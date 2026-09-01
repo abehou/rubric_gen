@@ -10,7 +10,7 @@ from rubric_gen.evidence.index import index_implementation_sha256
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.benchmarks.harvey_lab.artifacts import file_sha256, read_json_object, task_path
-from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
+from rubric_gen.benchmarks.harvey_lab.config import HarveyRun
 from rubric_gen.benchmarks.harvey_lab.controller import candidate_id, rubric_id
 from rubric_gen.benchmarks.harvey_lab.evaluator import CandidateEvaluation, HarveyEvaluator
 from rubric_gen.benchmarks.harvey_lab.runtime import runtime_root_from_environment
@@ -19,7 +19,7 @@ from rubric_gen.detection.runner import DetectionRunner
 from rubric_gen.detection.sources import transcript_audit_source
 
 
-def _completed_candidate_count(experiment: HarveyExperiment) -> int:
+def _completed_candidate_count(experiment: HarveyRun) -> int:
     study = read_json_object(experiment.output_dir / "study.json", "completed Harvey study")
     count = study.get("candidate_count")
     if study.get("status") != "completed" or type(count) is not int or count < 1:
@@ -27,7 +27,7 @@ def _completed_candidate_count(experiment: HarveyExperiment) -> int:
     return count
 
 
-def _canonical_result(experiment: HarveyExperiment, index: int, task_id: str) -> Path:
+def _canonical_result(experiment: HarveyRun, index: int, task_id: str) -> Path:
     return (
         experiment.output_dir
         / "rounds"
@@ -41,11 +41,11 @@ def _canonical_result(experiment: HarveyExperiment, index: int, task_id: str) ->
 
 
 def run_quality_audit(
-    experiment: HarveyExperiment,
+    experiment: HarveyRun,
     *,
     evaluator: HarveyEvaluator | None = None,
 ) -> int:
-    """Re-score visible outputs with original rubrics, then run held-out tasks."""
+    """Select on hidden tasks, then evaluate the selection on untouched tasks."""
     evaluator = evaluator or HarveyEvaluator(
         experiment,
         runtime_root=runtime_root_from_environment(),
@@ -59,10 +59,10 @@ def run_quality_audit(
         / "task.json"
         for task_id in experiment.benchmark.development_tasks
     }
-    records: dict[str, object] = {}
+    development_records: dict[str, object] = {}
     with TerminalProgress(
         total=count,
-        description="Harvey quality audit",
+        description="Harvey development audit",
         unit="candidate",
     ) as progress:
         for index in range(count):
@@ -81,25 +81,6 @@ def run_quality_audit(
                     original_tasks,
                     original_destination,
                 )
-            held_out: CandidateEvaluation | None = None
-            if experiment.benchmark.held_out_tasks:
-                held_destination = root / "held-out" / identifier
-                if held_destination.is_dir():
-                    held_out = _load_evaluation(held_destination)
-                else:
-                    held_out = evaluator.evaluate(
-                        identifier,
-                        experiment.output_dir / "candidates" / identifier / "harness",
-                        {
-                            task_id: task_path(
-                                experiment.output_dir / "private" / "original_tasks",
-                                task_id,
-                            )
-                            / "task.json"
-                            for task_id in experiment.benchmark.held_out_tasks
-                        },
-                        held_destination,
-                    )
             active = _load_evaluation(
                 experiment.output_dir
                 / "rounds"
@@ -107,29 +88,156 @@ def run_quality_audit(
                 / "canonical"
                 / identifier
             )
-            records[identifier] = {
+            development_records[identifier] = {
                 "active_rubric_mean_criterion_pass": active.mean_criterion_pass,
                 "original_rubric_mean_criterion_pass": original.mean_criterion_pass,
                 "active_minus_original": (
                     active.mean_criterion_pass - original.mean_criterion_pass
                 ),
-                "held_out_mean_criterion_pass": (
-                    None if held_out is None else held_out.mean_criterion_pass
-                ),
             }
             progress.update()
+    selection_tasks = _private_task_files(
+        experiment,
+        experiment.benchmark.selection_tasks,
+    )
+    selection_records: dict[str, object] = {}
+    with TerminalProgress(
+        total=count,
+        description="Harvey candidate selection",
+        unit="candidate",
+    ) as progress:
+        for index in range(count):
+            identifier = candidate_id(index)
+            progress.set_status(identifier)
+            evaluations = _replicated_hidden_evaluations(
+                experiment,
+                evaluator,
+                identifier,
+                selection_tasks,
+                root / "selection" / identifier,
+                label="selection",
+            )
+            selection_records[identifier] = _replicated_summary(evaluations)
+            progress.update()
+    selected = max(
+        range(count),
+        key=lambda index: (
+            float(selection_records[candidate_id(index)]["mean_criterion_pass"]),  # type: ignore[index]
+            float(selection_records[candidate_id(index)]["mean_all_pass"]),  # type: ignore[index]
+            -index,
+        ),
+    )
+    selected_id = candidate_id(selected)
+    held_out_tasks = _private_task_files(
+        experiment,
+        experiment.benchmark.held_out_tasks,
+    )
+    held_out_records: dict[str, object] = {}
+    for identifier in dict.fromkeys((candidate_id(0), selected_id)):
+        evaluations = _replicated_hidden_evaluations(
+            experiment,
+            evaluator,
+            identifier,
+            held_out_tasks,
+            root / "held-out" / identifier,
+            label="held-out",
+        )
+        held_out_records[identifier] = _replicated_summary(evaluations)
+    baseline_held_out = float(
+        held_out_records[candidate_id(0)]["mean_criterion_pass"]  # type: ignore[index]
+    )
+    selected_held_out = float(
+        held_out_records[selected_id]["mean_criterion_pass"]  # type: ignore[index]
+    )
     write_json_atomic(
         root / "summary.json",
         {
             "kind": "harvey-hidden-quality-transfer-audit",
             "experiment_id": experiment.experiment_id,
+            "study_id": experiment.study_id,
+            "unit_id": experiment.unit_id,
+            "condition": experiment.condition,
+            "replicate": experiment.replicate,
             "candidate_count": count,
             "original_rubrics_visible_during_design": False,
+            "selection_tasks_visible_during_design": False,
             "held_out_tasks_visible_during_design": False,
-            "candidates": records,
+            "selection_rule": (
+                "maximum replicated mean criterion pass, then mean all-pass, "
+                "then earliest candidate"
+            ),
+            "outcome_replicates": experiment.outcome_replicates,
+            "selected_candidate": selected_id,
+            "development_candidates": development_records,
+            "selection_candidates": selection_records,
+            "held_out_candidates": held_out_records,
+            "selected_minus_baseline_held_out": (
+                selected_held_out - baseline_held_out
+            ),
         },
     )
     return 0
+
+
+def _private_task_files(
+    experiment: HarveyRun,
+    task_ids: tuple[str, ...],
+) -> dict[str, Path]:
+    return {
+        task_id: task_path(
+            experiment.output_dir / "private" / "original_tasks",
+            task_id,
+        )
+        / "task.json"
+        for task_id in task_ids
+    }
+
+
+def _replicated_hidden_evaluations(
+    experiment: HarveyRun,
+    evaluator: HarveyEvaluator,
+    identifier: str,
+    task_files: dict[str, Path],
+    destination: Path,
+    *,
+    label: str,
+) -> tuple[CandidateEvaluation, ...]:
+    evaluations: list[CandidateEvaluation] = []
+    for replicate in range(1, experiment.outcome_replicates + 1):
+        evaluation_id = f"{identifier}-{label}-e{replicate:04d}"
+        replicate_destination = destination / f"e{replicate:04d}"
+        if replicate_destination.is_dir():
+            evaluation = _load_evaluation(replicate_destination)
+        else:
+            evaluation = evaluator.evaluate(
+                evaluation_id,
+                experiment.output_dir / "candidates" / identifier / "harness",
+                task_files,
+                replicate_destination,
+            )
+        evaluations.append(evaluation)
+    return tuple(evaluations)
+
+
+def _replicated_summary(
+    evaluations: tuple[CandidateEvaluation, ...],
+) -> dict[str, object]:
+    return {
+        "mean_criterion_pass": sum(
+            item.mean_criterion_pass for item in evaluations
+        )
+        / len(evaluations),
+        "mean_all_pass": sum(item.mean_all_pass for item in evaluations)
+        / len(evaluations),
+        "replicates": [
+            {
+                "evaluation_id": item.candidate_id,
+                "mean_criterion_pass": item.mean_criterion_pass,
+                "mean_all_pass": item.mean_all_pass,
+            }
+            for item in evaluations
+        ],
+    }
 
 
 def _load_evaluation(path: Path) -> CandidateEvaluation:
@@ -191,7 +299,7 @@ def _text_patch(parent: Path, candidate: Path) -> str:
     return patch or "[No text patch was available.]"
 
 
-def _accepted_attempt(experiment: HarveyExperiment, index: int) -> Path:
+def _accepted_attempt(experiment: HarveyRun, index: int) -> Path:
     attempts = (
         experiment.output_dir
         / "rounds"
@@ -210,7 +318,7 @@ def _accepted_attempt(experiment: HarveyExperiment, index: int) -> Path:
     return matches[0]
 
 
-def prepare_reward_hacking_cases(experiment: HarveyExperiment) -> tuple[Path, ...]:
+def prepare_reward_hacking_cases(experiment: HarveyRun) -> tuple[Path, ...]:
     count = _completed_candidate_count(experiment)
     cases_root = experiment.output_dir / "audits" / "reward-hacking" / "cases"
     cases: list[Path] = []
@@ -299,7 +407,7 @@ def prepare_reward_hacking_cases(experiment: HarveyExperiment) -> tuple[Path, ..
 
 
 def run_reward_hacking_audit(
-    experiment: HarveyExperiment,
+    experiment: HarveyRun,
     *,
     resume: bool = False,
     max_concurrency: int | None = None,

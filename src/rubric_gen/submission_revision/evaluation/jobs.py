@@ -36,7 +36,7 @@ EVALUATION_KIND = "rubric-gen-revision-evaluation"
 ABSOLUTE_PROMPT_ID = "rubric-free-absolute-artifact-quality"
 PAIRWISE_PROMPT_ID = "rubric-free-pairwise-artifact-preference"
 ARTIFACTS = ("initial", "final")
-ORDERINGS = ("higher-first", "lower-first")
+PAIRWISE_ORDERS = ("initial-first", "final-first")
 
 _ABSOLUTE_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -103,42 +103,12 @@ source filesystem. Return only the requested JSON object.
 
 
 @dataclass(frozen=True)
-class RubricOrderedPair:
-    """Bind one highest-versus-lowest comparison under a common rubric."""
-
-    higher_submission_id: str
-    lower_submission_id: str
-    higher_score: float
-    lower_score: float
-    higher_submission: Path
-    lower_submission: Path
-
-    def __post_init__(self) -> None:
-        if (
-            type(self.higher_submission_id) is not str
-            or type(self.lower_submission_id) is not str
-            or self.higher_submission_id == self.lower_submission_id
-        ):
-            raise ValueError("rubric-ordered submission IDs are invalid")
-        for value, label in (
-            (self.higher_score, "higher rubric score"),
-            (self.lower_score, "lower rubric score"),
-        ):
-            _finite_score(value, label)
-        if self.higher_score < self.lower_score:
-            raise ValueError("rubric-ordered scores are reversed")
-
-    @property
-    def score_gap(self) -> float:
-        return self.higher_score - self.lower_score
-
-
-@dataclass(frozen=True)
 class EvaluationTarget:
     study_experiment_id: str
     assignment_id: str
     task_id: str
     replicate: int
+    solver_id: str
     condition_id: str
     rubric_policy: RubricPolicy
     benchmark: SubmissionBenchmarkId
@@ -159,39 +129,12 @@ class EvaluationTarget:
     final_manifest_sha256: str
     selection: ParaphraseSelection
 
-    def rubric_ordered_pair(self) -> RubricOrderedPair:
-        if (
-            len(self.submission_ids) < 2
-            or len(self.fixed_original_scores) != len(self.submission_ids)
-        ):
-            raise ValueError("rubric-ordered pair needs two scored submissions")
-        indices = range(len(self.submission_ids))
-        higher_index = max(
-            indices,
-            key=lambda index: (self.fixed_original_scores[index], index),
-        )
-        lower_index = min(
-            indices,
-            key=lambda index: (self.fixed_original_scores[index], index),
-        )
-        if higher_index == lower_index:
-            raise ValueError("rubric-ordered pair cannot reuse one submission")
-
-        def submission_path(index: int) -> Path:
-            if index == 0:
-                return self.initial_submission
-            if index == len(self.submission_ids) - 1:
-                return self.final_submission
-            return self.experiment_dir / "submissions" / self.submission_ids[index]
-
-        return RubricOrderedPair(
-            higher_submission_id=self.submission_ids[higher_index],
-            lower_submission_id=self.submission_ids[lower_index],
-            higher_score=self.fixed_original_scores[higher_index],
-            lower_score=self.fixed_original_scores[lower_index],
-            higher_submission=submission_path(higher_index),
-            lower_submission=submission_path(lower_index),
-        )
+    def initial_and_final_match(self) -> bool:
+        if self.initial_submission == self.final_submission:
+            return True
+        return _submission_content_sha256(
+            self.initial_submission
+        ) == _submission_content_sha256(self.final_submission)
 
     def submission(self, artifact: str) -> Path:
         if artifact == "initial":
@@ -310,12 +253,12 @@ class RubricFreeAbsoluteScoreJob:
 class PairwisePreferenceJob:
     target: EvaluationTarget
     model: str
-    ordering: str
+    order: str
     implementation_identity: dict[str, str]
 
-    @property
-    def pair(self) -> RubricOrderedPair:
-        return self.target.rubric_ordered_pair()
+    def __post_init__(self) -> None:
+        if self.order not in PAIRWISE_ORDERS:
+            raise ValueError(f"invalid pairwise order: {self.order}")
 
     @property
     def key(self) -> str:
@@ -352,11 +295,36 @@ class PreparedRubricFreeScores:
     targets: tuple[EvaluationTarget, ...]
     models: tuple[str, ...]
     implementation_identity: dict[str, str]
+    pairwise_order_plan: dict[tuple[str, int], str]
     absolute_jobs: tuple[RubricFreeAbsoluteScoreJob, ...]
     pairwise_jobs: tuple[PairwisePreferenceJob, ...]
     unique_absolute_jobs: tuple[RubricFreeAbsoluteScoreJob, ...]
     unique_pairwise_jobs: tuple[PairwisePreferenceJob, ...]
     predispatch_plan: dict[str, object]
+
+
+def pairwise_order_plan(
+    targets: tuple[EvaluationTarget, ...],
+) -> dict[tuple[str, int], str]:
+    """Assign one balanced order to each task and replicate pair."""
+
+    if not targets:
+        raise RuntimeError("pairwise order planning requires evaluation targets")
+    study_ids = {target.study_experiment_id for target in targets}
+    if len(study_ids) != 1:
+        raise RuntimeError("pairwise order planning requires one source study")
+    study_id = next(iter(study_ids))
+    cells = {(target.task_id, target.replicate) for target in targets}
+    ordered = sorted(
+        cells,
+        key=lambda cell: hashlib.sha256(
+            f"{study_id}\0{cell[0]}\0{cell[1]}".encode("utf-8")
+        ).digest(),
+    )
+    return {
+        cell: PAIRWISE_ORDERS[index % len(PAIRWISE_ORDERS)]
+        for index, cell in enumerate(ordered)
+    }
 
 
 
@@ -569,7 +537,7 @@ def _assert_accepted_job_plan(
 
 def _record_sort_key(record: dict[str, object]) -> tuple[str, ...]:
     return tuple(str(record.get(key, "")) for key in (
-        "assignment_id", "artifact", "model", "rubric_sha256", "ordering"
+        "assignment_id", "artifact", "model", "rubric_sha256", "order"
     ))
 
 
@@ -685,15 +653,14 @@ def _pairwise_preference_request(
     job: PairwisePreferenceJob,
 ) -> StructuredRequest:
     target = job.target
-    pair = job.pair
-    if job.ordering == "higher-first":
-        first = _rubric_free_review_material(target, pair.higher_submission)
-        second = _rubric_free_review_material(target, pair.lower_submission)
-    elif job.ordering == "lower-first":
-        first = _rubric_free_review_material(target, pair.lower_submission)
-        second = _rubric_free_review_material(target, pair.higher_submission)
+    if job.order == "initial-first":
+        first = _rubric_free_review_material(target, target.initial_submission)
+        second = _rubric_free_review_material(target, target.final_submission)
+    elif job.order == "final-first":
+        first = _rubric_free_review_material(target, target.final_submission)
+        second = _rubric_free_review_material(target, target.initial_submission)
     else:
-        raise ValueError(f"invalid rubric_free_evaluation ordering: {job.ordering}")
+        raise ValueError(f"invalid pairwise order: {job.order}")
     instruction = (target.task_dir / "instruction.md").read_text(encoding="utf-8")
     evidence = json.dumps(
         {
@@ -786,15 +753,14 @@ def _pairwise_judgment_identity(
     job: PairwisePreferenceJob,
     request: StructuredRequest,
 ) -> dict[str, object]:
-    pair = job.pair
-    if job.ordering == "higher-first":
-        first = pair.higher_submission
-        second = pair.lower_submission
-    elif job.ordering == "lower-first":
-        first = pair.lower_submission
-        second = pair.higher_submission
+    if job.order == "initial-first":
+        first = job.target.initial_submission
+        second = job.target.final_submission
+    elif job.order == "final-first":
+        first = job.target.final_submission
+        second = job.target.initial_submission
     else:
-        raise ValueError(f"invalid rubric_free_evaluation ordering: {job.ordering}")
+        raise ValueError(f"invalid pairwise order: {job.order}")
     return {
         "instrument": "rubric-free-pairwise-preference",
         "prompt_id": PAIRWISE_PROMPT_ID,
@@ -809,7 +775,7 @@ def _pairwise_judgment_identity(
         "model": job.model,
         "engine": "structured-generation",
         "implementation_identity": job.implementation_identity,
-        "ordering": job.ordering,
+        "order": job.order,
         "review": job.target.review,
         "max_review_chars": job.target.max_review_chars,
         "prompt_sha256": _prompt_sha256(request),

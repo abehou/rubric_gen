@@ -10,9 +10,17 @@ benchmark:
     - antitrust-competition/analyze-antitrust-hsr-strategy
     - antitrust-competition/analyze-counterparty-markup-of-protective-order
     - antitrust-competition/compare-leniency-programs-across-three-jurisdictions
+  selection_tasks:
+    - antitrust-competition/compare-corporate-antitrust-compliance-program-against-doj-and-ftc-guidelines
+    - antitrust-competition/compare-expert-market-share-estimates-against-agency-data
   held_out_tasks:
-    - arbitration-international-dispute-resolution/analyze-arbitration-award-for-new-york-convention-enforcement-defenses
-    - arbitration-international-dispute-resolution/compare-arbitrator-candidates-against-selection-criteria
+    - antitrust-competition/compare-proposed-merger-remedies-against-precedent-commitment-decisions
+    - antitrust-competition/draft-antitrust-competition
+
+design:
+  randomization_seed: 20260831
+  replicates_per_condition: 2
+  outcome_replicates: 2
 
 task_agent:
   model: gpt-5.6-luna
@@ -39,7 +47,6 @@ designer:
   retries: 1
 
 rubric:
-  mode: prospective
   proposer_model: gpt-5.6-sol
   max_changes_per_task: 8
   max_output_tokens: 16384

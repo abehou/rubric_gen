@@ -17,24 +17,17 @@ from rubric_gen.submission_revision.evolution_artifacts import (
     validate_artifact_history,
 )
 from rubric_gen.submission_revision.evolution_protocol import (
-    abandoned_editor_response,
-    criterion_evidence,
-    criterion_instructions,
-    criterion_schema,
     difference_evidence,
     difference_instructions,
     difference_schema,
-    editor_evidence,
-    editor_instructions,
-    editor_schema,
     required_level_labels,
-    validated_criterion_response,
     validated_difference_response,
-    validated_editor_response,
+    rubric_evidence,
+    rubric_instructions,
+    rubric_schema,
+    validated_rubric_response,
 )
 from rubric_gen.submission_revision.evolution_provider import (
-    MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS,
-    MAX_SEMANTIC_REVIEW_REQUEST_BYTES,
     PROPOSER_MAX_OUTPUT_TOKENS,
     PROPOSER_MAX_REQUEST_BYTES,
     ProviderContract,
@@ -51,7 +44,6 @@ from rubric_gen.submission_revision.rubric_generation import (
     ElicitedCriterion,
     RubricGeneration,
     RubricPolicy,
-    elicited_criterion_capacity,
     render_augmented_rubric,
 )
 from rubric_gen.submission_revision.rubric_generation_store import (
@@ -59,6 +51,9 @@ from rubric_gen.submission_revision.rubric_generation_store import (
     persist_rubric_generation,
     rubric_generation_directory,
 )
+
+
+PROVIDER_FAILURE_MAX_RETRIES = 3
 
 
 def rubric_generation_implementation_sha256() -> str:
@@ -73,6 +68,7 @@ def rubric_generation_implementation_sha256() -> str:
         package_root / "evolution_serialization.py",
         package_root / "rubric_generation.py",
         package_root / "rubric_generation_store.py",
+        package_root / "pretreatment_rubrics.py",
         package_root / "autorubric.py",
         package_root / "generation_scoring.py",
         package_root / "contrasts.py",
@@ -97,14 +93,14 @@ class _StageResult:
     raw_text: str
     value: object
     attempt_count: int
+    fallback_reason: str | None = None
 
 
 @dataclass(frozen=True)
 class _ProductionResult:
     generation: RubricGeneration
     difference: _StageResult
-    criteria: _StageResult
-    editor: _StageResult
+    rubric: _StageResult
 
 
 class RubricProposer:
@@ -115,35 +111,15 @@ class RubricProposer:
         *,
         benchmark: SubmissionBenchmarkId,
         model: str,
-        semantic_judge_model: str,
-        semantic_judge_max_calls: int,
-        semantic_judge_max_request_bytes: int,
-        semantic_judge_max_output_tokens: int,
         max_retries: int = 2,
         service_tier: str | None = None,
         run_proposer: ProviderOperation | None = None,
-        run_semantic_reviewer: ProviderOperation | None = None,
     ) -> None:
         if not isinstance(benchmark, SubmissionBenchmarkId):
             raise ValueError("rubric proposer benchmark is invalid")
-        if type(semantic_judge_max_calls) is not int or semantic_judge_max_calls < 0:
-            raise ValueError("rubric semantic reviewer call cap must be non-negative")
-        if (
-            type(semantic_judge_max_request_bytes) is not int
-            or not 1 <= semantic_judge_max_request_bytes
-            <= MAX_SEMANTIC_REVIEW_REQUEST_BYTES
-        ):
-            raise ValueError("semantic reviewer request-byte cap is invalid")
-        if (
-            type(semantic_judge_max_output_tokens) is not int
-            or not 1 <= semantic_judge_max_output_tokens
-            <= MAX_SEMANTIC_REVIEW_OUTPUT_TOKENS
-        ):
-            raise ValueError("semantic reviewer output-token cap is invalid")
         if type(max_retries) is not int or max_retries < 0:
             raise ValueError("rubric proposer retries must be non-negative")
         self.benchmark = benchmark
-        self.semantic_judge_max_calls = semantic_judge_max_calls
         self.max_retries = max_retries
         self.proposer_contract = ProviderContract(
             model=model,
@@ -151,16 +127,7 @@ class RubricProposer:
             max_request_bytes=PROPOSER_MAX_REQUEST_BYTES,
             service_tier=service_tier,
         )
-        self.semantic_reviewer_contract = ProviderContract(
-            model=semantic_judge_model,
-            max_output_tokens=semantic_judge_max_output_tokens,
-            max_request_bytes=semantic_judge_max_request_bytes,
-            service_tier=service_tier,
-        )
         self.run_proposer = run_proposer or self._run_direct_proposer
-        self.run_semantic_reviewer = (
-            run_semantic_reviewer or self._run_direct_semantic_reviewer
-        )
 
     def elicit_rubric(
         self,
@@ -191,8 +158,6 @@ class RubricProposer:
             raise ValueError("generation_round must be an integer")
         if generation_round != current_generation.generation_round + 1:
             raise ValueError("rubric generations must be consecutive")
-        if generation_round > self.semantic_judge_max_calls:
-            raise RuntimeError("semantic reviewer call schedule is exhausted")
         if policy is RubricPolicy.OFFLINE_ELICITATION:
             if generation_round != 1:
                 raise ValueError(
@@ -200,8 +165,18 @@ class RubricProposer:
                 )
             if source_checkpoint is not None:
                 raise ValueError("offline elicitation cannot use a live checkpoint")
-        elif type(source_checkpoint) is not int or source_checkpoint != generation_round:
-            raise ValueError("online elicitation needs the matching live checkpoint")
+        elif generation_round == 1:
+            if source_checkpoint is not None:
+                raise ValueError(
+                    "the pre-treatment online rubric cannot use live evidence"
+                )
+        elif (
+            type(source_checkpoint) is not int
+            or source_checkpoint != generation_round - 1
+        ):
+            raise ValueError(
+                "online elicitation needs the preceding live checkpoint"
+            )
         artifact_history = validate_artifact_history(artifact_history)
         context = self._context(
             instruction=instruction,
@@ -249,8 +224,7 @@ class RubricProposer:
         evolution_files = {
             "artifact-history.json": canonical_json(history_payload) + "\n",
             "difference-proposal.json": result.difference.raw_text,
-            "criterion-proposal.json": result.criteria.raw_text,
-            "criterion-edit.json": result.editor.raw_text,
+            "rubric-proposal.json": result.rubric.raw_text,
             "evolution.json": canonical_json(metadata) + "\n",
         }
         persist_rubric_generation(
@@ -297,44 +271,23 @@ class RubricProposer:
             difference_text,
             artifact_history=artifact_history,
         )
-        existing_count = len(current_generation.elicited_criteria)
-        remaining = (
-            elicited_criterion_capacity(original_rubric)
-            - existing_count
-        )
         level_labels = required_level_labels(original_rubric)
-        criterion_text = (root / "criterion-proposal.json").read_text()
-        criterion_value = validated_criterion_response(
-            criterion_text,
-            instruction=instruction,
+        rubric_text = (root / "rubric-proposal.json").read_text()
+        rubric_value = validated_rubric_response(
+            rubric_text,
             original_rubric=original_rubric,
             current_generation=current_generation,
             generation_round=generation_round,
-            remaining_capacity=remaining,
             level_labels=level_labels,
             artifact_history=artifact_history,
         )
-        editor_text = (root / "criterion-edit.json").read_text()
-        editor_value = validated_editor_response(
-            editor_text,
-            criterion_value,
-            instruction=instruction,
-            original_rubric=original_rubric,
-            current_generation=current_generation,
-            generation_round=generation_round,
-            remaining_capacity=remaining,
-            level_labels=level_labels,
-            artifact_history=artifact_history,
-        )
-        edited_criteria = editor_value["criteria"]
-        assert isinstance(edited_criteria, tuple)
         generation = self._build_generation(
             original_rubric=original_rubric,
             current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
             source_checkpoint=source_checkpoint,
-            edited_criteria=edited_criteria,
+            active_criteria=rubric_value,
         )
         metadata = load_json_object(
             (root / "evolution.json").read_text(),
@@ -342,25 +295,24 @@ class RubricProposer:
         )
         counts = (
             metadata.get("difference_attempt_count"),
-            metadata.get("criterion_attempt_count"),
-            metadata.get("criterion_edit_attempt_count"),
+            metadata.get("rubric_attempt_count"),
         )
+        fallback_reason = metadata.get("rubric_fallback_reason")
         if (
             any(type(value) is not int for value in counts)
             or not 1 <= counts[0] <= self.max_retries + 1
             or not 1 <= counts[1] <= self.max_retries + 1
-            or counts[2]
-            not in (
-                range(1, self.max_retries + 2)
-                if criterion_value
-                else (0,)
-            )
+            or (fallback_reason is not None and type(fallback_reason) is not str)
         ):
             raise RuntimeError("completed rubric generation has invalid attempts")
         difference = _StageResult(difference_text, difference_value, counts[0])
-        criteria = _StageResult(criterion_text, criterion_value, counts[1])
-        editor = _StageResult(editor_text, editor_value, counts[2])
-        result = _ProductionResult(generation, difference, criteria, editor)
+        rubric = _StageResult(
+            rubric_text,
+            rubric_value,
+            counts[1],
+            fallback_reason,
+        )
+        result = _ProductionResult(generation, difference, rubric)
         if metadata != self._generation_record(context=context, result=result):
             raise RuntimeError("completed rubric generation changed")
         if loaded != generation:
@@ -396,86 +348,44 @@ class RubricProposer:
             ),
         )
         assert isinstance(difference.value, dict)
-        existing_criterion_count = len(current_generation.elicited_criteria)
-        remaining = (
-            elicited_criterion_capacity(original_rubric)
-            - existing_criterion_count
-        )
         level_labels = required_level_labels(original_rubric)
-        criterion_evidence_value = criterion_evidence(
+        rubric_evidence_value = rubric_evidence(
             instruction=instruction,
             original_rubric=original_rubric,
             current_generation=current_generation,
             artifact_history=artifact_history,
             difference_response=difference.value,
-            remaining_capacity=remaining,
             level_labels=level_labels,
         )
-        criteria = self._proposer_stage(
-            role="criteria",
-            instructions=criterion_instructions(),
-            evidence=criterion_evidence_value,
-            response_schema=criterion_schema(
-                remaining,
+        rubric = self._rubric_stage(
+            evidence=rubric_evidence_value,
+            response_schema=rubric_schema(
                 level_labels,
                 artifact_history,
             ),
-            validator=lambda value: validated_criterion_response(
+            validator=lambda value: validated_rubric_response(
                 value,
-                instruction=instruction,
                 original_rubric=original_rubric,
                 current_generation=current_generation,
                 generation_round=generation_round,
-                remaining_capacity=remaining,
                 level_labels=level_labels,
                 artifact_history=artifact_history,
             ),
-        )
-        assert isinstance(criteria.value, tuple)
-        editor_evidence_value = editor_evidence(
-            instruction=instruction,
-            original_rubric=original_rubric,
             current_generation=current_generation,
-            artifact_history=artifact_history,
-            difference_response=difference.value,
-            proposed_criteria=criteria.value,
         )
-        editor = self._editor_stage(
-            evidence=editor_evidence_value,
-            response_schema=editor_schema(
-                criteria.value,
-                level_labels,
-                artifact_history,
-            ),
-            validator=lambda value: validated_editor_response(
-                value,
-                criteria.value,
-                instruction=instruction,
-                original_rubric=original_rubric,
-                current_generation=current_generation,
-                generation_round=generation_round,
-                remaining_capacity=remaining,
-                level_labels=level_labels,
-                artifact_history=artifact_history,
-            ),
-            source_criteria=criteria.value,
-        )
-        assert isinstance(editor.value, dict)
-        edited_criteria = editor.value["criteria"]
-        assert isinstance(edited_criteria, tuple)
+        assert isinstance(rubric.value, tuple)
         generation = self._build_generation(
             original_rubric=original_rubric,
             current_generation=current_generation,
             policy=policy,
             generation_round=generation_round,
             source_checkpoint=source_checkpoint,
-            edited_criteria=edited_criteria,
+            active_criteria=rubric.value,
         )
         return _ProductionResult(
             generation=generation,
             difference=difference,
-            criteria=criteria,
-            editor=editor,
+            rubric=rubric,
         )
 
     def _build_generation(
@@ -486,12 +396,11 @@ class RubricProposer:
         policy: RubricPolicy,
         generation_round: int,
         source_checkpoint: int | None,
-        edited_criteria: tuple[ElicitedCriterion, ...],
+        active_criteria: tuple[ElicitedCriterion, ...],
     ) -> RubricGeneration:
-        all_criteria = current_generation.elicited_criteria + edited_criteria
         next_rubric = render_augmented_rubric(
             original_rubric,
-            all_criteria,
+            active_criteria,
         )
         generation = RubricGeneration(
             generation_round=generation_round,
@@ -501,7 +410,7 @@ class RubricProposer:
                 else None
             ),
             rubric=next_rubric,
-            elicited_criteria=all_criteria,
+            elicited_criteria=active_criteria,
             proposer_call_budget=2 * (self.max_retries + 1),
         )
         generation.validate_successor(current_generation)
@@ -517,7 +426,10 @@ class RubricProposer:
         validator: Callable[[str], object],
     ) -> _StageResult:
         repair: str | None = None
+        provider_failures = 0
+        attempt_count = 0
         for attempt in range(1, self.max_retries + 2):
+            attempt_count = attempt
             attempt_evidence = evidence
             if repair is not None:
                 attempt_evidence += (
@@ -531,6 +443,13 @@ class RubricProposer:
                     evidence=attempt_evidence,
                     response_schema=response_schema,
                 )
+            except Exception as exc:
+                repair = str(exc) or type(exc).__name__
+                provider_failures += 1
+                if provider_failures > PROVIDER_FAILURE_MAX_RETRIES:
+                    break
+                continue
+            try:
                 self.proposer_contract.validate_output(output)
             except Exception as exc:
                 repair = str(exc) or type(exc).__name__
@@ -547,39 +466,45 @@ class RubricProposer:
                 attempt_count=attempt,
             )
         raise RuntimeError(
-            f"{role} proposer failed after {self.max_retries + 1} calls: "
+            f"{role} proposer failed after {attempt_count} calls: "
             f"{repair}"
         )
 
-    def _editor_stage(
+    def _rubric_stage(
         self,
         *,
         evidence: str,
         response_schema: dict[str, object],
         validator: Callable[[str], object],
-        source_criteria: tuple[ElicitedCriterion, ...],
+        current_generation: RubricGeneration,
     ) -> _StageResult:
-        if not source_criteria:
-            raw_text = canonical_json({"actions": []})
-            return _StageResult(raw_text, validator(raw_text), 0)
-
         repair: str | None = None
+        provider_failures = 0
+        attempt_count = 0
         for attempt in range(1, self.max_retries + 2):
+            attempt_count = attempt
             attempt_evidence = evidence
             if repair is not None:
                 attempt_evidence += (
-                    "\n\n<repair>\nThe prior editor response failed validation.\n"
+                    "\n\n<repair>\nThe prior rubric response failed validation.\n"
                     + repair
-                    + "\nUse distinct support pairs from the supplied full history. "
-                    "If no valid repair exists, drop the affected criterion.\n"
+                    + "\nUse only provenance pair IDs from the supplied history.\n"
                     "Return a complete corrected response.\n</repair>"
                 )
             try:
-                output = self.run_semantic_reviewer(
+                output = self.run_proposer(
+                    stage="rubric",
                     evidence=attempt_evidence,
                     response_schema=response_schema,
                 )
-                self.semantic_reviewer_contract.validate_output(output)
+            except Exception as exc:
+                repair = str(exc) or type(exc).__name__
+                provider_failures += 1
+                if provider_failures > PROVIDER_FAILURE_MAX_RETRIES:
+                    break
+                continue
+            try:
+                self.proposer_contract.validate_output(output)
             except Exception as exc:
                 repair = str(exc) or type(exc).__name__
                 continue
@@ -595,11 +520,28 @@ class RubricProposer:
                 attempt_count=attempt,
             )
 
-        fallback = abandoned_editor_response(source_criteria, repair)
+        fallback = canonical_json({
+            "criteria": [{
+                "title": criterion.title,
+                "requirement": criterion.requirement,
+                "levels": [
+                    {
+                        "label": label,
+                        "points": points,
+                        "description": description,
+                    }
+                    for label, points, description in criterion.levels
+                ],
+                "provenance_pair_ids": list(criterion.provenance_pair_ids),
+            } for criterion in current_generation.elicited_criteria],
+        })
         return _StageResult(
             raw_text=fallback,
             value=validator(fallback),
-            attempt_count=self.max_retries + 1,
+            attempt_count=attempt_count,
+            fallback_reason=" ".join(
+                (repair or "invalid rubric response").split()
+            ),
         )
 
     def _context(
@@ -625,8 +567,8 @@ class RubricProposer:
                 artifact_history.artifact_record()
             ),
             "proposer": self.proposer_contract.record(),
-            "semantic_reviewer": self.semantic_reviewer_contract.record(),
             "max_retries": self.max_retries,
+            "provider_failure_max_retries": PROVIDER_FAILURE_MAX_RETRIES,
         }
 
     def _generation_record(
@@ -636,7 +578,7 @@ class RubricProposer:
         result: _ProductionResult,
     ) -> dict[str, object]:
         return {
-            "kind": "criterion-elicitation-generation",
+            "kind": "rubric-elicitation-generation",
             "implementation_sha256": rubric_generation_implementation_sha256(),
             "context": context,
             "prior_generation_sha256": context["prior_generation_sha256"],
@@ -647,12 +589,11 @@ class RubricProposer:
                 for item in result.generation.elicited_criteria
             ],
             "difference_proposal_sha256": sha256_text(result.difference.raw_text),
-            "criterion_proposal_sha256": sha256_text(result.criteria.raw_text),
-            "criterion_edit_sha256": sha256_text(result.editor.raw_text),
+            "rubric_proposal_sha256": sha256_text(result.rubric.raw_text),
             "proposer_call_budget": 2 * (self.max_retries + 1),
             "difference_attempt_count": result.difference.attempt_count,
-            "criterion_attempt_count": result.criteria.attempt_count,
-            "criterion_edit_attempt_count": result.editor.attempt_count,
+            "rubric_attempt_count": result.rubric.attempt_count,
+            "rubric_fallback_reason": result.rubric.fallback_reason,
             "scoring_feasibility": validate_generation_scoring_structure(
                 result.generation,
                 benchmark=self.benchmark,
@@ -669,7 +610,7 @@ class RubricProposer:
         instructions = (
             difference_instructions()
             if stage == "differences"
-            else criterion_instructions()
+            else rubric_instructions()
         )
         return self.proposer_contract.generate(
             instructions=instructions,
@@ -677,18 +618,4 @@ class RubricProposer:
             response_schema=response_schema,
             request_context="rubric proposer",
             schema_name=f"rubric_{stage}",
-        )
-
-    def _run_direct_semantic_reviewer(
-        self,
-        *,
-        evidence: str,
-        response_schema: dict[str, object],
-    ) -> StructuredProviderOutput:
-        return self.semantic_reviewer_contract.generate(
-            instructions=editor_instructions(),
-            evidence=evidence,
-            response_schema=response_schema,
-            request_context="rubric semantic reviewer",
-            schema_name="rubric_semantic_review",
         )

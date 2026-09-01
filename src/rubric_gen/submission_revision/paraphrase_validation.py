@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,7 +23,6 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
 @dataclass(frozen=True)
 class ParaphraseSelection:
     task_id: str
-    replicate: int
     optimizer_index: int
     optimizer_path: Path
     optimizer_sha256: str
@@ -73,20 +71,13 @@ def resolve_paraphrase_selection(
     root: Path,
     experiment: Experiment,
     task_id: str,
-    replicate: int,
 ) -> ParaphraseSelection:
-    """Resolve one selection from a separately validated paraphrase pool."""
+    """Resolve the experiment's fixed selection from a validated pool."""
 
     if task_id not in experiment.task_ids:
         raise ValueError(f"task is not in experiment: {task_id}")
-    if not 1 <= replicate <= experiment.replicates:
-        raise ValueError("replicate is outside the experiment")
     count = int(experiment.rubric_paraphrases["count"])
-    optimizer_index = _selected_index(
-        int(experiment.payload["randomization"]["seed"]),
-        replicate,
-        count,
-    )
+    optimizer_index = int(experiment.rubric_paraphrases["selected_variant"])
     task_root = root.resolve() / "tasks" / task_id
     paths = tuple(task_root / f"variant-{index:03d}.txt" for index in range(count))
     master_path = (
@@ -96,7 +87,6 @@ def resolve_paraphrase_selection(
     )
     return ParaphraseSelection(
         task_id=task_id,
-        replicate=replicate,
         optimizer_index=optimizer_index,
         optimizer_path=paths[optimizer_index],
         optimizer_sha256=sha256_file(paths[optimizer_index]),
@@ -283,10 +273,3 @@ def _valid_variant_metadata(
         and isinstance(metadata.get("generation"), dict)
         and type(metadata.get("prompt_sha256")) is str
     )
-
-
-def _selected_index(seed: int, replicate: int, count: int) -> int:
-    digest = hashlib.sha256(
-        f"{seed}\0{replicate}\0rubric-paraphrase-set".encode("utf-8")
-    ).digest()
-    return int.from_bytes(digest[:8], "big") % count

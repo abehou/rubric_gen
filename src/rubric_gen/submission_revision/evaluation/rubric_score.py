@@ -460,6 +460,7 @@ def _rubric_score_job_identity(job: RubricScoreJob) -> dict[str, object]:
         "assignment_id": job.target.assignment_id,
         "task_id": job.target.task_id,
         "replicate": job.target.replicate,
+        "solver_id": job.target.solver_id,
         "condition_id": job.target.condition_id,
         "model": job.model,
         "artifact": job.artifact,

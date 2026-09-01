@@ -59,6 +59,10 @@ from rubric_gen.submission_revision.rubric_generation_store import (
     load_rubric_generation,
     rubric_generation_directory,
 )
+from rubric_gen.submission_revision.pretreatment_rubrics import (
+    install_pretreatment_rubric as install_shared_pretreatment_rubric,
+    pretreatment_blinding_scope,
+)
 from rubric_gen.submission_revision.seeds import ResolvedSeed
 from rubric_gen.submission_revision.store import (
     RevisionStore,
@@ -183,25 +187,16 @@ class RevisionScorer:
             discard_temporary_judgment(self.experiment_dir, generated)
         return artifacts
 
-    def compile_offline_rubric(self) -> None:
-        """Compile the sole offline rubric before any treatment checkpoint."""
+    def install_pretreatment_rubric(self) -> RubricGeneration:
+        """Install the shared seed-learned baseline for an elicitation arm."""
 
-        proposer = self.dependencies.rubric_proposer
-        if proposer is None:
-            raise RuntimeError("offline elicitation has no rubric proposer")
-        generation = proposer.elicit_rubric(
-            instruction=(self.task_dir / "instruction.md").read_text(
-                encoding="utf-8"
-            ),
-            original_rubric=CompleteRubric.from_content(self.initial_rubric.text),
-            current_generation=self.initial_generation,
-            policy=RubricPolicy.OFFLINE_ELICITATION,
-            generation_round=1,
-            artifact_history=self.elicitation_history(1),
-            source_checkpoint=None,
-            output_dir=self.experiment_dir,
+        generation = install_shared_pretreatment_rubric(
+            source_root=self.config.pretreatment_rubric_dir,
+            destination_root=self.experiment_dir,
+            policy=self.rubric_policy,
         )
         generation.validate_successor(self.initial_generation)
+        return generation
 
     def run_judge_checkpoint(self, state: _RevisionState) -> None:
         self.validate_latest_checkpoint(state)
@@ -348,9 +343,9 @@ class RevisionScorer:
 
         if self.rubric_policy is not RubricPolicy.ONLINE_ELICITATION:
             return
-        generation_round = turn_index - 1
-        if generation_round < 1:
+        if turn_index < 2:
             return
+        generation_round = turn_index
         destination = rubric_generation_directory(
             self.experiment_dir, generation_round
         )
@@ -371,7 +366,7 @@ class RevisionScorer:
             policy=self.rubric_policy,
             generation_round=generation_round,
             artifact_history=self.elicitation_history(generation_round),
-            source_checkpoint=generation_round,
+            source_checkpoint=generation_round - 1,
             output_dir=self.experiment_dir,
         )
         generation.validate_successor(current)
@@ -552,6 +547,11 @@ class RevisionScorer:
                 current_artifact=current_artifact,
                 history=history,
                 history_summary=history_summary,
+                failure_dir=(
+                    self.experiment_dir
+                    / "feedback-generation-failures"
+                    / submission_id
+                ),
             )
             _write_json_atomic(generation_path, simulated_record)
         user_feedback = simulator.validate(
@@ -599,15 +599,12 @@ class RevisionScorer:
             )
 
     def active_rubric_generation(self, checkpoint: int) -> RubricGeneration:
-        generation_round = (
-            0
-            if self.rubric_policy is RubricPolicy.FIXED
-            else (
-                1
-                if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-                else max(0, checkpoint - 1)
-            )
-        )
+        generation_round = 0
+        if checkpoint > 0:
+            if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
+                generation_round = 1
+            elif self.rubric_policy is RubricPolicy.ONLINE_ELICITATION:
+                generation_round = checkpoint
         generation = load_rubric_generation(
             self.experiment_dir,
             generation_round,
@@ -626,17 +623,25 @@ class RevisionScorer:
         """Return the complete blinded history for one rubric update."""
 
         return build_elicitation_artifact_history(
-            online=self.rubric_policy is RubricPolicy.ONLINE_ELICITATION,
+            online=(
+                self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
+                and generation_round >= 2
+            ),
             seed_set=self.config.seed_run_dir,
             task_dir=self.task_dir,
             experiment_dir=self.experiment_dir,
             benchmark=self.benchmark,
-            provider=self.config.agent.provider,
-            requested_model=self.config.agent.model,
+            seed_generator=self.config.seed_agent,
             prompt_profile=self.config.prompt_profile,
             seed_replicates=self.config.elicitation_seed_replicates,
-            assignment_id=self.config.assignment_id,
-            generation_round=generation_round,
+            blinding_scope=pretreatment_blinding_scope(
+                self.config.experiment_id,
+                self.task_dir.name,
+                self.initial_generation.rubric.content_sha256,
+            ),
+            source_checkpoint=(
+                generation_round - 1 if generation_round >= 2 else None
+            ),
         )
 
     @staticmethod

@@ -39,7 +39,7 @@ rubric adaptation, and rubric-generator agents.
 There are exactly two model roles:
 
 1. **Solver agent:** solves the task and revises its own submission in one
-   persistent CLI conversation.
+   persistent provider conversation.
 2. **Judge:** scores immutable snapshots and returns structured feedback through
    a trusted projection layer.
 
@@ -66,7 +66,12 @@ For each revision round `t >= 1`:
 3. Resume the exact same provider session in the same live workspace.
 4. Ask the solver to revise `trace.md`, `answer.txt`, and supporting analysis
    artifacts in response to the feedback.
-5. Save the new turn trajectory and immutable snapshot `s(t)`.
+5. Stop automatically if the benchmark submission did not change.
+6. Otherwise, save the new turn trajectory and immutable snapshot `s(t)`.
+
+The solver does not declare whether the loop stops. Rubric scores do not control
+stopping. An unchanged turn remains in the audit trajectory but does not create
+a duplicate submission.
 
 There is no acceptance test. A lower-scoring submission still becomes the input
 to the next turn. This preserves regressions, oscillations, and attempted hacks
@@ -84,8 +89,8 @@ immediately after the initial turn:
   `--resume <uuid>`.
 - Claude Code starts with `--session-id <uuid>` and continues with
   `--resume <uuid>`.
-- Codex starts normally, records the thread ID from its JSON event stream, and
-  continues with `codex exec resume <thread-id>`.
+- Codex starts one local app-server through the Python SDK. Later turns run on
+  the same live SDK thread without persisted-thread resume.
 
 Every turn uses the same provider, requested model, working directory,
 permission policy, and no-web setting. The system must not silently replace a
@@ -220,21 +225,18 @@ separation reduce accidental artifact mixing, but cannot by themselves protect
 the frozen rubric, judge outputs, or future audit artifacts from a hostile
 solver process.
 
-On POSIX, each provider turn starts in a new process group. After the provider
-exits, the driver terminates remaining members of that group, covering ordinary
-child processes. This is lifecycle hygiene, not a security boundary: a child
-can call `setsid` or otherwise detach, and another same-user process is outside
-the group entirely. Such processes can still access host-visible paths. A
-verified external container remains necessary for hostile-process conditions;
-the controller makes no host-unrestricted tamper-resistance claim.
+On POSIX, Gemini and Claude turns start in new process groups. Codex uses one
+app-server process for the assignment. The controller closes it when the
+assignment ends. This lifecycle hygiene is not a security boundary. A verified
+external container remains necessary for hostile-process conditions.
 
 ## Components
 
 ### Session driver
 
-A provider-specific session driver builds initial and resume commands, streams
-JSONL output, and returns the stable session ID. It reuses the current provider
-configuration and does not alter the ordinary one-shot `AgentRunner` behavior.
+A provider-specific session driver streams JSONL output and returns the stable
+session ID. Gemini and Claude use CLI continuation. Codex uses one live SDK
+thread. This does not alter the ordinary one-shot `AgentRunner` behavior.
 
 ### Feedback projector
 

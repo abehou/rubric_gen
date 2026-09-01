@@ -28,6 +28,8 @@ from rubric_gen.submission_revision.rubric_generation_store import (
     rubric_generation_directory,
 )
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
+from rubric_gen.submission_revision.seeds import seed_generator_identity
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 
 def load_evaluation_targets(
     config: EvaluationConfig,
@@ -43,6 +45,8 @@ def load_evaluation_targets(
         or study.get("experiment_path") != str(config.experiment.path)
         or type(study.get("seed_run_dir")) is not str
         or study.get("paraphrase_run_dir") != str(config.paraphrase_dir.resolve())
+        or study.get("pretreatment_rubric_root")
+        != str(study_root / "pretreatment-rubrics")
         or not isinstance(study.get("records"), list)
     ):
         raise RuntimeError("revision evaluation requires a completed source study")
@@ -52,21 +56,18 @@ def load_evaluation_targets(
     records = {str(record.get("assignment_id")): record for record in raw_records}
     assignments = config.experiment.assignments
     assignment_ids = {
-        str(assignment["assignment_id"]) for assignment in assignments
+        assignment.assignment_id for assignment in assignments
     }
     if len(records) != len(raw_records) or set(records) != assignment_ids:
         raise RuntimeError("evaluation source study ledger differs from the experiment")
-    selection_keys = {
-        (str(assignment["task_id"]), int(assignment["replicate"]))
-        for assignment in assignments
-    }
+    selection_keys = {assignment.task_id for assignment in assignments}
     selections = {
-        key: paraphrase_validation.resolve_paraphrase_selection(
+        task_id: paraphrase_validation.resolve_paraphrase_selection(
             config.paraphrase_dir,
             config.experiment,
-            *key,
+            task_id,
         )
-        for key in sorted(selection_keys)
+        for task_id in sorted(selection_keys)
     }
     targets: list[EvaluationTarget | None] = [None] * len(assignments)
     with TerminalProgress(
@@ -79,16 +80,13 @@ def load_evaluation_targets(
             max_workers=min(config.max_concurrency, len(assignments))
         ) as pool:
             for index, assignment in enumerate(assignments):
-                assignment_id = str(assignment["assignment_id"])
+                assignment_id = assignment.assignment_id
                 record = records.get(assignment_id)
                 if record is None or record.get("status") != "completed":
                     raise RuntimeError(
                         f"study assignment is incomplete: {assignment_id}"
                     )
-                selection_key = (
-                    str(assignment["task_id"]),
-                    int(assignment["replicate"]),
-                )
+                selection_key = assignment.task_id
                 future = pool.submit(
                     _load_evaluation_target,
                     config,
@@ -113,11 +111,11 @@ def _load_evaluation_target(
     config: EvaluationConfig,
     study_root: Path,
     study_experiment_id: str,
-    assignment: dict[str, object],
+    assignment: ExperimentAssignment,
     record: dict[str, object],
     selection: ParaphraseSelection,
 ) -> EvaluationTarget:
-    assignment_id = str(assignment["assignment_id"])
+    assignment_id = assignment.assignment_id
     experiment_dir = resolve_study_experiment(
         study_root,
         record,
@@ -133,9 +131,9 @@ def _load_evaluation_target(
     submission_ids = state["submission_ids"]
     scores = state["scores"]
     fixed_original_scores = state["fixed_original_scores"]
-    task_id = str(assignment["task_id"])
-    replicate = int(assignment["replicate"])
-    condition = config.experiment.condition(str(assignment["condition_id"]))
+    task_id = assignment.task_id
+    replicate = assignment.replicate
+    condition = config.experiment.condition(assignment.condition_id)
     rubric_policy = RubricPolicy(str(condition["rubric_policy"]))
     initial_generation_round = _active_generation_round(rubric_policy, 0)
     final_generation_round = _active_generation_round(
@@ -175,7 +173,8 @@ def _load_evaluation_target(
         assignment_id=assignment_id,
         task_id=task_id,
         replicate=replicate,
-        condition_id=str(assignment["condition_id"]),
+        solver_id=assignment.solver_id,
+        condition_id=assignment.condition_id,
         rubric_policy=rubric_policy,
         benchmark=config.experiment.benchmark,
         experiment_dir=experiment_dir.resolve(),
@@ -205,7 +204,7 @@ def _load_evaluation_target(
 
 def _load_terminal_revision_state(
     experiment_dir: Path,
-    assignment: dict[str, object],
+    assignment: ExperimentAssignment,
     config: EvaluationConfig,
     selection: ParaphraseSelection,
     study_experiment_id: str,
@@ -223,21 +222,25 @@ def _load_terminal_revision_state(
     state = read_json_object(experiment_dir / "state.json", "revision state")
     experiment = config.experiment
     protocol = experiment.protocol
-    condition = experiment.condition(str(assignment["condition_id"]))
-    agent = experiment.agent_config(
+    condition = experiment.condition(assignment.condition_id)
+    agent = experiment.solver_config(
+        assignment.solver_id,
         quiet=True,
     )
+    seed_agent = experiment.seed_agent_config(quiet=True)
     manifest_identity = {
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": study_experiment_id,
         "benchmark": str(experiment.benchmark),
-        "assignment_id": assignment.get("assignment_id"),
-        "condition_id": assignment.get("condition_id"),
-        "task_id": assignment.get("task_id"),
-        "replicate": assignment.get("replicate"),
-        "execution_order": assignment.get("execution_order"),
-        "task_dir": str(experiment.task_dir(str(assignment["task_id"]))),
+        "assignment_id": assignment.assignment_id,
+        "condition_id": assignment.condition_id,
+        "solver_id": assignment.solver_id,
+        "task_id": assignment.task_id,
+        "replicate": assignment.replicate,
+        "execution_order": assignment.execution_order,
+        "task_dir": str(experiment.task_dir(assignment.task_id)),
         "max_revisions": protocol["max_revisions"],
+        "min_revisions": protocol["min_revisions"],
         "provider": agent.provider,
         "model": agent.model,
         "executable": agent.executable,
@@ -251,18 +254,6 @@ def _load_terminal_revision_state(
         "rubric_proposer_max_retries": protocol[
             "rubric_proposer_max_retries"
         ],
-        "rubric_semantic_judge_model": protocol[
-            "rubric_semantic_judge_model"
-        ],
-        "rubric_semantic_judge_max_calls": protocol[
-            "rubric_semantic_judge_max_calls_per_assignment"
-        ],
-        "rubric_semantic_judge_max_request_bytes": protocol[
-            "rubric_semantic_judge_max_request_bytes_per_call"
-        ],
-        "rubric_semantic_judge_max_output_tokens": protocol[
-            "rubric_semantic_judge_max_output_tokens_per_call"
-        ],
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],
         "max_review_chars": protocol["max_review_chars"],
@@ -270,6 +261,7 @@ def _load_terminal_revision_state(
         "initial_rubric_sha256": selection.optimizer_sha256,
         "master_rubric_name": protocol["rubric_name"],
         "master_rubric_sha256": selection.master_sha256,
+        "seed_generator": seed_generator_identity(seed_agent),
         "live_workspace_removed": True,
     }
     if (
@@ -306,7 +298,11 @@ def _load_terminal_revision_state(
         or submission_ids
         != [f"s{index:03d}" for index in range(len(submission_ids))]
         or state.get("next_turn_index") != len(submission_ids)
-        or state.get("stop_reason") not in {"solver", "max_revisions"}
+        or state.get("stop_reason") not in {"no_change", "max_revisions"}
+        or (
+            state.get("stop_reason") == "no_change"
+            and len(submission_ids) < int(protocol["min_revisions"])
+        )
         or state.get("next_prompt") != ""
         or manifest.get("submission_count") != len(submission_ids)
         or state.get("session_id") != manifest.get("session_id")
@@ -348,8 +344,8 @@ def _active_generation_round(
 ) -> int:
     if checkpoint < 0:
         raise ValueError("active rubric checkpoint must be nonnegative")
-    if rubric_policy is RubricPolicy.FIXED:
+    if rubric_policy is RubricPolicy.FIXED or checkpoint == 0:
         return 0
     if rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
         return 1
-    return max(0, checkpoint - 1)
+    return checkpoint

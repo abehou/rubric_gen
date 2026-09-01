@@ -6,9 +6,10 @@ import tomllib
 from pathlib import Path
 from typing import Callable
 
+import pytest
+
 import rubric_gen.runtime.agents.adapters as adapters_module
 import rubric_gen.runtime.agents.runners as runners_module
-import rubric_gen.runtime.agents.sessions as sessions_module
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.adapters import CodexAdapter
 from rubric_gen.runtime.agents.runners import AgentRunner
@@ -75,63 +76,6 @@ def test_one_shot_codex_agent_reads_explicit_prompt_stdin(
     assert runner.stream(paths) == 0
     assert popen_kwargs[0]["stdin"].name == str(paths.prompt_path)
     assert paths.stream_path.read_text() == "done\n"
-
-
-def test_persistent_codex_agent_reads_explicit_prompt_stdin(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    paths = _run_paths(tmp_path)
-    paths.prompt_path.write_text("prompt from file")
-    driver = CliSolverSessionDriver(
-        AgentRunConfig(
-            provider="codex",
-            model="test-model",
-            quiet=True,
-        ),
-        contract=BIOMNIBENCH_DA,
-    )
-    original_popen = sessions_module.subprocess.Popen
-    popen_kwargs: list[dict[str, object]] = []
-
-    def recording_popen(*args, **kwargs):
-        popen_kwargs.append(kwargs)
-        return original_popen(*args, **kwargs)
-
-    monkeypatch.setattr(sessions_module.subprocess, "Popen", recording_popen)
-
-    assert driver._stream(
-        [sys.executable, "-c", "print('done')"],
-        paths,
-    ) == 0
-    assert popen_kwargs[0]["stdin"].name == str(paths.prompt_path)
-    assert paths.stream_path.read_text() == "done\n"
-
-
-def test_persistent_codex_agent_streams_prompt_larger_than_argument_limit(
-    tmp_path: Path,
-) -> None:
-    paths = _run_paths(tmp_path)
-    prompt = "x" * 145_155
-    paths.prompt_path.write_text(prompt)
-    driver = CliSolverSessionDriver(
-        AgentRunConfig(
-            provider="codex",
-            model="test-model",
-            quiet=True,
-        ),
-        contract=BIOMNIBENCH_DA,
-    )
-
-    assert driver._stream(
-        [
-            sys.executable,
-            "-c",
-            "import sys; print(len(sys.stdin.buffer.read()))",
-        ],
-        paths,
-    ) == 0
-    assert paths.stream_path.read_text() == "145155\n"
 
 
 class ScriptedSessionDriver(CliSolverSessionDriver):
@@ -204,38 +148,12 @@ class ScriptedSessionDriver(CliSolverSessionDriver):
         return 9 if outcome == "process_error" else 0
 
 
-def test_codex_persistent_session_has_no_network_or_web_override(
-    tmp_path: Path,
-) -> None:
-    driver = CliSolverSessionDriver(
-        AgentRunConfig(
-            provider="codex",
-            model="gpt-5.6-luna",
-        ),
-        contract=BIOMNIBENCH_DA,
-    )
-    paths = RunPaths.for_task(
-        task_dir=tmp_path / "task",
-        runs_dir=tmp_path / "runs",
-        provider="codex",
-    )
-
-    command = driver._build_command(
-        paths, "prompt", session_id="session-id", resume=False
-    )
-
-    assert "--strict-config" in command
-    assert "--ignore-rules" in command
-    assert "--search" not in command
-    assert command[-1] == "-"
-    assert "prompt" not in command
-    assert not hasattr(driver.config, "allow_network")
-
-    resumed = driver._build_command(
-        paths, "follow-up", session_id="session-id", resume=True
-    )
-    assert resumed[-2:] == ["session-id", "-"]
-    assert "follow-up" not in resumed
+def test_codex_persistent_session_rejects_cli_driver() -> None:
+    with pytest.raises(ValueError, match="CodexSdkSessionDriver"):
+        CliSolverSessionDriver(
+            AgentRunConfig(provider="codex", model="gpt-5.6-luna"),
+            contract=BIOMNIBENCH_DA,
+        )
 
 
 def test_agent_environment_uses_workspace_local_temporary_directory(

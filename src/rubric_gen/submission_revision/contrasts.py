@@ -7,6 +7,7 @@ from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmark
+from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
@@ -31,8 +32,7 @@ def _sealed_seed_artifacts(
     seed_set: Path,
     task_dir: Path,
     benchmark: SubmissionBenchmark,
-    provider: str,
-    requested_model: str,
+    seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
     seed_replicates: int,
 ) -> tuple[_Artifact, ...]:
@@ -44,8 +44,7 @@ def _sealed_seed_artifacts(
             seed_set,
             task_dir,
             replicate,
-            provider=provider,
-            requested_model=requested_model,
+            seed_generator=seed_generator,
             prompt_profile=prompt_profile,
             benchmark=benchmark.benchmark,
         )
@@ -59,9 +58,11 @@ def _sealed_seed_artifacts(
 
 def _artifact_history(
     *,
-    assignment_id: str,
+    blinding_scope: str,
     artifacts: tuple[_Artifact, ...],
 ) -> ArtifactHistory:
+    if type(blinding_scope) is not str or not blinding_scope.strip():
+        raise ValueError("elicitation blinding scope must be nonempty")
     unique_by_hash: dict[str, _Artifact] = {}
     for artifact in artifacts:
         unique_by_hash.setdefault(artifact.sha256, artifact)
@@ -69,7 +70,7 @@ def _artifact_history(
         (
             BlindedArtifact(
                 artifact_id="artifact_" + sha256_text(
-                    f"{assignment_id}\0{digest}"
+                    f"{blinding_scope}\0{digest}"
                 )[:16],
                 source_id=artifact.source_id,
                 content_sha256=digest,
@@ -93,22 +94,20 @@ def build_offline_artifact_history(
     seed_set: Path,
     task_dir: Path,
     benchmark: SubmissionBenchmark,
-    provider: str,
-    requested_model: str,
+    seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
     seed_replicates: int,
-    assignment_id: str,
+    blinding_scope: str,
 ) -> ArtifactHistory:
     """Return the complete graph over three sealed pre-treatment artifacts."""
 
     return _artifact_history(
-        assignment_id=assignment_id,
+        blinding_scope=blinding_scope,
         artifacts=_sealed_seed_artifacts(
             seed_set=seed_set,
             task_dir=task_dir,
             benchmark=benchmark,
-            provider=provider,
-            requested_model=requested_model,
+            seed_generator=seed_generator,
             prompt_profile=prompt_profile,
             seed_replicates=seed_replicates,
         ),
@@ -121,20 +120,19 @@ def build_online_artifact_history(
     task_dir: Path,
     experiment_dir: Path,
     benchmark: SubmissionBenchmark,
-    provider: str,
-    requested_model: str,
+    seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
     seed_replicates: int,
-    assignment_id: str,
-    generation_round: int,
+    blinding_scope: str,
+    source_checkpoint: int,
 ) -> ArtifactHistory:
     """Return all sealed seeds and all live artifacts through one checkpoint."""
 
-    if type(generation_round) is not int or generation_round < 1:
-        raise ValueError("generation_round must be a positive integer")
+    if type(source_checkpoint) is not int or source_checkpoint < 1:
+        raise ValueError("source_checkpoint must be a positive integer")
     submissions = experiment_dir / "submissions"
     live: list[_Artifact] = []
-    for index in range(generation_round + 1):
+    for index in range(source_checkpoint + 1):
         submission_id = f"s{index:03d}"
         workspace = submissions / submission_id / "workspace"
         if workspace.is_symlink() or not workspace.is_dir():
@@ -147,13 +145,12 @@ def build_online_artifact_history(
         seed_set=seed_set,
         task_dir=task_dir,
         benchmark=benchmark,
-        provider=provider,
-        requested_model=requested_model,
+        seed_generator=seed_generator,
         prompt_profile=prompt_profile,
         seed_replicates=seed_replicates,
     )
     return _artifact_history(
-        assignment_id=assignment_id,
+        blinding_scope=blinding_scope,
         artifacts=(*seeds, *live),
     )
 
@@ -165,12 +162,11 @@ def build_elicitation_artifact_history(
     task_dir: Path,
     experiment_dir: Path,
     benchmark: SubmissionBenchmark,
-    provider: str,
-    requested_model: str,
+    seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
     seed_replicates: int,
-    assignment_id: str,
-    generation_round: int,
+    blinding_scope: str,
+    source_checkpoint: int | None,
 ) -> ArtifactHistory:
     """Route one policy to its complete blinded artifact history."""
 
@@ -180,18 +176,19 @@ def build_elicitation_artifact_history(
         "seed_set": seed_set,
         "task_dir": task_dir,
         "benchmark": benchmark,
-        "provider": provider,
-        "requested_model": requested_model,
+        "seed_generator": seed_generator,
         "prompt_profile": prompt_profile,
         "seed_replicates": seed_replicates,
-        "assignment_id": assignment_id,
+        "blinding_scope": blinding_scope,
     }
     if online:
+        if source_checkpoint is None:
+            raise ValueError("online elicitation requires a source checkpoint")
         return build_online_artifact_history(
             experiment_dir=experiment_dir,
-            generation_round=generation_round,
+            source_checkpoint=source_checkpoint,
             **arguments,
         )
-    if generation_round != 1:
-        raise ValueError("offline elicitation has exactly one pre-treatment generation")
+    if source_checkpoint is not None:
+        raise ValueError("pre-treatment elicitation cannot use a live checkpoint")
     return build_offline_artifact_history(**arguments)

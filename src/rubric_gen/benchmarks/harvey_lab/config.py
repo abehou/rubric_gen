@@ -66,6 +66,7 @@ class HarveyBenchmark:
     checkout: Path
     revision: str
     development_tasks: tuple[str, ...]
+    selection_tasks: tuple[str, ...]
     held_out_tasks: tuple[str, ...]
 
 
@@ -106,6 +107,13 @@ class RubricEvolution:
 
 
 @dataclass(frozen=True)
+class HarveyDesign:
+    randomization_seed: int
+    replicates_per_condition: int
+    outcome_replicates: int
+
+
+@dataclass(frozen=True)
 class RewardHackingAudit:
     models: tuple[str, ...]
     max_concurrency: int
@@ -124,21 +132,64 @@ class HarveyExperiment:
     designer: HarnessDesigner
     rubric: RubricEvolution
     audit: RewardHackingAudit
+    design: HarveyDesign
+
+
+@dataclass(frozen=True)
+class HarveyRun:
+    source: Path
+    experiment_id: str
+    study_id: str
+    unit_id: str
+    condition: str
+    replicate: int
+    output_dir: Path
+    cache_dir: Path
+    benchmark: HarveyBenchmark
+    task_agent: TaskAgent
+    judge: HarveyJudge
+    designer: HarnessDesigner
+    rubric: RubricEvolution
+    audit: RewardHackingAudit
+    outcome_replicates: int
 
 
 def _benchmark(value: object, root: Path) -> HarveyBenchmark:
     data = _object(value, "benchmark")
-    _exact(data, {"checkout", "revision", "development_tasks", "held_out_tasks"}, "benchmark")
+    _exact(
+        data,
+        {
+            "checkout",
+            "revision",
+            "development_tasks",
+            "selection_tasks",
+            "held_out_tasks",
+        },
+        "benchmark",
+    )
     checkout = (root / _text(data.get("checkout"), "benchmark.checkout")).resolve()
     revision = _text(data.get("revision"), "benchmark.revision")
     if not _SHA.fullmatch(revision):
         raise ValueError("benchmark.revision must be a lowercase 40-character commit SHA")
     development = _task_tuple(data.get("development_tasks"), "benchmark.development_tasks")
-    held_out = _task_tuple(data.get("held_out_tasks"), "benchmark.held_out_tasks", empty=True)
-    overlap = sorted(set(development) & set(held_out))
-    if overlap:
-        raise ValueError("development and held-out tasks overlap: " + ", ".join(overlap))
-    return HarveyBenchmark(checkout, revision, development, held_out)
+    selection = _task_tuple(data.get("selection_tasks"), "benchmark.selection_tasks")
+    held_out = _task_tuple(data.get("held_out_tasks"), "benchmark.held_out_tasks")
+    roles = {
+        "development": set(development),
+        "selection": set(selection),
+        "held-out": set(held_out),
+    }
+    for left, right in (
+        ("development", "selection"),
+        ("development", "held-out"),
+        ("selection", "held-out"),
+    ):
+        overlap = sorted(roles[left] & roles[right])
+        if overlap:
+            raise ValueError(
+                f"{left} and {right} tasks overlap: " + ", ".join(overlap)
+            )
+    return HarveyBenchmark(checkout, revision, development, selection, held_out)
 
 
 def _task_agent(value: object) -> TaskAgent:
@@ -192,20 +243,42 @@ def _designer(value: object) -> HarnessDesigner:
 
 def _rubric(value: object) -> RubricEvolution:
     data = _object(value, "rubric")
-    _exact(data, {"mode", "proposer_model", "max_changes_per_task", "max_output_tokens"}, "rubric")
-    mode = _text(data.get("mode"), "rubric.mode")
-    if mode not in {"static", "prospective"}:
-        raise ValueError("rubric.mode must be static or prospective")
-    model = data.get("proposer_model")
-    if mode == "prospective":
-        model = _text(model, "rubric.proposer_model")
-    elif model is not None:
-        raise ValueError("static rubric evolution must not configure a proposer")
+    _exact(
+        data,
+        {"proposer_model", "max_changes_per_task", "max_output_tokens"},
+        "rubric",
+    )
     return RubricEvolution(
-        mode=mode,
-        proposer_model=model,
+        mode="prospective",
+        proposer_model=_text(data.get("proposer_model"), "rubric.proposer_model"),
         max_changes_per_task=_integer(data.get("max_changes_per_task", 8), "rubric.max_changes_per_task"),
         max_output_tokens=_integer(data.get("max_output_tokens", 16_384), "rubric.max_output_tokens", minimum=1_024),
+    )
+
+
+def _design(value: object) -> HarveyDesign:
+    data = _object(value, "design")
+    _exact(
+        data,
+        {"randomization_seed", "replicates_per_condition", "outcome_replicates"},
+        "design",
+    )
+    return HarveyDesign(
+        randomization_seed=_integer(
+            data.get("randomization_seed"),
+            "design.randomization_seed",
+            minimum=0,
+        ),
+        replicates_per_condition=_integer(
+            data.get("replicates_per_condition"),
+            "design.replicates_per_condition",
+            minimum=2,
+        ),
+        outcome_replicates=_integer(
+            data.get("outcome_replicates"),
+            "design.outcome_replicates",
+            minimum=2,
+        ),
     )
 
 
@@ -229,7 +302,23 @@ def load_experiment(path: Path) -> HarveyExperiment:
     except yaml.YAMLError as exc:
         raise ValueError(f"invalid Harvey experiment YAML: {source}") from exc
     data = _object(raw, "experiment")
-    _exact(data, {"kind", "experiment_id", "output_dir", "cache_dir", "benchmark", "task_agent", "judge", "designer", "rubric", "audit"}, "experiment")
+    _exact(
+        data,
+        {
+            "kind",
+            "experiment_id",
+            "output_dir",
+            "cache_dir",
+            "benchmark",
+            "task_agent",
+            "judge",
+            "designer",
+            "rubric",
+            "audit",
+            "design",
+        },
+        "experiment",
+    )
     if data.get("kind") != HARVEY_EXPERIMENT_KIND:
         raise ValueError("unsupported Harvey experiment kind")
     experiment_id = _text(data.get("experiment_id"), "experiment_id")
@@ -258,4 +347,5 @@ def load_experiment(path: Path) -> HarveyExperiment:
         designer=_designer(data.get("designer")),
         rubric=_rubric(data.get("rubric")),
         audit=_audit(data.get("audit")),
+        design=_design(data.get("design")),
     )

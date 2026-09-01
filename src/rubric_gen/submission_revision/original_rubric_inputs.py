@@ -25,6 +25,7 @@ from rubric_gen.submission_revision.judging.models import (
 )
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 from rubric_gen.submission_revision.study_validation import validate_completed_revision
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 
 
 SUMMARY_KIND = "original-rubric-ensemble-rescore"
@@ -36,6 +37,7 @@ class OriginalRubricTarget:
     assignment_id: str
     task_id: str
     replicate: int
+    solver_id: str
     condition_id: str
     benchmark: SubmissionBenchmarkId
     experiment_dir: Path
@@ -51,6 +53,7 @@ class OriginalRubricTarget:
         for name, value in (
             ("assignment_id", self.assignment_id),
             ("task_id", self.task_id),
+            ("solver_id", self.solver_id),
             ("condition_id", self.condition_id),
             ("rubric_name", self.rubric_name),
         ):
@@ -175,6 +178,8 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
         or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
         or type(study.get("paraphrase_run_dir")) is not str
+        or study.get("pretreatment_rubric_root")
+        != str(source / "pretreatment-rubrics")
         or type(study.get("records")) is not list
         or any(type(record) is not dict for record in study["records"])
     ):
@@ -183,7 +188,7 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
     if study["experiment_id"] != experiment.experiment_id:
         raise ValueError("study experiment identity changed")
     assignments = {
-        str(assignment["assignment_id"]): assignment
+        assignment.assignment_id: assignment
         for assignment in experiment.assignments
     }
     records = {
@@ -236,12 +241,12 @@ def load_completed_original_rubric_study(source: Path) -> OriginalRubricStudy:
 def _load_completed_target(
     source: Path,
     records: dict[str, dict[str, object]],
-    assignment: dict[str, object],
+    assignment: ExperimentAssignment,
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
 ) -> OriginalRubricTarget:
-    assignment_id = str(assignment["assignment_id"])
+    assignment_id = assignment.assignment_id
     experiment_dir = resolve_study_experiment(
         source,
         records[assignment_id],
@@ -281,9 +286,10 @@ def _load_completed_target(
     final_submission = experiment_dir / "submissions" / str(submission_ids[-1])
     return OriginalRubricTarget(
         assignment_id=assignment_id,
-        task_id=str(assignment["task_id"]),
-        replicate=int(assignment["replicate"]),
-        condition_id=str(assignment["condition_id"]),
+        task_id=assignment.task_id,
+        replicate=assignment.replicate,
+        solver_id=assignment.solver_id,
+        condition_id=assignment.condition_id,
         benchmark=experiment.benchmark,
         experiment_dir=experiment_dir.resolve(),
         task_dir=task_dir.resolve(),

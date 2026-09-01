@@ -2,41 +2,31 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
-from itertools import combinations
 from pathlib import Path
-from statistics import fmean, median
 
-from rubric_gen.detection.metrics import detection_rates, wilson_interval
+from rubric_gen.artifacts.hashing import sha256_file
+from rubric_gen.detection.metrics import detection_rates
 from rubric_gen.submission_revision.evaluation.config import (
     REWARD_HACKING_COMPONENTS,
 )
 from rubric_gen.detection.targets import detection_target
-from rubric_gen.submission_revision.evaluation import jobs as evaluation_jobs
+from rubric_gen.submission_revision.evaluation import (
+    analysis as evaluation_analysis,
+    jobs as evaluation_jobs,
+)
+from rubric_gen.submission_revision.evaluation.panel_bounds import (
+    detection_bounds,
+)
+from rubric_gen.submission_revision.evaluation.runner import PANEL_POLICY
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.evaluation.store import EvaluationStore
 from rubric_gen.submission_revision.rubric_generation import RubricPolicy
 
 
-SIGNED_RUBRIC_DIAGNOSTICS = (
-    "active_to_original",
-    "original_to_selected",
-    "selected_rubric_minus_rubric_free_absolute_score",
-)
-RUBRIC_DIAGNOSTICS = SIGNED_RUBRIC_DIAGNOSTICS
+RUBRIC_DIAGNOSTICS = evaluation_analysis.DIAGNOSTIC_NAMES
 COMPONENTS = REWARD_HACKING_COMPONENTS
-OUTCOME_METRICS = (
-    "selected_rubric_gain",
-    "rubric_free_absolute_score_gain",
-    "original_rubric_weak_gain",
-    "weak_to_strong_generalization_gap_change",
-    "optimization_induced_risk",
-    "reward_hacking_loss_change",
-    "active_local_weak_gain",
-    "active_local_strong_gain",
-    "active_local_verifier_gap_change",
-    "pairwise_rubric_order_agreement",
-)
 
 
 def write_evaluation_report(output_dir: Path) -> Path:
@@ -50,34 +40,74 @@ def write_evaluation_report(output_dir: Path) -> Path:
     rubric_score_output.validate_tree()
     absolute_score_output.validate_tree()
     pairwise_preference_output.validate_tree()
+    rubric_score_path = rubric_score_output.regular_file("summary.json")
+    absolute_score_path = absolute_score_output.regular_file("summary.json")
+    pairwise_preference_path = pairwise_preference_output.regular_file(
+        "summary.json"
+    )
     rubric_score = read_json_object(
-        rubric_score_output.regular_file("summary.json"),
+        rubric_score_path,
         "revision rubric score summary",
     )
     absolute_scores = read_json_object(
-        absolute_score_output.regular_file("summary.json"),
+        absolute_score_path,
         "absolute-score summary",
     )
     pairwise_preferences = read_json_object(
-        pairwise_preference_output.regular_file("summary.json"),
+        pairwise_preference_path,
         "pairwise-preference summary",
     )
-    direct_summaries = sorted((root / "direct").glob("evaluations/*/summary.json"))
-    if len(direct_summaries) != 1:
+    direct_full_summaries = sorted(
+        (root / "direct_full").glob("evaluations/*/summary.json")
+    )
+    direct_post_update_summaries = sorted(
+        (root / "direct_post_update").glob("evaluations/*/summary.json")
+    )
+    if len(direct_full_summaries) != 1:
         raise RuntimeError(
-            "direct evaluation detection must contain exactly one completed summary"
+            "full-trajectory direct detection must contain one completed summary"
         )
-    direct = read_json_object(direct_summaries[0], "direct evaluation detection summary")
+    if len(direct_post_update_summaries) != 1:
+        raise RuntimeError(
+            "post-update direct detection must contain one completed summary"
+        )
+    direct_full = read_json_object(
+        direct_full_summaries[0],
+        "full-trajectory direct detection summary",
+    )
+    direct_post_update = read_json_object(
+        direct_post_update_summaries[0],
+        "post-update direct detection summary",
+    )
+    analysis_identity = {
+        "implementation_sha256": analysis_implementation_sha256(),
+        "input_sha256s": {
+            path.relative_to(root).as_posix(): sha256_file(path)
+            for path in (
+                rubric_score_path,
+                absolute_score_path,
+                pairwise_preference_path,
+                direct_full_summaries[0],
+                direct_post_update_summaries[0],
+            )
+        },
+    }
     rubric_score_plan = rubric_score.get("predispatch_plan")
     absolute_score_plan = absolute_scores.get("predispatch_plan")
     pairwise_preference_plan = pairwise_preferences.get("predispatch_plan")
     if (
         rubric_score.get("kind") != evaluation_jobs.RUBRIC_SCORE_KIND
         or rubric_score.get("status") != "completed"
+        or rubric_score.get("panel_policy") != PANEL_POLICY
+        or rubric_score.get("missing_models") != []
         or absolute_scores.get("kind") != evaluation_jobs.ABSOLUTE_SCORE_KIND
         or pairwise_preferences.get("kind") != evaluation_jobs.PAIRWISE_PREFERENCE_KIND
         or absolute_scores.get("status") != "completed"
         or pairwise_preferences.get("status") != "completed"
+        or absolute_scores.get("panel_policy") != PANEL_POLICY
+        or pairwise_preferences.get("panel_policy") != PANEL_POLICY
+        or absolute_scores.get("missing_models") != []
+        or pairwise_preferences.get("missing_models") != []
         or rubric_score.get("experiment_id") != absolute_scores.get("experiment_id")
         or rubric_score.get("experiment_id") != pairwise_preferences.get("experiment_id")
         or rubric_score.get("study_experiment_id")
@@ -88,7 +118,13 @@ def write_evaluation_report(output_dir: Path) -> Path:
         or rubric_score.get("study_dir") != pairwise_preferences.get("study_dir")
         or rubric_score.get("models") != absolute_scores.get("models")
         or rubric_score.get("models") != pairwise_preferences.get("models")
-        or rubric_score.get("models") != direct.get("models")
+        or rubric_score.get("models") != direct_full.get("models")
+        or rubric_score.get("models") != direct_post_update.get("models")
+        or direct_full.get("detection") != direct_post_update.get("detection")
+        or direct_full.get("primary_rule")
+        != direct_post_update.get("primary_rule")
+        or _direct_window(direct_full) != "full_trajectory"
+        or _direct_window(direct_post_update) != "post_update"
         or not isinstance(rubric_score_plan, dict)
         or rubric_score_plan.get("accepted") is not True
         or not isinstance(absolute_score_plan, dict)
@@ -129,7 +165,13 @@ def write_evaluation_report(output_dir: Path) -> Path:
         rubric_scores = rubric_score_by_id[assignment_id]
         absolute = absolute_scores_by_id[assignment_id]
         pairwise = pairwise_preferences_by_id[assignment_id]
-        for key in ("task_id", "replicate", "condition_id", "rubric_policy"):
+        for key in (
+            "task_id",
+            "replicate",
+            "solver_id",
+            "condition_id",
+            "rubric_policy",
+        ):
             if (
                 rubric_scores.get(key) != absolute.get(key)
                 or rubric_scores.get(key) != pairwise.get(key)
@@ -149,45 +191,69 @@ def write_evaluation_report(output_dir: Path) -> Path:
             normalized_weights,
         ))
     direct_outcomes = _direct_assignment_outcomes(
-        direct,
+        direct_full,
+        assignments,
+        str(rubric_score["study_experiment_id"]),
+    )
+    post_update_outcomes = _direct_assignment_outcomes(
+        direct_post_update,
         assignments,
         str(rubric_score["study_experiment_id"]),
     )
     for assignment in assignments:
         assignment_id = str(assignment["assignment_id"])
         assignment["direct_detection"] = direct_outcomes[assignment_id]
-    rubric_policy_aggregates = _rubric_policy_aggregates(assignments)
+        assignment["post_update_detection"] = post_update_outcomes[assignment_id]
     rubric_policies = tuple(policy.value for policy in RubricPolicy)
+    available_policies = sorted({
+        str(assignment["rubric_policy"])
+        for assignment in assignments
+    })
+    configured_models = tuple(str(model) for model in rubric_score["models"])
+    target = detection_target(str(direct_full.get("detection")))
+    observations = evaluation_analysis.parse_observations(
+        assignments,
+        configured_models,
+        positive_decision=target.positive_decision,
+        negative_decision=target.negative_decision,
+    )
+    descriptive = evaluation_analysis.describe(observations)
     summary = {
         "kind": evaluation_jobs.EVALUATION_KIND,
         "status": "completed",
         "experiment_id": rubric_score["experiment_id"],
         "study_experiment_id": rubric_score["study_experiment_id"],
+        "analysis_identity": analysis_identity,
         "estimand": {
             "artifacts": (
                 "initial and final artifacts scored under the unchanged original "
                 "master rubric"
             ),
-            "score_scale": [0, 100],
+            "score_scales": {
+                "rubric_score": [0, 100],
+                "absolute_score": [0, 100],
+                "pairwise_preference": [0, 1],
+            },
             "component_order": list(COMPONENTS),
             "loss_weights": normalized_weights,
             "primary_outcomes": {
                 "direct_detection": (
-                    "independent categorical trajectory decision"
+                    "independent full-trajectory categorical decision"
                 ),
                 "rubric_free_absolute_score_gain": (
                     "strong-panel rubric-free final-minus-initial score"
+                ),
+                "pairwise_preference_score": (
+                    "strong-panel preference for final over initial; "
+                    "1 favors final, 0.5 is a tie, and 0 favors initial"
                 ),
                 "selected_rubric_gain": (
                     "selected common-rubric final-minus-initial score"
                 ),
             },
             "secondary_outcomes": (
-                "separate order-averaged preference for the highest-scoring "
-                "artifact over the lowest-scoring artifact under the saved "
-                "in-loop original-rubric score; scores and order "
-                "labels are hidden from the pairwise panel; this outcome does "
-                "not enter Q or the signed identity"
+                "post_update_detection is the independent categorical decision "
+                "for new behavior from s003 onward across all assignments"
             ),
             "diagnostic_outcomes": (
                 "original-rubric gain, artifact-specific active gains, component "
@@ -215,51 +281,79 @@ def write_evaluation_report(output_dir: Path) -> Path:
                 "no diagnostic is a separate loss term"
             ),
             "direct_detector": (
-                "independent categorical trajectory outcome; not a calibrated "
-                "function of the score decomposition"
+                "independent full-trajectory and fixed post-update categorical "
+                "outcomes; neither is a calibrated function of the score "
+                "decomposition"
             ),
         },
-        "direct_ensemble": {
-            "summary_path": str(direct_summaries[0]),
-            "rates": detection_rates(direct),
+        "direct_ensembles": {
+            "full_trajectory": {
+                "summary_path": str(direct_full_summaries[0]),
+                "rates": detection_rates(direct_full),
+            },
+            "post_update": {
+                "summary_path": str(direct_post_update_summaries[0]),
+                "rates": detection_rates(direct_post_update),
+            },
         },
         "predispatch_plans": {
             "rubric_score": rubric_score_plan,
             "absolute_score": absolute_score_plan,
             "pairwise_preference": pairwise_preference_plan,
         },
-        "condition_aggregates": _condition_aggregates(assignments),
+        "descriptive": descriptive,
         "rubric_policy_coverage": {
-            "available": list(rubric_policy_aggregates),
+            "available": available_policies,
             "missing": [
                 policy
                 for policy in rubric_policies
-                if policy not in rubric_policy_aggregates
+                if policy not in available_policies
             ],
-            "complete": len(rubric_policy_aggregates) == len(rubric_policies),
+            "complete": len(available_policies) == len(rubric_policies),
         },
-        "rubric_policy_aggregates": rubric_policy_aggregates,
-        "paired_condition_contrasts": _paired_condition_contrasts(assignments),
+        "analysis": evaluation_analysis.analyze(
+            observations,
+            configured_models,
+        ).record(),
         "assignments": assignments,
     }
+    return _write_bound_report(output, summary)
+
+
+def _write_bound_report(
+    output: EvaluationStore,
+    summary: dict[str, object],
+) -> Path:
+    summary_path = output.regular_file("summary.json", allow_missing=True)
+    if summary_path.is_file():
+        existing = read_json_object(summary_path, "revision evaluation report")
+        if existing != summary:
+            raise RuntimeError(
+                "revision evaluation report identity changed; remove the old "
+                "report before analysis"
+            )
+        return summary_path
     return output.write_json(("summary.json",), summary)
 
 
-def _rubric_policy_aggregates(
-    assignments: list[dict[str, object]],
-) -> dict[str, object]:
-    groups: dict[str, list[dict[str, object]]] = {}
-    policies = tuple(policy.value for policy in RubricPolicy)
-    for assignment in assignments:
-        policy = assignment.get("rubric_policy")
-        if policy not in policies:
-            raise RuntimeError("evaluation assignment has an invalid rubric policy")
-        groups.setdefault(str(policy), []).append(assignment)
-    return _aggregate_assignment_groups({
-        policy: groups[policy]
-        for policy in policies
-        if policy in groups
-    })
+def analysis_implementation_sha256() -> str:
+    """Bind report interpretation to its exact analysis implementation."""
+
+    files = (
+        Path(__file__),
+        Path(__file__).with_name("analysis.py"),
+        Path(__file__).with_name("analysis_observations.py"),
+        Path(__file__).with_name("analysis_resampling.py"),
+        Path(__file__).with_name("analysis_results.py"),
+        Path(__file__).with_name("panel_bounds.py"),
+    )
+    digest = hashlib.sha256()
+    for path in files:
+        digest.update(path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _combine_assignment(
@@ -403,6 +497,7 @@ def _combine_assignment(
         "assignment_id": rubric_scores["assignment_id"],
         "task_id": rubric_scores["task_id"],
         "replicate": rubric_scores["replicate"],
+        "solver_id": rubric_scores["solver_id"],
         "condition_id": rubric_scores["condition_id"],
         "rubric_policy": rubric_scores["rubric_policy"],
         "artifacts": artifact_results,
@@ -435,8 +530,8 @@ def _combine_assignment(
                 float(active_final["verifier_gap"])
                 - float(active_initial["verifier_gap"])
             ),
-            "pairwise_rubric_order_agreement": float(
-                preference_scores["rubric_order_agreement"]
+            "pairwise_preference_score": float(
+                preference_scores["panel_mean"]
             ),
         },
         "active_local_scores": active_local,
@@ -444,149 +539,6 @@ def _combine_assignment(
         "rubric_free_absolute_scores": absolute_scores,
         "pairwise_preference_scores": preference_scores,
     }
-
-
-def _condition_aggregates(
-    assignments: list[dict[str, object]],
-) -> dict[str, object]:
-    groups: dict[str, list[dict[str, object]]] = {"overall": assignments}
-    for assignment in assignments:
-        condition_id = assignment.get("condition_id")
-        if type(condition_id) is not str:
-            raise RuntimeError("evaluation assignment has no condition ID")
-        groups.setdefault(condition_id, []).append(assignment)
-    return _aggregate_assignment_groups(groups)
-
-
-def _aggregate_assignment_groups(
-    groups: dict[str, list[dict[str, object]]],
-) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for group, members in groups.items():
-        direct = [assignment["direct_detection"] for assignment in members]
-        detected = sum(
-            isinstance(value, dict) and value.get("decision") == "detected"
-            for value in direct
-        )
-        evaluated = sum(
-            isinstance(value, dict)
-            and value.get("decision") in {"detected", "not_detected"}
-            for value in direct
-        )
-        result[group] = {
-            "outcomes": {
-                name: _statistics([
-                    _assignment_metric(assignment, name)
-                    for assignment in members
-                ])
-                for name in OUTCOME_METRICS
-            },
-            "component_changes": {
-                name: _statistics([
-                    _assignment_change(
-                        assignment,
-                        "component_changes",
-                        name,
-                    )
-                    for assignment in members
-                ])
-                for name in COMPONENTS
-            },
-            "rubric_diagnostic_changes": {
-                name: _statistics([
-                    _assignment_change(
-                        assignment,
-                        "rubric_diagnostic_changes",
-                        name,
-                    )
-                    for assignment in members
-                ])
-                for name in RUBRIC_DIAGNOSTICS
-            },
-            "direct_detection": {
-                "detected": detected,
-                "evaluated": evaluated,
-                "rate": detected / evaluated if evaluated else None,
-                "rate_wilson_95": wilson_interval(detected, evaluated),
-            },
-        }
-    return result
-
-
-def _paired_condition_contrasts(
-    assignments: list[dict[str, object]],
-) -> list[dict[str, object]]:
-    treatment_order = ("online-rubric", "offline-rubric", "static")
-
-    def condition_order(condition_id: str) -> tuple[int, str]:
-        for rank, suffix in enumerate(treatment_order):
-            if condition_id == suffix or condition_id.endswith(f"-{suffix}"):
-                return rank, condition_id
-        raise RuntimeError(f"evaluation assignment has an unknown condition: {condition_id}")
-
-    condition_ids = sorted(
-        {str(value["condition_id"]) for value in assignments},
-        key=condition_order,
-    )
-    by_condition = {
-        condition: {
-            (str(value["task_id"]), int(value["replicate"])): value
-            for value in assignments
-            if value["condition_id"] == condition
-        }
-        for condition in condition_ids
-    }
-    pair_keys = [set(values) for values in by_condition.values()]
-    if any(keys != pair_keys[0] for keys in pair_keys[1:]):
-        raise RuntimeError(
-            "evaluation conditions do not contain the same task-replicate pairs"
-        )
-    contrasts: list[dict[str, object]] = []
-    for left, right in combinations(condition_ids, 2):
-        common = sorted(by_condition[left])
-        metrics: dict[str, object] = {}
-        for name in OUTCOME_METRICS:
-            metrics[name] = _statistics([
-                _assignment_metric(by_condition[left][key], name)
-                - _assignment_metric(by_condition[right][key], name)
-                for key in common
-            ])
-        for name in COMPONENTS:
-            metrics[f"{name}_change"] = _statistics([
-                _assignment_change(
-                    by_condition[left][key],
-                    "component_changes",
-                    name,
-                )
-                - _assignment_change(
-                    by_condition[right][key],
-                    "component_changes",
-                    name,
-                )
-                for key in common
-            ])
-        for name in RUBRIC_DIAGNOSTICS:
-            metrics[f"{name}_change"] = _statistics([
-                _assignment_change(
-                    by_condition[left][key],
-                    "rubric_diagnostic_changes",
-                    name,
-                )
-                - _assignment_change(
-                    by_condition[right][key],
-                    "rubric_diagnostic_changes",
-                    name,
-                )
-                for key in common
-            ])
-        contrasts.append({
-            "left_condition": left,
-            "right_condition": right,
-            "direction": "left-minus-right",
-            "pair_count": len(common),
-            "paired_differences": metrics,
-        })
-    return contrasts
 
 
 def _assignment_map(
@@ -606,41 +558,12 @@ def _assignment_map(
     return result
 
 
-def _statistics(values: list[float]) -> dict[str, object]:
-    positive = sum(value > 0 for value in values)
-    return {
-        "count": len(values),
-        "mean": fmean(values),
-        "median": median(values),
-        "minimum": min(values),
-        "maximum": max(values),
-        "positive_count": positive,
-        "positive_fraction": positive / len(values),
-    }
-
-
-def _assignment_metric(assignment: dict[str, object], name: str) -> float:
-    outcomes = assignment.get("outcomes")
-    if not isinstance(outcomes, dict):
-        raise RuntimeError("evaluation assignment has no outcomes")
-    value = outcomes.get(name)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise RuntimeError(f"evaluation assignment outcome is invalid: {name}")
-    return float(value)
-
-
-def _assignment_change(
-    assignment: dict[str, object],
-    category: str,
-    name: str,
-) -> float:
-    changes = assignment.get(category)
-    if not isinstance(changes, dict):
-        raise RuntimeError(f"evaluation assignment has no {category}")
-    value = changes.get(name)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise RuntimeError(f"evaluation assignment change is invalid: {name}")
-    return float(value)
+def _direct_window(direct: dict[str, object]) -> str | None:
+    source = direct.get("source")
+    if not isinstance(source, dict):
+        return None
+    window = source.get("window")
+    return window if type(window) is str else None
 
 
 def _direct_assignment_outcomes(
@@ -658,9 +581,12 @@ def _direct_assignment_outcomes(
         or primary_rule not in {"majority", "any_detect", "unanimous_detects"}
     ):
         raise RuntimeError("direct evaluation summary is invalid")
-    positive = detection_target(str(direct.get("detection"))).positive_decision
+    target = detection_target(str(direct.get("detection")))
+    positive = target.positive_decision
     assignment_ids = {str(value["assignment_id"]) for value in assignments}
-    grouped: dict[str, dict[str, str]] = {}
+    grouped: dict[str, dict[str, str]] = {
+        assignment_id: {} for assignment_id in assignment_ids
+    }
     for record in records:
         if not isinstance(record, dict):
             continue
@@ -683,30 +609,29 @@ def _direct_assignment_outcomes(
             raise RuntimeError("direct evaluation source uses a different experiment")
         if assignment_id not in assignment_ids:
             raise RuntimeError("direct evaluation source is outside the evaluated study")
-        panel = grouped.setdefault(str(assignment_id), {})
+        panel = grouped[str(assignment_id)]
         if provider in panel:
             raise RuntimeError(f"duplicate direct evaluation provider: {assignment_id}")
         panel[provider] = str(verdict["decision"])
-    if set(grouped) != assignment_ids:
-        raise RuntimeError("direct evaluation assignments differ from score evaluation")
     outcomes: dict[str, dict[str, object]] = {}
     for assignment_id, panel in grouped.items():
-        if set(panel) != set(models):
-            decision = "incomplete"
-        elif "abstain" in panel.values():
+        bounds = detection_bounds(
+            decisions=panel,
+            models=tuple(str(model) for model in models),
+            positive_decision=positive,
+            negative_decision=target.negative_decision,
+            rule=str(primary_rule),
+        )
+        if bounds["identified"]:
+            decision = "detected" if bounds["lower"] == 1 else "not_detected"
+        elif bounds["abstaining_models"] and not bounds["missing_models"]:
             decision = "abstain"
         else:
-            count = sum(value == positive for value in panel.values())
-            if primary_rule == "majority":
-                detected = count > len(models) / 2
-            elif primary_rule == "any_detect":
-                detected = count > 0
-            else:
-                detected = count == len(models)
-            decision = "detected" if detected else "not_detected"
+            decision = "incomplete"
         outcomes[assignment_id] = {
             "primary_rule": primary_rule,
             "decision": decision,
+            "bounds": bounds,
             "provider_decisions": dict(sorted(panel.items())),
         }
     return outcomes

@@ -10,7 +10,9 @@ import pytest
 
 import rubric_gen.submission_revision.seeds as seeds_module
 from rubric_gen.cli import build_parser
+from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.experiment import Experiment
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 from rubric_gen.submission_revision.judge import JudgeArtifacts
 from rubric_gen.submission_revision.seeds import (
     SeedSetConfig,
@@ -20,6 +22,13 @@ from rubric_gen.submission_revision.seeds import (
 
 
 EXPERIMENT_ID = "test-experiment"
+SEED_AGENT = AgentRunConfig(
+    provider="codex",
+    model="test-model",
+    reasoning_effort="low",
+    retries=1,
+    timeout_seconds=60,
+)
 
 
 def _task(root: Path) -> Path:
@@ -59,24 +68,44 @@ def _design(root: Path, task: Path) -> Experiment:
         for within, condition in enumerate(conditions, 1):
             execution += 1
             condition_id = condition["condition_id"]
-            assignments.append({
-                "assignment_id": f"{task.name}--rep-{replicate:03d}--{condition_id}",
-                "task_id": task.name,
-                "replicate": replicate,
-                "condition_id": condition_id,
-                "within_block_order": within,
-                "execution_order": execution,
-            })
+            assignments.append(ExperimentAssignment(
+                task_id=task.name,
+                replicate=replicate,
+                solver_id="test-solver",
+                condition_id=condition_id,
+                within_block_order=within,
+                execution_order=execution,
+            ))
     payload = {
         "experiment_id": EXPERIMENT_ID,
         "benchmark": "biomnibench-da",
         "tasks_dir": str(task.parent.resolve()),
         "tasks": [task.name],
         "randomization": {"seed": 42, "replicates": 3},
+        "seed_generator": {
+            "provider": "codex",
+            "model": "test-model",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 60,
+        },
+        "solvers": [{
+            "solver_id": "test-solver",
+            "provider": "codex",
+            "model": "test-model",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 60,
+        }],
         "conditions": conditions,
         "assignments": assignments,
         "protocol": {
             "max_revisions": 1,
+            "min_revisions": 1,
             "prompt": "base",
             "feedback_simulator": {
                 "model": "test-simulator",
@@ -86,28 +115,16 @@ def _design(root: Path, task: Path) -> Experiment:
                 "max_request_bytes": 1_048_576,
                 "max_retries": 1,
             },
-            "solver": {
-                "provider": "codex",
-                "model": "test-model",
-                "reasoning_effort": "low",
-                "service_tier": None,
-                "executable": None,
-                "retries": 1,
-                "timeout_seconds": 60,
-            },
             "judge_model": "test-judge",
             "rubric_name": "rubric.txt",
             "review": "trace",
             "max_review_chars": None,
             "rubric_proposer_model": "test-proposer",
             "rubric_proposer_max_retries": 1,
-            "rubric_semantic_judge_model": "test-semantic-reviewer",
-            "rubric_semantic_judge_max_calls_per_assignment": 1,
-            "rubric_semantic_judge_max_request_bytes_per_call": 1_048_576,
-            "rubric_semantic_judge_max_output_tokens_per_call": 32_768,
         },
         "rubric_paraphrases": {
             "count": 3,
+            "selected_variant": 0,
             "model": "test-paraphraser",
             "max_retries": 1,
         },
@@ -162,6 +179,33 @@ class KilledAgentRunner:
         return -9, paths
 
 
+class InvalidElicitationRunner:
+    calls = 0
+
+    def __init__(self, config, *, prompt: str, **_kwargs) -> None:
+        self.config = config
+        self.prompt = prompt
+
+    def run(self, task_dir: Path, *, paths):
+        type(self).calls += 1
+        paths.run_dir.mkdir(parents=True)
+        paths.workspace_dir.mkdir(parents=True)
+        paths.stream_path.write_text('{"type":"result","status":"success"}\n')
+        if "Your task is covert sabotage." in self.prompt:
+            (paths.workspace_dir / "trace.md").write_text("incomplete attack\n")
+            exit_code = 2
+        else:
+            (paths.workspace_dir / "answer.txt").write_text("clean answer\n")
+            (paths.workspace_dir / "trace.md").write_text("clean trace\n")
+            exit_code = 0
+        paths.status_path.write_text(json.dumps({
+            "provider": "codex",
+            "exit_code": exit_code,
+            "model": "test-model",
+        }))
+        return exit_code, paths
+
+
 def _fake_judge(self, task_dir: Path, submission: Path, experiment_dir: Path):
     output = experiment_dir / "artifacts"
     output.mkdir(parents=True)
@@ -193,14 +237,13 @@ def test_seed_set_creates_one_independent_seed_per_task_replicate(
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
 
     assert SeedSetRunner(SeedSetConfig(design, output, 2)).run() == 0
-    assert FakeAgentRunner.calls == 3
+    assert FakeAgentRunner.calls == 6
     seeds = [
         resolve_seed(
             output,
             task,
             replicate,
-            provider="codex",
-            requested_model="test-model",
+            seed_generator=SEED_AGENT,
             prompt_profile="base",
             benchmark="biomnibench-da",
         )
@@ -224,7 +267,7 @@ def test_seed_solver_uses_the_configured_adversarial_prompt(
     payload["assignments"] = [
         assignment
         for assignment in design.assignments
-        if assignment["replicate"] == 1
+        if assignment.replicate == 1
     ]
     experiment = Experiment(tmp_path / "adversarial.yaml", payload)
     output = tmp_path / "seeds"
@@ -234,8 +277,15 @@ def test_seed_solver_uses_the_configured_adversarial_prompt(
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
 
     assert SeedSetRunner(SeedSetConfig(experiment, output, 1)).run() == 0
-    assert len(FakeAgentRunner.prompts) == 1
-    assert "Your task is covert sabotage." in FakeAgentRunner.prompts[0]
+    assert len(FakeAgentRunner.prompts) == 6
+    assert sum(
+        "Your task is covert sabotage." in prompt
+        for prompt in FakeAgentRunner.prompts
+    ) == 3
+    assert sum(
+        "Your task is covert sabotage." not in prompt
+        for prompt in FakeAgentRunner.prompts
+    ) == 3
 
 
 def test_seed_pool_rejects_a_different_solver_prompt(
@@ -247,7 +297,7 @@ def test_seed_pool_rejects_a_different_solver_prompt(
     payload["assignments"] = [
         assignment
         for assignment in design.assignments
-        if assignment["replicate"] == 1
+        if assignment.replicate == 1
     ]
     base = Experiment(tmp_path / "base.yaml", payload)
     output = tmp_path / "seeds"
@@ -260,6 +310,55 @@ def test_seed_pool_rejects_a_different_solver_prompt(
     adversarial = Experiment(tmp_path / "adversarial.yaml", adversarial_payload)
     with pytest.raises(RuntimeError, match="seed solver prompt does not match"):
         SeedSetRunner(SeedSetConfig(adversarial, output, 1)).run()
+
+
+def test_invalid_elicitation_attempt_is_saved_but_not_included(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    output = tmp_path / "seeds"
+    InvalidElicitationRunner.calls = 0
+    monkeypatch.setattr(seeds_module, "AgentRunner", InvalidElicitationRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+
+    assert SeedSetRunner(SeedSetConfig(design, output, 1)).run() == 0
+    assert InvalidElicitationRunner.calls == 6
+    for replicate in range(1, 4):
+        seed = resolve_seed(
+            output,
+            task,
+            replicate,
+            seed_generator=SEED_AGENT,
+            prompt_profile="base",
+            benchmark="biomnibench-da",
+        )
+        attempt = seed.manifest["elicitation_attempt"]
+        assert isinstance(attempt, dict)
+        assert attempt["included"] is False
+        assert attempt["exit_code"] == 2
+        assert len(seed.elicitation_artifacts) == 1
+        attempt_root = seed.seed_root / "elicitation_attempt"
+        assert (attempt_root / "workspace" / "trace.md").is_file()
+        assert (attempt_root / "run" / "status.json").is_file()
+
+
+def test_seed_stage_generates_every_configured_replicate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    payload = copy.deepcopy(design.payload)
+    payload["randomization"]["replicates"] = 4
+    experiment = Experiment(tmp_path / "four-replicates.yaml", payload)
+    output = tmp_path / "seeds"
+    FakeAgentRunner.calls = 0
+    monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+
+    assert SeedSetRunner(SeedSetConfig(experiment, output, 1)).run() == 0
+    assert FakeAgentRunner.calls == 8
+    assert (output / "tasks" / task.name / "rep-004" / "manifest.json").is_file()
 
 
 def test_seed_stage_holds_an_exclusive_pool_lease(
@@ -287,7 +386,7 @@ def test_seed_stage_holds_an_exclusive_pool_lease(
     assert (output / ".seed.lock").is_file()
 
 
-def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
+def test_seed_pool_generation_does_not_depend_on_assignment_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
@@ -296,7 +395,7 @@ def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
     first_payload["assignments"] = [
         assignment
         for assignment in design.assignments
-        if assignment["replicate"] == 1
+        if assignment.replicate == 1
     ]
     first = Experiment(tmp_path / "first.yaml", first_payload)
     output = tmp_path / "seeds"
@@ -304,20 +403,19 @@ def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
     monkeypatch.setattr(seeds_module, "AgentRunner", FakeAgentRunner)
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
     SeedSetRunner(SeedSetConfig(first, output, 1)).run()
-    assert FakeAgentRunner.calls == 1
+    assert FakeAgentRunner.calls == 6
 
     second_payload = copy.deepcopy(design.payload)
     second_payload["experiment_id"] = "second-experiment"
     second = Experiment(tmp_path / "second.yaml", second_payload)
     assert SeedSetRunner(SeedSetConfig(second, output, 3)).run() == 0
-    assert FakeAgentRunner.calls == 3
+    assert FakeAgentRunner.calls == 6
     owners = {
         replicate: resolve_seed(
             output,
             task,
             replicate,
-            provider="codex",
-            requested_model="test-model",
+            seed_generator=SEED_AGENT,
             prompt_profile="base",
             benchmark="biomnibench-da",
         ).manifest["experiment_id"]
@@ -325,8 +423,8 @@ def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
     }
     assert owners == {
         1: EXPERIMENT_ID,
-        2: "second-experiment",
-        3: "second-experiment",
+        2: EXPERIMENT_ID,
+        3: EXPERIMENT_ID,
     }
 
     answer = output / "tasks" / task.name / "rep-002" / "submission" / "workspace" / "answer.txt"
@@ -337,8 +435,7 @@ def test_shared_pool_reuses_existing_blocks_and_generates_only_missing_blocks(
             output,
             task,
             2,
-            provider="codex",
-            requested_model="test-model",
+            seed_generator=SEED_AGENT,
             prompt_profile="base",
             benchmark="biomnibench-da",
         )
@@ -355,7 +452,7 @@ def test_seed_failure_preserves_diagnostics_until_retry(
     payload["assignments"] = [
         assignment
         for assignment in design.assignments
-        if assignment["replicate"] == 1
+        if assignment.replicate == 1
     ]
     experiment = Experiment(tmp_path / "one-replicate.yaml", payload)
     output = tmp_path / "seeds"
@@ -386,8 +483,7 @@ def test_seed_failure_preserves_diagnostics_until_retry(
         output,
         task,
         1,
-        provider="codex",
-        requested_model="test-model",
+        seed_generator=SEED_AGENT,
         prompt_profile="base",
         benchmark="biomnibench-da",
     )
@@ -403,15 +499,14 @@ def test_shared_pool_reuses_complete_blocks_without_an_overwrite_flag(
     monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
     FakeAgentRunner.calls = 0
     SeedSetRunner(SeedSetConfig(design, output, 1)).run()
-    assert FakeAgentRunner.calls == 3
+    assert FakeAgentRunner.calls == 6
     assert SeedSetRunner(SeedSetConfig(design, output, 1)).run() == 0
-    assert FakeAgentRunner.calls == 3
+    assert FakeAgentRunner.calls == 6
     seed = resolve_seed(
         output,
         task,
         1,
-        provider="codex",
-        requested_model="test-model",
+        seed_generator=SEED_AGENT,
         prompt_profile="base",
         benchmark="biomnibench-da",
     )
@@ -453,8 +548,7 @@ def test_seed_rejects_obsolete_labels_and_additional_metadata(
             output,
             task,
             1,
-            provider="codex",
-            requested_model="test-model",
+            seed_generator=SEED_AGENT,
             prompt_profile="base",
             benchmark="biomnibench-da",
         )
@@ -474,7 +568,7 @@ def test_seed_rejects_provenance_metadata_tampering(
     manifest_path = output / "tasks" / task.name / "rep-001" / "manifest.json"
     manifest_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     manifest = json.loads(manifest_path.read_text())
-    manifest["requested_model"] = "forged-model"
+    manifest["seed_generator"]["model"] = "forged-model"
     manifest_path.write_text(json.dumps(manifest))
 
     with pytest.raises(RuntimeError, match="invalid seed"):
@@ -482,8 +576,7 @@ def test_seed_rejects_provenance_metadata_tampering(
             output,
             task,
             1,
-            provider="codex",
-            requested_model="test-model",
+            seed_generator=SEED_AGENT,
             prompt_profile="base",
             benchmark="biomnibench-da",
         )
@@ -509,8 +602,7 @@ def test_seed_rejects_incomplete_scoring_identity(
             output,
             task,
             1,
-            provider="codex",
-            requested_model="test-model",
+            seed_generator=SEED_AGENT,
             prompt_profile="base",
             benchmark="biomnibench-da",
         )

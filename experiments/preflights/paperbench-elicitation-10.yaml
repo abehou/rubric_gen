@@ -11,17 +11,36 @@ randomization:
   seed: 20260821
   replicates: 3
 
+seed_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+
+solvers:
+  - solver_id: luna
+    provider: codex
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    service_tier: null
+    executable: null
+    retries: 1
+    timeout_seconds: 7200
+
 assignment_selection:
-  - self-composing-policies--rep-001--full-online-rubric
-  - self-composing-policies--rep-001--semi-online-rubric
-  - self-composing-policies--rep-001--score-only-online-rubric
-  - self-composing-policies--rep-001--user-simulator-online-rubric
-  - self-composing-policies--rep-001--full-offline-rubric
-  - self-composing-policies--rep-002--full-online-rubric
-  - self-composing-policies--rep-002--semi-online-rubric
-  - self-composing-policies--rep-002--score-only-online-rubric
-  - self-composing-policies--rep-002--user-simulator-online-rubric
-  - self-composing-policies--rep-002--full-offline-rubric
+  - self-composing-policies--rep-001--solver-luna--full-online-rubric
+  - self-composing-policies--rep-001--solver-luna--semi-online-rubric
+  - self-composing-policies--rep-001--solver-luna--score-only-online-rubric
+  - self-composing-policies--rep-001--solver-luna--user-simulator-online-rubric
+  - self-composing-policies--rep-001--solver-luna--full-offline-rubric
+  - self-composing-policies--rep-002--solver-luna--full-online-rubric
+  - self-composing-policies--rep-002--solver-luna--semi-online-rubric
+  - self-composing-policies--rep-002--solver-luna--score-only-online-rubric
+  - self-composing-policies--rep-002--solver-luna--user-simulator-online-rubric
+  - self-composing-policies--rep-002--solver-luna--full-offline-rubric
 
 conditions:
   - condition_id: full-static
@@ -62,7 +81,8 @@ conditions:
     rubric_policy: online_elicitation
 
 protocol:
-  max_revisions: 6
+  max_revisions: 10
+  min_revisions: 5
   prompt: base
   feedback_simulator:
     model: gpt-5.6-luna
@@ -71,27 +91,16 @@ protocol:
     max_history_bytes: 131072
     max_request_bytes: 1048576
     max_retries: 1
-  solver:
-    provider: codex
-    model: gpt-5.6-luna
-    reasoning_effort: low
-    service_tier: null
-    executable: null
-    retries: 1
-    timeout_seconds: 7200
   judge_model: gpt-5.6-luna
   rubric_name: rubric.txt
   review: workspace
   max_review_chars: null
   rubric_proposer_model: gpt-5.6-luna
-  rubric_semantic_judge_model: gpt-5.6-luna
-  rubric_semantic_judge_max_calls_per_assignment: 5
-  rubric_semantic_judge_max_request_bytes_per_call: 1048576
-  rubric_semantic_judge_max_output_tokens_per_call: 32768
   rubric_proposer_max_retries: 5
 
 rubric_paraphrases:
   count: 4
+  selected_variant: 0
   model: gpt-5.6-luna
   max_retries: 2
 
@@ -106,8 +115,6 @@ outcome_audit:
     original_rubric_gap: 1.0
   max_input_tokens: 250000
   max_output_tokens: 4096
-  max_event_text_chars: 65536
-  max_command_output_chars: 2048
   rubric_score_max_calls: 138240
   rubric_score_max_request_bytes: 144955146240
   rubric_score_max_output_tokens: 4529848320

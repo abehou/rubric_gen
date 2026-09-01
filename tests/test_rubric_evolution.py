@@ -75,7 +75,7 @@ def _history() -> ArtifactHistory:
     return ArtifactHistory(artifacts=artifacts, pairs=pairs)
 
 
-def _support_pair_ids() -> list[str]:
+def _provenance_pair_ids() -> list[str]:
     history = _history()
     return [history.pairs[0].pair_id, history.pairs[-1].pair_id]
 
@@ -125,69 +125,26 @@ def _difference_value() -> dict[str, object]:
 def _criterion_value(
     *,
     title: str = "Robustness",
-    support: list[str] | None = None,
+    provenance: list[str] | None = None,
 ) -> dict[str, object]:
     return {
         "criteria": [{
             "title": title,
             "requirement": "Test the result under a task-relevant perturbation.",
-            "level_descriptions": [
-                {"label": "A", "description": "Complete and correct."},
-                {"label": "B", "description": "Partly correct."},
-                {"label": "C", "description": "Missing or incorrect."},
+            "levels": [
+                {"label": "A", "points": 0, "description": "Complete and correct."},
+                {"label": "B", "points": -3, "description": "Partly correct."},
+                {"label": "C", "points": -9, "description": "Missing or incorrect."},
             ],
-            "support_pair_ids": support or _support_pair_ids(),
+            "provenance_pair_ids": (
+                _provenance_pair_ids() if provenance is None else provenance
+            ),
         }]
     }
 
 
-def _semantic_output(
-    schema: dict[str, object],
-    *,
-    evidence: str,
-    drop_indices: tuple[int, ...] = (),
-) -> StructuredProviderOutput:
-    del schema
-    proposed = json.loads(evidence)["proposed_criteria"]
-    response = {
-        "actions": [
-            {
-                "action": "drop" if index in drop_indices else "accept",
-                "source_criterion_ids": [criterion["criterion_id"]],
-                "title": None if index in drop_indices else criterion["title"],
-                "requirement": (
-                    None if index in drop_indices else criterion["requirement"]
-                ),
-                "level_descriptions": (
-                    None if index in drop_indices else criterion["level_descriptions"]
-                ),
-                "support_pair_ids": (
-                    None if index in drop_indices else criterion["support_pair_ids"]
-                ),
-                "reason": (
-                    "The criterion is general and supported."
-                    if index not in drop_indices
-                    else "The evidence does not establish a general criterion."
-                ),
-            }
-            for index, criterion in enumerate(proposed)
-        ],
-    }
-    return StructuredProviderOutput(
-        response_text=json.dumps(response),
-        cost=_cost(),
-        generation=_generation("semantic", "semantic-review"),
-    )
-
-
-def _proposer(
-    run_proposer=None,
-    run_semantic=None,
-    *,
-    retries: int = 1,
-    semantic_calls: int = 5,
-) -> RubricProposer:
-    counters = {"differences": 0, "criteria": 0}
+def _proposer(run_proposer=None, *, retries: int = 1) -> RubricProposer:
+    counters = {"differences": 0, "rubric": 0}
 
     def default_proposer(**kwargs):
         stage = kwargs["stage"]
@@ -198,19 +155,8 @@ def _proposer(
     return RubricProposer(
         benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
         model="proposer",
-        semantic_judge_model="semantic",
-        semantic_judge_max_calls=semantic_calls,
-        semantic_judge_max_request_bytes=1_048_576,
-        semantic_judge_max_output_tokens=32_768,
         max_retries=retries,
         run_proposer=run_proposer or default_proposer,
-        run_semantic_reviewer=(
-            run_semantic
-            or (lambda **kwargs: _semantic_output(
-                kwargs["response_schema"],
-                evidence=kwargs["evidence"],
-            ))
-        ),
     )
 
 
@@ -220,7 +166,7 @@ def _replace(
     *,
     policy: RubricPolicy = RubricPolicy.OFFLINE_ELICITATION,
     instruction: str = "Solve the analysis task.",
-):
+) -> RubricGeneration:
     return proposer.elicit_rubric(
         instruction=instruction,
         original_rubric=_rubric(),
@@ -229,34 +175,49 @@ def _replace(
         generation_round=1,
         output_dir=root,
         artifact_history=_history(),
-        source_checkpoint=(
-            1 if policy is RubricPolicy.ONLINE_ELICITATION else None
-        ),
+        source_checkpoint=None,
     )
 
 
-def test_prompt_contract_is_blinded_add_only_and_support_bounded() -> None:
+def _next_online_generation(
+    proposer: RubricProposer,
+    root: Path,
+    current: RubricGeneration,
+) -> RubricGeneration:
+    return proposer.elicit_rubric(
+        instruction="Solve the analysis task.",
+        original_rubric=_rubric(),
+        current_generation=current,
+        policy=RubricPolicy.ONLINE_ELICITATION,
+        generation_round=current.generation_round + 1,
+        output_dir=root,
+        artifact_history=_history(),
+        source_checkpoint=current.generation_round,
+    )
+
+
+def test_prompt_contract_is_blinded_model_weighted_and_complete_set() -> None:
     difference = protocol_module.difference_instructions().lower()
-    criterion = protocol_module.criterion_instructions().lower()
-    semantic = " ".join(protocol_module.editor_instructions().lower().split())
+    rubric = " ".join(protocol_module.rubric_instructions().lower().split())
 
     assert "do not rank" in difference
     assert "every unordered pair" in difference
-    assert "at least three artifacts" in criterion
-    assert "no one artifact" in criterion
-    assert "do not choose points or weights" in criterion
-    assert "unseen solutions" in criterion
-    assert "judge-visible" in criterion
-    assert "planned or unexecuted code" in criterion
-    assert "named but unseen file" in criterion
-    assert "evidence is absent or contradictory" in criterion
-    assert "cannot verify" in criterion
-    assert "observed solution result" in criterion
-    assert "task or original rubric" in criterion
-    assert "accept, rewrite, merge, or drop" in semantic
-    assert "directly control" in semantic
-    assert "observed solution result" in semantic
-    assert "outcome" not in difference + criterion + semantic
+    assert "not a minimum support threshold" in rubric
+    assert "choose the integer penalty points" in rubric
+    assert "too small" in rubric
+    assert "too large" in rubric
+    assert "choose the set size" in rubric
+    assert "complete active learned-criterion set" in rubric
+    assert "retain, rewrite, merge, retire, replace, or add" in rubric
+    assert "unseen solutions" in rubric
+    assert "judge-visible" in rubric
+    assert "planned or unexecuted code" in rubric
+    assert "named but unseen file" in rubric
+    assert "evidence is absent or contradictory" in rubric
+    assert "cannot verify" in rubric
+    assert "observed solution result" in rubric
+    assert "task or original rubric" in rubric
+    assert "outcome" not in difference + rubric
 
 
 def test_generation_identity_covers_history_and_scoring_code() -> None:
@@ -281,30 +242,53 @@ def test_provider_contract_rejects_oversized_request_before_dispatch() -> None:
         )
 
 
+def test_provider_contract_uses_five_minute_request_timeout() -> None:
+    contract = ProviderContract(
+        model="test-model",
+        max_output_tokens=10,
+        max_request_bytes=100,
+        service_tier=None,
+    )
+
+    assert contract.record()["client_timeout_seconds"] == 300.0
+
+
 def test_artifact_history_requires_the_complete_pair_graph() -> None:
     history = _history()
     with pytest.raises(ValueError, match="complete pair graph"):
         ArtifactHistory(history.artifacts, history.pairs[:-1])
 
 
-def test_support_rejects_repeated_edges_around_one_artifact() -> None:
+def test_artifact_history_allows_one_unique_valid_attempt() -> None:
+    content = "one structurally valid attempt"
+    artifact = BlindedArtifact(
+        artifact_id="artifact_0000000000000001",
+        source_id="hidden:source:1",
+        content_sha256=sha256_text(content),
+        content=content,
+    )
+
+    history = ArtifactHistory((artifact,), ())
+
+    assert history.artifacts == (artifact,)
+    assert history.pairs == ()
+
+
+def test_provenance_allows_one_pair_and_repeated_edges_around_one_artifact() -> None:
     history = _history()
     hub = history.artifacts[0].artifact_id
     hub_pairs = tuple(
         pair.pair_id for pair in history.pairs if hub in pair.artifact_ids
     )
-    with pytest.raises(ValueError, match="shared hub"):
-        history.validate_support(hub_pairs)
+    assert history.validate_provenance(hub_pairs) == hub_pairs
+    assert history.validate_provenance(hub_pairs[:1]) == hub_pairs[:1]
 
 
 @pytest.mark.parametrize(
     "policy",
-    [
-        RubricPolicy.OFFLINE_ELICITATION,
-        RubricPolicy.ONLINE_ELICITATION,
-    ],
+    [RubricPolicy.OFFLINE_ELICITATION, RubricPolicy.ONLINE_ELICITATION],
 )
-def test_two_stage_elicitation_appends_one_criterion_and_keeps_one_rubric(
+def test_two_stage_elicitation_builds_one_model_weighted_active_criterion(
     tmp_path: Path,
     policy: RubricPolicy,
 ) -> None:
@@ -322,54 +306,48 @@ def test_two_stage_elicitation_appends_one_criterion_and_keeps_one_rubric(
     generation = _replace(_proposer(propose), tmp_path, policy=policy)
     parsed = parse_autorubric_rubric(generation.rubric.content)
 
-    assert [stage for stage, _ in calls] == ["differences", "criteria"]
+    assert [stage for stage, _ in calls] == ["differences", "rubric"]
     assert generation.generation_round == 1
     assert len(generation.elicited_criteria) == 1
     assert [item.levels[0].points for item in parsed.criteria] == [60, 40, 0]
-    assert [level.points for level in parsed.criteria[-1].levels] == [0, -2, -4]
+    assert [level.points for level in parsed.criteria[-1].levels] == [0, -3, -9]
     assert parsed.normalization_maximum == 100
     assert generation.proposer_call_budget == 4
 
 
-def test_only_difference_discovery_sees_raw_artifacts(tmp_path: Path) -> None:
-    proposer_evidence: dict[str, str] = {}
-    reviewer_evidence: list[str] = []
+def test_both_proposer_stages_see_the_blinded_artifact_history(
+    tmp_path: Path,
+) -> None:
+    evidence_by_stage: dict[str, str] = {}
 
     def propose(**kwargs):
-        proposer_evidence[kwargs["stage"]] = kwargs["evidence"]
-        return _proposer_output(
+        evidence_by_stage[kwargs["stage"]] = kwargs["evidence"]
+        value = (
             _difference_value()
             if kwargs["stage"] == "differences"
-            else _criterion_value(),
-            kwargs["stage"],
+            else _criterion_value()
         )
+        return _proposer_output(value, kwargs["stage"])
 
-    def review(**kwargs):
-        reviewer_evidence.append(kwargs["evidence"])
-        return _semantic_output(
-            kwargs["response_schema"],
-            evidence=kwargs["evidence"],
-        )
+    _replace(_proposer(propose), tmp_path)
 
-    _replace(_proposer(propose, review), tmp_path)
-    assert "artifact one" in proposer_evidence["differences"]
-    assert "artifact one" not in proposer_evidence["criteria"]
-    assert '"blinded_pair_graph"' in proposer_evidence["criteria"]
-    assert _history().artifacts[0].artifact_id in proposer_evidence["criteria"]
-    assert "artifact one" in reviewer_evidence[0]
-    assert "hidden:pair" not in proposer_evidence["differences"]
-    assert "hidden:pair" not in reviewer_evidence[0]
-    assert "score" not in proposer_evidence["differences"].lower()
+    assert "artifact one" in evidence_by_stage["differences"]
+    assert "artifact one" in evidence_by_stage["rubric"]
+    assert '"blinded_artifact_history"' in evidence_by_stage["rubric"]
+    assert _history().artifacts[0].artifact_id in evidence_by_stage["rubric"]
+    assert "hidden:pair" not in evidence_by_stage["differences"]
+    assert "hidden:pair" not in evidence_by_stage["rubric"]
+    assert "score" not in evidence_by_stage["differences"].lower()
 
 
-def test_editor_evidence_does_not_duplicate_the_original_rubric() -> None:
-    evidence = json.loads(protocol_module.editor_evidence(
+def test_rubric_evidence_uses_current_rubric_without_duplicate_original() -> None:
+    evidence = json.loads(protocol_module.rubric_evidence(
         instruction="Solve the analysis task.",
         original_rubric=_rubric(),
         current_generation=_initial_generation(),
         artifact_history=_history(),
         difference_response=_difference_value(),
-        proposed_criteria=(),
+        level_labels=("A", "B", "C"),
     ))
 
     assert "original_rubric" not in evidence
@@ -389,7 +367,7 @@ def test_empty_criterion_list_retains_the_current_rubric(tmp_path: Path) -> None
     assert generation.rubric == _initial_generation().rubric
 
 
-def test_criterion_needs_support_from_two_pairs_before_review(tmp_path: Path) -> None:
+def test_criterion_allows_one_provenance_pair(tmp_path: Path) -> None:
     calls = 0
 
     def propose(**kwargs):
@@ -398,160 +376,133 @@ def test_criterion_needs_support_from_two_pairs_before_review(tmp_path: Path) ->
         if kwargs["stage"] == "differences":
             return _proposer_output(_difference_value(), "differences")
         return _proposer_output(
-            _criterion_value(support=_support_pair_ids()[:1]),
-            f"criteria-{calls}",
+            _criterion_value(provenance=_provenance_pair_ids()[:1]),
+            f"rubric-{calls}",
         )
 
-    with pytest.raises(RuntimeError, match="failed after"):
-        _replace(_proposer(propose, retries=0), tmp_path)
+    generation = _replace(_proposer(propose, retries=0), tmp_path)
     assert calls == 2
-
-
-def test_criterion_schema_leaves_distinctness_to_local_validation() -> None:
-    schema = protocol_module.criterion_schema(
-        3,
-        ("A", "B", "C"),
-        _history(),
+    assert generation.elicited_criteria[0].provenance_pair_ids == tuple(
+        _provenance_pair_ids()[:1]
     )
-    support = schema["properties"]["criteria"]["items"]["properties"][  # type: ignore[index]
-        "support_pair_ids"
-    ]
+
+
+def test_rubric_schema_has_no_count_or_penalty_magnitude_cap() -> None:
+    schema = protocol_module.rubric_schema(("A", "B", "C"), _history())
+    criteria = schema["properties"]["criteria"]  # type: ignore[index]
+    item = criteria["items"]
+    support = item["properties"]["provenance_pair_ids"]
+    points = item["properties"]["levels"]["items"]["properties"]["points"]
 
     assert "uniqueItems" not in support
+    assert "maxItems" not in criteria
+    assert points == {"type": "integer"}
 
 
-def test_criterion_rejects_duplicate_support_pairs_before_review(
+def test_invalid_penalty_schedule_falls_back_to_the_current_set(
     tmp_path: Path,
 ) -> None:
-    calls = 0
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            return _proposer_output(_difference_value(), "differences")
+        value = _criterion_value()
+        value["criteria"][0]["levels"][1]["points"] = 0
+        return _proposer_output(value, "rubric")
+
+    generation = _replace(_proposer(propose, retries=0), tmp_path)
+    metadata = json.loads(
+        (
+            tmp_path
+            / "rubric-generations"
+            / "generation-0001"
+            / "evolution.json"
+        ).read_text()
+    )
+
+    assert generation.elicited_criteria == ()
+    assert "strictly decrease" in metadata["rubric_fallback_reason"]
+
+
+def test_model_can_rewrite_the_active_penalty_schedule_online(
+    tmp_path: Path,
+) -> None:
+    first = _replace(_proposer(), tmp_path, policy=RubricPolicy.ONLINE_ELICITATION)
 
     def propose(**kwargs):
-        nonlocal calls
-        calls += 1
+        if kwargs["stage"] == "differences":
+            return _proposer_output(_difference_value(), "round-two-differences")
+        value = _criterion_value()
+        value["criteria"][0]["levels"][1]["points"] = -6
+        value["criteria"][0]["levels"][2]["points"] = -18
+        return _proposer_output(value, "round-two-rubric")
+
+    second = _next_online_generation(_proposer(propose), tmp_path, first)
+
+    assert len(second.elicited_criteria) == 1
+    assert [point for _, point, _ in second.elicited_criteria[0].levels] == [
+        0,
+        -6,
+        -18,
+    ]
+    assert second.elicited_criteria[0].source_generation == 2
+    assert second.elicited_criteria[0].criterion_id != first.elicited_criteria[0].criterion_id
+
+
+def test_complete_proposer_can_retire_all_active_criteria(tmp_path: Path) -> None:
+    first = _replace(_proposer(), tmp_path, policy=RubricPolicy.ONLINE_ELICITATION)
+
+    def propose(**kwargs):
+        value = (
+            _difference_value()
+            if kwargs["stage"] == "differences"
+            else {"criteria": []}
+        )
+        return _proposer_output(value, f"round-two-{kwargs['stage']}")
+
+    second = _next_online_generation(_proposer(propose), tmp_path, first)
+
+    assert second.elicited_criteria == ()
+    assert second.rubric == _rubric()
+
+
+def test_duplicate_provenance_pairs_trigger_lenient_fallback(tmp_path: Path) -> None:
+    def propose(**kwargs):
         if kwargs["stage"] == "differences":
             return _proposer_output(_difference_value(), "differences")
         return _proposer_output(
-            _criterion_value(support=[_support_pair_ids()[0]] * 2),
-            f"criteria-{calls}",
+            _criterion_value(provenance=[_provenance_pair_ids()[0]] * 2),
+            "rubric",
         )
 
-    with pytest.raises(RuntimeError, match="failed after"):
-        _replace(_proposer(propose, retries=0), tmp_path)
-    assert calls == 2
+    generation = _replace(_proposer(propose, retries=0), tmp_path)
+    assert generation.elicited_criteria == ()
 
 
-def test_meta_conditioned_criterion_is_rejected_before_review(tmp_path: Path) -> None:
-    def propose(**kwargs):
-        if kwargs["stage"] == "differences":
-            value = _difference_value()
-        else:
-            value = _criterion_value(
-                title=f"{_history().artifacts[0].artifact_id} score improvement"
-            )
-        return _proposer_output(value, kwargs["stage"])
-
-    with pytest.raises(RuntimeError, match="trajectory-specific"):
-        _replace(_proposer(propose, retries=0), tmp_path)
-
-
-def test_novel_numeric_target_is_rejected_before_review(tmp_path: Path) -> None:
-    reviews = 0
-
-    def propose(**kwargs):
-        if kwargs["stage"] == "differences":
-            value = _difference_value()
-        else:
-            value = _criterion_value()
-            value["criteria"][0]["level_descriptions"][0]["description"] = (
-                "Reports an enrichment ratio of approximately 1.39-fold."
-            )
-        return _proposer_output(value, kwargs["stage"])
-
-    def review(**_kwargs):
-        nonlocal reviews
-        reviews += 1
-        raise AssertionError("numeric target must fail before semantic review")
-
-    with pytest.raises(RuntimeError, match=r"original rubric: 1\.39"):
-        _replace(_proposer(propose, review, retries=0), tmp_path)
-    assert reviews == 0
-
-
-def test_task_authorized_numeric_literal_is_accepted(tmp_path: Path) -> None:
-    def propose(**kwargs):
-        if kwargs["stage"] == "differences":
-            value = _difference_value()
-        else:
-            value = _criterion_value()
-            value["criteria"][0]["requirement"] = (
-                "Apply the task-specified threshold of 0.05."
-            )
-        return _proposer_output(value, kwargs["stage"])
-
-    generation = _replace(
-        _proposer(propose),
-        tmp_path,
-        instruction="Solve the analysis task with a threshold of 0.05.",
-    )
-    assert (
-        generation.elicited_criteria[0].requirement
-        == "Apply the task-specified threshold of 0.05."
-    )
-
-
-def test_numeric_looking_identifier_cannot_overflow_validation(
+@pytest.mark.parametrize(
+    ("field", "text"),
+    [
+        ("title", f"{_history().artifacts[0].artifact_id} score improvement"),
+        ("description", "Reports an enrichment ratio of approximately 1.39-fold."),
+        ("requirement", "Preserve source identifier 17e905999814."),
+    ],
+)
+def test_semantic_content_is_not_mechanically_rejected(
     tmp_path: Path,
+    field: str,
+    text: str,
 ) -> None:
     def propose(**kwargs):
         if kwargs["stage"] == "differences":
-            value = _difference_value()
+            return _proposer_output(_difference_value(), "differences")
+        value = _criterion_value()
+        if field == "description":
+            value["criteria"][0]["levels"][0]["description"] = text
         else:
-            value = _criterion_value()
-            value["criteria"][0]["requirement"] = (
-                "Preserve source identifier 17e905999814."
-            )
-        return _proposer_output(value, kwargs["stage"])
+            value["criteria"][0][field] = text
+        return _proposer_output(value, "rubric")
 
-    generation = _replace(
-        _proposer(propose),
-        tmp_path,
-        instruction="Use source identifier 17e905999814.",
-    )
-    assert (
-        generation.elicited_criteria[0].requirement
-        == "Preserve source identifier 17e905999814."
-    )
-
-
-def test_editor_cannot_introduce_a_novel_numeric_target(tmp_path: Path) -> None:
-    calls = 0
-
-    def review(**kwargs):
-        nonlocal calls
-        calls += 1
-        source = json.loads(kwargs["evidence"].split("\n\n<repair>", 1)[0])[
-            "proposed_criteria"
-        ][0]
-        source["level_descriptions"][0]["description"] = (
-            "Reports an enrichment ratio of approximately 1.39-fold."
-        )
-        return StructuredProviderOutput(
-            response_text=json.dumps({"actions": [{
-                "action": "rewrite",
-                "source_criterion_ids": [source["criterion_id"]],
-                "title": source["title"],
-                "requirement": source["requirement"],
-                "level_descriptions": source["level_descriptions"],
-                "support_pair_ids": source["support_pair_ids"],
-                "reason": "The rewritten criterion adds a quantitative target.",
-            }]}),
-            cost=_cost(),
-            generation=_generation("semantic", f"numeric-target-{calls}"),
-        )
-
-    generation = _replace(_proposer(run_semantic=review), tmp_path)
-    assert calls == 2
-    assert generation.elicited_criteria == ()
+    generation = _replace(_proposer(propose, retries=0), tmp_path)
+    assert len(generation.elicited_criteria) == 1
 
 
 def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
@@ -567,248 +518,52 @@ def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
                     cost=_cost(),
                     generation=_generation("proposer", "bad"),
                 )
+            assert "prior response failed validation" in kwargs["evidence"]
             return _proposer_output(_difference_value(), "fixed")
-        assert "prior response failed validation" not in kwargs["evidence"]
-        return _proposer_output(_criterion_value(), "criteria")
+        return _proposer_output(_criterion_value(), "rubric")
 
     _replace(_proposer(propose, retries=1), tmp_path)
     assert difference_calls == 2
 
 
-def test_reviewer_drop_removes_the_criterion(tmp_path: Path) -> None:
-    calls = {"proposer": 0, "semantic": 0}
-
-    def propose(**kwargs):
-        calls["proposer"] += 1
-        return _proposer_output(
-            _difference_value()
-            if kwargs["stage"] == "differences"
-            else _criterion_value(),
-            f"proposal-{calls['proposer']}",
-        )
-
-    def reject(**kwargs):
-        calls["semantic"] += 1
-        return _semantic_output(
-            kwargs["response_schema"],
-            evidence=kwargs["evidence"],
-            drop_indices=(0,),
-        )
-
-    first = _replace(_proposer(propose, reject), tmp_path)
-    assert calls == {"proposer": 2, "semantic": 1}
-    assert first.rubric == _initial_generation().rubric
-    assert first.elicited_criteria == ()
-    assert (tmp_path / "rubric-generations" / "generation-0001").is_dir()
-
-    resumed_calls = 0
-
-    def forbidden(**_kwargs):
-        nonlocal resumed_calls
-        resumed_calls += 1
-        raise AssertionError("provider must not run")
-
-    second = _replace(_proposer(forbidden, forbidden), tmp_path)
-    assert second == first
-    assert resumed_calls == 0
-
-
-def test_reviewer_can_accept_one_criterion_and_drop_another(
+def test_invalid_rubric_response_gets_one_exact_repair_retry(
     tmp_path: Path,
 ) -> None:
+    rubric_calls = 0
+
     def propose(**kwargs):
+        nonlocal rubric_calls
         if kwargs["stage"] == "differences":
             return _proposer_output(_difference_value(), "differences")
-        first = _criterion_value()["criteria"][0]
-        second = {
-            "title": "Traceability",
-            "requirement": "Connect each result to reproducible evidence.",
-            "level_descriptions": [
-                {"label": "A", "description": "Complete and reproducible."},
-                {"label": "B", "description": "Partly reproducible."},
-                {"label": "C", "description": "Missing or unusable."},
-            ],
-            "support_pair_ids": _support_pair_ids(),
-        }
-        return _proposer_output(
-            {"criteria": [first, second]},
-            "criteria",
-        )
+        rubric_calls += 1
+        if rubric_calls == 1:
+            return _proposer_output({"criteria": "invalid"}, "bad-rubric")
+        assert "prior rubric response failed validation" in kwargs["evidence"]
+        return _proposer_output(_criterion_value(), "fixed-rubric")
 
-    def review(**kwargs):
-        return _semantic_output(
-            kwargs["response_schema"],
-            evidence=kwargs["evidence"],
-            drop_indices=(1,),
-        )
-
-    generation = _replace(_proposer(propose, review), tmp_path)
-
-    assert [
-        item.title for item in generation.elicited_criteria
-    ] == ["Robustness"]
-    saved_review = json.loads(
-        (tmp_path / "rubric-generations" / "generation-0001" / "criterion-edit.json").read_text()
-    )
-    assert set(saved_review) == {"actions"}
-    assert [item["action"] for item in saved_review["actions"]] == [
-        "accept",
-        "drop",
-    ]
-
-
-def test_reviewer_rewrite_replaces_the_proposed_criterion(tmp_path: Path) -> None:
-    def review(**kwargs):
-        source = json.loads(kwargs["evidence"])["proposed_criteria"][0]
-        return StructuredProviderOutput(
-            response_text=json.dumps({"actions": [{
-                "action": "rewrite",
-                "source_criterion_ids": [source["criterion_id"]],
-                "title": "Observable robustness evidence",
-                "requirement": source["requirement"],
-                "level_descriptions": source["level_descriptions"],
-                "support_pair_ids": source["support_pair_ids"],
-                "reason": "The new title states the observable scope.",
-            }]}),
-            cost=_cost(),
-            generation=_generation("semantic", "rewrite"),
-        )
-
-    generation = _replace(_proposer(run_semantic=review), tmp_path)
-    assert [
-        item.title for item in generation.elicited_criteria
-    ] == ["Observable robustness evidence"]
-
-
-def test_reviewer_rewrite_can_replace_support_from_the_full_history(
-    tmp_path: Path,
-) -> None:
-    replacement_support = [
-        _history().pairs[1].pair_id,
-        _history().pairs[4].pair_id,
-    ]
-
-    def review(**kwargs):
-        source = json.loads(kwargs["evidence"])["proposed_criteria"][0]
-        return StructuredProviderOutput(
-            response_text=json.dumps({"actions": [{
-                "action": "rewrite",
-                "source_criterion_ids": [source["criterion_id"]],
-                "title": source["title"],
-                "requirement": source["requirement"],
-                "level_descriptions": source["level_descriptions"],
-                "support_pair_ids": replacement_support,
-                "reason": "The full history supplies stronger non-hub support.",
-            }]}),
-            cost=_cost(),
-            generation=_generation("semantic", "replacement-support"),
-        )
-
-    generation = _replace(_proposer(run_semantic=review), tmp_path)
-    assert (
-        generation.elicited_criteria[0].support_pair_ids
-        == tuple(replacement_support)
-    )
-
-
-def test_reviewer_merge_combines_two_proposals(tmp_path: Path) -> None:
-    def propose(**kwargs):
-        if kwargs["stage"] == "differences":
-            return _proposer_output(_difference_value(), "differences")
-        first = _criterion_value()["criteria"][0]
-        second = dict(first)
-        second["title"] = "Perturbation evidence"
-        second["requirement"] = "Save direct evidence from a relevant perturbation."
-        return _proposer_output({"criteria": [first, second]}, "criteria")
-
-    def review(**kwargs):
-        proposed = json.loads(kwargs["evidence"])["proposed_criteria"]
-        first = proposed[0]
-        return StructuredProviderOutput(
-            response_text=json.dumps({"actions": [{
-                "action": "merge",
-                "source_criterion_ids": [
-                    proposed[0]["criterion_id"],
-                    proposed[1]["criterion_id"],
-                ],
-                "title": "Robustness evidence",
-                "requirement": (
-                    "Test a task-relevant perturbation and save direct evidence."
-                ),
-                "level_descriptions": first["level_descriptions"],
-                "support_pair_ids": first["support_pair_ids"],
-                "reason": "The proposals express one overlapping requirement.",
-            }]}),
-            cost=_cost(),
-            generation=_generation("semantic", "merge"),
-        )
-
-    generation = _replace(_proposer(propose, review), tmp_path)
-    assert [
-        item.title for item in generation.elicited_criteria
-    ] == ["Robustness evidence"]
-
-
-def test_invalid_semantic_review_retries_then_abandons_the_criterion(
-    tmp_path: Path,
-) -> None:
-    calls = 0
-
-    def invalid_review(**_kwargs):
-        nonlocal calls
-        calls += 1
-        return StructuredProviderOutput(
-            response_text=json.dumps({"actions": []}),
-            cost=_cost(),
-            generation=_generation("semantic", "invalid-semantic-review"),
-        )
-
-    first = _replace(_proposer(run_semantic=invalid_review), tmp_path)
-    assert calls == 2
-    assert first.elicited_criteria == ()
-
-    resumed_calls = 0
-
-    def forbidden(**_kwargs):
-        nonlocal resumed_calls
-        resumed_calls += 1
-        raise AssertionError("provider must not run")
-
-    second = _replace(_proposer(forbidden, forbidden), tmp_path)
-    assert second == first
-    assert resumed_calls == 0
-
-
-def test_invalid_editor_response_gets_exact_repair_retry(tmp_path: Path) -> None:
-    calls = 0
-
-    def review(**kwargs):
-        nonlocal calls
-        calls += 1
-        if calls == 1:
-            value = {"actions": []}
-        else:
-            assert "prior editor response failed validation" in kwargs["evidence"]
-            evidence = json.loads(kwargs["evidence"].split("\n\n<repair>", 1)[0])
-            source = evidence["proposed_criteria"][0]
-            value = {"actions": [{
-                "action": "accept",
-                "source_criterion_ids": [source["criterion_id"]],
-                "title": source["title"],
-                "requirement": source["requirement"],
-                "level_descriptions": source["level_descriptions"],
-                "support_pair_ids": source["support_pair_ids"],
-                "reason": "The criterion is valid and supported.",
-            }]}
-        return StructuredProviderOutput(
-            response_text=json.dumps(value),
-            cost=_cost(),
-            generation=_generation("semantic", f"editor-{calls}"),
-        )
-
-    generation = _replace(_proposer(run_semantic=review), tmp_path)
-    assert calls == 2
+    generation = _replace(_proposer(propose, retries=1), tmp_path)
+    assert rubric_calls == 2
     assert len(generation.elicited_criteria) == 1
+
+
+def test_complete_proposer_persists_its_active_set(tmp_path: Path) -> None:
+    def propose(**kwargs):
+        if kwargs["stage"] == "differences":
+            return _proposer_output(_difference_value(), "differences")
+        return _proposer_output(_criterion_value(title="Traceability"), "rubric")
+
+    generation = _replace(_proposer(propose), tmp_path)
+
+    assert [item.title for item in generation.elicited_criteria] == ["Traceability"]
+    saved = json.loads(
+        (
+            tmp_path
+            / "rubric-generations"
+            / "generation-0001"
+            / "rubric-proposal.json"
+        ).read_text()
+    )
+    assert set(saved) == {"criteria"}
 
 
 def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> None:
@@ -820,16 +575,14 @@ def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> 
         calls += 1
         raise AssertionError("provider must not run")
 
-    second = _replace(_proposer(forbidden, forbidden), tmp_path)
+    second = _replace(_proposer(forbidden), tmp_path)
     assert second == first
     assert calls == 0
     generation_root = tmp_path / "rubric-generations" / "generation-0001"
     assert all(path.stat().st_mode & 0o200 for path in generation_root.iterdir())
 
 
-def test_incomplete_generation_restarts_from_the_first_stage(
-    tmp_path: Path,
-) -> None:
+def test_incomplete_generation_restarts_from_the_first_stage(tmp_path: Path) -> None:
     calls = 0
 
     def fail(**_kwargs):
@@ -842,6 +595,20 @@ def test_incomplete_generation_restarts_from_the_first_stage(
     assert calls == 2
     with pytest.raises(RuntimeError, match="failed after 2 calls"):
         _replace(_proposer(fail), tmp_path)
+    assert calls == 4
+
+
+def test_provider_failures_stop_after_three_retries(tmp_path: Path) -> None:
+    calls = 0
+
+    def fail(**_kwargs):
+        nonlocal calls
+        calls += 1
+        raise TimeoutError("provider request timed out")
+
+    with pytest.raises(RuntimeError, match="failed after 4 calls"):
+        _replace(_proposer(fail, retries=5), tmp_path)
+
     assert calls == 4
 
 
@@ -862,7 +629,12 @@ def test_model_identity_mismatch_fails_closed(tmp_path: Path) -> None:
 
 def test_generation_file_tampering_fails_closed(tmp_path: Path) -> None:
     _replace(_proposer(), tmp_path)
-    proposal = tmp_path / "rubric-generations" / "generation-0001" / "criterion-proposal.json"
+    proposal = (
+        tmp_path
+        / "rubric-generations"
+        / "generation-0001"
+        / "rubric-proposal.json"
+    )
     proposal.chmod(0o600)
     proposal.write_text(json.dumps({"criteria": []}))
     with pytest.raises(RuntimeError, match="file hash changed"):
@@ -882,7 +654,7 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
         proposer.elicit_rubric(
             instruction="Solve.",
             original_rubric=_rubric(),
-        current_generation=_initial_generation(),
+            current_generation=_initial_generation(),
             policy="offline_elicitation",  # type: ignore[arg-type]
             generation_round=1,
             output_dir=tmp_path,
@@ -892,7 +664,7 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
         proposer.elicit_rubric(
             instruction="Solve.",
             original_rubric=_rubric(),
-        current_generation=_initial_generation(),
+            current_generation=_initial_generation(),
             policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=True,
             output_dir=tmp_path,
@@ -901,32 +673,29 @@ def test_rejects_nonexact_control_types_before_dispatch(tmp_path: Path) -> None:
     assert calls == 0
 
 
-def test_online_and_offline_checkpoints_are_not_interchangeable(tmp_path: Path) -> None:
+def test_online_and_offline_checkpoints_are_not_interchangeable(
+    tmp_path: Path,
+) -> None:
     proposer = _proposer()
     with pytest.raises(ValueError, match="cannot use a live checkpoint"):
         proposer.elicit_rubric(
             instruction="Solve.",
             original_rubric=_rubric(),
-        current_generation=_initial_generation(),
+            current_generation=_initial_generation(),
             policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=1,
             source_checkpoint=1,
             output_dir=tmp_path / "offline",
             artifact_history=_history(),
         )
-    with pytest.raises(ValueError, match="matching live checkpoint"):
+    with pytest.raises(ValueError, match="pre-treatment online rubric"):
         proposer.elicit_rubric(
             instruction="Solve.",
             original_rubric=_rubric(),
-        current_generation=_initial_generation(),
+            current_generation=_initial_generation(),
             policy=RubricPolicy.ONLINE_ELICITATION,
             generation_round=1,
-            source_checkpoint=None,
+            source_checkpoint=1,
             output_dir=tmp_path / "online",
             artifact_history=_history(),
         )
-
-
-def test_semantic_call_schedule_is_exact(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="schedule is exhausted"):
-        _replace(_proposer(semantic_calls=0), tmp_path)

@@ -326,11 +326,11 @@ def test_paperbench_evolution_preserves_binary_scoring_contract() -> None:
     criterion = ElicitedCriterion.create(
         title="Reproducible execution",
         requirement="The implementation must include a reproducible execution path.",
-        level_descriptions=(
-            ("A", "A reproducible execution path is implemented."),
-            ("B", "No reproducible execution path is implemented."),
+        levels=(
+            ("A", 0, "A reproducible execution path is implemented."),
+            ("B", -1, "No reproducible execution path is implemented."),
         ),
-        support_pair_ids=(
+        provenance_pair_ids=(
             "pair_0000000000000001",
             "pair_0000000000000002",
         ),
@@ -367,7 +367,7 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
         current_generation=generation,
         artifact_history=history,
     )
-    criterion_evidence = protocol_module.criterion_evidence(
+    rubric_evidence = protocol_module.rubric_evidence(
         instruction="Replicate the paper.",
         original_rubric=rubric,
         current_generation=generation,
@@ -378,18 +378,17 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
                 for pair in history.pairs
             ]
         },
-        remaining_capacity=5,
         level_labels=("A", "B"),
     )
 
     assert f"Score normalization maximum: {maximum}" in difference_evidence
     assert "hidden-source-1" not in difference_evidence
-    assert '"blinded_pair_graph"' in criterion_evidence
-    assert '"program_owned_penalty_points_per_criterion":1' in criterion_evidence
-    instructions = " ".join(protocol_module.criterion_instructions().split())
-    assert "at least three artifacts" in instructions
-    assert "Each new criterion is penalty-only" in instructions
-    assert "Do not choose points or weights" in instructions
+    assert '"blinded_artifact_history"' in rubric_evidence
+    assert f'"original_score_range":{{"maximum":{maximum},"minimum":0}}' in rubric_evidence
+    instructions = " ".join(protocol_module.rubric_instructions().split())
+    assert "not a minimum support threshold" in instructions
+    assert "Each learned criterion is penalty-only" in instructions
+    assert "Choose the integer penalty points" in instructions
 
 
 def test_submission_evidence_uses_official_code_dev_file_types(tmp_path: Path) -> None:

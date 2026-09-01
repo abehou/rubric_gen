@@ -94,19 +94,32 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
         assert payload["conditions"] == expected_conditions
         assert payload["randomization"]["replicates"] == 3
         assert payload["assignment_selection"] == "all"
-        assert len(tasks) * 3 * len(expected_conditions) == assignment_count
+        assert payload["seed_generator"]["model"] == "gpt-5.6-luna"
+        assert payload["solvers"] == [{
+            "solver_id": "luna",
+            "provider": "codex",
+            "model": "gpt-5.6-luna",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 7200,
+        }]
+        assert (
+            len(tasks) * 3 * len(payload["solvers"]) * len(expected_conditions)
+            == assignment_count
+        )
         protocol = payload["protocol"]
-        assert protocol["max_revisions"] == 6
+        assert protocol["max_revisions"] == 10
+        assert protocol["min_revisions"] == 5
         assert protocol["prompt"] == "base"
         assert set(protocol["feedback_simulator"]) == {
             "model", "max_output_tokens", "max_concerns",
             "max_history_bytes", "max_request_bytes", "max_retries",
         }
         assert protocol["rubric_proposer_max_retries"] == 5
-        assert protocol["solver"]["reasoning_effort"] == "low"
         assert protocol["judge_model"] == "gpt-5.6-luna"
         assert protocol["rubric_proposer_model"] == "gpt-5.6-luna"
-        assert protocol["rubric_semantic_judge_model"] == "gpt-5.6-luna"
         assert payload["outcome_audit"]["models"] == [
             "gpt-5.6-sol", "claude-opus-5", "gemini-3.6-flash",
         ]
@@ -140,12 +153,39 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
     assert not set(PAPERBENCH_DEV_PAPERS) & set(PAPERBENCH_RESULTS_PAPERS)
 
 
+def test_biomni_results_focused_feedback_factorial_reuses_shared_inputs() -> None:
+    payload = _yaml(
+        EXPERIMENTS / "biomnibench-results20-user-simulator-full.yaml"
+    )
+    expected_conditions = [
+        condition
+        for condition in _expected_conditions()
+        if condition["feedback_policy"] in {"full", "user_simulator"}
+    ]
+
+    assert payload["tasks"] == list(BIO_RESULTS_TASKS)
+    assert payload["conditions"] == expected_conditions
+    assert payload["assignment_selection"] == "all"
+    assert len(BIO_RESULTS_TASKS) * 3 * len(expected_conditions) == 360
+    assert payload["outcome_audit"]["rubric_score_max_calls"] == 5_529_600
+    assert payload["outcome_audit"][
+        "rubric_free_evaluation_max_calls"
+    ] == 12_960
+    assert payload["dag"]["seed"]["output_dir"] == (
+        "../seeds/biomnibench/luna-results20"
+    )
+    assert payload["dag"]["paraphrase"]["output_dir"] == (
+        "../runs/rubric-paraphrases/biomnibench/luna-results20"
+    )
+
+
 def test_only_current_tier_configs_exist() -> None:
     assert {
         path.name for path in EXPERIMENTS.glob("*.yaml")
     } == {
         "biomnibench-dev3.yaml",
         "biomnibench-results20.yaml",
+        "biomnibench-results20-user-simulator-full.yaml",
         "paperbench-dev3.yaml",
         "paperbench-results20.yaml",
         "harvey-harness-evolution-dev3.yaml",
@@ -177,12 +217,34 @@ def test_harvey_has_distinct_three_and_twenty_task_tiers() -> None:
     results = _yaml(EXPERIMENTS / "harvey-harness-evolution-results20.yaml")
     development_tasks = development["benchmark"]["development_tasks"]
     results_tasks = results["benchmark"]["development_tasks"]
-    held_out_tasks = results["benchmark"]["held_out_tasks"]
+    development_selection = development["benchmark"]["selection_tasks"]
+    development_held_out = development["benchmark"]["held_out_tasks"]
+    results_selection = results["benchmark"]["selection_tasks"]
+    results_held_out = results["benchmark"]["held_out_tasks"]
 
     assert len(development_tasks) == 3
     assert len(results_tasks) == 20
+    assert len(results_selection) == 20
+    assert len(results_held_out) == 20
     assert len({task.split("/", 1)[0] for task in results_tasks}) == 20
     assert not set(development_tasks) & set(results_tasks)
-    assert not set(results_tasks) & set(held_out_tasks)
+    assert not set(results_tasks) & set(results_selection)
+    assert not set(results_tasks) & set(results_held_out)
+    assert not set(results_selection) & set(results_held_out)
+    assert not (
+        set(development_tasks)
+        | set(development_selection)
+        | set(development_held_out)
+    ) & (set(results_tasks) | set(results_selection) | set(results_held_out))
+    assert development["design"] == {
+        "randomization_seed": 20260831,
+        "replicates_per_condition": 2,
+        "outcome_replicates": 2,
+    }
+    assert results["design"] == {
+        "randomization_seed": 20260831,
+        "replicates_per_condition": 3,
+        "outcome_replicates": 2,
+    }
     assert development["audit"]["primary_rule"] == "any_detect"
     assert results["audit"]["primary_rule"] == "any_detect"

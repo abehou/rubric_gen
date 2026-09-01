@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision import contrasts as contrast_module
 
 
@@ -31,9 +32,12 @@ def _workspace(root: Path, name: str, text: str) -> Path:
     return workspace
 
 
-def _seed_resolver(root: Path):
+def _seed_resolver(root: Path, *, duplicate_attacks: bool = False):
     seeds = {
-        replicate: _workspace(root, f"seed-{replicate}", f"seed {replicate}\n")
+        replicate: (
+            _workspace(root, f"seed-{replicate}", f"seed {replicate}\n"),
+            _workspace(root, f"attack-{replicate}", f"attack {replicate}\n"),
+        )
         for replicate in (1, 2, 3)
     }
 
@@ -42,16 +46,21 @@ def _seed_resolver(root: Path):
         _task_dir: Path,
         replicate: int,
         *,
-        provider: str,
-        requested_model: str,
+        seed_generator: AgentRunConfig,
         prompt_profile: str,
         benchmark: str,
     ) -> SimpleNamespace:
-        assert provider == "codex"
-        assert requested_model == "gpt-5.6-luna"
+        assert seed_generator.provider == "codex"
+        assert seed_generator.model == "gpt-5.6-luna"
         assert prompt_profile == "base"
         assert benchmark == "biomnibench-da"
-        return SimpleNamespace(submission_dir=seeds[replicate].parent)
+        clean, adversarial = seeds[replicate]
+        if duplicate_attacks:
+            adversarial = clean
+        return SimpleNamespace(elicitation_artifacts=(
+            ("clean", clean),
+            ("adversarial", adversarial),
+        ))
 
     return resolve_seed
 
@@ -61,10 +70,13 @@ def _arguments(tmp_path: Path) -> dict[str, object]:
         "seed_set": tmp_path / "seeds",
         "task_dir": tmp_path / "task",
         "benchmark": _Benchmark(),
-        "provider": "codex",
-        "requested_model": "gpt-5.6-luna",
+        "seed_generator": AgentRunConfig(
+            provider="codex",
+            model="gpt-5.6-luna",
+        ),
         "prompt_profile": "base",
-        "assignment_id": "assignment-1",
+        "seed_replicates": 3,
+        "blinding_scope": "shared-task-rubric",
     }
 
 
@@ -79,15 +91,33 @@ def test_offline_history_uses_three_sealed_artifacts_once(
     )
 
     assert {item.source_id for item in history.artifacts} == {
-        "sealed-seed:rep-001",
-        "sealed-seed:rep-002",
-        "sealed-seed:rep-003",
+        *(f"sealed-seed:rep-{index:03d}:clean" for index in (1, 2, 3)),
+        *(f"sealed-seed:rep-{index:03d}:adversarial" for index in (1, 2, 3)),
     }
-    assert len(history.artifacts) == 3
-    assert len(history.pairs) == 3
+    assert len(history.artifacts) == 6
+    assert len(history.pairs) == 15
     assert all("public review:" in item.content for item in history.artifacts)
     assert set(history.model_record()) == {"artifacts", "pairs"}
     assert "source_id" not in str(history.model_record())
+
+
+def test_offline_history_deduplicates_exact_attempt_copies(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        contrast_module,
+        "resolve_seed",
+        _seed_resolver(tmp_path, duplicate_attacks=True),
+    )
+
+    history = contrast_module.build_offline_artifact_history(
+        **_arguments(tmp_path),  # type: ignore[arg-type]
+    )
+
+    assert len(history.artifacts) == 3
+    assert len(history.pairs) == 3
+    assert all(item.source_id.endswith(":clean") for item in history.artifacts)
 
 
 def test_online_history_includes_every_prior_artifact_and_pair(
@@ -101,16 +131,17 @@ def test_online_history_includes_every_prior_artifact_and_pair(
 
     history = contrast_module.build_online_artifact_history(
         experiment_dir=experiment,
-        generation_round=5,
+        source_checkpoint=5,
         **_arguments(tmp_path),  # type: ignore[arg-type]
     )
 
     assert {item.source_id for item in history.artifacts} == {
-        *(f"sealed-seed:rep-{index:03d}" for index in (1, 2, 3)),
+        *(f"sealed-seed:rep-{index:03d}:clean" for index in (1, 2, 3)),
+        *(f"sealed-seed:rep-{index:03d}:adversarial" for index in (1, 2, 3)),
         *(f"live:s{index:03d}" for index in range(6)),
     }
-    assert len(history.artifacts) == 9
-    assert len(history.pairs) == 36
+    assert len(history.artifacts) == 12
+    assert len(history.pairs) == 66
     assert all("public review:" in item.content for item in history.artifacts)
 
 
@@ -125,7 +156,7 @@ def test_online_first_update_does_not_repeat_current_as_every_pair_hub(
 
     history = contrast_module.build_online_artifact_history(
         experiment_dir=experiment,
-        generation_round=1,
+        source_checkpoint=1,
         **_arguments(tmp_path),  # type: ignore[arg-type]
     )
     current_id = next(
@@ -135,9 +166,9 @@ def test_online_first_update_does_not_repeat_current_as_every_pair_hub(
         pair for pair in history.pairs if current_id in pair.artifact_ids
     ]
 
-    assert len(history.artifacts) == 5
-    assert len(history.pairs) == 10
-    assert len(current_pairs) == 4
+    assert len(history.artifacts) == 8
+    assert len(history.pairs) == 28
+    assert len(current_pairs) == 7
     assert any(current_id not in pair.artifact_ids for pair in history.pairs)
 
 
@@ -152,12 +183,12 @@ def test_blinded_artifact_ids_stay_stable_as_online_history_grows(
     arguments = _arguments(tmp_path)
     first = contrast_module.build_online_artifact_history(
         experiment_dir=experiment,
-        generation_round=1,
+        source_checkpoint=1,
         **arguments,  # type: ignore[arg-type]
     )
     second = contrast_module.build_online_artifact_history(
         experiment_dir=experiment,
-        generation_round=2,
+        source_checkpoint=2,
         **arguments,  # type: ignore[arg-type]
     )
 

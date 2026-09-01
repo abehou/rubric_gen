@@ -22,7 +22,7 @@ from rubric_gen.benchmarks.harvey_lab.artifacts import (
     validate_task,
     write_identity,
 )
-from rubric_gen.benchmarks.harvey_lab.config import HarveyExperiment
+from rubric_gen.benchmarks.harvey_lab.config import HarveyRun
 from rubric_gen.benchmarks.harvey_lab.designer import (
     CodexHarnessDesigner,
     DesignedCandidate,
@@ -151,7 +151,7 @@ def build_ranking(
 class HarveyEvolutionController:
     def __init__(
         self,
-        experiment: HarveyExperiment,
+        experiment: HarveyRun,
         *,
         runtime_root: Path,
         evaluator: Evaluator | None = None,
@@ -220,6 +220,10 @@ class HarveyEvolutionController:
             {
                 "kind": "harvey-harness-evolution-study",
                 "experiment_id": self.experiment.experiment_id,
+                "study_id": self.experiment.study_id,
+                "unit_id": self.experiment.unit_id,
+                "condition": self.experiment.condition,
+                "replicate": self.experiment.replicate,
                 "status": "completed",
                 "rubric_mode": self.experiment.rubric.mode,
                 "candidate_count": self.experiment.designer.rounds + 1,
@@ -233,16 +237,22 @@ class HarveyEvolutionController:
         value = {
             "kind": "harvey-harness-evolution-experiment",
             "experiment_id": self.experiment.experiment_id,
+            "study_id": self.experiment.study_id,
+            "unit_id": self.experiment.unit_id,
+            "condition": self.experiment.condition,
+            "replicate": self.experiment.replicate,
             "experiment_path": str(self.experiment.source),
             "experiment_sha256": file_sha256(self.experiment.source),
             "benchmark_revision": self.experiment.benchmark.revision,
             "development_tasks": list(self.experiment.benchmark.development_tasks),
+            "selection_tasks": list(self.experiment.benchmark.selection_tasks),
             "held_out_tasks": list(self.experiment.benchmark.held_out_tasks),
             "task_agent": asdict(self.experiment.task_agent),
             "judge": asdict(self.experiment.judge),
             "designer": asdict(self.experiment.designer),
             "rubric": asdict(self.experiment.rubric),
             "audit": asdict(self.experiment.audit),
+            "outcome_replicates": self.experiment.outcome_replicates,
             "parent_selection": "codex_free_choice_from_all_prior_candidates",
         }
         return json.loads(json.dumps(value))
@@ -253,6 +263,7 @@ class HarveyEvolutionController:
             self.experiment.benchmark.revision,
             (
                 *self.experiment.benchmark.development_tasks,
+                *self.experiment.benchmark.selection_tasks,
                 *self.experiment.benchmark.held_out_tasks,
             ),
         )
@@ -267,6 +278,7 @@ class HarveyEvolutionController:
             return
         for task_id in (
             *self.experiment.benchmark.development_tasks,
+            *self.experiment.benchmark.selection_tasks,
             *self.experiment.benchmark.held_out_tasks,
         ):
             source = task_path(self.experiment.benchmark.checkout / "tasks", task_id) / "task.json"

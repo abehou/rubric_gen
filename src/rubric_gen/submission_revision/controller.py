@@ -29,6 +29,7 @@ from rubric_gen.submission_revision.controller_recovery import RevisionRecovery
 from rubric_gen.submission_revision.controller_workspace import (
     RevisionWorkspaceManager,
 )
+from rubric_gen.submission_revision.seeds import seed_generator_identity
 from rubric_gen.submission_revision.artifacts import (
     LIVE_ROOT_PREFIX as _LIVE_ROOT_PREFIX,
     live_root_parent as _live_root_parent,
@@ -136,12 +137,14 @@ class SubmissionRevisionController:
             "benchmark": str(self.config.benchmark),
             "assignment_id": self.config.assignment_id,
             "condition_id": self.config.condition_id,
+            "solver_id": self.config.solver_id,
             "replicate": self.config.replicate,
             "elicitation_seed_replicates": self.config.elicitation_seed_replicates,
             "execution_order": self.config.execution_order,
             "task_id": self.task_dir.name,
             "task_dir": str(self.task_dir),
             "max_revisions": self.config.max_revisions,
+            "min_revisions": self.config.min_revisions,
             "provider": self.config.agent.provider,
             "model": self.config.agent.model,
             "executable": self.config.agent.executable,
@@ -156,18 +159,6 @@ class SubmissionRevisionController:
             "rubric_policy": self.rubric_policy.value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
-            "rubric_semantic_judge_model": (
-                self.config.rubric_semantic_judge_model
-            ),
-            "rubric_semantic_judge_max_calls": (
-                self.config.rubric_semantic_judge_max_calls
-            ),
-            "rubric_semantic_judge_max_request_bytes": (
-                self.config.rubric_semantic_judge_max_request_bytes
-            ),
-            "rubric_semantic_judge_max_output_tokens": (
-                self.config.rubric_semantic_judge_max_output_tokens
-            ),
             "rubric_generation_implementation_sha256": (
                 rubric_generation_implementation_sha256()
             ),
@@ -186,6 +177,10 @@ class SubmissionRevisionController:
             "instruction_sha256": self.instruction_sha256,
             "data_sha256": self.data_sha256,
             "seed_run_dir": str(self.seed.root),
+            "pretreatment_rubric_dir": str(
+                self.config.pretreatment_rubric_dir.resolve()
+            ),
+            "seed_generator": seed_generator_identity(self.config.seed_agent),
             "seed_sha256": self.seed.sha256,
         }
         if self.config.feedback_simulator is not None:
@@ -308,6 +303,7 @@ class SubmissionRevisionController:
                 stop_reason=state.stop_reason or "max_revisions",
             )
         finally:
+            self.dependencies.session.close()
             if completed or not initialized:
                 _remove_tree(live_root, self.experiment_dir)
             if completed:
@@ -322,7 +318,7 @@ class SubmissionRevisionController:
         self.experiment_dir.mkdir(parents=True)
         TaskWorkspace(self.task_dir, workspace).create()
         self.workspaces.materialize_seed(workspace)
-        self.workspaces.link_seed_snapshot()
+        self.workspaces.copy_seed_snapshot()
         _write_json(
             self.experiment_dir / "manifest.json",
             {
@@ -338,8 +334,8 @@ class SubmissionRevisionController:
         )
         self.store.persist_initial_generation()
         self.store.write_state(state)
-        if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
-            self.scoring.compile_offline_rubric()
+        if self.rubric_policy is not RubricPolicy.FIXED:
+            self.scoring.install_pretreatment_rubric()
 
     def _run_solver_turn(self, state: _RevisionState, workspace: Path) -> None:
         ensure_artifacts_dir(workspace)
@@ -417,19 +413,12 @@ class SubmissionRevisionController:
         try:
             self.workspaces.verify_live_instruction(workspace)
             self.workspaces.validate_submission_outputs(workspace)
-            decision = self._read_revision_decision(workspace, turn_dir)
             current_sha256 = _solution_tree_sha256(workspace)
         except (OSError, RuntimeError) as exc:
             raise _SolverTurnFailure(str(exc), 2) from exc
         changed = current_sha256 != baseline_sha256
-        if decision == "continue" and not changed:
-            raise _SolverTurnFailure(
-                "revision decision is continue, but the submission did not change",
-                2,
-            )
-        if decision == "stop":
-            state.stop_reason = "solver"
-        if not changed:
+        if not changed and turn_index >= self.config.min_revisions:
+            state.stop_reason = "no_change"
             state.next_prompt = ""
             state.phase = _RevisionPhase.COMPLETED
             self.store.write_state(state)
@@ -437,7 +426,7 @@ class SubmissionRevisionController:
                 {
                     "event": "revision_stopped",
                     "turn": turn_index,
-                    "decision": decision,
+                    "reason": "no_change",
                     "submission_changed": False,
                     "session_id": state.session_id,
                     "trajectory_sha256": _sha256_file(turn.trajectory_path),
@@ -464,8 +453,7 @@ class SubmissionRevisionController:
                 "turn": turn_index,
                 "session_id": state.session_id,
                 "trajectory_sha256": _sha256_file(turn.trajectory_path),
-                "decision": decision,
-                "submission_changed": True,
+                "submission_changed": changed,
             }
         )
         state.submission_ids.append(submission_id)
@@ -473,26 +461,6 @@ class SubmissionRevisionController:
         state.phase = _RevisionPhase.READY_FOR_JUDGE
         self.store.write_state(state)
         self.store.update_manifest({"submission_count": len(state.submission_ids)})
-
-    @staticmethod
-    def _read_revision_decision(workspace: Path, turn_dir: Path) -> str:
-        path = workspace / "revision.json"
-        try:
-            value = os.lstat(path)
-        except OSError as exc:
-            raise RuntimeError("solver did not write revision.json") from exc
-        if not stat.S_ISREG(value.st_mode):
-            raise RuntimeError("revision.json must be a regular file")
-        payload = _read_json_object(path, "revision decision")
-        if set(payload) != {"decision"} or payload["decision"] not in {
-            "continue",
-            "stop",
-        }:
-            raise RuntimeError("revision.json has an invalid decision")
-        decision = str(payload["decision"])
-        _write_json(turn_dir / "decision.json", {"decision": decision})
-        path.unlink()
-        return decision
 
     def _mark_turn_failed(
         self,

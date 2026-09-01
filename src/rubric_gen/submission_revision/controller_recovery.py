@@ -19,6 +19,7 @@ from rubric_gen.submission_revision.artifacts import (
     remove_created_live_tree as _remove_created_live_tree,
     remove_live_tree as _remove_tree,
     revision_manifest_keys as _revision_manifest_keys,
+    sha256_file as _sha256_file,
     solution_tree_sha256 as _solution_tree_sha256,
     validate_live_root as _validate_live_root,
     verify_submission_snapshot as _verify_submission_snapshot,
@@ -151,7 +152,7 @@ class RevisionRecovery:
                 == len(state.scores)
                 == len(state.fixed_original_scores)
                 == state.next_turn_index
-                and state.stop_reason in {"solver", "max_revisions"}
+                and state.stop_reason in {"no_change", "max_revisions"}
             ):
                 self._validate_resume_state(state, None, manifest)
                 return state, live_root, workspace
@@ -505,7 +506,22 @@ class RevisionRecovery:
         if type(state.session_id) is not str or not state.session_id:
             raise RuntimeError("recovered solver turn has no session ID")
         self.workspaces.validate_submission_outputs(workspace)
-        _solution_tree_sha256(workspace)
+        current_sha256 = _solution_tree_sha256(workspace)
+        prior_workspace = (
+            self.experiment_dir
+            / "submissions"
+            / state.submission_ids[-1]
+            / "workspace"
+        )
+        changed = current_sha256 != _solution_tree_sha256(prior_workspace)
+        if not changed and checkpoint.turn_index >= self.config.min_revisions:
+            self._seal_recovered_no_change(
+                state,
+                checkpoint,
+                status,
+                disposition,
+            )
+            return
         submission_id = f"s{checkpoint.turn_index:03d}"
         submission_dir = self.experiment_dir / "submissions" / submission_id
         trajectories = [self.seed.submission_dir / "trajectory.stream.jsonl"] + [
@@ -529,16 +545,23 @@ class RevisionRecovery:
                 trajectories,
                 state.session_id,
             )
-        self._seal_recovered_turn(state, checkpoint, status, disposition, submission_id)
+        self._seal_recovered_turn(
+            state,
+            checkpoint,
+            status,
+            disposition,
+            submission_id,
+            changed=changed,
+        )
 
-    def _seal_recovered_turn(
+    def _seal_recovered_status(
         self,
-        state: _RevisionState,
         checkpoint: _FailedTurnCheckpoint,
         status: dict[str, object],
         disposition: _RecoveryDisposition,
-        submission_id: str,
-    ) -> None:
+    ) -> bool:
+        """Seal the provider artifacts for one recovered solver turn."""
+
         checkpoint.turn_dir.chmod(
             stat.S_IMODE(os.lstat(checkpoint.turn_dir).st_mode) | stat.S_IRWXU
         )
@@ -565,6 +588,43 @@ class RevisionRecovery:
             "recovered_on_resume": True,
         })
         _write_json(checkpoint.status_path, status)
+        return excluded
+
+    def _seal_recovered_no_change(
+        self,
+        state: _RevisionState,
+        checkpoint: _FailedTurnCheckpoint,
+        status: dict[str, object],
+        disposition: _RecoveryDisposition,
+    ) -> None:
+        """Finish a recovered terminal turn that made no submission change."""
+
+        self._seal_recovered_status(checkpoint, status, disposition)
+        state.stop_reason = "no_change"
+        state.next_prompt = ""
+        state.phase = _RevisionPhase.COMPLETED
+        self.store.write_state(state)
+        self.store.append_event({
+            "event": "revision_stopped",
+            "turn": checkpoint.turn_index,
+            "reason": "no_change",
+            "submission_changed": False,
+            "session_id": state.session_id,
+            "trajectory_sha256": _sha256_file(checkpoint.trajectory_path),
+            "recovered_on_resume": True,
+        })
+
+    def _seal_recovered_turn(
+        self,
+        state: _RevisionState,
+        checkpoint: _FailedTurnCheckpoint,
+        status: dict[str, object],
+        disposition: _RecoveryDisposition,
+        submission_id: str,
+        *,
+        changed: bool,
+    ) -> None:
+        excluded = self._seal_recovered_status(checkpoint, status, disposition)
         state.submission_ids.append(submission_id)
         state.next_turn_index += 1
         state.phase = _RevisionPhase.READY_FOR_JUDGE
@@ -578,6 +638,7 @@ class RevisionRecovery:
                 if excluded
                 else "accepted completed provider turn after interruption"
             ),
+            "submission_changed": changed,
         })
 
     def _reset_uncertain_solver_turn(
@@ -654,13 +715,7 @@ class RevisionRecovery:
                 raise RuntimeError("completed revision state has no stop reason")
             if state.stop_reason == "max_revisions" and state.next_turn_index != total:
                 raise RuntimeError("max-revision stop has missing submissions")
-        elif state.stop_reason is not None and not (
-            state.stop_reason == "solver"
-            and state.phase in {
-                _RevisionPhase.READY_FOR_JUDGE,
-                _RevisionPhase.JUDGE_IN_PROGRESS,
-            }
-        ):
+        elif state.stop_reason is not None:
             raise RuntimeError("incomplete revision state has a stop reason")
         if workspace is None and state.phase is not _RevisionPhase.COMPLETED:
             raise RuntimeError(
@@ -687,7 +742,7 @@ class RevisionRecovery:
             self.experiment_dir / "turns" / f"turn-{index:03d}"
             for index in range(1, state.next_turn_index)
         ]
-        if state.phase is _RevisionPhase.COMPLETED and state.stop_reason == "solver":
+        if state.phase is _RevisionPhase.COMPLETED and state.stop_reason == "no_change":
             no_change_turn = (
                 self.experiment_dir
                 / "turns"
@@ -729,18 +784,15 @@ class RevisionRecovery:
         maximum_generation = (
             1
             if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-            else self.config.max_revisions - 1
+            else max(1, self.config.max_revisions)
         )
         remove_owned_rubric_generation_residue(
             generation_root,
             max_generation_round=maximum_generation,
         )
         generation_rounds = rubric_generation_entries(generation_root)
-        if (
-            self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-            and generation_rounds == [0]
-        ):
-            self.scoring.compile_offline_rubric()
+        if generation_rounds == [0]:
+            self.scoring.install_pretreatment_rubric()
             generation_rounds = rubric_generation_entries(generation_root)
         if not generation_rounds or generation_rounds[0] != 0:
             raise RuntimeError("rubric generations must start at round 0")
@@ -748,6 +800,7 @@ class RevisionRecovery:
             raise RuntimeError("rubric generations are not contiguous")
         if generation_rounds[-1] > maximum_generation:
             raise RuntimeError("rubric elicitation generation exceeds the study length")
+        self.scoring.install_pretreatment_rubric()
         proposer = self.dependencies.rubric_proposer
         if proposer is None:
             raise RuntimeError("elicitation replay has no rubric proposer")
@@ -759,7 +812,7 @@ class RevisionRecovery:
             0,
             expected_policy=self.rubric_policy,
         ).rubric
-        for generation_round in generation_rounds[1:]:
+        for generation_round in generation_rounds[2:]:
             prior = load_rubric_generation(
                 self.experiment_dir,
                 generation_round - 1,
@@ -776,7 +829,7 @@ class RevisionRecovery:
                     generation_round
                 ),
                 source_checkpoint=(
-                    generation_round
+                    generation_round - 1
                     if self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
                     else None
                 ),

@@ -50,7 +50,7 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HARVEY_RUNTIME_ROOT", str(runtime_root))
     observed: dict[str, object] = {}
 
-    class FakeEvaluator:
+    class FakeController:
         def __init__(
             self,
             value: object,
@@ -59,40 +59,15 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
             max_concurrency: int,
             max_retries: int,
         ) -> None:
-            assert value is experiment
+            observed["experiment"] = value
             observed["runtime_root"] = runtime_root
             observed["max_concurrency"] = max_concurrency
             observed["max_retries"] = max_retries
 
-    class FakeController:
-        def __init__(
-            self,
-            value: object,
-            *,
-            runtime_root: Path,
-            evaluator: object,
-        ) -> None:
-            observed["experiment"] = value
-            assert runtime_root == observed["runtime_root"]
-            observed["evaluator"] = evaluator
-
         def run(self, *, resume: bool) -> int:
             observed["resume"] = resume
-            observed.setdefault("stages", []).append("evolution")
+            observed.setdefault("stages", []).append("study")
             return 0
-
-    def quality(value: object, *, evaluator: object) -> int:
-        assert value is experiment
-        assert evaluator is observed["evaluator"]
-        observed.setdefault("stages", []).append("quality")
-        return 0
-
-    def detect(value: object, *, resume: bool, max_concurrency: int) -> int:
-        assert value is experiment
-        assert resume is False
-        assert max_concurrency == 12
-        observed.setdefault("stages", []).append("detect")
-        return 0
 
     def seal(value: object) -> dict[str, object]:
         assert value is experiment
@@ -100,10 +75,7 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
         return {"artifact_tree_sha256": "a" * 64}
 
     monkeypatch.setattr(unified_cli, "load_harvey_experiment", lambda _: experiment)
-    monkeypatch.setattr(unified_cli, "HarveyEvaluator", FakeEvaluator)
-    monkeypatch.setattr(unified_cli, "HarveyEvolutionController", FakeController)
-    monkeypatch.setattr(unified_cli, "run_quality_audit", quality)
-    monkeypatch.setattr(unified_cli, "run_reward_hacking_audit", detect)
+    monkeypatch.setattr(unified_cli, "HarveyStudyController", FakeController)
     monkeypatch.setattr(unified_cli, "seal_harvey_run", seal)
 
     assert unified_cli.main([
@@ -116,12 +88,11 @@ def test_run_dispatches_harvey_experiment(tmp_path, monkeypatch) -> None:
     ]) == 0
     assert observed == {
         "experiment": experiment,
-        "evaluator": observed["evaluator"],
         "max_concurrency": 12,
         "max_retries": 3,
         "resume": True,
         "runtime_root": runtime_root,
-        "stages": ["evolution", "quality", "detect", "seal"],
+        "stages": ["study", "seal"],
     }
 
 
@@ -148,7 +119,7 @@ def test_sealed_harvey_resume_verifies_without_provider_calls(
     )
     monkeypatch.setattr(
         unified_cli,
-        "HarveyEvaluator",
+        "HarveyStudyController",
         lambda *_args, **_kwargs: pytest.fail("provider workflow was constructed"),
     )
     monkeypatch.setattr(

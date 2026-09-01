@@ -126,8 +126,8 @@ The `agent/` package owns terminal-agent execution end to end:
 - Immutable run configuration and result values live in `models.py`.
 - Provider command construction remains behind the existing adapter strategy,
   with one registry responsible for selecting Gemini, Claude, or Codex.
-- `sessions.py` owns persistent CLI session lifecycle, retry attempts, stream
-  parsing, process signaling, and status emission.
+- `sessions.py` owns Gemini and Claude CLI session lifecycle. `codex_sessions.py`
+  owns persistent Codex SDK threads, safe pre-turn retries, and status emission.
 - `workspaces.py` owns task discovery, validation, and workspace preparation.
 - `costs.py` owns reported and estimated run-cost extraction.
 - `runners.py` coordinates single-task and concurrent batch runs.
