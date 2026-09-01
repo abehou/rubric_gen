@@ -48,3 +48,4 @@
 ## 2026-09-01
 
 - **00:03 PDT** — App-server initialization still delivered a blank stdout line to the SDK after the validated WebSocket proxy fix, and both pre-turn retries failed. The proxy boundary therefore has an unproven startup race or an additional stdout writer that the current regression does not cover.
+- **00:18 PDT** — Resolved the simulated-user forensic gap. Each rejected attempt now preserves its raw response, provider provenance, and exact validation error, while harmless whitespace and repeated valid categories no longer cause assignment failure.

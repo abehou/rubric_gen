@@ -818,3 +818,4 @@
 ## 2026-09-01
 
 - **00:03 PDT** — The focused study has 20 completed, 48 running, 290 pending, and two failed assignments. The second failure exhausted both app-server initialization attempts on a blank JSON-RPC line, so the transport defect is rare rather than fully resolved and the current study is not a complete result.
+- **00:18 PDT** — Stopped the incomplete focused study before changing its hashed simulator implementation. Simulated-user feedback now normalizes surrounding whitespace, permits repeated valid categories, and preserves rejected attempts; all 721 tests pass with one skip.
