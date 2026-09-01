@@ -15,7 +15,7 @@ evaluation report.
 gains. It shows the weak-original, strong-original, and selected-rubric gap
 changes.
 
-Bars are descriptive means over completed assignments.
+Bars are task-balanced descriptive means.
 Whiskers are 95% percentile-bootstrap intervals clustered by task.
 Each task mean uses its available completed replicates.
 The analysis includes 317 completed revisions and excludes 43 failed revisions.

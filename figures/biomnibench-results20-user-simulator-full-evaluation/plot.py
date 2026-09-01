@@ -166,12 +166,12 @@ def load_rows(summary: dict[str, object]) -> list[dict[str, object]]:
     return rows
 
 
-def _cluster_interval(
+def _cluster_summary(
     rows: list[dict[str, object]],
     metric: str,
     *,
     seed_offset: int,
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     by_task: dict[str, list[float]] = defaultdict(list)
     for row in rows:
         by_task[str(row["task_id"])].append(float(row[metric]))
@@ -188,7 +188,7 @@ def _cluster_interval(
         replace=True,
     )
     lower, upper = np.quantile(samples.mean(axis=1), (0.025, 0.975))
-    return float(lower), float(upper)
+    return float(task_means.mean()), float(lower), float(upper)
 
 
 def aggregate(rows: list[dict[str, object]], source_sha256: str) -> list[dict[str, object]]:
@@ -216,9 +216,13 @@ def aggregate(rows: list[dict[str, object]], source_sha256: str) -> list[dict[st
                 "task_count": len({str(row["task_id"]) for row in group}),
             }
             for metric in METRICS:
-                record[metric] = fmean(float(row[metric]) for row in group)
-                lower, upper = _cluster_interval(group, metric, seed_offset=seed_offset)
+                mean, lower, upper = _cluster_summary(
+                    group,
+                    metric,
+                    seed_offset=seed_offset,
+                )
                 seed_offset += 1
+                record[metric] = mean
                 record[f"{metric}_clustered_95_lower"] = lower
                 record[f"{metric}_clustered_95_upper"] = upper
             result.append(record)
@@ -325,8 +329,8 @@ def plot_quality(records: list[dict[str, object]]) -> None:
     figure.text(
         0.5,
         0.012,
-        "Bars show completed-assignment means. Whiskers are task-clustered 95% bootstrap intervals; "
-        "task means use available completed replicates.",
+        "Bars show task-balanced means. Whiskers are task-clustered 95% bootstrap intervals; "
+        "each task mean uses available completed replicates.",
         ha="center",
         va="bottom",
         fontsize=9,
