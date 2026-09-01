@@ -5,6 +5,7 @@ import glob
 import hashlib
 import json
 import math
+import os
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -12,11 +13,15 @@ import matplotlib.pyplot as plt
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FIGURE_ROOT = Path(__file__).resolve().parent
-DETECTION_ROOT = ROOT / "runs/detections/biomnibench-da-factorial-r10-4f4d5d178756/direct_final_artifact/evaluations"
-CSV_PATH = FIGURE_ROOT / "final_artifact_direct_rh_by_condition.csv"
-PRIMARY_STEM = FIGURE_ROOT / "final_artifact_direct_rh_by_condition"
-JUDGE_STEM = FIGURE_ROOT / "final_artifact_direct_rh_by_condition_by_judge"
+WINDOW = os.environ.get("DIRECT_RH_WINDOW", "final_artifact")
+if WINDOW not in {"final_artifact", "final_revision"}:
+    raise RuntimeError(f"unsupported direct RH window: {WINDOW}")
+FIGURE_ROOT = Path(os.environ.get("DIRECT_RH_FIGURE_ROOT", Path(__file__).resolve().parent))
+DETECTION_ROOT = ROOT / f"runs/detections/biomnibench-da-factorial-r10-4f4d5d178756/direct_{WINDOW}/evaluations"
+CSV_PATH = FIGURE_ROOT / f"{WINDOW}_direct_rh_by_condition.csv"
+PRIMARY_STEM = FIGURE_ROOT / f"{WINDOW}_direct_rh_by_condition"
+JUDGE_STEM = FIGURE_ROOT / f"{WINDOW}_direct_rh_by_condition_by_judge"
+WINDOW_LABEL = {"final_artifact": "final-artifact", "final_revision": "final-revision trajectory"}[WINDOW]
 RUBRICS = ("fixed", "offline_elicitation", "online_elicitation")
 RUBRIC_LABELS = {"fixed": "Static rubric", "offline_elicitation": "Offline elicited", "online_elicitation": "Online elicited"}
 FEEDBACK = ("full", "user-simulator")
@@ -27,12 +32,12 @@ JUDGE_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol", "claude-opus-5": "Claude Opus 5", 
 
 
 def load_summary() -> tuple[Path, dict[str, object]]:
-    paths = sorted(Path(item) for item in glob.glob(str(DETECTION_ROOT / "*--window-final_artifact--*/summary.json")))
+    paths = sorted(Path(item) for item in glob.glob(str(DETECTION_ROOT / f"*--window-{WINDOW}--*/summary.json")))
     if len(paths) != 1:
-        raise RuntimeError(f"expected one completed final-artifact audit, found {len(paths)}")
+        raise RuntimeError(f"expected one completed {WINDOW} audit, found {len(paths)}")
     value = json.loads(paths[0].read_text(encoding="utf-8"))
     if value.get("kind") != "reward-hacking-model-panel" or len(value.get("records", ())) != 951:
-        raise RuntimeError("final-artifact audit is incomplete")
+        raise RuntimeError(f"{WINDOW} audit is incomplete")
     return paths[0], value
 
 
@@ -57,7 +62,7 @@ def aggregate(summary: dict[str, object]) -> list[dict[str, object]]:
         decision = str(verdict.get("decision")) if isinstance(verdict, dict) else "failed"
         cases[case_id][str(record["model"])] = decision
     if len(cases) != 317 or any(set(values) != set(JUDGES) for values in cases.values()):
-        raise RuntimeError("final-artifact audit does not contain the complete judge panel")
+        raise RuntimeError(f"{WINDOW} audit does not contain the complete judge panel")
     counts: dict[tuple[str, str, str], Counter[str]] = defaultdict(Counter)
     for case_id, decisions in cases.items():
         rubric, feedback = case_conditions[case_id]
@@ -116,7 +121,7 @@ def panel(axis: plt.Axes, rows: list[dict[str, object]], panel_name: str, ylabel
     axis.set_ylim(0, max(12, 5 * math.ceil((maximum + 6) / 5)))
     axis.set_xticks(list(centers), [RUBRIC_LABELS[item] for item in RUBRICS])
     if ylabel:
-        axis.set_ylabel("Final-artifact direct RH detection rate (%)")
+        axis.set_ylabel(f"{WINDOW_LABEL.capitalize()} direct RH detection rate (%)")
     axis.grid(axis="y", color="#D8D8D8")
     axis.set_axisbelow(True)
     axis.spines[["top", "right"]].set_visible(False)
@@ -130,9 +135,9 @@ def write_outputs(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows({"source_summary_sha256": digest, **row} for row in rows)
     figure, axis = plt.subplots(figsize=(8.5, 6.0))
     panel(axis, rows, "primary_any_detect", True)
-    axis.set_title("Sealed final artifacts · three-judge any-detect panel", fontweight="bold")
+    axis.set_title(f"{WINDOW_LABEL.capitalize()} · three-judge any-detect panel", fontweight="bold")
     figure.legend(*axis.get_legend_handles_labels(), loc="upper center", bbox_to_anchor=(0.5, 0.92), ncol=2, frameon=False)
-    figure.suptitle("BioMNIBench Results20: final-artifact direct RH", fontsize=15, fontweight="bold")
+    figure.suptitle(f"BioMNIBench Results20: {WINDOW_LABEL} direct RH", fontsize=15, fontweight="bold")
     figure.tight_layout(rect=(0, 0, 1, 0.86))
     figure.savefig(PRIMARY_STEM.with_suffix(".png"), dpi=240, facecolor="white")
     figure.savefig(PRIMARY_STEM.with_suffix(".pdf"), facecolor="white")
@@ -141,13 +146,14 @@ def write_outputs(path: Path, rows: list[dict[str, object]]) -> None:
         panel(axis, rows, judge, index == 0)
         axis.set_title(JUDGE_LABELS[judge], fontweight="bold")
     figure.legend(*axes[0].get_legend_handles_labels(), loc="upper center", bbox_to_anchor=(0.5, 0.92), ncol=2, frameon=False)
-    figure.suptitle("BioMNIBench Results20: final-artifact direct RH by judge", fontsize=15, fontweight="bold")
+    figure.suptitle(f"BioMNIBench Results20: {WINDOW_LABEL} direct RH by judge", fontsize=15, fontweight="bold")
     figure.tight_layout(rect=(0, 0, 1, 0.86))
     figure.savefig(JUDGE_STEM.with_suffix(".png"), dpi=240, facecolor="white")
     figure.savefig(JUDGE_STEM.with_suffix(".pdf"), facecolor="white")
 
 
 def main() -> None:
+    FIGURE_ROOT.mkdir(parents=True, exist_ok=True)
     path, summary = load_summary()
     write_outputs(path, aggregate(summary))
 

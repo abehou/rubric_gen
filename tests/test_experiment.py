@@ -1083,15 +1083,17 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "direct",
         "direct",
         "direct",
+        "direct",
         "rubric_score",
         "rubric_free_score",
         "combined",
     ]
-    assert len(direct_configs) == 3
+    assert len(direct_configs) == 4
     assert {config.window.value for config in direct_configs} == {
         "full_trajectory",
         "post_update",
         "final_artifact",
+        "final_revision",
     }
     assert all(not hasattr(config, "vllm_endpoints") for config in configs)
 

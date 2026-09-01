@@ -118,7 +118,14 @@ def load_revision_evidence_ledger(
     ):
         include_trajectory = (
             resolved_window is RevisionDetectionWindow.FULL_TRAJECTORY
-            or submission_index >= POST_UPDATE_FIRST_AFFECTED_INDEX
+            or (
+                resolved_window is RevisionDetectionWindow.POST_UPDATE
+                and submission_index >= POST_UPDATE_FIRST_AFFECTED_INDEX
+            )
+            or (
+                resolved_window is RevisionDetectionWindow.FINAL_REVISION
+                and submission_index == len(submission_ids) - 1
+            )
         )
         if include_trajectory:
             source_bytes += _normalized_size(raw)
@@ -139,10 +146,18 @@ def load_revision_evidence_ledger(
                 ))
         if submission_index == len(submission_ids) - 1 and no_change is None:
             continue
-        if (
-            resolved_window is RevisionDetectionWindow.POST_UPDATE
-            and submission_index < POST_UPDATE_BASELINE_INDEX
-        ):
+        include_feedback = (
+            resolved_window is RevisionDetectionWindow.FULL_TRAJECTORY
+            or (
+                resolved_window is RevisionDetectionWindow.POST_UPDATE
+                and submission_index >= POST_UPDATE_BASELINE_INDEX
+            )
+            or (
+                resolved_window is RevisionDetectionWindow.FINAL_REVISION
+                and submission_index == len(submission_ids) - 2
+            )
+        )
+        if not include_feedback:
             continue
         submission_id = submission_ids[submission_index]
         entries.append(EvidenceLedgerEntry(
@@ -155,7 +170,10 @@ def load_revision_evidence_ledger(
         path, stop_record = no_change
         include_stop = (
             resolved_window is RevisionDetectionWindow.FULL_TRAJECTORY
-            or len(submission_ids) >= POST_UPDATE_FIRST_AFFECTED_INDEX
+            or (
+                resolved_window is RevisionDetectionWindow.POST_UPDATE
+                and len(submission_ids) >= POST_UPDATE_FIRST_AFFECTED_INDEX
+            )
         )
         if include_stop:
             assert no_change_bytes is not None
@@ -185,6 +203,67 @@ def load_revision_evidence_ledger(
         source_bytes=source_bytes,
         source_records=source_records,
         solver_feedback_records=feedback_records,
+        superseded_started_events=normalization_stats[
+            "superseded_started_events"
+        ],
+    )
+
+
+def load_final_revision_evidence_ledger(
+    revision_dir: Path,
+    manifest: dict[str, object],
+    blind: Callable[[object], object],
+) -> RevisionEvidenceLedger:
+    """Read only the last artifact-producing revision and its input feedback."""
+
+    state = _load_state(revision_dir)
+    submission_ids = _validated_submission_ids(revision_dir, manifest, state)
+    if len(submission_ids) < 2:
+        raise ValueError(
+            f"revision does not reach the final-revision window: {revision_dir}"
+        )
+    submissions_root = revision_dir / "submissions"
+    latest_submission = submissions_root / submission_ids[-1]
+    path = (
+        revision_dir
+        / "turns"
+        / f"turn-{len(submission_ids) - 1:03d}"
+        / "trajectory.stream.jsonl"
+    )
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"revision final trajectory segment is missing: {path}")
+    raw = path.read_bytes()
+    lines = _decode_lines(raw)
+    completed_item_ids = _completed_item_ids(lines)
+    normalization_stats = {"superseded_started_events": 0}
+    entries: list[EvidenceLedgerEntry] = []
+    for line_number, line in enumerate(lines, start=1):
+        normalized = _normalize_event(
+            blind(_parse_line(line)),
+            completed_item_ids=completed_item_ids,
+            stats=normalization_stats,
+        )
+        if normalized is not None:
+            entries.append(EvidenceLedgerEntry(
+                source=f"trajectory:{line_number}",
+                value=normalized,
+            ))
+    prior_submission_id = submission_ids[-2]
+    entries.insert(0, EvidenceLedgerEntry(
+        source=f"solver_feedback:{prior_submission_id}",
+        value=blind(_load_feedback(
+            revision_dir / "feedback",
+            prior_submission_id,
+            revision_dir,
+        )),
+    ))
+    return RevisionEvidenceLedger(
+        submission_ids=submission_ids,
+        latest_submission=latest_submission,
+        entries=tuple(entries),
+        source_bytes=_normalized_size(raw),
+        source_records=len(lines),
+        solver_feedback_records=1,
         superseded_started_events=normalization_stats[
             "superseded_started_events"
         ],

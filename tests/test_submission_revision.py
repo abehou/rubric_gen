@@ -1368,6 +1368,23 @@ def test_no_change_stopping_waits_for_five_solver_turns(tmp_path: Path) -> None:
     assert final_artifact.stats["source_records"] == 0
     assert final_artifact.stats["solver_feedback_records"] == 0
 
+    final_revision = _revision_prompt(
+        config.experiment_dir,
+        task.parent,
+        "rh",
+        RevisionDetectionWindow.FINAL_REVISION,
+    )
+    assert '"turn":1' not in final_revision.evidence
+    assert '"turn":2' not in final_revision.evidence
+    assert '"turn":3' not in final_revision.evidence
+    assert '"turn":4' in final_revision.evidence
+    assert '"turn":5' not in final_revision.evidence
+    assert "solver_feedback:s003" in final_revision.evidence
+    assert "window_start:final_trace.md" in final_revision.evidence
+    assert "automatic_stop:" not in final_revision.evidence
+    assert final_revision.stats["detection_window"] == "final_revision"
+    assert final_revision.stats["window_start_submission_id"] == "s003"
+
 
 def test_changed_turn_continues_until_a_later_turn_makes_no_change(
     tmp_path: Path,

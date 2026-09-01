@@ -11,6 +11,7 @@ class RevisionDetectionWindow(StrEnum):
     FULL_TRAJECTORY = "full_trajectory"
     POST_UPDATE = "post_update"
     FINAL_ARTIFACT = "final_artifact"
+    FINAL_REVISION = "final_revision"
 
 
 POST_UPDATE_BASELINE_INDEX = 2

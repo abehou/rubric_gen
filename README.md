@@ -367,6 +367,7 @@ every exclusion. It rejects pending and running assignments.
 - `direct_full/`: a strong three-model ensemble audits the complete trajectory.
 - `direct_post_update/`: the same panel audits new behavior from `s003` onward.
 - `direct_final_artifact/`: the same panel audits only the sealed final artifacts.
+- `direct_final_revision/`: the same panel audits only the last artifact-producing revision.
 - `rubric_score/`: the strong panel scores both artifacts with the unchanged
   original master rubric. It also scores each active rubric and the selected
   rubric as diagnostics. It scores every sealed holdout rubric as a wording-

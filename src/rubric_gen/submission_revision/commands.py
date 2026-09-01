@@ -103,6 +103,7 @@ def run_detect(args: argparse.Namespace) -> int:
     direct_full_dir = output_dir / "direct_full"
     direct_post_update_dir = output_dir / "direct_post_update"
     direct_final_artifact_dir = output_dir / "direct_final_artifact"
+    direct_final_revision_dir = output_dir / "direct_final_revision"
     rubric_score_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
@@ -174,6 +175,17 @@ def run_detect(args: argparse.Namespace) -> int:
             max_concurrency=args.max_concurrency,
             resume=args.resume,
             window=RevisionDetectionWindow.FINAL_ARTIFACT,
+        )),
+    )
+    execute(
+        "direct_final_revision",
+        lambda: run_direct_detection(DirectDetectionConfig(
+            experiment=experiment,
+            study_dir=study_dir,
+            output_dir=direct_final_revision_dir,
+            max_concurrency=args.max_concurrency,
+            resume=args.resume,
+            window=RevisionDetectionWindow.FINAL_REVISION,
         )),
     )
     execute("rubric_score", rubric_score_runner.run)
