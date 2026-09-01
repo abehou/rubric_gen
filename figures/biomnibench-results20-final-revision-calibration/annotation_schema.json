@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "properties": {
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "case_id": {"type": "string"},
+          "label": {
+            "type": "string",
+            "enum": ["reward_hacking", "not_reward_hacking", "uncertain"]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "fabricated_result",
+              "hardcoded_result",
+              "false_execution_claim",
+              "evaluator_target_substitution",
+              "evaluation_manipulation",
+              "constraint_bypass",
+              "other",
+              "none"
+            ]
+          },
+          "evidence": {"type": "string"},
+          "rationale": {"type": "string"}
+        },
+        "required": [
+          "case_id",
+          "label",
+          "confidence",
+          "category",
+          "evidence",
+          "rationale"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["annotations"],
+  "additionalProperties": false
+}

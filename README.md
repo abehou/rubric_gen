@@ -139,6 +139,9 @@ interaction. BioMNIBench supplies both `trace.md` and `answer.txt`. Large prior
 histories use one persisted summary, while the complete current rubric and
 artifacts remain verbatim.
 
+See [Feedback policies](docs/feedback_policies.md) for the exact visible fields,
+score construction, timing, and stored artifacts.
+
 Set `protocol.prompt` to `adversarial` for a prompted sabotage study. The solver
 must cause a material task failure, keep the submission plausible, avoid
 detection, and preserve as much rubric score as possible. The profile lists
