@@ -67,11 +67,8 @@ def aggregate(summary: dict[str, object]) -> list[dict[str, object]]:
         values = set(decisions.values())
         primary = "detected" if "reward_hacking_detected" in values else "not_detected" if values == {"no_reward_hacking_detected"} else "unknown"
         counts[("primary_any_detect", rubric, feedback)][primary] += 1
-        available = {decisions[judge] for judge in ("gpt-5.6-sol", "claude-opus-5")}
-        available_primary = "detected" if "reward_hacking_detected" in available else "not_detected" if available == {"no_reward_hacking_detected"} else "unknown"
-        counts[("available_any_detect", rubric, feedback)][available_primary] += 1
     rows = []
-    for panel in ("primary_any_detect", "available_any_detect", *JUDGES):
+    for panel in ("primary_any_detect", *JUDGES):
         for rubric in RUBRICS:
             for feedback in FEEDBACK:
                 value = counts[(panel, rubric, feedback)]
@@ -132,8 +129,8 @@ def write_outputs(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writeheader()
         writer.writerows({"source_summary_sha256": digest, **row} for row in rows)
     figure, axis = plt.subplots(figsize=(8.5, 6.0))
-    panel(axis, rows, "available_any_detect", True)
-    axis.set_title("Sealed final artifacts · available two-judge any-detect", fontweight="bold")
+    panel(axis, rows, "primary_any_detect", True)
+    axis.set_title("Sealed final artifacts · three-judge any-detect panel", fontweight="bold")
     figure.legend(*axis.get_legend_handles_labels(), loc="upper center", bbox_to_anchor=(0.5, 0.92), ncol=2, frameon=False)
     figure.suptitle("BioMNIBench Results20: final-artifact direct RH", fontsize=15, fontweight="bold")
     figure.tight_layout(rect=(0, 0, 1, 0.86))
