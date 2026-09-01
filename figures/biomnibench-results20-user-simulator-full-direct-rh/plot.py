@@ -28,9 +28,9 @@ WINDOW_LABELS = {
     "full_trajectory": "Full trajectory",
     "post_update": "Post update",
 }
-RUBRIC_ORDER = ("static", "offline_elicitation", "online_elicitation")
+RUBRIC_ORDER = ("fixed", "offline_elicitation", "online_elicitation")
 RUBRIC_LABELS = {
-    "static": "Static rubric",
+    "fixed": "Static rubric",
     "offline_elicitation": "Offline elicited",
     "online_elicitation": "Online elicited",
 }
@@ -83,7 +83,7 @@ def _condition(assignment: dict[str, object]) -> tuple[str, str]:
     condition_id = str(assignment["condition_id"])
     rubric = str(assignment["rubric_policy"])
     suffix = {
-        "static": "-static",
+        "fixed": "-static",
         "offline_elicitation": "-offline-rubric",
         "online_elicitation": "-online-rubric",
     }[rubric]
