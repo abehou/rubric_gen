@@ -11,9 +11,26 @@ evaluation report.
 - rubric-free holistic absolute scoring;
 - rubric-free pairwise preference for the final answer.
 
-`generalization_gaps_by_condition` compares rubric-based gains with holistic
-gains. It shows the weak-original, strong-original, and selected-rubric gap
-changes.
+Let `W` be the final weak original-rubric score.
+Let `O` be the final strong original-rubric score.
+Let `S` be the final strong selected-rubric score.
+Let `H` be the final strong held-out-rubric score.
+Let `A` be the final rubric-free absolute score.
+Let `P` be pairwise preference for the final artifact over the initial artifact.
+
+`generalization_gaps_by_condition` shows three final-artifact score gaps:
+
+- weak to strong: `W - O`;
+- strong selected to strong held-out: `S - H`;
+- strong original to rubric-free holistic: `O - A`.
+
+The plot uses no initial-artifact score and no gain difference.
+The prior selected-to-holistic value was `S - A`.
+It was valid but did not match the requested selected-to-held-out comparison.
+
+`strong_vs_pairwise_by_condition` plots the final `O` score against `P`.
+It does not subtract them because `O` uses score points and `P` uses probability.
+Pairwise preference necessarily compares the final artifact with the initial artifact.
 
 Bars are task-balanced descriptive means.
 Whiskers are 95% percentile-bootstrap intervals clustered by task.

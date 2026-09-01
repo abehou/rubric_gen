@@ -19,6 +19,7 @@ SUMMARY_PATH = PROJECT_ROOT / "runs/detections" / EXPERIMENT_ID / "summary.json"
 CSV_PATH = FIGURE_ROOT / "evaluation_by_condition.csv"
 QUALITY_STEM = FIGURE_ROOT / "quality_gains_by_condition"
 GAPS_STEM = FIGURE_ROOT / "generalization_gaps_by_condition"
+STRONG_PAIRWISE_STEM = FIGURE_ROOT / "strong_vs_pairwise_by_condition"
 
 RUBRIC_ORDER = ("fixed", "offline_elicitation", "online_elicitation")
 RUBRIC_LABELS = {
@@ -42,9 +43,10 @@ METRICS = (
     "holdout_rubric_gain",
     "rubric_free_absolute_score_gain",
     "pairwise_preference_score",
-    "weak_to_strong_generalization_gap_change",
-    "strong_original_to_holistic_gap_change",
-    "selected_to_holistic_gap_change",
+    "strong_original_final_score",
+    "weak_to_strong_rubric_gap",
+    "selected_to_holdout_rubric_gap",
+    "strong_original_to_holistic_gap",
 )
 BOOTSTRAP_REPLICATES = 10_000
 BOOTSTRAP_SEED = 20260901
@@ -113,20 +115,38 @@ def load_rows(summary: dict[str, object]) -> list[dict[str, object]]:
         rubric, feedback = _condition(assignment_value)
         outcomes = assignment_value.get("outcomes")
         artifacts = assignment_value.get("artifacts")
-        components = assignment_value.get("component_changes")
-        diagnostics = assignment_value.get("rubric_diagnostic_changes")
-        if not all(isinstance(value, dict) for value in (outcomes, artifacts, components, diagnostics)):
+        reference_scores = assignment_value.get("reference_scores")
+        if not all(isinstance(value, dict) for value in (outcomes, artifacts, reference_scores)):
             raise RuntimeError("evaluation assignment has invalid metric groups")
         assert isinstance(outcomes, dict)
         assert isinstance(artifacts, dict)
-        assert isinstance(components, dict)
-        assert isinstance(diagnostics, dict)
+        assert isinstance(reference_scores, dict)
         initial = artifacts.get("initial")
         final = artifacts.get("final")
         if not isinstance(initial, dict) or not isinstance(final, dict):
             raise RuntimeError("evaluation assignment has invalid artifacts")
-        strong_gain = _finite(final.get("strong_original_rubric_score"), "final strong original") - _finite(
+        selected_scores = reference_scores.get("selected")
+        holdout_scores = reference_scores.get("holdout")
+        if not isinstance(selected_scores, dict) or not isinstance(holdout_scores, dict):
+            raise RuntimeError("evaluation assignment has invalid reference scores")
+        selected_final = selected_scores.get("final")
+        holdout_final = holdout_scores.get("final")
+        if not isinstance(selected_final, dict) or not isinstance(holdout_final, dict):
+            raise RuntimeError("evaluation assignment has invalid final reference scores")
+        strong_final = _finite(final.get("strong_original_rubric_score"), "final strong original")
+        weak_final = _finite(final.get("weak_original_rubric_score"), "final weak original")
+        selected_final_score = _finite(selected_final.get("mean"), "final selected rubric")
+        holdout_final_score = _finite(holdout_final.get("mean"), "final held-out rubric")
+        holistic_final = _finite(final.get("rubric_free_absolute_score"), "final rubric-free absolute")
+        strong_gain = strong_final - _finite(
             initial.get("strong_original_rubric_score"), "initial strong original"
+        )
+        weak_gain = _finite(outcomes.get("original_rubric_weak_gain"), "original_rubric_weak_gain")
+        selected_gain = _finite(outcomes.get("selected_rubric_gain"), "selected_rubric_gain")
+        holdout_gain = _finite(outcomes.get("holdout_rubric_gain"), "holdout_rubric_gain")
+        holistic_gain = _finite(
+            outcomes.get("rubric_free_absolute_score_gain"),
+            "rubric_free_absolute_score_gain",
         )
         row: dict[str, object] = {
             "assignment_id": str(assignment_value["assignment_id"]),
@@ -134,33 +154,20 @@ def load_rows(summary: dict[str, object]) -> list[dict[str, object]]:
             "replicate": int(assignment_value["replicate"]),
             "rubric_type": rubric,
             "feedback_type": feedback,
+            "original_rubric_weak_gain": weak_gain,
             "strong_original_rubric_gain": strong_gain,
-            "strong_original_to_holistic_gap_change": _finite(
-                components.get("original_rubric_gap"),
-                "strong original to holistic gap change",
+            "selected_rubric_gain": selected_gain,
+            "holdout_rubric_gain": holdout_gain,
+            "rubric_free_absolute_score_gain": holistic_gain,
+            "pairwise_preference_score": _finite(
+                outcomes.get("pairwise_preference_score"),
+                "pairwise_preference_score",
             ),
-            "selected_to_holistic_gap_change": _finite(
-                diagnostics.get("selected_rubric_minus_rubric_free_absolute_score"),
-                "selected to holistic gap change",
-            ),
+            "strong_original_final_score": strong_final,
+            "weak_to_strong_rubric_gap": weak_final - strong_final,
+            "selected_to_holdout_rubric_gap": selected_final_score - holdout_final_score,
+            "strong_original_to_holistic_gap": strong_final - holistic_final,
         }
-        for metric in (
-            "original_rubric_weak_gain",
-            "selected_rubric_gain",
-            "holdout_rubric_gain",
-            "rubric_free_absolute_score_gain",
-            "pairwise_preference_score",
-            "weak_to_strong_generalization_gap_change",
-        ):
-            row[metric] = _finite(outcomes.get(metric), metric)
-        if not np.isclose(
-            float(row["weak_to_strong_generalization_gap_change"]),
-            float(row["original_rubric_weak_gain"])
-            - float(row["rubric_free_absolute_score_gain"]),
-            atol=1e-9,
-            rtol=0,
-        ):
-            raise RuntimeError("weak-to-strong gap change does not telescope")
         rows.append(row)
     rows.sort(key=lambda row: str(row["assignment_id"]))
     return rows
@@ -345,19 +352,19 @@ def plot_gaps(records: list[dict[str, object]]) -> None:
     figure, axes = plt.subplots(1, 3, figsize=(18.0, 6.6))
     specifications = (
         (
-            "weak_to_strong_generalization_gap_change",
-            "Weak-to-holistic gap change",
-            "Δ(weak original − holistic) (points)",
+            "weak_to_strong_rubric_gap",
+            "Final weak-to-strong original-rubric gap",
+            "Final weak original − strong original (points)",
         ),
         (
-            "strong_original_to_holistic_gap_change",
-            "Strong-original to holistic gap change",
-            "Δ(strong original − holistic) (points)",
+            "selected_to_holdout_rubric_gap",
+            "Final strong selected-to-held-out gap",
+            "Final selected rubric − held-out rubric (points)",
         ),
         (
-            "selected_to_holistic_gap_change",
-            "Selected-rubric to holistic gap change",
-            "Δ(selected rubric − holistic) (points)",
+            "strong_original_to_holistic_gap",
+            "Final strong original-to-rubric-free gap",
+            "Final strong original − rubric-free (points)",
         ),
     )
     for axis, (metric, title, ylabel) in zip(axes, specifications, strict=True):
@@ -365,7 +372,7 @@ def plot_gaps(records: list[dict[str, object]]) -> None:
     handles, labels = axes[0].get_legend_handles_labels()
     figure.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.89), ncol=2, frameon=False)
     figure.suptitle(
-        "BioMNIBench Results20: generalization-gap changes by condition",
+        "BioMNIBench Results20: final-artifact evaluation gaps by condition",
         fontsize=15,
         fontweight="bold",
         y=0.985,
@@ -373,7 +380,7 @@ def plot_gaps(records: list[dict[str, object]]) -> None:
     figure.text(
         0.5,
         0.012,
-        "Positive values mean rubric-based gains exceeded rubric-free holistic gains. "
+        "All gaps use only final-artifact scores. Positive values mean the first score exceeds the second score. "
         "Whiskers are task-clustered 95% bootstrap intervals.",
         ha="center",
         va="bottom",
@@ -385,12 +392,73 @@ def plot_gaps(records: list[dict[str, object]]) -> None:
     figure.savefig(GAPS_STEM.with_suffix(".pdf"), facecolor="white")
 
 
+def plot_strong_vs_pairwise(records: list[dict[str, object]]) -> None:
+    figure, axis = plt.subplots(figsize=(10.5, 7.5))
+    markers = {
+        "fixed": "o",
+        "offline_elicitation": "s",
+        "online_elicitation": "^",
+    }
+    for record in records:
+        rubric = str(record["rubric_type"])
+        feedback = str(record["feedback_type"])
+        x = float(record["strong_original_final_score"])
+        x_lower = float(record["strong_original_final_score_clustered_95_lower"])
+        x_upper = float(record["strong_original_final_score_clustered_95_upper"])
+        y = 100 * float(record["pairwise_preference_score"])
+        y_lower = 100 * float(record["pairwise_preference_score_clustered_95_lower"])
+        y_upper = 100 * float(record["pairwise_preference_score_clustered_95_upper"])
+        axis.errorbar(
+            x,
+            y,
+            xerr=np.asarray([[x - x_lower], [x_upper - x]]),
+            yerr=np.asarray([[y - y_lower], [y_upper - y]]),
+            marker=markers[rubric],
+            markersize=9,
+            color=COLORS[feedback],
+            markeredgecolor="white",
+            markeredgewidth=0.8,
+            capsize=3,
+            elinewidth=1.0,
+            linestyle="none",
+            label=f"{FEEDBACK_LABELS[feedback]} · {RUBRIC_LABELS[rubric]}",
+            zorder=3,
+        )
+    axis.axhline(50, color="#555555", linewidth=0.9, linestyle="--")
+    axis.set_xlabel("Final strong original-rubric score (points)")
+    axis.set_ylabel("Pairwise preference for final (%)")
+    axis.set_title(
+        "BioMNIBench Results20: final strong score vs pairwise preference",
+        fontsize=14,
+        fontweight="bold",
+    )
+    axis.grid(color="#D8D8D8", linewidth=0.8)
+    axis.set_axisbelow(True)
+    axis.spines["top"].set_visible(False)
+    axis.spines["right"].set_visible(False)
+    axis.legend(frameon=False, fontsize=9, ncol=2)
+    figure.text(
+        0.5,
+        0.012,
+        "Points are task-balanced condition means. Whiskers are task-clustered 95% bootstrap intervals.\n"
+        "Pairwise preference compares final with initial. The axes have different units, so their values are not subtracted.",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+        color="#444444",
+    )
+    figure.subplots_adjust(bottom=0.14, left=0.11, right=0.98, top=0.91)
+    figure.savefig(STRONG_PAIRWISE_STEM.with_suffix(".png"), dpi=240, facecolor="white")
+    figure.savefig(STRONG_PAIRWISE_STEM.with_suffix(".pdf"), facecolor="white")
+
+
 def main() -> None:
     summary = _load_summary()
     records = aggregate(load_rows(summary), _sha256(SUMMARY_PATH))
     write_csv(records)
     plot_quality(records)
     plot_gaps(records)
+    plot_strong_vs_pairwise(records)
 
 
 if __name__ == "__main__":
