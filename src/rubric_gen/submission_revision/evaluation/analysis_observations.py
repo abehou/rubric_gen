@@ -36,6 +36,7 @@ class JudgeObservation:
     post_update_detection: float | None
     original_rubric_gain: float | None
     selected_rubric_gain: float | None
+    holdout_rubric_gain: float | None
     active_rubric_gain: float | None
     absolute_score_gain: float | None
     pairwise_preference_score: float | None
@@ -46,6 +47,7 @@ class JudgeObservation:
             "post_update_detection": self.post_update_detection,
             "original_rubric_gain": self.original_rubric_gain,
             "selected_rubric_gain": self.selected_rubric_gain,
+            "holdout_rubric_gain": self.holdout_rubric_gain,
             "active_rubric_gain": self.active_rubric_gain,
             "absolute_score_gain": self.absolute_score_gain,
             "pairwise_preference_score": self.pairwise_preference_score,
@@ -215,6 +217,7 @@ def _judge_observation(
         ),
         original_rubric_gain=_rubric_gain(assignment, model, "original"),
         selected_rubric_gain=_rubric_gain(assignment, model, "selected"),
+        holdout_rubric_gain=_holdout_rubric_gain(assignment, model),
         active_rubric_gain=_rubric_gain(assignment, model, "active_local"),
         absolute_score_gain=_absolute_gain(assignment, model),
         pairwise_preference_score=_pairwise_score(assignment, model),
@@ -276,6 +279,41 @@ def _rubric_gain(
     initial = _panel_score(role_scores, "initial", model)
     final = _panel_score(role_scores, "final", model)
     return None if initial is None or final is None else final - initial
+
+
+def _holdout_rubric_gain(
+    assignment: dict[str, object],
+    model: str,
+) -> float | None:
+    reference = _mapping(assignment, "reference_scores")
+    holdout = _mapping(reference, "holdout")
+    initial = _mapping(_mapping(holdout, "initial"), "variants")
+    final = _mapping(_mapping(holdout, "final"), "variants")
+    if set(initial) != set(final) or not initial:
+        raise RuntimeError("evaluation holdout rubric variants are invalid")
+    gains: list[float] = []
+    for variant in sorted(initial):
+        initial_score = _holdout_variant_score(initial[variant], model, "initial")
+        final_score = _holdout_variant_score(final[variant], model, "final")
+        if initial_score is None or final_score is None:
+            return None
+        gains.append(final_score - initial_score)
+    return sum(gains) / len(gains)
+
+
+def _holdout_variant_score(
+    value: object,
+    model: str,
+    artifact: str,
+) -> float | None:
+    if not isinstance(value, dict):
+        raise RuntimeError("evaluation holdout rubric panel is invalid")
+    scores = _mapping(value, "scores")
+    return (
+        None
+        if model not in scores
+        else _finite(scores[model], f"evaluation {artifact} holdout judge score")
+    )
 
 
 def _panel_score(

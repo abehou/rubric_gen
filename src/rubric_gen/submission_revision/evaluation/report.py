@@ -95,6 +95,7 @@ def write_evaluation_report(output_dir: Path) -> Path:
     rubric_score_plan = rubric_score.get("predispatch_plan")
     absolute_score_plan = absolute_scores.get("predispatch_plan")
     pairwise_preference_plan = pairwise_preferences.get("predispatch_plan")
+    assignment_coverage = rubric_score.get("assignment_coverage")
     if (
         rubric_score.get("kind") != evaluation_jobs.RUBRIC_SCORE_KIND
         or rubric_score.get("status") != "completed"
@@ -120,6 +121,9 @@ def write_evaluation_report(output_dir: Path) -> Path:
         or rubric_score.get("models") != pairwise_preferences.get("models")
         or rubric_score.get("models") != direct_full.get("models")
         or rubric_score.get("models") != direct_post_update.get("models")
+        or not _valid_assignment_coverage(assignment_coverage)
+        or assignment_coverage != absolute_scores.get("assignment_coverage")
+        or assignment_coverage != pairwise_preferences.get("assignment_coverage")
         or direct_full.get("detection") != direct_post_update.get("detection")
         or direct_full.get("primary_rule")
         != direct_post_update.get("primary_rule")
@@ -223,6 +227,7 @@ def write_evaluation_report(output_dir: Path) -> Path:
         "status": "completed",
         "experiment_id": rubric_score["experiment_id"],
         "study_experiment_id": rubric_score["study_experiment_id"],
+        "assignment_coverage": assignment_coverage,
         "analysis_identity": analysis_identity,
         "estimand": {
             "artifacts": (
@@ -250,6 +255,10 @@ def write_evaluation_report(output_dir: Path) -> Path:
                 "selected_rubric_gain": (
                     "selected common-rubric final-minus-initial score"
                 ),
+                "holdout_rubric_gain": (
+                    "mean strong-panel final-minus-initial score across sealed "
+                    "holdout rubric variants"
+                ),
             },
             "secondary_outcomes": (
                 "post_update_detection is the independent categorical decision "
@@ -267,8 +276,9 @@ def write_evaluation_report(output_dir: Path) -> Path:
             ),
             "rubric_elicitation": (
                 "the unchanged original master rubric scores the initial and "
-                "final artifacts; the selected rubric and rubric-free outcome "
-                "are additional common rulers"
+                "final artifacts once per exact semantic request; selected and "
+                "holdout rubrics and the rubric-free outcome are additional "
+                "common rulers"
             ),
             "common_random_numbers": (
                 "exact semantic requests reuse one judgment across conditions; "
@@ -278,7 +288,8 @@ def write_evaluation_report(output_dir: Path) -> Path:
                 "original_to_selected and "
                 "selected_rubric_minus_rubric_free_absolute_score partition "
                 "original_rubric_gap; active_to_original measures rubric drift; "
-                "no diagnostic is a separate loss term"
+                "holdout scores measure wording transfer and no diagnostic is a "
+                "separate loss term"
             ),
             "direct_detector": (
                 "independent full-trajectory and fixed post-update categorical "
@@ -377,8 +388,10 @@ def _combine_assignment(
     assert isinstance(preference_scores, dict)
     original = reference["original"]
     selected = reference["selected"]
+    holdout = reference["holdout"]
     assert isinstance(original, dict)
     assert isinstance(selected, dict)
+    assert isinstance(holdout, dict)
     artifact_results: dict[str, object] = {}
     for artifact in evaluation_jobs.ARTIFACTS:
         score_gap_artifact = score_gaps[artifact]
@@ -509,6 +522,10 @@ def _combine_assignment(
                 float(selected["final"]["mean"])
                 - float(selected["initial"]["mean"])
             ),
+            "holdout_rubric_gain": (
+                float(holdout["final"]["mean"])
+                - float(holdout["initial"]["mean"])
+            ),
             "rubric_free_absolute_score_gain": absolute_score_gain,
             "weak_to_strong_generalization_gap_change": (
                 generalization_gap_change
@@ -556,6 +573,43 @@ def _assignment_map(
     if len(result) != len(values) or not result:
         raise RuntimeError(f"evaluation {label} summary assignments are invalid")
     return result
+
+
+def _valid_assignment_coverage(value: object) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "configured_assignment_count",
+        "evaluated_assignment_count",
+        "excluded_assignment_count",
+        "excluded_assignments",
+    }:
+        return False
+    configured = value["configured_assignment_count"]
+    evaluated = value["evaluated_assignment_count"]
+    excluded_count = value["excluded_assignment_count"]
+    excluded = value["excluded_assignments"]
+    return (
+        type(configured) is int
+        and type(evaluated) is int
+        and type(excluded_count) is int
+        and configured > 0
+        and evaluated > 0
+        and excluded_count >= 0
+        and configured == evaluated + excluded_count
+        and isinstance(excluded, list)
+        and len(excluded) == excluded_count
+        and all(
+            isinstance(record, dict)
+            and set(record) == {"assignment_id", "status", "error_type"}
+            and type(record["assignment_id"]) is str
+            and bool(record["assignment_id"])
+            and record["status"] in {"failed", "invalid"}
+            and (
+                record["error_type"] is None
+                or type(record["error_type"]) is str
+            )
+            for record in excluded
+        )
+    )
 
 
 def _direct_window(direct: dict[str, object]) -> str | None:

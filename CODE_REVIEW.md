@@ -49,3 +49,5 @@
 
 - **00:03 PDT** — App-server initialization still delivered a blank stdout line to the SDK after the validated WebSocket proxy fix, and both pre-turn retries failed. The proxy boundary therefore has an unproven startup race or an additional stdout writer that the current regression does not cover.
 - **00:18 PDT** — Resolved the simulated-user forensic gap. Each rejected attempt now preserves its raw response, provider provenance, and exact validation error, while harmless whitespace and repeated valid categories no longer cause assignment failure.
+- **01:09 PDT** — Online rubric counts remain small, but exact active-set identity is unstable and the combined worst-case learned penalty can reach -110 on a 100-point scale. Count growth alone therefore understates intervention churn and penalty dominance risk.
+- **07:13 PDT** — Direct detection resume recomputes provider token counts before checking saved scores. A transient count failure can therefore replace a valid cached decision with a failed row in the current summary; resume should validate and reuse exact cached identities without a provider call.

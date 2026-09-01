@@ -35,6 +35,18 @@ def _assignment(
         }
         for role in ("original", "selected", "active_local")
     }
+    score_panels["holdout"] = {
+        "initial": {
+            "variants": {
+                "0": {"scores": {model: 0 for model in MODELS}},
+            },
+        },
+        "final": {
+            "variants": {
+                "0": {"scores": dict(judge_gains)},
+            },
+        },
+    }
     provider_decisions = {
         model: POSITIVE if direct == "detected" else NEGATIVE
         for model in MODELS

@@ -317,6 +317,20 @@ class RubricScoreStage:
                 model,
                 role=selected_role,
             )
+        for path, digest in zip(
+            target.selection.holdout_paths,
+            target.selection.holdout_sha256s,
+            strict=True,
+        ):
+            if sha256_file(path) != digest:
+                raise RuntimeError("evaluation holdout rubric changed")
+            try:
+                variant_index = int(path.stem.removeprefix("variant-"))
+            except ValueError as exc:
+                raise RuntimeError("evaluation holdout rubric path is invalid") from exc
+            holdout_role = RubricRole("holdout", variant_index)
+            for model in models:
+                grouped.include(path, model, role=holdout_role)
         return grouped
 
     def _run_job(self, job: RubricScoreJob) -> dict[str, object]:
@@ -572,6 +586,42 @@ def _score_panel(
         "median": median(values),
         "minimum": min(values),
         "maximum": max(values),
+    }
+
+
+def _holdout_score_panel(
+    observations: dict[tuple[str, int | None, str, str], float],
+    target: EvaluationTarget,
+    artifact: str,
+    models: tuple[str, ...],
+) -> dict[str, object]:
+    variants: dict[str, dict[str, object]] = {}
+    pooled_scores: list[float] = []
+    for path in target.selection.holdout_paths:
+        try:
+            variant_index = int(path.stem.removeprefix("variant-"))
+        except ValueError as exc:
+            raise RuntimeError("evaluation holdout rubric path is invalid") from exc
+        panel = _score_panel(
+            observations,
+            "holdout",
+            variant_index,
+            artifact,
+            models,
+        )
+        variants[str(variant_index)] = panel
+        scores = panel["scores"]
+        assert isinstance(scores, dict)
+        pooled_scores.extend(float(scores[model]) for model in models)
+    if not pooled_scores:
+        raise RuntimeError("evaluation has no holdout rubric scores")
+    return {
+        "variant_count": len(variants),
+        "variants": variants,
+        "mean": fmean(pooled_scores),
+        "median": median(pooled_scores),
+        "minimum": min(pooled_scores),
+        "maximum": max(pooled_scores),
     }
 
 

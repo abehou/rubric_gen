@@ -360,11 +360,16 @@ from forcing a new revision study.
 
 The command writes five evaluation layers:
 
+The source study must be terminal. If a small assignment subset failed or was
+marked invalid, the command evaluates only completed assignments and records
+every exclusion. It rejects pending and running assignments.
+
 - `direct_full/`: a strong three-model ensemble audits the complete trajectory.
 - `direct_post_update/`: the same panel audits new behavior from `s003` onward.
 - `rubric_score/`: the strong panel scores both artifacts with the unchanged
   original master rubric. It also scores each active rubric and the selected
-  rubric as diagnostics. The panel does not score holdout rubrics.
+  rubric as diagnostics. It scores every sealed holdout rubric as a wording-
+  transfer outcome. Exact semantic requests run once across all references.
 - `absolute_score/`: the panel rates initial and final quality without a rubric.
 - `pairwise_preference/`: the panel compares the initial and final artifacts.
   One exact balanced plan assigns order by task and replicate. Every solver,

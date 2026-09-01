@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.progress import TerminalProgress
+from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.evaluation import (
     absolute_score,
     pairwise_preference,
@@ -131,6 +132,23 @@ def _collect_rubric_role_observations(
             "variant_index": target.selection.optimizer_index,
         }:
             expected_sha256 = target.selection.optimizer_sha256
+        elif (
+            role.get("name") == "holdout"
+            and type(role.get("variant_index")) is int
+        ):
+            holdout_by_index = {
+                int(path.stem.removeprefix("variant-")): digest
+                for path, digest in zip(
+                    target.selection.holdout_paths,
+                    target.selection.holdout_sha256s,
+                    strict=True,
+                )
+            }
+            expected_sha256 = holdout_by_index.get(role["variant_index"])
+            if expected_sha256 is None:
+                raise RuntimeError(
+                    "revision rubric score rubric role does not match the judged rubric"
+                )
         else:
             raise RuntimeError(
                 "revision rubric score rubric role does not match the judged rubric"
@@ -205,6 +223,15 @@ def _summarize_rubric_scores(
             )
             for artifact in evaluation_jobs.ARTIFACTS
         }
+        holdout = {
+            artifact: rubric_score._holdout_score_panel(
+                observations.rubrics,
+                target,
+                artifact,
+                models,
+            )
+            for artifact in evaluation_jobs.ARTIFACTS
+        }
         components = {
             artifact: {
                 "verifier_exploitation": (
@@ -254,6 +281,7 @@ def _summarize_rubric_scores(
                 "original": original,
                 "active_local": active_local,
                 "selected": selected,
+                "holdout": holdout,
             },
             "score_gap_components": components,
             "rubric_diagnostics": diagnostics,
@@ -345,7 +373,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             "status": "incomplete" if missing_models else "completed",
             "panel_policy": PANEL_POLICY,
             "missing_models": list(missing_models),
-            "rubric_scope": "original-active-selected",
+            "rubric_scope": "original-active-selected-holdout",
             "planned_semantic_judgment_count": len(unique_jobs),
             "successful_semantic_judgment_count": len(judgments),
             "used_semantic_judgment_count": len(judgments),
@@ -381,6 +409,10 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             "experiment_id": self.config.experiment.experiment_id,
             "study_experiment_id": study_experiment_id,
             "study_dir": str(self.config.study_dir.resolve()),
+            "assignment_coverage": _assignment_coverage(
+                self.config,
+                prepared.targets,
+            ),
             "paraphrase_dir": str(self.config.paraphrase_dir.resolve()),
             "models": list(models),
             "implementation_identity": evaluation_jobs._rubric_score_implementation_identity(
@@ -394,7 +426,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             "endpoint_rubric": "original-master-rubric",
             "semantic_deduplication": (
                 "benchmark-task-content-rubric-model-engine-"
-                "implementation; original, active, and selected roles "
+                "implementation; original, active, selected, and holdout roles "
                 "do not duplicate an exact "
                 "semantic request"
             ),
@@ -598,6 +630,10 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
             "experiment_id": self.config.experiment.experiment_id,
             "study_experiment_id": _study_experiment_id(prepared.targets),
             "study_dir": str(self.config.study_dir.resolve()),
+            "assignment_coverage": _assignment_coverage(
+                self.config,
+                prepared.targets,
+            ),
             "models": list(prepared.models),
             "implementation_identity": prepared.implementation_identity,
             "semantic_deduplication": (
@@ -640,3 +676,41 @@ def _study_experiment_id(
     if len(values) != 1:
         raise RuntimeError("revision evaluation targets must use one source study experiment ID")
     return next(iter(values))
+
+
+def _assignment_coverage(
+    config: evaluation_jobs.EvaluationConfig,
+    targets: tuple[evaluation_jobs.EvaluationTarget, ...],
+) -> dict[str, object]:
+    study = read_json_object(
+        config.study_dir.resolve() / "study.json",
+        "revision evaluation source study",
+    )
+    records = study.get("records")
+    if not isinstance(records, list) or any(
+        not isinstance(record, dict) for record in records
+    ):
+        raise RuntimeError("revision evaluation source study records are invalid")
+    evaluated_ids = {target.assignment_id for target in targets}
+    completed_ids = {
+        str(record.get("assignment_id"))
+        for record in records
+        if record.get("status") == "completed"
+    }
+    if evaluated_ids != completed_ids:
+        raise RuntimeError("revision evaluation targets differ from completed assignments")
+    excluded = [
+        {
+            "assignment_id": str(record.get("assignment_id")),
+            "status": str(record.get("status")),
+            "error_type": record.get("error_type"),
+        }
+        for record in records
+        if record.get("status") != "completed"
+    ]
+    return {
+        "configured_assignment_count": len(records),
+        "evaluated_assignment_count": len(evaluated_ids),
+        "excluded_assignment_count": len(excluded),
+        "excluded_assignments": excluded,
+    }

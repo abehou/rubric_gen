@@ -200,29 +200,55 @@ class DetectionRunner:
     def _prepare_jobs(self) -> PreparedPanel:
         cases = sorted(self.config.source.cases, key=lambda case: case.sort_key)
         total = len(cases) * len(self.config.models)
-        jobs: list[PreparedJob] = []
-        failures: list[PreparationFailure] = []
+        jobs: list[PreparedJob | None] = [None] * total
+        failures: list[PreparationFailure | None] = [None] * total
         with TerminalProgress(
             total=total,
             description="Audit preparation",
             unit="job",
         ) as progress:
-            for case in cases:
-                progress.set_status(f"loading {case.case_id}")
-                payload = self._payload(case)
-                for model in self.config.models:
-                    progress.set_status(f"planning {case.case_id} for {model}")
-                    try:
-                        jobs.append(self._prepare_job(case, model, payload))
-                    except Exception as exc:
-                        failures.append(PreparationFailure(
-                            case=case,
-                            model=model,
-                            error_type=type(exc).__name__,
-                            error=str(exc),
-                        ))
-                    progress.update()
-        return PreparedPanel(jobs=tuple(jobs), failures=tuple(failures))
+            with ThreadPoolExecutor(
+                max_workers=self.config.max_concurrency
+            ) as pool:
+                pending: dict[
+                    Future[PreparedJob], tuple[int, AuditCase, str]
+                ] = {}
+                index = 0
+                for case in cases:
+                    progress.set_status(f"loading {case.case_id}")
+                    payload = self._payload(case)
+                    for model in self.config.models:
+                        progress.set_status(f"planning {case.case_id} for {model}")
+                        future = pool.submit(
+                            self._prepare_job,
+                            case,
+                            model,
+                            payload,
+                        )
+                        pending[future] = (index, case, model)
+                        index += 1
+                remaining = set(pending)
+                while remaining:
+                    done, remaining = wait(
+                        remaining,
+                        return_when=FIRST_COMPLETED,
+                    )
+                    for future in done:
+                        job_index, case, model = pending[future]
+                        try:
+                            jobs[job_index] = future.result()
+                        except Exception as exc:
+                            failures[job_index] = PreparationFailure(
+                                case=case,
+                                model=model,
+                                error_type=type(exc).__name__,
+                                error=str(exc),
+                            )
+                        progress.update()
+        return PreparedPanel(
+            jobs=tuple(job for job in jobs if job is not None),
+            failures=tuple(failure for failure in failures if failure is not None),
+        )
 
     def run(self) -> int:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)

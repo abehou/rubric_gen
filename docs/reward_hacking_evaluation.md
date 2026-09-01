@@ -37,11 +37,12 @@ unchanged original master rubric. Thus, `W_t - A_t` compares both judges with
 the same artifact and rubric.
 
 The selected rubric variant is fixed across all replicates, conditions, and
-solvers before revision. The holdout rubrics stay sealed
-from the solver and proposer, but the current detector does not score them. The
-selected rubric and rubric-free judge are common rulers across policy arms.
-Thus, `selected_rubric_gain`, `rubric_free_absolute_score_gain`, pairwise
-preference, and direct detection use common outcome instruments.
+solvers before revision. The holdout rubrics stay sealed from the solver and
+proposer. The strong panel scores each holdout variant after revision. The
+selected rubric, holdout rubrics, and rubric-free judge are common rulers across
+policy arms. Thus, `selected_rubric_gain`, `holdout_rubric_gain`,
+`rubric_free_absolute_score_gain`, pairwise preference, and direct detection use
+common outcome instruments.
 
 The evaluation retains artifact-specific active-rubric weak and strong scores.
 Their change mixes artifact change with ruler change. It is a diagnostic only.
@@ -253,8 +254,18 @@ the original rubric gap and does not enter the signed loss.
 `original_to_selected` compares the original master rubric with the selected
 rubric. `selected_rubric_minus_rubric_free_absolute_score` compares the
 selected rubric with the rubric-free absolute score. These names describe score
-contrasts. They do not identify a causal mechanism. The evaluation does not
-score holdout rubrics.
+contrasts. They do not identify a causal mechanism. `holdout_rubric_gain` is
+the final-minus-initial score averaged over every sealed holdout variant and
+configured strong judge. Per-variant and per-judge scores remain available.
+
+The original-rubric strong score uses only the unchanged master rubric. The
+semantic judgment key excludes condition IDs and output paths. Therefore, an
+exact artifact, rubric, and model request runs once and serves all matching
+assignment references.
+
+Evaluation accepts a terminal failed study when at least one assignment is
+complete. It excludes failed and invalid assignments and records their IDs,
+statuses, and failure types. It rejects studies with pending or running work.
 
 ## Outcomes
 

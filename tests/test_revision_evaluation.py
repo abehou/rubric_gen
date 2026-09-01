@@ -47,6 +47,7 @@ from rubric_gen.submission_revision.evaluation.report import (
 from rubric_gen.submission_revision.evaluation.runner import (
     RubricFreeScoreRunner,
     RubricScoreRunner,
+    _assignment_coverage,
     _summarize_rubric_scores,
 )
 from rubric_gen.submission_revision.rubric_generation import (
@@ -270,6 +271,127 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     assert not hasattr(evaluation_jobs, "validate_completed_revision")
 
 
+def test_target_loader_excludes_failed_assignments_from_terminal_study(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study = tmp_path / "study"
+    study.mkdir()
+    paraphrases = tmp_path / "paraphrases"
+    paraphrases.mkdir()
+    experiment_path = tmp_path / "experiment.yaml"
+    experiment_path.write_text("test")
+    assignments = tuple(
+        ExperimentAssignment(
+            task_id=f"task-{index}",
+            replicate=1,
+            solver_id="test-solver",
+            condition_id="diligent-fixed",
+            within_block_order=1,
+            execution_order=index,
+        )
+        for index in (1, 2)
+    )
+    (study / "study.json").write_text(json.dumps({
+        "kind": "rubric-gen-randomized-revision-study",
+        "status": "failed",
+        "experiment_id": "experiment-1",
+        "experiment_path": str(experiment_path),
+        "seed_run_dir": str(tmp_path / "seeds"),
+        "paraphrase_run_dir": str(paraphrases.resolve()),
+        "pretreatment_rubric_root": str(study / "pretreatment-rubrics"),
+        "records": [
+            {
+                **assignment.record_identity(),
+                "status": "completed" if index == 0 else "failed",
+                **({} if index == 0 else {"error_type": "RuntimeError"}),
+            }
+            for index, assignment in enumerate(assignments)
+        ],
+    }))
+    experiment = SimpleNamespace(
+        path=experiment_path,
+        assignments=assignments,
+    )
+    config = EvaluationConfig(
+        experiment=experiment,
+        study_dir=study,
+        paraphrase_dir=paraphrases,
+        output_dir=tmp_path / "output",
+        max_concurrency=1,
+    )
+    monkeypatch.setattr(
+        paraphrase_validation_module,
+        "resolve_paraphrase_selection",
+        lambda *_args: "selection",
+    )
+    monkeypatch.setattr(
+        evaluation_targets,
+        "_load_evaluation_target",
+        lambda _config, _root, source_id, assignment, _record, _selection: (
+            SimpleNamespace(
+                assignment_id=assignment.assignment_id,
+                study_experiment_id=source_id,
+            )
+        ),
+    )
+
+    targets = evaluation_targets.load_evaluation_targets(config)
+
+    assert [target.assignment_id for target in targets] == [
+        assignments[0].assignment_id
+    ]
+    assert _assignment_coverage(config, targets) == {
+        "configured_assignment_count": 2,
+        "evaluated_assignment_count": 1,
+        "excluded_assignment_count": 1,
+        "excluded_assignments": [{
+            "assignment_id": assignments[1].assignment_id,
+            "status": "failed",
+            "error_type": "RuntimeError",
+        }],
+    }
+
+
+def test_target_loader_rejects_nonterminal_assignment(
+    tmp_path: Path,
+) -> None:
+    study = tmp_path / "study"
+    study.mkdir()
+    paraphrases = tmp_path / "paraphrases"
+    paraphrases.mkdir()
+    experiment_path = tmp_path / "experiment.yaml"
+    experiment_path.write_text("test")
+    assignment = ExperimentAssignment(
+        task_id="task-1",
+        replicate=1,
+        solver_id="test-solver",
+        condition_id="diligent-fixed",
+        within_block_order=1,
+        execution_order=1,
+    )
+    (study / "study.json").write_text(json.dumps({
+        "kind": "rubric-gen-randomized-revision-study",
+        "status": "failed",
+        "experiment_id": "experiment-1",
+        "experiment_path": str(experiment_path),
+        "seed_run_dir": str(tmp_path / "seeds"),
+        "paraphrase_run_dir": str(paraphrases.resolve()),
+        "pretreatment_rubric_root": str(study / "pretreatment-rubrics"),
+        "records": [{**assignment.record_identity(), "status": "running"}],
+    }))
+    config = EvaluationConfig(
+        experiment=SimpleNamespace(path=experiment_path, assignments=(assignment,)),
+        study_dir=study,
+        paraphrase_dir=paraphrases,
+        output_dir=tmp_path / "output",
+        max_concurrency=1,
+    )
+
+    with pytest.raises(RuntimeError, match="every source assignment to be terminal"):
+        evaluation_targets.load_evaluation_targets(config)
+
+
 @pytest.mark.parametrize(
     ("policy", "checkpoint", "expected_round"),
     (
@@ -368,18 +490,22 @@ def _target(tmp_path: Path) -> EvaluationTarget:
     master_generation = _generation(0, (("master rubric", 1.0),))
     master_path = tmp_path / "master.txt"
     master_path.write_text(master_generation.rubric.content)
+    variant_paths = tuple(
+        tmp_path / f"variant-{index:03d}.txt" for index in range(3)
+    )
+    variant_paths[0].write_text(_generation(0, (("holdout zero", 1.0),)).rubric.content)
+    variant_paths[1].write_text(initial_generation.rubric.content)
+    variant_paths[2].write_text(_generation(0, (("holdout two", 1.0),)).rubric.content)
     selection = ParaphraseSelection(
         task_id="da-1-1",
         optimizer_index=1,
-        optimizer_path=tmp_path / "variant-001.txt",
-        optimizer_sha256=(
-            initial_generation.rubric.content_sha256
+        optimizer_path=variant_paths[1],
+        optimizer_sha256=sha256_file(variant_paths[1]),
+        holdout_paths=(variant_paths[0], variant_paths[2]),
+        holdout_sha256s=(
+            sha256_file(variant_paths[0]),
+            sha256_file(variant_paths[2]),
         ),
-        holdout_paths=(
-            tmp_path / "variant-000.txt",
-            tmp_path / "variant-002.txt",
-        ),
-        holdout_sha256s=("0" * 64, "2" * 64),
         master_path=master_path,
         master_sha256=master_generation.rubric.content_sha256,
     )
@@ -491,6 +617,17 @@ def _rubric_score_summary(
             score=original_score,
             roles=[("original", None)],
         ))
+        for variant_index, holdout_score in (
+            (0, original_score - 10),
+            (2, original_score),
+        ):
+            records.append(_record(
+                target,
+                model=model,
+                artifact="initial",
+                score=holdout_score,
+                roles=[("holdout", variant_index)],
+            ))
     for model, active_score, original_score, selected_score in (
         ("strong-a", 70, 70, 70),
         ("strong-b", 90, 90, 80),
@@ -521,6 +658,17 @@ def _rubric_score_summary(
             score=selected_score,
             roles=[("selected", 1)],
         ))
+        for variant_index, holdout_score in (
+            (0, original_score - 5),
+            (2, original_score + 5),
+        ):
+            records.append(_record(
+                target,
+                model=model,
+                artifact="final",
+                score=holdout_score,
+                roles=[("holdout", variant_index)],
+            ))
     summary = _summarize_rubric_scores(
         (target,),
         records,
@@ -529,7 +677,7 @@ def _rubric_score_summary(
     return target, summary
 
 
-def test_rubric_score_summary_omits_holdout_scores(
+def test_rubric_score_summary_includes_holdout_scores(
     tmp_path: Path,
 ) -> None:
     _target_value, summary = _rubric_score_summary(tmp_path)
@@ -538,7 +686,13 @@ def test_rubric_score_summary_omits_holdout_scores(
         "original",
         "active_local",
         "selected",
+        "holdout",
     }
+    assert summary["reference_scores"]["holdout"]["initial"]["mean"] == 55
+    assert summary["reference_scores"]["holdout"]["final"]["mean"] == 80
+    assert set(
+        summary["reference_scores"]["holdout"]["final"]["variants"]
+    ) == {"0", "2"}
     assert summary["rubric_diagnostics"]["initial"] == {
         "active_to_original": 5,
         "original_to_selected": -5,
@@ -659,9 +813,9 @@ def test_rubric_score_jobs_bind_each_active_generation(
             "workspace_sha256": digest,
         }))
 
-    assert len(jobs) == 10
+    assert len(jobs) == 18
     assert all(
-        role.name in {"original", "selected"}
+        role.name in {"original", "selected", "holdout"}
         for job in jobs
         for role in job.roles
     )
@@ -707,10 +861,10 @@ def test_rubric_score_jobs_bind_each_active_generation(
         final_manifest_sha256=sha256_file(initial_manifest),
     )
     fixed_jobs = runner._jobs((fixed_target,))
-    assert len(fixed_jobs) == 8
+    assert len(fixed_jobs) == 16
     assert all(
         (
-            {role.name for role in job.roles} == {"original"}
+            {role.name for role in job.roles} in ({"original"}, {"holdout"})
             and not job.generation_bindings
         )
         or (
@@ -727,6 +881,20 @@ def test_rubric_score_jobs_bind_each_active_generation(
     assert plan["accepted"] is True
     assert plan["dispatch_count"] == len(unique_jobs)
     assert plan["base_totals"]["calls"] == len(unique_jobs)
+
+    duplicate_target = replace(
+        target,
+        assignment_id="assignment-duplicate",
+        condition_id="diligent-static",
+    )
+    duplicate_jobs = runner._jobs((target, duplicate_target))
+    original_references = [
+        job
+        for job in duplicate_jobs
+        if any(role.name == "original" for role in job.roles)
+    ]
+    assert len(original_references) == 8
+    assert len({job.key for job in original_references}) == 4
 
 
 def test_rubric_free_summary_separates_absolute_scores_from_pairwise_preference(
@@ -1048,7 +1216,7 @@ def test_descriptive_summary_reports_available_rubric_policies(
     assert set(partial) == {"offline_elicitation", "online_elicitation"}
 
 
-def test_report_partitions_gap_without_holdout_scores(
+def test_report_includes_holdout_rubric_gain(
     tmp_path: Path,
 ) -> None:
     _target_value, mechanism = _rubric_score_summary(tmp_path)
@@ -1074,7 +1242,7 @@ def test_report_partitions_gap_without_holdout_scores(
         "original_to_selected": -5,
         "selected_rubric_minus_rubric_free_absolute_score": 17.5,
     }
-    assert "sealed_holdout_rubric_gain" not in assignment["outcomes"]
+    assert assignment["outcomes"]["holdout_rubric_gain"] == 25
     assert set(assignment["rubric_diagnostic_changes"]) == {
         "active_to_original",
         "original_to_selected",
@@ -1094,6 +1262,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "outcomes": {
                 "original_rubric_weak_gain": 11,
                 "selected_rubric_gain": 10,
+                "holdout_rubric_gain": 9,
                 "rubric_free_absolute_score_gain": 8,
                 "weak_to_strong_generalization_gap_change": 3,
                 "optimization_induced_risk": 3,
@@ -1133,6 +1302,7 @@ def test_condition_contrasts_pair_task_replicates() -> None:
             "outcomes": {
                 "original_rubric_weak_gain": 9,
                 "selected_rubric_gain": 3,
+                "holdout_rubric_gain": 2,
                 "rubric_free_absolute_score_gain": 2,
                 "weak_to_strong_generalization_gap_change": 7,
                 "optimization_induced_risk": 7,
@@ -1955,6 +2125,14 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         outcome_audit=audit,
         protocol={},
     )
+    study = tmp_path / "study"
+    study.mkdir()
+    (study / "study.json").write_text(json.dumps({
+        "records": [
+            {"assignment_id": current.assignment_id, "status": "completed"}
+            for current in (target, other)
+        ],
+    }))
     output = tmp_path / "rubric_free_evaluation-output"
     runner = RubricFreeScoreRunner(
         EvaluationConfig(
@@ -2023,7 +2201,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         changed_implementation = RubricFreeScoreRunner(
             EvaluationConfig(
                 experiment=experiment,
-                study_dir=tmp_path / "study",
+                study_dir=study,
                 paraphrase_dir=tmp_path / "paraphrases",
                 output_dir=output,
                 max_concurrency=2,

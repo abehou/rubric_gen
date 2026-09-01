@@ -39,7 +39,7 @@ def load_evaluation_targets(
     study_experiment_id = study.get("experiment_id")
     if (
         study.get("kind") != "rubric-gen-randomized-revision-study"
-        or study.get("status") != "completed"
+        or study.get("status") not in {"completed", "failed"}
         or type(study_experiment_id) is not str
         or not study_experiment_id
         or study.get("experiment_path") != str(config.experiment.path)
@@ -49,17 +49,31 @@ def load_evaluation_targets(
         != str(study_root / "pretreatment-rubrics")
         or not isinstance(study.get("records"), list)
     ):
-        raise RuntimeError("revision evaluation requires a completed source study")
+        raise RuntimeError("revision evaluation requires a terminal source study")
     raw_records = study["records"]
     if any(not isinstance(record, dict) for record in raw_records):
         raise RuntimeError("evaluation source study records are invalid")
     records = {str(record.get("assignment_id")): record for record in raw_records}
-    assignments = config.experiment.assignments
+    configured_assignments = config.experiment.assignments
     assignment_ids = {
-        assignment.assignment_id for assignment in assignments
+        assignment.assignment_id for assignment in configured_assignments
     }
     if len(records) != len(raw_records) or set(records) != assignment_ids:
         raise RuntimeError("evaluation source study ledger differs from the experiment")
+    if any(
+        record.get("status") not in {"completed", "failed", "invalid"}
+        for record in records.values()
+    ):
+        raise RuntimeError(
+            "revision evaluation requires every source assignment to be terminal"
+        )
+    assignments = tuple(
+        assignment
+        for assignment in configured_assignments
+        if records[assignment.assignment_id].get("status") == "completed"
+    )
+    if not assignments:
+        raise RuntimeError("revision evaluation has no completed assignments")
     selection_keys = {assignment.task_id for assignment in assignments}
     selections = {
         task_id: paraphrase_validation.resolve_paraphrase_selection(
@@ -84,7 +98,7 @@ def load_evaluation_targets(
                 record = records.get(assignment_id)
                 if record is None or record.get("status") != "completed":
                     raise RuntimeError(
-                        f"study assignment is incomplete: {assignment_id}"
+                        f"study assignment is not complete: {assignment_id}"
                     )
                 selection_key = assignment.task_id
                 future = pool.submit(

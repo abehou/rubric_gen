@@ -35,6 +35,7 @@ from rubric_gen.submission_revision.evaluation.panel_bounds import (
 
 OUTCOME_NAMES = (
     "selected_rubric_gain",
+    "holdout_rubric_gain",
     "rubric_free_absolute_score_gain",
     "original_rubric_weak_gain",
     "weak_to_strong_generalization_gap_change",
@@ -647,6 +648,7 @@ def _judge_readers(model: str) -> dict[str, MetricReader]:
         "post_update_detection",
         "original_rubric_gain",
         "selected_rubric_gain",
+        "holdout_rubric_gain",
         "active_rubric_gain",
         "absolute_score_gain",
         "pairwise_preference_score",
