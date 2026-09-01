@@ -1,0 +1,39 @@
+{
+  "additive_model": {
+    "aic": 1199.2100545117921,
+    "deviance": 1145.2100545117921,
+    "log_likelihood": -572.6050272558961,
+    "pearson_dispersion": 1.0295515090424512,
+    "residual_degrees_of_freedom": 924
+  },
+  "artifact_count": 317,
+  "audit_outcome_count": 951,
+  "condition_by_method_test": {
+    "degrees_of_freedom": 10,
+    "delta_aic_vs_additive": 8.67482734574287,
+    "likelihood_ratio": 11.32517265425713,
+    "p_value": 0.33275152414724274
+  },
+  "condition_count": 6,
+  "extreme_task_method_item_count": 6,
+  "method_count": 3,
+  "recommended_specification": "regularized unrestricted task-by-method item difficulties",
+  "source_summary_sha256": "d215346f80c8b68bb0491b9baefdb9fdd60aa36b18de3c367b31ff7f21e899ea",
+  "status": "exploratory_additive_model_inadequate",
+  "task_by_method_test": {
+    "degrees_of_freedom": 38,
+    "delta_aic_vs_additive": -120.32608765291502,
+    "likelihood_ratio": 196.32608765291502,
+    "p_value": 3.190430785885343e-23
+  },
+  "task_count": 20,
+  "task_method_item_count": 60,
+  "threshold_rule": "trigger if final score gap is strictly greater than zero",
+  "unrestricted_item_model": {
+    "aic": 1078.883966858877,
+    "deviance": 948.8839668588771,
+    "instability_reason": "six task-by-method items have all-zero or all-one outcomes",
+    "log_likelihood": -474.44198342943855,
+    "unregularized_item_estimates_stable": false
+  }
+}
