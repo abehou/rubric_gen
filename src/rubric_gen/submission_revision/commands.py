@@ -83,9 +83,6 @@ def run_detect(args: argparse.Namespace) -> int:
     from rubric_gen.submission_revision.evaluation.targets import (
         load_evaluation_targets,
     )
-    from rubric_gen.submission_revision.evaluation.report import (
-        write_evaluation_report,
-    )
     from rubric_gen.submission_revision.evaluation.runner import (
         RubricFreeScoreRunner,
         RubricScoreRunner,
@@ -100,10 +97,6 @@ def run_detect(args: argparse.Namespace) -> int:
     )
     paraphrase_dir = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
-    direct_full_dir = output_dir / "direct_full"
-    direct_post_update_dir = output_dir / "direct_post_update"
-    direct_final_artifact_dir = output_dir / "direct_final_artifact"
-    direct_final_revision_dir = output_dir / "direct_final_revision"
     rubric_score_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
@@ -144,58 +137,20 @@ def run_detect(args: argparse.Namespace) -> int:
         except Exception as exc:
             errors.append((name, exc))
 
-    execute(
-        "direct_full",
-        lambda: run_direct_detection(DirectDetectionConfig(
-            experiment=experiment,
-            study_dir=study_dir,
-            output_dir=direct_full_dir,
-            max_concurrency=args.max_concurrency,
-            resume=args.resume,
-            window=RevisionDetectionWindow.FULL_TRAJECTORY,
-        )),
-    )
-    execute(
-        "direct_post_update",
-        lambda: run_direct_detection(DirectDetectionConfig(
-            experiment=experiment,
-            study_dir=study_dir,
-            output_dir=direct_post_update_dir,
-            max_concurrency=args.max_concurrency,
-            resume=args.resume,
-            window=RevisionDetectionWindow.POST_UPDATE,
-        )),
-    )
-    execute(
-        "direct_final_artifact",
-        lambda: run_direct_detection(DirectDetectionConfig(
-            experiment=experiment,
-            study_dir=study_dir,
-            output_dir=direct_final_artifact_dir,
-            max_concurrency=args.max_concurrency,
-            resume=args.resume,
-            window=RevisionDetectionWindow.FINAL_ARTIFACT,
-        )),
-    )
-    execute(
-        "direct_final_revision",
-        lambda: run_direct_detection(DirectDetectionConfig(
-            experiment=experiment,
-            study_dir=study_dir,
-            output_dir=direct_final_revision_dir,
-            max_concurrency=args.max_concurrency,
-            resume=args.resume,
-            window=RevisionDetectionWindow.FINAL_REVISION,
-        )),
-    )
+    for window in RevisionDetectionWindow:
+        execute(
+            f"direct_{window.value}",
+            lambda window=window: run_direct_detection(DirectDetectionConfig(
+                experiment=experiment,
+                study_dir=study_dir,
+                output_dir=output_dir / f"direct_{window.value}",
+                max_concurrency=args.max_concurrency,
+                resume=args.resume,
+                window=window,
+            )),
+        )
     execute("rubric_score", rubric_score_runner.run)
     execute("rubric_free_score", rubric_free_score_runner.run)
-    score_stages_complete = (
-        statuses.get("rubric_score") == 0
-        and statuses.get("rubric_free_score") == 0
-    )
-    if not errors and score_stages_complete:
-        write_evaluation_report(output_dir)
     if errors:
         stages = ", ".join(name for name, _error in errors)
         first = errors[0][1]

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import csv
-import hashlib
-import json
 import math
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -11,10 +10,12 @@ import matplotlib.pyplot as plt
 
 
 FIGURE_ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = FIGURE_ROOT.parents[1]
-EXPERIMENT_PATH = PROJECT_ROOT / "experiments/biomnibench-results20-user-simulator-full.yaml"
-EXPERIMENT_ID = "biomnibench-da-factorial-r10-4f4d5d178756"
-SUMMARY_PATH = PROJECT_ROOT / "runs/detections" / EXPERIMENT_ID / "summary.json"
+EVALUATION_FIGURE_ROOT = FIGURE_ROOT.parent / "biomnibench-results20-user-simulator-full-evaluation"
+sys.path.insert(0, str(EVALUATION_FIGURE_ROOT))
+
+from stage_data import load_direct_assignments  # noqa: E402
+
+
 CSV_PATH = FIGURE_ROOT / "direct_rh_detection_by_condition.csv"
 PRIMARY_STEM = FIGURE_ROOT / "direct_rh_detection_by_condition"
 JUDGE_STEM = FIGURE_ROOT / "direct_rh_detection_by_condition_by_judge"
@@ -49,34 +50,6 @@ JUDGE_LABELS = {
     "claude-opus-5": "Claude Opus 5",
     "gemini-3.6-flash": "Gemini 3.6 Flash",
 }
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _load_summary() -> dict[str, object]:
-    if not EXPERIMENT_PATH.is_file():
-        raise RuntimeError(f"experiment is missing: {EXPERIMENT_PATH}")
-    value = json.loads(SUMMARY_PATH.read_text(encoding="utf-8"))
-    if (
-        value.get("kind") != "rubric-gen-revision-evaluation"
-        or value.get("status") != "completed"
-        or value.get("experiment_id") != EXPERIMENT_ID
-    ):
-        raise RuntimeError("direct RH source summary is not the completed r10 experiment")
-    coverage = value.get("assignment_coverage")
-    assignments = value.get("assignments")
-    if (
-        not isinstance(coverage, dict)
-        or coverage.get("configured_assignment_count") != 360
-        or coverage.get("evaluated_assignment_count") != 317
-        or coverage.get("excluded_assignment_count") != 43
-        or not isinstance(assignments, list)
-        or len(assignments) != 317
-    ):
-        raise RuntimeError("direct RH source summary has unexpected assignment coverage")
-    return value
 
 
 def _condition(assignment: dict[str, object]) -> tuple[str, str]:
@@ -343,9 +316,9 @@ def plot_judges(rows: dict[tuple[str, str, str, str], dict[str, object]]) -> Non
 
 
 def main() -> None:
-    summary = _load_summary()
+    summary, source_sha256 = load_direct_assignments()
     rows = aggregate(summary)
-    write_csv(rows, _sha256(SUMMARY_PATH))
+    write_csv(rows, source_sha256)
     plot_primary(rows)
     plot_judges(rows)
 

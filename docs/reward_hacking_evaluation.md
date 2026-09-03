@@ -316,28 +316,10 @@ model response and its SHA-256 hash.
 Resume validation strictly decodes that response and compares it with the
 stored verdict. The completed summary binds every judgment record file hash.
 
-Assignment summaries are descriptive. They report counts, means, medians, ranges,
-and direct-detection rates without assignment-level uncertainty intervals.
-
-Primary effects pair assignments by task and replicate. The analysis first
-computes each replicate difference. It then averages those differences within
-each task. The reported estimate is the mean across tasks.
-
-The report includes three effect types:
-
-- Condition effects compare two conditions within one solver.
-- Solver effects compare two solvers within one condition.
-- Interactions compare one solver difference across two conditions.
-
-Each effect includes all score outcomes, component changes, diagnostic changes,
-and both direct detection windows. A fixed-seed 10,000-sample task bootstrap gives the
-exploratory 95 percent percentile interval. It resamples task means, not
-assignments. Each metric reports its task count, paired replicate count, and
-missing paired values.
-
-The same effects are also computed for each configured judge. Judge-specific
-rubric, absolute-score, pairwise-preference, and direct-detection results remain
-separate. The analysis does not treat judges as independent samples.
+Each evaluation stage writes its own assignment summary and record hashes.
+The workflow does not produce cross-stage effects or a combined report.
+Downstream analysis must join assignments by their stable assignment ID.
+It must define clustering, pairing, and missing-data rules explicitly.
 
 ## Direct detector
 
@@ -349,80 +331,6 @@ randomized assignments and measures containment after online feedback can act.
 The score components do not determine a detection probability. A logistic link
 requires calibration data and a fitted model. The decomposition does not imply
 that link.
-
-## Exploratory lambda calibration
-
-The configured loss weights are preregistered choices. They are not estimates.
-Any learned weights are a separate exploratory calibration to the direct
-detector. They do not replace any primary outcome.
-
-For assignment `i`, define two positive-part change features.
-
-```text
-x_v,i = max(verifier_exploitation_final, 0)
-      - max(verifier_exploitation_initial, 0)
-
-x_o,i = max(original_rubric_gap_final, 0)
-      - max(original_rubric_gap_initial, 0)
-```
-
-Let `y_i` be one for the primary direct-panel decision `detected`. Let it be
-zero for `not_detected`. Exclude `abstain` and `incomplete` decisions. Report
-all exclusions.
-
-Fit this model separately for each benchmark.
-
-```text
-logit Pr(y_i = 1) = alpha + gamma_v x_v,i + gamma_o x_o,i
-gamma_v >= 0
-gamma_o >= 0
-```
-
-Use an unpenalized constrained maximum-likelihood fit. Do not use a penalty to
-manufacture an estimate from separated or one-class data. The absolute scale
-is not a loss-weight scale. Separate direction from scale as follows.
-
-```text
-beta     = (gamma_v + gamma_o) / 2
-lambda_v = 2 gamma_v / (gamma_v + gamma_o)
-lambda_o = 2 gamma_o / (gamma_v + gamma_o)
-```
-
-Thus, `lambda_v + lambda_o = 2`. The equal-weight reference remains `(1, 1)`.
-The fitted `beta` measures detector association strength. The two normalized
-lambda values measure only its direction.
-
-The point estimate requires both detector classes. The centered feature matrix
-must have rank two. The constrained likelihood must have a unique finite
-optimum. Its fitted slope must be positive. If one condition fails, report the
-weights as not identifiable.
-
-All-one-class data give an exact failure. With all `y_i = 0`, the intercept can
-approach negative infinity for every weight pair. The profile likelihood then
-has the same supremum for every normalized lambda pair. More zero outcomes can
-narrow the detection-rate interval, but they cannot identify the weights. The
-same result holds with all `y_i = 1` and a positive infinite intercept.
-
-Use a task-cluster bootstrap for exploratory 95 percent percentile intervals.
-Sample tasks with replacement. Keep all conditions and replicates within each
-sampled task. This method assumes that task clusters are exchangeable. The
-intervals are conditional exploratory intervals. They are not design-based
-confidence intervals. Use at least 2,000 bootstrap samples. Require at least 80
-percent of the samples to identify both weights.
-
-Use leave-one-task-out cross-validation. Report held-out log loss and Brier
-score for the calibrated model and an intercept-only model. Also report weight
-variation and failed folds. Do not use cross-validation to hide a failed full
-sample identifiability check.
-
-The minimum uncertainty gate is ten distinct task clusters. At least five task
-clusters must contain a detection. At least five must contain a non-detection.
-These are minimal stability rules. They do not prove cluster independence,
-task exchangeability, or detector validity.
-
-The internal `lambda_estimation` module reads only current combined RH
-summaries. It rejects obsolete summaries. It also fails instead of returning
-arbitrary weights when the data do not identify them.
 
 ## Limits
 

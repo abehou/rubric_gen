@@ -23,6 +23,7 @@ from rubric_gen.submission_revision.evaluation.evidence_ledger import (
     EvidenceLedgerEntry,
     load_final_revision_evidence_ledger,
     load_revision_evidence_ledger,
+    load_revision_evidence_snapshot,
     render_evidence_ledger,
 )
 
@@ -161,49 +162,36 @@ def _revision_prompt(
         task_id=task_id,
         condition_id=condition_id if isinstance(condition_id, str) else None,
     )
+    snapshot = load_revision_evidence_snapshot(revision_dir, manifest)
     artifact_only = resolved_window is RevisionDetectionWindow.FINAL_ARTIFACT
-    if artifact_only:
-        try:
-            state = json.loads((revision_dir / "state.json").read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise ValueError(f"revision has invalid state: {revision_dir}") from exc
-        submission_ids = state.get("submission_ids") if isinstance(state, dict) else None
-        if (
-            not isinstance(submission_ids, list)
-            or not submission_ids
-            or any(type(item) is not str for item in submission_ids)
-        ):
-            raise ValueError(f"revision has invalid submissions: {revision_dir}")
-        latest_submission = revision_dir / "submissions" / submission_ids[-1]
-        ledger = None
-    elif resolved_window is RevisionDetectionWindow.FINAL_REVISION:
-        ledger = load_final_revision_evidence_ledger(
-            revision_dir,
-            manifest,
-            blind,
-        )
-    else:
-        ledger = load_revision_evidence_ledger(
-            revision_dir,
-            manifest,
-            resolved_window,
-            blind,
-        )
     if (
         resolved_window is RevisionDetectionWindow.POST_UPDATE
-        and ledger is not None
-        and len(ledger.submission_ids) <= POST_UPDATE_BASELINE_INDEX
+        and len(snapshot.submission_ids) <= POST_UPDATE_BASELINE_INDEX
     ):
         raise ValueError(
             f"revision does not reach the post-update window: {revision_dir}"
         )
     if (
         resolved_window is RevisionDetectionWindow.FINAL_REVISION
-        and ledger is not None
-        and len(ledger.submission_ids) < 2
+        and len(snapshot.submission_ids) < 2
     ):
         raise ValueError(
             f"revision does not reach the final-revision window: {revision_dir}"
+        )
+    if artifact_only:
+        ledger = None
+    elif resolved_window is RevisionDetectionWindow.FINAL_REVISION:
+        ledger = load_final_revision_evidence_ledger(
+            revision_dir,
+            snapshot,
+            blind,
+        )
+    else:
+        ledger = load_revision_evidence_ledger(
+            revision_dir,
+            snapshot,
+            resolved_window,
+            blind,
         )
     instruction = str(blind(instruction_path.read_text(encoding="utf-8")))
     submission_benchmark = get_submission_benchmark(benchmark)
@@ -229,9 +217,7 @@ def _revision_prompt(
                 baseline_workspace
             )
         except (OSError, UnicodeError, ValueError) as exc:
-            raise ValueError(
-                f"invalid post-update baseline submission: {revision_dir}"
-            ) from exc
+            raise ValueError(f"invalid window baseline: {revision_dir}") from exc
         for artifact in baseline_evidence:
             entries.append(EvidenceLedgerEntry(
                 source=f"window_start:{artifact.name}",
@@ -245,7 +231,7 @@ def _revision_prompt(
         assert ledger is not None
         entries.extend(ledger.entries)
     workspace = (
-        latest_submission if artifact_only else ledger.latest_submission
+        snapshot.latest_submission if artifact_only else ledger.latest_submission
     ) / "workspace"
     try:
         final_evidence = submission_benchmark.final_evidence(workspace)

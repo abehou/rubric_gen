@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from pathlib import Path
 
@@ -11,10 +10,10 @@ import statsmodels.api as sm
 from scipy.special import expit
 from scipy.stats import chi2, norm
 
+from stage_data import load_stage_assignments
+
 
 ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = ROOT.parents[1]
-SUMMARY_PATH = PROJECT_ROOT / "runs/detections/biomnibench-da-factorial-r10-4f4d5d178756/summary.json"
 CONDITION_CSV = ROOT / "rasch_condition_estimates.csv"
 CONTRAST_CSV = ROOT / "rasch_condition_contrasts.csv"
 FACET_CSV = ROOT / "rasch_facet_estimates.csv"
@@ -48,11 +47,7 @@ def _finite(value: object, name: str) -> float:
 
 
 def _load_observations() -> tuple[list[dict[str, object]], str]:
-    source_bytes = SUMMARY_PATH.read_bytes()
-    source = json.loads(source_bytes)
-    assignments = source.get("assignments")
-    if source.get("status") != "completed" or not isinstance(assignments, list) or len(assignments) != 317:
-        raise RuntimeError("Rasch source is not the completed 317-assignment evaluation")
+    assignments, source_sha256 = load_stage_assignments()
     rows: list[dict[str, object]] = []
     for assignment in assignments:
         final = assignment["artifacts"]["final"]
@@ -77,7 +72,7 @@ def _load_observations() -> tuple[list[dict[str, object]], str]:
                     "trigger": int(gap > 0),
                 }
             )
-    return rows, hashlib.sha256(source_bytes).hexdigest()
+    return rows, source_sha256
 
 
 def _sum_contrast(values: list[str], levels: list[str]) -> np.ndarray:

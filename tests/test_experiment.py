@@ -993,7 +993,6 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
 ) -> None:
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
-    import rubric_gen.submission_revision.evaluation.report as report_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
@@ -1063,11 +1062,6 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "RubricFreeScoreRunner",
         RubricFreeRunnerStub,
     )
-    monkeypatch.setattr(
-        report_module,
-        "write_evaluation_report",
-        lambda _path: calls.append("combined"),
-    )
 
     status = commands_module.run_detect(argparse.Namespace(
         experiment="experiment.yaml",
@@ -1086,7 +1080,6 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "direct",
         "rubric_score",
         "rubric_free_score",
-        "combined",
     ]
     assert len(direct_configs) == 4
     assert {config.window.value for config in direct_configs} == {
@@ -1098,13 +1091,12 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     assert all(not hasattr(config, "vllm_endpoints") for config in configs)
 
 
-def test_detect_does_not_combine_an_incomplete_score_panel(
+def test_detect_returns_failure_for_an_incomplete_score_panel(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
-    import rubric_gen.submission_revision.evaluation.report as report_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
@@ -1136,11 +1128,6 @@ def test_detect_does_not_combine_an_incomplete_score_panel(
     monkeypatch.setattr(direct_audit_module, "run_direct_detection", lambda _config: 0)
     monkeypatch.setattr(outcome_panel_module, "RubricScoreRunner", RunnerStub)
     monkeypatch.setattr(outcome_panel_module, "RubricFreeScoreRunner", RunnerStub)
-    monkeypatch.setattr(
-        report_module,
-        "write_evaluation_report",
-        lambda _path: calls.append("combined"),
-    )
 
     assert commands_module.run_detect(argparse.Namespace(
         experiment="experiment.yaml",
@@ -1156,7 +1143,6 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
 ) -> None:
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
-    import rubric_gen.submission_revision.evaluation.report as report_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
@@ -1220,11 +1206,6 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
         "RubricFreeScoreRunner",
         RubricFreeRunnerStub,
     )
-    monkeypatch.setattr(
-        report_module,
-        "write_evaluation_report",
-        lambda _path: calls.append("combined"),
-    )
 
     with pytest.raises(RuntimeError, match="rubric_score"):
         commands_module.run_detect(argparse.Namespace(
@@ -1247,7 +1228,6 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
 ) -> None:
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
-    import rubric_gen.submission_revision.evaluation.report as report_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
 
     experiment = SimpleNamespace(
@@ -1311,11 +1291,6 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
         outcome_panel_module,
         "RubricFreeScoreRunner",
         RubricFreeRunnerStub,
-    )
-    monkeypatch.setattr(
-        report_module,
-        "write_evaluation_report",
-        lambda _path: calls.append("combined"),
     )
 
     with pytest.raises(RuntimeError, match="calls exceeds its hard cap"):

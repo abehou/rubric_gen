@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
-import json
 from collections import defaultdict
 from pathlib import Path
 from statistics import fmean
@@ -10,12 +8,10 @@ from statistics import fmean
 import matplotlib.pyplot as plt
 import numpy as np
 
+from stage_data import load_stage_assignments
+
 
 FIGURE_ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = FIGURE_ROOT.parents[1]
-EXPERIMENT_PATH = PROJECT_ROOT / "experiments/biomnibench-results20-user-simulator-full.yaml"
-EXPERIMENT_ID = "biomnibench-da-factorial-r10-4f4d5d178756"
-SUMMARY_PATH = PROJECT_ROOT / "runs/detections" / EXPERIMENT_ID / "summary.json"
 CSV_PATH = FIGURE_ROOT / "evaluation_by_condition.csv"
 QUALITY_STEM = FIGURE_ROOT / "quality_gains_by_condition"
 GAPS_STEM = FIGURE_ROOT / "generalization_gaps_by_condition"
@@ -52,34 +48,6 @@ BOOTSTRAP_REPLICATES = 10_000
 BOOTSTRAP_SEED = 20260901
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _load_summary() -> dict[str, object]:
-    if not EXPERIMENT_PATH.is_file():
-        raise RuntimeError(f"experiment is missing: {EXPERIMENT_PATH}")
-    value = json.loads(SUMMARY_PATH.read_text(encoding="utf-8"))
-    if (
-        value.get("kind") != "rubric-gen-revision-evaluation"
-        or value.get("status") != "completed"
-        or value.get("experiment_id") != EXPERIMENT_ID
-    ):
-        raise RuntimeError("evaluation source is not the completed r10 report")
-    coverage = value.get("assignment_coverage")
-    assignments = value.get("assignments")
-    if (
-        not isinstance(coverage, dict)
-        or coverage.get("configured_assignment_count") != 360
-        or coverage.get("evaluated_assignment_count") != 317
-        or coverage.get("excluded_assignment_count") != 43
-        or not isinstance(assignments, list)
-        or len(assignments) != 317
-    ):
-        raise RuntimeError("evaluation source has unexpected assignment coverage")
-    return value
-
-
 def _condition(assignment: dict[str, object]) -> tuple[str, str]:
     rubric = str(assignment["rubric_policy"])
     suffix = {
@@ -105,9 +73,7 @@ def _finite(value: object, label: str) -> float:
     return result
 
 
-def load_rows(summary: dict[str, object]) -> list[dict[str, object]]:
-    assignments = summary["assignments"]
-    assert isinstance(assignments, list)
+def load_rows(assignments: list[dict[str, object]]) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for assignment_value in assignments:
         if not isinstance(assignment_value, dict):
@@ -453,8 +419,8 @@ def plot_strong_vs_pairwise(records: list[dict[str, object]]) -> None:
 
 
 def main() -> None:
-    summary = _load_summary()
-    records = aggregate(load_rows(summary), _sha256(SUMMARY_PATH))
+    assignments, source_sha256 = load_stage_assignments()
+    records = aggregate(load_rows(assignments), source_sha256)
     write_csv(records)
     plot_quality(records)
     plot_gaps(records)

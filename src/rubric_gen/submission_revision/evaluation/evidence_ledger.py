@@ -34,6 +34,13 @@ class RevisionEvidenceLedger:
 
 
 @dataclass(frozen=True, slots=True)
+class RevisionEvidenceSnapshot:
+    submission_ids: tuple[str, ...]
+    latest_submission: Path
+    state: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
 class RenderedEvidenceLedger:
     text: str
     distinct_events: int
@@ -68,19 +75,44 @@ class EvidenceBlinder:
         return value
 
 
-def load_revision_evidence_ledger(
+def load_revision_evidence_snapshot(
     revision_dir: Path,
     manifest: dict[str, object],
+) -> RevisionEvidenceSnapshot:
+    """Load the canonical completed revision identity once."""
+
+    state = _load_state(revision_dir)
+    submission_ids = _validated_submission_ids(revision_dir, manifest, state)
+    submissions_root = revision_dir / "submissions"
+    if submissions_root.is_symlink() or not submissions_root.is_dir():
+        raise ValueError(f"revision has no submission set: {revision_dir}")
+    latest_submission = submissions_root / submission_ids[-1]
+    if latest_submission.is_symlink() or not latest_submission.is_dir():
+        raise ValueError(f"revision has no final submission: {revision_dir}")
+    return RevisionEvidenceSnapshot(
+        submission_ids=submission_ids,
+        latest_submission=latest_submission,
+        state=state,
+    )
+
+
+def load_revision_evidence_ledger(
+    revision_dir: Path,
+    snapshot: RevisionEvidenceSnapshot,
     window: RevisionDetectionWindow,
     blind: Callable[[object], object],
 ) -> RevisionEvidenceLedger:
     """Read each trajectory segment once and preserve its source order."""
 
     resolved_window = RevisionDetectionWindow(window)
-    state = _load_state(revision_dir)
-    submission_ids = _validated_submission_ids(revision_dir, manifest, state)
+    if resolved_window not in {
+        RevisionDetectionWindow.FULL_TRAJECTORY,
+        RevisionDetectionWindow.POST_UPDATE,
+    }:
+        raise ValueError(f"unsupported trajectory window: {resolved_window.value}")
+    submission_ids = snapshot.submission_ids
     submissions_root = revision_dir / "submissions"
-    latest_submission = submissions_root / submission_ids[-1]
+    latest_submission = snapshot.latest_submission
     latest_path = latest_submission / "trajectory.stream.jsonl"
     if latest_path.is_symlink() or not latest_path.is_file():
         raise ValueError(f"revision has no cumulative trajectory: {latest_submission}")
@@ -97,7 +129,7 @@ def load_revision_evidence_ledger(
         raise ValueError(
             f"latest trajectory differs from its turn ledger: {revision_dir}"
         )
-    no_change = _no_change_turn(revision_dir, state, len(submission_ids))
+    no_change = _no_change_turn(revision_dir, snapshot.state, len(submission_ids))
     no_change_bytes = no_change[0].read_bytes() if no_change is not None else None
     no_change_lines = (
         _decode_lines(no_change_bytes) if no_change_bytes is not None else ()
@@ -121,10 +153,6 @@ def load_revision_evidence_ledger(
             or (
                 resolved_window is RevisionDetectionWindow.POST_UPDATE
                 and submission_index >= POST_UPDATE_FIRST_AFFECTED_INDEX
-            )
-            or (
-                resolved_window is RevisionDetectionWindow.FINAL_REVISION
-                and submission_index == len(submission_ids) - 1
             )
         )
         if include_trajectory:
@@ -151,10 +179,6 @@ def load_revision_evidence_ledger(
             or (
                 resolved_window is RevisionDetectionWindow.POST_UPDATE
                 and submission_index >= POST_UPDATE_BASELINE_INDEX
-            )
-            or (
-                resolved_window is RevisionDetectionWindow.FINAL_REVISION
-                and submission_index == len(submission_ids) - 2
             )
         )
         if not include_feedback:
@@ -211,19 +235,17 @@ def load_revision_evidence_ledger(
 
 def load_final_revision_evidence_ledger(
     revision_dir: Path,
-    manifest: dict[str, object],
+    snapshot: RevisionEvidenceSnapshot,
     blind: Callable[[object], object],
 ) -> RevisionEvidenceLedger:
     """Read only the last artifact-producing revision and its input feedback."""
 
-    state = _load_state(revision_dir)
-    submission_ids = _validated_submission_ids(revision_dir, manifest, state)
+    submission_ids = snapshot.submission_ids
     if len(submission_ids) < 2:
         raise ValueError(
             f"revision does not reach the final-revision window: {revision_dir}"
         )
-    submissions_root = revision_dir / "submissions"
-    latest_submission = submissions_root / submission_ids[-1]
+    latest_submission = snapshot.latest_submission
     path = (
         revision_dir
         / "turns"
@@ -342,22 +364,10 @@ def _validated_submission_ids(
         or raw_ids != [f"s{index:03d}" for index in range(len(raw_ids))]
         or not isinstance(scores, list)
         or len(scores) != len(raw_ids)
-        or state.get("next_turn_index") != len(raw_ids)
         or manifest.get("submission_count") != len(raw_ids)
     ):
         raise ValueError(f"revision is not completely scored: {revision_dir}")
-    submission_ids = tuple(raw_ids)
-    submissions_root = revision_dir / "submissions"
-    if submissions_root.is_symlink() or not submissions_root.is_dir():
-        raise ValueError(f"revision has no submission set: {revision_dir}")
-    observed_ids = sorted(
-        path.name
-        for path in submissions_root.iterdir()
-        if path.is_dir() and not path.is_symlink()
-    )
-    if observed_ids != list(submission_ids):
-        raise ValueError(f"revision submission set is inconsistent: {revision_dir}")
-    return submission_ids
+    return tuple(raw_ids)
 
 
 def _trajectory_segments(

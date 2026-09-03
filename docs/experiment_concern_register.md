@@ -216,17 +216,15 @@ experiment files and tests use this interface.
 
 ### Problem 13: Core inference is still too assignment-centric
 
-**Status: Resolved for reporting.**
+**Status: Open.**
 
 Replicates and conditions from one task are not independent tasks. Assignment
 means and Wilson intervals can therefore understate uncertainty. Missing panel
 members can also produce condition-dependent complete-case subsets.
 
-The current report pairs task-replicate cells and averages replicate differences
-within each task. It reports fixed-seed task-bootstrap intervals for condition,
-solver, and solver-by-condition effects. It also reports judge-specific effects
-and exact structural and metric-level missingness. Strict panel completion remains
-a separate launch requirement under Problem 15.
+The workflow no longer produces a combined statistical report. Downstream
+analysis must account for task clusters, paired replicates, and missing panels.
+Strict panel completion remains a separate launch requirement under Problem 15.
 
 ### Problem 14: Rubric-paraphrase coverage is uneven
 
@@ -254,9 +252,8 @@ creates a survivor-only mean.
 
 Direct detection computes sharp zero-to-one bounds under every missing or
 abstaining decision. It reports an identified decision when both endpoints
-agree. Otherwise, it retains `incomplete` or `abstain`. Condition, solver, and
-interaction analyses report paired task-level effect bounds. No provider
-preflight or smoke-test workflow is part of this policy.
+agree. Otherwise, it retains `incomplete` or `abstain`. No provider preflight
+or smoke-test workflow is part of this policy.
 
 ### Problem 16: Old results are informative but not current-format evidence
 

@@ -32,7 +32,6 @@ from rubric_gen.submission_revision.rubric_generation import (
 RUBRIC_SCORE_KIND = "rubric-gen-rubric-score-evaluation"
 ABSOLUTE_SCORE_KIND = "rubric-gen-absolute-score-evaluation"
 PAIRWISE_PREFERENCE_KIND = "rubric-gen-pairwise-preference-evaluation"
-EVALUATION_KIND = "rubric-gen-revision-evaluation"
 ABSOLUTE_PROMPT_ID = "rubric-free-absolute-artifact-quality"
 PAIRWISE_PROMPT_ID = "rubric-free-pairwise-artifact-preference"
 ARTIFACTS = ("initial", "final")

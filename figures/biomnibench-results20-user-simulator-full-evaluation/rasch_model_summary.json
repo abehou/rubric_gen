@@ -18,7 +18,7 @@
   "extreme_task_method_item_count": 6,
   "method_count": 3,
   "recommended_specification": "regularized unrestricted task-by-method item difficulties",
-  "source_summary_sha256": "d215346f80c8b68bb0491b9baefdb9fdd60aa36b18de3c367b31ff7f21e899ea",
+  "source_summary_sha256": "74ff4315bd9842f651dccee6065db1fb9cfd2d715006431b719ec9ac6ca6d999",
   "status": "exploratory_additive_model_inadequate",
   "task_by_method_test": {
     "degrees_of_freedom": 38,

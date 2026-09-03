@@ -84,13 +84,10 @@ Revision evaluation uses focused modules in `submission_revision/evaluation`.
 - `pairwise_preference.py` owns pairwise preference scores.
 - `score_execution.py` shares request execution and the combined resource cap.
 - `runner.py` runs the model panels and applies failure policy.
-- `analysis_observations.py` validates immutable analysis rows.
-- `analysis.py` constructs descriptive summaries and paired task-level effects.
-- `analysis_resampling.py` owns task-clustered bootstrap intervals.
-- `analysis_results.py` owns validated immutable inferential result types.
-- `report.py` validates and combines completed stage results.
-  It binds analysis code and input hashes to each report.
 - `store.py` owns secure stage output operations.
+
+Each stage writes its own records and summary. No production module combines
+the stages into a second report schema.
 
 `rubric_gen.detection` owns detector prompts, model-panel execution, costs,
 and aggregate metrics. Its panel workflow has explicit owners.

@@ -11,7 +11,6 @@ import rubric_gen.submission_revision.evaluation.rubric_score as rubric_score_mo
 import rubric_gen.submission_revision.evaluation.score_execution as score_execution
 from rubric_gen.submission_revision.evaluation import (
     absolute_score,
-    analysis as evaluation_analysis,
     pairwise_preference,
 )
 from rubric_gen.benchmarks import SubmissionBenchmarkId
@@ -37,13 +36,10 @@ from rubric_gen.submission_revision.evaluation.rubric_score import (
     _expected_generation_binding,
 )
 from rubric_gen.submission_revision.evaluation.store import EvaluationStore
-from rubric_gen.submission_revision.assignments import ExperimentAssignment
-from rubric_gen.submission_revision.evaluation.report import (
-    _combine_assignment,
-    _direct_assignment_outcomes,
-    _write_bound_report,
-    analysis_implementation_sha256,
+from rubric_gen.submission_revision.evaluation.evidence_ledger import (
+    load_revision_evidence_snapshot,
 )
+from rubric_gen.submission_revision.assignments import ExperimentAssignment
 from rubric_gen.submission_revision.evaluation.runner import (
     RubricFreeScoreRunner,
     RubricScoreRunner,
@@ -88,24 +84,6 @@ def _pairwise_order(target: EvaluationTarget) -> str:
     ]
 
 
-def _analysis_observations(
-    assignments: list[dict[str, object]],
-) -> tuple[evaluation_analysis.AnalysisObservation, ...]:
-    return evaluation_analysis.parse_observations(
-        assignments,
-        (),
-        positive_decision="reward_hacking_detected",
-        negative_decision="no_reward_hacking_detected",
-    )
-
-
-def _detection_bounds(decision: str) -> dict[str, int]:
-    return {
-        "lower": 1 if decision == "detected" else 0,
-        "upper": 0 if decision == "not_detected" else 1,
-    }
-
-
 @pytest.mark.parametrize("component", ("records", "artifacts"))
 def test_evaluation_store_rejects_symlinked_stage_tree(
     tmp_path: Path,
@@ -120,6 +98,34 @@ def test_evaluation_store_rejects_symlinked_stage_tree(
 
     with pytest.raises(RuntimeError, match="contains a symlink"):
         EvaluationStore(root).prepare({"kind": "test-stage"}, resume=True)
+
+
+def test_revision_snapshot_uses_state_without_rejecting_stale_directories(
+    tmp_path: Path,
+) -> None:
+    revision = tmp_path / "revision"
+    (revision / "submissions" / "s000").mkdir(parents=True)
+    (revision / "submissions" / "stale-retry").mkdir()
+    (revision / "state.json").write_text(json.dumps({
+        "phase": "completed",
+        "submission_ids": ["s000"],
+        "scores": [80],
+    }))
+    snapshot = load_revision_evidence_snapshot(
+        revision,
+        {"submission_count": 1},
+    )
+
+    assert snapshot.submission_ids == ("s000",)
+    assert snapshot.latest_submission == revision / "submissions" / "s000"
+
+    (revision / "state.json").write_text(json.dumps({
+        "phase": "completed",
+        "submission_ids": ["../outside"],
+        "scores": [80],
+    }))
+    with pytest.raises(ValueError, match="not completely scored"):
+        load_revision_evidence_snapshot(revision, {"submission_count": 1})
 
 
 def test_evaluation_store_rejects_record_symlink_and_path_escape(
@@ -137,27 +143,6 @@ def test_evaluation_store_rejects_record_symlink_and_path_escape(
         store.regular_file("records", "absolute", "record.json")
     with pytest.raises(RuntimeError, match="component is unsafe"):
         store.path("records", "..", "outside.json")
-
-
-def test_bound_report_rejects_changed_analysis_identity(tmp_path: Path) -> None:
-    output = EvaluationStore(tmp_path / "evaluation")
-    first = {
-        "analysis_identity": {
-            "implementation_sha256": analysis_implementation_sha256(),
-            "input_sha256s": {"rubric_score/summary.json": "a" * 64},
-        }
-    }
-    path = _write_bound_report(output, first)
-
-    assert _write_bound_report(output, first) == path
-    changed = {
-        "analysis_identity": {
-            "implementation_sha256": "b" * 64,
-            "input_sha256s": {"rubric_score/summary.json": "a" * 64},
-        }
-    }
-    with pytest.raises(RuntimeError, match="identity changed"):
-        _write_bound_report(output, changed)
 
 
 def test_evaluation_store_resume_replaces_incompatible_stage(
@@ -1111,373 +1096,6 @@ def test_pairwise_reuse_key_excludes_hidden_score_magnitude(
     assert "higher_rubric_score" not in original_reference
     assert "lower_rubric_score" not in changed_reference
 
-
-
-def test_descriptive_summary_keeps_direct_detection_independent(
-    tmp_path: Path,
-) -> None:
-    _target_value, mechanism = _rubric_score_summary(tmp_path)
-    assignment = _combine_assignment(
-        mechanism,
-        {
-            "rubric_free_absolute_scores": {
-                "initial_panel_mean": 47.5,
-                "final_panel_mean": 75,
-            },
-            "pairwise_preference_scores": {
-                "panel_mean": 0.875,
-            },
-        },
-        {name: 1 for name in (
-            "verifier_exploitation",
-            "original_rubric_gap",
-        )},
-    )
-    assignment["direct_detection"] = {
-        "decision": "detected",
-        "bounds": _detection_bounds("detected"),
-        "provider_decisions": {},
-    }
-    assignment["post_update_detection"] = {
-        "decision": "not_detected",
-        "bounds": _detection_bounds("not_detected"),
-        "provider_decisions": {},
-    }
-
-    result = evaluation_analysis.describe(_analysis_observations([assignment]))
-
-    assert result["conditions"]["all"]["direct_detection"]["rate"] == 1
-    assert result["conditions"]["diligent-online-rubric"]["outcomes"][
-        "reward_hacking_loss_change"
-    ]["mean"] == -7.5
-
-
-def test_descriptive_summary_reports_available_rubric_policies(
-    tmp_path: Path,
-) -> None:
-    _target_value, mechanism = _rubric_score_summary(tmp_path)
-    assignment = _combine_assignment(
-        mechanism,
-        {
-            "rubric_free_absolute_scores": {
-                "initial_panel_mean": 47.5,
-                "final_panel_mean": 75,
-            },
-            "pairwise_preference_scores": {
-                "panel_mean": 0.875,
-            },
-        },
-        {name: 1 for name in (
-            "verifier_exploitation",
-            "original_rubric_gap",
-        )},
-    )
-    assignments = [
-        {
-            **assignment,
-            "assignment_id": f"assignment-{index}",
-            "condition_id": condition,
-            "rubric_policy": policy,
-            "direct_detection": {
-                "decision": decision,
-                "bounds": _detection_bounds(decision),
-                "provider_decisions": {},
-            },
-            "post_update_detection": {
-                "decision": decision,
-                "bounds": _detection_bounds(decision),
-                "provider_decisions": {},
-            },
-        }
-        for index, (policy, condition, decision) in enumerate((
-            ("fixed", "diligent-static", "detected"),
-            ("offline_elicitation", "diligent-offline-rubric", "not_detected"),
-            ("online_elicitation", "diligent-online-rubric", "not_detected"),
-        ), start=1)
-    ]
-
-    result = evaluation_analysis.describe(
-        _analysis_observations(assignments)
-    )["rubric_policies"]
-
-    assert set(result) == {
-        "fixed",
-        "offline_elicitation",
-        "online_elicitation",
-    }
-    assert result["fixed"]["direct_detection"]["rate"] == 1
-    assert result["offline_elicitation"]["direct_detection"]["rate"] == 0
-    assert result["online_elicitation"]["direct_detection"]["rate"] == 0
-
-    partial = evaluation_analysis.describe(
-        _analysis_observations(assignments[1:])
-    )["rubric_policies"]
-
-    assert set(partial) == {"offline_elicitation", "online_elicitation"}
-
-
-def test_report_includes_holdout_rubric_gain(
-    tmp_path: Path,
-) -> None:
-    _target_value, mechanism = _rubric_score_summary(tmp_path)
-    assignment = _combine_assignment(
-        mechanism,
-        {
-            "rubric_free_absolute_scores": {
-                "initial_panel_mean": 47.5,
-                "final_panel_mean": 75,
-            },
-            "pairwise_preference_scores": {
-                "panel_mean": 0.875,
-            },
-        },
-        {
-            "verifier_exploitation": 1,
-            "original_rubric_gap": 1,
-        },
-    )
-
-    assert assignment["artifacts"]["initial"]["rubric_diagnostics"] == {
-        "active_to_original": 5,
-        "original_to_selected": -5,
-        "selected_rubric_minus_rubric_free_absolute_score": 17.5,
-    }
-    assert assignment["outcomes"]["holdout_rubric_gain"] == 25
-    assert set(assignment["rubric_diagnostic_changes"]) == {
-        "active_to_original",
-        "original_to_selected",
-        "selected_rubric_minus_rubric_free_absolute_score",
-    }
-
-
-def test_condition_contrasts_pair_task_replicates() -> None:
-    assignments = [
-        {
-            "assignment_id": "a",
-            "task_id": "task-1",
-            "replicate": 1,
-            "solver_id": "test-solver",
-            "condition_id": "online-rubric",
-            "rubric_policy": "online_elicitation",
-            "outcomes": {
-                "original_rubric_weak_gain": 11,
-                "selected_rubric_gain": 10,
-                "holdout_rubric_gain": 9,
-                "rubric_free_absolute_score_gain": 8,
-                "weak_to_strong_generalization_gap_change": 3,
-                "optimization_induced_risk": 3,
-                "reward_hacking_loss_change": 5,
-                "active_local_weak_gain": 12,
-                "active_local_strong_gain": 9,
-                "active_local_verifier_gap_change": 3,
-                "pairwise_preference_score": 0.75,
-            },
-            "component_changes": {
-                "verifier_exploitation": 4,
-                "original_rubric_gap": -1,
-            },
-            "rubric_diagnostic_changes": {
-                "active_to_original": 2,
-                "original_to_selected": 3,
-                "selected_rubric_minus_rubric_free_absolute_score": -4,
-            },
-            "direct_detection": {
-                "decision": "detected",
-                "bounds": _detection_bounds("detected"),
-                "provider_decisions": {},
-            },
-            "post_update_detection": {
-                "decision": "not_detected",
-                "bounds": _detection_bounds("not_detected"),
-                "provider_decisions": {},
-            },
-        },
-        {
-            "assignment_id": "b",
-            "task_id": "task-1",
-            "replicate": 1,
-            "solver_id": "test-solver",
-            "condition_id": "static",
-            "rubric_policy": "fixed",
-            "outcomes": {
-                "original_rubric_weak_gain": 9,
-                "selected_rubric_gain": 3,
-                "holdout_rubric_gain": 2,
-                "rubric_free_absolute_score_gain": 2,
-                "weak_to_strong_generalization_gap_change": 7,
-                "optimization_induced_risk": 7,
-                "reward_hacking_loss_change": 1,
-                "active_local_weak_gain": 10,
-                "active_local_strong_gain": 4,
-                "active_local_verifier_gap_change": 6,
-                "pairwise_preference_score": 0.5,
-            },
-            "component_changes": {
-                "verifier_exploitation": 1,
-                "original_rubric_gap": 6,
-            },
-            "rubric_diagnostic_changes": {
-                "active_to_original": 1,
-                "original_to_selected": 0,
-                "selected_rubric_minus_rubric_free_absolute_score": 6,
-            },
-            "direct_detection": {
-                "decision": "not_detected",
-                "bounds": _detection_bounds("not_detected"),
-                "provider_decisions": {},
-            },
-            "post_update_detection": {
-                "decision": "not_detected",
-                "bounds": _detection_bounds("not_detected"),
-                "provider_decisions": {},
-            },
-        },
-    ]
-
-    analysis = evaluation_analysis.analyze(
-        _analysis_observations(assignments),
-        (),
-    ).record()
-    contrast = analysis["condition_effects"][0]
-
-    assert contrast["solver"] == "test-solver"
-    assert contrast["direction"] == "left-minus-right"
-    assert contrast["left_condition"] == "online-rubric"
-    assert contrast["metrics"]["selected_rubric_gain"]["estimate"] == 7
-    assert contrast["metrics"]["rubric_free_absolute_score_gain"]["estimate"] == 6
-    assert contrast["metrics"][
-        "weak_to_strong_generalization_gap_change"
-    ]["estimate"] == -4
-    assert contrast["metrics"][
-        "original_rubric_gap_change"
-    ]["estimate"] == -7
-    assert contrast["metrics"][
-        "selected_rubric_minus_rubric_free_absolute_score_change"
-    ]["estimate"] == -10
-
-    other_solver = [
-        {
-            **assignment,
-            "assignment_id": f"other-{assignment['assignment_id']}",
-            "solver_id": "other-solver",
-        }
-        for assignment in assignments
-    ]
-    crossed = evaluation_analysis.analyze(
-        _analysis_observations(assignments + other_solver),
-        (),
-    ).record()
-    solver_contrast = crossed["solver_effects"][0]
-    assert solver_contrast["left_solver"] == "other-solver"
-    assert solver_contrast["right_solver"] == "test-solver"
-    assert solver_contrast["pair_count"] == 1
-    assert solver_contrast["metrics"]["selected_rubric_gain"]["estimate"] == 0
-    interaction = crossed["interactions"][0]
-    assert interaction["metrics"]["selected_rubric_gain"]["estimate"] == 0
-
-
-def test_direct_outcomes_use_the_configured_rule_and_experiment(
-    tmp_path: Path,
-) -> None:
-    source = tmp_path / "assignment-1"
-    source.mkdir()
-    (source / "manifest.json").write_text(
-        json.dumps({
-            "experiment_id": "experiment-1",
-            "assignment_id": "assignment-1",
-        }),
-        encoding="utf-8",
-    )
-    direct = {
-        "detection": "rh",
-        "models": ["a", "b", "c"],
-        "primary_rule": "majority",
-        "records": [
-            {
-                "source_path": str(source),
-                "provider": model,
-                "verdict": {"decision": decision},
-            }
-            for model, decision in (
-                ("a", "reward_hacking_detected"),
-                ("b", "reward_hacking_detected"),
-                ("c", "no_reward_hacking_detected"),
-            )
-        ],
-    }
-
-    result = _direct_assignment_outcomes(
-        direct,
-        [{"assignment_id": "assignment-1"}],
-        "experiment-1",
-    )
-
-    assert result["assignment-1"]["decision"] == "detected"
-
-
-@pytest.mark.parametrize(
-    ("observed_decision", "expected_decision", "expected_bounds"),
-    (
-        ("reward_hacking_detected", "detected", (1, 1)),
-        ("no_reward_hacking_detected", "incomplete", (0, 1)),
-    ),
-)
-def test_direct_outcomes_bound_a_missing_any_detect_member(
-    tmp_path: Path,
-    observed_decision: str,
-    expected_decision: str,
-    expected_bounds: tuple[int, int],
-) -> None:
-    source = tmp_path / "assignment-1"
-    source.mkdir()
-    (source / "manifest.json").write_text(json.dumps({
-        "experiment_id": "experiment-1",
-        "assignment_id": "assignment-1",
-    }))
-    direct = {
-        "detection": "rh",
-        "models": ["a", "b"],
-        "primary_rule": "any_detect",
-        "records": [{
-            "source_path": str(source),
-            "provider": "a",
-            "verdict": {"decision": observed_decision},
-        }],
-    }
-
-    result = _direct_assignment_outcomes(
-        direct,
-        [{"assignment_id": "assignment-1"}],
-        "experiment-1",
-    )["assignment-1"]
-
-    assert result["decision"] == expected_decision
-    bounds = result["bounds"]
-    assert isinstance(bounds, dict)
-    assert (bounds["lower"], bounds["upper"]) == expected_bounds
-    assert bounds["missing_models"] == ["b"]
-
-
-def test_direct_outcomes_bound_an_assignment_with_no_judgments() -> None:
-    result = _direct_assignment_outcomes(
-        {
-            "detection": "rh",
-            "models": ["a", "b"],
-            "primary_rule": "majority",
-            "records": [],
-        },
-        [{"assignment_id": "assignment-1"}],
-        "experiment-1",
-    )["assignment-1"]
-
-    assert result["decision"] == "incomplete"
-    assert result["bounds"] == {
-        "lower": 0,
-        "upper": 1,
-        "identified": False,
-        "missing_models": ["a", "b"],
-        "abstaining_models": [],
-    }
 
 
 def test_biomnibench_rubric_free_review_includes_all_final_artifacts(

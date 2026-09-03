@@ -111,7 +111,6 @@ def test_revision_evaluation_modules_remain_focused() -> None:
         "absolute_score.py",
         "pairwise_preference.py",
         "runner.py",
-        "report.py",
         "store.py",
     )
 
