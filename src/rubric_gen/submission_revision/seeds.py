@@ -109,11 +109,6 @@ class SeedSetRunner:
         self.agent = self.experiment.seed_agent_config(
             quiet=True,
         )
-        self.solver_prompt = solver_prompt(
-            str(self.protocol["prompt"]),
-            self.experiment.benchmark,
-        )
-        self.solver_prompt_sha256 = sha256_text(self.solver_prompt)
         self.primary_profile = PromptProfile(str(self.protocol["prompt"]))
         self.primary_elicitation_role = (
             "adversarial"
@@ -130,11 +125,6 @@ class SeedSetRunner:
             if self.primary_elicitation_role == "adversarial"
             else "adversarial"
         )
-        self.attempt_prompt = solver_prompt(
-            self.attempt_profile,
-            self.experiment.benchmark,
-        )
-        self.attempt_prompt_sha256 = sha256_text(self.attempt_prompt)
 
     def run(self) -> int:
         root = self.config.output_dir.resolve()
@@ -271,7 +261,11 @@ class SeedSetRunner:
                 task,
                 replicate,
                 seed_generator=seed_generator_identity(self.agent),
-                solver_prompt_sha256=self.solver_prompt_sha256,
+                solver_prompt_sha256=sha256_text(solver_prompt(
+                    task,
+                    self.primary_profile,
+                    self.experiment.benchmark,
+                )),
                 primary_profile=self.primary_profile,
                 benchmark=self.experiment.benchmark,
             )
@@ -315,9 +309,15 @@ class SeedSetRunner:
                 status_path=run_dir / "status.json",
             )
             benchmark = get_submission_benchmark(self.experiment.benchmark)
+            primary_prompt = solver_prompt(
+                task_dir,
+                self.primary_profile,
+                self.experiment.benchmark,
+            )
+            primary_prompt_sha256 = sha256_text(primary_prompt)
             exit_code, paths = AgentRunner(
                 self.agent,
-                prompt=self.solver_prompt,
+                prompt=primary_prompt,
                 output_errors=benchmark.output_errors,
             ).run(task_dir.resolve(), paths=paths)
             if exit_code != 0:
@@ -361,7 +361,7 @@ class SeedSetRunner:
             seed_sha = sha256_text(
                 f"{self.experiment.experiment_id}\n{task_dir.name}\n{replicate}\n"
                 f"{instruction_sha}\n{data_sha}\n{workspace_sha}\n{trajectory_sha}\n"
-                f"{self.solver_prompt_sha256}\n{elicitation_sha}\n"
+                f"{primary_prompt_sha256}\n{elicitation_sha}\n"
             )
             write_json_atomic(submission / "status.json", {
                 "task": task_dir.name,
@@ -409,7 +409,7 @@ class SeedSetRunner:
                 "task_id": task_dir.name,
                 "replicate": replicate,
                 "seed_generator": seed_generator_identity(self.agent),
-                "solver_prompt_sha256": self.solver_prompt_sha256,
+                "solver_prompt_sha256": primary_prompt_sha256,
                 "primary_elicitation_role": self.primary_elicitation_role,
                 "elicitation_attempt": elicitation_attempt,
                 "instruction_sha256": instruction_sha,
@@ -445,13 +445,18 @@ class SeedSetRunner:
             stream_path=run_dir / "trajectory.stream.jsonl",
             status_path=run_dir / "status.json",
         )
+        attempt_prompt = solver_prompt(
+            task_dir,
+            self.attempt_profile,
+            self.experiment.benchmark,
+        )
         exit_code, paths = AgentRunner(
             self.agent,
-            prompt=self.attempt_prompt,
+            prompt=attempt_prompt,
             output_errors=benchmark.output_errors,
         ).run(task_dir.resolve(), paths=paths)
         if not paths.prompt_path.is_file():
-            paths.prompt_path.write_text(self.attempt_prompt, encoding="utf-8")
+            paths.prompt_path.write_text(attempt_prompt, encoding="utf-8")
         if not paths.stream_path.is_file() or not paths.status_path.is_file():
             raise RuntimeError("elicitation attempt did not persist its run records")
         workspace_sha = solution_tree_sha256(paths.workspace_dir)
@@ -558,7 +563,9 @@ def resolve_seed(
         task_dir,
         replicate,
         seed_generator=seed_generator_identity(seed_generator),
-        solver_prompt_sha256=sha256_text(solver_prompt(prompt_profile, benchmark)),
+        solver_prompt_sha256=sha256_text(
+            solver_prompt(task_dir, prompt_profile, benchmark)
+        ),
         primary_profile=PromptProfile(prompt_profile),
         benchmark=SubmissionBenchmarkId(benchmark),
     )
@@ -635,6 +642,7 @@ def _resolve_task_seed(
         raise RuntimeError(f"seed elicitation role changed for {task_dir.name}")
     attempt = _validate_elicitation_attempt(
         seed_root,
+        task_dir,
         get_submission_benchmark(benchmark),
         expected_profile=expected_attempt_profile,
         expected_role=expected_attempt_role,
@@ -701,6 +709,7 @@ def seed_generator_identity(agent: AgentRunConfig) -> dict[str, object]:
 
 def _validate_elicitation_attempt(
     seed_root: Path,
+    task_dir: Path,
     benchmark: SubmissionBenchmark,
     *,
     expected_profile: PromptProfile,
@@ -749,7 +758,7 @@ def _validate_elicitation_attempt(
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("seed elicitation attempt status is invalid") from exc
     expected_prompt_sha = sha256_text(
-        solver_prompt(expected_profile, benchmark.benchmark)
+        solver_prompt(task_dir, expected_profile, benchmark.benchmark)
     )
     structurally_valid = (
         attempt["exit_code"] == 0

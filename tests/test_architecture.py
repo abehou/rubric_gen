@@ -160,9 +160,11 @@ def test_rubric_evolution_modules_remain_focused() -> None:
     package = SOURCE_ROOT / "submission_revision"
     modules = (
         "evolution.py",
+        "evolution_assessment.py",
         "evolution_artifacts.py",
         "evolution_protocol.py",
         "evolution_provider.py",
+        "evolution_request.py",
         "evolution_serialization.py",
         "rubric_generation_store.py",
     )

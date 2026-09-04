@@ -10,8 +10,10 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.runtime.agents.sessions import SolverSessionDriver
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
+from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
 from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.rubric_generation import RubricPolicy
+from rubric_gen.submission_revision.red_team import RedTeamGenerator
 from rubric_gen.submission_revision.judge import (
     SubmissionJudge,
     SubmissionJudgeConfig,
@@ -35,6 +37,7 @@ class SubmissionRevisionConfig:
     pretreatment_rubric_dir: Path
     agent: AgentRunConfig
     seed_agent: AgentRunConfig
+    red_team_agent: AgentRunConfig
     solver_id: str
     experiment_id: str
     assignment_id: str
@@ -43,6 +46,7 @@ class SubmissionRevisionConfig:
     elicitation_seed_replicates: int
     execution_order: int
     optimizer_rubric_path: Path
+    development_rubric_path: Path
     master_rubric_name: str
     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
     rubric_proposer_max_retries: int = 1
@@ -78,6 +82,16 @@ class SubmissionRevisionConfig:
         ):
             raise ValueError("optimizer_rubric_path must be a regular file")
         if (
+            self.development_rubric_path.is_symlink()
+            or not self.development_rubric_path.is_file()
+        ):
+            raise ValueError("development_rubric_path must be a regular file")
+        if (
+            self.development_rubric_path.resolve()
+            == self.optimizer_rubric_path.resolve()
+        ):
+            raise ValueError("development and optimizer rubrics must differ")
+        if (
             type(self.master_rubric_name) is not str
             or Path(self.master_rubric_name).name != self.master_rubric_name
             or not self.master_rubric_name
@@ -96,6 +110,13 @@ class SubmissionRevisionConfig:
             or not self.seed_agent.model.strip()
         ):
             raise ValueError("submission revision requires an explicit seed model")
+        if (
+            type(self.red_team_agent.model) is not str
+            or not self.red_team_agent.model.strip()
+        ):
+            raise ValueError(
+                "submission revision requires an explicit red-team model"
+            )
         for name, value in (
             ("solver_id", self.solver_id),
             ("experiment_id", self.experiment_id),
@@ -108,9 +129,9 @@ class SubmissionRevisionConfig:
             raise ValueError("replicate must be a positive integer")
         if (
             type(self.elicitation_seed_replicates) is not int
-            or self.elicitation_seed_replicates < 3
+            or self.elicitation_seed_replicates != ELICITATION_SEED_REPLICATES
         ):
-            raise ValueError("elicitation_seed_replicates must be at least three")
+            raise ValueError("elicitation_seed_replicates must equal three")
         if type(self.execution_order) is not int or self.execution_order < 1:
             raise ValueError("execution_order must be a positive integer")
         if (
@@ -172,6 +193,7 @@ class RevisionDependencies:
     master_judge: SubmissionJudge | None = None
     rubric_proposer: RubricProposer | None = None
     feedback_simulator: SimulatedUserFeedback | None = None
+    red_team_generator: RedTeamGenerator | None = None
 
 
 @dataclass(frozen=True)

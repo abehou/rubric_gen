@@ -18,11 +18,16 @@ from rubric_gen.submission_revision.judging.models import JudgeRunConfig, JudgeT
 from rubric_gen.submission_revision.judging.runner import SubmissionJudgeRunner
 from rubric_gen.submission_revision.controller_scoring import RevisionScorer
 from rubric_gen.submission_revision.artifacts import compact_historical_workspace
+import rubric_gen.submission_revision.evolution_assessment as assessment_module
 import rubric_gen.submission_revision.evolution_protocol as protocol_module
 from rubric_gen.submission_revision.evolution_artifacts import (
     ArtifactHistory,
     ArtifactPair,
     BlindedArtifact,
+)
+from rubric_gen.submission_revision.evolution_assessment import (
+    PairComparison,
+    RubricScore,
 )
 from rubric_gen.submission_revision.feedback import FeedbackPolicy, render_revision_prompt
 from rubric_gen.submission_revision.prompts import PromptProfile
@@ -99,6 +104,7 @@ def _artifact_history(contents: tuple[str, ...]) -> ArtifactHistory:
             for left in range(len(artifacts))
             for right in range(left + 1, len(artifacts))
         ),
+        red_team_evidence=(),
     )
 
 
@@ -361,34 +367,68 @@ def test_paperbench_elicitation_uses_blinded_history_and_penalties() -> None:
     history = _artifact_history(
         tuple(f"artifact {index}" for index in range(1, 5))
     )
-    difference_evidence = protocol_module.difference_evidence(
+    assessment_evidence = assessment_module.assessment_evidence(
         instruction="Replicate the paper.",
-        original_rubric=rubric,
-        current_generation=generation,
         artifact_history=history,
+        view=assessment_module.AssessmentView.ACTIVE_RUBRIC,
+        rubric=rubric,
+        current_generation=generation,
     )
-    rubric_evidence = protocol_module.rubric_evidence(
+    comparisons = tuple(
+        PairComparison(
+            pair_id=pair.pair_id,
+            preferred_artifact_id=pair.artifact_ids[0],
+            rejected_artifact_id=pair.artifact_ids[1],
+            rubric_free_reason="The preferred artifact is more complete.",
+            active_rubric_preference="tie",
+            active_rubric_reason="The active rubric does not separate the pair.",
+            active_rubric_scores=tuple(
+                RubricScore(
+                    artifact_id=artifact_id,
+                    base_score=0,
+                    criterion_levels=(),
+                    total_score=0,
+                    reason="The rubric gives equal scores.",
+                )
+                for artifact_id in pair.artifact_ids
+            ),
+            development_rubric_preference="tie",
+            development_rubric_reason=(
+                "The development rubric does not separate the pair."
+            ),
+            development_rubric_scores=tuple(
+                RubricScore(
+                    artifact_id=artifact_id,
+                    base_score=0,
+                    criterion_levels=(),
+                    total_score=0,
+                    reason="The rubric gives equal scores.",
+                )
+                for artifact_id in pair.artifact_ids
+            ),
+            gap_views=(
+                assessment_module.AssessmentView.ACTIVE_RUBRIC,
+                assessment_module.AssessmentView.DEVELOPMENT_RUBRIC,
+            ),
+        )
+        for pair in history.pairs[:2]
+    )
+    induction_evidence = protocol_module.induction_evidence(
         instruction="Replicate the paper.",
-        original_rubric=rubric,
         current_generation=generation,
         artifact_history=history,
-        difference_response={
-            "pairs": [
-                {"pair_id": pair.pair_id, "differences": []}
-                for pair in history.pairs
-            ]
-        },
+        induction_gaps=comparisons,
         level_labels=("A", "B"),
+        include_red_team_trace=False,
     )
 
-    assert f"Score normalization maximum: {maximum}" in difference_evidence
-    assert "hidden-source-1" not in difference_evidence
-    assert '"blinded_artifact_history"' in rubric_evidence
-    assert f'"original_score_range":{{"maximum":{maximum},"minimum":0}}' in rubric_evidence
-    instructions = " ".join(protocol_module.rubric_instructions().split())
-    assert "not a minimum support threshold" in instructions
-    assert "Each learned criterion is penalty-only" in instructions
-    assert "Choose the integer penalty points" in instructions
+    assert f"Score normalization maximum: {maximum}" in assessment_evidence
+    assert "hidden-source-1" not in assessment_evidence
+    assert '"rubric_gaps"' in induction_evidence
+    assert '"fixed_penalty_points":[0,-1]' in induction_evidence
+    instructions = " ".join(protocol_module.induction_instructions().split())
+    assert "claim-conditional and penalty-only" in instructions
+    assert "program assigns a fixed penalty scale" in instructions
 
 
 def test_submission_evidence_uses_official_code_dev_file_types(tmp_path: Path) -> None:
@@ -418,7 +458,6 @@ def test_paperbench_requires_only_native_submission_repository(tmp_path: Path) -
     for guidance in (
         PAPERBENCH_CODE_DEV.recovery_prompt,
         PAPERBENCH_CODE_DEV.output_recovery_prompt,
-        PAPERBENCH_CODE_DEV.revision_instructions,
     ):
         assert "Do not run Git commands" in guidance
         assert "$TMPDIR" in guidance
@@ -429,6 +468,8 @@ def test_paperbench_contract_owns_native_revision_language() -> None:
     prompt = render_revision_prompt(
         FeedbackPolicy.SCORE_ONLY,
         {"score": 50},
+        task_instruction="Implement the supplied paper.\n",
+        first_revision=True,
         benchmark=contract.benchmark,
     )
 
@@ -474,22 +515,22 @@ def test_paperbench_judge_and_proposer_see_source_not_harness_summaries(
     judged = runner._workspace_review_text(target)
     current, _, _ = render_code_dev_rubric(_rubric())
     current_rubric = CompleteRubric.from_content(current)
-    current_generation = RubricGeneration(
-        generation_round=0,
-        source_checkpoint=None,
-        rubric=current_rubric,
-        elicited_criteria=(),
-        proposer_call_budget=0,
-    )
     native_submission = render_submission_tree(workspace)
     history = _artifact_history(
         (native_submission, "reference 1", "reference 2", "reference 3")
     )
-    proposed = protocol_module.difference_evidence(
+    proposed = assessment_module.assessment_evidence(
         instruction="TASK",
-        original_rubric=current_rubric,
-        current_generation=current_generation,
         artifact_history=history,
+        view=assessment_module.AssessmentView.ACTIVE_RUBRIC,
+        rubric=current_rubric,
+        current_generation=RubricGeneration(
+            generation_round=0,
+            source_checkpoint=None,
+            rubric=current_rubric,
+            elicited_criteria=(),
+            proposer_call_budget=0,
+        ),
     )
 
     assert "native submission" in judged
@@ -537,6 +578,18 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         proposer_call_budget=0,
     )
     validation = tmp_path / "score-validation.json"
+    evaluation = tmp_path / "evaluation.json"
+    evaluation_text = json.dumps({
+        "criteria": {
+            "criterion_1": {
+                "level": "A",
+                "points": 100.0,
+                "reason": "The implementation is complete.",
+            },
+        },
+        "reasoning": "The submission satisfies the implementation requirement.",
+    })
+    evaluation.write_text(evaluation_text)
     validation.write_text(json.dumps({
         "score": 100.0,
         "normalized_score": 1.0,
@@ -544,6 +597,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         "criterion_levels": {"criterion_1": "A"},
         "criterion_scores": {"criterion_1": 100.0},
         "rendered_rubric_sha256": rubric_sha256,
+        "evaluation_sha256": sha256_text(evaluation_text),
     }))
     captured: dict[str, object] = {}
 
@@ -576,12 +630,16 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     scorer.experiment_dir = tmp_path / "experiment"
     (scorer.experiment_dir / "feedback-generations").mkdir(parents=True)
     scorer.task_dir = task
+    scorer.master_rubric = SimpleNamespace(
+        text=rubric_text,
+        sha256=rubric_sha256,
+    )
     scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())
 
     scorer.project_checkpoint_feedback(
         artifacts=SimpleNamespace(
             score_validation_path=validation,
-            evaluation_path=validation,
+            evaluation_path=evaluation,
         ),
         generation=generation,
         submission_id="s000",
@@ -591,11 +649,18 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
             fixed_original_score=100.0,
             fixed_original_artifacts=SimpleNamespace(
                 score_validation_path=validation,
-                evaluation_path=validation,
+                evaluation_path=evaluation,
             ),
         )
 
     rendered = str(captured["current_artifact"])
+    full_feedback = captured["full_feedback"]
+    assert isinstance(full_feedback, dict)
+    assert full_feedback["score"] == 100.0
+    assert full_feedback["rubric_text"] == rubric_text
+    assert full_feedback["criteria"]["criterion_1"]["judge_reason"] == (
+        "The implementation is complete."
+    )
     assert "## File: README.md" in rendered
     assert "## File: model.py" in rendered
     assert "native source" in rendered

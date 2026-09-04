@@ -821,6 +821,7 @@ class RevisionRecovery:
             replayed = proposer.elicit_rubric(
                 instruction=instruction,
                 original_rubric=original_rubric,
+                development_rubric=self.scoring.development_rubric,
                 current_generation=prior,
                 policy=self.rubric_policy,
                 generation_round=generation_round,
@@ -830,7 +831,7 @@ class RevisionRecovery:
                 ),
                 source_checkpoint=(
                     generation_round - 1
-                    if self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
+                    if self.rubric_policy.uses_online_evidence
                     else None
                 ),
             )

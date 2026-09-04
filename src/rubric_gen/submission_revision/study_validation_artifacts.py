@@ -6,16 +6,21 @@ import os
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import get_submission_benchmark
 from rubric_gen.submission_revision.artifacts import (
     read_json_object,
     sha256_file,
+    tree_sha256,
     verify_submission_snapshot,
 )
 from rubric_gen.submission_revision.generation_scoring import (
     preflight_generation_dispatch,
 )
-from rubric_gen.submission_revision.contrasts import build_elicitation_artifact_history
+from rubric_gen.submission_revision.contrasts import (
+    ELICITATION_SEED_REPLICATES,
+    build_elicitation_artifact_history,
+)
 from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
@@ -31,7 +36,13 @@ from rubric_gen.submission_revision.judgment_reuse import (
     load_judgment_copy,
 )
 from rubric_gen.submission_revision.prompts import PromptProfile
+from rubric_gen.submission_revision.red_team import (
+    RED_TEAM_ROOT,
+    load_red_team_artifact,
+)
+from rubric_gen.submission_revision.seeds import seed_generator_identity
 from rubric_gen.submission_revision.rubric_generation import (
+    CompleteRubric,
     RubricGeneration,
     RubricPolicy,
 )
@@ -57,6 +68,7 @@ RubricArtifacts = tuple[Path, Path]
 
 def validate_revision_artifacts(context: ValidationContext) -> None:
     roots = _validate_artifact_sets(context)
+    _validate_red_team_artifacts(context)
     proposer = _generation_proposer(context)
     instruction = (context.task_dir / "instruction.md").read_text(encoding="utf-8")
     for submission_id in context.expected_ids:
@@ -154,6 +166,44 @@ def _validate_artifact_sets(context: ValidationContext) -> _ArtifactRoots:
         feedback_generations=feedback_generations,
         feedback_history_summaries=feedback_history_summaries,
     )
+
+
+def _validate_red_team_artifacts(context: ValidationContext) -> None:
+    root = context.experiment_dir / RED_TEAM_ROOT
+    checkpoints = (
+        list(range(1, len(context.expected_ids) - 1))
+        if context.rubric_policy.uses_red_team
+        else []
+    )
+    _validate_optional_directory_names(
+        root,
+        [f"checkpoint-{checkpoint:04d}" for checkpoint in checkpoints],
+        "red-team artifact set is invalid",
+    )
+    identity = seed_generator_identity(context.red_team_agent)
+    for checkpoint in checkpoints:
+        source_workspace = (
+            context.experiment_dir
+            / "submissions"
+            / f"s{checkpoint:03d}"
+            / "workspace"
+        )
+        generation = load_rubric_generation(
+            context.experiment_dir,
+            checkpoint,
+            expected_policy=context.rubric_policy,
+        )
+        load_red_team_artifact(
+            context.experiment_dir,
+            checkpoint,
+            expected_generator=identity,
+            expected_source_artifact_sha256=sha256_text(
+                get_submission_benchmark(
+                    context.experiment.benchmark
+                ).render_user_review(source_workspace)
+            ),
+            expected_active_rubric_sha256=generation.rubric.content_sha256,
+        )
 
 
 def _require_directory_names(root: Path, expected: list[str], message: str) -> None:
@@ -294,6 +344,20 @@ def _validate_submission(
             raise RuntimeError(
                 f"feedback disagrees with scoring artifacts: {submission_id}"
             )
+        prompt_path = (
+            context.experiment_dir
+            / "turns"
+            / f"turn-{index + 1:03d}"
+            / "prompt.txt"
+        )
+        if (
+            prompt_path.is_symlink()
+            or not prompt_path.is_file()
+            or prompt_path.read_text(encoding="utf-8") != projected.prompt
+        ):
+            raise RuntimeError(
+                f"solver prompt disagrees with feedback: {submission_id}"
+            )
 
 
 def _generation_round(policy: RubricPolicy, submission_index: int) -> int:
@@ -340,25 +404,39 @@ def _validated_generation(
     validated = proposer.elicit_rubric(
         instruction=instruction,
         original_rubric=context.scoring.initial_generation.rubric,
+        development_rubric=CompleteRubric.from_content(
+            context.selection.development_path.read_text(encoding="utf-8")
+        ),
         current_generation=prior,
         policy=context.rubric_policy,
         generation_round=generation_round,
         output_dir=context.experiment_dir,
         artifact_history=build_elicitation_artifact_history(
-            online=context.rubric_policy is RubricPolicy.ONLINE_ELICITATION,
+            online=context.rubric_policy.uses_online_evidence,
             seed_set=context.seed.root,
             task_dir=context.task_dir,
             experiment_dir=context.experiment_dir,
             benchmark=get_submission_benchmark(context.experiment.benchmark),
             seed_generator=context.seed_agent,
             prompt_profile=str(context.protocol["prompt"]),
-            seed_replicates=context.experiment.replicates,
+            seed_replicates=ELICITATION_SEED_REPLICATES,
             blinding_scope=pretreatment_blinding_scope(
                 context.experiment.experiment_id,
                 context.task_dir.name,
                 context.scoring.initial_generation.rubric.content_sha256,
+                context.selection.development_sha256,
             ),
             source_checkpoint=generation_round - 1,
+            red_team_policy=(
+                context.rubric_policy
+                if context.rubric_policy.uses_red_team
+                else None
+            ),
+            red_team_generator_identity=(
+                seed_generator_identity(context.red_team_agent)
+                if context.rubric_policy.uses_red_team
+                else None
+            ),
         ),
         source_checkpoint=generation_round - 1,
     )
@@ -567,11 +645,17 @@ def _project_feedback(
     fixed_score: object,
 ) -> ProjectedFeedback:
     prompt_profile = PromptProfile(str(context.protocol["prompt"]))
+    task_instruction = (context.task_dir / "instruction.md").read_text(
+        encoding="utf-8"
+    )
+    first_revision = submission_id == "s000"
     if context.policy is not FeedbackPolicy.USER_SIMULATOR:
         return project_rubric_feedback(
             generation,
             rubric_artifacts,
             context.policy,
+            task_instruction=task_instruction,
+            first_revision=first_revision,
             fixed_original_artifacts=fixed_artifacts,
             fixed_original_rubric_text=context.selection.master_path.read_text(
                 encoding="utf-8"
@@ -583,6 +667,20 @@ def _project_feedback(
     simulator = context.simulator
     if simulator is None:
         raise RuntimeError("user-simulator feedback has no simulator")
+    full_projection = project_rubric_feedback(
+        generation,
+        rubric_artifacts,
+        FeedbackPolicy.FULL,
+        task_instruction=task_instruction,
+        first_revision=first_revision,
+        fixed_original_artifacts=fixed_artifacts,
+        fixed_original_rubric_text=context.selection.master_path.read_text(
+            encoding="utf-8"
+        ),
+        fixed_original_rubric_sha256=context.selection.master_sha256,
+        prompt_profile=prompt_profile,
+        benchmark=context.experiment.benchmark,
+    )
     generation_path = roots.feedback_generations / f"{submission_id}.json"
     if generation_path.is_symlink() or not generation_path.is_file():
         raise RuntimeError(f"missing simulated-user generation for {submission_id}")
@@ -623,6 +721,7 @@ def _project_feedback(
         submission_id=submission_id,
         generation_round=generation_round,
         generation=generation,
+        full_feedback=full_projection.payload,
         current_artifact=current_artifact,
         history=history,
         history_summary=history_summary,
@@ -631,6 +730,8 @@ def _project_feedback(
         generation,
         rubric_artifacts[0],
         user_feedback,
+        task_instruction=task_instruction,
+        first_revision=first_revision,
         fixed_original_score=float(fixed_score),
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,

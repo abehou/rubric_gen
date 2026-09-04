@@ -22,8 +22,13 @@ from rubric_gen.submission_revision.rubric_generation import (
 _BASE_FILES = frozenset({"manifest.json", "rubric.txt", "criteria.json"})
 _EVOLUTION_FILES = frozenset({
     "artifact-history.json",
-    "difference-proposal.json",
-    "rubric-proposal.json",
+    "pairwise-assessment-rubric-free.json",
+    "pairwise-assessment-active-rubric.json",
+    "pairwise-assessment-development-rubric.json",
+    "pairwise-comparisons.json",
+    "criterion-proposal.json",
+    "criterion-validation.json",
+    "aggregate-margins.json",
     "evolution.json",
 })
 _MANIFEST_KEYS = frozenset({

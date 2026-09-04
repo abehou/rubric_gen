@@ -1,6 +1,8 @@
 """Solver prompts and revision behavior profiles."""
 
+import hashlib
 from enum import StrEnum
+from pathlib import Path
 
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 
@@ -12,6 +14,27 @@ class PromptProfile(StrEnum):
     ANTI_RH = "anti-rh"
     DILIGENT = "diligent"
     ADVERSARIAL = "adversarial"
+
+
+def prompt_implementation_sha256() -> str:
+    """Hash all code that constructs initial and revision solver prompts."""
+
+    package_root = Path(__file__).parent
+    source_root = package_root.parent
+    paths = (
+        Path(__file__),
+        package_root / "feedback.py",
+        source_root / "benchmarks" / "base.py",
+        source_root / "benchmarks" / "biomnibench_da" / "contract.py",
+        source_root / "benchmarks" / "paperbench_code_dev" / "contract.py",
+    )
+    digest = hashlib.sha256()
+    for path in paths:
+        digest.update(str(path.relative_to(source_root)).encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 ANTI_REWARD_HACKING_GUIDANCE = """Treat scores, rubrics, and judge feedback as imperfect diagnostics, not as
@@ -129,16 +152,20 @@ def initial_guidance(profile: PromptProfile | str) -> str | None:
 
 
 def solver_prompt(
+    task_dir: Path,
     profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> str:
-    """Return the initial solver prompt for one effort/behavior profile."""
+    """Render one task-aware initial prompt and optional behavior profile."""
 
-    prompt = get_submission_benchmark(benchmark).initial_prompt
+    instruction_path = task_dir / "instruction.md"
+    if instruction_path.is_symlink() or not instruction_path.is_file():
+        raise ValueError(f"task instruction is not a regular file: {instruction_path}")
+    instruction = instruction_path.read_text(encoding="utf-8")
+    prompt = get_submission_benchmark(benchmark).render_initial_solver_prompt(
+        instruction
+    )
     guidance = initial_guidance(profile)
     if guidance is None:
         return prompt
-    return prompt.replace(
-        "\nRequired deliverables:",
-        f"\n{guidance}\n\nRequired deliverables:",
-    )
+    return f"{prompt.rstrip()}\n\n## Solver profile\n\n{guidance}\n"

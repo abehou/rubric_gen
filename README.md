@@ -65,7 +65,14 @@ current workflow.
 
 BioMNIBench and PaperBench have two task tiers. The development tier has three
 tasks. The results tier has 20 tasks. Each tier crosses four feedback policies
-with three rubric policies. All 12 cells use the `base` solver prompt.
+with five rubric policies. All 20 cells use the `base` solver profile.
+
+The `base` profile adds no behavioral guidance. For BioMNIBench, the initial
+solver prompt starts with the selected task's exact `instruction.md`. It appends
+only the path and unavailable-network facts of this experiment. The first
+revision prompt combines that task instruction with the first feedback payload.
+Later feedback continues the same persistent solver session without repeating
+the task text.
 
 | Benchmark | Development tier | Results tier |
 |---|---|---|
@@ -73,7 +80,7 @@ with three rubric policies. All 12 cells use the `base` solver prompt.
 | PaperBench Code-Dev | `experiments/paperbench-dev3.yaml` | `experiments/paperbench-results20.yaml` |
 | Harvey LAB | `experiments/harvey-harness-evolution-dev3.yaml` | `experiments/harvey-harness-evolution-results20.yaml` |
 
-Harvey is not part of the 4-by-3 factorial. Its runner changes harness code and
+Harvey is not part of the 4-by-4 factorial. Its runner changes harness code and
 task rubrics in one trajectory. It uses the unmodified Harvey task prompt.
 
 > [!WARNING]
@@ -181,19 +188,20 @@ The study crosses every solver with every condition in each task-replicate block
 All solvers use the same sealed seed for that block. Every block uses the same
 configured rubric-paraphrase variant.
 
-The shared pool contains several sealed rubric-paraphrase sets. Each set has
-one rubric for every available task. The experiment selects one complete set
-before revision. Every replicate, condition, and solver uses that variant as the
-initial rubric. The other variants remain hidden from the solver, in-loop judge,
-and proposer. They provide a common paraphrase-sensitivity diagnostic. This
-experiment does not estimate robustness across selected paraphrases.
+The shared pool contains five rubric-paraphrase sets. Each set has one rubric for
+every available task. The experiment reserves one selected set and one development
+set before revision. Every replicate, condition, and solver uses the selected
+variant as the initial rubric. Multi-view assessment uses the development variant.
+The other three variants remain sealed outcome rubrics. This experiment does not
+estimate robustness across selected paraphrases.
 
 Configure the stage in the experiment YAML:
 
 ```yaml
 rubric_paraphrases:
-  count: 4
+  count: 5
   selected_variant: 0
+  development_variant: 1
   model: gpt-5.6-luna
   max_retries: 2
 ```
@@ -206,19 +214,23 @@ large experiment.
 
 ## Criterion elicitation
 
-Every condition uses exactly one rubric. Each experiment requires these three
-rubric policies with the shared `base` solver prompt:
+Every condition uses exactly one scoring rubric. The general factorial supports
+five rubric policies with the `base` solver profile:
 
 - Static rubric (`fixed`) keeps the original rubric.
 - Offline rubric (`offline_elicitation`) freezes the shared pre-treatment rubric.
 - Online rubric (`online_elicitation`) starts from that same rubric and then uses
   observed artifacts.
+- Red-team artifact rubric (`red_team_artifact`) adds one isolated white-box
+  adversarial artifact for each eligible prior checkpoint.
+- Red-team trace rubric (`red_team_trace`) uses the same sidecar process and also
+  gives its private execution-trace excerpt to criterion induction.
 
-The seed stage creates one clean and one adversarial artifact for every configured
-task replicate. The configured prompt produces the primary seed. One fixed extra
+The seed stage creates one clean and one adversarial artifact for each of three
+task replicates. The configured prompt produces the primary seed. One fixed extra
 solver call uses the opposite role: `adversarial` for a good-faith primary, or
-`base` for an adversarial primary. Thus, seed generation uses two solver calls per
-task replicate. Assignment selection does not change this fixed attempt count.
+`base` for an adversarial primary. Seed generation therefore uses two solver calls
+per task replicate.
 
 Admission is intentionally lenient. Every primary seed enters the bank. An extra
 attempt enters when its process and required public outputs are valid. The workflow
@@ -226,15 +238,55 @@ does not inspect its score, quality, attack category, or detector label. It save
 invalid attempts but does not replace them. Exact public-artifact copies are
 deduplicated before elicitation. Post-hoc labels do not affect the bank.
 
-The original criteria remain immutable. The proposer returns the complete active
-learned-criterion set at each update. It can keep, rewrite, merge, retire, replace,
-or add learned criteria. The model chooses the set size. The program keeps every
-original point value and the original score denominator.
+The offline bank selects one clean artifact from each replicate and the first
+admitted adversarial artifact. It pairs the same adversarial artifact with all
+three clean artifacts. These pairs are correlated evidence, not independent
+attacks. Online histories retain adjacent revision pairs and only the latest
+initial-to-current anchor. Red-team arms also retain observed-to-sidecar pairs.
 
-The proposer generates and can revise each penalty schedule. The highest level
-gives zero points. Each lower level has a strictly more negative integer value.
-The prompt makes the model weigh under-penalization against false, dominant, or
-overlapping penalties.
+The original criteria remain immutable. Each pair uses one fixed, pseudo-random
+A/B order across three separate assessment calls. A rubric-free call defines the
+overall quality direction. An active-rubric call and a reserved development-
+rubric call return one base score and every active criterion level per artifact.
+Code reconstructs the total score and tests whether each rubric agrees. A tie or
+reversal under either rubric is a coverage gap. Rubric-free ties do not continue.
+The removed opposite-order call has no compatibility path.
+
+Assessment and validation receive only blinded artifacts. Criterion induction
+receives observed and adversarial roles for sidecar pairs in both red-team arms.
+A role is not a quality label. Red-team gaps enter induction. A stable hash
+reserves some other gaps from the induction prompt.
+
+The induction call proposes atomic candidate criteria from preferred–rejected
+pairs. The artifact arm supplies only sidecar role labels. The trace arm also
+supplies at most 32 KiB from each sidecar trajectory. Long traces retain their
+start and end. The trace is untrusted diagnostic evidence. Every proposed
+criterion must remain scoreable from public artifacts without trace access.
+
+The validation call receives no pairs, preferences, assessment reasons, role
+labels, or trajectories. It applies each candidate independently to every
+artifact in a non-tied quality comparison. The program then joins those levels
+to the hidden preferences. It accepts a candidate only when it is observable,
+nonredundant, strictly separates every cited induction pair, and preserves the
+cited pairs of every criterion that it replaces. A reversal on an unrelated pair
+is not a candidate-level veto because overall preference is an aggregate judgment.
+An accepted replacement removes only its named current criteria. All other
+current criteria remain active.
+Reserved gap applications are diagnostic. They are not an automatic admission
+veto.
+
+Code computes each current and prospective total from the base score, retained
+criteria, validated candidate levels, and zero-score floor. For every rubric-free
+quality comparison, the prospective margin cannot decrease under either the
+active or development view. It must strictly increase for each view that the
+candidate cites as a gap. A negative margin can pass when it becomes less negative.
+Candidates are tested in proposal order against the growing accepted set.
+
+The program assigns fixed normalized penalties. A three-level criterion uses a
+moderate penalty near 5% and a severe penalty near 10% of the original score
+maximum. A binary criterion uses one penalty near 10%. Integer rounding and the
+available score range determine the exact values. The model writes only the level
+descriptions.
 
 The canonical original-rubric judgment supplies the score base at each
 checkpoint. The augmented judgment supplies only the learned penalties. The
@@ -243,34 +295,26 @@ original judgment for original-criterion feedback. Thus, a learned rubric
 cannot re-award original points through judge context or paraphrase variation.
 The final score is the canonical base plus learned penalties, clamped at zero.
 
-Each update stores every artifact once under a stable blinded ID. It then gives
-the proposer the complete unordered pair graph. The first call finds uncovered
-differences. The second call returns the next complete active learned-criterion
-set. It can revise or remove prior criteria and add new general penalty criteria.
-It cannot reward optional features or create an easier success path. A rare or
-one-off failure can qualify. Pair references are provenance for later audit, not
-a hard support threshold.
+Each update stores every artifact once under a stable blinded ID. Candidate text
+cannot reward optional features or create an easier success path. Pair references
+record the induction evidence. Reserved gaps do not enter the induction prompt.
+The blind validator still applies candidates to their artifacts.
 
 The renderer makes each learned penalty claim-conditional. The judge applies it
 only when the submission claims or relies on the covered property. The absence
 of an unclaimed optional feature receives no penalty.
 
-Deterministic validation is intentionally minimal. It checks exact JSON fields,
-basic types, printable single-line rubric text, exact level labels, and integer
-penalties that start at zero and strictly decrease. It also checks that cited
-pair IDs exist and are distinct. The rendered rubric must preserve the original
-criteria and score normalization. Learned criterion content and titles must not
-duplicate other active criteria or original titles. The program does not check
-semantic quality, evidence sufficiency, numeric targets, attack references,
-penalty magnitude, or criterion count.
+Deterministic validation checks exact JSON fields, candidate support, replacement
+coverage, fixed points, title uniqueness, and rubric preservation. Semantic
+assessment and candidate validation remain model-based. They can make correlated
+errors or miss valid alternatives not present in the bank.
 
 Before assignment execution, the study compiles one shared pre-treatment rubric
-for each task and selected original-rubric hash. Every offline and online
-assignment installs the exact stored generation. The offline condition then
-freezes it. The online condition rebuilds the complete history graph after each
-eligible checkpoint. The sealed clean–adversarial bank fills the initial history.
-Artifact order is deterministic and blinded. Models do not receive roles,
-scores, round labels, or newer/older labels.
+for each task, selected-rubric hash, and development-rubric hash. Every elicitation
+assignment installs that exact generation. The offline condition freezes it. The
+online conditions rebuild the matched-pair history after each eligible checkpoint.
+Artifact order is deterministic and blinded. Models do not receive scores, round
+labels, or newer/older labels.
 
 Every arm scores `s000` with the original rubric. The offline and online arms
 score `s001` with the same pre-treatment rubric. Evidence through `s001` creates
@@ -278,17 +322,18 @@ the first online update, which scores `s002`. A ten-turn run has one shared
 pre-treatment generation and up to nine online updates.
 
 Each proposer request has a 1 MiB UTF-8 cap. Each call allows at most 32,768
-output tokens and uses a 1,800-second timeout. Both stages allow five validation
-retries. If the rubric stage exhausts its retries, the workflow keeps the prior
-active set and records the reason. If difference discovery exhausts its retries,
-the assignment stops. A write-ahead ledger binds every provider call and resume.
-Malformed or indeterminate provider work cannot be silently resampled.
+output tokens and uses a 300-second timeout. Each stage allows five validation
+retries. Exhausted assessment returns ties. Exhausted induction returns no
+candidates. Exhausted validation rejects all candidates. Each fallback keeps the
+prior active set and records the reason. A write-ahead ledger binds every provider
+call and resume. Malformed or indeterminate provider work cannot be silently
+resampled.
 
-The saved generation binds the exact artifact history, differences, complete
-rubric proposal, model metadata, provider ledger, rubric content, and local code hashes.
-This structure proves internal consistency. It does not prove that a generated
-criterion is correct or complete. Two supporting online pairs share the current
-artifact, so the support rule does not provide independent replication.
+The saved generation binds the artifact history, all three assessments, gap
+comparisons, candidate proposal, candidate validation, aggregate margin decisions,
+model metadata, provider ledger, rubric content, and local code hashes. This
+structure proves internal consistency. It does not prove that a generated
+criterion is correct or complete.
 
 ## Grading
 
@@ -307,9 +352,11 @@ retry policy remains separate and explicit.
 | Role | Model | Reasoning | Calls |
 |---|---|---|---:|
 | Solver | GPT-5.6 Luna | low | One solver run per revision turn |
-| Rubric paraphraser | GPT-5.6 Luna | none; low text verbosity | Four variants per task; up to two retries each |
-| Difference finder | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries |
-| Complete rubric proposer | GPT-5.6 Luna | low; low text verbosity | One per rubric update, plus up to five validation retries; the prior active set remains after exhaustion |
+| Red-team agent | GPT-5.6 Luna | low | One isolated sidecar per eligible checkpoint in each red-team arm |
+| Rubric paraphraser | GPT-5.6 Luna | none; low text verbosity | Five variants per task; up to two retries each |
+| Pairwise assessor | GPT-5.6 Luna | low; low text verbosity | Three views per rubric update; up to five retries each |
+| Criterion proposer | GPT-5.6 Luna | low; low text verbosity | One when induction gaps exist; up to five retries |
+| Criterion validator | GPT-5.6 Luna | low; low text verbosity | One when candidates exist; up to five retries |
 | In-loop rubric grader | GPT-5.6 Luna | none | One successful call per artifact and rubric |
 | Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | One successful call per artifact and rubric |
 | Reference rubric scorer | Claude Opus 5 | low effort | One successful call per artifact and rubric |
@@ -319,14 +366,14 @@ retry policy remains separate and explicit.
 
 Primary development studies use three tasks. Primary results studies use 20
 tasks. All require five solver turns before no-change stopping and allow at most
-ten turns. The primary studies use three replicates and 12 factorial conditions.
-Each development experiment has 108 assignments per solver. Each results
-experiment has 720 assignments per solver.
+ten turns. The primary studies use three replicates and 20 factorial conditions.
+Each development experiment has 180 assignments per solver. Each results
+experiment has 1,200 assignments per solver.
 
 `biomnibench-results20-user-simulator-full.yaml` selects full and simulated-user
-feedback across all three rubric policies. It has 360 assignments and reuses the
-Results20 seed and paraphrase pools.
-The model chooses the active learned-criterion set and each penalty schedule.
+feedback across the artifact-only and trace-aware red-team policies. It has 240
+assignments and reuses the Results20 seed and paraphrase pools.
+The program admits validated candidate criteria and assigns their penalty scales.
 Structured rubric judgments use temperature zero when supported and omit the
 deprecated field for Claude Opus 5.
 

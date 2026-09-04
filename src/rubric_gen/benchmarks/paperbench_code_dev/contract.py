@@ -65,22 +65,49 @@ PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT = (
     "Git commands. Use $TMPDIR instead of literal /tmp."
 )
 
-
-class PaperBenchCodeDev(SubmissionBenchmark):
-    benchmark = SubmissionBenchmarkId.PAPERBENCH_CODE_DEV
-    initial_prompt = PAPERBENCH_CODE_DEV_PROMPT
-    recovery_prompt = PAPERBENCH_CODE_DEV_RECOVERY_PROMPT
-    output_recovery_prompt = PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT
-    revision_instructions = """Read ./instruction.md and the allowed files under ./data again.
+_PAPERBENCH_REVISION_INSTRUCTIONS = """Read ./instruction.md and the allowed files under ./data again.
 Obey ./data/blacklist.txt. Keep ./data unchanged. Do not inspect parent
 directories, evaluator files, environment variables, credentials, or absolute
 host paths. Do not use the network or install packages. Do not run Git commands.
 Use $TMPDIR for temporary files. Inspect the implementation under ./submission.
-Run relevant local checks. Update the source and README.md when evidence supports
-a change. Keep all implementation files under ./submission. Work autonomously."""
+Run relevant local checks. Keep all implementation files under ./submission and
+keep ./submission/README.md complete. Work autonomously."""
+
+
+class PaperBenchCodeDev(SubmissionBenchmark):
+    benchmark = SubmissionBenchmarkId.PAPERBENCH_CODE_DEV
+    recovery_prompt = PAPERBENCH_CODE_DEV_RECOVERY_PROMPT
+    output_recovery_prompt = PAPERBENCH_CODE_DEV_OUTPUT_RECOVERY_PROMPT
     required_outputs = ("submission",)
     retained_workspace_names = frozenset(required_outputs)
     required_review = "workspace"
+
+    def render_initial_solver_prompt(self, instruction: str) -> str:
+        if type(instruction) is not str or not instruction.strip():
+            raise ValueError("PaperBench task instruction must be non-empty")
+        return PAPERBENCH_CODE_DEV_PROMPT
+
+    def render_revision_solver_prompt(
+        self,
+        instruction: str,
+        feedback_block: str,
+        *,
+        first_revision: bool,
+    ) -> str:
+        if type(instruction) is not str or not instruction.strip():
+            raise ValueError("PaperBench task instruction must be non-empty")
+        if type(feedback_block) is not str or not feedback_block.strip():
+            raise ValueError("PaperBench revision feedback must be non-empty")
+        return f"""Revise the current PaperBench Code-Dev submission.
+
+{_PAPERBENCH_REVISION_INSTRUCTIONS}
+
+{feedback_block.strip()}
+
+Use the feedback to revise the existing submission. Complete all outputs that
+the task requires. If no file needs a change, leave the submission unchanged
+and finish.
+"""
 
     def validate_dataset(self, tasks_dir: Path, task_ids: tuple[str, ...]) -> None:
         if task_ids == PAPERBENCH_DEV_PAPERS:

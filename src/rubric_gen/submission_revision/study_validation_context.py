@@ -17,8 +17,10 @@ from rubric_gen.submission_revision.artifacts import (
 from rubric_gen.submission_revision.evolution import (
     rubric_generation_implementation_sha256,
 )
+from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
+from rubric_gen.submission_revision.prompts import prompt_implementation_sha256
 from rubric_gen.submission_revision.judge import (
     FrozenRubric,
     FrozenRubricJudge,
@@ -70,6 +72,7 @@ class ValidationContext:
     simulator: SimulatedUserFeedback | None
     agent: AgentRunConfig
     seed_agent: AgentRunConfig
+    red_team_agent: AgentRunConfig
     task_dir: Path
     pretreatment_rubric_dir: Path
     selection: ParaphraseSelection
@@ -105,6 +108,7 @@ def build_validation_context(
     )
     agent = experiment.solver_config(assignment.solver_id)
     seed_agent = experiment.seed_agent_config()
+    red_team_agent = experiment.red_team_agent_config()
     task_dir = experiment.task_dir(assignment.task_id).resolve()
     pretreatment_value = manifest.get("pretreatment_rubric_dir")
     if type(pretreatment_value) is not str or not pretreatment_value:
@@ -184,6 +188,7 @@ def build_validation_context(
         simulator=simulator,
         agent=agent,
         seed_agent=seed_agent,
+        red_team_agent=red_team_agent,
         task_dir=task_dir,
         pretreatment_rubric_dir=pretreatment_rubric_dir,
         selection=selection,
@@ -286,7 +291,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "task_id": context.assignment.task_id,
         "task_dir": str(context.task_dir),
         "replicate": context.assignment.replicate,
-        "elicitation_seed_replicates": context.experiment.replicates,
+        "elicitation_seed_replicates": ELICITATION_SEED_REPLICATES,
         "execution_order": context.assignment.execution_order,
         "max_revisions": context.max_revisions,
         "min_revisions": context.min_revisions,
@@ -301,6 +306,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": context.condition["feedback_policy"],
         "prompt": protocol["prompt"],
+        "prompt_implementation_sha256": prompt_implementation_sha256(),
         "rubric_policy": context.condition["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
@@ -317,6 +323,10 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "initial_rubric_sha256": (
             scoring.initial_generation.rubric.content_sha256
         ),
+        "development_rubric_path": str(
+            context.selection.development_path.resolve()
+        ),
+        "development_rubric_sha256": context.selection.development_sha256,
         "initial_scoring_identity": scoring.initial_judge.scoring_identity(),
         "master_rubric_name": protocol["rubric_name"],
         "master_rubric_sha256": context.selection.master_sha256,
@@ -327,6 +337,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
             context.pretreatment_rubric_dir.resolve()
         ),
         "seed_generator": seed_generator_identity(context.seed_agent),
+        "red_team_generator": seed_generator_identity(context.red_team_agent),
         "seed_sha256": context.seed.sha256,
         "submission_count": len(context.expected_ids),
         "live_workspace_removed": True,

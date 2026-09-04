@@ -91,6 +91,15 @@ def _design(root: Path, task: Path) -> Experiment:
             "retries": 1,
             "timeout_seconds": 60,
         },
+        "red_team_generator": {
+            "provider": "codex",
+            "model": "test-model",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 60,
+        },
         "solvers": [{
             "solver_id": "test-solver",
             "provider": "codex",
@@ -125,6 +134,7 @@ def _design(root: Path, task: Path) -> Experiment:
         "rubric_paraphrases": {
             "count": 3,
             "selected_variant": 0,
+            "development_variant": 1,
             "model": "test-paraphraser",
             "max_retries": 1,
         },

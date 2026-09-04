@@ -5,13 +5,13 @@ The randomized condition assignment defines the treatment.
 
 ## Endpoint scores
 
-Every arm uses one rubric. The static arm keeps the original rubric. The two
-elicitation arms keep all original criteria. The model chooses the complete
-active learned-criterion set and each penalty schedule. The program preserves
-all original points and the original percentage denominator. Added criteria are
-penalty-only. Their highest level is zero. Lower levels are strictly negative
-integers inside the original score range. A learned criterion cannot add credit
-above the unchanged original rubric.
+Every arm uses one rubric. The static arm keeps the original rubric. The three
+elicitation arms keep all original criteria. Pairwise induction proposes learned
+criteria. Held-out pair validation controls admission. The program assigns fixed
+score-normalized penalties and preserves the original percentage denominator.
+Added criteria are penalty-only. Their highest level is zero. Lower levels are
+strictly negative integers. A learned criterion cannot add credit above the
+unchanged original rubric.
 
 During revision, the canonical original-rubric judgment supplies the score
 base and the augmented judgment supplies only learned penalties. The program
@@ -36,10 +36,11 @@ original-rubric scores. The strong panel scores both artifacts with the same
 unchanged original master rubric. Thus, `W_t - A_t` compares both judges with
 the same artifact and rubric.
 
-The selected rubric variant is fixed across all replicates, conditions, and
-solvers before revision. The holdout rubrics stay sealed from the solver and
-proposer. The strong panel scores each holdout variant after revision. The
-selected rubric, holdout rubrics, and rubric-free judge are common rulers across
+The selected and development rubric variants are fixed across all replicates,
+conditions, and solvers before revision. Multi-view assessment uses the
+development variant. The three outcome holdouts stay sealed from the solver and
+proposer. The strong panel scores each outcome holdout after revision. The
+selected rubric, outcome holdouts, and rubric-free judge are common rulers across
 policy arms. Thus, `selected_rubric_gain`, `holdout_rubric_gain`,
 `rubric_free_absolute_score_gain`, pairwise preference, and direct detection use
 common outcome instruments.
@@ -51,34 +52,54 @@ Each rubric-score reference binds its rubric hash and exact score request.
 The stage resume identity binds all assignment references. Byte-identical
 requests reuse one exact semantic judgment.
 
-The randomized design crosses four feedback policies with three rubric
-policies. It requires exactly one condition for each of the 12 pairs. All
-current experiments use the `base` solver prompt.
+The general randomized design crosses four feedback policies with five rubric
+policies. It requires exactly one condition for each of the 20 pairs. The focused
+trace ablation crosses `full` and `user_simulator` feedback with only the two
+red-team policies. All current experiments use the `base` solver profile.
 
 - Static rubric (`fixed`) keeps the original rubric.
 - Offline rubric (`offline_elicitation`) freezes the shared pre-treatment rubric.
 - Online rubric (`online_elicitation`) starts from that same rubric and then uses
   the full observed artifact history.
+- Red-team artifact rubric (`red_team_artifact`) adds one white-box adversarial
+  sidecar for each eligible prior checkpoint.
+- Red-team trace rubric (`red_team_trace`) adds the same evidence and exposes a
+  bounded private execution-trace excerpt only during criterion induction.
 
-Each configured task replicate contributes a primary artifact and one fixed
-opposite-role elicitation attempt. The seed workflow admits the extra attempt only
-when its process and required public outputs are valid. It does not filter on
-score, quality, attack success, category, or detector output. Invalid attempts
-remain saved, are not replaced, and do not enter the bank. Exact public-artifact
-copies are deduplicated.
+Each of three task replicates contributes one clean artifact. The bank also uses
+the first admitted adversarial artifact and pairs it with all three clean
+artifacts. These pairs are correlated. The seed workflow does not filter on
+score, attack success, category, or detector output. Invalid attempts remain
+saved, are not replaced, and do not enter the bank. Exact public-artifact copies
+are deduplicated.
 
-The feedback levels are `full`, `semi`, `score_only`, and `user_simulator`.
-One experiment contains all four levels and all three rubric policies.
-Development runs use three tasks. Results runs use 20 tasks. Feedback policy
-and rubric policy are the two planned factors.
+The general feedback levels are `full`, `semi`, `score_only`, and
+`user_simulator`. Development runs use three tasks. Results runs use 20 tasks.
+Feedback policy and rubric policy are the two planned factors.
 
-Each update uses one difference-finding call and one complete-set rubric-proposer
-call. Each artifact appears once under a stable blinded ID. The request includes
-the complete unordered pair graph. Before assignment execution, the study
-compiles one pre-treatment rubric for each task and selected original-rubric
-hash. Offline and online assignments install that exact rubric. Offline
-elicitation freezes it. Online elicitation updates after each eligible live
-artifact.
+Each pair has one fixed A/B order across three assessment calls. The rubric-free
+call defines the quality direction. Active- and development-rubric calls expose
+ties or reversals as coverage gaps. They also return one base score and every
+active criterion level per artifact. Rubric-free ties stop. A stable subset of
+gaps supports criterion induction. Reserved gaps remain hidden from induction.
+Each artifact appears once under a stable blinded identifier.
+
+After blind candidate application, code reconstructs current and prospective
+total scores. The prospective preferred-minus-rejected margin cannot decrease on
+any observed pair in either rubric view. Each cited gap view requires a strict
+increase. These are training-bank checks, not outcome measurements.
+
+Before assignment execution, the study compiles one pre-treatment rubric for
+each task, selected-rubric hash, and development-rubric hash. Elicitation arms
+install that exact rubric. Offline elicitation freezes it. Online elicitation
+updates after each eligible live artifact. Outcome rubric variants remain sealed.
+
+The red-team sidecar sees the active rubric and a private copy of the
+preceding sealed submission. It does not see assigned solver feedback. The
+workflow pairs it with the observed artifact. Assessment and validation remain
+role-blind. The proposer sees sidecar roles in both red-team arms. Only the trace
+arm sees the execution-trace excerpt. The sidecar trains the next rubric
+generation and never enters natural outcome rates.
 
 Every arm scores `s000` with the original rubric. Offline and online score
 `s001` with their shared pre-treatment rubric. Evidence through `s001` creates
@@ -91,6 +112,11 @@ includes the novelty of changing live evidence because the offline pair set is
 fixed. Online-minus-fixed measures the total online policy effect. All three are
 longitudinal intention-to-treat contrasts.
 
+Red-team-trace-minus-red-team-artifact measures assignment to trajectory access
+during induction. It does not isolate a fixed trace on a fixed artifact because
+the two online arms can diverge after treatment. Both policies otherwise use the
+same sidecar, assessment, induction, validation, and update procedures.
+
 Every current protocol requires five solver revision turns before no-change
 stopping and permits at most ten. An unchanged turn before turn five creates an
 explicit checkpoint and receives the next scheduled feedback. Rubric elicitation
@@ -98,20 +124,18 @@ still deduplicates exact public artifacts. Submission snapshots and judge inputs
 use independent file copies to prevent shared-inode metadata races.
 
 Each model request has a 1 MiB UTF-8 limit, a 32,768-output-token ceiling, and a
-1,800-second timeout. Both proposer stages allow five validation retries. The
-second stage returns the complete next active set. It can retain, rewrite, merge,
-retire, replace, or add learned criteria. After bounded invalid output, the
-workflow keeps the prior active set and records the reason. A durable write-ahead
-ledger binds every call. Resume cannot silently resample an indeterminate
-provider result. These ceilings do not imply full usage.
+300-second timeout. Each stage allows five validation retries in current
+experiments. Exhausted assessment returns ties. Exhausted induction returns no
+candidates. Exhausted validation rejects all candidates. Each fallback keeps the
+prior active set and records the reason. A durable write-ahead ledger binds every
+call. Resume cannot silently resample an indeterminate provider result. These
+ceilings do not imply full usage.
 
-Deterministic validation checks exact JSON structure and basic types. Rubric text
-must be printable and single-line. Level labels must match the original scoring
-protocol. Penalties must be integers that start at zero and strictly decrease.
-Pair citations must be distinct references to pairs in the history. The rendered
-rubric must preserve the original criteria and normalization. Active learned
-criteria cannot duplicate content or titles. The validator does not judge
-semantic quality, evidence strength, numeric content, penalty magnitude, or count.
+Deterministic validation checks exact JSON structure, preference consistency,
+candidate provenance, replacement conflicts, fixed points, title uniqueness,
+original-rubric preservation, and normalization. The model validator checks
+observability, redundancy, separation of cited pairs, and false penalties on all
+consistent pairs. These checks do not prove semantic quality or generalization.
 
 The rubric-free absolute-score panel sees one artifact at a time. It scores that
 artifact against fixed quality descriptions without a criterion rubric. These

@@ -89,6 +89,7 @@ class RevisionScorer:
         rubric_policy: RubricPolicy,
         initial_generation: RubricGeneration,
         initial_rubric: FrozenRubric,
+        development_rubric: CompleteRubric,
         master_rubric: FrozenRubric,
         master_judge: SubmissionJudge,
         seed: ResolvedSeed,
@@ -107,6 +108,7 @@ class RevisionScorer:
         self.rubric_policy = rubric_policy
         self.initial_generation = initial_generation
         self.initial_rubric = initial_rubric
+        self.development_rubric = development_rubric
         self.master_rubric = master_rubric
         self.master_judge = master_judge
         self.seed = seed
@@ -341,7 +343,7 @@ class RevisionScorer:
     def ensure_online_rubric_generation(self, turn_index: int) -> None:
         """Create an online rubric only when a new submission needs it."""
 
-        if self.rubric_policy is not RubricPolicy.ONLINE_ELICITATION:
+        if not self.rubric_policy.uses_online_evidence:
             return
         if turn_index < 2:
             return
@@ -359,9 +361,28 @@ class RevisionScorer:
             generation_round - 1,
             expected_policy=self.rubric_policy,
         )
+        if self.rubric_policy.uses_red_team:
+            generator = self.dependencies.red_team_generator
+            if generator is None:
+                raise RuntimeError("red-team policy has no generator")
+            source_checkpoint = generation_round - 1
+            source_workspace = (
+                self.experiment_dir
+                / "submissions"
+                / f"s{source_checkpoint:03d}"
+                / "workspace"
+            )
+            generator.ensure(
+                task_dir=self.task_dir,
+                source_workspace=source_workspace,
+                active_generation=current,
+                checkpoint=source_checkpoint,
+                experiment_dir=self.experiment_dir,
+            )
         generation = proposer.elicit_rubric(
             instruction=(self.task_dir / "instruction.md").read_text(),
             original_rubric=CompleteRubric.from_content(self.initial_rubric.text),
+            development_rubric=self.development_rubric,
             current_generation=current,
             policy=self.rubric_policy,
             generation_round=generation_round,
@@ -440,11 +461,17 @@ class RevisionScorer:
         fixed_original_artifacts: JudgeArtifacts,
     ):
         policy = FeedbackPolicy(self.config.feedback_policy)
+        task_instruction = (self.task_dir / "instruction.md").read_text(
+            encoding="utf-8"
+        )
+        first_revision = submission_id == "s000"
         if policy is not FeedbackPolicy.USER_SIMULATOR:
             return project_rubric_feedback(
                 generation,
                 (artifacts.score_validation_path, artifacts.evaluation_path),
                 policy,
+                task_instruction=task_instruction,
+                first_revision=first_revision,
                 fixed_original_artifacts=(
                     fixed_original_artifacts.score_validation_path,
                     fixed_original_artifacts.evaluation_path,
@@ -458,6 +485,21 @@ class RevisionScorer:
         simulator = self.dependencies.feedback_simulator
         if simulator is None:
             raise RuntimeError("simulated-user feedback generator is unavailable")
+        full_projection = project_rubric_feedback(
+            generation,
+            (artifacts.score_validation_path, artifacts.evaluation_path),
+            FeedbackPolicy.FULL,
+            task_instruction=task_instruction,
+            first_revision=first_revision,
+            fixed_original_artifacts=(
+                fixed_original_artifacts.score_validation_path,
+                fixed_original_artifacts.evaluation_path,
+            ),
+            fixed_original_rubric_text=self.master_rubric.text,
+            fixed_original_rubric_sha256=self.master_rubric.sha256,
+            prompt_profile=self.config.prompt_profile,
+            benchmark=self.config.benchmark,
+        )
         checkpoint = int(submission_id[1:])
         history = build_simulated_user_history(
             self.experiment_dir,
@@ -544,6 +586,7 @@ class RevisionScorer:
                     encoding="utf-8"
                 ),
                 generation=generation,
+                full_feedback=full_projection.payload,
                 current_artifact=current_artifact,
                 history=history,
                 history_summary=history_summary,
@@ -561,6 +604,7 @@ class RevisionScorer:
             submission_id=submission_id,
             generation_round=generation_round,
             generation=generation,
+            full_feedback=full_projection.payload,
             current_artifact=current_artifact,
             history=history,
             history_summary=history_summary,
@@ -569,6 +613,8 @@ class RevisionScorer:
             generation,
             artifacts.score_validation_path,
             user_feedback,
+            task_instruction=task_instruction,
+            first_revision=first_revision,
             fixed_original_score=fixed_original_score,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
@@ -603,7 +649,7 @@ class RevisionScorer:
         if checkpoint > 0:
             if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
                 generation_round = 1
-            elif self.rubric_policy is RubricPolicy.ONLINE_ELICITATION:
+            elif self.rubric_policy.uses_online_evidence:
                 generation_round = checkpoint
         generation = load_rubric_generation(
             self.experiment_dir,
@@ -622,9 +668,12 @@ class RevisionScorer:
     def elicitation_history(self, generation_round: int):
         """Return the complete blinded history for one rubric update."""
 
+        uses_live_red_team = (
+            self.rubric_policy.uses_red_team and generation_round >= 2
+        )
         return build_elicitation_artifact_history(
             online=(
-                self.rubric_policy is RubricPolicy.ONLINE_ELICITATION
+                self.rubric_policy.uses_online_evidence
                 and generation_round >= 2
             ),
             seed_set=self.config.seed_run_dir,
@@ -638,9 +687,19 @@ class RevisionScorer:
                 self.config.experiment_id,
                 self.task_dir.name,
                 self.initial_generation.rubric.content_sha256,
+                self.development_rubric.content_sha256,
             ),
             source_checkpoint=(
                 generation_round - 1 if generation_round >= 2 else None
+            ),
+            red_team_policy=(
+                self.rubric_policy if uses_live_red_team else None
+            ),
+            red_team_generator_identity=(
+                self.dependencies.red_team_generator.identity()
+                if uses_live_red_team
+                and self.dependencies.red_team_generator is not None
+                else None
             ),
         )
 

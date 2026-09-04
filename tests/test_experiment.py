@@ -56,6 +56,8 @@ def _factorial_conditions() -> list[dict[str, str]]:
         "static": "fixed",
         "offline-rubric": "offline_elicitation",
         "online-rubric": "online_elicitation",
+        "red-team-artifact": "red_team_artifact",
+        "red-team-trace": "red_team_trace",
     }
     return [
         {
@@ -77,6 +79,11 @@ def _payload(root: Path) -> dict[str, object]:
         "randomization": {"seed": 42, "replicates": 3},
         "seed_generator": {
             "provider": "codex", "model": "seed-model",
+            "reasoning_effort": "low", "service_tier": None,
+            "executable": None, "retries": 1, "timeout_seconds": 60,
+        },
+        "red_team_generator": {
+            "provider": "codex", "model": "red-team-model",
             "reasoning_effort": "low", "service_tier": None,
             "executable": None, "retries": 1, "timeout_seconds": 60,
         },
@@ -108,6 +115,7 @@ def _payload(root: Path) -> dict[str, object]:
         "rubric_paraphrases": {
             "count": 3,
             "selected_variant": 0,
+            "development_variant": 1,
             "model": "test-paraphraser",
             "max_retries": 1,
         },
@@ -151,10 +159,10 @@ def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path
     first = load_experiment(path)
     second = load_experiment(path)
     assert first.assignments == second.assignments
-    assert len(first.assignments) == 2 * 3 * 12
+    assert len(first.assignments) == 2 * 3 * 20
     assert all(not hasattr(item, "design_sha256") for item in first.assignments)
     assert {item.execution_order for item in first.assignments} == set(
-        range(1, 73)
+        range(1, 121)
     )
 
 
@@ -179,7 +187,7 @@ def test_experiment_crosses_solver_with_each_randomized_condition(
 
     experiment = load_experiment(path)
 
-    assert len(experiment.assignments) == 2 * 3 * 2 * 12
+    assert len(experiment.assignments) == 2 * 3 * 2 * 20
     assert experiment.solver_ids == ("test-solver", "other-solver")
     assert experiment.seed_agent_config().model == "seed-model"
     assert experiment.solver_config("other-solver").model == "other-model"
@@ -189,7 +197,7 @@ def test_experiment_crosses_solver_with_each_randomized_condition(
             for assignment in experiment.assignments
         )
         for solver_id in experiment.solver_ids
-    } == {"test-solver": 72, "other-solver": 72}
+        } == {"test-solver": 120, "other-solver": 120}
 
 
 def test_experiment_selects_exact_assignments_after_randomization(
@@ -514,8 +522,8 @@ def test_experiment_accepts_a_complete_selected_feedback_by_rubric_factorial(
 
     experiment = load_experiment(path)
 
-    assert len(experiment.payload["conditions"]) == 6
-    assert len(experiment.assignments) == 36
+    assert len(experiment.payload["conditions"]) == 10
+    assert len(experiment.assignments) == 60
 
 
 def test_experiment_rejects_an_incomplete_selected_factorial(
@@ -639,7 +647,7 @@ def test_experiment_rejects_invalid_selected_paraphrase_variant(
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
 
-    with pytest.raises(ValueError, match="selected rubric paraphrase variant"):
+    with pytest.raises(ValueError, match="selected_variant is outside"):
         load_experiment(path)
 
 
@@ -862,14 +870,59 @@ def test_experiment_workflow_suppresses_solver_event_streams(
         key=lambda item: item.execution_order,
     )
     optimizer = experiment.task_dir(assignment.task_id) / "tests" / "rubric.txt"
+    development = optimizer.with_name("development-rubric.txt")
+    development.write_text(optimizer.read_text() + "\n")
     monkeypatch.setattr(
         paraphrase_validation_module,
         "resolve_paraphrase_selection",
-        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            optimizer_path=optimizer,
+            development_path=development,
+        ),
     )
 
     assert seed.agent.quiet is True
     assert study._revision_config(assignment, resume=False).agent.quiet is True
+
+
+def test_study_keeps_three_seed_artifacts_with_more_outcome_replicates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["randomization"]["replicates"] = 4  # type: ignore[index]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    experiment = load_experiment(path)
+    study = StudyRunner(StudyRunConfig(
+        experiment=experiment,
+        seed_run_dir=tmp_path / "seeds",
+        paraphrase_run_dir=tmp_path / "paraphrases",
+        output_dir=tmp_path / "study",
+        max_concurrency=1,
+    ))
+    optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    development = optimizer.with_name("development-rubric.txt")
+    development.write_text(optimizer.read_text() + "\n")
+    monkeypatch.setattr(
+        paraphrase_validation_module,
+        "resolve_paraphrase_selection",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            optimizer_path=optimizer,
+            development_path=development,
+        ),
+    )
+    assignment = next(
+        item for item in experiment.assignments
+        if item.task_id == "da-1-1" and item.replicate == 4
+    )
+
+    config = study._revision_config(assignment, resume=False)
+
+    assert config.replicate == 4
+    assert config.elicitation_seed_replicates == 3
 
 
 def test_study_shares_one_pretreatment_rubric_across_elicitation_arms(
@@ -890,10 +943,15 @@ def test_study_shares_one_pretreatment_rubric_across_elicitation_arms(
     ))
     task_id = "da-1-1"
     optimizer = experiment.task_dir(task_id) / "tests" / "rubric.txt"
+    development = optimizer.with_name("development-rubric.txt")
+    development.write_text(optimizer.read_text() + "\n")
     monkeypatch.setattr(
         paraphrase_validation_module,
         "resolve_paraphrase_selection",
-        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            optimizer_path=optimizer,
+            development_path=development,
+        ),
     )
     assignments = [
         assignment
@@ -901,7 +959,12 @@ def test_study_shares_one_pretreatment_rubric_across_elicitation_arms(
         if assignment.task_id == task_id
         and experiment.condition(assignment.condition_id)[
             "rubric_policy"
-        ] in {"offline_elicitation", "online_elicitation"}
+        ] in {
+            "offline_elicitation",
+            "online_elicitation",
+            "red_team_artifact",
+            "red_team_trace",
+        }
     ]
     roots = {
         study._revision_config(assignment, resume=False).pretreatment_rubric_dir
@@ -1453,6 +1516,8 @@ def test_study_resume_reclaims_interrupted_running_records(
     runner._write_manifest(manifest)
     revisions: list[object] = []
     optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    development = optimizer.with_name("development-rubric.txt")
+    development.write_text(optimizer.read_text() + "\n")
     monkeypatch.setattr(
         paraphrase_validation_module,
         "validate_paraphrase_run",
@@ -1461,7 +1526,10 @@ def test_study_resume_reclaims_interrupted_running_records(
     monkeypatch.setattr(
         paraphrase_validation_module,
         "resolve_paraphrase_selection",
-        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            optimizer_path=optimizer,
+            development_path=development,
+        ),
     )
     monkeypatch.setattr(
         study_module,
@@ -1487,7 +1555,7 @@ def test_study_resume_reclaims_interrupted_running_records(
     assert recovered["status"] == "completed"
     assert recovered["attempt_count"] == 5
     assert recovered["pid"] == os.getpid()
-    assert len(revisions) == 36
+    assert len(revisions) == 60
 
 
 def test_study_resume_trusts_completed_records(
@@ -1553,6 +1621,8 @@ def test_study_reports_recorded_assignment_failures(
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     experiment = load_experiment(path)
     optimizer = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
+    development = optimizer.with_name("development-rubric.txt")
+    development.write_text(optimizer.read_text() + "\n")
     monkeypatch.setattr(
         paraphrase_validation_module,
         "validate_paraphrase_run",
@@ -1561,7 +1631,10 @@ def test_study_reports_recorded_assignment_failures(
     monkeypatch.setattr(
         paraphrase_validation_module,
         "resolve_paraphrase_selection",
-        lambda *_args, **_kwargs: SimpleNamespace(optimizer_path=optimizer),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            optimizer_path=optimizer,
+            development_path=development,
+        ),
     )
 
     def fail_revision(_revision: object, **_kwargs: object) -> None:

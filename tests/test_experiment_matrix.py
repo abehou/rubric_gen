@@ -22,6 +22,8 @@ RUBRIC_POLICIES = {
     "static": "fixed",
     "offline-rubric": "offline_elicitation",
     "online-rubric": "online_elicitation",
+    "red-team-artifact": "red_team_artifact",
+    "red-team-trace": "red_team_trace",
 }
 BIO_DEV_TASKS = (
     "da-3-4",
@@ -72,13 +74,15 @@ def _expected_conditions() -> list[dict[str, str]]:
 
 def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
     tiers = {
-        "biomnibench-dev3.yaml": (BIO_DEV_TASKS, 108, 1_658_880, 3_888),
+        "biomnibench-dev3.yaml": (BIO_DEV_TASKS, 180, 2_764_800, 6_480),
         "biomnibench-results20.yaml": (
-            BIO_RESULTS_TASKS, 720, 11_059_200, 25_920,
+            BIO_RESULTS_TASKS, 1_200, 18_432_000, 43_200,
         ),
-        "paperbench-dev3.yaml": (PAPERBENCH_DEV_PAPERS, 108, 138_240, 3_888),
+        "paperbench-dev3.yaml": (
+            PAPERBENCH_DEV_PAPERS, 180, 230_400, 6_480,
+        ),
         "paperbench-results20.yaml": (
-            PAPERBENCH_RESULTS_PAPERS, 720, 921_600, 25_920,
+            PAPERBENCH_RESULTS_PAPERS, 1_200, 1_536_000, 43_200,
         ),
     }
     expected_conditions = _expected_conditions()
@@ -95,6 +99,7 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
         assert payload["randomization"]["replicates"] == 3
         assert payload["assignment_selection"] == "all"
         assert payload["seed_generator"]["model"] == "gpt-5.6-luna"
+        assert payload["red_team_generator"]["model"] == "gpt-5.6-luna"
         assert payload["solvers"] == [{
             "solver_id": "luna",
             "provider": "codex",
@@ -128,10 +133,17 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
         assert payload["outcome_audit"]["rubric_free_evaluation_max_calls"] == rubric_free_evaluation_calls
         benchmark_slug = "paperbench" if filename.startswith("paperbench") else "biomnibench"
         tier_slug = "luna-dev3" if "dev3" in filename else "luna-results20"
+        seed_tier_slug = (
+            tier_slug
+            if benchmark_slug == "paperbench"
+            else "native-prompt-dev3"
+            if "dev3" in filename
+            else "native-prompt-results20"
+        )
         assert payload["dag"] == {
             "seed": {
                 "depends_on": [],
-                "output_dir": f"../seeds/{benchmark_slug}/{tier_slug}",
+                "output_dir": f"../seeds/{benchmark_slug}/{seed_tier_slug}",
             },
             "paraphrase": {
                 "depends_on": [],
@@ -161,18 +173,21 @@ def test_biomni_results_focused_feedback_factorial_reuses_shared_inputs() -> Non
         condition
         for condition in _expected_conditions()
         if condition["feedback_policy"] in {"full", "user_simulator"}
+        and condition["rubric_policy"] in {
+            "red_team_artifact", "red_team_trace",
+        }
     ]
 
     assert payload["tasks"] == list(BIO_RESULTS_TASKS)
     assert payload["conditions"] == expected_conditions
     assert payload["assignment_selection"] == "all"
-    assert len(BIO_RESULTS_TASKS) * 3 * len(expected_conditions) == 360
-    assert payload["outcome_audit"]["rubric_score_max_calls"] == 5_529_600
+    assert len(BIO_RESULTS_TASKS) * 3 * len(expected_conditions) == 240
+    assert payload["outcome_audit"]["rubric_score_max_calls"] == 3_686_400
     assert payload["outcome_audit"][
         "rubric_free_evaluation_max_calls"
-    ] == 12_960
+    ] == 8_640
     assert payload["dag"]["seed"]["output_dir"] == (
-        "../seeds/biomnibench/luna-results20"
+        "../seeds/biomnibench/native-prompt-results20"
     )
     assert payload["dag"]["paraphrase"]["output_dir"] == (
         "../runs/rubric-paraphrases/biomnibench/luna-results20"
@@ -193,7 +208,7 @@ def test_only_current_tier_configs_exist() -> None:
     }
 
 
-def test_elicitation_preflight_has_twenty_targeted_assignments() -> None:
+def test_elicitation_preflight_has_targeted_red_team_ablation() -> None:
     paths = (
         EXPERIMENTS / "preflights/biomnibench-elicitation-10.yaml",
         EXPERIMENTS / "preflights/paperbench-elicitation-10.yaml",
@@ -203,13 +218,20 @@ def test_elicitation_preflight_has_twenty_targeted_assignments() -> None:
         payload = _yaml(path)
         conditions = payload["conditions"]
         assert isinstance(conditions, list)
-        assert conditions == _expected_conditions()
+        assert conditions == [
+            condition
+            for condition in _expected_conditions()
+            if condition["feedback_policy"] in {"full", "user_simulator"}
+            and condition["rubric_policy"] in {
+                "red_team_artifact", "red_team_trace",
+            }
+        ]
         selection = payload["assignment_selection"]
         assert isinstance(selection, list)
-        assert sum(item.endswith("online-rubric") for item in selection) == 8
-        assert sum(item.endswith("offline-rubric") for item in selection) == 2
+        assert sum(item.endswith("red-team-artifact") for item in selection) == 2
+        assert sum(item.endswith("red-team-trace") for item in selection) == 2
         assignment_count += len(selection)
-    assert assignment_count == 20
+    assert assignment_count == 8
 
 
 def test_harvey_has_distinct_three_and_twenty_task_tiers() -> None:

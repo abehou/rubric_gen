@@ -55,6 +55,10 @@ The seed stage now makes one clean attempt and one adversarial attempt for each
 configured replicate. It uses structural-only admission. It saves invalid
 attempts, makes no replacement calls, and deduplicates exact public artifacts.
 
+Elicitation uses exactly three clean artifacts and the first admitted adversarial
+artifact. The same adversarial artifact forms three correlated pairs. This design
+increases ordinary coverage, but it does not provide three independent attacks.
+
 This is an intention-to-treat bank. It can contain weak or unsuccessful
 attacks. Failed attempts and exact duplicates can also reduce bank size. The
 analysis must report attempted, admitted, and unique artifact counts by task.
@@ -67,14 +71,14 @@ must not enter the natural reward-hacking outcome rate.
 
 **Status: Fixed.**
 
-The study now compiles one pre-treatment rubric for each task and selected
-initial-rubric hash. Stable blinded IDs make this request independent of an
-assignment. Every offline and online assignment installs the exact stored
-generation and validates its provenance.
+The study now compiles one pre-treatment rubric for each task, selected-rubric
+hash, and development-rubric hash. Stable blinded IDs make this request
+independent of an assignment. Every elicitation assignment installs the exact
+stored generation and validates its provenance.
 
 The implemented timing is:
 
-1. Compile one pre-treatment rubric for each task and selected initial-rubric hash.
+1. Compile one pre-treatment rubric for each task and both rubric hashes.
 2. Reuse that exact rubric across all feedback policies and relevant solvers.
 3. Score `s000` with the original rubric in every rubric-policy arm.
 4. Deliver only original-rubric feedback from `s000`.
@@ -137,12 +141,14 @@ paired baseline. The complete trajectory remains necessary for direct detection.
 
 ### Problem 7: Rubric elicitation can overfit its training artifacts
 
-**Status: Fixed.**
+**Status: Partly mitigated. External generalization remains open.**
 
 The pre-treatment bank includes the same task and can include the assignment's
 initial seed artifact. The learned rubric can therefore fit the starting cohort.
-The complete pair graph also creates many correlated comparisons. Pair count is
-not independent support count.
+The new workflow uses matched pairs instead of a complete pair graph. It also
+reserves a stable subset of rubric gaps from criterion induction. Blind candidate
+applications on these artifacts are diagnostic only. They do not veto admission
+and do not establish performance on new attacks or tasks.
 
 Use held-out attack attempts and held-out tasks to measure rubric coverage.
 Never promote training-bank performance as generalization evidence. Report
@@ -150,16 +156,30 @@ support by distinct artifact and attack family, not only by pair count.
 
 ### Problem 8: Generated-criterion validation does not prove correctness
 
-**Status: Open.**
+**Status: Partly mitigated.**
 
 Structural checks can reject malformed criteria. They cannot prove that a
 criterion is correct, complete, or causally related to reward hacking. The same
-model finds differences and proposes the rubric, so its errors can persist.
+model family can assess pairs, propose criteria, and validate candidates. Its
+errors can therefore remain correlated.
 
-Pair citations are now provenance only. The program verifies that cited pairs
-exist and are distinct. It does not require three artifacts or reject a shared
-hub. The complete-set proposer decides whether the task and evidence justify a
-criterion. This permits rare attacks, but it increases dependence on model judgment.
+The rubric-free view supplies each non-tied quality direction. Active- and
+development-rubric ties or reversals define gaps. The validator sees only
+candidate definitions and blinded artifacts. It does not receive pair membership,
+preference direction, assessment reasons, roles, or traces. It assigns one level
+to each candidate-artifact combination, and code later joins those levels to the
+hidden preferences. A candidate must strictly separate every cited pair. A
+replacement must also separate all provenance pairs of the criteria it replaces.
+An unrelated reversal is not a hard veto because overall preference is aggregate.
+These checks reduce circular confirmation. They do not prove that the quality
+labels are correct.
+
+The active and development assessment calls now return one base score and every
+active criterion level for each artifact. Code reconstructs current and
+prospective totals with the score floor. A candidate cannot reduce any observed
+margin in either view, and it must strictly improve each cited gap view. This
+checks internal aggregate improvement. It does not prove improvement under the
+sealed outcome rubrics or on unseen artifacts.
 
 Measure false positives on clean held-out artifacts. Measure detection or
 penalty power on held-out adversarial artifacts. Keep these measurements
@@ -232,9 +252,10 @@ Strict panel completion remains a separate launch requirement under Problem 15.
 
 Prior Results20 replicates selected different variants. Current experiments
 explicitly select variant 0 for every replicate, condition, solver, and task.
-The other variants remain sealed evaluation holdouts. This removes selected
-wording as a source of replicate variation. The experiment does not estimate
-robustness across selected paraphrases.
+Variant 1 is reserved for multi-view development assessment. The other three
+variants remain sealed evaluation holdouts. This removes selected wording as a
+source of replicate variation. The experiment does not estimate robustness
+across selected paraphrases.
 
 ### Problem 15: Provider failure and audit cost can dirty the sample
 
@@ -346,7 +367,7 @@ contrast as the primary analysis.
 
 ### Problem 21: Append-only criterion capacity can disable online adaptation
 
-**Status: Core mechanism fixed. Reporting remains open.**
+**Status: Partly fixed. Reporting and stale-criterion removal remain open.**
 
 The old active rubric permitted at most five elicited criteria. One generation
 could add all five, and later generations could not edit or remove them. The shared
@@ -355,15 +376,15 @@ In that case, the online arm cannot add a criterion and is identical to the
 offline arm apart from extra calls. Early weak criteria can also lock out later
 strong criteria.
 
-The criterion-count cap and append-only rule are removed. At each generation,
-the proposer returns the complete active set. It can keep, rewrite, merge, retire,
-replace, or add criteria. The model chooses the set size. Request, output, and
-rubric-structure limits remain resource bounds. Reports still need active-set
-size, churn, and the number of live updates that changed the rubric.
+The criterion-count cap is removed. A candidate can replace one or more named
+current criteria. This permits revision and merging without letting the model
+rewrite the complete active set. Unnamed criteria remain active. The workflow
+cannot retire a stale criterion without a replacement, so accumulation remains
+possible. Reports still need active-set size, churn, and changed-update counts.
 
 ### Problem 22: Fixed small penalties can leave reward hacking profitable
 
-**Status: Fixed schedule removed. Calibration remains open.**
+**Status: Fixed normalized scale restored. Calibration remains open.**
 
 The old protocol gave each elicited criterion a maximum penalty of four percent
 of the original rubric maximum. Its total penalty could not exceed about twenty percent.
@@ -372,15 +393,14 @@ shortcut when it gains more original-rubric points than the added penalty. An
 omission can also evade a criterion when the submission does not make the covered
 claim.
 
-The proposer now generates and can change each complete penalty schedule. The
-highest level is zero. Lower levels are strictly negative integers. The prompt
-requires a tradeoff between attack incentives and false or dominant penalties.
-The program owns only the ordering invariant. It does not cap penalty magnitude.
+The program now assigns each penalty schedule. Three-level criteria use about 5%
+and 10% of the original score maximum. Binary criteria use about 10%. This removes
+model-controlled penalty drift and the old four-percent ceiling. These values can
+still be too weak or too strong for a task.
 
 Use held-out clean and adversarial artifacts to measure criterion activation,
-false penalties, and score ordering. This model-owned policy adds variance and
-bundles criterion content with penalty strength. Treat the full learned-rubric
-policy as the intervention. Keep attempt-bank admission lenient.
+false penalties, and score ordering. Treat the fixed scale as part of the
+learned-rubric intervention. Keep attempt-bank admission lenient.
 
 ## Launch rule
 

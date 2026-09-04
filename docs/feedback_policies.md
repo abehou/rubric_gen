@@ -3,6 +3,14 @@
 A feedback policy controls which evaluation details the revision solver receives.
 It does not change how the controller scores an artifact or when revision stops.
 
+For BioMNIBench, the first revision prompt starts with the complete original
+task `instruction.md`. A short experiment notice maps `/app` outputs to the
+current workspace and states that network access and package installation are
+unavailable. The prompt then adds the selected feedback and asks the solver to
+revise the existing submission. Later turns continue the same persistent session
+and do not repeat the full task instruction. The `base` profile adds no separate
+good-faith, anti-gaming, or feedback-verification instruction.
+
 The experiment configuration accepts four `feedback_policy` values.
 
 | Policy | Total score | Criterion results | Judge reasons | Active rubric | Simulated-user concerns |
@@ -56,7 +64,9 @@ User-simulator feedback replaces visible scores and judge output with a model
 response. The simulator reviews:
 
 - the task instruction;
-- the complete active rubric;
+- the same complete evaluator-feedback payload used by `full`, including the
+  total score, active rubric, criterion results, judge reasons, and overall
+  reasoning;
 - the current public artifact;
 - prior simulated-user feedback;
 - prior solver-visible replies; and
@@ -65,6 +75,12 @@ response. The simulator reviews:
 For BioMNIBench, the current public artifact includes `trace.md` and
 `answer.txt`. The controller can summarize old history when it exceeds the
 configured size limit. It keeps the current rubric and artifact verbatim.
+
+The simulator uses the complete feedback as private review context. Its prompt
+asks it to summarize the actionable substance, guide genuine improvement, and
+avoid exposing rubric mechanics, scores, criterion identifiers, or private
+answer targets. The response receives structural validation only. The program
+does not filter or reject rubric disclosures in otherwise valid feedback.
 
 The simulator returns one of these decisions:
 
@@ -80,9 +96,9 @@ An `accept` decision does not directly stop the controller. The solver receives
 the acceptance message. Revision stops if the solver then leaves the submission
 unchanged, or when it reaches the revision limit.
 
-Use this policy to provide task-focused requests that resemble iterative user
-feedback. The simulator still uses the rubric internally, so this policy does
-not remove rubric influence from the experiment.
+Use this policy to test a user-mediated version of full evaluator feedback. The
+simulator sees the same evaluator payload as `full`, but the revision solver
+sees only the simulator's natural-language concerns.
 
 ## Shared score construction
 

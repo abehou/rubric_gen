@@ -29,7 +29,7 @@ Rubric generation has two ownership layers.
 
 Rubric evolution has explicit protocol and storage interfaces.
 
-- `evolution.py` coordinates difference discovery and complete-set rubric proposal.
+- `evolution.py` coordinates pairwise assessment, criterion induction, and validation.
 - `evolution_artifacts.py` owns blinded artifact-history contracts.
 - `evolution_protocol.py` owns prompts, schemas, evidence, and response validation.
 - `evolution_provider.py` owns the structured provider contract and output type.

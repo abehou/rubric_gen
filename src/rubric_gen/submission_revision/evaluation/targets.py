@@ -15,6 +15,7 @@ from rubric_gen.submission_revision.artifacts import (
 )
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.paraphrase_validation import ParaphraseSelection
+from rubric_gen.submission_revision.prompts import prompt_implementation_sha256
 from rubric_gen.submission_revision.evaluation.jobs import (
     EvaluationConfig,
     EvaluationTarget,
@@ -263,6 +264,7 @@ def _load_terminal_revision_state(
         "turn_timeout_seconds": agent.timeout_seconds,
         "feedback_policy": condition["feedback_policy"],
         "prompt": protocol["prompt"],
+        "prompt_implementation_sha256": prompt_implementation_sha256(),
         "rubric_policy": condition["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_max_retries": protocol[

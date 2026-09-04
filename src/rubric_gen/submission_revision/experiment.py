@@ -12,7 +12,10 @@ from typing import Any
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.yaml import load_yaml_strict
-from rubric_gen.submission_revision.prompts import PromptProfile
+from rubric_gen.submission_revision.prompts import (
+    PromptProfile,
+    prompt_implementation_sha256,
+)
 from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
@@ -33,6 +36,8 @@ _RUBRIC_POLICY_SLUGS = {
     RubricPolicy.FIXED: "static",
     RubricPolicy.OFFLINE_ELICITATION: "offline-rubric",
     RubricPolicy.ONLINE_ELICITATION: "online-rubric",
+    RubricPolicy.RED_TEAM_ARTIFACT: "red-team-artifact",
+    RubricPolicy.RED_TEAM_TRACE: "red-team-trace",
 }
 _IDENTITY_KEYS = (
     "kind",
@@ -41,6 +46,7 @@ _IDENTITY_KEYS = (
     "tasks",
     "randomization",
     "seed_generator",
+    "red_team_generator",
     "solvers",
     "conditions",
     "assignment_selection",
@@ -120,6 +126,13 @@ class Experiment:
     ) -> AgentRunConfig:
         return _agent_run_config(self.payload["seed_generator"], quiet=quiet)
 
+    def red_team_agent_config(
+        self,
+        *,
+        quiet: bool = False,
+    ) -> AgentRunConfig:
+        return _agent_run_config(self.payload["red_team_generator"], quiet=quiet)
+
     def solver_config(
         self,
         solver_id: str,
@@ -196,7 +209,7 @@ def load_experiment(path: Path) -> Experiment:
 def _validate(payload: dict[str, Any], path: Path) -> str:
     required = {
         "kind", "benchmark", "tasks_dir", "tasks",
-        "randomization", "seed_generator", "solvers", "conditions",
+        "randomization", "seed_generator", "red_team_generator", "solvers", "conditions",
         "assignment_selection", "protocol",
         "rubric_paraphrases", "outcome_audit", "dag",
     }
@@ -224,6 +237,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             "criterion elicitation requires at least three replicates"
         )
     _validate_agent(payload["seed_generator"], "seed_generator")
+    _validate_agent(payload["red_team_generator"], "red_team_generator")
     solvers = payload["solvers"]
     if not isinstance(solvers, list) or not solvers:
         raise ValueError("solvers must be a non-empty list")
@@ -403,19 +417,26 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
 
 def _validate_rubric_paraphrases(value: object) -> None:
     if not isinstance(value, dict) or set(value) != {
-        "count", "selected_variant", "model", "max_retries"
+        "count",
+        "selected_variant",
+        "development_variant",
+        "model",
+        "max_retries",
     }:
         raise ValueError(
-            "rubric_paraphrases requires count, selected_variant, model, "
-            "and max_retries"
+            "rubric_paraphrases requires count, selected_variant, "
+            "development_variant, model, and max_retries"
         )
-    if type(value["count"]) is not int or value["count"] < 2:
-        raise ValueError("rubric paraphrase count must be at least two")
-    if (
-        type(value["selected_variant"]) is not int
-        or not 0 <= value["selected_variant"] < value["count"]
-    ):
-        raise ValueError("selected rubric paraphrase variant is outside the pool")
+    if type(value["count"]) is not int or value["count"] < 3:
+        raise ValueError("rubric paraphrase count must be at least three")
+    for name in ("selected_variant", "development_variant"):
+        if (
+            type(value[name]) is not int
+            or not 0 <= value[name] < value["count"]
+        ):
+            raise ValueError(f"{name} is outside the rubric paraphrase pool")
+    if value["selected_variant"] == value["development_variant"]:
+        raise ValueError("selected and development rubric variants must differ")
     if type(value["model"]) is not str or not value["model"].strip():
         raise ValueError("rubric paraphrase model must be nonempty")
     if type(value["max_retries"]) is not int or value["max_retries"] < 0:
@@ -443,6 +464,7 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
     """Derive one readable identity from the experiment's semantic YAML."""
 
     identity = {key: payload[key] for key in _IDENTITY_KEYS}
+    identity["prompt_implementation_sha256"] = prompt_implementation_sha256()
     digest = sha256_text(json.dumps(
         identity,
         ensure_ascii=False,

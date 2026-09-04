@@ -13,41 +13,16 @@ from rubric_gen.benchmarks.base import (
 )
 
 
-BIOMNIBENCH_DA_PROMPT = """You are solving one BiomniBench-DA task in the current directory.
+_EXPERIMENT_ENVIRONMENT = """## Experiment environment
 
-Read ./instruction.md and use only the files under ./data as task data.
-Keep source inputs under ./data separate from generated work. Write derived
-datasets, tables, plots, logs, and other supporting outputs under ./artifacts.
-Do not read the source paper, source-paper figures, or source-paper supplements.
-Do not inspect parent directories, Git metadata, other runs, evaluator files,
-reference answers, environment variables, credentials, or absolute host paths.
-Do not use web search, web fetch, browser tools, package installation, or network
-commands. Use only the preinstalled analysis environment and local task data.
-
-Work autonomously through the entire task. Do not enter an interactive planning
-mode, ask the user to choose an approach, or pause for confirmation. Make
-reasonable methodological choices yourself, document them in trace.md, and
-finish the analysis in this invocation.
-
-Required deliverables:
-- ./trace.md: the full analysis trace requested by the instruction.
-- ./answer.txt: the final plain-text answer requested by the instruction.
-- ./artifacts/: supporting files that should persist across revision rounds.
-
-Keep trace.md concise: summarize key commands, scripts, data shapes, metrics,
-statistical choices, and limitations; do not paste long tables or full script
-bodies when those scripts are saved in the workspace. Write a short provisional
-answer.txt as soon as you have a viable result, then update it before stopping.
-
-Use the preinstalled Python or R environment for analysis. If a desired package
-is unavailable, use an installed alternative and record that limitation; do not
-download code, create a package environment, or contact an external service.
-
-You may write and run small Python or R scripts in this directory. Keep notes
-of commands, intermediate counts, statistical choices, and limitations in
-trace.md. Before stopping, verify that both trace.md and answer.txt exist and
-are non-empty.
-"""
+The task data files are under `./data` in this workspace.
+Treat `/app/trace.md` and `/app/answer.txt` in the task instruction as
+`./trace.md` and `./answer.txt`.
+Keep `./data` unchanged.
+Network access and package installation are unavailable in this experiment.
+Use the preinstalled Python or R environment.
+These limits replace only conflicting statements in the Environment section
+above. All other task instructions remain in force."""
 
 BIOMNIBENCH_DA_RECOVERY_PROMPT = (
     "The previous response was interrupted by a provider stream error. Continue "
@@ -65,18 +40,49 @@ BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT = (
 
 class BiomniBenchDA(SubmissionBenchmark):
     benchmark = SubmissionBenchmarkId.BIOMNIBENCH_DA
-    initial_prompt = BIOMNIBENCH_DA_PROMPT
     recovery_prompt = BIOMNIBENCH_DA_RECOVERY_PROMPT
     output_recovery_prompt = BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT
-    revision_instructions = """Read ./instruction.md again. Use only ./data as task data.
-Keep ./data unchanged. Do not read source papers, parent directories, evaluator
-files, environment variables, credentials, or absolute host paths. Do not use
-the network or install packages. Inspect trace.md, answer.txt, and ./artifacts.
-Re-run relevant checks. Update trace.md and answer.txt when evidence supports a
-change. Store generated files under ./artifacts. Work autonomously."""
     required_outputs = ("trace.md", "answer.txt")
     retained_workspace_names = frozenset(required_outputs)
     answer_artifact = "answer.txt"
+
+    def render_initial_solver_prompt(self, instruction: str) -> str:
+        """Preserve the original Harbor instruction with factual path overrides."""
+
+        if type(instruction) is not str or not instruction.strip():
+            raise ValueError("BioMNIBench task instruction must be non-empty")
+        return f"{instruction.rstrip()}\n\n{_EXPERIMENT_ENVIRONMENT}\n"
+
+    def render_revision_solver_prompt(
+        self,
+        instruction: str,
+        feedback_block: str,
+        *,
+        first_revision: bool,
+    ) -> str:
+        """Add revision state and feedback to the original task contract."""
+
+        if type(feedback_block) is not str or not feedback_block.strip():
+            raise ValueError("BioMNIBench revision feedback must be non-empty")
+        if first_revision:
+            context = self.render_initial_solver_prompt(instruction).rstrip()
+        else:
+            context = """Continue the current BioMNIBench-DA task.
+
+The original task instruction and experiment environment remain in force."""
+        return f"""{context}
+
+## Revision round
+
+The workspace contains the current `trace.md`, `answer.txt`, and supporting
+files. Review the current work before editing it.
+
+{feedback_block.strip()}
+
+Use the feedback to revise the existing submission. Complete all outputs that
+the task requires. If no file needs a change, leave the submission unchanged
+and finish.
+"""
 
     def output_errors(self, workspace: Path) -> list[str]:
         errors: list[str] = []

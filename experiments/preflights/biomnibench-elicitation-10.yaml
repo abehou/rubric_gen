@@ -18,6 +18,15 @@ seed_generator:
   retries: 1
   timeout_seconds: 7200
 
+red_team_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+
 solvers:
   - solver_id: luna
     provider: codex
@@ -29,54 +38,24 @@ solvers:
     timeout_seconds: 7200
 
 assignment_selection:
-  - da-18-1--rep-001--solver-luna--full-online-rubric
-  - da-18-1--rep-001--solver-luna--semi-online-rubric
-  - da-18-1--rep-001--solver-luna--score-only-online-rubric
-  - da-18-1--rep-001--solver-luna--user-simulator-online-rubric
-  - da-18-1--rep-001--solver-luna--full-offline-rubric
-  - da-18-1--rep-002--solver-luna--full-online-rubric
-  - da-18-1--rep-002--solver-luna--semi-online-rubric
-  - da-18-1--rep-002--solver-luna--score-only-online-rubric
-  - da-18-1--rep-002--solver-luna--user-simulator-online-rubric
-  - da-18-1--rep-002--solver-luna--full-offline-rubric
+  - da-18-1--rep-001--solver-luna--full-red-team-artifact
+  - da-18-1--rep-001--solver-luna--full-red-team-trace
+  - da-18-1--rep-001--solver-luna--user-simulator-red-team-artifact
+  - da-18-1--rep-001--solver-luna--user-simulator-red-team-trace
 
 conditions:
-  - condition_id: full-static
+  - condition_id: full-red-team-artifact
     feedback_policy: full
-    rubric_policy: fixed
-  - condition_id: full-offline-rubric
+    rubric_policy: red_team_artifact
+  - condition_id: full-red-team-trace
     feedback_policy: full
-    rubric_policy: offline_elicitation
-  - condition_id: full-online-rubric
-    feedback_policy: full
-    rubric_policy: online_elicitation
-  - condition_id: semi-static
-    feedback_policy: semi
-    rubric_policy: fixed
-  - condition_id: semi-offline-rubric
-    feedback_policy: semi
-    rubric_policy: offline_elicitation
-  - condition_id: semi-online-rubric
-    feedback_policy: semi
-    rubric_policy: online_elicitation
-  - condition_id: score-only-static
-    feedback_policy: score_only
-    rubric_policy: fixed
-  - condition_id: score-only-offline-rubric
-    feedback_policy: score_only
-    rubric_policy: offline_elicitation
-  - condition_id: score-only-online-rubric
-    feedback_policy: score_only
-    rubric_policy: online_elicitation
-  - condition_id: user-simulator-static
+    rubric_policy: red_team_trace
+  - condition_id: user-simulator-red-team-artifact
     feedback_policy: user_simulator
-    rubric_policy: fixed
-  - condition_id: user-simulator-offline-rubric
+    rubric_policy: red_team_artifact
+  - condition_id: user-simulator-red-team-trace
     feedback_policy: user_simulator
-    rubric_policy: offline_elicitation
-  - condition_id: user-simulator-online-rubric
-    feedback_policy: user_simulator
-    rubric_policy: online_elicitation
+    rubric_policy: red_team_trace
 
 protocol:
   max_revisions: 10
@@ -97,8 +76,9 @@ protocol:
   rubric_proposer_max_retries: 5
 
 rubric_paraphrases:
-  count: 4
+  count: 5
   selected_variant: 0
+  development_variant: 1
   model: gpt-5.6-luna
   max_retries: 2
 
@@ -113,17 +93,17 @@ outcome_audit:
     original_rubric_gap: 1.0
   max_input_tokens: 250000
   max_output_tokens: 4096
-  rubric_score_max_calls: 1658880
-  rubric_score_max_request_bytes: 434865438720
-  rubric_score_max_output_tokens: 6794772480
-  rubric_free_evaluation_max_calls: 3888
-  rubric_free_evaluation_max_request_bytes: 5435817984
-  rubric_free_evaluation_max_output_tokens: 15925248
+  rubric_score_max_calls: 552960
+  rubric_score_max_request_bytes: 144955146240
+  rubric_score_max_output_tokens: 2264924160
+  rubric_free_evaluation_max_calls: 1296
+  rubric_free_evaluation_max_request_bytes: 1811939328
+  rubric_free_evaluation_max_output_tokens: 5308416
 
 dag:
   seed:
     depends_on: []
-    output_dir: ../../seeds/biomnibench/luna-dev3
+    output_dir: ../../seeds/biomnibench/native-prompt-dev3
   paraphrase:
     depends_on: []
     output_dir: ../../runs/rubric-paraphrases/biomnibench/luna-dev3

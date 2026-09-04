@@ -9,7 +9,10 @@ from pathlib import Path
 
 from tqdm.auto import trange
 
-from rubric_gen.submission_revision.prompts import PromptProfile, solver_prompt
+from rubric_gen.submission_revision.prompts import (
+    PromptProfile,
+    prompt_implementation_sha256,
+)
 from rubric_gen.runtime.agents.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
@@ -75,6 +78,7 @@ class SubmissionRevisionController:
         self.task_dir = setup.task_dir
         self.judgment_reuse = setup.judgment_reuse
         self.initial_rubric = setup.initial_rubric
+        self.development_rubric = setup.development_rubric
         self.rubric_policy = setup.rubric_policy
         self.initial_generation = setup.initial_generation
         self.master_rubric = setup.master_rubric
@@ -97,6 +101,7 @@ class SubmissionRevisionController:
             rubric_policy=self.rubric_policy,
             initial_generation=self.initial_generation,
             initial_rubric=self.initial_rubric,
+            development_rubric=self.development_rubric,
             master_rubric=self.master_rubric,
             master_judge=self.master_judge,
             seed=self.seed,
@@ -156,6 +161,7 @@ class SubmissionRevisionController:
             "turn_timeout_seconds": self.config.agent.timeout_seconds,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
+            "prompt_implementation_sha256": prompt_implementation_sha256(),
             "rubric_policy": self.rubric_policy.value,
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
@@ -172,6 +178,12 @@ class SubmissionRevisionController:
                 self.initial_generation.generation_sha256
             ),
             "initial_rubric_sha256": self.initial_generation.rubric.content_sha256,
+            "development_rubric_path": str(
+                self.config.development_rubric_path.resolve()
+            ),
+            "development_rubric_sha256": (
+                self.development_rubric.content_sha256
+            ),
             "master_rubric_name": self.config.master_rubric_name,
             "master_rubric_sha256": self.master_rubric.sha256,
             "instruction_sha256": self.instruction_sha256,
@@ -181,6 +193,9 @@ class SubmissionRevisionController:
                 self.config.pretreatment_rubric_dir.resolve()
             ),
             "seed_generator": seed_generator_identity(self.config.seed_agent),
+            "red_team_generator": seed_generator_identity(
+                self.config.red_team_agent
+            ),
             "seed_sha256": self.seed.sha256,
         }
         if self.config.feedback_simulator is not None:
@@ -219,10 +234,7 @@ class SubmissionRevisionController:
                 scores=[],
                 fixed_original_scores=[],
                 judge_attempts={},
-                next_prompt=solver_prompt(
-                    self.config.prompt_profile,
-                    self.config.benchmark,
-                ),
+                next_prompt="",
                 stop_reason=None,
             )
         try:

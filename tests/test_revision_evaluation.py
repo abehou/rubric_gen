@@ -386,6 +386,10 @@ def test_target_loader_rejects_nonterminal_assignment(
         (RubricPolicy.OFFLINE_ELICITATION, 6, 1),
         (RubricPolicy.ONLINE_ELICITATION, 0, 0),
         (RubricPolicy.ONLINE_ELICITATION, 6, 6),
+        (RubricPolicy.RED_TEAM_ARTIFACT, 0, 0),
+        (RubricPolicy.RED_TEAM_ARTIFACT, 6, 6),
+        (RubricPolicy.RED_TEAM_TRACE, 0, 0),
+        (RubricPolicy.RED_TEAM_TRACE, 6, 6),
     ),
 )
 def test_active_generation_round_matches_elicitation_schedule(
@@ -459,8 +463,13 @@ def _generation(
 def _evolution_files() -> dict[str, str]:
     return {
         "artifact-history.json": "{}\n",
-        "difference-proposal.json": "{}\n",
-        "rubric-proposal.json": "{}\n",
+        "pairwise-assessment-rubric-free.json": "{}\n",
+        "pairwise-assessment-active-rubric.json": "{}\n",
+        "pairwise-assessment-development-rubric.json": "{}\n",
+        "pairwise-comparisons.json": "{}\n",
+        "criterion-proposal.json": "{}\n",
+        "criterion-validation.json": "{}\n",
+        "aggregate-margins.json": "{}\n",
         "evolution.json": "{}\n",
     }
 
@@ -476,16 +485,22 @@ def _target(tmp_path: Path) -> EvaluationTarget:
     master_path = tmp_path / "master.txt"
     master_path.write_text(master_generation.rubric.content)
     variant_paths = tuple(
-        tmp_path / f"variant-{index:03d}.txt" for index in range(3)
+        tmp_path / f"variant-{index:03d}.txt" for index in range(4)
     )
     variant_paths[0].write_text(_generation(0, (("holdout zero", 1.0),)).rubric.content)
     variant_paths[1].write_text(initial_generation.rubric.content)
     variant_paths[2].write_text(_generation(0, (("holdout two", 1.0),)).rubric.content)
+    variant_paths[3].write_text(
+        _generation(0, (("development rubric", 1.0),)).rubric.content
+    )
     selection = ParaphraseSelection(
         task_id="da-1-1",
         optimizer_index=1,
         optimizer_path=variant_paths[1],
         optimizer_sha256=sha256_file(variant_paths[1]),
+        development_index=3,
+        development_path=variant_paths[3],
+        development_sha256=sha256_file(variant_paths[3]),
         holdout_paths=(variant_paths[0], variant_paths[2]),
         holdout_sha256s=(
             sha256_file(variant_paths[0]),

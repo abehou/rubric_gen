@@ -101,6 +101,15 @@ def _experiment(
             "retries": 1,
             "timeout_seconds": 60,
         },
+        "red_team_generator": {
+            "provider": "codex",
+            "model": "test-model",
+            "reasoning_effort": "low",
+            "service_tier": None,
+            "executable": None,
+            "retries": 1,
+            "timeout_seconds": 60,
+        },
         "solvers": [{
             "solver_id": "test-solver",
             "provider": "codex",
@@ -128,6 +137,8 @@ def _experiment(
                 ("static", "fixed"),
                 ("offline-rubric", "offline_elicitation"),
                 ("online-rubric", "online_elicitation"),
+                ("red-team-artifact", "red_team_artifact"),
+                ("red-team-trace", "red_team_trace"),
             )
         ],
         "protocol": {
@@ -152,6 +163,7 @@ def _experiment(
         "rubric_paraphrases": {
             "count": 3,
             "selected_variant": 0,
+            "development_variant": 1,
             "model": "test-paraphraser",
             "max_retries": 1,
         },
@@ -223,10 +235,13 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
     assert sorted(calls) == [0, 1, 2]
     selection = resolve_paraphrase_selection(root, experiment, "da-1-1")
     assert selection.optimizer_index == 0
+    assert selection.development_index == 1
     assert selection.optimizer_path.is_file()
+    assert selection.development_path.is_file()
     assert selection.optimizer_path.read_text().startswith("RUBRIC: Result quality\n")
-    assert len(selection.holdout_paths) == 2
+    assert len(selection.holdout_paths) == 1
     assert selection.optimizer_path not in selection.holdout_paths
+    assert selection.development_path not in selection.holdout_paths
     assert all("rubric_text" not in json.dumps(schema) for schema in schemas)
     assert all(
         set(schema["properties"]) == {"wording"}  # type: ignore[index]

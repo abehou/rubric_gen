@@ -61,3 +61,12 @@
 - **16:13 PDT** — One final-artifact plotting script secretly generates final-revision outputs through environment variables and writes into a sibling folder. Move shared aggregation and plotting into a direct callable module, then give each tracked result a small explicit configuration file or generator.
 - **21:04 PDT** — Resolved the incomplete combined-report path by deleting the report, its statistical analysis modules, and its report-only lambda estimator. `detect` now emits only independent stage outputs.
 - **21:04 PDT** — Resolved the final-artifact validation bypass. All four windows now start from one completed revision snapshot, while stale unreferenced submission directories no longer invalidate a run.
+
+## 2026-09-03
+
+- **22:12 PDT** — Blind validation now rejects a candidate when its individual penalty reverses any overall pair preference. This is unsound because pairwise superiority is aggregate rather than criterion-specific; restrict hard ordering checks to cited provenance pairs before using the workflow in a run.
+- **22:39 PDT** — Resolved the unsound global reversal veto. Candidate admission now checks its own cited pairs and preserves the cited coverage of replaced criteria; aggregate margin checks remain unavailable until the workflow produces common rubric scores.
+
+## 2026-09-04
+
+- **00:22 PDT** — Resolved the missing aggregate-margin check. Code rebuilds floored prospective totals from base scores, retained criteria, replacements, and blind candidate applications; focused assessment and request modules keep every evolution module below 1,000 lines.

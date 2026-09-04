@@ -18,7 +18,6 @@ from rubric_gen.runtime.agents.sessions import (
 )
 from rubric_gen.benchmarks.biomnibench_da.contract import (
     BIOMNIBENCH_DA,
-    BIOMNIBENCH_DA_PROMPT,
     BIOMNIBENCH_DA_OUTPUT_RECOVERY_PROMPT,
     BIOMNIBENCH_DA_RECOVERY_PROMPT,
 )
@@ -51,7 +50,7 @@ def test_one_shot_codex_agent_reads_explicit_prompt_stdin(
             model="test-model",
             quiet=True,
         ),
-        prompt=BIOMNIBENCH_DA_PROMPT,
+        prompt="test prompt\n",
         output_errors=BIOMNIBENCH_DA.output_errors,
     )
     monkeypatch.setattr(

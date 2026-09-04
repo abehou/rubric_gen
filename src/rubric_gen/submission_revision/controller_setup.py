@@ -25,12 +25,17 @@ from rubric_gen.submission_revision.models import (
     RevisionDependencies,
     SubmissionRevisionConfig,
 )
+from rubric_gen.submission_revision.red_team import RedTeamGenerator
 from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
     RubricGeneration,
     RubricPolicy,
 )
-from rubric_gen.submission_revision.seeds import ResolvedSeed, resolve_seed
+from rubric_gen.submission_revision.seeds import (
+    ResolvedSeed,
+    resolve_seed,
+    seed_generator_identity,
+)
 from rubric_gen.submission_revision.store import (
     RevisionStore,
     extract_judge_execution_contract,
@@ -47,6 +52,7 @@ class RevisionSetup:
     task_dir: Path
     judgment_reuse: ExactJudgmentReuseStore | None
     initial_rubric: FrozenRubric
+    development_rubric: CompleteRubric
     rubric_policy: RubricPolicy
     initial_generation: RubricGeneration
     master_rubric: FrozenRubric
@@ -106,6 +112,14 @@ def _default_dependencies(
             if config.feedback_simulator is not None
             else None
         ),
+        red_team_generator=(
+            RedTeamGenerator(
+                agent=config.red_team_agent,
+                benchmark=benchmark,
+            )
+            if rubric_policy.uses_red_team
+            else None
+        ),
     )
 
 
@@ -156,6 +170,28 @@ def _validate_feedback_simulator(
         raise AssertionError("simulator policy has no simulator configuration")
     if simulator.identity() != config.feedback_simulator.identity():
         raise ValueError("feedback simulator identity differs from revision config")
+
+
+def _validate_red_team_generator(
+    config: SubmissionRevisionConfig,
+    dependencies: RevisionDependencies,
+    rubric_policy: RubricPolicy,
+) -> None:
+    generator = dependencies.red_team_generator
+    if rubric_policy.uses_red_team:
+        if generator is None:
+            raise ValueError(
+                "red-team rubric policy requires a red-team generator"
+            )
+        if generator.identity() != seed_generator_identity(config.red_team_agent):
+            raise ValueError(
+                "red-team generator identity differs from revision config"
+            )
+        return
+    if generator is not None:
+        raise ValueError(
+            "red-team generator dependency is valid only for red-team policies"
+        )
 
 
 def _judge_identity(
@@ -228,6 +264,9 @@ def build_revision_setup(
     )
     initial_rubric = resolve_optimizer_rubric(config.judge_config())
     initial_generation = _initial_generation(initial_rubric)
+    development_rubric = CompleteRubric.from_content(
+        config.development_rubric_path.read_text(encoding="utf-8")
+    )
     rubric_policy = RubricPolicy(config.rubric_policy)
     master_rubric = resolve_optimizer_rubric(config.master_judge_config())
     seed = resolve_seed(
@@ -247,6 +286,7 @@ def build_revision_setup(
     )
     _validate_proposer(config, resolved_dependencies, rubric_policy)
     _validate_feedback_simulator(config, resolved_dependencies)
+    _validate_red_team_generator(config, resolved_dependencies, rubric_policy)
     master_judge = resolved_dependencies.master_judge or resolved_dependencies.judge
     scoring_identity = _judge_identity(
         resolved_dependencies.judge,
@@ -275,6 +315,7 @@ def build_revision_setup(
         task_dir=task_dir,
         judgment_reuse=judgment_reuse,
         initial_rubric=initial_rubric,
+        development_rubric=development_rubric,
         rubric_policy=rubric_policy,
         initial_generation=initial_generation,
         master_rubric=master_rubric,

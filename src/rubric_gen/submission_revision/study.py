@@ -21,6 +21,7 @@ from rubric_gen.runtime.agents.codex_sessions import CodexProviderHealthError
 from rubric_gen.runtime.progress import TerminalProgress
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.controller import run_submission_revision
+from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.evolution import RubricProposer
@@ -322,8 +323,18 @@ class StudyRunner:
         rubric = CompleteRubric.from_content(
             selection.optimizer_path.read_text(encoding="utf-8")
         )
+        development_rubric = CompleteRubric.from_content(
+            selection.development_path.read_text(encoding="utf-8")
+        )
         if rubric.content_sha256 != sha256_file(selection.optimizer_path):
             raise RuntimeError("selected rubric changed during pre-treatment setup")
+        if (
+            development_rubric.content_sha256
+            != sha256_file(selection.development_path)
+        ):
+            raise RuntimeError(
+                "development rubric changed during pre-treatment setup"
+            )
         seed_agent = self.experiment.seed_agent_config(quiet=True)
         proposer = RubricProposer(
             benchmark=self.experiment.benchmark,
@@ -336,15 +347,17 @@ class StudyRunner:
                 self.pretreatment_root,
                 task_id,
                 rubric.content_sha256,
+                development_rubric.content_sha256,
             ),
             experiment_id=self.experiment.experiment_id,
             task_dir=self.experiment.task_dir(task_id),
             benchmark=get_submission_benchmark(self.experiment.benchmark),
             initial_rubric=rubric,
+            development_rubric=development_rubric,
             seed_set=self.seed_root,
             seed_generator=seed_agent,
             prompt_profile=PromptProfile(str(protocol["prompt"])),
-            seed_replicates=self.experiment.replicates,
+            seed_replicates=ELICITATION_SEED_REPLICATES,
             proposer=proposer,
         )
 
@@ -376,20 +389,23 @@ class StudyRunner:
                 self.pretreatment_root,
                 assignment.task_id,
                 sha256_file(selection.optimizer_path),
+                sha256_file(selection.development_path),
             ),
             agent=self.experiment.solver_config(
                 solver_id,
                 quiet=True,
             ),
             seed_agent=self.experiment.seed_agent_config(quiet=True),
+            red_team_agent=self.experiment.red_team_agent_config(quiet=True),
             solver_id=solver_id,
             experiment_id=self.experiment.experiment_id,
             assignment_id=assignment.assignment_id,
             condition_id=assignment.condition_id,
             replicate=assignment.replicate,
-            elicitation_seed_replicates=self.experiment.replicates,
+            elicitation_seed_replicates=ELICITATION_SEED_REPLICATES,
             execution_order=assignment.execution_order,
             optimizer_rubric_path=selection.optimizer_path,
+            development_rubric_path=selection.development_path,
             master_rubric_name=str(protocol["rubric_name"]),
             benchmark=self.experiment.benchmark,
             rubric_proposer_max_retries=int(protocol["rubric_proposer_max_retries"]),

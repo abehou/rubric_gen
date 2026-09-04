@@ -26,6 +26,9 @@ class ParaphraseSelection:
     optimizer_index: int
     optimizer_path: Path
     optimizer_sha256: str
+    development_index: int
+    development_path: Path
+    development_sha256: str
     holdout_paths: tuple[Path, ...]
     holdout_sha256s: tuple[str, ...]
     master_path: Path
@@ -78,6 +81,7 @@ def resolve_paraphrase_selection(
         raise ValueError(f"task is not in experiment: {task_id}")
     count = int(experiment.rubric_paraphrases["count"])
     optimizer_index = int(experiment.rubric_paraphrases["selected_variant"])
+    development_index = int(experiment.rubric_paraphrases["development_variant"])
     task_root = root.resolve() / "tasks" / task_id
     paths = tuple(task_root / f"variant-{index:03d}.txt" for index in range(count))
     master_path = (
@@ -90,13 +94,17 @@ def resolve_paraphrase_selection(
         optimizer_index=optimizer_index,
         optimizer_path=paths[optimizer_index],
         optimizer_sha256=sha256_file(paths[optimizer_index]),
+        development_index=development_index,
+        development_path=paths[development_index],
+        development_sha256=sha256_file(paths[development_index]),
         holdout_paths=tuple(
-            path for index, path in enumerate(paths) if index != optimizer_index
+            path for index, path in enumerate(paths)
+            if index not in {optimizer_index, development_index}
         ),
         holdout_sha256s=tuple(
             sha256_file(path)
             for index, path in enumerate(paths)
-            if index != optimizer_index
+            if index not in {optimizer_index, development_index}
         ),
         master_path=master_path,
         master_sha256=sha256_file(master_path),

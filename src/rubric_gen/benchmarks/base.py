@@ -28,10 +28,8 @@ class SubmissionBenchmark(ABC):
     """Define native inputs, outputs, and prompts for one benchmark."""
 
     benchmark: SubmissionBenchmarkId
-    initial_prompt: str
     recovery_prompt: str
     output_recovery_prompt: str
-    revision_instructions: str
     required_outputs: tuple[str, ...]
     retained_workspace_names: frozenset[str]
     answer_artifact: str | None = None
@@ -70,6 +68,20 @@ class SubmissionBenchmark(ABC):
             raise ValueError(
                 f"{self.benchmark.value} requires {self.required_review} review"
             )
+
+    @abstractmethod
+    def render_initial_solver_prompt(self, instruction: str) -> str:
+        """Render the task-aware prompt for an initial solver run."""
+
+    @abstractmethod
+    def render_revision_solver_prompt(
+        self,
+        instruction: str,
+        feedback_block: str,
+        *,
+        first_revision: bool,
+    ) -> str:
+        """Render one task-aware revision prompt before profile guidance."""
 
     def render_workspace_review(self, task_dir: Path, workspace: Path) -> str:
         """Render a benchmark-native workspace review for a judge."""

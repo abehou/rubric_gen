@@ -107,6 +107,24 @@ class RubricPolicy(str, Enum):
     FIXED = "fixed"
     OFFLINE_ELICITATION = "offline_elicitation"
     ONLINE_ELICITATION = "online_elicitation"
+    RED_TEAM_ARTIFACT = "red_team_artifact"
+    RED_TEAM_TRACE = "red_team_trace"
+
+    @property
+    def uses_online_evidence(self) -> bool:
+        return self in {
+            self.ONLINE_ELICITATION,
+            self.RED_TEAM_ARTIFACT,
+            self.RED_TEAM_TRACE,
+        }
+
+    @property
+    def uses_red_team(self) -> bool:
+        return self in {self.RED_TEAM_ARTIFACT, self.RED_TEAM_TRACE}
+
+    @property
+    def uses_red_team_trace(self) -> bool:
+        return self is self.RED_TEAM_TRACE
 
 
 @dataclass(frozen=True)
@@ -383,7 +401,7 @@ def render_augmented_rubric(
     original_rubric: CompleteRubric,
     elicited_criteria: tuple[ElicitedCriterion, ...],
 ) -> CompleteRubric:
-    """Render one rubric with fixed original text and model-weighted penalties."""
+    """Render one rubric with fixed original text and normalized penalties."""
 
     if not isinstance(original_rubric, CompleteRubric):
         raise ValueError("original_rubric must be a CompleteRubric")

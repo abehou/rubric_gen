@@ -69,8 +69,13 @@ def _initial() -> RubricGeneration:
 def _evolution_files() -> dict[str, str]:
     return {
         "artifact-history.json": "{}\n",
-        "difference-proposal.json": "{}\n",
-        "rubric-proposal.json": "{}\n",
+        "pairwise-assessment-rubric-free.json": "{}\n",
+        "pairwise-assessment-active-rubric.json": "{}\n",
+        "pairwise-assessment-development-rubric.json": "{}\n",
+        "pairwise-comparisons.json": "{}\n",
+        "criterion-proposal.json": "{}\n",
+        "criterion-validation.json": "{}\n",
+        "aggregate-margins.json": "{}\n",
         "evolution.json": "{}\n",
     }
 
@@ -133,12 +138,17 @@ def test_self_contained_generation_round_trip(tmp_path: Path) -> None:
         expected_policy=RubricPolicy.ONLINE_ELICITATION,
     ) == evolved
     assert sorted(path.name for path in manifest.parent.iterdir()) == [
+        "aggregate-margins.json",
         "artifact-history.json",
         "criteria.json",
-        "difference-proposal.json",
-        "evolution.json",
-        "manifest.json",
-        "rubric-proposal.json",
+        "criterion-proposal.json",
+        "criterion-validation.json",
+            "evolution.json",
+            "manifest.json",
+            "pairwise-assessment-active-rubric.json",
+            "pairwise-assessment-development-rubric.json",
+            "pairwise-assessment-rubric-free.json",
+            "pairwise-comparisons.json",
         "rubric.txt",
     ]
 

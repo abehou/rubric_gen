@@ -37,8 +37,13 @@ from rubric_gen.submission_revision.rubric_generation_store import (
 PRETREATMENT_RUBRIC_KIND = "rubric-gen-shared-pretreatment-rubric"
 _EVOLUTION_FILE_NAMES = (
     "artifact-history.json",
-    "difference-proposal.json",
-    "rubric-proposal.json",
+    "pairwise-assessment-rubric-free.json",
+    "pairwise-assessment-active-rubric.json",
+    "pairwise-assessment-development-rubric.json",
+    "pairwise-comparisons.json",
+    "criterion-proposal.json",
+    "criterion-validation.json",
+    "aggregate-margins.json",
     "evolution.json",
 )
 
@@ -47,6 +52,7 @@ def pretreatment_blinding_scope(
     experiment_id: str,
     task_id: str,
     original_rubric_sha256: str,
+    development_rubric_sha256: str,
 ) -> str:
     """Return one stable blinding scope shared by all matching assignments."""
 
@@ -54,6 +60,7 @@ def pretreatment_blinding_scope(
         ("experiment_id", experiment_id),
         ("task_id", task_id),
         ("original_rubric_sha256", original_rubric_sha256),
+        ("development_rubric_sha256", development_rubric_sha256),
     ):
         if type(value) is not str or not value.strip():
             raise ValueError(f"{name} must be nonempty")
@@ -62,6 +69,7 @@ def pretreatment_blinding_scope(
             "experiment_id": experiment_id,
             "task_id": task_id,
             "original_rubric_sha256": original_rubric_sha256,
+            "development_rubric_sha256": development_rubric_sha256,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -72,18 +80,26 @@ def shared_pretreatment_rubric_dir(
     root: Path,
     task_id: str,
     original_rubric_sha256: str,
+    development_rubric_sha256: str,
 ) -> Path:
-    """Return the canonical task and original-rubric pool directory."""
+    """Return the canonical task and assessment-rubric pool directory."""
 
     if type(task_id) is not str or not task_id or Path(task_id).name != task_id:
         raise ValueError("pre-treatment rubric task ID is unsafe")
-    if (
-        type(original_rubric_sha256) is not str
-        or len(original_rubric_sha256) != 64
-        or any(char not in "0123456789abcdef" for char in original_rubric_sha256)
+    for name, value in (
+        ("original", original_rubric_sha256),
+        ("development", development_rubric_sha256),
     ):
-        raise ValueError("pre-treatment original rubric hash is invalid")
-    return root / task_id / original_rubric_sha256
+        if (
+            type(value) is not str
+            or len(value) != 64
+            or any(char not in "0123456789abcdef" for char in value)
+        ):
+            raise ValueError(f"pre-treatment {name} rubric hash is invalid")
+    rubric_set_sha256 = sha256_text(
+        f"{original_rubric_sha256}\0{development_rubric_sha256}"
+    )
+    return root / task_id / rubric_set_sha256
 
 
 def ensure_pretreatment_rubric(
@@ -93,6 +109,7 @@ def ensure_pretreatment_rubric(
     task_dir: Path,
     benchmark: SubmissionBenchmark,
     initial_rubric: CompleteRubric,
+    development_rubric: CompleteRubric,
     seed_set: Path,
     seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
@@ -125,6 +142,7 @@ def ensure_pretreatment_rubric(
             task_dir=task_dir,
             benchmark=benchmark,
             initial_rubric=initial_rubric,
+            development_rubric=development_rubric,
             seed_set=seed_set,
             seed_generator=seed_generator,
             prompt_profile=prompt_profile,
@@ -138,6 +156,7 @@ def ensure_pretreatment_rubric(
         generation = proposer.elicit_rubric(
             instruction=instruction,
             original_rubric=initial_rubric,
+            development_rubric=development_rubric,
             current_generation=initial_generation,
             policy=RubricPolicy.OFFLINE_ELICITATION,
             generation_round=1,
@@ -149,6 +168,7 @@ def ensure_pretreatment_rubric(
             experiment_id=experiment_id,
             task_dir=task_dir,
             initial_rubric=initial_rubric,
+            development_rubric=development_rubric,
             history_sha256=canonical_sha256(history.artifact_record()),
             proposer=proposer,
             generation=generation,
@@ -167,6 +187,7 @@ def ensure_pretreatment_rubric(
             task_dir=task_dir,
             benchmark=benchmark,
             initial_rubric=initial_rubric,
+            development_rubric=development_rubric,
             seed_set=seed_set,
             seed_generator=seed_generator,
             prompt_profile=prompt_profile,
@@ -182,6 +203,7 @@ def validate_pretreatment_rubric(
     task_dir: Path,
     benchmark: SubmissionBenchmark,
     initial_rubric: CompleteRubric,
+    development_rubric: CompleteRubric,
     seed_set: Path,
     seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
@@ -216,6 +238,7 @@ def validate_pretreatment_rubric(
         task_dir=task_dir,
         benchmark=benchmark,
         initial_rubric=initial_rubric,
+        development_rubric=development_rubric,
         seed_set=seed_set,
         seed_generator=seed_generator,
         prompt_profile=prompt_profile,
@@ -224,6 +247,7 @@ def validate_pretreatment_rubric(
     replayed = proposer.elicit_rubric(
         instruction=(task_dir / "instruction.md").read_text(encoding="utf-8"),
         original_rubric=initial_rubric,
+        development_rubric=development_rubric,
         current_generation=initial_generation,
         policy=RubricPolicy.OFFLINE_ELICITATION,
         generation_round=1,
@@ -237,6 +261,7 @@ def validate_pretreatment_rubric(
         experiment_id=experiment_id,
         task_dir=task_dir,
         initial_rubric=initial_rubric,
+        development_rubric=development_rubric,
         history_sha256=canonical_sha256(history.artifact_record()),
         proposer=proposer,
         generation=generation,
@@ -260,6 +285,8 @@ def install_pretreatment_rubric(
     if policy not in {
         RubricPolicy.OFFLINE_ELICITATION,
         RubricPolicy.ONLINE_ELICITATION,
+        RubricPolicy.RED_TEAM_ARTIFACT,
+        RubricPolicy.RED_TEAM_TRACE,
     }:
         raise ValueError("only elicitation policies use a pre-treatment rubric")
     generation = load_rubric_generation(
@@ -340,6 +367,7 @@ def _history(
     task_dir: Path,
     benchmark: SubmissionBenchmark,
     initial_rubric: CompleteRubric,
+    development_rubric: CompleteRubric,
     seed_set: Path,
     seed_generator: AgentRunConfig,
     prompt_profile: PromptProfile | str,
@@ -356,6 +384,7 @@ def _history(
             experiment_id,
             task_dir.name,
             initial_rubric.content_sha256,
+            development_rubric.content_sha256,
         ),
     )
 
@@ -365,6 +394,7 @@ def _manifest(
     experiment_id: str,
     task_dir: Path,
     initial_rubric: CompleteRubric,
+    development_rubric: CompleteRubric,
     history_sha256: str,
     proposer: RubricProposer,
     generation: RubricGeneration,
@@ -376,6 +406,7 @@ def _manifest(
         "benchmark": proposer.benchmark.value,
         "instruction_sha256": sha256_file(task_dir / "instruction.md"),
         "initial_rubric_sha256": initial_rubric.content_sha256,
+        "development_rubric_sha256": development_rubric.content_sha256,
         "artifact_history_sha256": history_sha256,
         "proposer": proposer.proposer_contract.record(),
         "max_retries": proposer.max_retries,
