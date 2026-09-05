@@ -2210,27 +2210,31 @@ def test_simulated_user_enforces_zero_to_three_concerns_with_retry(
     assert failed["response_text"]
 
 
-def test_simulated_user_normalizes_feedback_and_allows_duplicate_categories(
+def test_simulated_user_retries_duplicate_categories_before_projection(
     tmp_path: Path,
 ) -> None:
-    config = SimulatedUserConfig(model="gpt-simulated-user", max_retries=0)
+    config = SimulatedUserConfig(model="gpt-simulated-user", max_retries=1)
+    calls = 0
 
     def generate(
         requested: SimulatedUserConfig,
         request: SimulatedUserRequest,
     ) -> SimulatedUserGeneration:
+        nonlocal calls
+        calls += 1
+        second_category = "clarity" if calls == 1 else "task_fulfillment"
         return SimulatedUserGeneration(
             text=json.dumps({
                 "decision": "revise",
                 "concerns": [
                     {"category": "clarity", "feedback": "  Clarify A.  "},
-                    {"category": "clarity", "feedback": "Clarify B."},
+                    {"category": second_category, "feedback": "Clarify B."},
                 ],
             }),
             provider="openai",
             requested_model=requested.model,
             effective_model="gpt-simulated-user-served",
-            response_id="feedback-1",
+            response_id=f"feedback-{calls}",
             request_parameters={"max_output_tokens": request.max_output_tokens},
         )
 
@@ -2259,12 +2263,16 @@ def test_simulated_user_normalizes_feedback_and_allows_duplicate_categories(
         failure_dir=tmp_path / "failed-attempts",
     )
 
-    assert record["attempt_count"] == 1
+    assert calls == 2
+    assert record["attempt_count"] == 2
     assert record["output"]["concerns"] == [  # type: ignore[index]
         {"category": "clarity", "feedback": "Clarify A."},
-        {"category": "clarity", "feedback": "Clarify B."},
+        {"category": "task_fulfillment", "feedback": "Clarify B."},
     ]
-    assert not (tmp_path / "failed-attempts").exists()
+    failed = json.loads(
+        (tmp_path / "failed-attempts" / "attempt-001.json").read_text()
+    )
+    assert failed["error"] == "simulated-user concern has invalid values"
 
 
 def test_simulated_user_compacts_large_history_before_feedback(

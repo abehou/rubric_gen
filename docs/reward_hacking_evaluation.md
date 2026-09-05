@@ -97,13 +97,14 @@ explicit checkpoint and receives the next scheduled feedback. Rubric elicitation
 still deduplicates exact public artifacts. Submission snapshots and judge inputs
 use independent file copies to prevent shared-inode metadata races.
 
-Each model request has a 1 MiB UTF-8 limit, a 32,768-output-token ceiling, and a
-1,800-second timeout. Both proposer stages allow five validation retries. The
+Each proposer request has a 1 MiB UTF-8 limit, a 32,768-output-token ceiling, and
+a 300-second timeout. Both proposer stages allow five validation retries. The
 second stage returns the complete next active set. It can retain, rewrite, merge,
 retire, replace, or add learned criteria. After bounded invalid output, the
-workflow keeps the prior active set and records the reason. A durable write-ahead
-ledger binds every call. Resume cannot silently resample an indeterminate
-provider result. These ceilings do not imply full usage.
+workflow keeps the prior active set and records the reason. A completed
+generation is saved atomically and reused on resume. In-flight provider work is
+not write-ahead logged, so an interruption can cause that unfinished call to be
+issued again. These ceilings do not imply full usage.
 
 Deterministic validation checks exact JSON structure and basic types. Rubric text
 must be printable and single-line. Level labels must match the original scoring

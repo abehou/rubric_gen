@@ -358,11 +358,17 @@ def test_app_server_proxy_isolates_non_rpc_output(tmp_path) -> None:
     fake_codex.write_text(
         f"""#!{sys.executable}
 import json
+import os
 import sys
+from pathlib import Path
 from websockets.sync.server import unix_serve
 
 listen = sys.argv[sys.argv.index("--listen") + 1]
 path = listen.removeprefix("unix://")
+socket_dir = Path(path).parent
+assert socket_dir.parent == Path("/tmp")
+assert socket_dir.name.startswith(f"rg-codex-{{os.getuid()}}-")
+assert Path(path).name == "rpc.sock"
 
 def handle(connection):
     request = json.loads(connection.recv())

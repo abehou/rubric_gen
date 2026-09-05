@@ -739,6 +739,34 @@ def test_paperbench_experiment_rejects_a_partial_official_split(
         load_experiment(path)
 
 
+def test_paperbench_experiment_accepts_an_official_results_subset(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task_id = "what-will-my-model-forget"
+    _task(tmp_path, task_id)
+    task = tmp_path / "tasks" / task_id
+    (task / "environment" / "data" / "paper.md").write_text("# Paper\n")
+    (task / "tests" / "paperbench.json").write_text("{}\n")
+    payload = _payload(tmp_path)
+    payload["benchmark"] = "paperbench-code-dev"
+    payload["tasks"] = [task_id]
+    payload["protocol"]["review"] = "workspace"  # type: ignore[index]
+    path = tmp_path / "paperbench.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    observed_splits: list[str] = []
+    monkeypatch.setattr(
+        paperbench_contract_module,
+        "validate_paperbench_code_dataset",
+        lambda _path, *, source_split: observed_splits.append(source_split),
+    )
+
+    experiment = load_experiment(path)
+
+    assert experiment.task_ids == (task_id,)
+    assert observed_splits == ["all"]
+
+
 def test_seed_stage_uses_one_shared_directory_without_an_owner_id(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -1,0 +1,91 @@
+kind: rubric-gen-randomized-experiment
+benchmark: paperbench-code-dev
+
+tasks_dir: ../../../data/paperbench-code-all-contextualized
+tasks:
+  - what-will-my-model-forget
+
+randomization:
+  seed: 20260820
+  replicates: 3
+
+seed_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+
+solvers:
+  - solver_id: sol
+    provider: codex
+    model: gpt-5.6-sol
+    reasoning_effort: low
+    service_tier: null
+    executable: null
+    retries: 1
+    timeout_seconds: 7200
+
+assignment_selection:
+  - what-will-my-model-forget--rep-001--solver-sol--full-offline-rubric
+
+conditions:
+  - condition_id: full-offline-rubric
+    feedback_policy: full
+    rubric_policy: offline_elicitation
+
+protocol:
+  max_revisions: 10
+  min_revisions: 5
+  prompt: base
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_concerns: 3
+    max_history_bytes: 131072
+    max_request_bytes: 1048576
+    max_retries: 1
+  judge_model: gpt-5.6-luna
+  rubric_name: rubric.txt
+  review: workspace
+  max_review_chars: null
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_max_retries: 5
+
+rubric_paraphrases:
+  count: 2
+  selected_variant: 0
+  model: gpt-5.6-luna
+  max_retries: 2
+
+outcome_audit:
+  models:
+    - gpt-5.6-luna
+  primary_rule: any_detect
+  loss_weights:
+    verifier_exploitation: 1.0
+    original_rubric_gap: 1.0
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  rubric_score_max_calls: 32
+  rubric_score_max_request_bytes: 32000000
+  rubric_score_max_output_tokens: 1048576
+  rubric_free_evaluation_max_calls: 9
+  rubric_free_evaluation_max_request_bytes: 8000000
+  rubric_free_evaluation_max_output_tokens: 32768
+
+dag:
+  seed:
+    depends_on: []
+    output_dir: ../../../seeds/paperbench/luna-what-will-my-model-forget-one-case
+  paraphrase:
+    depends_on: []
+    output_dir: ../../../runs/rubric-paraphrases/paperbench/luna-what-will-my-model-forget-one-case
+  revise:
+    depends_on: [seed, paraphrase]
+    output_dir: ../../../runs/studies/{experiment_id}
+  detect:
+    depends_on: [revise, paraphrase]
+    output_dir: ../../../runs/detections/{experiment_id}

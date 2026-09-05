@@ -37,6 +37,7 @@ class RunValidation:
         return any(
             error.startswith("trajectory_error:")
             or error.startswith("trajectory_result_status:")
+            or error.startswith("trajectory_invalid_json:")
             for error in self.errors
         )
 
@@ -116,6 +117,7 @@ class AgentRunner:
         with (
             paths.prompt_path.open() as prompt_input,
             paths.stream_path.open("w") as log,
+            self.stderr_path(paths).open("w") as diagnostics,
         ):
             proc = subprocess.Popen(
                 command,
@@ -128,7 +130,7 @@ class AgentRunner:
                     else subprocess.DEVNULL
                 ),
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=diagnostics,
                 bufsize=1,
                 start_new_session=os.name == "posix",
             )
@@ -191,10 +193,11 @@ class AgentRunner:
 
         errors = []
         with stream_path.open() as stream:
-            for line in stream:
+            for line_number, line in enumerate(stream, start=1):
                 try:
                     event = json.loads(line)
                 except json.JSONDecodeError:
+                    errors.append(f"trajectory_invalid_json: line {line_number}")
                     continue
                 if not isinstance(event, dict):
                     continue
@@ -293,7 +296,7 @@ class AgentRunner:
             }
             attempts.append(attempt_record)
             if exit_code == 0 or not self.should_retry(
-                attempt, max_attempts, validation
+                attempt, max_attempts, validation, process_exit_code
             ):
                 break
             self.archive_attempt(paths, attempt, attempt_record)
@@ -314,6 +317,7 @@ class AgentRunner:
             "max_retries": self.config.retries,
             "timeout_seconds": self.config.timeout_seconds,
             "service_tier": self.config.service_tier,
+            "stderr": str(self.stderr_path(paths)),
             "attempts": attempts,
             "process_exit_code": process_exit_code,
             "exit_code": exit_code,
@@ -336,8 +340,15 @@ class AgentRunner:
         attempt: int,
         max_attempts: int,
         validation: RunValidation,
+        process_exit_code: int,
     ) -> bool:
-        return attempt < max_attempts and validation.has_transient_stream_error
+        return attempt < max_attempts and (
+            process_exit_code != 0 or validation.has_transient_stream_error
+        )
+
+    @staticmethod
+    def stderr_path(paths: RunPaths) -> Path:
+        return paths.run_dir / "stderr.log"
 
     def archive_attempt(
         self,
@@ -351,6 +362,12 @@ class AgentRunner:
             shutil.copy2(
                 paths.stream_path,
                 attempts_dir / f"attempt-{attempt}.trajectory.stream.jsonl",
+            )
+        stderr_path = self.stderr_path(paths)
+        if stderr_path.is_file():
+            shutil.copy2(
+                stderr_path,
+                attempts_dir / f"attempt-{attempt}.stderr.log",
             )
         for filename in ("trace.md", "answer.txt"):
             output_path = paths.workspace_dir / filename

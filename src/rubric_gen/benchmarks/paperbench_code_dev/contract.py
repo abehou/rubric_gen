@@ -87,10 +87,17 @@ a change. Keep all implementation files under ./submission. Work autonomously.""
             source_split = "dev"
         elif task_ids == PAPERBENCH_RESULTS_PAPERS:
             source_split = "all"
+        elif task_ids == tuple(
+            paper_id
+            for paper_id in PAPERBENCH_RESULTS_PAPERS
+            if paper_id in task_ids
+        ):
+            source_split = "all"
         else:
             raise ValueError(
                 "PaperBench Code-Dev tasks must equal the official 3-paper dev "
-                "split or the official 20-paper all split"
+                "split, the official 20-paper all split, or an ordered nonempty "
+                "subset of the official all split"
             )
         validate_paperbench_code_dataset(
             tasks_dir,

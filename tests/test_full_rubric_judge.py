@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ import pytest
 
 import rubric_gen.submission_revision.judging.full_rubric_judge as judge_module
 import rubric_gen.submission_revision.judging.full_rubric_protocol as protocol
+import rubric_gen.submission_revision.judging.executor as executor_module
 from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.submission_revision.judging.artifacts import JudgeArtifactStore
 from rubric_gen.submission_revision.judging.executor import JudgeExecutor
@@ -134,6 +136,20 @@ def _attestation(spec) -> dict[str, object]:
     }
     assert set(value) == SCORE_INPUT_ATTESTATION_KEYS
     return value
+
+
+def test_judge_subprocess_uses_absolute_package_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PYTHONPATH", "relative-src")
+
+    environment = executor_module._judge_subprocess_environment()
+
+    assert environment["PYTHONPATH"].split(os.pathsep) == [
+        str(Path(executor_module.__file__).resolve().parents[3]),
+        "relative-src",
+    ]
+    assert environment["LITELLM_LOCAL_MODEL_COST_MAP"] == "True"
 
 
 def test_prompt_treats_artifacts_as_untrusted() -> None:

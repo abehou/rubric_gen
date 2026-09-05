@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import stat
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -239,6 +240,10 @@ class CodexAdapter(AgentAdapter):
     ) -> dict[str, str]:
         environment = super().build_environment(paths, config)
         environment["CODEX_HOME"] = str(self._codex_home(paths))
+        python_bin = str((Path(sys.prefix) / "bin").resolve())
+        environment["PATH"] = os.pathsep.join(
+            (python_bin, environment.get("PATH", ""))
+        ).rstrip(os.pathsep)
         for key in ("CODEX_API_KEY", "CODEX_ACCESS_TOKEN"):
             if key in os.environ:
                 environment[key] = os.environ[key]
@@ -297,6 +302,10 @@ def _codex_sandbox_support_paths(config: AgentRunConfig) -> tuple[Path, ...]:
     bundled_rg = native.parent.parent / "codex-path" / "rg"
     if bundled_rg.is_file():
         paths.append(bundled_rg.resolve())
+    for python_root in (Path(sys.prefix), Path(sys.base_prefix)):
+        resolved_python_root = python_root.resolve(strict=True)
+        if resolved_python_root not in paths:
+            paths.append(resolved_python_root)
     return tuple(paths)
 
 

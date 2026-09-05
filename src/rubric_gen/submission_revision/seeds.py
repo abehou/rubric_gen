@@ -434,41 +434,69 @@ class SeedSetRunner:
         task_dir: Path,
         benchmark: SubmissionBenchmark,
     ) -> dict[str, object]:
-        attempt_root = destination / "elicitation_attempt"
-        run_dir = attempt_root / "run"
-        paths = RunPaths(
-            provider=self.agent.provider,
-            run_dir=run_dir,
-            workspace_dir=attempt_root / "workspace",
-            prompt_path=run_dir / "prompt.txt",
-            policy_path=run_dir / "no-web-policy.toml",
-            stream_path=run_dir / "trajectory.stream.jsonl",
-            status_path=run_dir / "status.json",
-        )
-        exit_code, paths = AgentRunner(
-            self.agent,
-            prompt=self.attempt_prompt,
-            output_errors=benchmark.output_errors,
-        ).run(task_dir.resolve(), paths=paths)
-        if not paths.prompt_path.is_file():
-            paths.prompt_path.write_text(self.attempt_prompt, encoding="utf-8")
-        if not paths.stream_path.is_file() or not paths.status_path.is_file():
-            raise RuntimeError("elicitation attempt did not persist its run records")
-        workspace_sha = solution_tree_sha256(paths.workspace_dir)
-        included = exit_code == 0 and _public_artifact_is_valid(
-            benchmark,
-            paths.workspace_dir,
-        )
-        return {
-            "role": self.attempt_elicitation_role,
-            "profile": self.attempt_profile.value,
-            "included": included,
-            "exit_code": exit_code,
-            "prompt_sha256": sha256_file(paths.prompt_path),
-            "workspace_sha256": workspace_sha,
-            "trajectory_sha256": sha256_file(paths.stream_path),
-            "status_sha256": sha256_file(paths.status_path),
-        }
+        temporary = Path(tempfile.mkdtemp(prefix="submission-seed-extra-"))
+        try:
+            run_dir = temporary / "run"
+            paths = RunPaths(
+                provider=self.agent.provider,
+                run_dir=run_dir,
+                workspace_dir=temporary / "workspace",
+                prompt_path=run_dir / "prompt.txt",
+                policy_path=run_dir / "no-web-policy.toml",
+                stream_path=run_dir / "trajectory.stream.jsonl",
+                status_path=run_dir / "status.json",
+            )
+            exit_code, paths = AgentRunner(
+                self.agent,
+                prompt=self.attempt_prompt,
+                output_errors=benchmark.output_errors,
+            ).run(task_dir.resolve(), paths=paths)
+            if not paths.prompt_path.is_file():
+                paths.prompt_path.write_text(self.attempt_prompt, encoding="utf-8")
+            if not paths.stream_path.is_file() or not paths.status_path.is_file():
+                raise RuntimeError(
+                    "elicitation attempt did not persist its run records"
+                )
+
+            attempt_root = destination / "elicitation_attempt"
+            attempt_root.mkdir()
+            shutil.copytree(paths.run_dir, attempt_root / "run")
+            shutil.copytree(paths.workspace_dir, attempt_root / "workspace")
+            persisted_paths = RunPaths(
+                provider=paths.provider,
+                run_dir=attempt_root / "run",
+                workspace_dir=attempt_root / "workspace",
+                prompt_path=attempt_root / "run" / paths.prompt_path.name,
+                policy_path=attempt_root / "run" / paths.policy_path.name,
+                stream_path=attempt_root / "run" / paths.stream_path.name,
+                status_path=attempt_root / "run" / paths.status_path.name,
+            )
+            status = json.loads(persisted_paths.status_path.read_text())
+            if "workspace_dir" in status:
+                status["workspace_dir"] = str(persisted_paths.workspace_dir)
+            if "stderr" in status:
+                status["stderr"] = str(persisted_paths.run_dir / "stderr.log")
+            write_json_atomic(persisted_paths.status_path, status)
+
+            workspace_sha = solution_tree_sha256(
+                persisted_paths.workspace_dir
+            )
+            included = exit_code == 0 and _public_artifact_is_valid(
+                benchmark,
+                persisted_paths.workspace_dir,
+            )
+            return {
+                "role": self.attempt_elicitation_role,
+                "profile": self.attempt_profile.value,
+                "included": included,
+                "exit_code": exit_code,
+                "prompt_sha256": sha256_file(persisted_paths.prompt_path),
+                "workspace_sha256": workspace_sha,
+                "trajectory_sha256": sha256_file(persisted_paths.stream_path),
+                "status_sha256": sha256_file(persisted_paths.status_path),
+            }
+        finally:
+            shutil.rmtree(temporary, ignore_errors=True)
 
     @staticmethod
     def _preserve_solver_failure(
@@ -486,6 +514,7 @@ class SeedSetRunner:
             paths.policy_path,
             paths.stream_path,
             paths.status_path,
+            paths.run_dir / "stderr.log",
             paths.output_schema_path,
             paths.output_last_message_path,
         ):

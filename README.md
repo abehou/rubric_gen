@@ -278,14 +278,15 @@ the first online update, which scores `s002`. A ten-turn run has one shared
 pre-treatment generation and up to nine online updates.
 
 Each proposer request has a 1 MiB UTF-8 cap. Each call allows at most 32,768
-output tokens and uses a 1,800-second timeout. Both stages allow five validation
+output tokens and uses a 300-second timeout. Both stages allow five validation
 retries. If the rubric stage exhausts its retries, the workflow keeps the prior
 active set and records the reason. If difference discovery exhausts its retries,
-the assignment stops. A write-ahead ledger binds every provider call and resume.
-Malformed or indeterminate provider work cannot be silently resampled.
+the assignment stops. A completed generation is saved atomically and reused on
+resume. In-flight provider work is not write-ahead logged, so an interruption can
+cause that unfinished call to be issued again.
 
 The saved generation binds the exact artifact history, differences, complete
-rubric proposal, model metadata, provider ledger, rubric content, and local code hashes.
+rubric proposal, proposer configuration, rubric content, and local code hashes.
 This structure proves internal consistency. It does not prove that a generated
 criterion is correct or complete. Two supporting online pairs share the current
 artifact, so the support rule does not provide independent replication.

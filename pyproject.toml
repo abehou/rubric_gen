@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
   "anthropic>=0.40.0",
   "autorubric==1.5.3",
+  "certifi>=2024.8.30",
   "complexipy>=7.0.1",
   "google-genai>=1.0.0",
   "matplotlib>=3.8",

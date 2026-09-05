@@ -146,6 +146,7 @@ class FakeAgentRunner:
 
     def run(self, task_dir: Path, *, paths):
         type(self).calls += 1
+        assert not paths.workspace_dir.is_relative_to(task_dir.parents[1])
         paths.run_dir.mkdir(parents=True)
         paths.workspace_dir.mkdir(parents=True)
         (paths.workspace_dir / "answer.txt").write_text(

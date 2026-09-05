@@ -12,7 +12,7 @@ import rubric_gen.runtime.agents.adapters as adapters_module
 import rubric_gen.runtime.agents.runners as runners_module
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.adapters import CodexAdapter
-from rubric_gen.runtime.agents.runners import AgentRunner
+from rubric_gen.runtime.agents.runners import AgentRunner, RunValidation
 from rubric_gen.runtime.agents.sessions import (
     CliSolverSessionDriver,
 )
@@ -75,7 +75,27 @@ def test_one_shot_codex_agent_reads_explicit_prompt_stdin(
 
     assert runner.stream(paths) == 0
     assert popen_kwargs[0]["stdin"].name == str(paths.prompt_path)
+    assert popen_kwargs[0]["stderr"] != runners_module.subprocess.STDOUT
+    assert (paths.run_dir / "stderr.log").is_file()
     assert paths.stream_path.read_text() == "done\n"
+
+
+def test_one_shot_agent_retries_process_and_invalid_json_failures(
+    tmp_path: Path,
+) -> None:
+    paths = _run_paths(tmp_path)
+    runner = AgentRunner(
+        AgentRunConfig(provider="codex", model="test-model", retries=1),
+        prompt=BIOMNIBENCH_DA_PROMPT,
+        output_errors=BIOMNIBENCH_DA.output_errors,
+    )
+    paths.stream_path.write_text("not json\n")
+    validation = runner.validate_outputs(paths)
+
+    assert validation.errors[-1] == "trajectory_invalid_json: line 1"
+    assert runner.should_retry(1, 2, validation, 0)
+    assert runner.should_retry(1, 2, RunValidation(), 1)
+    assert not runner.should_retry(2, 2, validation, 1)
 
 
 class ScriptedSessionDriver(CliSolverSessionDriver):
@@ -168,6 +188,9 @@ def test_agent_environment_uses_workspace_local_temporary_directory(
 
     temporary = paths.workspace_dir / ".agent-tmp"
     assert environment["TMPDIR"] == str(temporary)
+    assert environment["PATH"].split(":")[0] == str(
+        (Path(sys.prefix) / "bin").resolve()
+    )
     assert temporary.is_dir()
     assert temporary.stat().st_mode & 0o777 == 0o700
     (temporary / "command.out").write_text("ok\n")
@@ -244,6 +267,8 @@ def test_codex_adapter_mounts_its_sandbox_helpers_read_only(
     ]["filesystem"]
     assert filesystem[str(native)] == "read"
     assert filesystem[str(bundled_rg)] == "read"
+    assert filesystem[str(Path(sys.prefix).resolve())] == "read"
+    assert filesystem[str(Path(sys.base_prefix).resolve())] == "read"
     assert filesystem[":minimal"] == "read"
     assert filesystem[":workspace_roots"] == {".": "write"}
 

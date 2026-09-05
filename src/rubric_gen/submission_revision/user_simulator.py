@@ -625,6 +625,7 @@ def _validate_feedback_output(
         or (decision == "accept" and concerns)
     ):
         raise ValueError("simulated-user output has invalid decision or concerns")
+    categories: set[str] = set()
     validated: list[dict[str, str]] = []
     total_chars = 0
     for concern in concerns:
@@ -635,10 +636,12 @@ def _validate_feedback_output(
         if (
             type(category) is not str
             or category not in CONCERN_CATEGORIES
+            or category in categories
             or type(feedback) is not str
             or not feedback.strip()
         ):
             raise ValueError("simulated-user concern has invalid values")
+        categories.add(category)
         normalized_feedback = feedback.strip()
         total_chars += len(normalized_feedback)
         validated.append({
