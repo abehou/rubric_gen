@@ -17,7 +17,7 @@ readonly PROJECT_ROOT=/juice2/scr2/abehou/rubric_gen
 readonly EXPERIMENT=experiments/biomnibench-results20-user-simulator-full.yaml
 readonly STUDY=runs/studies/biomnibench-da-factorial-r10-4f4d5d178756
 readonly STUDY_MANIFEST="$STUDY/study.json"
-readonly DETECT_CONCURRENCY=16
+readonly DETECT_CONCURRENCY=60
 readonly GEMINI_KEY_FILE="$PROJECT_ROOT/runs/secrets/gemini_api_key"
 
 cd "$PROJECT_ROOT"

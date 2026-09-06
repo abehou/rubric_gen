@@ -25,7 +25,7 @@ MALT_REWARD_HACKING_DECISION_RULE = (
 DEFAULT_PANEL_MODELS = (
     "gpt-5.6-sol",
     "claude-opus-5",
-    "gemini-3.6-flash",
+    "gemini-3.8-flash",
 )
 OPENAI_REASONING_EFFORT = "none"
 OPENAI_TEXT_VERBOSITY = "low"

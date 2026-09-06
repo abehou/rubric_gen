@@ -10,6 +10,7 @@ import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -28,6 +29,12 @@ def main() -> int:
         )
     executable, workspace, state_home, temporary, codex_home = sys.argv[1:]
     environment = sanitized_agent_environment()
+    # SDK launch reconstructs the environment here instead of forwarding the
+    # adapter's dictionary. Preserve the same project interpreter on this path.
+    python_bin = str((Path(sys.prefix) / "bin").resolve())
+    environment["PATH"] = os.pathsep.join(
+        (python_bin, environment.get("PATH", ""))
+    ).rstrip(os.pathsep)
     environment.update(
         {
             "HOME": state_home,
@@ -43,7 +50,15 @@ def main() -> int:
     resolved = str(Path(executable).resolve(strict=True))
     if os.name != "posix":
         raise RuntimeError("Codex scientific sessions require a POSIX host")
-    socket_path = Path(f"/tmp/rg-codex-{os.getuid()}-{secrets.token_hex(8)}.sock")
+    # Codex rejects a symlink as the immediate parent of its listening socket.
+    # On macOS, `/tmp` is a symlink, so create a private real directory below it.
+    socket_dir = Path(
+        tempfile.mkdtemp(
+            prefix=f"rg-codex-{os.getuid()}-{secrets.token_hex(4)}-",
+            dir="/tmp",
+        )
+    )
+    socket_path = socket_dir / "rpc.sock"
     arguments = [
         resolved,
         "app-server",
@@ -51,14 +66,18 @@ def main() -> int:
         "--listen",
         f"unix://{socket_path}",
     ]
-    process = subprocess.Popen(
-        arguments,
-        cwd=workspace,
-        env=environment,
-        stdin=subprocess.DEVNULL,
-        stdout=sys.stderr,
-        stderr=sys.stderr,
-    )
+    try:
+        process = subprocess.Popen(
+            arguments,
+            cwd=workspace,
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=sys.stderr,
+            stderr=sys.stderr,
+        )
+    except BaseException:
+        socket_dir.rmdir()
+        raise
 
     def terminate_on_signal(_signum: int, _frame: object) -> None:
         _terminate(process)
@@ -83,6 +102,7 @@ def main() -> int:
             connection.close()
         _terminate(process)
         socket_path.unlink(missing_ok=True)
+        socket_dir.rmdir()
 
 
 def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:

@@ -5,9 +5,10 @@ The randomized condition assignment defines the treatment.
 
 ## Endpoint scores
 
-Every arm uses one rubric. The static arm keeps the original rubric. The three
-elicitation arms keep all original criteria. Pairwise induction proposes learned
-criteria. Held-out pair validation controls admission. The program assigns fixed
+Each checkpoint uses one active rubric. The static arm keeps the original rubric.
+The four elicitation policies keep all original criteria. Pairwise induction
+proposes learned criteria. Blind candidate application and deterministic
+aggregate-margin checks control admission. The program assigns fixed
 score-normalized penalties and preserves the original percentage denominator.
 Added criteria are penalty-only. Their highest level is zero. Lower levels are
 strictly negative integers. A learned criterion cannot add credit above the
@@ -78,9 +79,13 @@ The general feedback levels are `full`, `semi`, `score_only`, and
 Feedback policy and rubric policy are the two planned factors.
 
 Each pair has one fixed A/B order across three assessment calls. The rubric-free
-call defines the quality direction. Active- and development-rubric calls expose
-ties or reversals as coverage gaps. They also return one base score and every
-active criterion level per artifact. Rubric-free ties stop. A stable subset of
+call defines the quality direction. Active- and development-rubric calls return
+one base score and every active criterion level per artifact; code adds the
+penalties, floors totals at zero, and derives each pair's higher-score winner or
+tie. These two views no longer ask the model for a redundant preference field.
+Exact unique IDs bind response records independent of array order. Ties or
+reversals against the rubric-free preference identify coverage gaps. Rubric-free
+ties stop. A stable subset of
 gaps supports criterion induction. Reserved gaps remain hidden from induction.
 Each artifact appears once under a stable blinded identifier.
 
@@ -117,8 +122,9 @@ during induction. It does not isolate a fixed trace on a fixed artifact because
 the two online arms can diverge after treatment. Both policies otherwise use the
 same sidecar, assessment, induction, validation, and update procedures.
 
-Every current protocol requires five solver revision turns before no-change
-stopping and permits at most ten. An unchanged turn before turn five creates an
+The Results20 protocols require five solver revision turns before no-change
+stopping and permit at most ten; small acceptance configurations can declare a
+shorter horizon in their YAML. An unchanged turn before the configured minimum creates an
 explicit checkpoint and receives the next scheduled feedback. Rubric elicitation
 still deduplicates exact public artifacts. Submission snapshots and judge inputs
 use independent file copies to prevent shared-inode metadata races.
@@ -127,15 +133,18 @@ Each model request has a 1 MiB UTF-8 limit, a 32,768-output-token ceiling, and a
 300-second timeout. Each stage allows five validation retries in current
 experiments. Exhausted assessment returns ties. Exhausted induction returns no
 candidates. Exhausted validation rejects all candidates. Each fallback keeps the
-prior active set and records the reason. A durable write-ahead ledger binds every
-call. Resume cannot silently resample an indeterminate provider result. These
-ceilings do not imply full usage.
+prior active set and records the reason. Completed rubric generations are
+published atomically with stage attempt counts and fallback reasons. Individual
+in-flight proposer calls do not have a durable write-ahead ledger; interruption
+before generation publication can repeat those calls on resume. These ceilings
+do not imply full usage.
 
 Deterministic validation checks exact JSON structure, preference consistency,
 candidate provenance, replacement conflicts, fixed points, title uniqueness,
 original-rubric preservation, and normalization. The model validator checks
-observability, redundancy, separation of cited pairs, and false penalties on all
-consistent pairs. These checks do not prove semantic quality or generalization.
+observability and redundancy and applies criteria to independently blinded
+artifacts without seeing pair preferences. Code then checks cited gaps and
+aggregate margins. These checks do not prove semantic quality or generalization.
 
 The rubric-free absolute-score panel sees one artifact at a time. It scores that
 artifact against fixed quality descriptions without a criterion rubric. These
@@ -165,8 +174,9 @@ This control
 prevents identical initial artifacts from receiving independent random scores.
 Process death after provider completion but before canonical publication can
 repeat that provider work. The store accepts only one canonical result.
-It does not make a stochastic judge ground truth. Both benchmarks retain all
-five repeats and their dispersion.
+It does not make a stochastic judge ground truth. Each whole-rubric judgment
+retains its single criterion report and usage record; there are no five-call
+repeats or within-judgment dispersion estimates.
 
 Before it creates an output or calls a provider, each scoring stage plans all
 deduplicated requests. The accepted plan records calls, request-content
@@ -200,27 +210,21 @@ The rubric score plan includes all full-rubric requests. It
 streams full request inputs and retains only cost shapes. The stage fails if any
 total exceeds its configured hard cap. The manifest and summary contain the
 plan and cap values. These resource limits are not a dollar cost estimate.
-Each direct detector pass records final observed cost. Neither reserves a budget.
+Each direct detector pass records final observed cost. None reserves a budget.
 
 Rubric-score and rubric-free means require every configured model. If any model
 is missing, the stage writes an incomplete summary and returns failure. Resume
 reuses completed exact records and executes unaccepted semantic keys again. The
 workflow never substitutes an available-model mean.
 
-The active 12-condition configurations have these conservative outcome-stage caps.
-Bytes are request-content bytes. Tokens are maximum output tokens.
-
-| Configuration group | Assignments | Rubric score calls / bytes / tokens | Rubric-free calls / bytes / tokens |
-|---|---:|---:|---:|
-| BioMNIBench development | 108 | 1,658,880 / 434,865,438,720 / 6,794,772,480 | 3,888 / 5,435,817,984 / 15,925,248 |
-| BioMNIBench results | 720 | 11,059,200 / 2,899,102,924,800 / 45,298,483,200 | 25,920 / 36,238,786,560 / 106,168,320 |
-| PaperBench development | 108 | 138,240 / 144,955,146,240 / 4,529,848,320 | 3,888 / 5,435,817,984 / 15,925,248 |
-| PaperBench results | 720 | 921,600 / 966,367,641,600 / 30,198,988,800 | 25,920 / 36,238,786,560 / 106,168,320 |
-
-The assignment count is tasks times replicates times solvers times 12 conditions.
-The listed configurations use one solver. The cap derivation includes the fixed
-three-attempt limit. It does not count
-solver, proposer, seed, paraphrase, or direct-detector calls.
+Current general configurations contain 20 conditions: development has 180
+assignments and Results20 has 1,200, with one solver and three replicates. The
+focused BioMNIBench full/user-simulator red-team configuration contains four
+conditions and 240 assignments. The exact conservative stage caps live in each
+YAML's `outcome_audit` fields under `experiments/`; accepted stage plans record
+the actual deduplicated requests and retry allowance. Caps are not usage or
+runtime forecasts and do not cover solver, proposer, seed, paraphrase, or direct
+detector calls.
 
 ## Rubric execution
 
@@ -228,10 +232,12 @@ BiomniBench-DA and PaperBench use the same whole-artifact structured judge. Each
 call contains the complete sealed artifact and complete rubric. The judge
 selects one level for every criterion.
 
-The engine makes exactly five calls. It computes each complete signed score and
-uses their arithmetic mean. It retains all five criterion reports, scores,
-usage records, and dispersion. Temperature is zero. Provider retries and
-repository result caching are disabled. An error, abstention, missing criterion,
+The engine makes one structured call and computes its complete signed score.
+It retains the criterion report, score, and usage record. Temperature is zero
+for OpenAI and Gemini; the Anthropic request omits it because Claude Opus 5 rejects
+that parameter. Provider retries and repository result caching are disabled
+inside the judge; the explicit outer retry and exact semantic-result reuse
+policies described above remain separate. An error, abstention, missing criterion,
 unknown level, or incomplete response fails the judgment.
 
 The analysis still keeps the two benchmarks separate because their tasks and

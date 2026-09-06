@@ -21,6 +21,7 @@ from rubric_gen.runtime.agents.codex_sessions import (
 )
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.codex_rpc import CodexRpcGuard
+from rubric_gen.submission_revision.evolution_provider import RubricProposerProviderError
 from rubric_gen.submission_revision.study import (
     _ProviderCircuit,
     _ProviderCircuitOpen,
@@ -353,16 +354,29 @@ def test_rpc_guard_rejects_invalid_notification_timestamp() -> None:
     assert error == "ValueError: emittedAtMs must be a non-negative integer"
 
 
-def test_app_server_proxy_isolates_non_rpc_output(tmp_path) -> None:
+def test_app_server_proxy_isolates_non_rpc_output(tmp_path, monkeypatch) -> None:
+    # Persistent SDK startup must preserve the adapter's project Python choice,
+    # even when the calling shell only exposes system executables.
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
     fake_codex = tmp_path / "fake-codex"
     fake_codex.write_text(
         f"""#!{sys.executable}
 import json
+import os
+import shutil
 import sys
+from pathlib import Path
 from websockets.sync.server import unix_serve
+
+assert os.environ["PATH"].split(os.pathsep)[0] == str((Path(sys.prefix) / "bin").resolve())
+assert shutil.which("python") == str((Path(sys.prefix) / "bin" / "python").absolute())
 
 listen = sys.argv[sys.argv.index("--listen") + 1]
 path = listen.removeprefix("unix://")
+socket_dir = Path(path).parent
+assert socket_dir.parent == Path("/tmp")
+assert socket_dir.name.startswith(f"rg-codex-{{os.getuid()}}-")
+assert Path(path).name == "rpc.sock"
 
 def handle(connection):
     request = json.loads(connection.recv())
@@ -451,12 +465,47 @@ server.serve_forever()
     assert stderr.count("discarded invalid JSON-RPC frame") == 5
 
 
-def test_provider_circuit_opens_after_three_transport_failures() -> None:
+@pytest.mark.parametrize("error_type", [CodexProviderHealthError, RubricProposerProviderError])
+def test_provider_circuit_opens_after_three_transport_failures(error_type) -> None:
     circuit = _ProviderCircuit("codex")
     for index in range(3):
         circuit.check()
-        circuit.record_failure(CodexProviderHealthError(f"failure {index}"))
+        circuit.record_failure(error_type(f"failure {index}"))
     circuit.record_success()
 
     with pytest.raises(_ProviderCircuitOpen, match="3 transport failures"):
         circuit.check()
+
+
+def test_provider_circuit_resets_before_open_and_ignores_validation_errors() -> None:
+    circuit = _ProviderCircuit("codex")
+    circuit.record_failure(RubricProposerProviderError("unavailable"))
+    circuit.record_success()
+    for _ in range(3):
+        circuit.record_failure(ValueError("invalid artifact"))
+    for _ in range(2):
+        circuit.record_failure(RubricProposerProviderError("unavailable"))
+    circuit.check()
+    circuit.record_failure(RubricProposerProviderError("unavailable"))
+    with pytest.raises(_ProviderCircuitOpen):
+        circuit.check()
+
+
+def test_open_proposer_circuit_prevents_assignment_execution(monkeypatch) -> None:
+    import rubric_gen.submission_revision.study as study_module
+
+    runner = object.__new__(study_module.StudyRunner)
+    runner.experiment = SimpleNamespace(solver_config=lambda _: SimpleNamespace(provider="codex"))
+    circuit = _ProviderCircuit("codex")
+    runner._provider_circuits = {"codex": circuit}
+    failures = []
+    monkeypatch.setattr(runner, "_mark_assignment_failed", lambda aid, exc: failures.append((aid, exc)))
+    monkeypatch.setattr(runner, "_mark_assignment_running", lambda _: pytest.fail("must not start"))
+    monkeypatch.setattr(study_module, "run_submission_revision", lambda *a, **k: pytest.fail("must not call provider"))
+    for _ in range(3):
+        circuit.record_failure(RubricProposerProviderError("unavailable"))
+    positions = study_module._ProgressPositions(1)
+    runner._execute_assignment(SimpleNamespace(assignment_id="blocked", solver_id="luna"), positions)
+    assert len(failures) == 1
+    assert isinstance(failures[0][1], _ProviderCircuitOpen)
+    assert positions.acquire() == 1

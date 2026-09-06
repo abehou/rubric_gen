@@ -1,3 +1,4 @@
+import http.client
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -1698,6 +1699,74 @@ def test_rubric_free_dispatch_rejects_task_changed_after_preflight(
     with pytest.raises(RuntimeError, match="request changed after stage preflight"):
         runner._run_absolute_job(job)
     assert provider_calls == 0
+
+
+@pytest.mark.parametrize("always_fail", [False, True])
+def test_gemini_incomplete_reads_use_bounded_rubric_free_retries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, always_fail: bool,
+) -> None:
+    from rubric_gen.runtime.integrations import gemini
+
+    target = _target(tmp_path)
+    (tmp_path / "instruction.md").write_text("Complete the task.\n")
+    for artifact, digest in (("initial", "c" * 64), ("final", "d" * 64)):
+        submission = target.submission(artifact)
+        workspace = submission / "workspace"
+        workspace.mkdir(parents=True)
+        for name in ("trace.md", "answer.txt"):
+            (workspace / name).write_text(f"{artifact} artifact\n")
+        (submission / "snapshot.json").write_text(json.dumps({"workspace_sha256": digest}))
+    attempts: dict[str, int] = {}
+
+    class Response:
+        def __init__(self, request):
+            self.body = json.loads(request.data)
+            self.prompt = self.body["contents"][0]["parts"][0]["text"]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            pass
+
+        def read(self):
+            attempts[self.prompt] = attempts.get(self.prompt, 0) + 1
+            if always_fail or attempts[self.prompt] == 1:
+                raise http.client.IncompleteRead(b"partial response")
+            properties = self.body["generationConfig"]["responseJsonSchema"]["properties"]
+            verdict = ({"score": 10, "explanation": "absolute"} if "score" in properties
+                       else {"preferred_response": "response_B", "explanation": "pair"})
+            return json.dumps({
+                "candidates": [{"content": {"parts": [{"text": json.dumps(verdict)}]}}],
+                "modelVersion": "gemini-test", "responseId": "response-test",
+            }).encode()
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(gemini.urllib.request, "urlopen", lambda request, **_kw: Response(request))
+    experiment = SimpleNamespace(experiment_id="experiment-1", protocol={}, outcome_audit={
+        "models": ["gemini-test"], "rubric_free_evaluation_max_calls": 12,
+        "rubric_free_evaluation_max_request_bytes": 1_000_000,
+        "rubric_free_evaluation_max_output_tokens": 100_000,
+    })
+    study = tmp_path / "study"
+    study.mkdir()
+    (study / "study.json").write_text(json.dumps({"records": [
+        {"assignment_id": target.assignment_id, "status": "completed"},
+    ]}))
+    output = tmp_path / "audit"
+    runner = RubricFreeScoreRunner(EvaluationConfig(
+        experiment=experiment, study_dir=study, paraphrase_dir=tmp_path / "paraphrases",
+        output_dir=output, max_concurrency=1,
+    ), (target,))
+    assert runner.run() == int(always_fail)
+    assert len(attempts) == 3
+    assert set(attempts.values()) == ({3} if always_fail else {2})
+    for stage, count in (("absolute_score", 2), ("pairwise_preference", 1)):
+        summary = json.loads((output / stage / "summary.json").read_text())
+        assert summary["failed_semantic_judgment_count"] == (count if always_fail else 0)
+        assert summary["successful_semantic_judgment_count"] == (0 if always_fail else count)
+        for path in (output / stage / "records").glob("*.json"):
+            assert json.loads(path.read_text())["attempt_count"] == 2
 
 
 def test_rubric_free_runner_executes_one_judgment_per_semantic_request(

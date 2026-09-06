@@ -49,6 +49,7 @@ from rubric_gen.submission_revision.evolution_provider import (
     PROPOSER_MAX_REQUEST_BYTES,
     ProviderContract,
     ProviderOperation,
+    RubricProposerProviderError,
     StructuredProviderOutput,
 )
 from rubric_gen.submission_revision.evolution_request import (
@@ -293,13 +294,13 @@ class RubricProposer:
 
         rubric_free_text = (
             root / "pairwise-assessment-rubric-free.json"
-        ).read_text()
+        ).read_bytes().decode("utf-8")
         active_rubric_text = (
             root / "pairwise-assessment-active-rubric.json"
-        ).read_text()
+        ).read_bytes().decode("utf-8")
         development_rubric_text = (
             root / "pairwise-assessment-development-rubric.json"
-        ).read_text()
+        ).read_bytes().decode("utf-8")
         rubric_free_value = validated_assessment_response(
             rubric_free_text,
             artifact_history=artifact_history,
@@ -338,7 +339,7 @@ class RubricProposer:
             raise RuntimeError("completed pairwise comparisons changed")
 
         level_labels = required_level_labels(original_rubric)
-        induction_text = (root / "criterion-proposal.json").read_text()
+        induction_text = (root / "criterion-proposal.json").read_bytes().decode("utf-8")
         candidates = validated_induction_response(
             induction_text,
             original_rubric=original_rubric,
@@ -347,7 +348,7 @@ class RubricProposer:
             level_labels=level_labels,
             induction_gaps=induction_gaps,
         )
-        validation_text = (root / "criterion-validation.json").read_text()
+        validation_text = (root / "criterion-validation.json").read_bytes().decode("utf-8")
         validations = validated_validation_response(
             validation_text,
             candidates=candidates,
@@ -757,10 +758,16 @@ class RubricProposer:
                     response_schema=response_schema,
                 )
             except Exception as exc:
-                repair = str(exc) or type(exc).__name__
                 provider_failures += 1
-                if provider_failures > PROVIDER_FAILURE_MAX_RETRIES:
-                    break
+                if (
+                    provider_failures > PROVIDER_FAILURE_MAX_RETRIES
+                    or attempt == self.max_retries + 1
+                ):
+                    raise RubricProposerProviderError(
+                        f"Rubric proposer stage {stage} failed after {attempt} "
+                        f"attempts ({provider_failures} provider failures; "
+                        f"last error: {type(exc).__name__})"
+                    ) from exc
                 continue
             try:
                 self.proposer_contract.validate_output(output)
@@ -791,7 +798,7 @@ class RubricProposer:
                     "pair_id": pair.pair_id,
                     "assessment_A": "Assessment unavailable.",
                     "assessment_B": "Assessment unavailable.",
-                    "preference": "tie",
+                    **({"preference": "tie"} if view is AssessmentView.RUBRIC_FREE else {}),
                     "reason": "No reliable pairwise judgment is available.",
                 }
                 for pair in artifact_history.pairs

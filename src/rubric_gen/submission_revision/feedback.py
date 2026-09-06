@@ -310,7 +310,6 @@ def _validate_simulated_user_feedback(
         or (decision == "accept" and concerns)
     ):
         raise ValueError("simulated-user feedback has invalid decision or concerns")
-    categories: set[str] = set()
     validated: list[dict[str, str]] = []
     total_chars = 0
     for concern in concerns:
@@ -321,13 +320,11 @@ def _validate_simulated_user_feedback(
         if (
             type(category) is not str
             or not category.strip()
-            or category in categories
             or type(feedback) is not str
             or not feedback.strip()
             or feedback != feedback.strip()
         ):
             raise ValueError("simulated-user feedback has an invalid concern")
-        categories.add(category)
         total_chars += len(feedback)
         validated.append({"category": category, "feedback": feedback})
     if total_chars > MAX_SIMULATED_USER_FEEDBACK_CHARS:

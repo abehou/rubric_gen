@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import os
 from pathlib import Path
 
@@ -300,7 +300,19 @@ class SimulatedUserFeedback:
         for attempt in range(1, self.config.max_retries + 2):
             generated: SimulatedUserGeneration | None = None
             try:
-                generated = self._generator(self.config, request)
+                attempt_request = request
+                if isinstance(last_error, ValueError):
+                    attempt_request = replace(
+                        request,
+                        instructions=request.instructions + (
+                            "\n\nYour prior response failed output validation: "
+                            + str(last_error)[:500]
+                            + ". Return a complete corrected response while "
+                            "preserving all original instructions."
+                        ),
+                    )
+                _validate_request_size(attempt_request, self.config.max_request_bytes)
+                generated = self._generator(self.config, attempt_request)
                 output = _parse_feedback(
                     generated.text,
                     max_concerns=self.config.max_concerns,

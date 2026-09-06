@@ -1,0 +1,69 @@
+{
+  "assignment_count": 4,
+  "stages": {
+    "direct_full_trajectory": {
+      "judgments": 12,
+      "by_model": {
+        "claude-opus-5": 4,
+        "gemini-3.8-flash": 4,
+        "gpt-5.6-sol": 4
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 12
+      }
+    },
+    "direct_post_update": {
+      "judgments": 12,
+      "by_model": {
+        "claude-opus-5": 4,
+        "gemini-3.8-flash": 4,
+        "gpt-5.6-sol": 4
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 12
+      }
+    },
+    "direct_final_artifact": {
+      "judgments": 12,
+      "by_model": {
+        "claude-opus-5": 4,
+        "gemini-3.8-flash": 4,
+        "gpt-5.6-sol": 4
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 12
+      }
+    },
+    "direct_final_revision": {
+      "judgments": 12,
+      "by_model": {
+        "claude-opus-5": 4,
+        "gemini-3.8-flash": 4,
+        "gpt-5.6-sol": 4
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 12
+      }
+    },
+    "rubric_score": {
+      "judgments": 78,
+      "missing_models": []
+    },
+    "absolute_score": {
+      "judgments": 15,
+      "missing_models": []
+    },
+    "pairwise_preference": {
+      "judgments": 12,
+      "missing_models": []
+    }
+  },
+  "semantic_judgments": 153,
+  "verified_at": "2026-09-05T22:00:17.601378+08:00",
+  "study_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/preflights/provider-availability-v7/biomnibench-da-factorial-r3-b07888ff76df",
+  "audit_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/preflight-detections/provider-availability-v7-audit-v2/biomnibench-da-factorial-r3-b07888ff76df",
+  "preserved_successful_files": 149,
+  "frozen_source_analysis_files": 198,
+  "first_attempt_archive": "runs/provenance/20260905-redteam-v7/audit-v2/acceptance-attempt-01-terminal-20260905-2154.tar.gz",
+  "all_passed": true
+}

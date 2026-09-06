@@ -42,6 +42,10 @@ class StructuredProviderOutput:
 ProviderOperation = Callable[..., StructuredProviderOutput]
 
 
+class RubricProposerProviderError(RuntimeError):
+    """A proposer invocation failed without producing a usable provider response."""
+
+
 @dataclass(frozen=True)
 class ProviderContract:
     """Define and enforce one structured model-provider interface."""

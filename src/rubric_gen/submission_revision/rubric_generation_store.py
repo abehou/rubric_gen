@@ -86,7 +86,7 @@ def persist_rubric_generation(
     ))
     try:
         for name, content in files.items():
-            (stage / name).write_text(content, encoding="utf-8")
+            (stage / name).write_bytes(content.encode("utf-8"))
         _validate_directory_contents(stage, files)
         for path in stage.iterdir():
             with path.open("rb") as stream:
@@ -261,7 +261,9 @@ def _read_text(path: Path, context: str) -> str:
     if path.is_symlink() or not path.is_file():
         raise RuntimeError(f"{context} is not a regular file")
     try:
-        return path.read_text(encoding="utf-8")
+        # Hashes cover the original UTF-8 text, including its exact line endings.
+        # Text-mode universal-newline translation would silently change CR/CRLF.
+        return path.read_bytes().decode("utf-8")
     except (OSError, UnicodeError) as exc:
         raise RuntimeError(f"{context} is unreadable") from exc
 

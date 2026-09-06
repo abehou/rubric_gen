@@ -1,52 +1,44 @@
-# Project preferences
+# Rubric Gen
 
-## Compatibility
+## Working context
 
-- Do not preserve, restore, recommend, or regress to legacy behavior unless the
-  user explicitly requests it for a specific task.
-- Do not add aliases, shims, fallback parsers, migrations, detached legacy
-  checkouts, or fabricated compatibility metadata for obsolete interfaces or
-  artifact formats.
-- When current validation rejects old artifacts, use the current workflow to
-  produce valid current-format artifacts. State plainly when old results cannot
-  be used by the current workflow.
+- Use `README.md` for setup and CLI usage, `docs/architecture.md` for code
+  ownership, and `docs/rubric_elicitation_workflow.md` for the induction protocol.
+  Read the relevant sections, not every historical document.
+- For running, recovering, monitoring, or reporting experiments, use
+  [rubric-experiments](skills/rubric-experiments/SKILL.md) by reading it explicitly.
+  `EXPERIMENT_PLAN.md` owns approved scope; `EXPERIMENT_RUNS.md` owns output paths.
+- Complete authorized changes through verification. Answer status/review requests
+  with evidence; they do not alone authorize implementation or new runs.
+  Ask only when missing information materially changes the result or authority.
+- Match verification to risk: use focused tests for changed behavior; broaden
+  for shared execution, identity, or scoring changes. Documentation-only changes
+  need link/instruction checks, not a full experiment rerun.
 
-## CLI design
+## Compatibility and CLI
 
-- Keep public CLIs small and shaped around the project's core user workflow.
-- Prefer short verb commands such as `seed`, `revise`, `detect`, and `judge`.
-- Do not expose implementation utilities, reporting helpers, plotting, maintenance,
-  experiment-design, or statistical-analysis operations as public commands unless
-  explicitly requested.
-- Prefer automatic validation inside workflow commands over separate `status` or
-  validation commands.
-- Never add dry-run or preflight modes or flags. Commands should execute their
-  stated operation, validate before mutation where possible, and fail clearly.
-- When the workflow changes, remove obsolete commands and update every in-scope
-  caller and document. Do not retain aliases, shims, or deprecated command names.
+- Do not preserve, restore, or recommend legacy behavior unless explicitly
+  requested for this task. Do not add aliases, shims, fallback parsers, migrations,
+  detached legacy checkouts, or fabricated compatibility metadata for obsolete
+  interfaces or artifacts. If validation rejects old results, state that clearly
+  and generate current-format artifacts through the current workflow.
+- Keep public CLIs small and centered on core workflow verbs such as `seed`,
+  `revise`, `detect`, and `judge`. Do not expose reporting, plotting, maintenance,
+  experiment-design, statistical-analysis, or implementation utilities as public
+  commands unless explicitly requested.
+- Validate inside workflow commands, before mutation where possible; fail clearly.
+  Prefer this to separate validation/status commands. Never add public dry-run or
+  preflight modes or flags. Remove obsolete commands and update callers/docs together;
+  do not retain deprecated names or compatibility aliases.
 
-## Experimental log
+## Durable records
 
-- For every Codex interaction concerning experiments, decide whether it adds a
-  meaningful experiment, decision, workflow change, fix, failure, or result worth
-  retaining. If it does, append an entry to the repository-root
-  `EXPERIMENT_LOG.md` without waiting for a separate request.
-- Keep each entry to one or two concise sentences stating what was tried or
-  changed and the observed result or current status. Group entries under a
-  date-starting section header and prefix each entry with the specific local time
-  and timezone; omit routine health checks, repeated commands, and other events
-  that add no new experimental knowledge.
+Record meaningful new knowledge without a separate request:
 
-## Code review log
+- `EXPERIMENT_LOG.md`: experiment decisions, runs, fixes, failures, and results.
+- `CODE_REVIEW.md`: implementation questions, correctness/design risks, and
+  maintainability concerns; record resolution when a tracked concern is fixed.
 
-- For every Codex interaction concerning code review, decide whether it adds a
-  meaningful unresolved implementation question, correctness risk, design concern,
-  or maintainability concern worth retaining. If it does, append an entry to the
-  repository-root `CODE_REVIEW.md` without waiting for a separate request.
-- Keep each entry to one or two concise sentences. Group entries under a
-  date-starting section header and prefix each entry with the specific local time
-  and timezone.
-- Keep experiment records and code-review records separate. Put hypotheses,
-  experiment-design decisions, runs, failures, and results in `EXPERIMENT_LOG.md`.
-  Put implementation questions and code concerns in `CODE_REVIEW.md`. If one
-  interaction contains both, write separate entries and do not duplicate text.
+Use a date-starting section and prefix each entry with local time and timezone.
+Keep entries to one or two sentences. Separate experimental and code concerns;
+do not duplicate text, routine checks, or repeated commands across the logs.

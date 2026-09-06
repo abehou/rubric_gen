@@ -2613,6 +2613,7 @@ source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
     { name = "autorubric" },
+    { name = "certifi" },
     { name = "complexipy" },
     { name = "google-genai" },
     { name = "matplotlib" },
@@ -2634,6 +2635,7 @@ dev = [
 requires-dist = [
     { name = "anthropic", specifier = ">=0.40.0" },
     { name = "autorubric", specifier = "==1.5.3" },
+    { name = "certifi", specifier = ">=2024.8.30" },
     { name = "complexipy", specifier = ">=7.0.1" },
     { name = "google-genai", specifier = ">=1.0.0" },
     { name = "matplotlib", specifier = ">=3.8" },

@@ -1,0 +1,13 @@
+{
+  "verified_at": "2026-09-06T01:19:26.120288+08:00",
+  "stage": "rubric_score",
+  "assignments": 240,
+  "unique_judgments": 4827,
+  "failed": 0,
+  "models": ["claude-opus-5", "gemini-3.8-flash", "gpt-5.6-sol"],
+  "summary_sha256": "9a7687c88e5ccdb57d7d52e55235647d81b3324681441da2413c9dfccf6bc5a3",
+  "preserved_prior_records": 4788,
+  "recovered_records": 39,
+  "terminal_archive_sha256": "63f89e72cc9de7852e93ac50a9870dc861ff1fec822206b728628eba227383c5",
+  "scope": "Stage-only raw/plan/summary/provenance and assignment coverage; whole audit remains incomplete."
+}

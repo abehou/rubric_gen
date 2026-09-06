@@ -1,0 +1,15 @@
+{
+  "checked_at": "2026-09-06T02:17:26.624229+08:00",
+  "scope": "direct_full_trajectory only; not whole-audit completion",
+  "assignments": 240,
+  "judgments": 720,
+  "by_model": {
+    "claude-opus-5": 240,
+    "gemini-3.8-flash": 240,
+    "gpt-5.6-sol": 240
+  },
+  "failed": 0,
+  "exact_assignment_model_coverage": true,
+  "raw_summary_agreement": true,
+  "summary_sha256": "bacee3cbe0958bbd603cc5b0b84e1c47447b4c46d74654fcb9477974b0520022"
+}

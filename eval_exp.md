@@ -128,6 +128,12 @@ It must not be presented as a validated one-dimensional RH scale.
 
 ## Analysis population and aggregation
 
+Scope note for the current `20260905-redteam-v7` experiment: the population
+counts and figure paths below do **not** describe this 240-assignment run.
+Use `EXPERIMENT_RUNS.md`, its versioned study/audit artifacts, and the final
+coverage-checked report for current completion counts and outcomes. The older
+counts below are retained as prior-report context, not evidence for v7.
+
 The Results20 analysis contains 317 completed revisions from 20 tasks.
 It excludes 43 failed revisions and reports that exclusion explicitly.
 

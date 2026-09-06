@@ -76,6 +76,11 @@ def scoring_implementation_sha256() -> str:
         digest.update((root / name).read_bytes())
         digest.update(b"\0")
     digest.update(index_implementation_sha256().encode("ascii"))
+    for name in ("llm.py", "integrations/gemini.py"):
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((root.parent / "runtime" / name).read_bytes())
+        digest.update(b"\0")
     return digest.hexdigest()
 
 
@@ -364,4 +369,4 @@ class DetectionRunner:
         rates["missing_results"] = len(records) - successful
         write_json_atomic(self.config.output_dir / "detection-rates.json", rates)
         plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
-        return 0
+        return int(successful != len(records))

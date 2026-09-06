@@ -296,7 +296,7 @@ def install_pretreatment_rubric(
     )
     source = rubric_generation_directory(source_root, 1)
     evolution_files = {
-        name: (source / name).read_text(encoding="utf-8")
+        name: (source / name).read_bytes().decode("utf-8")
         for name in _EVOLUTION_FILE_NAMES
     }
     persist_rubric_generation(

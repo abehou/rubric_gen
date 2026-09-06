@@ -1,0 +1,17 @@
+{
+  "kind": "independent-terminal-revision-validation",
+  "study_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/studies/20260905-redteam-v7/biomnibench-da-factorial-r10-8ab12c898ae7",
+  "finished_at": "2026-09-05T21:41:52.515930+08:00",
+  "terminal_ledger_finished_at": "2026-09-05T21:41:16.058828+08:00",
+  "completed_assignments": 240,
+  "prior_validation_report": "revision-validation-before-audit-237.json",
+  "additionally_validated_assignment_ids": [
+    "da-15-7--rep-002--solver-luna--user-simulator-red-team-trace",
+    "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+    "da-15-8--rep-001--solver-luna--user-simulator-red-team-artifact"
+  ],
+  "validation_seconds": 4.23,
+  "frozen_source_files_verified": 195,
+  "generation_implementation_sha256": "db15e59072abac1c7df584b757efad4a4b1e87d4a4a90391a385bd75ec5db5fc",
+  "all_passed": true
+}

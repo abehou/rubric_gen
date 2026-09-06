@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-09-05T22:40:00+08:00",
+  "assignment_count": 240,
+  "models": ["gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash"],
+  "method": "Read-only current EvaluationConfig/load_evaluation_targets plus RubricScoreRunner and RubricFreeScoreRunner internal preflight; no provider calls or official result writes. Count unique prepared jobs, not assignment references.",
+  "frozen_source_analysis_archive_sha256": "518728729f49aaebcb8121019d589998b9c595a247abfee2474eaf82ff132cef",
+  "planned_judgments": {
+    "direct_full_trajectory": 720,
+    "direct_post_update": 720,
+    "direct_final_artifact": 720,
+    "direct_final_revision": 720,
+    "rubric_score": 4827,
+    "absolute_score": 900,
+    "pairwise_preference": 720
+  },
+  "semantic_stage_judgments_per_model": {
+    "rubric_score": 1609,
+    "absolute_score": 300,
+    "pairwise_preference": 240
+  },
+  "total": 9327,
+  "note": "A judgment can contain several provider requests and retries. These are planned counts, not completion evidence; final gate checks actual manifests and saved records."
+}

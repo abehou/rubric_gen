@@ -1274,6 +1274,73 @@ def test_quota_failure_does_not_stop_other_jobs(tmp_path: Path) -> None:
     assert not (output / "detection-rates.png").exists()
 
 
+@pytest.mark.parametrize("successful_score", (0, 5))
+def test_mixed_execution_failures_return_failure_and_resume_preserves_successes(
+    tmp_path: Path,
+    successful_score: int,
+) -> None:
+    cases = (
+        _case(tmp_path / "case-a", {"samples": []}),
+        _case(tmp_path / "case-b", {"samples": []}),
+    )
+    recovered = False
+    calls: list[str] = []
+
+    def generate(model: str, _request: StructuredRequest) -> GenerationResult:
+        calls.append(model)
+        if model == "gpt-failing" and not recovered:
+            raise RuntimeError("temporary provider outage")
+        return _generation(model, _reward_hacking_text(score=successful_score))
+
+    output = tmp_path / "output"
+    base = dict(
+        source=_source(*cases),
+        models=("gpt-healthy", "gpt-failing"),
+        output_dir=output,
+        max_concurrency=1,
+    )
+
+    def run(*, resume: bool = False) -> int:
+        return DetectionRunner(
+            DetectionConfig(**base, resume=resume),
+            generate_response=generate,
+        ).run()
+
+    assert run() == 1
+    records = json.loads((output / "summary.json").read_text())["records"]
+    assert [r["status"] for r in records].count("completed") == 2
+    assert [r["status"] for r in records].count("failed") == 2
+    assert calls.count("gpt-healthy") == 2
+    assert calls.count("gpt-failing") == 6
+    rates = json.loads((output / "detection-rates.json").read_text())
+    assert rates["completed_results"] == rates["missing_results"] == 2
+    preserved = {
+        path: path.read_bytes()
+        for path in (output / "cases").glob("*/gpt-healthy/score.json")
+    }
+    assert len(preserved) == 2
+
+    # Cached healthy/abstaining judgments do not conceal remaining failures.
+    assert run(resume=True) == 1
+    assert calls.count("gpt-healthy") == 2
+    assert calls.count("gpt-failing") == 12
+    recovered = True
+    assert run(resume=True) == 0
+    assert calls.count("gpt-healthy") == 2
+    assert calls.count("gpt-failing") == 14
+    records = json.loads((output / "summary.json").read_text())["records"]
+    assert all(r["status"] in {"completed", "skipped"} for r in records)
+    if successful_score == 5:
+        assert all(r["verdict"]["decision"] == "abstain" for r in records)
+
+    call_count = len(calls)
+    assert run(resume=True) == 0
+    assert len(calls) == call_count
+    records = json.loads((output / "summary.json").read_text())["records"]
+    assert all(r["status"] == "skipped" for r in records)
+    assert all(path.read_bytes() == contents for path, contents in preserved.items())
+
+
 @pytest.mark.parametrize(
     "quota_message",
     (
@@ -1314,7 +1381,7 @@ def test_depleted_provider_preparation_does_not_block_other_models(
         count_tokens=count_tokens,
     )
 
-    assert runner.run() == 0
+    assert runner.run() == 1
     records = json.loads((output / "summary.json").read_text())["records"]
     by_model = {
         model: [record for record in records if record["model"] == model]

@@ -25,6 +25,7 @@ from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.evolution import RubricProposer
+from rubric_gen.submission_revision.evolution_provider import RubricProposerProviderError
 from rubric_gen.submission_revision.models import SubmissionRevisionConfig
 from rubric_gen.submission_revision.pretreatment_rubrics import (
     ensure_pretreatment_rubric,
@@ -72,7 +73,7 @@ class _ProviderCircuit:
                 self._failures = 0
 
     def record_failure(self, error: BaseException) -> None:
-        if not isinstance(error, CodexProviderHealthError):
+        if not isinstance(error, (CodexProviderHealthError, RubricProposerProviderError)):
             return
         with self._lock:
             self._failures += 1

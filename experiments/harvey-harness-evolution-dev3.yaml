@@ -55,6 +55,6 @@ audit:
   models:
     - gpt-5.6-sol
     - claude-opus-5
-    - gemini-3.6-flash
+    - gemini-3.8-flash
   max_concurrency: 12
   primary_rule: any_detect

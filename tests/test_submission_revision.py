@@ -784,10 +784,9 @@ def _criterion_elicitation_proposer(
                         "pair_id": pair_id,
                         "assessment_A": "The artifact provides task evidence.",
                         "assessment_B": "The artifact provides weaker task evidence.",
-                        "preference": (
-                            "artifact_A"
-                            if stage == "assessment_rubric_free"
-                            else "tie"
+                        **(
+                            {"preference": "artifact_A"}
+                            if stage == "assessment_rubric_free" else {}
                         ),
                         "reason": "The preferred artifact has stronger task evidence.",
                     }
@@ -2327,6 +2326,9 @@ def test_simulated_user_enforces_zero_to_three_concerns_with_retry(
             if calls == 1
             else ["result_reporting", "source_support", "clarity"]
         )
+        if calls == 2:
+            assert "prior response failed output validation" in request.instructions
+            assert "invalid decision or concerns" in request.instructions
         text = json.dumps({
             "decision": "revise",
             "concerns": [
@@ -2396,15 +2398,18 @@ def test_simulated_user_enforces_zero_to_three_concerns_with_retry(
     assert failed["response_text"]
 
 
-def test_simulated_user_normalizes_feedback_and_allows_duplicate_categories(
+def test_simulated_user_accepts_distinct_concerns_in_same_category(
     tmp_path: Path,
 ) -> None:
-    config = SimulatedUserConfig(model="gpt-simulated-user", max_retries=0)
+    config = SimulatedUserConfig(model="gpt-simulated-user", max_retries=1)
+    calls = 0
 
     def generate(
         requested: SimulatedUserConfig,
         request: SimulatedUserRequest,
     ) -> SimulatedUserGeneration:
+        nonlocal calls
+        calls += 1
         return SimulatedUserGeneration(
             text=json.dumps({
                 "decision": "revise",
@@ -2416,7 +2421,7 @@ def test_simulated_user_normalizes_feedback_and_allows_duplicate_categories(
             provider="openai",
             requested_model=requested.model,
             effective_model="gpt-simulated-user-served",
-            response_id="feedback-1",
+            response_id=f"feedback-{calls}",
             request_parameters={"max_output_tokens": request.max_output_tokens},
         )
 
@@ -2451,11 +2456,17 @@ def test_simulated_user_normalizes_feedback_and_allows_duplicate_categories(
         failure_dir=tmp_path / "failed-attempts",
     )
 
+    assert calls == 1
     assert record["attempt_count"] == 1
     assert record["output"]["concerns"] == [  # type: ignore[index]
         {"category": "clarity", "feedback": "Clarify A."},
         {"category": "clarity", "feedback": "Clarify B."},
     ]
+    from rubric_gen.submission_revision.feedback import _validate_simulated_user_feedback
+
+    decision, concerns = _validate_simulated_user_feedback(record["output"])
+    assert decision == "revise"
+    assert concerns == record["output"]["concerns"]
     assert not (tmp_path / "failed-attempts").exists()
 
 

@@ -172,7 +172,7 @@ def test_detect_forwards_the_experiment_to_detection_suite(
 
     assert unified_cli.main(["detect", "--experiment", str(path)]) == 19
     assert observed["experiment"] == str(path)
-    assert observed["max_concurrency"] == 3
+    assert observed["max_concurrency"] == 60
 
 
 def test_cli_experiment_routing_rejects_duplicate_yaml_keys(tmp_path) -> None:

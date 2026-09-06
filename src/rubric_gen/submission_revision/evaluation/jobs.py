@@ -375,6 +375,7 @@ def _evaluation_implementation_sha256() -> str:
         Path(__file__).with_name("absolute_score.py"),
         Path(__file__).with_name("pairwise_preference.py"),
         Path(__file__).parents[2] / "runtime" / "llm.py",
+        Path(__file__).parents[2] / "runtime" / "integrations" / "gemini.py",
     )
     digest = hashlib.sha256()
     for path in implementation_files:

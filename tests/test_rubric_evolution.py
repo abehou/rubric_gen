@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from itertools import product
 from pathlib import Path
 
@@ -21,12 +22,19 @@ from rubric_gen.submission_revision.evolution_artifacts import (
 )
 from rubric_gen.submission_revision.evolution_provider import (
     ProviderContract,
+    RubricProposerProviderError,
     StructuredProviderOutput,
 )
 from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
+    ElicitedCriterion,
     RubricGeneration,
     RubricPolicy,
+    render_augmented_rubric,
+)
+from rubric_gen.submission_revision.pretreatment_rubrics import (
+    install_pretreatment_rubric,
+    validate_installed_pretreatment_rubric,
 )
 
 
@@ -178,7 +186,11 @@ def _assessment_value(
                 "pair_id": pair.pair_id,
                 "assessment_A": "This artifact has inspectable task evidence.",
                 "assessment_B": "This artifact has weaker task evidence.",
-                "preference": preference(pair),
+                **(
+                    {"preference": preference(pair)}
+                    if schema is None or "rubric_scores" not in schema["properties"]
+                    else {}
+                ),
                 "reason": "The preferred artifact has stronger task evidence.",
             }
             for pair in _history().pairs
@@ -426,7 +438,8 @@ def test_prompt_contract_uses_simple_pairwise_induction_terms() -> None:
     assert "rubric-free task-quality preference" in induction
     assert "correlated evidence" in induction
     assert "without using any rubric" in rubric_free
-    assert "higher computed total score" in rubric_bound
+    assert "program computes each pair's preference" in rubric_bound
+    assert "do not output a preference" in rubric_bound
     assert "atomic criteria" in induction
     assert "fixed penalty scale" in induction
     assert "do not compare artifacts" in validation
@@ -539,20 +552,132 @@ def test_agreement_across_all_views_creates_no_induction_gap() -> None:
     assert validation == ()
 
 
-def test_rubric_preference_must_match_the_computed_total_scores() -> None:
+@pytest.mark.parametrize("view", [
+    assessment_module.AssessmentView.ACTIVE_RUBRIC,
+    assessment_module.AssessmentView.DEVELOPMENT_RUBRIC,
+])
+def test_rubric_preference_is_computed_without_a_redundant_model_field(view) -> None:
     current = _initial_generation()
+    schema = assessment_module.assessment_schema(
+        _history(),
+        view=view,
+        current_generation=current,
+    )
+    value = _assessment_value(relation="tie", schema=schema)
+    assert "preference" not in schema["properties"]["assessments"]["items"]["properties"]
+    result = assessment_module.validated_assessment_response(
+        json.dumps(value), artifact_history=_history(), view=view,
+        current_generation=current,
+    )
+    assert all(item.preferred_artifact_id is None for item in result.assessments)
+    value["assessments"][0]["preference"] = "artifact_A"  # type: ignore[index]
+
+    with pytest.raises(ValueError, match="structure is invalid"):
+        assessment_module.validated_assessment_response(
+            json.dumps(value),
+            artifact_history=_history(),
+            view=view,
+            current_generation=current,
+        )
+
+
+def _assessment_with_two_criteria():
+    criteria = tuple(
+        ElicitedCriterion.create(
+            title=title,
+            requirement=f"Verify {title.lower()} when claimed.",
+            levels=(("A", 0, "Supported."), ("B", -5, "Incomplete."),
+                    ("C", -10, "Unsupported.")),
+            provenance_pair_ids=(_history().pairs[0].pair_id,),
+            source_generation=1,
+        )
+        for title in ("Reproducibility", "Consistency")
+    )
+    current = RubricGeneration(
+        generation_round=1,
+        source_checkpoint=None,
+        rubric=render_augmented_rubric(_rubric(), criteria),
+        elicited_criteria=criteria,
+        proposer_call_budget=5,
+    )
     schema = assessment_module.assessment_schema(
         _history(),
         view=assessment_module.AssessmentView.ACTIVE_RUBRIC,
         current_generation=current,
     )
-    value = _assessment_value(relation="tie", schema=schema)
-    value["assessments"][0]["preference"] = "artifact_A"  # type: ignore[index]
+    return current, _assessment_value(relation="preferred", schema=schema)
 
-    with pytest.raises(ValueError, match="does not match computed"):
+
+@pytest.mark.parametrize("field", ["assessments", "rubric_scores", "criterion_levels"])
+def test_assessment_matches_records_by_exact_id_not_array_order(field: str) -> None:
+    current, value = _assessment_with_two_criteria()
+
+    def parse():
+        return assessment_module.validated_assessment_response(
+            json.dumps(value), artifact_history=_history(),
+            view=assessment_module.AssessmentView.ACTIVE_RUBRIC,
+            current_generation=current,
+        )
+
+    expected = parse()
+    if field == "criterion_levels":
+        for score in value["rubric_scores"]:
+            score[field].reverse()
+    else:
+        value[field].reverse()
+    assert parse() == expected
+
+
+@pytest.mark.parametrize("left,right,left_level,expected", [
+    (90, 80, "A", "left"),
+    (90, 80, "C", "right"),
+    (5, 0, "C", "tie"),
+    (5, 1, "C", "right"),
+])
+def test_rubric_preference_uses_penalties_and_zero_floor(
+    left: int, right: int, left_level: str, expected: str,
+) -> None:
+    current, value = _assessment_with_two_criteria()
+    pair = _history().pairs[0]
+    scores = {item["artifact_id"]: item for item in value["rubric_scores"]}
+    scores[pair.artifact_ids[0]]["base_score"] = left
+    scores[pair.artifact_ids[1]]["base_score"] = right
+    for level in scores[pair.artifact_ids[0]]["criterion_levels"]:
+        level["level"] = left_level
+    result = assessment_module.validated_assessment_response(
+        json.dumps(value), artifact_history=_history(),
+        view=assessment_module.AssessmentView.ACTIVE_RUBRIC,
+        current_generation=current,
+    )
+    actual = next(item for item in result.assessments if item.pair_id == pair.pair_id)
+    assert actual.preferred_artifact_id == {
+        "left": pair.artifact_ids[0], "right": pair.artifact_ids[1], "tie": None,
+    }[expected]
+
+
+@pytest.mark.parametrize("field,id_field", [
+    ("assessments", "pair_id"),
+    ("rubric_scores", "artifact_id"),
+    ("criterion_levels", "criterion_id"),
+])
+@pytest.mark.parametrize("mutation", ["duplicate", "unknown", "missing"])
+def test_assessment_requires_exact_unique_id_coverage(
+    field: str, id_field: str, mutation: str,
+) -> None:
+    current, value = _assessment_with_two_criteria()
+    records = (
+        value["rubric_scores"][0][field]
+        if field == "criterion_levels" else value[field]
+    )
+    if mutation == "missing":
+        records.pop()
+    else:
+        records[-1][id_field] = (
+            records[0][id_field] if mutation == "duplicate" else "unknown_id"
+        )
+    with pytest.raises(ValueError):
         assessment_module.validated_assessment_response(
-            json.dumps(value),
-            artifact_history=_history(),
+            json.dumps(value), artifact_history=_history(),
             view=assessment_module.AssessmentView.ACTIVE_RUBRIC,
             current_generation=current,
         )
@@ -1020,8 +1145,9 @@ def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
     assert len(generation.elicited_criteria) == 1
 
 
-def test_provider_failures_fall_back_without_failing_the_generation(
-    tmp_path: Path,
+@pytest.mark.parametrize("retries, expected_calls", [(0, 1), (1, 2), (5, 4)])
+def test_provider_failures_abort_without_publishing_generation(
+    tmp_path: Path, retries: int, expected_calls: int,
 ) -> None:
     calls = 0
 
@@ -1030,15 +1156,49 @@ def test_provider_failures_fall_back_without_failing_the_generation(
         calls += 1
         raise TimeoutError("provider request timed out")
 
-    generation = _replace(_proposer(fail, retries=5), tmp_path)
-    metadata = json.loads(
-        (tmp_path / "rubric-generations/generation-0001/evolution.json").read_text()
-    )
-    assert calls == 12
-    assert generation.elicited_criteria == ()
-    assert metadata["assessment_rubric_free_attempt_count"] == 4
-    assert metadata["assessment_active_rubric_attempt_count"] == 4
-    assert metadata["assessment_development_rubric_attempt_count"] == 4
+    with pytest.raises(RubricProposerProviderError, match="assessment_rubric_free") as error:
+        _replace(_proposer(fail, retries=retries), tmp_path)
+    assert isinstance(error.value.__cause__, TimeoutError)
+    assert calls == expected_calls
+    assert not (tmp_path / "rubric-generations/generation-0001").exists()
+    # Recovery produces a real generation, not a relabeled fallback.
+    assert len(_replace(_proposer(retries=retries), tmp_path).elicited_criteria) == 1
+
+
+def test_provider_retry_does_not_invent_a_validation_repair(tmp_path: Path) -> None:
+    evidence = []
+    default_call = _proposer().run_proposer
+
+    def propose(**kwargs):
+        if kwargs["stage"] == "induction":
+            evidence.append(kwargs["evidence"])
+            if len(evidence) == 1:
+                raise ConnectionError("connection unavailable")
+        return default_call(**kwargs)
+
+    generation = _replace(_proposer(propose, retries=1), tmp_path)
+    assert len(generation.elicited_criteria) == 1
+    assert len(evidence) == 2
+    assert evidence[0] == evidence[1]
+
+
+def test_provider_failure_on_final_validation_attempt_is_not_fallback(tmp_path: Path) -> None:
+    calls = 0
+    default_call = _proposer().run_proposer
+
+    def propose(**kwargs):
+        nonlocal calls
+        if kwargs["stage"] == "validation":
+            calls += 1
+            if calls == 1:
+                return _proposer_output({"validations": "invalid"}, "bad")
+            raise ConnectionError("connection unavailable")
+        return default_call(**kwargs)
+
+    with pytest.raises(RubricProposerProviderError, match="stage validation"):
+        _replace(_proposer(propose, retries=1), tmp_path)
+    assert calls == 2
+    assert not (tmp_path / "rubric-generations/generation-0001").exists()
 
 
 def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> None:
@@ -1053,6 +1213,64 @@ def test_completed_generation_replays_without_provider_calls(tmp_path: Path) -> 
     second = _replace(_proposer(forbidden), tmp_path)
     assert second == first
     assert calls == 0
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n", "\r", "\r\n\n\r"])
+def test_raw_responses_preserve_line_endings_on_publish_and_replay(
+    tmp_path: Path, newline: str,
+) -> None:
+    default_call = _proposer().run_proposer
+    responses: dict[str, str] = {}
+
+    def formatted(**kwargs):
+        output = default_call(**kwargs)
+        raw = json.dumps(json.loads(output.response_text), indent=2, ensure_ascii=False)
+        raw = raw.replace("\n", newline) + newline
+        responses[kwargs["stage"]] = raw
+        return replace(output, response_text=raw)
+
+    first = _replace(_proposer(formatted), tmp_path)
+    root = tmp_path / "rubric-generations/generation-0001"
+    files = {
+        "assessment_rubric_free": "pairwise-assessment-rubric-free.json",
+        "assessment_active_rubric": "pairwise-assessment-active-rubric.json",
+        "assessment_development_rubric": "pairwise-assessment-development-rubric.json",
+        "induction": "criterion-proposal.json",
+        "validation": "criterion-validation.json",
+    }
+    assert set(responses) == set(files)
+    for stage, filename in files.items():
+        assert (root / filename).read_bytes() == responses[stage].encode("utf-8")
+
+    for policy in (
+        RubricPolicy.OFFLINE_ELICITATION,
+        RubricPolicy.ONLINE_ELICITATION,
+        RubricPolicy.RED_TEAM_ARTIFACT,
+        RubricPolicy.RED_TEAM_TRACE,
+    ):
+        destination = tmp_path / "installed" / policy.value
+        arguments = dict(source_root=tmp_path, destination_root=destination, policy=policy)
+        assert install_pretreatment_rubric(**arguments) == first
+        assert validate_installed_pretreatment_rubric(**arguments) == first
+        assert install_pretreatment_rubric(**arguments) == first
+        for stage, filename in files.items():
+            copied = destination / "rubric-generations/generation-0001" / filename
+            assert copied.read_bytes() == responses[stage].encode("utf-8")
+
+    calls = []
+
+    def forbidden(**kwargs):
+        calls.append(kwargs)
+        raise AssertionError("completed generation must not call the provider")
+
+    assert _replace(_proposer(forbidden), tmp_path) == first
+    assert calls == []
+    # Even semantically harmless newline changes must still fail integrity checks.
+    path = root / files["induction"]
+    path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(RuntimeError, match="file hash changed"):
+        _replace(_proposer(forbidden), tmp_path)
+    assert calls == []
 
 
 def test_generation_file_tampering_fails_closed(tmp_path: Path) -> None:

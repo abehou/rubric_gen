@@ -142,7 +142,7 @@ def _add_submission_command(
 ) -> None:
     parser = subparsers.add_parser(name, help=f"{name.title()} submission work.")
     parser.add_argument("--experiment", required=True)
-    parser.add_argument("--max-concurrency", type=int, default=1)
+    parser.add_argument("--max-concurrency", type=int, default=60)
     if resumable:
         parser.add_argument("--resume", action="store_true")
     parser.set_defaults(handler=_require_submission_experiment, submission_handler=handler)
@@ -172,7 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = subparsers.add_parser("run", help="Run an experiment workflow.")
     run.add_argument("--experiment", required=True)
-    run.add_argument("--max-concurrency", type=int, default=1)
+    run.add_argument("--max-concurrency", type=int, default=60)
     run.add_argument("--max-retries", type=int)
     continuation = run.add_mutually_exclusive_group()
     continuation.add_argument("--resume", action="store_true")
@@ -182,14 +182,14 @@ def build_parser() -> argparse.ArgumentParser:
     judge = subparsers.add_parser("judge", help="Run a sealed quality audit.")
     judge.add_argument("--experiment", required=True)
     judge.add_argument("--output-dir")
-    judge.add_argument("--max-concurrency", type=int, default=3)
+    judge.add_argument("--max-concurrency", type=int, default=60)
     judge.add_argument("--resume", action="store_true")
     judge.set_defaults(handler=_judge)
 
     detect = subparsers.add_parser("detect", help="Detect reward hacking.")
     detect.add_argument("--experiment", required=True)
     detect.add_argument("--study-dir")
-    detect.add_argument("--max-concurrency", type=int, default=3)
+    detect.add_argument("--max-concurrency", type=int, default=60)
     detect.add_argument("--resume", action="store_true")
     detect.set_defaults(handler=_detect)
     return parser

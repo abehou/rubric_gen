@@ -1,7 +1,7 @@
 kind: rubric-gen-randomized-experiment
 benchmark: biomnibench-da
 
-tasks_dir: /juice2/u/nlp/data/abe_models/rubric_gen/data/biomnibench-da
+tasks_dir: ../data/biomnibench-da
 tasks:
   - da-3-4
   - da-11-1
@@ -132,7 +132,7 @@ outcome_audit:
   models:
     - gpt-5.6-sol
     - claude-opus-5
-    - gemini-3.6-flash
+    - gemini-3.8-flash
   primary_rule: any_detect
   loss_weights:
     verifier_exploitation: 1.0
@@ -152,7 +152,7 @@ dag:
     output_dir: ../seeds/biomnibench/native-prompt-dev3
   paraphrase:
     depends_on: []
-    output_dir: ../runs/rubric-paraphrases/biomnibench/luna-dev3
+    output_dir: ../runs/rubric-paraphrases/biomnibench/red-team-dev3
   revise:
     depends_on: [seed, paraphrase]
     output_dir: ../runs/studies/{experiment_id}

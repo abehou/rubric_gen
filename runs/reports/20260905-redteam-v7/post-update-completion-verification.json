@@ -1,0 +1,12 @@
+{
+  "verified_at": "2026-09-06T01:33:21.786598+08:00",
+  "stage": "direct_post_update",
+  "assignments": 240,
+  "judgments": 720,
+  "failed": 0,
+  "summary_sha256": "0d25a9766f3ab2628e2869506879ce9694f6ed49d6e21700d417e85c690471da",
+  "preserved_prior_records": 617,
+  "recovered_records": 103,
+  "terminal_archive_sha256": "557ef61581b61125c9310168e9039cedf149642b97ea0297361a30bb94055b79",
+  "scope": "Stage-only exact assignment/model and raw/summary agreement; full audit remains incomplete."
+}

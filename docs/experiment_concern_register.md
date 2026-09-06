@@ -147,8 +147,10 @@ The pre-treatment bank includes the same task and can include the assignment's
 initial seed artifact. The learned rubric can therefore fit the starting cohort.
 The new workflow uses matched pairs instead of a complete pair graph. It also
 reserves a stable subset of rubric gaps from criterion induction. Blind candidate
-applications on these artifacts are diagnostic only. They do not veto admission
-and do not establish performance on new attacks or tasks.
+applications on these artifacts participate in the aggregate no-regression margin
+gate, although a held-out gap need not strictly improve. These pairs can share
+artifacts with induction pairs and do not establish performance on new attacks or
+tasks.
 
 Use held-out attack attempts and held-out tasks to measure rubric coverage.
 Never promote training-bank performance as generalization evidence. Report

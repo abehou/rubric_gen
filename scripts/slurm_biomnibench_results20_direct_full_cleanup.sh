@@ -42,7 +42,7 @@ raise SystemExit(run_direct_detection(DirectDetectionConfig(
     experiment=experiment,
     study_dir=Path("runs/studies/biomnibench-da-factorial-r10-4f4d5d178756").resolve(),
     output_dir=Path("runs/detections/biomnibench-da-factorial-r10-4f4d5d178756/direct_full").resolve(),
-    max_concurrency=16,
+    max_concurrency=60,
     resume=True,
     window=RevisionDetectionWindow.FULL_TRAJECTORY,
 )))

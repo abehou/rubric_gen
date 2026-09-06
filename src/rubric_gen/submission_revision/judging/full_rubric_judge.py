@@ -68,7 +68,6 @@ def _generate_response(
         ).messages.create(
             model=spec.requested_model,
             max_tokens=spec.max_output_tokens_per_call,
-            temperature=0.0,
             system=protocol.FULL_RUBRIC_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": payload}],
             output_config={

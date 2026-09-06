@@ -126,7 +126,7 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
         assert protocol["judge_model"] == "gpt-5.6-luna"
         assert protocol["rubric_proposer_model"] == "gpt-5.6-luna"
         assert payload["outcome_audit"]["models"] == [
-            "gpt-5.6-sol", "claude-opus-5", "gemini-3.6-flash",
+            "gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash",
         ]
         assert payload["outcome_audit"]["primary_rule"] == "any_detect"
         assert payload["outcome_audit"]["rubric_score_max_calls"] == rubric_score_calls
@@ -140,6 +140,13 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
             if "dev3" in filename
             else "native-prompt-results20"
         )
+        paraphrase_tier_slug = (
+            tier_slug
+            if benchmark_slug == "paperbench"
+            else "red-team-dev3"
+            if "dev3" in filename
+            else "red-team-results20"
+        )
         assert payload["dag"] == {
             "seed": {
                 "depends_on": [],
@@ -148,7 +155,7 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
             "paraphrase": {
                 "depends_on": [],
                 "output_dir": (
-                    f"../runs/rubric-paraphrases/{benchmark_slug}/{tier_slug}"
+                    f"../runs/rubric-paraphrases/{benchmark_slug}/{paraphrase_tier_slug}"
                 ),
             },
             "revise": {
@@ -190,7 +197,7 @@ def test_biomni_results_focused_feedback_factorial_reuses_shared_inputs() -> Non
         "../seeds/biomnibench/native-prompt-results20"
     )
     assert payload["dag"]["paraphrase"]["output_dir"] == (
-        "../runs/rubric-paraphrases/biomnibench/luna-results20"
+        "../runs/rubric-paraphrases/biomnibench/red-team-results20"
     )
 
 
@@ -232,6 +239,16 @@ def test_elicitation_preflight_has_targeted_red_team_ablation() -> None:
         assert sum(item.endswith("red-team-trace") for item in selection) == 2
         assignment_count += len(selection)
     assert assignment_count == 8
+
+
+def test_biomni_acceptance_uses_shortest_post_update_horizon() -> None:
+    from rubric_gen.submission_revision.detection_windows import (
+        MINIMUM_POST_UPDATE_REVISIONS,
+    )
+
+    payload = _yaml(EXPERIMENTS / "preflights/biomnibench-elicitation-10.yaml")
+    assert payload["protocol"]["min_revisions"] == MINIMUM_POST_UPDATE_REVISIONS
+    assert payload["protocol"]["max_revisions"] == MINIMUM_POST_UPDATE_REVISIONS
 
 
 def test_harvey_has_distinct_three_and_twenty_task_tiers() -> None:

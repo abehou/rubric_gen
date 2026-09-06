@@ -55,6 +55,19 @@ JUDGE_SUBPROCESS_TIMEOUT_SECONDS = int(
 )
 
 
+def _judge_subprocess_environment() -> dict[str, str]:
+    environment = os.environ.copy()
+    package_root = str(Path(__file__).resolve().parents[3])
+    existing_pythonpath = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = os.pathsep.join(
+        (package_root, existing_pythonpath)
+        if existing_pythonpath
+        else (package_root,)
+    )
+    environment["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
+    return environment
+
+
 class JudgeExecutor:
     """Execute one fixed judge and attest every score input and output."""
 
@@ -109,8 +122,7 @@ class JudgeExecutor:
                 )
         except (OSError, RuntimeError) as exc:
             raise SystemExit(f"Invalid judge path: {judge_path}") from exc
-        env = os.environ.copy()
-        env["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
+        env = _judge_subprocess_environment()
         requested_model = self.judge_model(env)
         # Gemini must use the experiment's canonical credential.
         if requested_model.startswith("gemini"):

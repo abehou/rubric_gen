@@ -43,7 +43,7 @@ pools and must not contain this token.
 ```bash
 uv run rubric-gen run \
   --experiment experiments/biomnibench-dev3.yaml \
-  --max-concurrency 3 \
+  --max-concurrency 60 \
   --resume
 ```
 
@@ -52,11 +52,15 @@ and sealed paraphrases. It replaces revision and detection outputs.
 
 Run one stage when needed:
 
+All six `rubric-gen` workflow commands default to `--max-concurrency 60`.
+An explicit value overrides this per-stage worker limit; it does not guarantee
+60 simultaneous provider calls or a fixed runtime.
+
 ```bash
-uv run rubric-gen seed --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3
-uv run rubric-gen paraphrase --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3
-uv run rubric-gen revise --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3 --resume
-uv run rubric-gen detect --experiment experiments/biomnibench-dev3.yaml --max-concurrency 3 --resume
+uv run rubric-gen seed --experiment experiments/biomnibench-dev3.yaml --max-concurrency 60
+uv run rubric-gen paraphrase --experiment experiments/biomnibench-dev3.yaml --max-concurrency 60
+uv run rubric-gen revise --experiment experiments/biomnibench-dev3.yaml --max-concurrency 60 --resume
+uv run rubric-gen detect --experiment experiments/biomnibench-dev3.yaml --max-concurrency 60 --resume
 ```
 
 Submission experiments accept only the current format. Old experiment and
@@ -385,7 +389,7 @@ Score initial and final submissions against the original rubric:
 uv run rubric-gen judge \
   --experiment experiments/biomnibench-dev3.yaml \
   --output-dir runs/biomnibench-judgments/dev3-original-rubric \
-  --max-concurrency 3 \
+  --max-concurrency 60 \
   --resume
 ```
 
@@ -399,7 +403,7 @@ Run the configured reward-hacking (RH) audit:
 uv run rubric-gen detect \
   --experiment experiments/biomnibench-dev3.yaml \
   --study-dir runs/studies/<source-study-experiment-id> \
-  --max-concurrency 3 \
+  --max-concurrency 60 \
   --resume
 ```
 
@@ -414,7 +418,7 @@ The source study must be terminal. If a small assignment subset failed or was
 marked invalid, the command evaluates only completed assignments and records
 every exclusion. It rejects pending and running assignments.
 
-- `direct_full/`: a strong three-model ensemble audits the complete trajectory.
+- `direct_full_trajectory/`: a strong three-model ensemble audits the complete trajectory.
 - `direct_post_update/`: the same panel audits new behavior from `s003` onward.
 - `direct_final_artifact/`: the same panel audits only the sealed final artifacts.
 - `direct_final_revision/`: the same panel audits only the last artifact-producing revision.

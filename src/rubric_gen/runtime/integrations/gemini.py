@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
+import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+
+import certifi
 
 
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
@@ -94,7 +98,9 @@ class GeminiClient:
         )
         try:
             with urllib.request.urlopen(
-                request, timeout=self.timeout_seconds
+                request,
+                timeout=self.timeout_seconds,
+                context=ssl.create_default_context(cafile=certifi.where()),
             ) as response:
                 response_payload = json.loads(response.read().decode())
         except urllib.error.HTTPError as exc:
@@ -102,7 +108,7 @@ class GeminiClient:
             raise RuntimeError(
                 f"Gemini API request failed with HTTP {exc.code}: {detail}"
             ) from exc
-        except urllib.error.URLError as exc:
+        except (urllib.error.URLError, http.client.HTTPException, OSError) as exc:
             raise RuntimeError(f"Gemini API request failed: {exc}") from exc
         if not isinstance(response_payload, dict):
             raise RuntimeError("Gemini API response must be a JSON object")

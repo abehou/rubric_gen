@@ -1,0 +1,22 @@
+{
+  "verified_at": "2026-09-06T01:46:24.703263+08:00",
+  "assignments": 240,
+  "stages": {
+    "final_artifact": {
+      "judgments": 720,
+      "failed": 0,
+      "summary_sha256": "dfd31283e1bff8cdceb3ff6ab36026ad2cea4af8339ef333f5732a1b0677476c",
+      "preserved_prior_records": 719,
+      "recovered_records": 1
+    },
+    "final_revision": {
+      "judgments": 720,
+      "failed": 0,
+      "summary_sha256": "95a65e79c1c736de946f977edabb26315077ac7fca437418f3773efabdf85001",
+      "preserved_prior_records": 715,
+      "recovered_records": 5
+    }
+  },
+  "terminal_archive_sha256": "2d3e90fd7872e015b4b909b6b92dd324decdc0c37c521544ed1d5c1bdf353c8a",
+  "scope": "Stage-only exact assignment/model and raw/summary agreement; full audit remains incomplete."
+}

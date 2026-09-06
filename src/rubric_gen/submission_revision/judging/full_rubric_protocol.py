@@ -167,7 +167,7 @@ class FullRubricRunSpec:
             "provider": self.provider,
             "engine_seed": self.seed,
             "provider_seed": provider_seed,
-            "temperature": 0.0,
+            "temperature": None if self.provider == "anthropic" else 0.0,
             "reasoning_effort": reasoning_effort,
             "criterion_count": self.criterion_count,
             "rubric_bytes": self.rubric_bytes,
@@ -693,7 +693,7 @@ def validate_usage_record(value: object, spec: FullRubricRunSpec) -> None:
 def request_parameters(spec: FullRubricRunSpec) -> dict[str, object]:
     execution = spec.as_json()
     return {
-            "temperature": 0.0,
+            "temperature": execution["temperature"],
             "provider_seed": execution["provider_seed"],
             "reasoning_effort": execution["reasoning_effort"],
             "provider_storage": execution["provider_storage"],

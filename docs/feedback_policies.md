@@ -92,6 +92,12 @@ solver receives only the feedback text. It does not receive the category,
 internal score, rubric, or simulator reasoning. The simulator must not mention
 scores, graders, hidden evaluation, or treatment conditions.
 
+Different concerns may share a category: these internal labels are not concern
+identifiers and are not exposed to the solver. The program validates the concern
+count, allowed category names, and nonempty feedback rather than requiring
+category uniqueness. An output-validation retry receives the specific failure
+instead of repeating the request without correction guidance.
+
 An `accept` decision does not directly stop the controller. The solver receives
 the acceptance message. Revision stops if the solver then leaves the submission
 unchanged, or when it reaches the revision limit.
@@ -112,8 +118,10 @@ original judgment. Learned-criterion feedback comes from the active augmented
 judgment. This split prevents the augmented judge from re-awarding original
 points.
 
-The controller stores scores for all policies. The `user_simulator` policy hides
-the score from both the simulated user and the revision solver.
+The controller stores scores for all policies. The `user_simulator` policy gives
+the score to the simulator as private review context, but does not directly show
+it to the revision solver. Avoiding disclosure in the generated reply is a prompt
+instruction, not an enforced content filter.
 
 ## Timing and storage
 

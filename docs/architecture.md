@@ -17,6 +17,18 @@ owns its input format, output format, prompts, and environment rules.
 `rubric_gen.runtime` contains provider and process adapters. It does not select or
 import benchmarks. Callers must pass prompts, required outputs, and session rules.
 
+Codex scientific command environments explicitly select Matplotlib's noninteractive
+`Agg` backend through `shell_environment_policy.set`. This applies inside both
+one-shot and persistent sessions, where merely exporting an outer environment
+variable would be filtered out; credential filtering and filesystem/network
+permissions remain unchanged. It avoids native GUI initialization for background
+plots but does not prevent task code from explicitly selecting another backend.
+The persistent app-server proxy also prepends the invoking project's Python bin
+directory, matching the one-shot adapter, so ordinary Python commands use the same
+installed dependencies. Scientific command defaults set OpenBLAS, OpenMP and vecLib
+thread counts to one to avoid nested numeric parallelism across many assignments;
+these are library defaults, not a hard process/thread quota.
+
 `rubric_gen.submission_revision` owns seed, revision, judging, and study workflows.
 It selects a submission benchmark through the registry. Its audit adapter converts
 completed revisions into blinded evidence sources.
@@ -31,7 +43,11 @@ Rubric evolution has explicit protocol and storage interfaces.
 
 - `evolution.py` coordinates pairwise assessment, criterion induction, and validation.
 - `evolution_artifacts.py` owns blinded artifact-history contracts.
-- `evolution_protocol.py` owns prompts, schemas, evidence, and response validation.
+- `evolution_assessment.py` owns the three assessment views, exact-ID response
+  matching, and score-derived rubric-view preferences; rubric-free preferences
+  remain model judgments.
+- `evolution_protocol.py` owns criterion induction/application contracts and
+  deterministic aggregate-margin admission.
 - `evolution_provider.py` owns the structured provider contract and output type.
 - `evolution_serialization.py` owns strict JSON and content-identity helpers.
 
@@ -54,6 +70,15 @@ Randomized study execution and validation use separate owners.
 - `study_validation.py` coordinates completed-revision validation.
 - `study_validation_context.py` validates experiment identity and state.
 - `study_validation_artifacts.py` validates generations, judgments, and feedback.
+
+Rubric proposer invocation failures and generated-response validation failures are
+distinct. Exhausted provider-call retries raise `RubricProposerProviderError`
+without publishing a generation; only actual response-validation failures may use
+the bounded rubric fallback protocol. Provider retries do not fabricate validation
+repair instructions. The study's solver-group circuit counts both Codex session
+health failures and proposer invocation failures, opening after three consecutive
+failed assignments; it prevents queued assignments from starting, but does not
+cancel already-running assignments. Successful assignments reset an unopened circuit.
 
 Original-rubric ensemble execution uses two owners.
 
@@ -97,6 +122,12 @@ and aggregate metrics. Its panel workflow has explicit owners.
 - `costs.py` owns usage normalization and provider pricing.
 - `runner.py` coordinates standard request execution.
 - `job_runner.py` owns one synchronous job and its atomic `score.json` artifact.
+
+The direct detector returns a nonzero exit status if any planned record is
+unsuccessful, including mixed successful/failed panels. Completed judgments,
+validated cached judgments and legitimate abstentions remain successful; the
+experiment audit handler still attempts every later stage before reporting an
+overall failure. Exit status does not replace artifact-level coverage checks.
 
 The runner accepts one evidence source. It does not parse benchmark datasets or
 revision manifests.

@@ -1,0 +1,1563 @@
+{
+  "scope": "Durable direct-stage summary errors; no inference about unpublished stages or prior failed attempts.",
+  "stages": {
+    "direct_full_trajectory": {
+      "source_summary": "/Users/yuenanhuang/Desktop/rubric_gen/runs/detections/20260905-redteam-v7-audit-v2/biomnibench-da-factorial-r10-8ab12c898ae7/direct_full_trajectory/evaluations/20260905-220142-708977--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-8ab12c898ae7--source-biomnibench-da-factorial-r10-8ab12c898ae7--window-full_trajectory--max-input-250000--max-output-4096--primary-any_detect/summary.json",
+      "source_summary_sha256": "a9cc69f70db2f466bd1a3725f382df4eb66870da0aaad55032b495b85cb0c8ac",
+      "summary_status_counts": {
+        "completed": 356,
+        "skipped": 237,
+        "failed": 127
+      },
+      "failures_by_model_and_class": [
+        {
+          "model": "claude-opus-5",
+          "class": "connection_transport",
+          "count": 14
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "class": "connection_transport",
+          "count": 15
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "class": "rate_limit_per_minute",
+          "count": 84
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "class": "unsupported_location",
+          "count": 8
+        },
+        {
+          "model": "gpt-5.6-sol",
+          "class": "connection_transport",
+          "count": 6
+        }
+      ],
+      "failed_records": [
+        {
+          "case_id": "revision-000003",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "323c8ae0b4d3c35d196222a0666e755489abb6ff98cb2368c7c334ef08b9efb8",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000005",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "9b313f6160039d10e93956f19076deeedfeff540ae02e036f875b610476cb25a",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000006",
+          "model": "gpt-5.6-sol",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000007",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "074747505f97ebe80e44b0c8b954bb8168597e01938ca2a25f19af2c48552af7",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000015",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "ff4afb22fb9d0b85322609317bceeb640252d1aded86e947c4e11c32811e7e27",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000017",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000017",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "2db19bf9103f30cc1dac103e46b2315780443fd1ed700efbe6ddb1e9de33e987",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000018",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "f870c5966a9fdc5dbc75c7c3fe315b51a969fad72ef3e2ead481256d24052914",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000019",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "4b6a230be323f0e927e83b331465cb418872ec279e2541629611ab12fbe532c7",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000020",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "1a3e9d29043b666219ccb563a57a64f6c05857f8c459a27f38b81044fbe8bcb1",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000021",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "a086786ea1f42f7984ac3cabeaa951f90cd6a8ea71515d86744d21fde2e8815c",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000023",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "fc38bc54b84ec96f76b55bc9f69de2d7d86c2ee1653b0713442e5ef98766b4e1",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000024",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "82da5563ab39e5ca6291bc23a47456e99c08521b8b8a889087a42f946908abc1",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000025",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000027",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000030",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "1fa788f534099f046e55dfdd0748253a11ae5285139bebef49fe55d737290848",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000031",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000031",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "8e6689bb2149cfde1c069426f68410cea8458d562feedf258b8c08c4add63969",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000032",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000035",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000035",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "6bb02f9e99dbd16bcc331c9c5a1f1fbf9dacf5a690195f6d7618494dc8c4140c",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000037",
+          "model": "gpt-5.6-sol",
+          "attempt_count": 0,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000043",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "76d7378c465ae3e295a5c9c824a06c8d479e2ecf3c9aeac18ae4304e1add1958",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000044",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "fdae4db01126cc2cc22bb17a5a929f689d8e7665d7cdf1c738b9bd7785c16dc5",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000045",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000049",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "f67fd12283ca2f096c5c33d2eb2be56238cadaf5082a62373b4a23d3d2befea9",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000053",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000056",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "6e32413cb4caf843f76e6eb21483a93f07ecc70021faf4639cb77e7e8deee2bb",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000062",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "a83f2e9cf4f68bf28130ad2a2dd05a5e400acc170aa11e486241058de96633e2",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000065",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000068",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "1c0fabd1b8badf1d7ef631fba1053fe9f5dac4f2d1533ef5fdb2c29719869dd0",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000076",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "86a837f6fdbf5405b68eb2192e127d9ece96715bfd3fb8c7b8953768094d738e",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000077",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "caaea85322bf66b301724bb122be80157f55b64233263cdec4789e45b84703e7",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000078",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "8c22b178061606c3fbeaba6f84c55ac726895ddd463e55e5bdc065a5c3d6f8a8",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000080",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "3235e97a6e84a0632de3a8c4c212844354cd37819c0dad52ff32bdbd41dea389",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000082",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000083",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "cae445a992745371260a2e161d6ce53e06904d0afcbad1176acaaed5a35231ad",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000085",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "cc7d1b71ab8344910d59411d22ea25bdd51b57db49c992f842b7734a66c2258b",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000085",
+          "model": "gpt-5.6-sol",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000088",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "39ce5fb2aadae589f4f6fc701532d50d4dba9501e076e7ccc525a6bcf0545b23",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000091",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "f4d93ae782bd0921e10df83ab034bcaf44536e954642d0ab0e1a5e934fdefcdd",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000096",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "35e285efd2fc6c07fe81f37d271608e9c45c9bc60e95b0d1ec0befab0ac81ecb",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000098",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000100",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "125b7678fea57089e4a1f2d6509496378abeead4167a5796821f37171d602880",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000105",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "6aa733e8d17b51b7ba63555704e440add9a44f304149f8d881edf5693e84eb96",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000105",
+          "model": "gpt-5.6-sol",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000108",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "d138ddb540a4f33a4ca0218697724d88fb7d12376feb0d0eb5e348d6d673d183",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000109",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000110",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "3e8f68ee945261e6a654a7278573c333c6fb9b1000e4bac9473134d1d1e184be",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000113",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "76e81879d80f0f61143f1cc5bd2825d02cec9b0e5cf298e8706a5f7119c6a1e2",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000114",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "225614b0d206db035199f155254cf150d17e56d099d86267f184ff174257abd3",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000116",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "17255852a347222bc1a4d3ea6b6873a1c43e71b066825463ab545af810e98500",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000118",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "e71b612ff517c98d5676fae0cf225b0258fd1143f8eae60fcda883d5c494cff3",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000119",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "595f1978e0c6f4faa5461cebe3d29c64604d9287027dd73ca292b277302f3af9",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000120",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "1b3520c31e998932a41a1386c92d3f53155b986ff73cb906361a559417136e74",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000122",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000123",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000128",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "31c3cf498f5c89b527c5e0b6337605364a9c440003fa51f50478da573921550a",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000133",
+          "model": "gpt-5.6-sol",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000134",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "4641eb1c712f27d645f3e90fb195cf015da33a6585403edef7cbe79a4587dfc8",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000135",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "e38639d7f97b7c2ed4ca85a27f6feeded52a2885a1d4c0afcee1cea18f46cce5",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000136",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "7cf51c5f58aca79cae4384c6ca9f25630a6a79487ee794b44cbce045e1b9439d",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000138",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "a4dfe4c5a596c33688105d0c0c234106aa4746828a32ab072fd0bf818c9efc68",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000139",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000139",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "bfdee4749c9401971d700a89d065e0c2a8f755442ef0773180659a56208713e5",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000141",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000143",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "871871e00d00d35544ddc5476d7aee7191f955e2a035abd89be2a7a3dc1dc70e",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000147",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000147",
+          "model": "gpt-5.6-sol",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000148",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "5323bb4fe65495faeae16fd1d40b69633930e9b62c0607bb0af022a582bf0270",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000153",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000154",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "44cd606264580e7580c8b1493c9e7a7d48714a2a0e9752c4cb1bbf611d1ccb47",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000157",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "e871a10e73b1038117abbc9f7ba1f76b3fc84918473bb616415209b895e89913",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000158",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "ec6fc9658713a63706c542396f4fab32aa3278d9cca7f1425427c54b0d242479",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000161",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "d6d0c2e2635ace47bfa252355dc1de6a59ee93ed4e0f5b958c6291ca0d1db5e1",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000162",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "601527a55e0502da5c039d08ed3e6c3377df1d8d850423c7c7c5261ce8abb087",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000163",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000164",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000165",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "414355851181b37ddd3f3a5c7ea1e6da151b8c4cc97c58719b2648ae7ae03ef6",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000170",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "743b97e228bfdb4ad6070cc51cdaddc11f8ff64ac7f949d54ff170788415288c",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000173",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "2c1a90191253a26ba5147c9f2cd36abc3398d07ebf22642f91f622f100365599",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000174",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "b509f9639b364e25baa64b466c919123380fe301913dae4ac18db4b1fcb9d698",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000175",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000175",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "adfb53de906de945ab9ff35680aa4b44cc1c6a908c1ba045f8feed53a4ac44b0",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000176",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000177",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "ae35dd5b9f17817340fb570073351db52c665973dc0a9a4ace8b5c951391b40c",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000178",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000179",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000182",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0b5dcddf76b396f8efed613a03c8a8783d29a6596287cf092a3a0ed9194fc591",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000185",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "09eafaa3e626cc5c6f23117fed9186b4748013b1649c0c009e7aec28bfd5234a",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000186",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "aa37c9293cec27bee4a7a838c9f3413498574552b886831cbe2cc14a45bb372d",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000187",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "054b3f1466e76756cc58cb4432e03370ea58d082d2cf281e719a92b9e7685d2a",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000188",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000192",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "864ec442af6d99f5605a3cd83ee91553e3bd55386762381880e743dda2aa7b6e",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000193",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000193",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "1f0e593374382a51d4702e253af68f29606c3c2533311bf6d49be975aca6fdfb",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000194",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "704008eaa32260beaf6ee52317c6136502de9ec000c9403604436cb0d130c906",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000195",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000196",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000197",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "589dabdd9ba26c9fb18d5da39641b540325b458baa00437dae4ecbcbfc4cc387",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000201",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "a66bd6f0c99e4848693fa9ae695f36811ee1d8b4466f62f23a892f9a86ea2fbc",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000202",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "2439626fb293cfed763ebb5615176aec6f092db2c19635f2a52b376d591cdf2e",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000203",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "cbde0a08d5a13bc2a56d4d4c97ed6f441e97aa0d528d4381424ba45fe1334dce",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000204",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "625436f8adc2c8348a3b2868e2965bcc71fa5569c3f15412067cb33bd086b4f3",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000207",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "d9d484f7c8805b775f2ba2c5da31b057d1ed53718ee69167ed9d75d999d4bee0",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000209",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000209",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "68eff521d33c3b774a13ee80d022e912f8836addf99fb8713a29c966cf5fe7c5",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000214",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "279bef939213f8dceb9851fe7364bd38ffccc863b270bc2a19ebd261f5d626a6",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000215",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "b8f63b79ea230ffbe5afde10e91d967346216f9f3519fa7a11f2a0f65c74c21f",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000216",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "798a114be7ba951a4ffeb6d6afcfb2271f58ebba960295eaff61454285883795",
+          "class": "unsupported_location",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000217",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "124af0438594de3955c3c4901ce541979e2941e538d0705e6f9ac89e0b36b0de",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000218",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "7f12e221812d01f5041851ba0159d32c4a1a01e55fccdf3426204c2210d2b8a0",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000220",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "9dad5e2a7a8f40b533a6bd34083e91bf6182da4a0985febe1cd2c7dcebb78a23",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000222",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "04b8d30d82fda9c9685b18530c5b24a78d147ad89762d2562104f9954c0693a7",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000223",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000224",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000226",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000226",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "a14e19c6e2a2f9bdb00c3f206e08edcea3514ea07e80cdec14948c6968cb5ca6",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000227",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        },
+        {
+          "case_id": "revision-000227",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "73e402bb645c2931165f07ba2426b888fc5857d61c583a58adc686ea0a55b502",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000228",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "8ee5671f93faaa78cebc3abfa853e3423c4e3694aef59f677a32b42ce40f8e76",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000229",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000232",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "64f9e4c8a7f74998901c60b8d8f2827bbde57f4548338dde4159a0729663dac2",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000233",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "e816fc243af4fc5e12b52c025b95cb2dfebc6a0f054628910b3cfeb878c3c5cb",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000236",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "3182cca2985e72d60bc25388201eef6f1b7ea27d82f5d757c332fc33bf2ebfe2",
+          "class": "rate_limit_per_minute",
+          "error_type": "RuntimeError",
+          "quota_ids": [
+            "GenerateContentPaidTierInputTokensPerModelPerMinute-PaidTier2"
+          ],
+          "quota_values": [
+            "3000000"
+          ]
+        },
+        {
+          "case_id": "revision-000237",
+          "model": "gemini-3.8-flash",
+          "attempt_count": 3,
+          "error_sha256": "0f4bf417f96a0649558ebd1a2086fb736ec8deeb623941d2966ecb1f7f7ceb05",
+          "class": "connection_transport",
+          "error_type": "RuntimeError"
+        },
+        {
+          "case_id": "revision-000239",
+          "model": "claude-opus-5",
+          "attempt_count": 3,
+          "error_sha256": "8ec9a0b7fe5cde1fde3419e132fca4570c7aafab557cf67c993a5ce1628f0079",
+          "class": "connection_transport",
+          "error_type": "APIConnectionError"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "branch": "aydan-red-team",
+  "release_tag": "aydan-red-team-backup-20260906",
+  "local_content_verification": "Every regular archive member matched the original local file SHA-256; Apple metadata sidecars excluded from comparison",
+  "assets": [
+    {
+      "name": "audits-reports-acceptance.tar.gz",
+      "bytes": 30722485,
+      "sha256": "ba2817b564c697f5f75c36508daba12f771702a09299981c2d2530660dc8805a",
+      "verified_file_count": 35350,
+      "url": "https://github.com/abehou/rubric_gen/releases/download/aydan-red-team-backup-20260906/audits-reports-acceptance.tar.gz"
+    },
+    {
+      "name": "provenance.tar.gz",
+      "bytes": 1337759130,
+      "sha256": "c09a5f414f1c47ede48a10131e6299fc02c9e92f7ec439de38b61c1782652315",
+      "verified_file_count": 104,
+      "url": "https://github.com/abehou/rubric_gen/releases/download/aydan-red-team-backup-20260906/provenance.tar.gz"
+    },
+    {
+      "name": "revision-seeds-paraphrases.tar.gz",
+      "bytes": 1619400925,
+      "sha256": "155706072d6c4f5647c7b8f8b409fe3abc005049c23b99175fb23324fbfee24a",
+      "verified_file_count": 88688,
+      "url": "https://github.com/abehou/rubric_gen/releases/download/aydan-red-team-backup-20260906/revision-seeds-paraphrases.tar.gz"
+    }
+  ]
+}
