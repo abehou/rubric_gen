@@ -2,6 +2,12 @@
 
 Branch: `aydan-red-team` in `abehou/rubric_gen`.
 
+**Verified complete, 2026-09-06 08:50 CST:** all three assets are uploaded and
+GitHub's exact sizes/SHA-256 digests match the local manifest. See
+[remote verification receipt](GITHUB_BACKUP_VERIFICATION.json). The release tag
+preserves snapshot commit `544fec7cbea8f59d7a37fceedba22e1ae19fe9dc`; the branch
+also includes this subsequent verification record.
+
 This is a backup of the completed Results20 v7 experiment: 240 assignments,
 seven audit stages, 9,327 unique judgments, Luna solver/proposer and
 Sol / Claude Opus 5 / Gemini 3.8 Flash audits. See the

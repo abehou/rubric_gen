@@ -1,5 +1,10 @@
 # Experiment runs and versions
 
+Public GitHub backup of completed v7: branch `aydan-red-team`, with complete
+original outputs in its associated backup Release. See [restore instructions](GITHUB_BACKUP.md),
+[asset manifest](GITHUB_BACKUP_MANIFEST.json), and [remote verification](GITHUB_BACKUP_VERIFICATION.json).
+All three release assets were verified uploaded with matching SHA-256 on 2026-09-06.
+
 Start here to find results. Approved scope/current state are in [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md),
 and reusable operations in [rubric-experiments](skills/rubric-experiments/SKILL.md);
 dated decisions/results in [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md), and implementation

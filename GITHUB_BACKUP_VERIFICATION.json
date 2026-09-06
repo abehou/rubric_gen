@@ -1,0 +1,40 @@
+{
+  "verified_at": "2026-09-06T08:50:14.209973+08:00",
+  "repository": "abehou/rubric_gen",
+  "visibility": "public; user explicitly approved",
+  "branch": "aydan-red-team",
+  "snapshot_commit": "544fec7cbea8f59d7a37fceedba22e1ae19fe9dc",
+  "release_url": "https://github.com/abehou/rubric_gen/releases/tag/aydan-red-team-backup-20260906",
+  "release_id": 383415465,
+  "secret_scan": {
+    "scanned_files": 566441,
+    "findings": []
+  },
+  "assets": [
+    {
+      "name": "audits-reports-acceptance.tar.gz",
+      "asset_id": 546504801,
+      "state": "uploaded",
+      "bytes": 30722485,
+      "sha256": "ba2817b564c697f5f75c36508daba12f771702a09299981c2d2530660dc8805a",
+      "download_url": "https://github.com/abehou/rubric_gen/releases/download/aydan-red-team-backup-20260906/audits-reports-acceptance.tar.gz"
+    },
+    {
+      "name": "provenance.tar.gz",
+      "asset_id": 546504881,
+      "state": "uploaded",
+      "bytes": 1337759130,
+      "sha256": "c09a5f414f1c47ede48a10131e6299fc02c9e92f7ec439de38b61c1782652315",
+      "download_url": "https://github.com/abehou/rubric_gen/releases/download/aydan-red-team-backup-20260906/provenance.tar.gz"
+    },
+    {
+      "name": "revision-seeds-paraphrases.tar.gz",
+      "asset_id": 546504992,
+      "state": "uploaded",
+      "bytes": 1619400925,
+      "sha256": "155706072d6c4f5647c7b8f8b409fe3abc005049c23b99175fb23324fbfee24a",
+      "download_url": "https://github.com/abehou/rubric_gen/releases/download/aydan-red-team-backup-20260906/revision-seeds-paraphrases.tar.gz"
+    }
+  ],
+  "verification": "GitHub reports uploaded state and matching exact sizes/SHA-256 digests for all three assets; all regular archive members were verified against local originals before upload"
+}
