@@ -1,0 +1,622 @@
+[
+  {
+    "tag": "control-da-3-4",
+    "assignment": "da-3-4--rep-002--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 6,
+    "attempted_revisions": 7,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "control-da-3-4",
+    "assignment": "da-3-4--rep-001--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      89.0
+    ]
+  },
+  {
+    "tag": "control-da-3-4",
+    "assignment": "da-3-4--rep-003--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "control-da-3-4",
+    "assignment": "da-3-4--rep-003--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "control-da-3-4",
+    "assignment": "da-3-4--rep-001--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      89.0,
+      89.0,
+      89.0,
+      89.0
+    ]
+  },
+  {
+    "tag": "control-da-3-4",
+    "assignment": "da-3-4--rep-002--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-3-4",
+    "assignment": "da-3-4--rep-002--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-3-4",
+    "assignment": "da-3-4--rep-001--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-3-4",
+    "assignment": "da-3-4--rep-003--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-3-4",
+    "assignment": "da-3-4--rep-003--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      84.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-3-4",
+    "assignment": "da-3-4--rep-001--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-3-4",
+    "assignment": "da-3-4--rep-002--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "control-da-11-1",
+    "assignment": "da-11-1--rep-002--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      55.0,
+      87.0,
+      87.0,
+      94.0,
+      94.0,
+      94.0,
+      78.0,
+      80.0,
+      80.0,
+      71.0,
+      71.0
+    ],
+    "master_scores": [
+      55.0,
+      87.0,
+      87.0,
+      100.0,
+      94.0,
+      87.0,
+      78.0,
+      80.0,
+      78.0,
+      73.0,
+      73.0
+    ]
+  },
+  {
+    "tag": "control-da-11-1",
+    "assignment": "da-11-1--rep-001--solver-luna--user-simulator-static",
+    "attempt_count": 2,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      48.0,
+      86.0,
+      86.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      91.0
+    ],
+    "master_scores": [
+      55.0,
+      79.0,
+      74.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0,
+      93.0
+    ]
+  },
+  {
+    "tag": "control-da-11-1",
+    "assignment": "da-11-1--rep-003--solver-luna--user-simulator-static",
+    "attempt_count": 2,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      48.0,
+      100.0,
+      100.0,
+      93.0,
+      34.0,
+      87.0,
+      87.0,
+      94.0,
+      85.0,
+      87.0,
+      85.0
+    ],
+    "master_scores": [
+      48.0,
+      100.0,
+      100.0,
+      68.0,
+      40.0,
+      87.0,
+      80.0,
+      87.0,
+      78.0,
+      80.0,
+      85.0
+    ]
+  },
+  {
+    "tag": "control-da-11-1",
+    "assignment": "da-11-1--rep-003--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      48.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      48.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "control-da-11-1",
+    "assignment": "da-11-1--rep-001--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      48.0,
+      86.0,
+      93.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      55.0,
+      86.0,
+      93.0,
+      94.0,
+      94.0
+    ]
+  },
+  {
+    "tag": "control-da-11-1",
+    "assignment": "da-11-1--rep-002--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      55.0,
+      69.0,
+      93.0,
+      87.0,
+      100.0
+    ],
+    "master_scores": [
+      55.0,
+      76.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-11-1",
+    "assignment": "da-11-1--rep-002--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      55.0,
+      80.0,
+      80.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0
+    ],
+    "master_scores": [
+      55.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0,
+      87.0
+    ]
+  },
+  {
+    "tag": "neutral-da-11-1",
+    "assignment": "da-11-1--rep-001--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      48.0,
+      67.0,
+      87.0,
+      74.0,
+      67.0,
+      60.0,
+      58.0,
+      61.0,
+      46.0,
+      46.0,
+      46.0
+    ],
+    "master_scores": [
+      55.0,
+      68.0,
+      80.0,
+      73.0,
+      66.0,
+      60.0,
+      60.0,
+      60.0,
+      46.0,
+      52.0,
+      52.0
+    ]
+  },
+  {
+    "tag": "neutral-da-11-1",
+    "assignment": "da-11-1--rep-003--solver-luna--user-simulator-static",
+    "attempt_count": 1,
+    "stop_reason": "max_revisions",
+    "retained_revisions": 10,
+    "attempted_revisions": 10,
+    "selected_scores": [
+      48.0,
+      80.0,
+      61.0,
+      61.0,
+      68.0,
+      68.0,
+      54.0,
+      33.0,
+      33.0,
+      33.0,
+      33.0
+    ],
+    "master_scores": [
+      48.0,
+      80.0,
+      61.0,
+      61.0,
+      68.0,
+      80.0,
+      54.0,
+      46.0,
+      46.0,
+      46.0,
+      33.0
+    ]
+  },
+  {
+    "tag": "neutral-da-11-1",
+    "assignment": "da-11-1--rep-003--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      48.0,
+      87.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      48.0,
+      87.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-11-1",
+    "assignment": "da-11-1--rep-001--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 6,
+    "attempted_revisions": 7,
+    "selected_scores": [
+      48.0,
+      80.0,
+      93.0,
+      87.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      55.0,
+      80.0,
+      93.0,
+      94.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  {
+    "tag": "neutral-da-11-1",
+    "assignment": "da-11-1--rep-002--solver-luna--full-static",
+    "attempt_count": 1,
+    "stop_reason": "no_change",
+    "retained_revisions": 4,
+    "attempted_revisions": 5,
+    "selected_scores": [
+      55.0,
+      87.0,
+      86.0,
+      94.0,
+      100.0
+    ],
+    "master_scores": [
+      55.0,
+      80.0,
+      86.0,
+      100.0,
+      100.0
+    ]
+  }
+]

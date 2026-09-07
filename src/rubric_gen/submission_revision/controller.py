@@ -18,7 +18,7 @@ from rubric_gen.runtime.agents.workspaces import (
     ensure_artifacts_dir,
 )
 from rubric_gen.runtime.progress import PROGRESS_BAR_FORMAT
-from rubric_gen.submission_revision.feedback import FeedbackPolicy
+from rubric_gen.submission_revision.feedback import FeedbackPolicy, FEEDBACK_REFERENCE_PROTOCOL
 from rubric_gen.submission_revision.models import (
     RevisionDependencies,
     RevisionPhase as _RevisionPhase,
@@ -159,6 +159,7 @@ class SubmissionRevisionController:
             "reasoning_effort": self.config.agent.reasoning_effort,
             "service_tier": self.config.agent.service_tier,
             "turn_timeout_seconds": self.config.agent.timeout_seconds,
+            "feedback_reference_protocol": FEEDBACK_REFERENCE_PROTOCOL,
             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
             "prompt": PromptProfile(self.config.prompt_profile).value,
             "prompt_implementation_sha256": prompt_implementation_sha256(),

@@ -1,0 +1,8 @@
+[
+  {
+    "tag": "neutral-da-3-4",
+    "exit_code": 1,
+    "error_type": "RuntimeError",
+    "error": "evaluation suite failed in rubric_free_score; other stages were still run"
+  }
+]

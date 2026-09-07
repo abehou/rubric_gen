@@ -1,0 +1,21 @@
+# Validated selected-rubric prerequisite
+
+Both authorized live checkpoint smokes passed. This supersedes the blocked status in `RESULT.md`; that earlier report and all failed-attempt evidence remain preserved. The exact implementation diff relative to the incoming dirty tree is [prerequisite-code.diff](prerequisite-code.diff), covering 11 files and excluding the user's pre-existing changes.
+
+The root cause was a mixed feedback reference: selected/active rubric text accompanied master-rubric numeric rewards and base criterion judgments. The shared feedback boundary now resolves and attests the selected base judgment and checks that its rubric reconstructs the active rubric after learned criteria are added.
+
+- Static: selected rubric → selected judgment → score, criterion levels/reasons, visible rubric, revision feedback and simulator request → stored reference hashes and resume validation.
+- Dynamic: the selected base supplies the base reward and feedback; the current active judgment supplies learned penalties and their feedback. Active base-criterion regrading remains discarded, preserving the intended dynamic composition.
+- Master judgments remain independent measurements (`fixed_original_scores` and `canonical_original_score`). Holdout, holistic and RH audit results remain outside the solver and simulator feedback path.
+
+Validation reused all six saved selected judgments, checking 42 criterion bindings with exact score, level, points, reason, rubric-text and simulator-input equality. Every mismatched master reference rejected. Unequal selected/master controller fixtures exercised two solver turns, later checkpoints, completed-study validation and resume without further model calls; swapped references and missing protocol markers rejected. Dynamic composition retained the selected-base 60 plus active penalty −4 = 56 behavior.
+
+Both live da-3-4/rep-001 modes completed one real Luna solver revision and two scored checkpoints, then passed production recovery and latest-checkpoint validation. Four new Luna judgments and two simulator responses completed; one unique compatible historical selected judgment was reused. These checkpoint smokes are acceptance evidence, not comparison controls. Receipts: [smoke-results.json](smoke-results.json), [smoke-launch-04.json](smoke-launch-04.json), [ACCEPTANCE.md](ACCEPTANCE.md).
+
+The relevant core suite passed 156 tests. Broader checks passed 249 tests with two unrelated failures (pre-existing YAML inventory differences and sandbox Unix-socket binding); remaining driver checks passed 29 with that socket test deselected. A whole-suite attempt stalled in the installed autorubric import and was interrupted, so no whole-suite pass is claimed. Detailed logs and the information-boundary checks are in `RESULT.md` and `saved-binding-results.json`.
+
+Historical master-feedback trajectories retain their old identities and cannot resume or validate as corrected-wiring runs. There is no migration or rewritten provenance. Exact completed judgments can still be reused when artifact, rubric and scoring request identities match. Dynamic checkpoints may need an extra selected-base judgment when the active rubric differs. The new required protocol marker is `selected-base-plus-active-penalties-v1`.
+
+The proposed 24-assignment manifest did need revision: new protocol/source identities and a valid static preparation path. After explicit subsequent authorization, the comparison received four new configs and output roots in `investigation/static-neutral-20260907/manifest.json`. Its static-only preparation bypasses unused induction, resolving the invalid inherited `pretreatment_source` without changing historical metadata. Both arms use corrected wiring and identical sealed seeds, rubric pools, stopping rules and evaluation settings; only neutral revision guidance differs. Two full-length neutral smoke assignments passed and are included in, and reused by, the 24-assignment comparison.
+
+Historical file preservation is recorded in `preservation.json` and rechecked after live acceptance in `preservation-after-live.json`, against all 12,319 original SHA-256 records. The prompt treatment and static preparation changes occurred after the prerequisite was accepted and are separately recorded in `../static-neutral-20260907/treatment-and-preparation.diff`.

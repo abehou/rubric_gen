@@ -1,0 +1,59 @@
+{
+  "provider_calls": 0,
+  "cases": [
+    {
+      "task": "da-3-4",
+      "replicate": 1,
+      "selected_score": 100.0,
+      "historical_master_score": 100.0,
+      "criteria_checked": 6,
+      "simulator_requests_checked": 1,
+      "mismatch_rejected": true
+    },
+    {
+      "task": "da-3-4",
+      "replicate": 2,
+      "selected_score": 100.0,
+      "historical_master_score": 100.0,
+      "criteria_checked": 6,
+      "simulator_requests_checked": 1,
+      "mismatch_rejected": true
+    },
+    {
+      "task": "da-3-4",
+      "replicate": 3,
+      "selected_score": 84.0,
+      "historical_master_score": 84.0,
+      "criteria_checked": 6,
+      "simulator_requests_checked": 1,
+      "mismatch_rejected": true
+    },
+    {
+      "task": "da-11-1",
+      "replicate": 1,
+      "selected_score": 48.0,
+      "historical_master_score": 55.0,
+      "criteria_checked": 8,
+      "simulator_requests_checked": 1,
+      "mismatch_rejected": true
+    },
+    {
+      "task": "da-11-1",
+      "replicate": 2,
+      "selected_score": 55.0,
+      "historical_master_score": 55.0,
+      "criteria_checked": 8,
+      "simulator_requests_checked": 1,
+      "mismatch_rejected": true
+    },
+    {
+      "task": "da-11-1",
+      "replicate": 3,
+      "selected_score": 48.0,
+      "historical_master_score": 48.0,
+      "criteria_checked": 8,
+      "simulator_requests_checked": 1,
+      "mismatch_rejected": true
+    }
+  ]
+}

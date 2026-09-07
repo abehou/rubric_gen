@@ -1,0 +1,522 @@
+[
+  {
+    "model": "gpt-5.6-sol",
+    "role": "selected",
+    "score": 75.0,
+    "review": "trace",
+    "record": "runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/records/58de449f8823620b9b09038f99038dfe.json",
+    "evaluation": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/artifacts/58de449f8823620b9b09038f99038dfe/evaluations/s004/031f110fc1a22e53b68bf77668e9abe5ce754491e98012bf509e8b24de195074/099c35a56ebb96740cebf051cb9580ee/evaluation.json",
+    "evaluation_result": {
+      "criteria": {
+        "criterion_1": {
+          "level": "B",
+          "points": 6,
+          "reason": "GEO matrices and multi-sample dimensions are documented, and QC code specifies counts, genes, mitochondrial percentage, and thresholds, but no actual post-filter totals are reported."
+        },
+        "criterion_2": {
+          "level": "A",
+          "points": 13,
+          "reason": "The workflow explicitly performs 10,000-depth normalization, log1p, batch-aware HVGs, scaling, 40-PC PCA, neighbors, UMAP, and Leiden clustering."
+        },
+        "criterion_3": {
+          "level": "A",
+          "points": 15,
+          "reason": "Comprehensive T, CD4/CD8, eight-gene KIR, cytotoxic, and activated-CD4 sets are scored with score_genes; expression prevalence is reported."
+        },
+        "criterion_4": {
+          "level": "A",
+          "points": 15,
+          "reason": "Data-derived percentile criteria combine T, CD8, KIR, cytotoxic, CD4, and activation scores, with plausible counts reported for both populations."
+        },
+        "criterion_5": {
+          "level": "B",
+          "points": 13,
+          "reason": "The code covers many pathway classes, excludes MHC-I, scores both directions, and implements permutation/BH testing, but no executed structured results with permutation p/q values or significance filtering are shown."
+        },
+        "criterion_6": {
+          "level": "B",
+          "points": 8,
+          "reason": "Pathway aggregation code computes totals, means, pair counts, and significant counts, and a ranked interpretation is supplied, but the computed pathway table is not shown and ranking largely relies on individual prevalence scores."
+        },
+        "criterion_7": {
+          "level": "A",
+          "points": 5,
+          "reason": "KIR+CD8-to-CD4 communication is prioritized, MHC-I is explicitly excluded, and cytotoxic/death-receptor mechanisms are interpreted cautiously in the CeD setting."
+        },
+        "criterion_8": {
+          "level": "A",
+          "points": 0,
+          "reason": "Values are tied to supplied files and documented code, while biological claims cite identifiable peer-reviewed references with DOI or PMID."
+        }
+      },
+      "full_rubric_structured": {
+        "code_identity": {
+          "engine": "evaluation-rubric-structured",
+          "score": "single-judgment-signed-points",
+          "structured_output": "fixed-count-level-index-records-json-schema"
+        },
+        "execution": {
+          "artifact_bytes": 22923,
+          "authoritative_score": "single-judgment-signed-points",
+          "calls": 1,
+          "criterion_count": 8,
+          "engine_seed": 1351741767,
+          "limits": {
+            "max_calls": 1,
+            "max_criteria": 1000,
+            "max_output_tokens_per_call": 32768,
+            "max_request_content_bytes_per_call": 1000000,
+            "max_total_request_content_bytes": 5000000
+          },
+          "max_output_tokens_per_call": 4096,
+          "payload_bytes": 35789,
+          "prompt_cache_control": "default",
+          "provider": "openai",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": false,
+          "reasoning_effort": "none",
+          "repository_result_cache": false,
+          "request_content_bytes_per_call": 37302,
+          "request_timeout_seconds": 300.0,
+          "requested_model": "gpt-5.6-sol",
+          "rubric_bytes": 11474,
+          "schema_bytes": 378,
+          "structured_output_contract": "fixed-count-level-index-records-json-schema",
+          "system_prompt_sha256": "b70db0549f6b9549ceda557b5a5524cbb0400fa94cd815d0d9d117bd5234b7d1",
+          "temperature": 0.0,
+          "total_request_content_bytes": 37302
+        },
+        "raw_report": {
+          "criteria": {
+            "criterion_1": {
+              "level": "B",
+              "reason": "GEO matrices and multi-sample dimensions are documented, and QC code specifies counts, genes, mitochondrial percentage, and thresholds, but no actual post-filter totals are reported."
+            },
+            "criterion_2": {
+              "level": "A",
+              "reason": "The workflow explicitly performs 10,000-depth normalization, log1p, batch-aware HVGs, scaling, 40-PC PCA, neighbors, UMAP, and Leiden clustering."
+            },
+            "criterion_3": {
+              "level": "A",
+              "reason": "Comprehensive T, CD4/CD8, eight-gene KIR, cytotoxic, and activated-CD4 sets are scored with score_genes; expression prevalence is reported."
+            },
+            "criterion_4": {
+              "level": "A",
+              "reason": "Data-derived percentile criteria combine T, CD8, KIR, cytotoxic, CD4, and activation scores, with plausible counts reported for both populations."
+            },
+            "criterion_5": {
+              "level": "B",
+              "reason": "The code covers many pathway classes, excludes MHC-I, scores both directions, and implements permutation/BH testing, but no executed structured results with permutation p/q values or significance filtering are shown."
+            },
+            "criterion_6": {
+              "level": "B",
+              "reason": "Pathway aggregation code computes totals, means, pair counts, and significant counts, and a ranked interpretation is supplied, but the computed pathway table is not shown and ranking largely relies on individual prevalence scores."
+            },
+            "criterion_7": {
+              "level": "A",
+              "reason": "KIR+CD8-to-CD4 communication is prioritized, MHC-I is explicitly excluded, and cytotoxic/death-receptor mechanisms are interpreted cautiously in the CeD setting."
+            },
+            "criterion_8": {
+              "level": "A",
+              "reason": "Values are tied to supplied files and documented code, while biological claims cite identifiable peer-reviewed references with DOI or PMID."
+            }
+          },
+          "overall_reasoning": "The artifact presents a strong, reproducible workflow and cautious interpretation. Its main evidentiary gaps are absent executed post-QC totals and absent permutation/pathway output tables, so those criteria do not prove the highest level."
+        }
+      },
+      "reasoning": "The artifact presents a strong, reproducible workflow and cautious interpretation. Its main evidentiary gaps are absent executed post-QC totals and absent permutation/pathway output tables, so those criteria do not prove the highest level.",
+      "total_score": 75.0
+    }
+  },
+  {
+    "model": "gpt-5.6-sol",
+    "role": "holdout-1",
+    "score": 75.0,
+    "review": "trace",
+    "record": "runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/records/568d28f8f765b22ddc5fa70db4558613.json",
+    "evaluation": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/artifacts/568d28f8f765b22ddc5fa70db4558613/evaluations/s004/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/2e16cd630f9cde600fda9c4ed053ece4/evaluation.json",
+    "evaluation_result": {
+      "criteria": {
+        "criterion_1": {
+          "level": "B",
+          "points": 6,
+          "reason": "Import and QC code is provided, but exact post-filter cell/gene totals are not reported; they are only promised upon rerun."
+        },
+        "criterion_2": {
+          "level": "A",
+          "points": 13,
+          "reason": "Documents normalization, log1p, 3,000 batch-aware HVGs, scaling, 40-PC PCA, 15-neighbor graph, UMAP, and Leiden clustering."
+        },
+        "criterion_3": {
+          "level": "A",
+          "points": 15,
+          "reason": "Provides comprehensive T-cell, KIR, cytotoxic, and activated-CD4 marker sets and computes Scanpy marker scores after checking feature presence."
+        },
+        "criterion_4": {
+          "level": "A",
+          "points": 15,
+          "reason": "Uses data-derived percentile score thresholds, combined lineage criteria, and reports plausible counts for both populations."
+        },
+        "criterion_5": {
+          "level": "B",
+          "points": 13,
+          "reason": "Directional prevalence-product scoring, pathway annotations, MHC-I exclusion, reverse screening, and permutation/BH code are shown, but no executed structured table or q-values substantiate significance filtering."
+        },
+        "criterion_6": {
+          "level": "B",
+          "points": 8,
+          "reason": "Pathway aggregation code computes several summaries, but its executed output is absent and the final ranking mixes an effector module with individual LR pairs rather than a demonstrated pathway-level table."
+        },
+        "criterion_7": {
+          "level": "A",
+          "points": 5,
+          "reason": "Prioritizes KIR+CD8-to-CD4 communication, excludes MHC-I from novel results, and gives CeD-specific cytotoxic and suppressive interpretations with appropriate caveats."
+        },
+        "criterion_8": {
+          "level": "A",
+          "points": 0,
+          "reason": "Values are tied to supplied files and documented transformations, while biological interpretations cite identifiable peer-reviewed references with DOI or PMID."
+        }
+      },
+      "full_rubric_structured": {
+        "code_identity": {
+          "engine": "evaluation-rubric-structured",
+          "score": "single-judgment-signed-points",
+          "structured_output": "fixed-count-level-index-records-json-schema"
+        },
+        "execution": {
+          "artifact_bytes": 22923,
+          "authoritative_score": "single-judgment-signed-points",
+          "calls": 1,
+          "criterion_count": 8,
+          "engine_seed": 320521815,
+          "limits": {
+            "max_calls": 1,
+            "max_criteria": 1000,
+            "max_output_tokens_per_call": 32768,
+            "max_request_content_bytes_per_call": 1000000,
+            "max_total_request_content_bytes": 5000000
+          },
+          "max_output_tokens_per_call": 4096,
+          "payload_bytes": 35816,
+          "prompt_cache_control": "default",
+          "provider": "openai",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": false,
+          "reasoning_effort": "none",
+          "repository_result_cache": false,
+          "request_content_bytes_per_call": 37329,
+          "request_timeout_seconds": 300.0,
+          "requested_model": "gpt-5.6-sol",
+          "rubric_bytes": 11501,
+          "schema_bytes": 378,
+          "structured_output_contract": "fixed-count-level-index-records-json-schema",
+          "system_prompt_sha256": "b70db0549f6b9549ceda557b5a5524cbb0400fa94cd815d0d9d117bd5234b7d1",
+          "temperature": 0.0,
+          "total_request_content_bytes": 37329
+        },
+        "raw_report": {
+          "criteria": {
+            "criterion_1": {
+              "level": "B",
+              "reason": "Import and QC code is provided, but exact post-filter cell/gene totals are not reported; they are only promised upon rerun."
+            },
+            "criterion_2": {
+              "level": "A",
+              "reason": "Documents normalization, log1p, 3,000 batch-aware HVGs, scaling, 40-PC PCA, 15-neighbor graph, UMAP, and Leiden clustering."
+            },
+            "criterion_3": {
+              "level": "A",
+              "reason": "Provides comprehensive T-cell, KIR, cytotoxic, and activated-CD4 marker sets and computes Scanpy marker scores after checking feature presence."
+            },
+            "criterion_4": {
+              "level": "A",
+              "reason": "Uses data-derived percentile score thresholds, combined lineage criteria, and reports plausible counts for both populations."
+            },
+            "criterion_5": {
+              "level": "B",
+              "reason": "Directional prevalence-product scoring, pathway annotations, MHC-I exclusion, reverse screening, and permutation/BH code are shown, but no executed structured table or q-values substantiate significance filtering."
+            },
+            "criterion_6": {
+              "level": "B",
+              "reason": "Pathway aggregation code computes several summaries, but its executed output is absent and the final ranking mixes an effector module with individual LR pairs rather than a demonstrated pathway-level table."
+            },
+            "criterion_7": {
+              "level": "A",
+              "reason": "Prioritizes KIR+CD8-to-CD4 communication, excludes MHC-I from novel results, and gives CeD-specific cytotoxic and suppressive interpretations with appropriate caveats."
+            },
+            "criterion_8": {
+              "level": "A",
+              "reason": "Values are tied to supplied files and documented transformations, while biological interpretations cite identifiable peer-reviewed references with DOI or PMID."
+            }
+          },
+          "overall_reasoning": "The artifact presents a strong, biologically cautious workflow, but several revised components are code specifications rather than evidenced executions. Missing post-QC totals and permutation/pathway output prevent full credit for those criteria."
+        }
+      },
+      "reasoning": "The artifact presents a strong, biologically cautious workflow, but several revised components are code specifications rather than evidenced executions. Missing post-QC totals and permutation/pathway output prevent full credit for those criteria.",
+      "total_score": 75.0
+    }
+  },
+  {
+    "model": "claude-opus-5",
+    "role": "selected",
+    "score": 100.0,
+    "review": "trace",
+    "record": "runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/records/361a474e04c8930bd231fbd0f6406b9b.json",
+    "evaluation": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/artifacts/361a474e04c8930bd231fbd0f6406b9b/evaluations/s004/031f110fc1a22e53b68bf77668e9abe5ce754491e98012bf509e8b24de195074/fef99859e07d2512b8cd80a58cfd9795/evaluation.json",
+    "evaluation_result": {
+      "criteria": {
+        "criterion_1": {
+          "level": "A",
+          "points": 12,
+          "reason": "Loads all ten gzipped GEO matrices with verified dimensions, computes n_counts, n_genes, pct_mt, applies >=200 genes, >=500 UMIs, <20% MT, >=3 cells/gene, handles per-sample batch, and prints before/after dimensions (though exact post-filter numbers are only produced on rerun)."
+        },
+        "criterion_2": {
+          "level": "A",
+          "points": 13,
+          "reason": "Normalize_total 1e4, log1p, 3000 batch-aware seurat_v3 HVGs, scaling, 40-PC PCA, 15-neighbor graph, UMAP, Leiden res 0.6 all present."
+        },
+        "criterion_3": {
+          "level": "A",
+          "points": 15,
+          "reason": "Marker sets include CD3/CD8/CD4, 8 KIR genes, cytotoxic granzymes/perforin, and multiple activated-CD4 markers (TNFRSF9, CD40LG, IFNG, IL2, IL21, CD69, IL2RA, HLA-DR); scored with sc.tl.score_genes and gene presence checked against var_names; marker prevalence reported."
+        },
+        "criterion_4": {
+          "level": "A",
+          "points": 15,
+          "reason": "Uses 75th-percentile data-driven cutoffs combining T+CD8+KIR+cytotoxic and CD4+activation with CD8-negative filter; both populations reported with counts (1,690 KIR+CD8; 10,697 CD4 proxy in the raw screen) and plausibility discussed."
+        },
+        "criterion_5": {
+          "level": "A",
+          "points": 25,
+          "reason": "LR database spans death receptor, TNF, interferon, TGF-beta, IL-10, coinhibitory, costimulatory, chemokine (>=5 categories); MHC-I explicitly excluded; both directions screened; prevalence-product scoring with 999-permutation p-values and BH q-values; structured DataFrame with ligand/receptor/pathway/score/significance."
+        },
+        "criterion_6": {
+          "level": "A",
+          "points": 15,
+          "reason": "Pathway groupby aggregation with total, mean, n_pairs, n_q05, sorted ranking; suppressive (TGF-beta, IL-10, coinhibitory) vs cytotoxic (death receptor, TNF, granule) explicitly separated; ranked top pathways beyond MHC-I given."
+        },
+        "criterion_7": {
+          "level": "A",
+          "points": 5,
+          "reason": "KIR+CD8 \u2192 CD4 direction prioritized, MHC-I shown as excluded comparator, mechanistic explanation of granule killing, FASLG-FAS, TNF/IFNG, and situates results in CeD/gliadin-proxy context with appropriate caveats."
+        },
+        "criterion_8": {
+          "level": "A",
+          "points": 0,
+          "reason": "Numbers tied to the supplied matrices and shown code; gene identifiers from the dataset feature index; permutation/BH methods match code; interpretations cited with real references including DOIs/PMIDs."
+        }
+      },
+      "full_rubric_structured": {
+        "code_identity": {
+          "engine": "evaluation-rubric-structured",
+          "score": "single-judgment-signed-points",
+          "structured_output": "fixed-count-level-index-records-json-schema"
+        },
+        "execution": {
+          "artifact_bytes": 22923,
+          "authoritative_score": "single-judgment-signed-points",
+          "calls": 1,
+          "criterion_count": 8,
+          "engine_seed": 172204494,
+          "limits": {
+            "max_calls": 1,
+            "max_criteria": 1000,
+            "max_output_tokens_per_call": 32768,
+            "max_request_content_bytes_per_call": 1000000,
+            "max_total_request_content_bytes": 5000000
+          },
+          "max_output_tokens_per_call": 4096,
+          "payload_bytes": 35789,
+          "prompt_cache_control": "default",
+          "provider": "anthropic",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": null,
+          "reasoning_effort": "low",
+          "repository_result_cache": false,
+          "request_content_bytes_per_call": 37302,
+          "request_timeout_seconds": 300.0,
+          "requested_model": "claude-opus-5",
+          "rubric_bytes": 11474,
+          "schema_bytes": 378,
+          "structured_output_contract": "fixed-count-level-index-records-json-schema",
+          "system_prompt_sha256": "b70db0549f6b9549ceda557b5a5524cbb0400fa94cd815d0d9d117bd5234b7d1",
+          "temperature": null,
+          "total_request_content_bytes": 37302
+        },
+        "raw_report": {
+          "criteria": {
+            "criterion_1": {
+              "level": "A",
+              "reason": "Loads all ten gzipped GEO matrices with verified dimensions, computes n_counts, n_genes, pct_mt, applies >=200 genes, >=500 UMIs, <20% MT, >=3 cells/gene, handles per-sample batch, and prints before/after dimensions (though exact post-filter numbers are only produced on rerun)."
+            },
+            "criterion_2": {
+              "level": "A",
+              "reason": "Normalize_total 1e4, log1p, 3000 batch-aware seurat_v3 HVGs, scaling, 40-PC PCA, 15-neighbor graph, UMAP, Leiden res 0.6 all present."
+            },
+            "criterion_3": {
+              "level": "A",
+              "reason": "Marker sets include CD3/CD8/CD4, 8 KIR genes, cytotoxic granzymes/perforin, and multiple activated-CD4 markers (TNFRSF9, CD40LG, IFNG, IL2, IL21, CD69, IL2RA, HLA-DR); scored with sc.tl.score_genes and gene presence checked against var_names; marker prevalence reported."
+            },
+            "criterion_4": {
+              "level": "A",
+              "reason": "Uses 75th-percentile data-driven cutoffs combining T+CD8+KIR+cytotoxic and CD4+activation with CD8-negative filter; both populations reported with counts (1,690 KIR+CD8; 10,697 CD4 proxy in the raw screen) and plausibility discussed."
+            },
+            "criterion_5": {
+              "level": "A",
+              "reason": "LR database spans death receptor, TNF, interferon, TGF-beta, IL-10, coinhibitory, costimulatory, chemokine (>=5 categories); MHC-I explicitly excluded; both directions screened; prevalence-product scoring with 999-permutation p-values and BH q-values; structured DataFrame with ligand/receptor/pathway/score/significance."
+            },
+            "criterion_6": {
+              "level": "A",
+              "reason": "Pathway groupby aggregation with total, mean, n_pairs, n_q05, sorted ranking; suppressive (TGF-beta, IL-10, coinhibitory) vs cytotoxic (death receptor, TNF, granule) explicitly separated; ranked top pathways beyond MHC-I given."
+            },
+            "criterion_7": {
+              "level": "A",
+              "reason": "KIR+CD8 \u2192 CD4 direction prioritized, MHC-I shown as excluded comparator, mechanistic explanation of granule killing, FASLG-FAS, TNF/IFNG, and situates results in CeD/gliadin-proxy context with appropriate caveats."
+            },
+            "criterion_8": {
+              "level": "A",
+              "reason": "Numbers tied to the supplied matrices and shown code; gene identifiers from the dataset feature index; permutation/BH methods match code; interpretations cited with real references including DOIs/PMIDs."
+            }
+          },
+          "overall_reasoning": "Trace contains full auditable pipeline code, QC thresholds, marker scoring, dual-direction LR screen with permutation stats, pathway aggregation, and sourced interpretation."
+        }
+      },
+      "reasoning": "Trace contains full auditable pipeline code, QC thresholds, marker scoring, dual-direction LR screen with permutation stats, pathway aggregation, and sourced interpretation.",
+      "total_score": 100.0
+    }
+  },
+  {
+    "model": "claude-opus-5",
+    "role": "holdout-1",
+    "score": 62.0,
+    "review": "trace",
+    "record": "runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/records/89037e88e0b5a95f8e793af62af84ec4.json",
+    "evaluation": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854/rubric_score/artifacts/89037e88e0b5a95f8e793af62af84ec4/evaluations/s004/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/aaf270e8099b889296559e70f1ae08b9/evaluation.json",
+    "evaluation_result": {
+      "criteria": {
+        "criterion_1": {
+          "level": "B",
+          "points": 6,
+          "reason": "Import of all 10 gzipped matrices with dimensions before/after is documented, and QC code with gene/UMI/mito thresholds is written, but the QC step is presented as prospective code ('exact counts are printed when rerun') with no reported post-filter cell/gene totals; the actual reported marker analysis retained all 72,177 cells."
+        },
+        "criterion_2": {
+          "level": "B",
+          "points": 7,
+          "reason": "Normalization, log1p, batch-aware HVGs, scaling, 40-PC PCA, 15-NN graph, UMAP, Leiden 0.6 are all specified in code, but no outputs (cluster counts, embedding results) are reported, so execution is unverified."
+        },
+        "criterion_3": {
+          "level": "A",
+          "points": 15,
+          "reason": "Comprehensive marker sets include CD3/CD8/CD4, 8 KIR genes, cytotoxic markers, and multiple activated CD4 markers; sc.tl.score_genes used and marker prevalence in the dataset is quantified (e.g., NKG7 97.2%, PRF1 85.1%)."
+        },
+        "criterion_4": {
+          "level": "B",
+          "points": 8,
+          "reason": "Two populations identified with 75th-percentile data-driven cutoffs in code, but the only reported counts (1,690 KIR+CD8; 10,697 CD4 proxy) come from the raw presence-based definition, and no counts/percentages from the percentile-based approach are given."
+        },
+        "criterion_5": {
+          "level": "B",
+          "points": 13,
+          "reason": "LR list spans several pathway categories and MHC-I is explicitly excluded, with directional screen and permutation/BH code; however, no permutation p/q values or reverse-direction results are reported, and scoring is a simple prevalence product. Statistical validation is written but its outputs are absent."
+        },
+        "criterion_6": {
+          "level": "B",
+          "points": 8,
+          "reason": "Pathway aggregation code exists with total/mean/n_q05, and suppressive vs cytotoxic categories are labeled, but no pathway-level table or ranked scores are actually reported; ranking in Results is at the LR/module level only."
+        },
+        "criterion_7": {
+          "level": "A",
+          "points": 5,
+          "reason": "KIR+CD8 \u2192 CD4 is treated as the primary direction, MHC-I pairs are demonstrably excluded from the ranking (KLRD1-HLA-E shown only as comparator), mechanisms (granule killing, FASLG-FAS, TNF/IFNG) are explained, and CeD/gliadin-specificity limits are addressed."
+        },
+        "criterion_8": {
+          "level": "A",
+          "points": 0,
+          "reason": "Numbers trace to the supplied GSE193442 files with shown extraction code; gene names come from the dataset feature index; six genuine, identifiable references with DOIs/PMIDs support biological interpretation."
+        }
+      },
+      "full_rubric_structured": {
+        "code_identity": {
+          "engine": "evaluation-rubric-structured",
+          "score": "single-judgment-signed-points",
+          "structured_output": "fixed-count-level-index-records-json-schema"
+        },
+        "execution": {
+          "artifact_bytes": 22923,
+          "authoritative_score": "single-judgment-signed-points",
+          "calls": 1,
+          "criterion_count": 8,
+          "engine_seed": 878820873,
+          "limits": {
+            "max_calls": 1,
+            "max_criteria": 1000,
+            "max_output_tokens_per_call": 32768,
+            "max_request_content_bytes_per_call": 1000000,
+            "max_total_request_content_bytes": 5000000
+          },
+          "max_output_tokens_per_call": 4096,
+          "payload_bytes": 35816,
+          "prompt_cache_control": "default",
+          "provider": "anthropic",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": null,
+          "reasoning_effort": "low",
+          "repository_result_cache": false,
+          "request_content_bytes_per_call": 37329,
+          "request_timeout_seconds": 300.0,
+          "requested_model": "claude-opus-5",
+          "rubric_bytes": 11501,
+          "schema_bytes": 378,
+          "structured_output_contract": "fixed-count-level-index-records-json-schema",
+          "system_prompt_sha256": "b70db0549f6b9549ceda557b5a5524cbb0400fa94cd815d0d9d117bd5234b7d1",
+          "temperature": null,
+          "total_request_content_bytes": 37329
+        },
+        "raw_report": {
+          "criteria": {
+            "criterion_1": {
+              "level": "B",
+              "reason": "Import of all 10 gzipped matrices with dimensions before/after is documented, and QC code with gene/UMI/mito thresholds is written, but the QC step is presented as prospective code ('exact counts are printed when rerun') with no reported post-filter cell/gene totals; the actual reported marker analysis retained all 72,177 cells."
+            },
+            "criterion_2": {
+              "level": "B",
+              "reason": "Normalization, log1p, batch-aware HVGs, scaling, 40-PC PCA, 15-NN graph, UMAP, Leiden 0.6 are all specified in code, but no outputs (cluster counts, embedding results) are reported, so execution is unverified."
+            },
+            "criterion_3": {
+              "level": "A",
+              "reason": "Comprehensive marker sets include CD3/CD8/CD4, 8 KIR genes, cytotoxic markers, and multiple activated CD4 markers; sc.tl.score_genes used and marker prevalence in the dataset is quantified (e.g., NKG7 97.2%, PRF1 85.1%)."
+            },
+            "criterion_4": {
+              "level": "B",
+              "reason": "Two populations identified with 75th-percentile data-driven cutoffs in code, but the only reported counts (1,690 KIR+CD8; 10,697 CD4 proxy) come from the raw presence-based definition, and no counts/percentages from the percentile-based approach are given."
+            },
+            "criterion_5": {
+              "level": "B",
+              "reason": "LR list spans several pathway categories and MHC-I is explicitly excluded, with directional screen and permutation/BH code; however, no permutation p/q values or reverse-direction results are reported, and scoring is a simple prevalence product. Statistical validation is written but its outputs are absent."
+            },
+            "criterion_6": {
+              "level": "B",
+              "reason": "Pathway aggregation code exists with total/mean/n_q05, and suppressive vs cytotoxic categories are labeled, but no pathway-level table or ranked scores are actually reported; ranking in Results is at the LR/module level only."
+            },
+            "criterion_7": {
+              "level": "A",
+              "reason": "KIR+CD8 \u2192 CD4 is treated as the primary direction, MHC-I pairs are demonstrably excluded from the ranking (KLRD1-HLA-E shown only as comparator), mechanisms (granule killing, FASLG-FAS, TNF/IFNG) are explained, and CeD/gliadin-specificity limits are addressed."
+            },
+            "criterion_8": {
+              "level": "A",
+              "reason": "Numbers trace to the supplied GSE193442 files with shown extraction code; gene names come from the dataset feature index; six genuine, identifiable references with DOIs/PMIDs support biological interpretation."
+            }
+          },
+          "overall_reasoning": "The artifact is methodologically well-designed with transparent code and honest caveats, but much of the revised pipeline (QC filtering, clustering, permutation stats, pathway aggregation) is presented as code whose outputs are not reported, limiting several criteria to the middle level."
+        }
+      },
+      "reasoning": "The artifact is methodologically well-designed with transparent code and honest caveats, but much of the revised pipeline (QC filtering, clustering, permutation stats, pathway aggregation) is presented as code whose outputs are not reported, limiting several criteria to the middle level.",
+      "total_score": 62.0
+    }
+  }
+]

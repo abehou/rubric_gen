@@ -1,0 +1,210 @@
+{
+  "assignment_status": {
+    "completed": 24
+  },
+  "assignment_attempt_counts": {
+    "1": 22,
+    "2": 2
+  },
+  "audit_records": [
+    {
+      "tag": "control-da-3-4",
+      "stage": "rubric_score",
+      "completed": 90,
+      "exact_imports": 40,
+      "new_completed": 50
+    },
+    {
+      "tag": "control-da-3-4",
+      "stage": "absolute_score",
+      "completed": 18,
+      "exact_imports": 8,
+      "new_completed": 10
+    },
+    {
+      "tag": "control-da-3-4",
+      "stage": "pairwise_preference",
+      "completed": 12,
+      "exact_imports": 2,
+      "new_completed": 10
+    },
+    {
+      "tag": "control-da-3-4",
+      "stage": "direct_full_trajectory",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-3-4",
+      "stage": "direct_post_update",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-3-4",
+      "stage": "direct_final_artifact",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-3-4",
+      "stage": "direct_final_revision",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "rubric_score",
+      "completed": 90,
+      "exact_imports": 40,
+      "new_completed": 50
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "absolute_score",
+      "completed": 18,
+      "exact_imports": 8,
+      "new_completed": 10
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "pairwise_preference",
+      "completed": 12,
+      "exact_imports": 2,
+      "new_completed": 10
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "direct_full_trajectory",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "direct_post_update",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "direct_final_artifact",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "stage": "direct_final_revision",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "rubric_score",
+      "completed": 90,
+      "exact_imports": 30,
+      "new_completed": 60
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "absolute_score",
+      "completed": 18,
+      "exact_imports": 6,
+      "new_completed": 12
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "pairwise_preference",
+      "completed": 12,
+      "exact_imports": 0,
+      "new_completed": 12
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "direct_full_trajectory",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "direct_post_update",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "direct_final_artifact",
+      "completed": 12
+    },
+    {
+      "tag": "control-da-11-1",
+      "stage": "direct_final_revision",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "rubric_score",
+      "completed": 90,
+      "exact_imports": 30,
+      "new_completed": 60
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "absolute_score",
+      "completed": 18,
+      "exact_imports": 6,
+      "new_completed": 12
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "pairwise_preference",
+      "completed": 12,
+      "exact_imports": 0,
+      "new_completed": 12
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "direct_full_trajectory",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "direct_post_update",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "direct_final_artifact",
+      "completed": 12
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "stage": "direct_final_revision",
+      "completed": 12
+    }
+  ],
+  "audit_completed": 672,
+  "semantic_import_sources": {
+    "historical": 172
+  },
+  "training_cache_entries": [
+    {
+      "tag": "control-da-3-4",
+      "completed_cache_entries": 32,
+      "exact_imports": 4,
+      "new_completed": 28
+    },
+    {
+      "tag": "neutral-da-3-4",
+      "completed_cache_entries": 32,
+      "exact_imports": 4,
+      "new_completed": 28
+    },
+    {
+      "tag": "control-da-11-1",
+      "completed_cache_entries": 77,
+      "exact_imports": 3,
+      "new_completed": 74
+    },
+    {
+      "tag": "neutral-da-11-1",
+      "completed_cache_entries": 83,
+      "exact_imports": 3,
+      "new_completed": 80
+    }
+  ],
+  "successful_cached_direct_chunks": {
+    "claude-opus-5": 182,
+    "gpt-5.6-sol": 170
+  },
+  "note": "Record counts are persisted measurement slots; exact imports can refer to the same semantic judgment across studies. Chunk counts are successful authentic responses, not total attempted HTTP requests. SDK/transport retries are not treated as new completed judgments."
+}

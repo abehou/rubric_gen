@@ -1,5 +1,55 @@
 # BioMNIBench red-team experiment plan
 
+## 2026-09-08 — User interpretation acknowledged for Babel
+
+- 00:35 CST: User confirms engineering success but failure to establish a stable static-RH baseline with neutral: retain wiring, reject neutral adoption, keep baseline unfrozen, and establish reliable static signal before dynamic reduction. Auditor sensitivity, zero final-artifact RH, task-concentrated trajectory RH and reversed neutral simulator ordering must inform continued exploration; see [review incorporated in handoff](docs/BABEL_HANDOFF.md#user-review-incorporated-before-migration).
+
+
+## 2026-09-08 — Final Mac checkpoint; no dispatch
+
+- 00:31 CST: Latest user instruction supersedes earlier launch permissions: finish the repository handoff only; launch no experiments or Results20. Recommend targeted dev3 execution-verification work after migration because panel-consistent headroom and simulator mitigation gates fail; [Babel handoff](docs/BABEL_HANDOFF.md) owns current continuation assumptions.
+
+
+## 2026-09-08 — Bounded comparison disposition
+
+- 00:23 CST: The wiring prerequisite and all 24 static comparison assignments are validated, with complete Sol/Opus coverage. The neutral mechanism and panel-agreement gates fail; keep the wiring fix, preserve both arms, leave the baseline unfrozen, and launch no additional study under the latest unfinished-work-only instruction.
+
+
+## 2026-09-07 — Concurrency override
+
+- 23:02 CST: User requires aggregate concurrency ≤16 and at most one audit study at a time. Further launches are held while the three already-active solver assignments settle; then only unfinished work resumes. Historical launch settings remain preserved, and the audit dispatcher now serializes studies under an exclusive lease.
+
+
+## 2026-09-07 — Bounded smoke and static-comparison authorization
+
+- 22:15 CST: The user explicitly authorizes da-3-4/rep-001 payloads to existing Codex/OpenAI Luna for two checkpoint smokes, then autonomous six-candidate/24-assignment static control-versus-neutral comparison with existing Luna services and Sol/Opus audits. Preserve fixed measurement definitions and development population; recover only missing work, and request review before larger scope, reserved validation, new providers/models, or materially increased budget.
+
+
+## 2026-09-07 — Current authorization: wiring prerequisite only
+
+- 22:03 CST: The user approved only selected-rubric feedback-reference correction and validation, with prompts, stopping rules, seeds, rubric pools, auditors, detectors, thresholds, and metric definitions frozen. The 24-assignment neutral-prompt comparison requires a separate review after prerequisite results; live smoke transmission is currently blocked by automatic approval review.
+
+
+## Current Gemini access check — 2026-09-07 20:35 CST
+
+The user asked to resume the Gemini 3.8 Flash Results20 audit. The configured `GEMINI_API_KEY` is present, but a single minimal production-client generation with no benchmark payload returned HTTP 429 `RESOURCE_EXHAUSTED`: prepayment credits are depleted. No audit worker was launched and no billing or routing change was made. All 146 saved Gemini full-trajectory scores remain byte-identical to the prior pause receipt; resume only genuinely missing work after legitimate credits or a usable authorized key are available.
+
+## Current priority — resumed thread (2026-09-07)
+
+Continue the existing Results20 method/setup without reproducing historical experiments. Recover only missing work, then prioritize genuine static selected-minus-holdout headroom toward approximately 1.5 on the existing score scale, followed by final-artifact and full-trajectory RH signal; keep independent auditor definitions and thresholds fixed and verify substantive failures. Freeze that baseline before optimizing both artifact and trace red-team conditions for reductions in every RH metric relative to matched static. Development/held-out boundaries below remain in force; retain unfavorable outcomes and quality checks.
+
+## Current authorization — autonomous dev3 development (2026-09-07)
+
+The user explicitly answered **yes** to raw BioMNIBench dev3 file export, including `supplementary_tables.xls`, to the configured external Codex/OpenAI solver and OpenAI/Anthropic evaluators. This resolves the automatic-review raw-payload approval requirement. Credentials themselves must never be included in model payloads.
+
+The user authorizes continued focused method/configuration/model-allocation changes and experiments on configured dev3, with separate held-out validation and conditional complete results20 execution only after reproducibility/integrity/efficacy gates pass. This supersedes the prior three-iteration stopping boundary. Current frozen development split and metric rules: investigation/autonomous-dev3-20260907/plan.yaml. Existing results20 is historical evidence, not an optimization target. Gemini remains credit-paused; available auditors are OpenAI and Anthropic, with explicit missing-panel reporting. Do not stop at routine alternatives or rerun completed judgments.
+
+## Historical authorization — initial optimization phase (2026-09-07)
+
+The latest user instructions authorize implementation changes, focused tests, 1–2 task smokes and small matched optimization pilots, including sending BioMNIBench task instructions, rubrics, synthetic artifacts and traces to the existing OpenAI Luna proposer for induction/validation. OpenAI and Anthropic auditors are authorized where available; the earlier Anthropic pause is superseded and must not be treated as a current restriction. The user explicitly requested removal of these outdated restrictions after reviewing the two automatic-review rejection reasons.
+
+Gemini remains paused for the documented depleted prepaid credits. Billing changes remain unauthorized. The initial restriction on model substitutions is superseded by the latest user instruction explicitly authorizing model allocation changes. Preserve historical outputs and completed judgments; do not scale to 20 tasks before focused tests, smoke, matched coverage and mechanism gates pass. Current work and unresolved hypotheses are recorded in [investigation_log.md](investigation_log.md), under Optimization phase. Earlier dated checkpoints below are historical records, not current dispatch instructions.
+
 ## Latest approved scope — static/offline comparators (2026-09-06)
 
 **Current 2026-09-07 09:32 CST: OpenAI and Anthropic complete.** All 14 Claude

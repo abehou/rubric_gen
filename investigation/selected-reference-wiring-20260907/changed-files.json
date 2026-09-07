@@ -1,0 +1,13 @@
+[
+  "README.md",
+  "docs/architecture.md",
+  "src/rubric_gen/submission_revision/artifacts.py",
+  "src/rubric_gen/submission_revision/controller.py",
+  "src/rubric_gen/submission_revision/controller_reference.py",
+  "src/rubric_gen/submission_revision/controller_scoring.py",
+  "src/rubric_gen/submission_revision/feedback.py",
+  "src/rubric_gen/submission_revision/study_validation_artifacts.py",
+  "src/rubric_gen/submission_revision/study_validation_context.py",
+  "tests/test_paperbench.py",
+  "tests/test_submission_revision.py"
+]

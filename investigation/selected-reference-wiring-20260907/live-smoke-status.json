@@ -1,0 +1,10 @@
+{
+  "status": "blocked-by-automatic-approval-review",
+  "planned_cases": 2,
+  "completed_cases": 0,
+  "completed_solver_revisions": 0,
+  "new_completed_judgments": 0,
+  "unique_reused_selected_judgments": 1,
+  "independent_audit_jobs_dispatched": 0,
+  "prompt_comparison_dispatched": false
+}

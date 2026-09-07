@@ -19,7 +19,7 @@ from rubric_gen.submission_revision.evolution import (
 )
 from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
 from rubric_gen.submission_revision.experiment import Experiment
-from rubric_gen.submission_revision.feedback import FeedbackPolicy
+from rubric_gen.submission_revision.feedback import FeedbackPolicy, FEEDBACK_REFERENCE_PROTOCOL
 from rubric_gen.submission_revision.prompts import prompt_implementation_sha256
 from rubric_gen.submission_revision.judge import (
     FrozenRubric,
@@ -307,6 +307,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "feedback_policy": context.condition["feedback_policy"],
         "prompt": protocol["prompt"],
         "prompt_implementation_sha256": prompt_implementation_sha256(),
+        "feedback_reference_protocol": FEEDBACK_REFERENCE_PROTOCOL,
         "rubric_policy": context.condition["rubric_policy"],
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],

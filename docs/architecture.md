@@ -49,6 +49,9 @@ Rubric evolution has explicit protocol and storage interfaces.
 - `evolution_protocol.py` owns criterion induction/application contracts and
   deterministic aggregate-margin admission.
 - `evolution_provider.py` owns the structured provider contract and output type.
+- `evolution_validation.py` owns isolated artifact applications and deterministic response aggregation.
+- `evolution_stage.py` owns bounded invocation and response-validation repair.
+- `evolution_cache.py` preserves validated proposer judgments across interrupted generations.
 - `evolution_serialization.py` owns strict JSON and content-identity helpers.
 
 Judge execution also uses explicit ownership. `judging/runner.py` coordinates the
@@ -59,6 +62,8 @@ Submission revision control also uses explicit ownership.
 - `controller.py` coordinates the top-level revision state machine.
 - `controller_setup.py` builds and validates runtime dependencies.
 - `controller_scoring.py` owns judge checkpoints, reuse, feedback, and replay.
+- `controller_reference.py` resolves selected training references and independent
+  master measurements through exact judgment reuse.
 - `controller_workspace.py` owns live workspaces and sealed submissions.
 - `controller_recovery.py` owns resume and interruption recovery.
 - `controller_recovery_artifacts.py` validates recovery-only disk residue.

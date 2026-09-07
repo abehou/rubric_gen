@@ -630,12 +630,15 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
     scorer.experiment_dir = tmp_path / "experiment"
     (scorer.experiment_dir / "feedback-generations").mkdir(parents=True)
     scorer.task_dir = task
-    scorer.master_rubric = SimpleNamespace(
+    scorer.initial_rubric = SimpleNamespace(
         text=rubric_text,
         sha256=rubric_sha256,
     )
     scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())
 
+    scorer.feedback_reference_judgment = lambda **_: (100.0, SimpleNamespace(
+        score_validation_path=validation, evaluation_path=evaluation,
+    ))
     scorer.project_checkpoint_feedback(
         artifacts=SimpleNamespace(
             score_validation_path=validation,
@@ -646,11 +649,6 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
         generation_round=0,
             submission_dir=submission_dir,
             allow_generation=True,
-            fixed_original_score=100.0,
-            fixed_original_artifacts=SimpleNamespace(
-                score_validation_path=validation,
-                evaluation_path=evaluation,
-            ),
         )
 
     rendered = str(captured["current_artifact"])

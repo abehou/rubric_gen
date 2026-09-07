@@ -25,6 +25,7 @@ from rubric_gen.submission_revision.contrasts import (
 from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
+    FEEDBACK_REFERENCE_PROTOCOL,
     ProjectedFeedback,
     compose_rubric_score,
     project_rubric_feedback,
@@ -301,7 +302,7 @@ def _validate_submission(
         generation,
     )
     fixed_score = _fixed_score(context, index)
-    fixed_artifacts = _fixed_original_artifacts(
+    _fixed_original_artifacts(
         context,
         submission,
         submission_id,
@@ -309,12 +310,16 @@ def _validate_submission(
         rubric_artifacts,
         fixed_score,
     )
+    reference_artifacts = _feedback_reference_artifacts(
+        context, submission, submission_id, generation, rubric_artifacts,
+    )
+    reference_score = read_json_object(reference_artifacts[0], "feedback reference")["score"]
     expected_evaluation = _expected_rubric_evaluation(
         context,
         submission_id,
         generation,
         rubric_artifacts,
-        fixed_score,
+        fixed_score, reference_score, reference_artifacts,
     )
     if read_json_object(
         roots.rubric_evaluations / f"{submission_id}.json",
@@ -334,8 +339,8 @@ def _validate_submission(
             generation_round,
             generation,
             rubric_artifacts,
-            fixed_artifacts,
-            fixed_score,
+            reference_artifacts,
+            reference_score,
         )
         if (
             read_json_object(feedback_path, "revision feedback")
@@ -639,6 +644,30 @@ def _fixed_original_artifact_paths(
     return artifacts.score_validation_path, artifacts.evaluation_path
 
 
+def _feedback_reference_artifacts(
+    context: ValidationContext, submission: Path, submission_id: str,
+    generation: RubricGeneration, rubric_artifacts: RubricArtifacts,
+) -> tuple[Path, Path]:
+    """Reconstruct the selected reference with the exact artifact/scorer binding."""
+    rubric_hash = context.selection.optimizer_sha256
+    if generation.rubric.content_sha256 == rubric_hash:
+        return rubric_artifacts
+    judge = context.scoring.initial_judge
+    review_text, answer_text = judge.review_inputs(submission)
+    expected_request = exact_judgment_request(
+        task_id=context.assignment.task_id,
+        replicate=context.assignment.replicate,
+        rubric_sha256=rubric_hash,
+        review_text=review_text, answer_text=answer_text,
+        scoring_identity=judge.scoring_identity(),
+    )
+    artifacts = load_judgment_copy(
+        experiment_dir=context.experiment_dir, submission_id=submission_id,
+        rubric_sha256=rubric_hash, expected_request=expected_request,
+    )
+    return artifacts.score_validation_path, artifacts.evaluation_path
+
+
 def _project_feedback(
     context: ValidationContext,
     roots: _ArtifactRoots,
@@ -647,8 +676,8 @@ def _project_feedback(
     generation_round: int,
     generation: RubricGeneration,
     rubric_artifacts: RubricArtifacts,
-    fixed_artifacts: tuple[Path, Path],
-    fixed_score: object,
+    reference_artifacts: tuple[Path, Path],
+    reference_score: object,
 ) -> ProjectedFeedback:
     prompt_profile = PromptProfile(str(context.protocol["prompt"]))
     task_instruction = (context.task_dir / "instruction.md").read_text(
@@ -662,11 +691,11 @@ def _project_feedback(
             context.policy,
             task_instruction=task_instruction,
             first_revision=first_revision,
-            fixed_original_artifacts=fixed_artifacts,
-            fixed_original_rubric_text=context.selection.master_path.read_text(
+            reference_artifacts=reference_artifacts,
+            reference_rubric_text=context.selection.optimizer_path.read_text(
                 encoding="utf-8"
             ),
-            fixed_original_rubric_sha256=context.selection.master_sha256,
+            reference_rubric_sha256=context.selection.optimizer_sha256,
             prompt_profile=prompt_profile,
             benchmark=context.experiment.benchmark,
         )
@@ -679,11 +708,11 @@ def _project_feedback(
         FeedbackPolicy.FULL,
         task_instruction=task_instruction,
         first_revision=first_revision,
-        fixed_original_artifacts=fixed_artifacts,
-        fixed_original_rubric_text=context.selection.master_path.read_text(
+        reference_artifacts=reference_artifacts,
+        reference_rubric_text=context.selection.optimizer_path.read_text(
             encoding="utf-8"
         ),
-        fixed_original_rubric_sha256=context.selection.master_sha256,
+        reference_rubric_sha256=context.selection.optimizer_sha256,
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
@@ -738,7 +767,7 @@ def _project_feedback(
         user_feedback,
         task_instruction=task_instruction,
         first_revision=first_revision,
-        fixed_original_score=float(fixed_score),
+        reference_score=float(reference_score),
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
@@ -750,18 +779,26 @@ def _expected_rubric_evaluation(
     generation: RubricGeneration,
     rubric_artifacts: RubricArtifacts,
     fixed_score: object,
+    reference_score: object,
+    reference_artifacts: tuple[Path, Path],
 ) -> dict[str, object]:
     validation_path, evaluation_path = rubric_artifacts
     composition = compose_rubric_score(
         generation,
         validation_path,
-        float(fixed_score),
+        float(reference_score),
     )
     score = read_json_object(validation_path, "score validation").get("score")
     if not valid_score(score):
         raise RuntimeError("rubric score is invalid")
     return {
-        "kind": "canonical-original-plus-elicited-penalty-evaluation",
+        "kind": FEEDBACK_REFERENCE_PROTOCOL,
+        "feedback_reference": {
+            "rubric_sha256": context.selection.optimizer_sha256,
+            "score_validation_sha256": sha256_file(reference_artifacts[0]),
+            "evaluation_sha256": sha256_file(reference_artifacts[1]),
+        },
+        "reference_score": composition.reference_score,
         "submission_id": submission_id,
         "generation_round": generation.generation_round,
         "generation_sha256": generation.generation_sha256,
@@ -777,7 +814,7 @@ def _expected_rubric_evaluation(
             ),
         ),
         "judge_score": score,
-        "canonical_original_score": composition.canonical_original_score,
+        "canonical_original_score": fixed_score,
         "elicited_penalty": composition.elicited_penalty,
         "score_validation_sha256": sha256_file(validation_path),
         "evaluation_sha256": sha256_file(evaluation_path),

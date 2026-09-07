@@ -1,0 +1,9 @@
+{
+  "effective_at": "2026-09-07T23:02:36.305691+08:00",
+  "aggregate_cap": 16,
+  "max_audit_studies": 1,
+  "dispatch": "Hold new launches until current solver studies settle; resume unfinished work only.",
+  "current_active_solver_assignments": 3,
+  "current_active_audit_studies": 0,
+  "prior_manifests_and_launch_receipts_retained": true
+}

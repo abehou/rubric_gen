@@ -1,0 +1,988 @@
+--- a/README.md
++++ b/README.md
+@@ -292,12 +292,20 @@
+ available score range determine the exact values. The model writes only the level
+ descriptions.
+ 
+-The canonical original-rubric judgment supplies the score base at each
+-checkpoint. The augmented judgment supplies only the learned penalties. The
+-program discards its original-criterion scores. It also uses the canonical
+-original judgment for original-criterion feedback. Thus, a learned rubric
+-cannot re-award original points through judge context or paraphrase variation.
+-The final score is the canonical base plus learned penalties, clamped at zero.
++The selected base-rubric judgment supplies the training score and base-criterion
++feedback at each checkpoint. The augmented judgment supplies only the learned
++penalties and their feedback; its reassessment of base criteria is discarded.
++The training score is the selected base plus learned penalties, clamped at zero.
++The master-rubric judgment remains a separate independent measurement and never
++supplies solver feedback or user-simulator input.
++
++Revision manifests identify this wiring as
++`selected-base-plus-active-penalties-v1`. Each checkpoint binds its feedback
++reference to the selected rubric hash and exact judgment-file hashes. Resume and
++completed-study validation enforce those bindings. Historical mixed-reference
++runs are incompatible with this protocol and must not be resumed or relabeled as
++corrected controls; their artifacts and judgments remain unchanged. Exact
++compatible judgments and sealed seeds can still be reused under new run identities.
+ 
+ Each update stores every artifact once under a stable blinded ID. Candidate text
+ cannot reward optional features or create an easier success path. Pair references
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -62,6 +62,8 @@
+ - `controller.py` coordinates the top-level revision state machine.
+ - `controller_setup.py` builds and validates runtime dependencies.
+ - `controller_scoring.py` owns judge checkpoints, reuse, feedback, and replay.
++- `controller_reference.py` resolves selected training references and independent
++  master measurements through exact judgment reuse.
+ - `controller_workspace.py` owns live workspaces and sealed submissions.
+ - `controller_recovery.py` owns resume and interruption recovery.
+ - `controller_recovery_artifacts.py` validates recovery-only disk residue.
+--- a/src/rubric_gen/submission_revision/artifacts.py
++++ b/src/rubric_gen/submission_revision/artifacts.py
+@@ -83,6 +83,7 @@
+         "seed_run_dir",
+         "pretreatment_rubric_dir",
+         "prompt_implementation_sha256",
++        "feedback_reference_protocol",
+         "seed_sha256",
+         "service_tier",
+         "session_id",
+--- a/src/rubric_gen/submission_revision/controller.py
++++ b/src/rubric_gen/submission_revision/controller.py
+@@ -18,7 +18,7 @@
+     ensure_artifacts_dir,
+ )
+ from rubric_gen.runtime.progress import PROGRESS_BAR_FORMAT
+-from rubric_gen.submission_revision.feedback import FeedbackPolicy
++from rubric_gen.submission_revision.feedback import FeedbackPolicy, FEEDBACK_REFERENCE_PROTOCOL
+ from rubric_gen.submission_revision.models import (
+     RevisionDependencies,
+     RevisionPhase as _RevisionPhase,
+@@ -159,6 +159,7 @@
+             "reasoning_effort": self.config.agent.reasoning_effort,
+             "service_tier": self.config.agent.service_tier,
+             "turn_timeout_seconds": self.config.agent.timeout_seconds,
++            "feedback_reference_protocol": FEEDBACK_REFERENCE_PROTOCOL,
+             "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
+             "prompt": PromptProfile(self.config.prompt_profile).value,
+             "prompt_implementation_sha256": prompt_implementation_sha256(),
+--- /dev/null
++++ b/src/rubric_gen/submission_revision/controller_reference.py
+@@ -0,0 +1,61 @@
++"""Resolve independently bound selected and master checkpoint judgments."""
++
++from __future__ import annotations
++
++import math
++from numbers import Real
++from pathlib import Path
++from typing import TYPE_CHECKING
++
++from rubric_gen.submission_revision.artifacts import read_json_object
++from rubric_gen.submission_revision.controller_recovery_artifacts import (
++    fixed_original_attempt_id,
++)
++from rubric_gen.submission_revision.judge import FrozenRubric, JudgeArtifacts, SubmissionJudge
++
++if TYPE_CHECKING:
++    from rubric_gen.submission_revision.controller_scoring import RevisionScorer
++
++
++def resolve_reference_judgment(
++    scorer: RevisionScorer,
++    *,
++    rubric: FrozenRubric,
++    judge: SubmissionJudge,
++    reuse_seed: bool,
++    submission_dir: Path,
++    submission_id: str,
++    turn_index: int,
++    active_artifacts: JudgeArtifacts,
++    allow_generation: bool,
++) -> tuple[float, JudgeArtifacts]:
++    """Reuse only a judgment of this artifact under this exact reference."""
++    generation = scorer.active_rubric_generation(turn_index)
++    seeded = turn_index == 0 and reuse_seed
++    if seeded:
++        validation_path, evaluation_path, _ = scorer.seed.judgment
++        artifacts = JudgeArtifacts(validation_path, evaluation_path)
++    elif generation.rubric.content_sha256 == rubric.sha256:
++        artifacts = active_artifacts
++    else:
++        artifacts = scorer.assignment_judgment(
++            judge=judge,
++            submission_dir=submission_dir,
++            submission_id=submission_id,
++            rubric_sha256=rubric.sha256,
++            attempt_id=fixed_original_attempt_id(
++                scorer.config.assignment_id, submission_id, rubric.sha256,
++            ),
++            allow_generation=allow_generation,
++        )
++    scorer.verify_round_scoring_identity(
++        artifacts.score_validation_path, rubric, judge, seeded=seeded,
++    )
++    validation = read_json_object(artifacts.score_validation_path, "reference judgment")
++    score = validation.get("score")
++    if (
++        isinstance(score, bool) or not isinstance(score, Real)
++        or not math.isfinite(float(score)) or not 0 <= float(score) <= 100
++    ):
++        raise RuntimeError("reference judgment has an invalid score")
++    return float(score), artifacts
+--- a/src/rubric_gen/submission_revision/controller_scoring.py
++++ b/src/rubric_gen/submission_revision/controller_scoring.py
+@@ -21,11 +21,10 @@
+     preflight_generation_dispatch,
+ )
+ from rubric_gen.submission_revision.contrasts import build_elicitation_artifact_history
+-from rubric_gen.submission_revision.controller_recovery_artifacts import (
+-    fixed_original_attempt_id,
+-)
++from rubric_gen.submission_revision.controller_reference import resolve_reference_judgment
+ from rubric_gen.submission_revision.feedback import (
+     FeedbackPolicy,
++    FEEDBACK_REFERENCE_PROTOCOL,
+     compose_rubric_score,
+     project_rubric_feedback,
+     project_rubric_simulated_user_feedback,
+@@ -252,7 +251,7 @@
+         )
+         self.verify_canonical_task_inputs()
+         _verify_submission_snapshot(submission_dir)
+-        fixed_original_score, fixed_original_artifacts = (
++        fixed_original_score, _ = (
+             self.fixed_original_judgment(
+                 submission_dir=submission_dir,
+                 submission_id=submission_id,
+@@ -261,12 +260,17 @@
+                 allow_generation=True,
+             )
+         )
++        reference_score, reference_artifacts = self.feedback_reference_judgment(
++            submission_dir=submission_dir, submission_id=submission_id,
++            turn_index=turn_index, active_artifacts=artifacts, allow_generation=True,
++        )
+         rubric_evaluation = self.rubric_evaluation_record(
+             generation,
+             artifacts,
+             submission_id,
+             dispatch_preflight,
+             fixed_original_score,
++            reference_score, reference_artifacts,
+         )
+         rubric_evaluation_path = (
+             self.experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
+@@ -292,8 +296,6 @@
+                 generation_round=generation.generation_round,
+                 submission_dir=submission_dir,
+                 allow_generation=True,
+-                fixed_original_score=fixed_original_score,
+-                fixed_original_artifacts=fixed_original_artifacts,
+             )
+             if rubric_evaluation["score"] != feedback.score:
+                 raise RuntimeError("rubric evaluation and feedback scores disagree")
+@@ -328,7 +330,8 @@
+                 "judge_attempt_id": attempt_id,
+                 "score": score,
+                 "fixed_original_score": fixed_original_score,
+-                "elicited_penalty": score - fixed_original_score,
++                "elicited_penalty": rubric_evaluation["elicited_penalty"],
++                "feedback_reference": rubric_evaluation["feedback_reference"],
+                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
+                 "feedback_sha256": (
+                     _sha256_file(feedback_path) if feedback is not None else None
+@@ -399,6 +402,8 @@
+         submission_id: str,
+         dispatch_preflight: dict[str, object],
+         fixed_original_score: float,
++        reference_score: float,
++        reference_artifacts: JudgeArtifacts,
+     ) -> dict[str, object]:
+         if (
+             dispatch_preflight.get("generation_sha256")
+@@ -410,7 +415,7 @@
+         composition = compose_rubric_score(
+             generation,
+             artifacts.score_validation_path,
+-            fixed_original_score,
++            reference_score,
+         )
+         validation = _read_json_object(
+             artifacts.score_validation_path,
+@@ -432,14 +437,20 @@
+         ):
+             raise RuntimeError("rubric score uses a different dispatch payload")
+         return {
+-            "kind": "canonical-original-plus-elicited-penalty-evaluation",
++            "kind": FEEDBACK_REFERENCE_PROTOCOL,
++            "feedback_reference": {
++                "rubric_sha256": self.initial_rubric.sha256,
++                "score_validation_sha256": _sha256_file(reference_artifacts.score_validation_path),
++                "evaluation_sha256": _sha256_file(reference_artifacts.evaluation_path),
++            },
++            "reference_score": composition.reference_score,
+             "submission_id": submission_id,
+             "generation_round": generation.generation_round,
+             "generation_sha256": generation.generation_sha256,
+             "rubric_sha256": generation.rubric.content_sha256,
+             "dispatch_preflight": dispatch_preflight,
+             "judge_score": judge_score,
+-            "canonical_original_score": composition.canonical_original_score,
++            "canonical_original_score": fixed_original_score,
+             "elicited_penalty": composition.elicited_penalty,
+             "score_validation_sha256": _sha256_file(
+                 artifacts.score_validation_path
+@@ -457,9 +468,14 @@
+         generation_round: int,
+         submission_dir: Path,
+         allow_generation: bool,
+-        fixed_original_score: float,
+-        fixed_original_artifacts: JudgeArtifacts,
+     ):
++        reference_score, reference_artifacts = self.feedback_reference_judgment(
++            submission_dir=submission_dir,
++            submission_id=submission_id,
++            turn_index=int(submission_id[1:]),
++            active_artifacts=artifacts,
++            allow_generation=False,
++        )
+         policy = FeedbackPolicy(self.config.feedback_policy)
+         task_instruction = (self.task_dir / "instruction.md").read_text(
+             encoding="utf-8"
+@@ -472,12 +488,12 @@
+                 policy,
+                 task_instruction=task_instruction,
+                 first_revision=first_revision,
+-                fixed_original_artifacts=(
+-                    fixed_original_artifacts.score_validation_path,
+-                    fixed_original_artifacts.evaluation_path,
++                reference_artifacts=(
++                    reference_artifacts.score_validation_path,
++                    reference_artifacts.evaluation_path,
+                 ),
+-                fixed_original_rubric_text=self.master_rubric.text,
+-                fixed_original_rubric_sha256=self.master_rubric.sha256,
++                reference_rubric_text=self.initial_rubric.text,
++                reference_rubric_sha256=self.initial_rubric.sha256,
+                 prompt_profile=self.config.prompt_profile,
+                 benchmark=self.config.benchmark,
+             )
+@@ -491,12 +507,12 @@
+             FeedbackPolicy.FULL,
+             task_instruction=task_instruction,
+             first_revision=first_revision,
+-            fixed_original_artifacts=(
+-                fixed_original_artifacts.score_validation_path,
+-                fixed_original_artifacts.evaluation_path,
++            reference_artifacts=(
++                reference_artifacts.score_validation_path,
++                reference_artifacts.evaluation_path,
+             ),
+-            fixed_original_rubric_text=self.master_rubric.text,
+-            fixed_original_rubric_sha256=self.master_rubric.sha256,
++            reference_rubric_text=self.initial_rubric.text,
++            reference_rubric_sha256=self.initial_rubric.sha256,
+             prompt_profile=self.config.prompt_profile,
+             benchmark=self.config.benchmark,
+         )
+@@ -615,7 +631,7 @@
+             user_feedback,
+             task_instruction=task_instruction,
+             first_revision=first_revision,
+-            fixed_original_score=fixed_original_score,
++            reference_score=reference_score,
+             prompt_profile=self.config.prompt_profile,
+             benchmark=self.config.benchmark,
+         )
+@@ -740,62 +756,29 @@
+         )
+         return rubric, FrozenRubricJudge(config, rubric)
+ 
++    def feedback_reference_judgment(
++        self, *, submission_dir: Path, submission_id: str, turn_index: int,
++        active_artifacts: JudgeArtifacts, allow_generation: bool,
++    ) -> tuple[float, JudgeArtifacts]:
++        return resolve_reference_judgment(
++            self, rubric=self.initial_rubric, judge=self.dependencies.judge,
++            reuse_seed=self.reuse_seed_judgment,
++            submission_dir=submission_dir, submission_id=submission_id,
++            turn_index=turn_index, active_artifacts=active_artifacts,
++            allow_generation=allow_generation,
++        )
++
+     def fixed_original_judgment(
+-        self,
+-        *,
+-        submission_dir: Path,
+-        submission_id: str,
+-        turn_index: int,
+-        active_artifacts: JudgeArtifacts,
+-        allow_generation: bool,
++        self, *, submission_dir: Path, submission_id: str, turn_index: int,
++        active_artifacts: JudgeArtifacts, allow_generation: bool,
+     ) -> tuple[float, JudgeArtifacts]:
+-        active_generation = self.active_rubric_generation(turn_index)
+-        seeded = False
+-        if turn_index == 0 and self.reuse_seed_master_judgment:
+-            validation_path, evaluation_path, _ = self.seed.judgment
+-            artifacts = JudgeArtifacts(validation_path, evaluation_path)
+-            seeded = True
+-        elif (
+-            active_generation.rubric.content_sha256 == self.master_rubric.sha256
+-            and (
+-                turn_index == 0
+-                or self.rubric_policy is RubricPolicy.FIXED
+-            )
+-        ):
+-            artifacts = active_artifacts
+-        else:
+-            attempt_id = fixed_original_attempt_id(
+-                self.config.assignment_id,
+-                submission_id,
+-                self.master_rubric.sha256,
+-            )
+-            artifacts = self.assignment_judgment(
+-                judge=self.master_judge,
+-                submission_dir=submission_dir,
+-                submission_id=submission_id,
+-                rubric_sha256=self.master_rubric.sha256,
+-                attempt_id=attempt_id,
+-                allow_generation=allow_generation,
+-            )
+-        self.verify_round_scoring_identity(
+-            artifacts.score_validation_path,
+-            self.master_rubric,
+-            self.master_judge,
+-            seeded=seeded,
+-        )
+-        validation = _read_json_object(
+-            artifacts.score_validation_path,
+-            "fixed-original score validation",
+-        )
+-        score = validation.get("score")
+-        if (
+-            isinstance(score, bool)
+-            or not isinstance(score, Real)
+-            or not math.isfinite(float(score))
+-            or not 0 <= float(score) <= 100
+-        ):
+-            raise RuntimeError("fixed-original judgment has an invalid score")
+-        return float(score), artifacts
++        return resolve_reference_judgment(
++            self, rubric=self.master_rubric, judge=self.master_judge,
++            reuse_seed=self.reuse_seed_master_judgment,
++            submission_dir=submission_dir, submission_id=submission_id,
++            turn_index=turn_index, active_artifacts=active_artifacts,
++            allow_generation=allow_generation,
++        )
+ 
+     def verify_round_scoring_identity(
+         self,
+@@ -878,7 +861,7 @@
+             judge,
+             seeded=seeded,
+         )
+-        expected_fixed_score, fixed_original_artifacts = self.fixed_original_judgment(
++        expected_fixed_score, _ = self.fixed_original_judgment(
+             submission_dir=submission_dir,
+             submission_id=submission_id,
+             turn_index=index,
+@@ -893,6 +876,10 @@
+         )
+         review_text, answer_text = self.dependencies.judge.review_inputs(
+             submission_dir
++        )
++        reference_score, reference_artifacts = self.feedback_reference_judgment(
++            submission_dir=submission_dir, submission_id=submission_id,
++            turn_index=index, active_artifacts=artifacts, allow_generation=False,
+         )
+         expected_rubric_evaluation = self.rubric_evaluation_record(
+             generation,
+@@ -905,6 +892,7 @@
+                 answer_text=answer_text,
+             ),
+             expected_fixed_score,
++            reference_score, reference_artifacts,
+         )
+         if rubric_evaluation != expected_rubric_evaluation:
+             raise RuntimeError(
+@@ -932,8 +920,6 @@
+                 generation_round=generation.generation_round,
+                 submission_dir=submission_dir,
+                 allow_generation=False,
+-                fixed_original_score=expected_fixed_score,
+-                fixed_original_artifacts=fixed_original_artifacts,
+             )
+             feedback = _read_json_object(feedback_path, "revision feedback")
+             if (
+--- a/src/rubric_gen/submission_revision/feedback.py
++++ b/src/rubric_gen/submission_revision/feedback.py
+@@ -20,6 +20,8 @@
+ from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
+ from rubric_gen.submission_revision.rubric_generation import (
+     RubricGeneration,
++    CompleteRubric,
++    render_augmented_rubric,
+ )
+ 
+ 
+@@ -32,6 +34,8 @@
+     USER_SIMULATOR = "user_simulator"
+ 
+ 
++FEEDBACK_REFERENCE_PROTOCOL = "selected-base-plus-active-penalties-v1"
++
+ MAX_SIMULATED_USER_FEEDBACK_CHARS = 6_000
+ 
+ 
+@@ -46,9 +50,9 @@
+ 
+ @dataclass(frozen=True)
+ class ComposedRubricScore:
+-    """Store the canonical base, elicited penalty, and final score."""
+-
+-    canonical_original_score: float
++    """Store the selected base, elicited penalty, and final score."""
++
++    reference_score: float
+     elicited_penalty: float
+     score: float
+ 
+@@ -165,25 +169,32 @@
+     *,
+     task_instruction: str,
+     first_revision: bool,
+-    fixed_original_artifacts: tuple[Path, Path],
+-    fixed_original_rubric_text: str,
+-    fixed_original_rubric_sha256: str,
++    reference_artifacts: tuple[Path, Path],
++    reference_rubric_text: str,
++    reference_rubric_sha256: str,
+     max_reason_chars: int = 2_000,
+     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+ ) -> ProjectedFeedback:
+-    """Project canonical original feedback plus learned-criterion penalties."""
+-
++    """Project selected-reference feedback plus learned-criterion penalties."""
++
++    reference = CompleteRubric.from_content(reference_rubric_text)
++    if (
++        reference.content_sha256 != reference_rubric_sha256
++        or render_augmented_rubric(reference, generation.elicited_criteria)
++        != generation.rubric
++    ):
++        raise ValueError("feedback reference does not match the active rubric base")
+     resolved_policy = FeedbackPolicy(policy)
+     if resolved_policy is FeedbackPolicy.USER_SIMULATOR:
+         raise ValueError("use project_rubric_simulated_user_feedback")
+     composition = compose_rubric_score(
+         generation,
+         artifacts[0],
+-        _validated_fixed_original_score(
+-            fixed_original_artifacts[0],
+-            fixed_original_rubric_text,
+-            fixed_original_rubric_sha256,
++        _validated_reference_score(
++            reference_artifacts[0],
++            reference_rubric_text,
++            reference_rubric_sha256,
+         ),
+     )
+     if resolved_policy is FeedbackPolicy.SCORE_ONLY:
+@@ -202,10 +213,10 @@
+         )
+ 
+     fixed_projection = _project_member_feedback(
+-        fixed_original_artifacts[0],
+-        fixed_original_artifacts[1],
+-        fixed_original_rubric_text,
+-        fixed_original_rubric_sha256,
++        reference_artifacts[0],
++        reference_artifacts[1],
++        reference_rubric_text,
++        reference_rubric_sha256,
+         resolved_policy,
+         max_reason_chars=max_reason_chars,
+         prompt_profile=prompt_profile,
+@@ -213,7 +224,7 @@
+     )
+     fixed_criteria = fixed_projection.payload.get("criteria")
+     if not isinstance(fixed_criteria, dict):
+-        raise ValueError("fixed-original feedback lacks criterion details")
++        raise ValueError("reference feedback lacks criterion details")
+     projected = _project_member_feedback(
+         artifacts[0],
+         artifacts[1],
+@@ -268,7 +279,7 @@
+     *,
+     task_instruction: str,
+     first_revision: bool,
+-    fixed_original_score: float,
++    reference_score: float,
+     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+ ) -> ProjectedFeedback:
+@@ -277,7 +288,7 @@
+     composition = compose_rubric_score(
+         generation,
+         score_validation_path,
+-        fixed_original_score,
++        reference_score,
+     )
+     payload: dict[str, object] = {
+         "decision": user_feedback.get("decision"),
+@@ -336,18 +347,18 @@
+ def compose_rubric_score(
+     generation: RubricGeneration,
+     score_validation_path: Path,
+-    fixed_original_score: float,
++    reference_score: float,
+ ) -> ComposedRubricScore:
+-    """Add only elicited penalties to one canonical original score."""
++    """Add only elicited penalties to one selected-reference score."""
+ 
+     if (
+-        isinstance(fixed_original_score, bool)
+-        or not isinstance(fixed_original_score, Real)
+-        or not math.isfinite(float(fixed_original_score))
+-        or not 0 <= float(fixed_original_score) <= 100
+-    ):
+-        raise ValueError("fixed_original_score must be between zero and 100")
+-    fixed = float(fixed_original_score)
++        isinstance(reference_score, bool)
++        or not isinstance(reference_score, Real)
++        or not math.isfinite(float(reference_score))
++        or not 0 <= float(reference_score) <= 100
++    ):
++        raise ValueError("reference_score must be between zero and 100")
++    fixed = float(reference_score)
+     validation = _load_object(score_validation_path, "score validation")
+     _, _, _, criterion_scores = _validate_score_record(
+         validation,
+@@ -372,18 +383,18 @@
+         raise ValueError("elicited criteria produced a positive score")
+     penalty = elicited_raw_penalty * 100 / generation.normalization_maximum
+     return ComposedRubricScore(
+-        canonical_original_score=fixed,
++        reference_score=fixed,
+         elicited_penalty=penalty,
+         score=max(0.0, fixed + penalty),
+     )
+ 
+ 
+-def _validated_fixed_original_score(
++def _validated_reference_score(
+     validation_path: Path,
+     rubric_text: str,
+     rubric_sha256: str,
+ ) -> float:
+-    validation = _load_object(validation_path, "fixed-original score validation")
++    validation = _load_object(validation_path, "reference score validation")
+     score, _, _, _ = _validate_score_record(
+         validation,
+         rubric_text,
+--- a/src/rubric_gen/submission_revision/study_validation_artifacts.py
++++ b/src/rubric_gen/submission_revision/study_validation_artifacts.py
+@@ -25,6 +25,7 @@
+ from rubric_gen.submission_revision.evolution import RubricProposer
+ from rubric_gen.submission_revision.feedback import (
+     FeedbackPolicy,
++    FEEDBACK_REFERENCE_PROTOCOL,
+     ProjectedFeedback,
+     compose_rubric_score,
+     project_rubric_feedback,
+@@ -301,7 +302,7 @@
+         generation,
+     )
+     fixed_score = _fixed_score(context, index)
+-    fixed_artifacts = _fixed_original_artifacts(
++    _fixed_original_artifacts(
+         context,
+         submission,
+         submission_id,
+@@ -309,12 +310,16 @@
+         rubric_artifacts,
+         fixed_score,
+     )
++    reference_artifacts = _feedback_reference_artifacts(
++        context, submission, submission_id, generation, rubric_artifacts,
++    )
++    reference_score = read_json_object(reference_artifacts[0], "feedback reference")["score"]
+     expected_evaluation = _expected_rubric_evaluation(
+         context,
+         submission_id,
+         generation,
+         rubric_artifacts,
+-        fixed_score,
++        fixed_score, reference_score, reference_artifacts,
+     )
+     if read_json_object(
+         roots.rubric_evaluations / f"{submission_id}.json",
+@@ -334,8 +339,8 @@
+             generation_round,
+             generation,
+             rubric_artifacts,
+-            fixed_artifacts,
+-            fixed_score,
++            reference_artifacts,
++            reference_score,
+         )
+         if (
+             read_json_object(feedback_path, "revision feedback")
+@@ -639,6 +644,30 @@
+     return artifacts.score_validation_path, artifacts.evaluation_path
+ 
+ 
++def _feedback_reference_artifacts(
++    context: ValidationContext, submission: Path, submission_id: str,
++    generation: RubricGeneration, rubric_artifacts: RubricArtifacts,
++) -> tuple[Path, Path]:
++    """Reconstruct the selected reference with the exact artifact/scorer binding."""
++    rubric_hash = context.selection.optimizer_sha256
++    if generation.rubric.content_sha256 == rubric_hash:
++        return rubric_artifacts
++    judge = context.scoring.initial_judge
++    review_text, answer_text = judge.review_inputs(submission)
++    expected_request = exact_judgment_request(
++        task_id=context.assignment.task_id,
++        replicate=context.assignment.replicate,
++        rubric_sha256=rubric_hash,
++        review_text=review_text, answer_text=answer_text,
++        scoring_identity=judge.scoring_identity(),
++    )
++    artifacts = load_judgment_copy(
++        experiment_dir=context.experiment_dir, submission_id=submission_id,
++        rubric_sha256=rubric_hash, expected_request=expected_request,
++    )
++    return artifacts.score_validation_path, artifacts.evaluation_path
++
++
+ def _project_feedback(
+     context: ValidationContext,
+     roots: _ArtifactRoots,
+@@ -647,8 +676,8 @@
+     generation_round: int,
+     generation: RubricGeneration,
+     rubric_artifacts: RubricArtifacts,
+-    fixed_artifacts: tuple[Path, Path],
+-    fixed_score: object,
++    reference_artifacts: tuple[Path, Path],
++    reference_score: object,
+ ) -> ProjectedFeedback:
+     prompt_profile = PromptProfile(str(context.protocol["prompt"]))
+     task_instruction = (context.task_dir / "instruction.md").read_text(
+@@ -662,11 +691,11 @@
+             context.policy,
+             task_instruction=task_instruction,
+             first_revision=first_revision,
+-            fixed_original_artifacts=fixed_artifacts,
+-            fixed_original_rubric_text=context.selection.master_path.read_text(
++            reference_artifacts=reference_artifacts,
++            reference_rubric_text=context.selection.optimizer_path.read_text(
+                 encoding="utf-8"
+             ),
+-            fixed_original_rubric_sha256=context.selection.master_sha256,
++            reference_rubric_sha256=context.selection.optimizer_sha256,
+             prompt_profile=prompt_profile,
+             benchmark=context.experiment.benchmark,
+         )
+@@ -679,11 +708,11 @@
+         FeedbackPolicy.FULL,
+         task_instruction=task_instruction,
+         first_revision=first_revision,
+-        fixed_original_artifacts=fixed_artifacts,
+-        fixed_original_rubric_text=context.selection.master_path.read_text(
++        reference_artifacts=reference_artifacts,
++        reference_rubric_text=context.selection.optimizer_path.read_text(
+             encoding="utf-8"
+         ),
+-        fixed_original_rubric_sha256=context.selection.master_sha256,
++        reference_rubric_sha256=context.selection.optimizer_sha256,
+         prompt_profile=prompt_profile,
+         benchmark=context.experiment.benchmark,
+     )
+@@ -738,7 +767,7 @@
+         user_feedback,
+         task_instruction=task_instruction,
+         first_revision=first_revision,
+-        fixed_original_score=float(fixed_score),
++        reference_score=float(reference_score),
+         prompt_profile=prompt_profile,
+         benchmark=context.experiment.benchmark,
+     )
+@@ -750,18 +779,26 @@
+     generation: RubricGeneration,
+     rubric_artifacts: RubricArtifacts,
+     fixed_score: object,
++    reference_score: object,
++    reference_artifacts: tuple[Path, Path],
+ ) -> dict[str, object]:
+     validation_path, evaluation_path = rubric_artifacts
+     composition = compose_rubric_score(
+         generation,
+         validation_path,
+-        float(fixed_score),
++        float(reference_score),
+     )
+     score = read_json_object(validation_path, "score validation").get("score")
+     if not valid_score(score):
+         raise RuntimeError("rubric score is invalid")
+     return {
+-        "kind": "canonical-original-plus-elicited-penalty-evaluation",
++        "kind": FEEDBACK_REFERENCE_PROTOCOL,
++        "feedback_reference": {
++            "rubric_sha256": context.selection.optimizer_sha256,
++            "score_validation_sha256": sha256_file(reference_artifacts[0]),
++            "evaluation_sha256": sha256_file(reference_artifacts[1]),
++        },
++        "reference_score": composition.reference_score,
+         "submission_id": submission_id,
+         "generation_round": generation.generation_round,
+         "generation_sha256": generation.generation_sha256,
+@@ -777,7 +814,7 @@
+             ),
+         ),
+         "judge_score": score,
+-        "canonical_original_score": composition.canonical_original_score,
++        "canonical_original_score": fixed_score,
+         "elicited_penalty": composition.elicited_penalty,
+         "score_validation_sha256": sha256_file(validation_path),
+         "evaluation_sha256": sha256_file(evaluation_path),
+--- a/src/rubric_gen/submission_revision/study_validation_context.py
++++ b/src/rubric_gen/submission_revision/study_validation_context.py
+@@ -19,7 +19,7 @@
+ )
+ from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
+ from rubric_gen.submission_revision.experiment import Experiment
+-from rubric_gen.submission_revision.feedback import FeedbackPolicy
++from rubric_gen.submission_revision.feedback import FeedbackPolicy, FEEDBACK_REFERENCE_PROTOCOL
+ from rubric_gen.submission_revision.prompts import prompt_implementation_sha256
+ from rubric_gen.submission_revision.judge import (
+     FrozenRubric,
+@@ -307,6 +307,7 @@
+         "feedback_policy": context.condition["feedback_policy"],
+         "prompt": protocol["prompt"],
+         "prompt_implementation_sha256": prompt_implementation_sha256(),
++        "feedback_reference_protocol": FEEDBACK_REFERENCE_PROTOCOL,
+         "rubric_policy": context.condition["rubric_policy"],
+         "rubric_proposer_model": protocol["rubric_proposer_model"],
+         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
+--- a/tests/test_paperbench.py
++++ b/tests/test_paperbench.py
+@@ -630,12 +630,15 @@
+     scorer.experiment_dir = tmp_path / "experiment"
+     (scorer.experiment_dir / "feedback-generations").mkdir(parents=True)
+     scorer.task_dir = task
+-    scorer.master_rubric = SimpleNamespace(
++    scorer.initial_rubric = SimpleNamespace(
+         text=rubric_text,
+         sha256=rubric_sha256,
+     )
+     scorer.dependencies = SimpleNamespace(feedback_simulator=Simulator())
+ 
++    scorer.feedback_reference_judgment = lambda **_: (100.0, SimpleNamespace(
++        score_validation_path=validation, evaluation_path=evaluation,
++    ))
+     scorer.project_checkpoint_feedback(
+         artifacts=SimpleNamespace(
+             score_validation_path=validation,
+@@ -646,11 +649,6 @@
+         generation_round=0,
+             submission_dir=submission_dir,
+             allow_generation=True,
+-            fixed_original_score=100.0,
+-            fixed_original_artifacts=SimpleNamespace(
+-                score_validation_path=validation,
+-                evaluation_path=evaluation,
+-            ),
+         )
+ 
+     rendered = str(captured["current_artifact"])
+--- a/tests/test_submission_revision.py
++++ b/tests/test_submission_revision.py
+@@ -1644,7 +1644,7 @@
+         judgment_reuse_root=shared_root,
+     ).run()
+ 
+-    assert first_result.scores == second_result.scores == (80, 55)
++    assert first_result.scores == second_result.scores == (61, 71)
+     assert first_result.fixed_original_scores == (80, 55)
+     assert second_result.fixed_original_scores == (80, 55)
+     assert first_optimizer.calls == 2
+@@ -3310,9 +3310,9 @@
+         FeedbackPolicy.FULL,
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_artifacts=(validation, evaluation),
+-        fixed_original_rubric_text=rubric,
+-        fixed_original_rubric_sha256=rubric_sha,
++        reference_artifacts=(validation, evaluation),
++        reference_rubric_text=rubric,
++        reference_rubric_sha256=rubric_sha,
+     )
+     semi = project_rubric_feedback(
+         generation,
+@@ -3320,9 +3320,9 @@
+         FeedbackPolicy.SEMI,
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_artifacts=(validation, evaluation),
+-        fixed_original_rubric_text=rubric,
+-        fixed_original_rubric_sha256=rubric_sha,
++        reference_artifacts=(validation, evaluation),
++        reference_rubric_text=rubric,
++        reference_rubric_sha256=rubric_sha,
+     )
+     score = project_rubric_feedback(
+         generation,
+@@ -3330,9 +3330,9 @@
+         FeedbackPolicy.SCORE_ONLY,
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_artifacts=(validation, evaluation),
+-        fixed_original_rubric_text=rubric,
+-        fixed_original_rubric_sha256=rubric_sha,
++        reference_artifacts=(validation, evaluation),
++        reference_rubric_text=rubric,
++        reference_rubric_sha256=rubric_sha,
+     )
+     simulated = project_rubric_simulated_user_feedback(
+         generation,
+@@ -3349,7 +3349,7 @@
+         },
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_score=80,
++        reference_score=80,
+     )
+     accepted = project_rubric_simulated_user_feedback(
+         generation,
+@@ -3357,7 +3357,7 @@
+         {"decision": "accept", "concerns": []},
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_score=80,
++        reference_score=80,
+     )
+     assert "needs more evidence" in full.prompt
+     assert '"title": "Evidence"' in semi.prompt
+@@ -3422,9 +3422,9 @@
+         FeedbackPolicy.SEMI,
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_artifacts=(validation, evaluation),
+-        fixed_original_rubric_text=anchor.content,
+-        fixed_original_rubric_sha256=anchor.content_sha256,
++        reference_artifacts=(validation, evaluation),
++        reference_rubric_text=anchor.content,
++        reference_rubric_sha256=anchor.content_sha256,
+     )
+ 
+     assert projected.score == 33
+@@ -3520,12 +3520,100 @@
+         FeedbackPolicy.SEMI,
+         task_instruction="Analyze the supplied table.\n",
+         first_revision=True,
+-        fixed_original_artifacts=(fixed_validation, fixed_evaluation),
+-        fixed_original_rubric_text=anchor.content,
+-        fixed_original_rubric_sha256=anchor.content_sha256,
++        reference_artifacts=(fixed_validation, fixed_evaluation),
++        reference_rubric_text=anchor.content,
++        reference_rubric_sha256=anchor.content_sha256,
+     )
+ 
+     assert projected.score == 56
+     assert set(projected.payload) == {"score", "criteria"}
+     assert projected.payload["criteria"]["criterion_1"]["points"] == 60
+     assert projected.payload["criteria"]["criterion_2"]["points"] == -4
++
++
++@pytest.mark.parametrize("policy", [FeedbackPolicy.FULL, FeedbackPolicy.USER_SIMULATOR])
++def test_selected_reference_later_checkpoint_and_resume(tmp_path, monkeypatch, policy):
++    task = _write_task(tmp_path)
++    master_config = SubmissionJudgeConfig(
++        task_dir=task, experiment_dir=tmp_path / "master-identity", review="trace",
++        judge_model="test-judge-model", rubric_name="rubric.txt", rubric_set=None,
++        rubric_path=None, max_review_chars=None,
++    )
++    master_identity = FrozenRubricJudge(master_config, resolve_optimizer_rubric(master_config)).scoring_identity()
++    base = _config(tmp_path, task, rounds=2, seed_scoring_identity=master_identity)
++    selected = tmp_path / "selected.txt"
++    selected.write_text((task / "tests/rubric.txt").read_text().replace(
++        "Correct result", "Selected public evidence"))
++    config = replace(base, optimizer_rubric_path=selected, feedback_policy=policy,
++                     feedback_simulator=SimulatedUserConfig(model="test-simulator")
++                     if policy is FeedbackPolicy.USER_SIMULATOR else None)
++    identity = FrozenRubricJudge(config.judge_config(),
++                                resolve_optimizer_rubric(config.judge_config())).scoring_identity()
++    requests = []
++
++    def generate(sim_config, request):
++        requests.append(request)
++        expected = 61 if len(requests) == 1 else 71
++        assert f'"score":{float(expected)}' in request.evidence
++        assert selected.read_text().splitlines()[0] in request.evidence
++        assert "Correct result" not in request.evidence
++        assert '"judge_reason":"checked"' in request.evidence
++        return SimulatedUserGeneration(
++            text=json.dumps({"decision": "revise", "concerns": [{
++                "category": "evidence_traceability", "feedback": "Please clarify the public evidence."}]}),
++            provider="openai", requested_model=sim_config.model,
++            effective_model=sim_config.model, response_id=f"response-{len(requests)}",
++            request_parameters={"max_output_tokens": sim_config.max_output_tokens}, provider_metadata={},
++        )
++
++    simulator = SimulatedUserFeedback(config.feedback_simulator, generator=generate) if config.feedback_simulator else None
++    session = FakeSession()
++    selected_judge = FakeJudge(task, (0, 61, 71, 95), tmp_path / "selected-judge", identity=identity)
++    master = FakeJudge(task, (0, 55, 65), tmp_path / "master-judge", identity=master_identity)
++    dependencies = RevisionDependencies(session=session, judge=selected_judge,
++                                        master_judge=master, feedback_simulator=simulator)
++    controller = SubmissionRevisionController(config, dependencies)
++    result = controller.run()
++    assert result.scores == (61, 71, 95)
++    assert result.fixed_original_scores == (80, 55, 65)
++    for i, score in enumerate((61, 71)):
++        record = json.loads((config.experiment_dir / f"rubric-evaluations/s{i:03d}.json").read_text())
++        assert record["reference_score"] == score
++        assert record["feedback_reference"]["rubric_sha256"] == sha256_file(selected)
++        payload = json.loads((config.experiment_dir / f"feedback/s{i:03d}.json").read_text())
++        if policy is FeedbackPolicy.FULL:
++            assert payload["score"] == score
++            assert payload["rubric_text"] == selected.read_text()
++            assert payload["criteria"]["criterion_1"] == {
++                "level": _TEST_SCORE_LEVELS[score], "points": float(score), "judge_reason": "checked"}
++        else:
++            assert set(payload) == {"decision", "concerns"}
++        assert "Correct result" not in session.prompts[i]
++        assert "holistic" not in session.prompts[i] and "holdout" not in session.prompts[i]
++    counts = (selected_judge.calls, master.calls, len(requests), len(session.prompts))
++    resumed = SubmissionRevisionController(replace(config, resume=True), dependencies).run()
++    assert resumed == result
++    assert counts == (selected_judge.calls, master.calls, len(requests), len(session.prompts))
++    selection = SimpleNamespace(
++        optimizer_path=selected, optimizer_sha256=sha256_file(selected),
++        master_path=task / "tests/rubric.txt", master_sha256=sha256_file(task / "tests/rubric.txt"),
++        development_path=config.development_rubric_path,
++        development_sha256=sha256_file(config.development_rubric_path),
++    )
++    monkeypatch.setattr(paraphrase_validation_module, "resolve_paraphrase_selection", lambda *_: selection)
++    validate_completed_revision(config.experiment_dir, _validation_assignment(config, task),
++                                _design(config, task), config.seed_run_dir,
++                                config.experiment_dir / "paraphrases")
++    # Stored reference identity cannot be swapped to the independently measured master.
++    path = config.experiment_dir / "rubric-evaluations/s002.json"
++    record = json.loads(path.read_text())
++    record["feedback_reference"]["rubric_sha256"] = selection.master_sha256
++    path.write_text(json.dumps(record))
++    with pytest.raises(RuntimeError, match="rubric evaluation"):
++        SubmissionRevisionController(replace(config, resume=True), dependencies).run()
++    manifest_path = config.experiment_dir / "manifest.json"
++    manifest = json.loads(manifest_path.read_text())
++    del manifest["feedback_reference_protocol"]
++    manifest_path.write_text(json.dumps(manifest))
++    with pytest.raises(RuntimeError, match="manifest has invalid fields"):
++        SubmissionRevisionController(replace(config, resume=True), dependencies).run()

@@ -83,6 +83,7 @@ REVISION_MANIFEST_KEYS = frozenset(
         "seed_run_dir",
         "pretreatment_rubric_dir",
         "prompt_implementation_sha256",
+        "feedback_reference_protocol",
         "seed_sha256",
         "service_tier",
         "session_id",

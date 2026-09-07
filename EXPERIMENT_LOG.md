@@ -1,6 +1,60 @@
+# 2026-09-07 — Bounded missing-work recovery
+
+## 2026-09-08 — User interpretation acknowledged for Babel
+
+- 00:35 CST: User confirms engineering success but failure to establish a stable static-RH baseline with neutral: retain wiring, reject neutral adoption, keep baseline unfrozen, and establish reliable static signal before dynamic reduction. Auditor sensitivity, zero final-artifact RH, task-concentrated trajectory RH and reversed neutral simulator ordering must inform continued exploration; see [review incorporated in handoff](docs/BABEL_HANDOFF.md#user-review-incorporated-before-migration).
+
+
+## 2026-09-08 — Migration disposition
+
+- 00:31 CST: Corrected wiring is validated, but neutral guidance fails the expected mechanism: full-feedback selected−holdout mean +2.81→−1.61, with control Sol/Opus disagreement and zero final-artifact RH. Recommend further fixed-population dev3 execution/claim verification, not Results20; preserve all completed evidence and use the [final Mac handoff](docs/BABEL_HANDOFF.md).
+
+
+## 2026-09-08 — Neutral prompt mechanism result
+
+- 00:23 CST: The 24-assignment comparison completed with all 672 planned records, reusing 172 exact historical semantic judgments; two assignment failures and nine audit gaps recovered without changing completed evidence. Neutral reduced full-feedback selected-minus-holdout and trajectory RH but failed the intended baseline mechanism, with auditor disagreement, zero artifact RH, task-concentrated trajectory RH and an Opus simulator quality decline of 48→27 in one pair.
+- 00:23 CST: Saved-trace inspection supports unexecuted-analysis claims as a trajectory RH mechanism; criterion reasons differ in credit for documented code versus executed outputs. Preserve the corrected static evidence and optional neutral implementation, keep the baseline unfrozen, and stop new dispatch after finishing the user's unfinished-work queue.
+
+
+- 23:00 CST: Both da-3-4 arms have complete 168-record audit coverage; neutral quality recovery filled two SSL failures while preserving all 617 protected files. Control da-11-1 recovery resumed only its two archived initial simulator failures at concurrency 2; all production source hashes and fixed evaluation settings remain unchanged.
+
+# 2026-09-07 — Static comparison dispatch
+
+- 22:31 CST: Both neutral da-3-4/rep-001 smoke assignments completed under the unchanged stopping rules and are reused within the 24-assignment study. Remaining 22 launched in session 80878; two initial simulator requests encountered SSL EOF errors and will receive missing-work recovery after successful work is preserved.
+
 # Experimental Log
 
+## 2026-09-07 — Static neutral comparison
+
+- 22:25 CST: The selected-reference prerequisite passed both live checkpoint smokes with four new Luna judgments and successful recovery; keep the correction. Began the neutral revision-prompt comparison, testing sustained criterion-specific optimization under identical selected-reference wiring; static-only studies now omit unused learned-rubric preparation.
+
+
+## 2026-09-07 — Wiring prerequisite acceptance
+
+- 22:03 CST: Replayed all six saved selected judgments (42 criterion bindings) without provider calls and verified 12,319 historical development files unchanged. Live da-3-4/rep-001 checkpoint smokes produced no solver revision or new completed judgment: setup failures and connection failures preceded automatic-review rejection of the external-payload launch; the neutral-prompt comparison remains undispatched.
+
+
 ## 2026-09-07 — bounded Gemini recovery
+
+- 20:35 CST: User requested Gemini Results20 completion; one minimal non-benchmark Gemini 3.8 Flash request returned HTTP429 `RESOURCE_EXHAUSTED` for depleted prepayment credits. No audit worker launched, and all146 saved Gemini full-trajectory score hashes remain unchanged; legitimate credit restoration or an authorized usable key is still required.
+
+- 20:29 CST: User explicitly authorized the exact selected-reference payload and destinations; audit45843 completed144/144 references with80 new exact judgments,64 exact historical reuses, and no failure logs. Native analysis15697 validates every raw binding and rejects the mechanism: matched selected-minus-holdout moved only -2.00 to-1.58 while quality improved64.08 to66.00; no baseline freeze or further dispatch.
+
+- 18:26 CST: All six selected-reference candidates and24 acceptance references validate; no worker remains active. Full audit was rejected twice by automatic review because it did not accept the recorded raw-export consent as authorization for these payloads/destinations; exact pending120-reference scope is preserved for user approval, with no bypass or candidate rerun.
+
+- 18:19 CST: Selected-reference acceptance17481 completed all24 references with64 saved audit files unchanged. Candidate worker42389 now runs the remaining five fixed task/replicate cases at c2, skipping the validated acceptance; native snapshot packaging precedes the final144-reference audit.
+
+- 18:12 CST: Selected-reference solver acceptance51217 exited0 with valid Luna output; scoped audit41957 stopped at candidate discovery after saving 12 control references. Audit33996 resumes after native packaging, with all saved audit files archived/hashes recorded and the original candidate workspace unchanged.
+
+- 18:02 CST: Exposure calibration passes all 336 judgments: full/simulator selected-minus-holdout −3.42/−1.97, artifact any-detect0/0, trajectory0/50%; no freeze. Selected-reference one-turn acceptance51217 now tests da-11-1 replicate1 at c1 against its saved master-feedback first-turn control, with runtime/prompts archived before dispatch.
+
+- 18:00 CST: Quality recovery67803 preserved 27 prior records and saved the final pairwise judgment before a server-disconnect failure; 28/30 quality judgments are present. Recovery18736 targets only the two remaining absolute judgments at c1; direct19603 exited0 with all 48 scores saved.
+
+- 17:56 CST: Quality recovery91478 saved five additional judgments and exited1 on another Anthropic connection failure; all 22 pre-existing records remained unchanged. Recovery67803 resumes only the remaining three jobs at c1 with a new evidence archive.
+
+- 17:52 CST: Exposure da-11-1 semantic worker41733 exited1 on Anthropic SSL unexpected EOF, leaving 22/30 quality records. Recovery91478 resumes only the eight missing quality jobs at c1 after archiving the prior stages; direct worker19603 remains independent.
+
+- 17:49 CST: Exposure da-11-1 isolated rubric recovery session10837 exited0 and filled the sole Claude gap, preserving all 89 existing records byte-for-byte. Direct session19603 and quality session41733 continue on separate stages; no completed judgment was rerun.
 
 - 09:38 CST: Refreshed both providers’ 480-case tables from saved results; fresh strict checks pass 9,327 historical and 6,022 comparator judgments, all 16 condition rows match the existing combined table, and the standalone OpenAI rows agree exactly. Removed stale Anthropic-pause/cloud-only notes and refreshed source hashes without provider calls or changes to judgment artifacts.
 
@@ -1150,3 +1204,104 @@
 - **15:42 CST** — Selected failures rose to seven: six simulated-user connection failures and `da-13-6/rep-001/user-simulator-static` optimizer-judge exhaustion. All three judge attempt logs expose OpenAI/httpx `SSL: UNEXPECTED_EOF_WHILE_READING`, a transport handshake failure rather than rubric/artifact validation; keep TLS verification intact and recover saved checkpoints at lower concurrency after the active writer ends.
 - **15:45 CST** — Re-ran the strict offline coverage gate on the untouched original red-team dataset: all 240 cases and 9,327 judgments pass across Sol/Claude/Gemini, supporting reuse in the final grid without regenerating those arms. The new comparator invocation remains live and its connection failures will be recovered separately.
 - **16:01 CST** — The dispatch queue is empty; 205/240 selected cases have completed, 26 remain live, and nine connection failures await recovery. An independent current-format replay of all 198 completed cases in its starting snapshot passed without modifying artifacts, so remaining acceptance work concerns unfinished/failed cases rather than hidden validation failures in that snapshot.
+
+
+## 2026-09-07 — Results20 investigation
+
+- 10:29 CST: Independent raw reconstruction confirms the reported grid and identifies heavy red-team no-op/refusal delivery plus a da-15-8 source-label conflict; four isolated corrected-input diagnostic judgments completed without replacing original outcomes. Full findings, collaborator-only log provenance, matched-auditor tables, uncertainty and proposed pilots are in [investigation report](investigation/results20-20260907/REPORT.md); no scaled experiment was launched.
+
+## 2026-09-07 — Optimization authorization
+
+- 11:08 CST: User superseded outdated OpenAI-induction/Anthropic-pause restrictions after inspecting automatic-review rejection reasons; current scope is recorded at the top of PLAN/RUNS. Three-task delivery pilot produced 3/3 changed valid negative artifacts versus 0/3 baseline, with downstream validation still pending and historical outputs preserved.
+
+## 2026-09-07 — Three-task optimization complete
+
+- 11:42 CST: Three iterations completed: delivery changed 0/3→3/3 with refusals 3/3→0/3; diff assistance found more contrasts but no fresh criterion survived. Static pressure pilot has 6 valid artifacts and 90/90 OpenAI/Anthropic jobs; direct RH unchanged and selected−holdout auditor directions disagree, so no full-scale run is justified (investigation/optimization-20260907/REPORT.md).
+
+## 2026-09-07 — Autonomous dev3 continuation
+
+- 11:57 CST: Artifact-isolated criterion validation and interrupted-call reuse pass 89 tests; launched the complete one-task eight-condition/three-replicate smoke at c4 (session 5855). Configured dev3 replaces the earlier results20 diagnostic trio for further tuning; da-18-1 is reserved for frozen-method validation.
+
+## 2026-09-07
+
+2026-09-07T12:13:23.920442+08:00 — Missing XLS support invalidated all three initial smoke seeds; preserved and excluded the environment version together. Locked XLS/XLSX readers, verified workbook reading in the actual Codex solver, and restarted the complete 24-assignment smoke under a separate output root.
+
+## 2026-09-07
+
+12:46 CST — Read-only window audit identifies historical static/full 10/60 as trajectory-based available-judge union; current identical-case GPT/Claude union is 11/60 full-trajectory versus 1/60 final-artifact. ddea643 added rather than replaced the artifact window; preserve both endpoints and compare historical results with matched window/panel rules (investigation/detection-window-20260907/REPORT.md).
+
+## 2026-09-07 — Dev3 recovery and priorities
+
+- 12:50 CST: Frozen smoke ended 23/24 complete with one simulator connection failure; session 91217 resumes only missing work at c4 after all 54 provenance hashes passed. Next priorities are delivered criterion usefulness, separate trajectory/artifact observability, and benchmark-target validity; detection thresholds and results20 optimization boundaries remain unchanged.
+
+- 2026-09-07 12:51 CST: Online smoke snapshot has 14 rejected candidates: seven all-A and eight uniform-level validations; none fail visibility/nonredundancy. This prioritizes discrimination/support over relaxed admission; private evidence is `investigation/autonomous-dev3-20260907/support-snapshot.json` (incomplete population).
+
+- 2026-09-07 12:54 CST: Both accepted online criteria appear in later feedback and solver prompts (2/2), weakening a delivery-path explanation for these cases. Prepared unfiltered contract-comparison driver reuses exact saved assessments; incomplete-population guard verified, no new comparison calls dispatched.
+
+- 2026-09-07 12:58 CST: User prioritizes baseline RH calibration before proposer optimization; prepared contract comparison deferred. All six static smoke endpoints weak-score100 and stop on turn3 no_change, so independent audits must distinguish saturation from hidden proxy failure before choosing the next change.
+
+- 2026-09-07 13:05 CST: Recovery completed all 24 dev smoke assignments and started independent audits; 74 score and 14 sidecar rubric bindings pass. Online funnel totals 14 changed/valid sidecars, 18 candidates, two accepted; no efficacy conclusion before audit completion.
+
+- 2026-09-07 13:12 CST: Complete full-trajectory smoke panel (48/48) has no positives or abstentions in any condition, all scores0–1; static reasons describe genuine calculations and legitimate revisions. Baseline RH headroom is not established even with full trajectory; remaining audit stages continue and proposer optimization stays deferred.
+
+- 2026-09-07 13:13 CST: Started session44479 at c3 for all six static baseline assignments on predefined development task da-11-1 under unchanged method, alongside ongoing da-3-4 audits. This preserves the negative da-3-4 outcome and leaves da-18-1 reserved; separate YAML/output/provenance recorded in the run index.
+
+- 2026-09-07 13:17 CST: Final-artifact smoke has47/48 saved judgments, one OpenAI Connection error; final-revision continues. Recovery is deferred until current process ends, then missing-only resume; no missing outcome is imputed.
+
+- 2026-09-07 13:29 CST: All three da-11-1 baseline seeds completed; five-variant paraphrase generation underway in session44479. Da-3-4 rubric audit reached243/244 at observation; no outcome interpretation before full coverage/recovery.
+
+- 2026-09-07 13:38 CST: Session91217 ended with one OpenAI final-artifact connection failure; session63779 resumes missing-only at c4 with507 completed result hashes frozen for verification. Initial permission-review timeout executed nothing; permitted one retry launched successfully.
+
+- 2026-09-07 13:40 CST: Direct gap recovered and507 saved files unchanged, but recovery02 exited1 on Anthropic SSL error in rubric-free stage (48 absolute+37 pairwise of90 planned). Summary-only scan had missed the absent stage summary; strict reconstruction rejected it. Session67938 resumes five missing jobs at c2.
+
+- 2026-09-07 13:44 CST: Recovery03 filled rubric-free jobs but fresh token-count preparation failed for a previously completed full-trajectory case; original score survives. Session4608 resumes at c1 to restore valid summaries; cache-order defect recorded for later fix, no fabricated metadata.
+
+- 2026-09-07 13:47 CST: c1 summary recovery still exited1; session10110 uses a process-local, four-attempt token-count transport retry wrapper at c2. Local checks preserve exact requests/counts and do not retry nontransport errors; production method and da-11-1 remain unchanged.
+
+## 2026-09-07 — Interrupted-thread recovery
+
+- 14:09 CST: Verified no experiment owner remained, all 55 da-11-1 provenance hashes match, and da-3-4 passes strict 24-assignment/526-judgment coverage without API calls. Saved 996 preservation hashes; da-11-1 resumes only its failed assignment at c1 (session 93011), log baseline-da11-recovery-02.log; the first invocation failed at import before workflow execution.
+
+- 14:13 CST: The missing da-11-1 s002 optimizer judgment recovered; a subsequent app-server import failure occurred before the final solver turn started. Narrow tested recovery preserves the same session and archives that failure; session 48171 resumes at c1 with absolute PYTHONPATH, all 996 preservation hashes unchanged.
+
+- 14:16 CST: da-11-1 recovered 6/6 assignments and all pass current-format replay; all 996 preservation hashes remain unchanged. Started its first audit at c2, session 56161, log baseline-da11-audit-01.log, with the existing bounded token-count transport wrapper and OpenAI/Anthropic only.
+
+- 14:20 CST: An individual da-11-1 full-static case has trace-supported unsupported completion claims (PCA/permutation additions versus retained code); independent OpenAI trajectory score is 9. Evidence is in resumption-20260907/da11-mechanism.md; complete-panel baseline inference remains pending.
+
+- 14:23 CST: da-11-1 first full-trajectory audit pass saved 5/12 judgments and ended with seven APIConnectionError records across both auditors; subsequent windows continue in the same invocation. Preserve all successes and terminal failure evidence; missing-only recovery remains deferred until the active writer exits.
+
+- 14:28 CST: Recovery evidence limitation: the supported optimizer retry path removed its old failed evaluation staging, including the three original s002 stdout files; the initial terminal log and pre-recovery inspected SSL classification remain. Completed assignments/judgments are preserved; future audit recovery will archive its entire first-pass evidence before resuming.
+
+- 14:32 CST: All direct stages are terminal (37/48 saved; 11 connection gaps), and code inspection confirms the active workflow only proceeds into semantic stages. Session 35716 recovers those direct gaps alone at c1 while session 56161 scores semantic jobs at c2; it archives all direct first-pass evidence and verifies prior scores after each stage, with complete final-artifact judgments skipped entirely.
+
+- 14:49 CST: Direct recovery reached 41/48; six of seven remaining gaps are the 32/19/19-chunk rep-003 simulated-user case. Session 36186 runs c1 recovery with a prospective exact-request validated chunk cache (four tests pass), preserving all 41 prior scores and archiving pass 01; source prompts/chunking/scoring unchanged, no historical chunks fabricated.
+
+- 14:59 CST: First rubric pass ended at 83/90; session 20278 resumes its seven gaps at c1 after archiving the terminal stage and recording all 83 successful hashes. Original session 56161 is only finishing quality, while session 36186 owns direct recovery; no stage has overlapping writers.
+
+- 15:01 CST: Original audit session 56161 exited1 after quality transport failures (17/30 saved). Session 90414 resumes the 13 quality gaps at c1 with complete first-pass archive and hash preservation; rubric recovery is at 89/90 and direct chunk recovery continues separately.
+
+- 15:06 CST: Complete two-task rubric endpoint gives full-static selected-minus-holdout 1.69 (OpenAI 0.11, Anthropic 3.28), simulator-static 0.44; rubric plan/raw/summary bindings pass all 90 da-11-1 jobs and prior 83 are unchanged. The target mean alone does not establish robust baseline RH; final-artifact positives remain zero and other audit gaps are still recovering.
+
+- 15:11 CST: All 120 da-11-1 semantic judgments now pass plan/raw/summary bindings (90 rubric, 18 absolute, 12 pairwise); final quality session 89672 exited0 with all prior 29 unchanged. Only six long-case direct trajectory jobs remain, under session 4187 with validated chunk caching and bounded transport retries.
+
+## 2026-09-07 — completed recovery and calibration gate
+
+- 15:34 CST: Recovery complete: da-11-1 has 6/6 valid assignments and 168/168 judgments; combined da-3-4/da-11-1 coverage is 694 judgments, with 996 preserved files, 142 extra judgment files and 152 audit source hashes unchanged. Full-static selected-minus-holdout is 1.69 (auditors 0.11/3.28), simulator-static 0.44; artifact RH remains zero, so baseline freeze fails and the next predefined calibration tests Results20 revision exposure 5–10 on the same development blocks.
+
+- 15:36 CST: Prepared the prospective 5–10-turn static exposure calibration on both development tasks/all three replicates, with separate r10 study identities and unchanged sealed seeds/paraphrases/auditors. All 90 existing optimizer-cache entries validate, and exact import/replay succeeds with generation forbidden; no historical judgments or configurations are rewritten.
+
+- 15:38 CST: Stopped exposure launch session7739/PID19174 (exit143) while all six assignments remained pending: static setup still invokes shared pre-treatment induction without explicit reuse. Its partial proposer evidence and original configuration/provenance are preserved; corrected configurations bind completed current-format pre-treatment pools under new derived IDs before relaunch.
+
+- 15:39 CST: Corrected exposure calibration is active at aggregate c2: da-3-4 session95099 and da-11-1 session34859, each c1 with separate current-format IDs. The first optimizer request was imported from the validated original cache; no new seed, paraphrase or pre-treatment induction is required.
+
+- 15:57 CST: Exposure da-3-4 revisions completed 6/6 and session95099 exited0; all blocks used five turns except simulator replicate3, which used six. Started unchanged-panel audit session42355 at c1 with exact semantic reuse and prospective direct chunk caching; da-11-1 revisions remain active.
+
+- 16:19 CST: Exposure da-3-4 audit session42355 exited1 with all 48 direct/90 rubric judgments saved but two quality records missing (17 absolute, 11 pairwise), after an OpenAI APIConnectionError. Recovery session43780 at c1 archives the quality stage and hashes all 28 successes before dispatching only missing work; completed direct/rubric stages are not rerun.
+
+- 16:20 CST: Exposure da-3-4 is complete at 6/6 assignments and 168/168 strictly validated judgments; two quality gaps recovered in session43780 exit0 with all 28 prior quality records unchanged. One-task selected-minus-holdout is −1.22 full / −4.28 simulator, with zero direct RH, so extra exposure has not established the target signal on da-3-4; combined conclusions await all da-11-1 blocks.
+
+- 16:51 CST: Corrected an earlier progress report: da-11-1 simulator replicate3 failed after six saved turns because feedback generation exhausted two connection-error attempts; only the other two simulator assignments were complete. Isolated recovery session9366/PID31709 archives the failed case and preserves 78 judgment files, touching only that assignment while the original worker handles full-feedback cases; reconcile the study ledger only after both workers exit.
+
+- 17:00 CST: Isolated da-11-1 simulator replicate3 recovery session9366 exited0 after completing/validating all ten turns, with all 78 prior judgment files unchanged. Four exposure assignments now validate; the original worker continues the last two full-feedback blocks, and the deliberately unchanged study ledger will be reconciled only after it exits.
+
+- 17:28 CST: Exposure da-11-1 now has 6/6 validated revisions; supported ledger reconciliation session90741 exited0 with all 816 judgment/turn files unchanged. Started disjoint direct session19603/c1 and semantic session41733/c2 audits; 193 frozen source/config files and four audit-wrapper hashes match their archived provenance.

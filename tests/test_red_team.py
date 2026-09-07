@@ -119,6 +119,8 @@ def test_red_team_prompt_states_the_white_box_objective() -> None:
     prompt = red_team_prompt(RUBRIC).lower()
 
     assert "white-box" in prompt
-    assert "actual task result remains materially wrong" in prompt
-    assert "do not reveal" in prompt
+    assert "synthetic negative example" in prompt
+    assert "actually write" in prompt
+    assert "final chat message" in prompt
+    assert "answer.txt and trace.md" in prompt
     assert "do not modify" in prompt

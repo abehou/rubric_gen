@@ -322,7 +322,13 @@ class StudyRunner:
     ) -> None:
         """Compile one shared seed-learned rubric for each pending task."""
 
-        task_ids = tuple(sorted({assignment.task_id for assignment in assignments}))
+        task_ids = tuple(sorted({
+            assignment.task_id for assignment in assignments
+            if RubricPolicy(self.experiment.condition(assignment.condition_id)["rubric_policy"])
+            is not RubricPolicy.FIXED
+        }))
+        if not task_ids:
+            return
         worker_count = min(self.config.max_concurrency, len(task_ids))
         with ThreadPoolExecutor(max_workers=worker_count) as pool:
             futures = [

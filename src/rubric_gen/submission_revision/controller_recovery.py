@@ -245,6 +245,12 @@ class RevisionRecovery:
         if self._recover_unfinalized_turn(state, workspace, manifest, checkpoint):
             return
         self._validate_solver_identity(state, manifest)
+        if self._app_server_never_started(state, checkpoint):
+            # No provider turn ran: retain the original session and sealed scores.
+            self._reset_uncertain_solver_turn(
+                state, checkpoint.turn_dir, checkpoint.turn_index,
+            )
+            return
         controlled_reason = self._controlled_failure_reason(state, checkpoint)
         if controlled_reason is not None:
             self._restore_reset_and_discard(
@@ -405,6 +411,36 @@ class RevisionRecovery:
         ):
             return None
         return errors[0]
+
+    @staticmethod
+    def _app_server_never_started(
+        state: _RevisionState,
+        checkpoint: _FailedTurnCheckpoint,
+    ) -> bool:
+        turn = checkpoint.turn_dir
+        if (
+            state.phase is not _RevisionPhase.FAILED_TURN
+            or not state.session_id
+            or turn.is_symlink()
+            or not turn.is_dir()
+            or {p.name for p in turn.iterdir()} != {"prompt.txt", "status.json"}
+            or checkpoint.status_path.is_symlink()
+            or not checkpoint.status_path.is_file()
+        ):
+            return False
+        status = _read_json_object(checkpoint.status_path, "failed solver turn status")
+        errors = status.get("validation_errors")
+        return (
+            status.get("status") == "failed"
+            and status.get("exit_code") == 1
+            and status.get("provider_exit_code") is None
+            and isinstance(errors, list)
+            and len(errors) == 1
+            and isinstance(errors[0], str)
+            and errors[0].startswith("Codex app-server start failed after ")
+            and "Error while finding module specification for 'rubric_gen.runtime.agents.codex_app_server'" in errors[0]
+            and "ModuleNotFoundError: No module named 'rubric_gen'" in errors[0]
+        )
 
     def _restore_reset_and_discard(
         self,

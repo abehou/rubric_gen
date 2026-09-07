@@ -52,6 +52,13 @@ from rubric_gen.submission_revision.evolution_provider import (
     RubricProposerProviderError,
     StructuredProviderOutput,
 )
+from rubric_gen.submission_revision.evolution_cache import ValidatedProposerCache
+from rubric_gen.submission_revision.evolution_stage import PROVIDER_FAILURE_MAX_RETRIES, run_stage
+from rubric_gen.submission_revision.evolution_validation import (
+    ValidationStageResult as _StageResult,
+    combine_validation_results,
+    validate_independently,
+)
 from rubric_gen.submission_revision.evolution_request import (
     validate_evolution_request,
 )
@@ -77,8 +84,7 @@ from rubric_gen.submission_revision.rubric_generation_store import (
 )
 
 
-PROVIDER_FAILURE_MAX_RETRIES = 3
-_STAGE_COUNT = 5
+_NON_VALIDATION_STAGE_COUNT = 4
 
 
 def rubric_generation_implementation_sha256() -> str:
@@ -90,6 +96,9 @@ def rubric_generation_implementation_sha256() -> str:
         package_root / "evolution_assessment.py",
         package_root / "evolution_artifacts.py",
         package_root / "evolution_protocol.py",
+        package_root / "evolution_validation.py",
+        package_root / "evolution_stage.py",
+        package_root / "evolution_cache.py",
         package_root / "evolution_provider.py",
         package_root / "evolution_request.py",
         package_root / "evolution_serialization.py",
@@ -114,14 +123,6 @@ def rubric_generation_implementation_sha256() -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
-
-
-@dataclass(frozen=True)
-class _StageResult:
-    raw_text: str
-    value: object
-    attempt_count: int
-    fallback_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -166,6 +167,7 @@ class RubricProposer:
             service_tier=service_tier,
         )
         self.run_proposer = run_proposer or self._run_direct_proposer
+        self.request_cache: ValidatedProposerCache | None = None
 
     def elicit_rubric(
         self,
@@ -219,6 +221,10 @@ class RubricProposer:
         if completed is not None:
             return completed
 
+        self.request_cache = ValidatedProposerCache(
+            output_dir / "rubric-proposer-records",
+            {"context": context, "implementation": rubric_generation_implementation_sha256()},
+        )
         result = self._produce(
             instruction=instruction,
             original_rubric=original_rubric,
@@ -371,6 +377,7 @@ class RubricProposer:
             generation_round=generation_round,
             source_checkpoint=source_checkpoint,
             active_criteria=active_criteria,
+            validation_artifact_count=len(artifact_history.artifacts),
         )
         metadata = load_json_object(
             (root / "evolution.json").read_text(),
@@ -498,9 +505,10 @@ class RubricProposer:
         for name, raw_text, value, required, fallback_text in specifications:
             count = metadata.get(f"{name}_attempt_count")
             fallback = metadata.get(f"{name}_fallback_reason")
+            units = len(validation_artifact_ids(comparisons)) if name == "validation" else 1
             if (
                 type(count) is not int
-                or (required and not 1 <= count <= self.max_retries + 1)
+                or (required and not units <= count <= units * (self.max_retries + 1))
                 or (not required and count != 0)
                 or (
                     fallback is not None
@@ -517,7 +525,35 @@ class RubricProposer:
                 raise RuntimeError(
                     "completed rubric generation has invalid stage attempts"
                 )
-            results.append(_StageResult(raw_text, value, count, fallback))
+            calls = ()
+            if name == "validation":
+                ids = validation_artifact_ids(comparisons) if required else ()
+                records = metadata.get("validation_calls")
+                if not isinstance(records, list) or len(records) != len(ids):
+                    raise RuntimeError("completed validation call coverage changed")
+                parts = []
+                for aid, call in zip(ids, records, strict=True):
+                    if (not isinstance(call, dict) or set(call) != {
+                        "artifact_id", "raw_text", "attempt_count", "fallback_reason"
+                    } or call["artifact_id"] != aid or type(call["raw_text"]) is not str
+                        or type(call["attempt_count"]) is not int
+                        or not 1 <= call["attempt_count"] <= self.max_retries + 1):
+                        raise RuntimeError("completed validation call changed")
+                    parsed = validated_validation_response(
+                        call["raw_text"], candidates=candidates, artifact_ids=(aid,),
+                    )
+                    parts.append(_StageResult(call["raw_text"], parsed,
+                                              call["attempt_count"], call["fallback_reason"]))
+                if required:
+                    combined = combine_validation_results(
+                        candidates=candidates, artifact_ids=ids, parts=parts,
+                        fallback_text=fallback_text,
+                    )
+                    if (combined.raw_text != raw_text or combined.attempt_count != count
+                            or combined.fallback_reason != fallback):
+                        raise RuntimeError("completed validation aggregation changed")
+                    calls = combined.calls
+            results.append(_StageResult(raw_text, value, count, fallback, calls))
         return (results[0], results[1], results[2], results[3], results[4])
 
     def _produce(
@@ -644,23 +680,16 @@ class RubricProposer:
         candidates = cast(tuple[CriterionCandidate, ...], induction.value)
 
         if candidates:
-            validation = self._stage(
-                stage="validation",
+            validation = validate_independently(
+                stage=self._stage,
+                candidates=candidates,
+                artifact_ids=validation_artifact_ids(comparisons),
                 evidence=validation_evidence(
                     instruction=instruction,
                     current_generation=current_generation,
                     artifact_history=artifact_history,
                     candidates=candidates,
                     comparisons=comparisons,
-                ),
-                response_schema=validation_schema(
-                    candidates,
-                    validation_artifact_ids(comparisons),
-                ),
-                validator=lambda text: validated_validation_response(
-                    text,
-                    candidates=candidates,
-                    artifact_ids=validation_artifact_ids(comparisons),
                 ),
                 fallback_text=self._validation_fallback(
                     candidates,
@@ -689,6 +718,7 @@ class RubricProposer:
             generation_round=generation_round,
             source_checkpoint=source_checkpoint,
             active_criteria=active_criteria,
+            validation_artifact_count=len(artifact_history.artifacts),
         )
         return _ProductionResult(
             generation=generation,
@@ -717,6 +747,7 @@ class RubricProposer:
         generation_round: int,
         source_checkpoint: int | None,
         active_criteria: tuple[ElicitedCriterion, ...],
+        validation_artifact_count: int,
     ) -> RubricGeneration:
         generation = RubricGeneration(
             generation_round=generation_round,
@@ -725,66 +756,15 @@ class RubricProposer:
             ),
             rubric=render_augmented_rubric(original_rubric, active_criteria),
             elicited_criteria=active_criteria,
-            proposer_call_budget=_STAGE_COUNT * (self.max_retries + 1),
+            proposer_call_budget=(_NON_VALIDATION_STAGE_COUNT + validation_artifact_count)
+            * (self.max_retries + 1),
         )
         generation.validate_successor(current_generation)
         return generation
 
-    def _stage(
-        self,
-        *,
-        stage: str,
-        evidence: str,
-        response_schema: dict[str, object],
-        validator: Callable[[str], object],
-        fallback_text: str,
-    ) -> _StageResult:
-        repair: str | None = None
-        provider_failures = 0
-        attempt_count = 0
-        for attempt in range(1, self.max_retries + 2):
-            attempt_count = attempt
-            attempt_evidence = evidence
-            if repair is not None:
-                attempt_evidence += (
-                    "\n\n<repair>\nThe prior response failed validation.\n"
-                    + repair
-                    + "\nReturn a complete corrected response.\n</repair>"
-                )
-            try:
-                output = self.run_proposer(
-                    stage=stage,
-                    evidence=attempt_evidence,
-                    response_schema=response_schema,
-                )
-            except Exception as exc:
-                provider_failures += 1
-                if (
-                    provider_failures > PROVIDER_FAILURE_MAX_RETRIES
-                    or attempt == self.max_retries + 1
-                ):
-                    raise RubricProposerProviderError(
-                        f"Rubric proposer stage {stage} failed after {attempt} "
-                        f"attempts ({provider_failures} provider failures; "
-                        f"last error: {type(exc).__name__})"
-                    ) from exc
-                continue
-            try:
-                self.proposer_contract.validate_output(output)
-                assert isinstance(output, StructuredProviderOutput)
-                value = validator(output.response_text)
-            except (RuntimeError, ValueError) as exc:
-                repair = str(exc) or type(exc).__name__
-                continue
-            return _StageResult(output.response_text, value, attempt)
-        return _StageResult(
-            raw_text=fallback_text,
-            value=validator(fallback_text),
-            attempt_count=attempt_count,
-            fallback_reason=" ".join(
-                (repair or "invalid structured response").split()
-            ),
-        )
+    def _stage(self, **kwargs) -> _StageResult:
+        return run_stage(max_retries=self.max_retries, contract=self.proposer_contract,
+                         run_proposer=self.run_proposer, cache=self.request_cache, **kwargs)
 
     @staticmethod
     def _assessment_fallback(
@@ -896,6 +876,7 @@ class RubricProposer:
         }
         record: dict[str, object] = {
             "kind": "pairwise-rubric-induction",
+            "validation_calls": list(result.validation.calls),
             "implementation_sha256": rubric_generation_implementation_sha256(),
             "context": context,
             "prior_generation_sha256": context["prior_generation_sha256"],
@@ -919,7 +900,7 @@ class RubricProposer:
             "induction_pair_count": result.induction_pair_count,
             "validation_pair_count": result.validation_pair_count,
             "proposer_call_budget": (
-                _STAGE_COUNT * (self.max_retries + 1)
+                result.generation.proposer_call_budget
             ),
             "scoring_feasibility": validate_generation_scoring_structure(
                 result.generation,

@@ -1,0 +1,7 @@
+{
+  "recorded_at": "2026-09-07T23:29:52.875824+08:00",
+  "rejected": "Two-tag invocation was rejected because review inferred the earlier concurrent wrapper.",
+  "inspection": "Current wrapper sets workers=16, iterates studies serially, holds an exclusive lock, and rejects active solver work.",
+  "resolution": "Only control-da-11-1 submitted; approved and launched in session 91788. Neutral-da-11-1 remains queued.",
+  "rejected_invocation_executed": false
+}

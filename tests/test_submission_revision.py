@@ -1644,7 +1644,7 @@ def test_shared_judgments_cross_conditions_copy_locally_and_resume(
         judgment_reuse_root=shared_root,
     ).run()
 
-    assert first_result.scores == second_result.scores == (80, 55)
+    assert first_result.scores == second_result.scores == (61, 71)
     assert first_result.fixed_original_scores == (80, 55)
     assert second_result.fixed_original_scores == (80, 55)
     assert first_optimizer.calls == 2
@@ -1793,6 +1793,14 @@ def test_study_validates_every_elicitation_generation_record(
 
     proposer = _criterion_elicitation_proposer(config)
     _prepare_test_pretreatment_rubric(config, task, proposer)
+    cache = config.pretreatment_rubric_dir / "rubric-proposer-records"
+    saved = {p.name: p.read_bytes() for p in cache.glob("*.json")}
+    assert saved
+    no_calls = _criterion_elicitation_proposer(
+        config, run_proposer=lambda **kwargs: pytest.fail("completed judgment repeated")
+    )
+    _prepare_test_pretreatment_rubric(config, task, no_calls)
+    assert saved == {p.name: p.read_bytes() for p in cache.glob("*.json")}
     controller = SubmissionRevisionController(
         config,
         RevisionDependencies(
@@ -3131,6 +3139,52 @@ def test_prelaunch_session_failure_resumes_without_trajectory(
     ).is_file()
 
 
+@pytest.mark.parametrize("uncertain", [False, True])
+def test_app_server_import_failure_preserves_existing_session(tmp_path: Path, uncertain: bool) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=2)
+    reason = (
+        "Codex app-server start failed after 2 attempts: TransportClosedError: "
+        "Error while finding module specification for 'rubric_gen.runtime.agents.codex_app_server' "
+        "(ModuleNotFoundError: No module named 'rubric_gen')"
+    )
+
+    class ImportFailureSession(FakeSession):
+        fail_once = True
+        starts = 0
+
+        def start(self, *args, **kwargs):
+            self.starts += 1
+            return super().start(*args, **kwargs)
+
+        def resume(self, workspace, prompt, turn_dir, session_id):
+            if self.fail_once:
+                self.fail_once = False
+                raise RuntimeError(reason)
+            return super().resume(workspace, prompt, turn_dir, session_id)
+
+    session = ImportFailureSession()
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+    with pytest.raises(RuntimeError, match="app-server start failed"):
+        SubmissionRevisionController(config, dependencies).run()
+    prior_judge_calls = judge.calls
+    turn = config.experiment_dir / "turns" / "turn-002"
+    failed_status = (turn / "status.json").read_bytes()
+    if uncertain:
+        (turn / "unknown-provider-output").write_text("uncertain")
+        with pytest.raises(RuntimeError, match="artifacts are incomplete"):
+            SubmissionRevisionController(replace(config, resume=True), dependencies).run()
+        assert (turn / "status.json").read_bytes() == failed_status
+        return
+    result = SubmissionRevisionController(replace(config, resume=True), dependencies).run()
+    assert result.scores == (80, 90, 95)
+    assert session.starts == 1
+    assert session.sessions == ["solver-session", "solver-session"]
+    assert judge.calls == prior_judge_calls + 1
+    assert (config.experiment_dir / "interrupted-turns/turn-002/status.json").read_bytes() == failed_status
+
+
 def test_interrupted_attempt_artifacts_restore_checkpoint_and_restart_session(
     tmp_path: Path,
 ) -> None:
@@ -3256,9 +3310,9 @@ Levels: A=40 B=20 C=0
         FeedbackPolicy.FULL,
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_artifacts=(validation, evaluation),
-        fixed_original_rubric_text=rubric,
-        fixed_original_rubric_sha256=rubric_sha,
+        reference_artifacts=(validation, evaluation),
+        reference_rubric_text=rubric,
+        reference_rubric_sha256=rubric_sha,
     )
     semi = project_rubric_feedback(
         generation,
@@ -3266,9 +3320,9 @@ Levels: A=40 B=20 C=0
         FeedbackPolicy.SEMI,
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_artifacts=(validation, evaluation),
-        fixed_original_rubric_text=rubric,
-        fixed_original_rubric_sha256=rubric_sha,
+        reference_artifacts=(validation, evaluation),
+        reference_rubric_text=rubric,
+        reference_rubric_sha256=rubric_sha,
     )
     score = project_rubric_feedback(
         generation,
@@ -3276,9 +3330,9 @@ Levels: A=40 B=20 C=0
         FeedbackPolicy.SCORE_ONLY,
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_artifacts=(validation, evaluation),
-        fixed_original_rubric_text=rubric,
-        fixed_original_rubric_sha256=rubric_sha,
+        reference_artifacts=(validation, evaluation),
+        reference_rubric_text=rubric,
+        reference_rubric_sha256=rubric_sha,
     )
     simulated = project_rubric_simulated_user_feedback(
         generation,
@@ -3295,7 +3349,7 @@ Levels: A=40 B=20 C=0
         },
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_score=80,
+        reference_score=80,
     )
     accepted = project_rubric_simulated_user_feedback(
         generation,
@@ -3303,7 +3357,7 @@ Levels: A=40 B=20 C=0
         {"decision": "accept", "concerns": []},
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_score=80,
+        reference_score=80,
     )
     assert "needs more evidence" in full.prompt
     assert '"title": "Evidence"' in semi.prompt
@@ -3368,9 +3422,9 @@ def test_rubric_feedback_uses_the_active_score(
         FeedbackPolicy.SEMI,
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_artifacts=(validation, evaluation),
-        fixed_original_rubric_text=anchor.content,
-        fixed_original_rubric_sha256=anchor.content_sha256,
+        reference_artifacts=(validation, evaluation),
+        reference_rubric_text=anchor.content,
+        reference_rubric_sha256=anchor.content_sha256,
     )
 
     assert projected.score == 33
@@ -3466,12 +3520,100 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
         FeedbackPolicy.SEMI,
         task_instruction="Analyze the supplied table.\n",
         first_revision=True,
-        fixed_original_artifacts=(fixed_validation, fixed_evaluation),
-        fixed_original_rubric_text=anchor.content,
-        fixed_original_rubric_sha256=anchor.content_sha256,
+        reference_artifacts=(fixed_validation, fixed_evaluation),
+        reference_rubric_text=anchor.content,
+        reference_rubric_sha256=anchor.content_sha256,
     )
 
     assert projected.score == 56
     assert set(projected.payload) == {"score", "criteria"}
     assert projected.payload["criteria"]["criterion_1"]["points"] == 60
     assert projected.payload["criteria"]["criterion_2"]["points"] == -4
+
+
+@pytest.mark.parametrize("policy", [FeedbackPolicy.FULL, FeedbackPolicy.USER_SIMULATOR])
+def test_selected_reference_later_checkpoint_and_resume(tmp_path, monkeypatch, policy):
+    task = _write_task(tmp_path)
+    master_config = SubmissionJudgeConfig(
+        task_dir=task, experiment_dir=tmp_path / "master-identity", review="trace",
+        judge_model="test-judge-model", rubric_name="rubric.txt", rubric_set=None,
+        rubric_path=None, max_review_chars=None,
+    )
+    master_identity = FrozenRubricJudge(master_config, resolve_optimizer_rubric(master_config)).scoring_identity()
+    base = _config(tmp_path, task, rounds=2, seed_scoring_identity=master_identity)
+    selected = tmp_path / "selected.txt"
+    selected.write_text((task / "tests/rubric.txt").read_text().replace(
+        "Correct result", "Selected public evidence"))
+    config = replace(base, optimizer_rubric_path=selected, feedback_policy=policy,
+                     feedback_simulator=SimulatedUserConfig(model="test-simulator")
+                     if policy is FeedbackPolicy.USER_SIMULATOR else None)
+    identity = FrozenRubricJudge(config.judge_config(),
+                                resolve_optimizer_rubric(config.judge_config())).scoring_identity()
+    requests = []
+
+    def generate(sim_config, request):
+        requests.append(request)
+        expected = 61 if len(requests) == 1 else 71
+        assert f'"score":{float(expected)}' in request.evidence
+        assert selected.read_text().splitlines()[0] in request.evidence
+        assert "Correct result" not in request.evidence
+        assert '"judge_reason":"checked"' in request.evidence
+        return SimulatedUserGeneration(
+            text=json.dumps({"decision": "revise", "concerns": [{
+                "category": "evidence_traceability", "feedback": "Please clarify the public evidence."}]}),
+            provider="openai", requested_model=sim_config.model,
+            effective_model=sim_config.model, response_id=f"response-{len(requests)}",
+            request_parameters={"max_output_tokens": sim_config.max_output_tokens}, provider_metadata={},
+        )
+
+    simulator = SimulatedUserFeedback(config.feedback_simulator, generator=generate) if config.feedback_simulator else None
+    session = FakeSession()
+    selected_judge = FakeJudge(task, (0, 61, 71, 95), tmp_path / "selected-judge", identity=identity)
+    master = FakeJudge(task, (0, 55, 65), tmp_path / "master-judge", identity=master_identity)
+    dependencies = RevisionDependencies(session=session, judge=selected_judge,
+                                        master_judge=master, feedback_simulator=simulator)
+    controller = SubmissionRevisionController(config, dependencies)
+    result = controller.run()
+    assert result.scores == (61, 71, 95)
+    assert result.fixed_original_scores == (80, 55, 65)
+    for i, score in enumerate((61, 71)):
+        record = json.loads((config.experiment_dir / f"rubric-evaluations/s{i:03d}.json").read_text())
+        assert record["reference_score"] == score
+        assert record["feedback_reference"]["rubric_sha256"] == sha256_file(selected)
+        payload = json.loads((config.experiment_dir / f"feedback/s{i:03d}.json").read_text())
+        if policy is FeedbackPolicy.FULL:
+            assert payload["score"] == score
+            assert payload["rubric_text"] == selected.read_text()
+            assert payload["criteria"]["criterion_1"] == {
+                "level": _TEST_SCORE_LEVELS[score], "points": float(score), "judge_reason": "checked"}
+        else:
+            assert set(payload) == {"decision", "concerns"}
+        assert "Correct result" not in session.prompts[i]
+        assert "holistic" not in session.prompts[i] and "holdout" not in session.prompts[i]
+    counts = (selected_judge.calls, master.calls, len(requests), len(session.prompts))
+    resumed = SubmissionRevisionController(replace(config, resume=True), dependencies).run()
+    assert resumed == result
+    assert counts == (selected_judge.calls, master.calls, len(requests), len(session.prompts))
+    selection = SimpleNamespace(
+        optimizer_path=selected, optimizer_sha256=sha256_file(selected),
+        master_path=task / "tests/rubric.txt", master_sha256=sha256_file(task / "tests/rubric.txt"),
+        development_path=config.development_rubric_path,
+        development_sha256=sha256_file(config.development_rubric_path),
+    )
+    monkeypatch.setattr(paraphrase_validation_module, "resolve_paraphrase_selection", lambda *_: selection)
+    validate_completed_revision(config.experiment_dir, _validation_assignment(config, task),
+                                _design(config, task), config.seed_run_dir,
+                                config.experiment_dir / "paraphrases")
+    # Stored reference identity cannot be swapped to the independently measured master.
+    path = config.experiment_dir / "rubric-evaluations/s002.json"
+    record = json.loads(path.read_text())
+    record["feedback_reference"]["rubric_sha256"] = selection.master_sha256
+    path.write_text(json.dumps(record))
+    with pytest.raises(RuntimeError, match="rubric evaluation"):
+        SubmissionRevisionController(replace(config, resume=True), dependencies).run()
+    manifest_path = config.experiment_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["feedback_reference_protocol"]
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(RuntimeError, match="manifest has invalid fields"):
+        SubmissionRevisionController(replace(config, resume=True), dependencies).run()

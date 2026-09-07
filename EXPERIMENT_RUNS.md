@@ -1,5 +1,100 @@
 # Experiment results index
 
+## 2026-09-08 — Final Mac to Babel handoff
+
+- 00:31 CST: Completed dev3 comparison: 24 assignments, 672 audit records, zero missing final work; no active dispatcher remains. [Babel handoff](docs/BABEL_HANDOFF.md) records exact configurations, outcome interpretation, raw transfer directories, credentials/setup assumptions and archived commands; no new experiment was launched for this checkpoint.
+
+
+## 2026-09-08 — Static comparison complete
+
+- 00:23 CST: All 24 corrected-wiring assignments and 672 Sol/Opus audit records pass strict coverage; all dispatcher PIDs have exited. Report: `investigation/static-neutral-20260907/REPORT.md`; exact prerequisite diff and acceptance: `investigation/selected-reference-wiring-20260907/VALIDATED_RESULT.md`.
+- 00:23 CST: Full-feedback selected-minus-holdout is +2.81 control / −1.61 neutral on the matched mean, but control Sol −1.83 versus Opus +7.44 fails panel agreement; final-artifact RH is zero throughout and trajectory RH is confined to da-11-1. Keep wiring, do not adopt neutral as baseline, retain adverse outcomes and leave baseline unfrozen; no new or larger experiment dispatched.
+
+
+## 2026-09-07 — Concurrency override
+
+- 23:02 CST: User requires aggregate concurrency ≤16 and at most one audit study at a time. Further launches are held while the three already-active solver assignments settle; then only unfinished work resumes. Historical launch settings remain preserved, and the audit dispatcher now serializes studies under an exclusive lease.
+
+
+## 2026-09-07 — Static neutral comparison
+
+- 23:48 CST: Three studies pass complete 168-record coverage each. Control da-11-1 recovered five connection-failed judgments with 608 protected files unchanged; its process exited before the final neutral da-11-1 audit launched alone in session 56801 (`audit-06.log`) at the aggregate cap of 16.
+
+- 23:29 CST: All 24 assignments completed; recovery preserved 916 files. Control da-11-1 audit runs alone in session 91788 (`audit-04.log`) at 16 workers; neutral da-11-1 remains queued, and both da-3-4 audits remain complete.
+
+- 23:00 CST: Both da-3-4 studies pass strict 168-record Sol/Opus coverage. Two Opus quality SSL failures recovered in session 32214 with 617 saved files unchanged; session 10539 now resumes only the two initial control da-11-1 simulator SSL failures, protecting completed assignments and cached judgments.
+
+- 22:41 CST: Control da-3-4 reached 6/6 validated assignments; its Sol/Opus audit runs in session 15179 (`audit-01.log`, `audit-01-launch.json`). Staggered studies each use 15 audit workers, keeping the aggregate ceiling at 60.
+
+- 22:31 CST: Both included neutral smoke assignments completed and validated. Session 80878 now runs the remaining 22 assignments via `investigation/static-neutral-20260907/run_stage.py revise --attempt 1`; source/config hashes and launch PID are in `revise-01-launch.json`, with runtime frozen.
+
+- 22:25 CST: The wiring checkpoint smokes both passed; receipts are in `investigation/selected-reference-wiring-20260907/smoke-results.json`. The approved static comparison is prepared in `investigation/static-neutral-20260907/manifest.json`; its first two neutral da-3-4/rep-001 assignments run as included smoke cases (session 83813), with 24 assignments total and unchanged Sol/Opus measurements.
+
+
+## 2026-09-07 — Selected-reference prerequisite; live smoke blocked
+
+- 22:03 CST: Evidence and exact task diff: `investigation/selected-reference-wiring-20260907/`; private checkpoint outputs: `runs/selected-reference-wiring-smoke-20260907-attempt02/`. These intentionally bounded acceptance attempts are not corrected-wiring controls or completed studies; all prior development results remain historical mixed-wiring evidence and unchanged.
+
+
+## Current — Gemini remains credit-blocked, 2026-09-07 20:35 CST
+
+The configured Gemini key is present, but a fresh minimal Gemini 3.8 Flash request returned HTTP429 `RESOURCE_EXHAUSTED` with depleted prepayment credits. No Results20 audit worker started. The existing Gemini-only checkpoint remains at146/240 full-trajectory scores for the four configured comparator conditions; all146 files match the prior hashes, and later direct and semantic stages have not started. Current diagnostic: `runs/biomnibench-results20-2026-09-06/provenance/gemini/current-access-diagnostic.json`; the preceding successful probe is preserved separately as `current-access-diagnostic-before-20260907-2030.json`.
+
+## Completed — selected-reference mechanism diagnostic, 2026-09-07
+
+The user explicitly authorized the exact pending payload and destinations. Audit session45843 exited0 with all 144/144 fixed references, 80 newly generated exact judgments and 64 exact historical reuses; no failure logs were written. The read-only native validation and analysis session15697 exited0, all64 pre-existing audit files remain byte-identical, and no experiment worker remains active.
+
+Selected-reference feedback raised matched selected-minus-holdout only from -2.00 to -1.58 while quality rose from64.08 to66.00. OpenAI moved from -0.83 to+0.33, but Claude moved from -3.17 to-3.50. By task, headroom changed -1.83 to-1.22 on da-3-4 and -2.17 to-1.94 on da-11-1. This fails the approximately1.5 reproducible headroom gate and supports quality improvement rather than rubric-specific overoptimization; do not scale it into a multi-turn baseline.
+
+Results: `runs/autonomous-dev3-20260907/selected-reference-one-turn/results.md` and `results.json`. Exact authorized scope: `investigation/autonomous-dev3-20260907/selected-reference/pending-audit-authorization.json`; current helper provenance: `native-layout-provenance.json` in the same directory. The diagnostic used only da-3-4/da-11-1 and the configured OpenAI/Anthropic judges; it included no held-out task, red-team run, or Results20 dispatch. The baseline remains unfrozen.
+
+## Completed — static exposure calibration, 2026-09-07
+
+Both predefined development tasks have 6/6 completed assignments and 168/168 validated judgments each, retaining all configured OpenAI and Anthropic results. Reports and matched contrasts: `investigation/autonomous-dev3-20260907/exposure-calibration/baseline-results.md` and `matched-contrasts.md`. Selected-minus-holdout is −3.42 full-static / −1.97 user-simulator-static; artifact any-detect is zero in both; trajectory any-detect is 0% / 50%. The baseline remains unfrozen.
+
+- da-3-4 ID `biomnibench-da-factorial-r10-f1268754291f`, root `runs/autonomous-dev3-20260907/exposure-da-3-4`.
+- da-11-1 ID `biomnibench-da-factorial-r10-ac19f8be2fe3`, root `runs/autonomous-dev3-20260907/exposure-da-11-1`; direct19603 and final quality recovery18736 exited0. Isolated rubric recovery preserved89 records; sequential quality recoveries preserved22,27,28 records respectively. Recovered simulated-user turn and ledger reconciliation preserved78 and816 files respectively.
+- Both used Results20 minimum5/maximum10 revision budget, sealed seed/paraphrase/pre-treatment inputs and exact optimizer reuse. Source/config/provenance and recovery archives: `investigation/autonomous-dev3-20260907/exposure-calibration/`.
+- The first da-3-4 preparation-only launch exited143 with all six assignments pending and is preserved under its initial identity; the two corrected IDs above own the complete calibration.
+
+## Current — interrupted-thread recovery, 2026-09-07
+
+- **da-3-4 complete:** 24 assignments / 526 judgments pass strict coverage, no model reruns. Receipt and metrics: `investigation/autonomous-dev3-20260907/resumption-20260907/da3-verified/`.
+- **da-11-1 revisions complete:** 6/6 independently validated; five completed assignments preserved and only the failed judgment/final turn recovered. All 996 preservation hashes and 142 additional judgment-file hashes are unchanged. ID: `biomnibench-da-factorial-r3-ac929d893d67`; root: `runs/autonomous-dev3-20260907/baseline-da11/`.
+- **Direct complete:** session 4187 exited0 at 48/48 scores; 149 authentic successful chunk responses are retained. All four windows pass strict coverage; final-artifact RH is zero. The longest full trajectory required 32 OpenAI / 36 Claude chunks.
+- **Rubric complete:** session 20278 exited0; 90/90 plan/raw/summary bindings pass and prior 83 hashes are unchanged. Full-static two-task selected-minus-holdout is 1.69, with substantial auditor disagreement (0.11 versus 3.28).
+- **Quality complete:** session 89672 exited0; all 18 absolute and 12 pairwise judgments pass raw/plan/summary checks, with all prior 29 records unchanged. Together with rubric scoring, all 120 semantic judgments are complete.
+- Logs above are under `runs/autonomous-dev3-20260907/`. Recovery scripts, archives, hashes, tested operational repairs and the completed combined baseline gate are under `investigation/autonomous-dev3-20260907/resumption-20260907/`.
+- The optimizer's existing retry cleanup removed original failed s002 stdout files; initial terminal log and pre-recovery SSL classification remain. Completed results are preserved. Details and the pending production retention repair are in CODE_REVIEW.md.
+- **Combined baseline:** 694 judgments across both studies pass coverage. Full-static selected-minus-holdout is 1.69; user-simulator static is 0.44. Artifact any-detect is zero in both; trajectory any-detect is 33.33% / 50%. Report: `investigation/autonomous-dev3-20260907/resumption-20260907/baseline-results.md`.
+- No baseline freeze or red-team optimization dispatch yet. Selected-feedback preparation reuses six saved development seed judgments without API calls; da-18-1 remains reserved. Current priority is at the top of EXPERIMENT_PLAN.md.
+
+The checkpoints below are historical and superseded by this section. Invocation chronology is retained in EXPERIMENT_LOG.md.
+
+## Baseline calibration — predefined second development task
+
+Session 44479 runs `experiments/biomnibench-dev-baseline-da11.yaml` at c3: da-11-1, static/full and static/user-simulator, all three replicates (six assignments), unchanged method. ID `biomnibench-da-factorial-r3-ac929d893d67`; output root `runs/autonomous-dev3-20260907/baseline-da11`, log `baseline-da11.log`, provenance `investigation/autonomous-dev3-20260907/baseline-da11-provenance.json`. All three seeds are now complete and paraphrase generation is underway. Complements da-3-4 rather than replacing its negative result; da-18-1 remains reserved. Existing da-3-4 audits continue in session 91217; runtime remains frozen across both.
+
+## Current autonomous dev3 state — cache integration repair
+
+Session 92179 ended with 23/24 completed assignments and one transient simulated-user connection failure. Recovery session 91217 completed all 24/24 revisions and all audit stages, then exited1 for one OpenAI final-artifact connection failure. Session63779 recovered the direct gap but exited1 on Anthropic SSL errors; session67938 filled remaining rubric-free jobs, but token-count preparation marked a previously completed direct case failed; session4608 also exited1; session10110 now resumes at c2 with bounded process-local token-count retries (`isolation-cachefix-smoke-recovery-05.log`). The prior recovery used c2 (48 absolute+37 pairwise saved of90 planned), log `isolation-cachefix-smoke-recovery-03.log`; 507 saved result hashes are recorded in `audit-before-recovery02.json`, log `isolation-cachefix-smoke-recovery-02.log`. Both invocations use unchanged code, using the same frozen YAML with `--resume` at c4 and preserving completed work; log: `runs/autonomous-dev3-20260907/isolation-cachefix-smoke-recovery-01.log`. The original session ran `experiments/biomnibench-dev3-isolation-cachefix-smoke.yaml` at c4: 24 assignments, eight conditions × three replicates, da-3-4. Seeds and five paraphrases are reused from `isolation-readers-smoke`; current study/audit outputs are under `isolation-cachefix-smoke`, design ID `biomnibench-da-factorial-r3-3686c8965c2e`. The preceding session 71717 exposed a cache-directory validation bug after induction; all eight exact saved responses were replayed locally through the corrected workflow, with zero repeated API calls. 145 targeted/integration/architecture tests pass. Provenance and replay ledger: `investigation/autonomous-dev3-20260907/cachefix-provenance.json` and `pretreatment-rebuild.json`. Goal active; no efficacy claim yet.
+
+The missing XLS reader defect is repaired and verified in actual Codex execution. Earlier invalid-environment seeds remain preserved and excluded together. Explicit raw dev3 export consent is recorded in EXPERIMENT_PLAN.md.
+
+## Invalid-environment dev3 smoke — stopped 2026-09-07
+
+Session 5855 ran `biomnibench-dev3-isolation-smoke.yaml` at c4, 24 expected da-3-4 assignments (eight conditions × three replicates), three revisions. Log: `runs/autonomous-dev3-20260907/isolation-smoke.log`; study/audit experiment ID `biomnibench-da-factorial-r3-3686c8965c2e`. Runtime/provenance frozen in `investigation/autonomous-dev3-20260907/isolation-smoke-provenance.json`. Current method change is isolated criterion validation with durable successful-call caching; 89 focused tests pass. This active goal supersedes the completed three-iteration checkpoint below.
+
+## Latest optimization checkpoint — 2026-09-07
+
+Three fixed-task iterations are complete. Report: [optimization report](investigation/optimization-20260907/REPORT.md). Outputs: `runs/optimization-20260907/iteration-01` (delivery), `iteration-02` (diff-assisted induction), `iteration-03` (static pressure calibration). Static pilot has 6/6 valid outputs, 90/90 matched OpenAI/Anthropic judgments, zero missing/abstaining cases; all 90 cache entries validate without new calls. 67 focused tests pass. Delivery improves but criterion and efficacy gates remain unmet; no full 20-task dispatch. Gemini remains paused for credits.
+
+## Current authorization — optimization phase (2026-09-07)
+
+The latest user instructions authorize implementation changes, focused tests, 1–2 task smokes and small matched optimization pilots, including sending BioMNIBench task instructions, rubrics, synthetic artifacts and traces to the existing OpenAI Luna proposer for induction/validation. OpenAI and Anthropic auditors are authorized where available; the earlier Anthropic pause is superseded and must not be treated as a current restriction. The user explicitly requested removal of these outdated restrictions after reviewing the two automatic-review rejection reasons.
+
+Gemini remains paused for the documented depleted prepaid credits. Billing changes remain unauthorized; the latest autonomous-dev3 instruction authorizes model allocation changes. Preserve historical outputs and completed judgments; do not scale to 20 tasks before focused tests, smoke, matched coverage and mechanism gates pass. Current work and unresolved hypotheses are recorded in [investigation_log.md](investigation_log.md), under Optimization phase. Earlier dated checkpoints below are historical records, not current dispatch instructions.
+
 ## Current: OpenAI and Anthropic complete; Gemini awaiting prepaid credits
 
 **Current 2026-09-07 09:32 CST: OpenAI and Anthropic complete.** All 14 Claude

@@ -1,5 +1,25 @@
 # Code Review
 
+## 2026-09-08 — Checkpoint portability
+
+- 00:31 CST: Historical manifests retain absolute Mac paths and cannot be assumed resumable after relocation; do not rewrite hashes or add compatibility metadata. Register the ten intended development YAMLs in the inventory test and explicitly curate Git evidence, excluding credentials, caches and raw runtime archives; see [handoff](docs/BABEL_HANDOFF.md).
+
+
+## 2026-09-08 — Audit scheduling and preservation verification
+
+- 00:23 CST: The private audit dispatcher now guards against active solver work, executes audit studies serially at 16 workers and holds an exclusive interprocess lease; remaining audits completed with those controls. All 152 production files and four study configs match frozen launch identities, all 12,319 historical files remain unchanged, and the whitespace/link checks pass.
+
+
+## 2026-09-07 — Static neutral comparison
+
+- 22:25 CST: Resolved static study preparation unnecessarily invoking induction by filtering preparation to tasks with elicitation policies; neutral guidance changes revision messages only and preserves byte-identical seed prompts. 160 focused tests pass; seven private audit-cache tests verify exact reuse and concurrent distinct requests without changing detector payloads.
+
+
+## 2026-09-07 — Selected feedback reference
+
+- 22:03 CST: Corrected the general feedback-reference boundary to use selected base judgments plus active learned penalties, preserving master measurements separately; checkpoint hashes and the explicit protocol now prevent mixed-reference replay. Six saved bindings and controller/resume tests pass; live checkpoint acceptance remains blocked by automatic approval review.
+
+
 ## 2026-08-30
 
 - **22:16 PDT** — Should the experiment schema replace the single revision solver with an explicit solver factor while keeping seed-generator identity separate? The design must let every solver revise the same task-replicate seed without treating the seed model as the revision solver.
@@ -139,6 +159,54 @@
 
 ## 2026-09-07
 
+- 18:15 CST: A follow-up discovery check required the native submissions/s001 layout, not only snapshot metadata; the final private packager exports that layout from the same authentic workspace and cumulative seed+turn trajectory. Both model request builders now validate without calls, and candidate judging has started successfully in audit17481; earlier packaging attempts remain archived.
+
+- 18:12 CST: The selected-reference private producer omitted native status/trajectory packaging, caught by the first scoped audit before candidate judging. Resolved with package.py sealing authenticated saved seed+turn records and validating the current snapshot format; no solver rerun or fabricated session state.
+
 - 09:38 CST: Resolved stale completion claims in the private OpenAI report generator: reporting now requires fresh full-cohort and two-provider coverage gates, refreshes provenance hashes, and describes the completed Anthropic panel accurately. Runtime and scoring definitions are unchanged.
 
 - 00:29 CST: Resolved the operational Gemini launcher’s overbroad HTTP-429 cooldown classification in a new `provenance/gemini/resume-bounded-billing-aware.py`: explicit depleted prepaid credit now stops before another executor retry, while temporary quota errors retain cooldown. Four focused classifier checks pass; the historical launcher and scoring source remain unchanged, and the new launcher has not been run against the provider.
+
+
+## 2026-09-07 — Benchmark input consistency
+
+- 10:29 CST: Confirmed da-15-8 instruction/source/rubric compartment disagreement; an isolated instruction patch and three focused tests preserve canonical data and frozen result identities. No current reference-join/cache defect was found; adopting the patch for a new study requires coherent input/version regeneration, documented in [investigation log](investigation_log.md).
+
+## 2026-09-07 — Optimization review
+
+- 11:38 CST: Red-team prompt delivery and bounded pair diffs pass 67 focused tests and three-task mechanism pilots; no fresh-attack criterion has yet passed validation. Retain the distinction between material negative-example generation and actual solver RH reduction.
+- 11:38 CST: Static score/reasons use the master rubric while displayed text/outcome selected reference use variant 0; behavior predates the latest collaborator revision. Batched criterion validation also falsely attributes a whole-proteome claim to a clean source artifact; test per-artifact validation before changing the unchanged admission rule (details in investigation/optimization-20260907/REPORT.md).
+
+- 11:57 CST: Criterion validation now isolates artifact contexts, records raw component responses, validates recombination on replay, and conservatively rejects incomplete validation. Successful proposer calls persist under complete context/request/implementation identities; an interruption test confirms only unfinished judgments are dispatched on recovery.
+
+## 2026-09-07
+
+12:23 CST — Resolved: the pre-treatment pool validator rejected the newly owned proposer-cache directory after successful induction. Both entry checks now permit a regular cache directory; the integration test verifies a sealed pool reopens without repeating calls (145 focused/integration checks pass).
+
+## 2026-09-07 — Static-only preparation overhead
+
+- 13:31 CST: `study.py:319` prepares seed-learned rubrics for every pending task even when every condition is FIXED; `controller.py:349` correctly skips installing these for FIXED. The da-11-1 static-only calibration waits on unused induction; inspect a minimal policy-aware preparation change at a safe boundary, preserving dynamic pool identity and validation.
+
+## 2026-09-07 — Completed detection depends on fresh token-count API
+
+- 13:44 CST: `detection/runner.py:178–263` replans and remotely counts tokens before checking completed score reuse; a Connection error at preparation marks a previously completed case failed in the new summary although its score.json remains intact. Add an identity-validated persistent request-plan/token-count cache at a safe boundary with a regression test forbidding provider calls for unchanged completed jobs; do not invent historical request hashes.
+
+## 2026-09-07 — Pre-start recovery
+
+- 14:12 CST: Confirmed module import failure before app-server startup left a prompt/status-only failed turn that resume rejected. Recovery now narrowly recognizes that failure, archives it and preserves the existing session; positive and uncertain-output rejection tests pass, with no change to rubric/scoring identities.
+
+## 2026-09-07 — Failed judge evidence retention
+
+- 14:28 CST: Inspection found `judge.py:evaluate` deletes an invalid evaluation tree before retry and judgment reuse removes completed evaluation staging; therefore the original three da-11-1 s002 attempt stdout files no longer exist after supported resume. Their SSL classification was read before recovery and the terminal run log is retained, but raw attempt preservation is incomplete; archive failed evaluation trees outside staging before future recovery (repair runtime only after the active audit boundary).
+
+- 14:42 CST: The direct-score identity stores input-token counts, source path and run settings but no exact request hash; a persistent planning cache must record request/evidence identity prospectively. Do not backfill invented hashes into saved results merely to bypass fresh token-count calls during this recovery.
+
+- 14:49 CST: Direct `_run_once` retains completed chunks only in memory, so a late transport failure restarts all 32 chunks in the largest development case. A tested process-local recovery cache now preserves newly successful exact requests and excludes cache hits from new-call cost; durable production integration remains deferred until the frozen audit finishes.
+
+## 2026-09-07 — completed recovery and calibration gate
+
+- 15:34 CST: Resolved static-only private-report failure: contrast reconstruction now skips unconfigured treatments after complete coverage validation, while rejecting a configured treatment without its comparator. Both complete studies pass reconstruction and existing da-3-4 report outputs remain byte-identical; no model calls were needed.
+
+- 15:42 CST: The private exposure audit wrapper imports current-format semantic judgments only when exact content/model/implementation identities match, retaining raw files and relocating only artifact references. A complete saved rubric job (including repeat validation), absolute job and pairwise job all replay with provider dispatch forbidden; durable direct chunk reuse remains process-local.
+
+- 17:15 CST: Static-only study startup still invokes shared pre-treatment compilation before assignment dispatch; the exposure pilot avoids unnecessary induction through explicit validated pool reuse. The initial preparation-only launch exposed this ownership cost; changing runtime preparation policy is deferred while the current study remains frozen.

@@ -1,5 +1,7 @@
 # Rubric Gen
 
+Current experiment state and Mac → Babel migration: [final checkpoint](docs/BABEL_HANDOFF.md). No new experiment launch; development continuation cap is 16, one audit study at a time.
+
 Run randomized submission-revision experiments with bounded rubric elicitation.
 Supported benchmarks are BiomniBench-DA, PaperBench Code-Dev, and Harvey LAB.
 
@@ -292,12 +294,20 @@ maximum. A binary criterion uses one penalty near 10%. Integer rounding and the
 available score range determine the exact values. The model writes only the level
 descriptions.
 
-The canonical original-rubric judgment supplies the score base at each
-checkpoint. The augmented judgment supplies only the learned penalties. The
-program discards its original-criterion scores. It also uses the canonical
-original judgment for original-criterion feedback. Thus, a learned rubric
-cannot re-award original points through judge context or paraphrase variation.
-The final score is the canonical base plus learned penalties, clamped at zero.
+The selected base-rubric judgment supplies the training score and base-criterion
+feedback at each checkpoint. The augmented judgment supplies only the learned
+penalties and their feedback; its reassessment of base criteria is discarded.
+The training score is the selected base plus learned penalties, clamped at zero.
+The master-rubric judgment remains a separate independent measurement and never
+supplies solver feedback or user-simulator input.
+
+Revision manifests identify this wiring as
+`selected-base-plus-active-penalties-v1`. Each checkpoint binds its feedback
+reference to the selected rubric hash and exact judgment-file hashes. Resume and
+completed-study validation enforce those bindings. Historical mixed-reference
+runs are incompatible with this protocol and must not be resumed or relabeled as
+corrected controls; their artifacts and judgments remain unchanged. Exact
+compatible judgments and sealed seeds can still be reused under new run identities.
 
 Each update stores every artifact once under a stable blinded ID. Candidate text
 cannot reward optional features or create an easier success path. Pair references

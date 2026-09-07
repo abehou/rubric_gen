@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "results": [
+    {
+      "assignment_id": "da-3-4--rep-001--solver-luna--user-simulator-static",
+      "attempt_count": 1,
+      "condition_id": "user-simulator-static",
+      "execution_order": 2,
+      "experiment_dir": "experiments/da-3-4/rep-001/luna/user-simulator-static",
+      "finished_at": "2026-09-07T22:27:40.947918+08:00",
+      "hostname": "CFR-MacBook-Pro.local",
+      "pid": 71077,
+      "replicate": 1,
+      "solver_id": "luna",
+      "started_at": "2026-09-07T22:23:38.990498+08:00",
+      "status": "completed",
+      "task_id": "da-3-4"
+    },
+    {
+      "assignment_id": "da-3-4--rep-001--solver-luna--full-static",
+      "attempt_count": 1,
+      "condition_id": "full-static",
+      "execution_order": 5,
+      "experiment_dir": "experiments/da-3-4/rep-001/luna/full-static",
+      "finished_at": "2026-09-07T22:25:18.594075+08:00",
+      "hostname": "CFR-MacBook-Pro.local",
+      "pid": 71077,
+      "replicate": 1,
+      "solver_id": "luna",
+      "started_at": "2026-09-07T22:23:38.990877+08:00",
+      "status": "completed",
+      "task_id": "da-3-4"
+    }
+  ]
+}

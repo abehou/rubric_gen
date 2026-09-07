@@ -1,0 +1,122 @@
+{
+  "protocol": "static-selected-reference-neutral-v1",
+  "population": "da-3-4/da-11-1 \u00d7 replicates 1/2/3 \u00d7 control/neutral \u00d7 full/user_simulator",
+  "assignments": 24,
+  "smoke_assignments": "neutral da-3-4 rep-001, both feedback modes; included in the 24",
+  "causal_change": "Only neutral revision guidance differs between arms; selected-reference wiring and static preparation correction are common prerequisites.",
+  "hypothesis": "Stronger criterion-specific revision yields positive selected-minus-holdout under each auditor without quality collapse.",
+  "gates": [
+    "positive selected-minus-holdout separately for Sol and Opus",
+    "approximately 1.5 is reference magnitude only",
+    "independent quality preserved",
+    "substantive rubric/holistic mismatch in public evidence",
+    "full feedback RH exceeds simulator RH",
+    "not concentrated in one task or auditor",
+    "ordinary scientifically valid optimization"
+  ],
+  "auditor_models": [
+    "gpt-5.6-sol",
+    "claude-opus-5"
+  ],
+  "metrics_unchanged": true,
+  "solver_capacity": 24,
+  "audit_capacity": 60,
+  "configs": [
+    {
+      "task": "da-3-4",
+      "arm": "control",
+      "tag": "control-da-3-4",
+      "config": "/Users/yuenanhuang/Desktop/rubric_gen/experiments/biomnibench-static-neutral-control-da-3-4.yaml",
+      "config_sha256": "60cd0b3cccdcf1d218bde99dae8c672ef28b9dd579dfbd7beb76c5a39e2ca803",
+      "experiment_id": "biomnibench-da-factorial-r10-1cc8f80e9f39",
+      "study": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-3-4/study/biomnibench-da-factorial-r10-1cc8f80e9f39",
+      "audit": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-3-4/audit/biomnibench-da-factorial-r10-1cc8f80e9f39",
+      "seeds": [
+        {
+          "replicate": 1,
+          "seed_sha256": "9c12c5165f2cd9c055832936f21b7302c55da4e24d1941cef03a2ca0c81caab0"
+        },
+        {
+          "replicate": 2,
+          "seed_sha256": "ea2221ac15378f44c9c262331367e500555e2d5ec76b4c720e9cf30130ffca8e"
+        },
+        {
+          "replicate": 3,
+          "seed_sha256": "c3295d4f7ae7cc9d7f0dcdc79fa9a2956d0f7dc76d34679ecf4a4218ab100523"
+        }
+      ]
+    },
+    {
+      "task": "da-3-4",
+      "arm": "neutral",
+      "tag": "neutral-da-3-4",
+      "config": "/Users/yuenanhuang/Desktop/rubric_gen/experiments/biomnibench-static-neutral-neutral-da-3-4.yaml",
+      "config_sha256": "0ded6fc1bc3f80486f0154d7817e56693fb20a7bb4e2286e46f2c0073f1d9ccf",
+      "experiment_id": "biomnibench-da-factorial-r10-9b443df0b35c",
+      "study": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/neutral-da-3-4/study/biomnibench-da-factorial-r10-9b443df0b35c",
+      "audit": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/neutral-da-3-4/audit/biomnibench-da-factorial-r10-9b443df0b35c",
+      "seeds": [
+        {
+          "replicate": 1,
+          "seed_sha256": "9c12c5165f2cd9c055832936f21b7302c55da4e24d1941cef03a2ca0c81caab0"
+        },
+        {
+          "replicate": 2,
+          "seed_sha256": "ea2221ac15378f44c9c262331367e500555e2d5ec76b4c720e9cf30130ffca8e"
+        },
+        {
+          "replicate": 3,
+          "seed_sha256": "c3295d4f7ae7cc9d7f0dcdc79fa9a2956d0f7dc76d34679ecf4a4218ab100523"
+        }
+      ]
+    },
+    {
+      "task": "da-11-1",
+      "arm": "control",
+      "tag": "control-da-11-1",
+      "config": "/Users/yuenanhuang/Desktop/rubric_gen/experiments/biomnibench-static-neutral-control-da-11-1.yaml",
+      "config_sha256": "f12cd22bd48c2063bf4f47bc76a7995942dc71179a3066d5fd54f775a6b67669",
+      "experiment_id": "biomnibench-da-factorial-r10-b587fda7d854",
+      "study": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-11-1/study/biomnibench-da-factorial-r10-b587fda7d854",
+      "audit": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/control-da-11-1/audit/biomnibench-da-factorial-r10-b587fda7d854",
+      "seeds": [
+        {
+          "replicate": 1,
+          "seed_sha256": "a541a5869743eae25023a031924371ad7ed533c54bc890c27d8458a60df47364"
+        },
+        {
+          "replicate": 2,
+          "seed_sha256": "6c063d188f05a0c8051064febe30a3f170b9b19047b4e30c5b9a081f660f43fb"
+        },
+        {
+          "replicate": 3,
+          "seed_sha256": "03689259aeb3baa412e86b16e2e0a9a5f9fc1330d4840044931ebfc955d18616"
+        }
+      ]
+    },
+    {
+      "task": "da-11-1",
+      "arm": "neutral",
+      "tag": "neutral-da-11-1",
+      "config": "/Users/yuenanhuang/Desktop/rubric_gen/experiments/biomnibench-static-neutral-neutral-da-11-1.yaml",
+      "config_sha256": "9a218c026b8b76ec8834b5a5b834772115bfb53ea87580ce18ef2ab8842eead5",
+      "experiment_id": "biomnibench-da-factorial-r10-3a4da5d6a157",
+      "study": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/neutral-da-11-1/study/biomnibench-da-factorial-r10-3a4da5d6a157",
+      "audit": "/Users/yuenanhuang/Desktop/rubric_gen/runs/static-neutral-20260907/neutral-da-11-1/audit/biomnibench-da-factorial-r10-3a4da5d6a157",
+      "seeds": [
+        {
+          "replicate": 1,
+          "seed_sha256": "a541a5869743eae25023a031924371ad7ed533c54bc890c27d8458a60df47364"
+        },
+        {
+          "replicate": 2,
+          "seed_sha256": "6c063d188f05a0c8051064febe30a3f170b9b19047b4e30c5b9a081f660f43fb"
+        },
+        {
+          "replicate": 3,
+          "seed_sha256": "03689259aeb3baa412e86b16e2e0a9a5f9fc1330d4840044931ebfc955d18616"
+        }
+      ]
+    }
+  ]
+}

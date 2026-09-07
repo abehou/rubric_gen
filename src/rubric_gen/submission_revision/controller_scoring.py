@@ -21,11 +21,10 @@ from rubric_gen.submission_revision.generation_scoring import (
     preflight_generation_dispatch,
 )
 from rubric_gen.submission_revision.contrasts import build_elicitation_artifact_history
-from rubric_gen.submission_revision.controller_recovery_artifacts import (
-    fixed_original_attempt_id,
-)
+from rubric_gen.submission_revision.controller_reference import resolve_reference_judgment
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
+    FEEDBACK_REFERENCE_PROTOCOL,
     compose_rubric_score,
     project_rubric_feedback,
     project_rubric_simulated_user_feedback,
@@ -252,7 +251,7 @@ class RevisionScorer:
         )
         self.verify_canonical_task_inputs()
         _verify_submission_snapshot(submission_dir)
-        fixed_original_score, fixed_original_artifacts = (
+        fixed_original_score, _ = (
             self.fixed_original_judgment(
                 submission_dir=submission_dir,
                 submission_id=submission_id,
@@ -261,12 +260,17 @@ class RevisionScorer:
                 allow_generation=True,
             )
         )
+        reference_score, reference_artifacts = self.feedback_reference_judgment(
+            submission_dir=submission_dir, submission_id=submission_id,
+            turn_index=turn_index, active_artifacts=artifacts, allow_generation=True,
+        )
         rubric_evaluation = self.rubric_evaluation_record(
             generation,
             artifacts,
             submission_id,
             dispatch_preflight,
             fixed_original_score,
+            reference_score, reference_artifacts,
         )
         rubric_evaluation_path = (
             self.experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
@@ -292,8 +296,6 @@ class RevisionScorer:
                 generation_round=generation.generation_round,
                 submission_dir=submission_dir,
                 allow_generation=True,
-                fixed_original_score=fixed_original_score,
-                fixed_original_artifacts=fixed_original_artifacts,
             )
             if rubric_evaluation["score"] != feedback.score:
                 raise RuntimeError("rubric evaluation and feedback scores disagree")
@@ -328,7 +330,8 @@ class RevisionScorer:
                 "judge_attempt_id": attempt_id,
                 "score": score,
                 "fixed_original_score": fixed_original_score,
-                "elicited_penalty": score - fixed_original_score,
+                "elicited_penalty": rubric_evaluation["elicited_penalty"],
+                "feedback_reference": rubric_evaluation["feedback_reference"],
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
                 "feedback_sha256": (
                     _sha256_file(feedback_path) if feedback is not None else None
@@ -399,6 +402,8 @@ class RevisionScorer:
         submission_id: str,
         dispatch_preflight: dict[str, object],
         fixed_original_score: float,
+        reference_score: float,
+        reference_artifacts: JudgeArtifacts,
     ) -> dict[str, object]:
         if (
             dispatch_preflight.get("generation_sha256")
@@ -410,7 +415,7 @@ class RevisionScorer:
         composition = compose_rubric_score(
             generation,
             artifacts.score_validation_path,
-            fixed_original_score,
+            reference_score,
         )
         validation = _read_json_object(
             artifacts.score_validation_path,
@@ -432,14 +437,20 @@ class RevisionScorer:
         ):
             raise RuntimeError("rubric score uses a different dispatch payload")
         return {
-            "kind": "canonical-original-plus-elicited-penalty-evaluation",
+            "kind": FEEDBACK_REFERENCE_PROTOCOL,
+            "feedback_reference": {
+                "rubric_sha256": self.initial_rubric.sha256,
+                "score_validation_sha256": _sha256_file(reference_artifacts.score_validation_path),
+                "evaluation_sha256": _sha256_file(reference_artifacts.evaluation_path),
+            },
+            "reference_score": composition.reference_score,
             "submission_id": submission_id,
             "generation_round": generation.generation_round,
             "generation_sha256": generation.generation_sha256,
             "rubric_sha256": generation.rubric.content_sha256,
             "dispatch_preflight": dispatch_preflight,
             "judge_score": judge_score,
-            "canonical_original_score": composition.canonical_original_score,
+            "canonical_original_score": fixed_original_score,
             "elicited_penalty": composition.elicited_penalty,
             "score_validation_sha256": _sha256_file(
                 artifacts.score_validation_path
@@ -457,9 +468,14 @@ class RevisionScorer:
         generation_round: int,
         submission_dir: Path,
         allow_generation: bool,
-        fixed_original_score: float,
-        fixed_original_artifacts: JudgeArtifacts,
     ):
+        reference_score, reference_artifacts = self.feedback_reference_judgment(
+            submission_dir=submission_dir,
+            submission_id=submission_id,
+            turn_index=int(submission_id[1:]),
+            active_artifacts=artifacts,
+            allow_generation=False,
+        )
         policy = FeedbackPolicy(self.config.feedback_policy)
         task_instruction = (self.task_dir / "instruction.md").read_text(
             encoding="utf-8"
@@ -472,12 +488,12 @@ class RevisionScorer:
                 policy,
                 task_instruction=task_instruction,
                 first_revision=first_revision,
-                fixed_original_artifacts=(
-                    fixed_original_artifacts.score_validation_path,
-                    fixed_original_artifacts.evaluation_path,
+                reference_artifacts=(
+                    reference_artifacts.score_validation_path,
+                    reference_artifacts.evaluation_path,
                 ),
-                fixed_original_rubric_text=self.master_rubric.text,
-                fixed_original_rubric_sha256=self.master_rubric.sha256,
+                reference_rubric_text=self.initial_rubric.text,
+                reference_rubric_sha256=self.initial_rubric.sha256,
                 prompt_profile=self.config.prompt_profile,
                 benchmark=self.config.benchmark,
             )
@@ -491,12 +507,12 @@ class RevisionScorer:
             FeedbackPolicy.FULL,
             task_instruction=task_instruction,
             first_revision=first_revision,
-            fixed_original_artifacts=(
-                fixed_original_artifacts.score_validation_path,
-                fixed_original_artifacts.evaluation_path,
+            reference_artifacts=(
+                reference_artifacts.score_validation_path,
+                reference_artifacts.evaluation_path,
             ),
-            fixed_original_rubric_text=self.master_rubric.text,
-            fixed_original_rubric_sha256=self.master_rubric.sha256,
+            reference_rubric_text=self.initial_rubric.text,
+            reference_rubric_sha256=self.initial_rubric.sha256,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
@@ -615,7 +631,7 @@ class RevisionScorer:
             user_feedback,
             task_instruction=task_instruction,
             first_revision=first_revision,
-            fixed_original_score=fixed_original_score,
+            reference_score=reference_score,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
@@ -740,62 +756,29 @@ class RevisionScorer:
         )
         return rubric, FrozenRubricJudge(config, rubric)
 
-    def fixed_original_judgment(
-        self,
-        *,
-        submission_dir: Path,
-        submission_id: str,
-        turn_index: int,
-        active_artifacts: JudgeArtifacts,
-        allow_generation: bool,
+    def feedback_reference_judgment(
+        self, *, submission_dir: Path, submission_id: str, turn_index: int,
+        active_artifacts: JudgeArtifacts, allow_generation: bool,
     ) -> tuple[float, JudgeArtifacts]:
-        active_generation = self.active_rubric_generation(turn_index)
-        seeded = False
-        if turn_index == 0 and self.reuse_seed_master_judgment:
-            validation_path, evaluation_path, _ = self.seed.judgment
-            artifacts = JudgeArtifacts(validation_path, evaluation_path)
-            seeded = True
-        elif (
-            active_generation.rubric.content_sha256 == self.master_rubric.sha256
-            and (
-                turn_index == 0
-                or self.rubric_policy is RubricPolicy.FIXED
-            )
-        ):
-            artifacts = active_artifacts
-        else:
-            attempt_id = fixed_original_attempt_id(
-                self.config.assignment_id,
-                submission_id,
-                self.master_rubric.sha256,
-            )
-            artifacts = self.assignment_judgment(
-                judge=self.master_judge,
-                submission_dir=submission_dir,
-                submission_id=submission_id,
-                rubric_sha256=self.master_rubric.sha256,
-                attempt_id=attempt_id,
-                allow_generation=allow_generation,
-            )
-        self.verify_round_scoring_identity(
-            artifacts.score_validation_path,
-            self.master_rubric,
-            self.master_judge,
-            seeded=seeded,
+        return resolve_reference_judgment(
+            self, rubric=self.initial_rubric, judge=self.dependencies.judge,
+            reuse_seed=self.reuse_seed_judgment,
+            submission_dir=submission_dir, submission_id=submission_id,
+            turn_index=turn_index, active_artifacts=active_artifacts,
+            allow_generation=allow_generation,
         )
-        validation = _read_json_object(
-            artifacts.score_validation_path,
-            "fixed-original score validation",
+
+    def fixed_original_judgment(
+        self, *, submission_dir: Path, submission_id: str, turn_index: int,
+        active_artifacts: JudgeArtifacts, allow_generation: bool,
+    ) -> tuple[float, JudgeArtifacts]:
+        return resolve_reference_judgment(
+            self, rubric=self.master_rubric, judge=self.master_judge,
+            reuse_seed=self.reuse_seed_master_judgment,
+            submission_dir=submission_dir, submission_id=submission_id,
+            turn_index=turn_index, active_artifacts=active_artifacts,
+            allow_generation=allow_generation,
         )
-        score = validation.get("score")
-        if (
-            isinstance(score, bool)
-            or not isinstance(score, Real)
-            or not math.isfinite(float(score))
-            or not 0 <= float(score) <= 100
-        ):
-            raise RuntimeError("fixed-original judgment has an invalid score")
-        return float(score), artifacts
 
     def verify_round_scoring_identity(
         self,
@@ -878,7 +861,7 @@ class RevisionScorer:
             judge,
             seeded=seeded,
         )
-        expected_fixed_score, fixed_original_artifacts = self.fixed_original_judgment(
+        expected_fixed_score, _ = self.fixed_original_judgment(
             submission_dir=submission_dir,
             submission_id=submission_id,
             turn_index=index,
@@ -894,6 +877,10 @@ class RevisionScorer:
         review_text, answer_text = self.dependencies.judge.review_inputs(
             submission_dir
         )
+        reference_score, reference_artifacts = self.feedback_reference_judgment(
+            submission_dir=submission_dir, submission_id=submission_id,
+            turn_index=index, active_artifacts=artifacts, allow_generation=False,
+        )
         expected_rubric_evaluation = self.rubric_evaluation_record(
             generation,
             artifacts,
@@ -905,6 +892,7 @@ class RevisionScorer:
                 answer_text=answer_text,
             ),
             expected_fixed_score,
+            reference_score, reference_artifacts,
         )
         if rubric_evaluation != expected_rubric_evaluation:
             raise RuntimeError(
@@ -932,8 +920,6 @@ class RevisionScorer:
                 generation_round=generation.generation_round,
                 submission_dir=submission_dir,
                 allow_generation=False,
-                fixed_original_score=expected_fixed_score,
-                fixed_original_artifacts=fixed_original_artifacts,
             )
             feedback = _read_json_object(feedback_path, "revision feedback")
             if (

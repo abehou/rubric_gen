@@ -1,0 +1,48 @@
+[
+  {
+    "mode": "full-static",
+    "status": "checkpoint-smoke-passed",
+    "configured_min_revisions": 5,
+    "configured_max_revisions": 10,
+    "solver_turns": 1,
+    "checkpoints": 2,
+    "scores": [
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0
+    ],
+    "resume_validated": true,
+    "live_workspace": "/private/var/folders/_h/_53v9m0n2m9f99h492jdyjfc0000gn/T/rubric-gen-501/submission-live/submission-revision-live-pablyoli/workspace",
+    "calls": {
+      "new_judgments": 2,
+      "reused_judgments": 0
+    },
+    "remaining_study_turns": "intentionally not dispatched; this is a checkpoint acceptance test"
+  },
+  {
+    "mode": "user-simulator-static",
+    "status": "checkpoint-smoke-passed",
+    "configured_min_revisions": 5,
+    "configured_max_revisions": 10,
+    "solver_turns": 1,
+    "checkpoints": 2,
+    "scores": [
+      100.0,
+      100.0
+    ],
+    "master_scores": [
+      100.0,
+      100.0
+    ],
+    "resume_validated": true,
+    "live_workspace": "/private/var/folders/_h/_53v9m0n2m9f99h492jdyjfc0000gn/T/rubric-gen-501/submission-live/submission-revision-live-o3c4pf7s/workspace",
+    "calls": {
+      "new_judgments": 2,
+      "reused_judgments": 0
+    },
+    "remaining_study_turns": "intentionally not dispatched; this is a checkpoint acceptance test"
+  }
+]

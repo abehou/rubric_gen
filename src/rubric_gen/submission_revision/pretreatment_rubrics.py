@@ -16,9 +16,9 @@ from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.contrasts import build_offline_artifact_history
 from rubric_gen.submission_revision.evolution import (
-    PROVIDER_FAILURE_MAX_RETRIES,
     RubricProposer,
 )
+from rubric_gen.submission_revision.evolution_stage import PROVIDER_FAILURE_MAX_RETRIES
 from rubric_gen.submission_revision.evolution_artifacts import ArtifactHistory
 from rubric_gen.submission_revision.evolution_serialization import canonical_sha256
 from rubric_gen.submission_revision.prompts import PromptProfile
@@ -130,11 +130,12 @@ def ensure_pretreatment_rubric(
             root.mkdir()
         unexpected = {
             path.name for path in root.iterdir()
-        } - {"rubric-generations", "pretreatment.json"}
+        } - {"rubric-generations", "pretreatment.json", "rubric-proposer-records"}
         if unexpected:
             raise RuntimeError(
                 f"pre-treatment rubric root has unexpected entries: {root}"
             )
+        _validate_proposer_cache_directory(root)
         instruction = (task_dir / "instruction.md").read_text(encoding="utf-8")
         initial_generation = _initial_generation(initial_rubric)
         history = _history(
@@ -196,6 +197,12 @@ def ensure_pretreatment_rubric(
         )
 
 
+def _validate_proposer_cache_directory(root: Path) -> None:
+    cache = root / "rubric-proposer-records"
+    if os.path.lexists(cache) and (cache.is_symlink() or not cache.is_dir()):
+        raise RuntimeError("pre-treatment proposer cache is not a regular directory")
+
+
 def validate_pretreatment_rubric(
     *,
     root: Path,
@@ -215,11 +222,12 @@ def validate_pretreatment_rubric(
     root = root.absolute()
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"pre-treatment rubric root is missing: {root}")
-    if {path.name for path in root.iterdir()} != {
+    if {path.name for path in root.iterdir()} - {"rubric-proposer-records"} != {
         "rubric-generations",
         "pretreatment.json",
     }:
         raise RuntimeError("pre-treatment rubric root is incomplete")
+    _validate_proposer_cache_directory(root)
     initial_generation = load_rubric_generation(
         root,
         0,

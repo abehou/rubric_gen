@@ -1,0 +1,18 @@
+{
+  "historical_files_checked": 12319,
+  "changed": [],
+  "missing": [],
+  "scope": [
+    "runs/autonomous-dev3-20260907",
+    "investigation/autonomous-dev3-20260907"
+  ],
+  "protected_source_checks": {
+    "src/rubric_gen/submission_revision/prompts.py": true,
+    "src/rubric_gen/benchmarks/biomnibench_da/contract.py": true,
+    "src/rubric_gen/submission_revision/user_simulator.py": true,
+    "src/rubric_gen/submission_revision/seeds.py": true,
+    "render_revision_prompt": true,
+    "independent_audit_modules": true,
+    "solver_stopping_method": true
+  }
+}

@@ -286,8 +286,9 @@ def _validation_value(
         raise AssertionError("validation helper received an unknown pair ID")
 
     levels_by_artifact = None
-    for ranks in product(range(len(level_labels)), repeat=len(artifact_ids)):
-        ranks_by_artifact = dict(zip(artifact_ids, ranks, strict=True))
+    fixture_ids = assessment_module.validation_artifact_ids(_comparisons())
+    for ranks in product(range(len(level_labels)), repeat=len(fixture_ids)):
+        ranks_by_artifact = dict(zip(fixture_ids, ranks, strict=True))
 
         def pair_ranks(pair_id: str) -> tuple[int, int]:
             comparison = comparisons_by_id[pair_id]
@@ -806,19 +807,19 @@ def test_pairwise_induction_builds_one_fixed_penalty_criterion(
         "assessment_active_rubric",
         "assessment_development_rubric",
         "induction",
-        "validation",
+        *(["validation"] * 4),
     ]
     assert len(generation.elicited_criteria) == 1
     assert [level.points for level in parsed.criteria[-1].levels] == [0, -5, -10]
     assert parsed.normalization_maximum == 100
-    assert generation.proposer_call_budget == 10
+    assert generation.proposer_call_budget == 16
 
 
 def test_induction_does_not_see_sources_or_held_out_artifacts(tmp_path: Path) -> None:
     evidence_by_stage: dict[str, str] = {}
 
     def propose(**kwargs):
-        evidence_by_stage[kwargs["stage"]] = kwargs["evidence"]
+        evidence_by_stage[kwargs["stage"]] = evidence_by_stage.get(kwargs["stage"], "") + kwargs["evidence"]
         return _proposer().run_proposer(**kwargs)
 
     _replace(_proposer(propose), tmp_path)
@@ -1137,11 +1138,14 @@ def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
             validation_calls += 1
             if validation_calls == 1:
                 return _proposer_output({"validations": "invalid"}, "bad")
-            assert "prior response failed validation" in kwargs["evidence"]
+            if validation_calls == 2:
+                assert "prior response failed validation" in kwargs["evidence"]
+            else:
+                assert "prior response failed validation" not in kwargs["evidence"]
         return _proposer().run_proposer(**kwargs)
 
     generation = _replace(_proposer(propose, retries=1), tmp_path)
-    assert validation_calls == 2
+    assert validation_calls == 5
     assert len(generation.elicited_criteria) == 1
 
 
@@ -1221,12 +1225,15 @@ def test_raw_responses_preserve_line_endings_on_publish_and_replay(
 ) -> None:
     default_call = _proposer().run_proposer
     responses: dict[str, str] = {}
+    validation_responses = []
 
     def formatted(**kwargs):
         output = default_call(**kwargs)
         raw = json.dumps(json.loads(output.response_text), indent=2, ensure_ascii=False)
         raw = raw.replace("\n", newline) + newline
         responses[kwargs["stage"]] = raw
+        if kwargs["stage"] == "validation":
+            validation_responses.append(raw)
         return replace(output, response_text=raw)
 
     first = _replace(_proposer(formatted), tmp_path)
@@ -1239,6 +1246,9 @@ def test_raw_responses_preserve_line_endings_on_publish_and_replay(
         "validation": "criterion-validation.json",
     }
     assert set(responses) == set(files)
+    metadata = json.loads((root / "evolution.json").read_text())
+    assert [c["raw_text"] for c in metadata["validation_calls"]] == validation_responses
+    responses["validation"] = (root / "criterion-validation.json").read_text()
     for stage, filename in files.items():
         assert (root / filename).read_bytes() == responses[stage].encode("utf-8")
 
@@ -1434,3 +1444,61 @@ def test_online_and_offline_checkpoints_are_not_interchangeable(
             output_dir=tmp_path / "online",
             artifact_history=_history(),
         )
+
+
+def test_validation_calls_isolate_artifacts_and_replay_raw_responses(tmp_path: Path) -> None:
+    seen = []
+    default = _proposer().run_proposer
+
+    def propose(**kwargs):
+        if kwargs['stage'] == 'validation':
+            payload = json.loads(kwargs['evidence'])
+            assert len(payload['artifacts']) == 1
+            artifact = payload['artifacts'][0]
+            seen.append(artifact['artifact_id'])
+            for other in _history().artifacts:
+                if other.artifact_id != artifact['artifact_id']:
+                    assert other.content not in kwargs['evidence']
+            assert 'provenance_pair_ids' not in kwargs['evidence']
+        return default(**kwargs)
+
+    first = _replace(_proposer(propose), tmp_path)
+    assert tuple(seen) == assessment_module.validation_artifact_ids(_comparisons())
+    root = tmp_path / 'rubric-generations/generation-0001'
+    metadata = json.loads((root / 'evolution.json').read_text())
+    assert [c['artifact_id'] for c in metadata['validation_calls']] == seen
+    assert metadata['validation_attempt_count'] == len(seen)
+    assert _replace(_proposer(lambda **kw: pytest.fail('unexpected fresh call')), tmp_path) == first
+    metadata['validation_calls'][0]['artifact_id'] = seen[-1]
+    (root / 'evolution.json').write_text(json.dumps(metadata))
+    with pytest.raises(RuntimeError):
+        _replace(_proposer(lambda **kw: pytest.fail('unexpected fresh call')), tmp_path)
+
+
+def test_interrupted_isolated_validation_reuses_completed_judgments(tmp_path: Path) -> None:
+    default = _proposer(retries=0).run_proposer
+    ids = assessment_module.validation_artifact_ids(_comparisons())
+
+    def interrupted(**kwargs):
+        if kwargs['stage'] == 'validation':
+            aid = json.loads(kwargs['evidence'])['artifacts'][0]['artifact_id']
+            if aid == ids[1]:
+                raise TimeoutError('simulated external interruption')
+        return default(**kwargs)
+
+    with pytest.raises(RubricProposerProviderError):
+        _replace(_proposer(interrupted, retries=0), tmp_path)
+    cache = tmp_path / 'rubric-proposer-records'
+    saved = {p.name: p.read_bytes() for p in cache.glob('*.json')}
+    assert len(saved) == 5  # three assessments, proposal, first artifact validation
+    calls = []
+
+    def recovered(**kwargs):
+        calls.append(kwargs)
+        return default(**kwargs)
+
+    result = _replace(_proposer(recovered, retries=0), tmp_path)
+    assert len(result.elicited_criteria) == 1
+    assert len(calls) == len(ids) - 1
+    assert all(c['stage'] == 'validation' for c in calls)
+    assert all((cache / name).read_bytes() == value for name, value in saved.items())

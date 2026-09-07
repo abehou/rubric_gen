@@ -20,6 +20,8 @@ from rubric_gen.submission_revision.rubrics.schema import load_json_strict
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
 from rubric_gen.submission_revision.rubric_generation import (
     RubricGeneration,
+    CompleteRubric,
+    render_augmented_rubric,
 )
 
 
@@ -31,6 +33,8 @@ class FeedbackPolicy(str, Enum):
     SCORE_ONLY = "score_only"
     USER_SIMULATOR = "user_simulator"
 
+
+FEEDBACK_REFERENCE_PROTOCOL = "selected-base-plus-active-penalties-v1"
 
 MAX_SIMULATED_USER_FEEDBACK_CHARS = 6_000
 
@@ -46,9 +50,9 @@ class ProjectedFeedback:
 
 @dataclass(frozen=True)
 class ComposedRubricScore:
-    """Store the canonical base, elicited penalty, and final score."""
+    """Store the selected base, elicited penalty, and final score."""
 
-    canonical_original_score: float
+    reference_score: float
     elicited_penalty: float
     score: float
 
@@ -165,25 +169,32 @@ def project_rubric_feedback(
     *,
     task_instruction: str,
     first_revision: bool,
-    fixed_original_artifacts: tuple[Path, Path],
-    fixed_original_rubric_text: str,
-    fixed_original_rubric_sha256: str,
+    reference_artifacts: tuple[Path, Path],
+    reference_rubric_text: str,
+    reference_rubric_sha256: str,
     max_reason_chars: int = 2_000,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
-    """Project canonical original feedback plus learned-criterion penalties."""
+    """Project selected-reference feedback plus learned-criterion penalties."""
 
+    reference = CompleteRubric.from_content(reference_rubric_text)
+    if (
+        reference.content_sha256 != reference_rubric_sha256
+        or render_augmented_rubric(reference, generation.elicited_criteria)
+        != generation.rubric
+    ):
+        raise ValueError("feedback reference does not match the active rubric base")
     resolved_policy = FeedbackPolicy(policy)
     if resolved_policy is FeedbackPolicy.USER_SIMULATOR:
         raise ValueError("use project_rubric_simulated_user_feedback")
     composition = compose_rubric_score(
         generation,
         artifacts[0],
-        _validated_fixed_original_score(
-            fixed_original_artifacts[0],
-            fixed_original_rubric_text,
-            fixed_original_rubric_sha256,
+        _validated_reference_score(
+            reference_artifacts[0],
+            reference_rubric_text,
+            reference_rubric_sha256,
         ),
     )
     if resolved_policy is FeedbackPolicy.SCORE_ONLY:
@@ -202,10 +213,10 @@ def project_rubric_feedback(
         )
 
     fixed_projection = _project_member_feedback(
-        fixed_original_artifacts[0],
-        fixed_original_artifacts[1],
-        fixed_original_rubric_text,
-        fixed_original_rubric_sha256,
+        reference_artifacts[0],
+        reference_artifacts[1],
+        reference_rubric_text,
+        reference_rubric_sha256,
         resolved_policy,
         max_reason_chars=max_reason_chars,
         prompt_profile=prompt_profile,
@@ -213,7 +224,7 @@ def project_rubric_feedback(
     )
     fixed_criteria = fixed_projection.payload.get("criteria")
     if not isinstance(fixed_criteria, dict):
-        raise ValueError("fixed-original feedback lacks criterion details")
+        raise ValueError("reference feedback lacks criterion details")
     projected = _project_member_feedback(
         artifacts[0],
         artifacts[1],
@@ -268,7 +279,7 @@ def project_rubric_simulated_user_feedback(
     *,
     task_instruction: str,
     first_revision: bool,
-    fixed_original_score: float,
+    reference_score: float,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
 ) -> ProjectedFeedback:
@@ -277,7 +288,7 @@ def project_rubric_simulated_user_feedback(
     composition = compose_rubric_score(
         generation,
         score_validation_path,
-        fixed_original_score,
+        reference_score,
     )
     payload: dict[str, object] = {
         "decision": user_feedback.get("decision"),
@@ -336,18 +347,18 @@ def _validate_simulated_user_feedback(
 def compose_rubric_score(
     generation: RubricGeneration,
     score_validation_path: Path,
-    fixed_original_score: float,
+    reference_score: float,
 ) -> ComposedRubricScore:
-    """Add only elicited penalties to one canonical original score."""
+    """Add only elicited penalties to one selected-reference score."""
 
     if (
-        isinstance(fixed_original_score, bool)
-        or not isinstance(fixed_original_score, Real)
-        or not math.isfinite(float(fixed_original_score))
-        or not 0 <= float(fixed_original_score) <= 100
+        isinstance(reference_score, bool)
+        or not isinstance(reference_score, Real)
+        or not math.isfinite(float(reference_score))
+        or not 0 <= float(reference_score) <= 100
     ):
-        raise ValueError("fixed_original_score must be between zero and 100")
-    fixed = float(fixed_original_score)
+        raise ValueError("reference_score must be between zero and 100")
+    fixed = float(reference_score)
     validation = _load_object(score_validation_path, "score validation")
     _, _, _, criterion_scores = _validate_score_record(
         validation,
@@ -372,18 +383,18 @@ def compose_rubric_score(
         raise ValueError("elicited criteria produced a positive score")
     penalty = elicited_raw_penalty * 100 / generation.normalization_maximum
     return ComposedRubricScore(
-        canonical_original_score=fixed,
+        reference_score=fixed,
         elicited_penalty=penalty,
         score=max(0.0, fixed + penalty),
     )
 
 
-def _validated_fixed_original_score(
+def _validated_reference_score(
     validation_path: Path,
     rubric_text: str,
     rubric_sha256: str,
 ) -> float:
-    validation = _load_object(validation_path, "fixed-original score validation")
+    validation = _load_object(validation_path, "reference score validation")
     score, _, _, _ = _validate_score_record(
         validation,
         rubric_text,

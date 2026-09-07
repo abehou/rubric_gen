@@ -209,10 +209,20 @@ def test_biomni_results_focused_feedback_factorial_reuses_shared_inputs() -> Non
     )
 
 
-def test_only_current_tier_configs_exist() -> None:
+def test_only_registered_experiment_configs_exist() -> None:
     assert {
         path.name for path in EXPERIMENTS.glob("*.yaml")
     } == {
+        "biomnibench-dev-baseline-da11.yaml",
+        "biomnibench-dev-exposure-da-11-1.yaml",
+        "biomnibench-dev-exposure-da-3-4.yaml",
+        "biomnibench-dev3-isolation-cachefix-smoke.yaml",
+        "biomnibench-dev3-isolation-readers-smoke.yaml",
+        "biomnibench-dev3-isolation-smoke.yaml",
+        "biomnibench-static-neutral-control-da-11-1.yaml",
+        "biomnibench-static-neutral-control-da-3-4.yaml",
+        "biomnibench-static-neutral-neutral-da-11-1.yaml",
+        "biomnibench-static-neutral-neutral-da-3-4.yaml",
         "biomnibench-dev3.yaml",
         "biomnibench-results20.yaml",
         "biomnibench-results20-user-simulator-full.yaml",
