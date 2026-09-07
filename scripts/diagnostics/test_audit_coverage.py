@@ -8,8 +8,8 @@ from unittest.mock import patch
 from check_audit_coverage import check, check_semantic_records
 
 REPO = Path(__file__).resolve().parents[2]
-STUDY = REPO / "runs/preflights/provider-availability-v7/biomnibench-da-factorial-r3-b07888ff76df"
-AUDIT = REPO / "runs/preflight-detections/provider-availability-v7/biomnibench-da-factorial-r3-b07888ff76df"
+STUDY = REPO / "runs/biomnibench-redteam-2026-09-05/acceptance/study"
+AUDIT = REPO / "runs/biomnibench-redteam-2026-09-05/acceptance/audit"
 STAGES = ("rubric_score", "absolute_score", "pairwise_preference")
 
 

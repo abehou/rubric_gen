@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+from artifact_locations import recorded_root, verify_location
 
 MODELS = {"gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash"}
 WINDOWS = ("full_trajectory", "post_update", "final_artifact", "final_revision")
@@ -34,6 +35,7 @@ def check_semantic_records(root: Path, name: str, summary: dict) -> None:
     paths = list((root / "records").glob("*.json"))
     assert {p.stem for p in paths} == set(expected), name
     saved = {}
+    original_root = recorded_root(root.parent) / name
     for key, job in expected.items():
         assert key and Path(key).name == key and key not in {".", ".."}, key
         path = _regular_within(root, root / "records" / f"{key}.json")
@@ -44,8 +46,10 @@ def check_semantic_records(root: Path, name: str, summary: dict) -> None:
             for field in ("grading_identity", "answer_input_sha256", "review_input_sha256",
                           "rubric_sha256", "submission_content_sha256", "task_instruction_sha256"):
                 assert raw[field] == job[field], (name, key, field)
-            evaluation = json.loads(_regular_within(root, Path(raw["evaluation_path"])).read_text())
-            validation = json.loads(_regular_within(root, Path(raw["validation_path"])).read_text())
+            evaluation_path = root / Path(raw["evaluation_path"]).relative_to(original_root)
+            validation_path = root / Path(raw["validation_path"]).relative_to(original_root)
+            evaluation = json.loads(_regular_within(root, evaluation_path).read_text())
+            validation = json.loads(_regular_within(root, validation_path).read_text())
             assert raw["score"] == validation["score"] == evaluation["total_score"], (name, key)
             for field, value in raw["grading_identity"].items():
                 assert validation[field] == value, (name, key, field)
@@ -65,26 +69,49 @@ def check_semantic_records(root: Path, name: str, summary: dict) -> None:
             assert record[field] == raw[field], (name, record["judgment_key"], field)
 
 
-def check(study: Path, audit: Path):
+def source_records(study: Path):
     ledger = json.loads((study / "study.json").read_text())
-    assignments = ledger["records"]
+    if "execution_conditions" not in ledger:
+        return ledger["records"]
+    # Scoped collections retain the entire original ledger. Bind the declared
+    # population to the explicit source config, never infer it from successes.
+    from rubric_gen.submission_revision.experiment import load_experiment
+    from rubric_gen.submission_revision.execution_scope import terminal_records
+    experiment = load_experiment(Path(ledger["experiment_path"]))
+    assert experiment.experiment_id == ledger["experiment_id"]
+    return terminal_records(experiment, ledger)
+
+
+def check(study: Path, audit: Path, *, expected_models=None):
+    panel = MODELS if expected_models is None else set(expected_models)
+    assert panel and panel <= MODELS
+    verify_location(study)
+    verify_location(audit)
+    original_study = recorded_root(study)
+    ledger = json.loads((study / "study.json").read_text())
+    assignments = source_records(study)
     assert assignments and all(r["status"] == "completed" for r in assignments)
     ids = {r["assignment_id"] for r in assignments}
     assert len(ids) == len(assignments)
-    paths = {str((study / r["experiment_dir"]).resolve()) for r in assignments}
-    result = {"assignment_count": len(ids), "stages": {}, "semantic_judgments": 0}
+    paths = set()
+    for record in assignments:
+        relative = Path(record['experiment_dir'])
+        assert not relative.is_absolute() and '..' not in relative.parts
+        paths.add(str(original_study / relative))
+    result = {"assignment_count": len(ids), "stages": {}, "semantic_judgments": 0,
+              "audited_models": sorted(panel), "deferred_models": sorted(MODELS - panel)}
     for window in WINDOWS:
         name = f"direct_{window}"
         summaries = list((audit / name / "evaluations").glob("*/summary.json"))
         assert len(summaries) == 1, (name, "missing or ambiguous summary")
         summary = json.loads(summaries[0].read_text())
-        assert set(summary["models"]) == MODELS
+        assert set(summary["models"]) == panel
         assert summary["source"]["window"] == window
         assert summary["primary_rule"] == "any_detect"
         records = summary["records"]
         assert all(r["status"] in {"completed", "skipped"} for r in records), name
         observed = [(r["source_path"], r["model"]) for r in records]
-        expected = {(p, m) for p in paths for m in MODELS}
+        expected = {(p, m) for p in paths for m in panel}
         assert len(observed) == len(expected) and set(observed) == expected, name
         for record in records:
             # Current resume summaries mark validated cached successes "skipped";
@@ -104,8 +131,8 @@ def check(study: Path, audit: Path):
     for name in ("rubric_score", "absolute_score", "pairwise_preference"):
         summary = json.loads((audit / name / "summary.json").read_text())
         assert summary["status"] == "completed", name
-        assert Path(summary["study_dir"]).resolve() == study.resolve(), name
-        assert set(summary["models"]) == MODELS
+        assert Path(summary["study_dir"]) == original_study, name
+        assert set(summary["models"]) == panel
         assert not summary["missing_models"] and not summary["judge_failures"], name
         assert summary["failed_semantic_judgment_count"] == 0, name
         planned = summary["planned_semantic_judgment_count"]
@@ -113,11 +140,16 @@ def check(study: Path, audit: Path):
         assert planned == summary["used_semantic_judgment_count"], name
         assert summary["assignment_coverage"]["excluded_assignment_count"] == 0, name
         assert summary["assignment_coverage"]["evaluated_assignment_count"] == len(ids), name
+        if "execution_conditions" in ledger:
+            coverage = summary["assignment_coverage"]
+            assert coverage["execution_conditions"] == ledger["execution_conditions"], name
+            assert coverage["full_ledger_assignment_count"] == len(ledger["records"]), name
+            assert coverage["out_of_scope_assignment_count"] == len(ledger["records"]) - len(ids), name
         assert {a["assignment_id"] for a in summary["assignments"]} == ids, name
         by_assignment = {aid: set() for aid in ids}
         for record in summary["records"]:
             by_assignment[record["assignment_id"]].add(record["model"])
-        assert all(models == MODELS for models in by_assignment.values()), name
+        assert all(models == panel for models in by_assignment.values()), name
         check_semantic_records(audit / name, name, summary)
         result["stages"][name] = {"judgments": planned, "missing_models": []}
         result["semantic_judgments"] += planned

@@ -684,7 +684,10 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             seed_replicates=self.config.elicitation_seed_replicates,
             blinding_scope=pretreatment_blinding_scope(
-                self.config.experiment_id,
+                _read_json_object(
+                    self.config.pretreatment_rubric_dir / "pretreatment.json",
+                    "pre-treatment scope",
+                )["experiment_id"],
                 self.task_dir.name,
                 self.initial_generation.rubric.content_sha256,
                 self.development_rubric.content_sha256,

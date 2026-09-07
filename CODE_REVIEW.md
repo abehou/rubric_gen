@@ -117,4 +117,28 @@
 
 ## 2026-09-06
 
+- **18:09 CST** — Completed-revision validation raised a trajectory SHA mismatch without recording the affected path, expected/actual digests or before/after file signatures; a subsequent independent scan matches all 1,503 stored trajectory hashes. This diagnostic gap prevents attributing the transient mismatch; retain strict checks and add contextual evidence at a safe implementation boundary if reproduced, without changing saved hashes.
+- **14:21 CST** — Full local regression found three failures outside the scoped BioMNIBench changes: a fake Codex server cannot bind its Unix socket under the sandbox, MALT marker validation first hits missing `BULK`, and a Podman test expects a runtime-directory substitution that does not occur. Scope/config fixture mismatches were corrected separately; do not claim the entire repository suite is green or weaken unrelated runtime checks to satisfy these tests.
+
+- **13:56 CST** — The stable reviewed-artifact guard raised `SystemExit` on a formal `trace.md` read, but its error omits the differing before/after stat signatures (device/inode/mode/size/mtime/ctime); later snapshot and production-reader checks pass, preventing attribution to content changes versus metadata/inode changes. Retain strict validation and improve diagnostic evidence only at a safe version boundary; the observed hidden flag alone does not establish the actor or cause.
+
+- **12:55 CST** — Added explicit `pretreatment_source` provenance to current experiment configuration, with source identity/input checks, sealed-generation replay, no-overwrite copy, and preserved blinding scope in online generation/replay. Focused suites pass (185 tests) and all 20 production source rubrics validate without provider calls; live acceptance is still needed before claiming the new cross-study execution path works end to end.
+
+- **12:46 CST** — Expansion checks caught earlier cleanup-generated YAML paths ending in `study`/`audit`, violating the CLI requirement that revision/detection paths end in `{experiment_id}`; corrected those future destinations without changing semantic identities or completed artifacts. Full/focused revision protocols and overlapping conditions match, but experiment identity also binds pre-treatment blinding/provenance, so reuse cannot be implemented by copying or relabeling old study records.
+
+- **09:58 CST** — Rechecked the implemented agent-guidance audit against the current official Astra/AGENTS/skills pages: instruction-level changes are present, but native `.agents/skills` discovery and measured Astra performance gains are not established. Moved private diagnostics to `scripts/diagnostics/` with current readers/tests retaining their repository-root resolution; historical incident helpers are explicitly not current resume commands.
+
+- **09:24 CST** — Cleanup exposed a portability constraint: completed direct summaries bind original assignment paths, semantic summaries bind the original study root, and rubric records contain absolute evaluation/validation paths that the private completion gate reads directly. A descriptive directory rename therefore needs an explicit, tested relocation-aware offline reader with byte-preservation checks; do not rewrite saved paths/hashes or weaken the existing gate merely to make a moved dataset pass.
+- **09:39 CST** — Resolved offline analysis relocation with explicit original-root receipts and complete file inventories, retaining raw identity/hash validation; 12 tests plus 11 subtests pass and formal analysis is exactly unchanged except root locations. This deliberately does not add production resume portability; raw artifacts remain unmodified and future YAML outputs are separate from the completed dataset.
+
 - **01:05 CST** — Serial full-trajectory recovery reproduces the preparation-before-cache issue on four already successful case/model pairs (Claude revisions 000013/000228, Sol 000128/000161): all have attempt count 0 and intact completed score files, but are marked failed in the new summary. Preserve those bytes and the 710-raw/706-summary distinction; this confirms the previously logged recovery-ordering concern without authorizing fabricated summary repair or a hot change to frozen runtime code.
+
+## 2026-09-06 — OpenAI-only reporting
+
+- **22:56 CST** — Added a private offline reader for a complete OpenAI subset of the paused two-model panel, preserving the existing strict full-panel gate and all production summaries. Verified all consumed historical input hashes, raw current records, exact cohort partition, unchanged source JSON and agreement with published red-team rows; whole-archive hydration remains outside the completed input-specific check.
+
+## 2026-09-07
+
+- 09:38 CST: Resolved stale completion claims in the private OpenAI report generator: reporting now requires fresh full-cohort and two-provider coverage gates, refreshes provenance hashes, and describes the completed Anthropic panel accurately. Runtime and scoring definitions are unchanged.
+
+- 00:29 CST: Resolved the operational Gemini launcher’s overbroad HTTP-429 cooldown classification in a new `provenance/gemini/resume-bounded-billing-aware.py`: explicit depleted prepaid credit now stops before another executor retry, while temporary quota errors retain cooldown. Four focused classifier checks pass; the historical launcher and scoring source remain unchanged, and the new launcher has not been run against the provider.

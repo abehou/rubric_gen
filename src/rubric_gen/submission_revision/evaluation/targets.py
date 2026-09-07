@@ -31,6 +31,7 @@ from rubric_gen.submission_revision.rubric_generation_store import (
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 from rubric_gen.submission_revision.seeds import seed_generator_identity
 from rubric_gen.submission_revision.assignments import ExperimentAssignment
+from rubric_gen.submission_revision.execution_scope import terminal_records
 
 def load_evaluation_targets(
     config: EvaluationConfig,
@@ -40,7 +41,7 @@ def load_evaluation_targets(
     study_experiment_id = study.get("experiment_id")
     if (
         study.get("kind") != "rubric-gen-randomized-revision-study"
-        or study.get("status") not in {"completed", "failed"}
+        or study.get("status") not in {"completed", "failed", "completed_scope", "failed_scope"}
         or type(study_experiment_id) is not str
         or not study_experiment_id
         or study.get("experiment_path") != str(config.experiment.path)
@@ -61,9 +62,11 @@ def load_evaluation_targets(
     }
     if len(records) != len(raw_records) or set(records) != assignment_ids:
         raise RuntimeError("evaluation source study ledger differs from the experiment")
+    selected_records = terminal_records(config.experiment, study)
+    selected_ids = {r["assignment_id"] for r in selected_records}
     if any(
         record.get("status") not in {"completed", "failed", "invalid"}
-        for record in records.values()
+        for record in selected_records
     ):
         raise RuntimeError(
             "revision evaluation requires every source assignment to be terminal"
@@ -71,7 +74,8 @@ def load_evaluation_targets(
     assignments = tuple(
         assignment
         for assignment in configured_assignments
-        if records[assignment.assignment_id].get("status") == "completed"
+        if assignment.assignment_id in selected_ids
+        and records[assignment.assignment_id].get("status") == "completed"
     )
     if not assignments:
         raise RuntimeError("revision evaluation has no completed assignments")

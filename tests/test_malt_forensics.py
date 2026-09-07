@@ -400,6 +400,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
 
     class FakeExperiment:
         experiment_id = "detection-experiment"
+        execution_conditions = None
         path = (tmp_path / "experiment.yaml").resolve()
         tasks_dir = tasks
         outcome_audit = outcome_audit_protocol(

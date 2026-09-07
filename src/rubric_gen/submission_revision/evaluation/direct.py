@@ -13,6 +13,7 @@ from rubric_gen.submission_revision.detection_windows import RevisionDetectionWi
 from rubric_gen.submission_revision.evaluation.evidence import revision_detection_source
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.study_layout import resolve_study_experiment
+from rubric_gen.submission_revision.execution_scope import terminal_records
 
 
 @dataclass(frozen=True)
@@ -49,7 +50,7 @@ def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionSt
         raise ValueError(f"invalid randomized benchmark study: {source}") from exc
     if (
         study.get("kind") != "rubric-gen-randomized-revision-study"
-        or study.get("status") not in {"completed", "failed"}
+        or study.get("status") not in {"completed", "failed", "completed_scope", "failed_scope"}
         or type(study.get("experiment_path")) is not str
         or type(study.get("experiment_id")) is not str
         or type(study.get("seed_run_dir")) is not str
@@ -74,7 +75,7 @@ def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionSt
         raise ValueError(f"benchmark study ledger differs from its experiment: {source}")
 
     revisions: list[Path] = []
-    for record in records:
+    for record in terminal_records(experiment, study):
         status = record.get("status")
         if status not in {"completed", "failed", "invalid"}:
             raise ValueError(

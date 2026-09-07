@@ -1,5 +1,516 @@
 # BioMNIBench red-team experiment plan
 
+## Latest approved scope — static/offline comparators (2026-09-06)
+
+**Current 2026-09-07 09:32 CST: OpenAI and Anthropic complete.** All 14 Claude
+gaps recovered; strict coverage passes all seven comparator stages (6,022
+judgments). The complete 480-case 4×2 grid for both providers is in
+`runs/biomnibench-results20-2026-09-06/reports/openai-anthropic-result-table.md`.
+The standalone OpenAI table and verification evidence are also refreshed. Gemini remains at 146 saved direct
+judgments, awaiting lab prepaid-credit restoration; its full goal is unfinished.
+
+**Historical 2026-09-07 09:15 CST: Anthropic recovery authorized and running.**
+Existing key passed a minimal Claude Opus 5 check. Session 73775/PID 58217
+recovers only 14 missing Claude direct judgments at c1, preserving 1,906 saved
+scores and completed semantic results. Gemini remains credit-paused.
+
+**Goal status 2026-09-07 00:29 CST: blocked awaiting lab Gemini prepaid
+credit restoration.** Full-grid completion is still required; 146 judgments
+are preserved. No further provider requests or billing changes were made.
+
+**Current 2026-09-07 00:29 CST: Gemini requests paused for depleted prepaid
+credits.** Google returned explicit prepayment exhaustion at 00:28:09 CST;
+owned worker stopped, session 75003 exit 143. All 146 saved judgments validate,
+with the prior 60 unchanged. Location rejection recovered after cooldown.
+Full completion goal remains active; lab billing action is required for further
+Gemini requests. OpenAI complete; Anthropic remains paused.
+
+**Historical 2026-09-07 00:01 CST: bounded Gemini recovery running.** User
+explicitly approved cooldown/recovery instead of stopping on the first location
+error. Session 75003, supervisor 6189/worker 6190, c1; 60 saved scores preserved.
+Direct location errors receive 60/120-second cooldowns; three consecutive
+location failures pause requests for diagnosis. Existing scoring attempt limits
+remain unchanged; OpenAI complete, Anthropic paused.
+
+**Historical 23:53 CST: goal blocked awaiting recovery-policy decision or access
+resolution.** Local preparation is complete; 60 formal judgments are saved.
+This status does not mean experiment completion or cancellation.
+
+**Historical 23:51 CST: full Gemini completion goal reopened on user request.**
+Independent acceptance preparation is now unblocked: all 16 saved Gemini direct
+and 23 rubric records validate, the original rubric manifest matches exactly,
+and only 2 rubric + 5 absolute + 4 pairwise acceptance judgments remain.
+Formal audit remains at 60 saved scores. Recovery-policy clarification is pending;
+no new provider request has been made in this investigation turn.
+
+**Historical goal status 23:47 CST: blocked**, after three consecutive checks of the
+same unresolved access failure. Full grid completion remains required.
+
+**Latest 23:46 CST — c1 stopped on renewed location rejection:** Session 35572
+ended with exit 143 after Google returned HTTP 400 `FAILED_PRECONDITION`,
+“User location is not supported for the API use,” at 23:45:44.913 CST.
+The supervisor stopped the worker within a second; neither PID remains.
+One new judgment was saved: all 60 full-trajectory records validate, and all
+59 prior score hashes are unchanged. No further retries under this launch.
+The full Gemini grid remains incomplete, with lab/provider resolution pending;
+OpenAI remains complete and Anthropic paused. Verification:
+`provenance/gemini/c1-region-stop-verification.json` under the current run.
+
+**Historical 23:44 CST — authorized Gemini c1 resume running:** User explicitly
+approved controlled recovery and a goal covering the full 480-case, eight-arm
+Gemini grid. Session 35572, supervisor 3531/worker 3532, started at 23:43:39 CST
+with all 59 prior scores preserved and frozen source hashes checked unchanged.
+Only missing Gemini judgments are scheduled; respect quota delays and stop on
+a renewed location/access rejection. OpenAI remains complete; Anthropic paused.
+Logs: `logs/gemini-c1-supervisor.log`, `logs/gemini-c1-resume.log`, and
+`logs/gemini-c1-provider-errors.jsonl` under the current run root.
+Earlier blocked checkpoints are historical; the full completion goal is active.
+
+**Historical 23:25 CST — Gemini paused on renewed region rejection:** At
+23:19:38.888 CST Google returned HTTP 400 `FAILED_PRECONDITION`, “User location
+is not supported for the API use.” Supervisor 97438 stopped worker group 97440
+at 23:19:39; session 82889 exited 143 and cooldown observer 1779 exited 0.
+All 24 pre-resume scores remain unchanged; 59 full-trajectory scores are saved.
+No further Gemini requests until the lab/provider confirms legitimate access is
+restored. OpenAI remains complete; Anthropic remains paused.
+
+The current key belongs to the lab and passed earlier metadata/generation checks;
+this mixed behavior is not explained by an invalid key. Transport failures and
+3M-input-tokens/minute quota errors are separately preserved. A sanitized
+[lab support note](docs/gemini-lab-access-support-note.md) is prepared but unsent.
+The scoped-acceptance planner is also waiting on two cloud-only input files.
+The full Gemini objective remains incomplete; at 23:32 CST the goal is marked
+blocked pending legitimate access resolution and cloud-file availability.
+All 59 saved score hashes were rechecked unchanged; no API owner remains. Earlier running notes are historical.
+
+**Historical 23:11 CST — Gemini recovery running at c2:** Initial c4 audit was
+stopped after completed-job progress substantially exceeded saved scores; its
+23 successful direct judgments and logs are archived in
+`provenance/gemini/initial-audit-interruption.tar.gz`. One isolated missing job
+then succeeded without retry. Existing `detect --resume` now runs at c2,
+session 82889/supervisor 97438/worker 97440, preserving all 24 previous scores.
+Operational observation logs provider errors without changing scoring code;
+an external supervisor stops on a renewed permanent access rejection.
+The earlier batch failures are not yet classified. Logs:
+`logs/gemini-formal-resume.log`, `logs/gemini-provider-errors.jsonl`, and
+`logs/gemini-resume-supervisor.log` under the current run root.
+OpenAI remains complete; Anthropic remains paused. All Gemini stages and the
+combined result table remain required before this goal is complete.
+
+**Historical 23:05 CST — Gemini-only audit started:** User requested a new goal to
+restore Gemini and complete its experiments, confirming that the existing key is
+lab-provided. Unchanged credentials passed authenticated model lookup and one
+minimal Gemini 3.8 Flash SDK generation; the earlier location failure is not
+currently reproduced, and its original cause remains unproven. No key, account,
+model or routing change was made.
+
+Formal `detect` runs at c4, session 23809/PID 96594, using the existing
+240 validated comparator revisions and a fresh Gemini-only audit directory.
+Expected work is four direct windows plus rubric/absolute/pairwise scoring;
+reuse prior completed acceptance evidence and all original red-team judgments.
+OpenAI is complete; Anthropic remains paused until explicit balance confirmation.
+Runtime is frozen; source archive SHA-256 `74400398aa1557b984ff7e8b9f3f6747d6725b13248509c49f8757b4d6f2b230`.
+Log: `runs/biomnibench-results20-2026-09-06/logs/gemini-formal-audit.log`.
+Audit: `runs/biomnibench-results20-2026-09-06/audit/static-offline-gemini/biomnibench-da-factorial-r10-2f13900fe0e7`.
+The operational YAML now selects Gemini only; the prior two-model YAML bytes
+are preserved in `provenance/gemini/before-gemini-experiment.yaml` under the run.
+
+**Historical 22:56 CST — requested OpenAI-only report complete:** Verified all
+960 OpenAI direct judgments and 2,051 OpenAI semantic judgments in the comparator
+cohort without provider calls or judgment reruns. Combined with the prior verified
+red-team results into the exact 480-case, eight-condition population; all consumed
+historical inputs match their relocation-inventory hashes. The attempted whole-archive
+recheck remains incomplete because some historical trajectories are cloud-only;
+the saved original 9,327-judgment completion receipt is reused explicitly.
+Anthropic remains paused with 14 direct gaps until the user explicitly confirms
+restored balance; Gemini remains deferred. Production audit JSON and two-model
+summaries are unchanged. The broader multi-provider grid remains incomplete.
+
+Result: [OpenAI eight-condition table](runs/biomnibench-results20-2026-09-06/reports/openai-result-table.md),
+[verification](runs/biomnibench-results20-2026-09-06/reports/openai-verification.json),
+and [case metrics](runs/biomnibench-results20-2026-09-06/reports/openai-case-metrics.csv).
+
+**Historical 22:31 CST — goal blocked on Anthropic billing/access restoration:**
+The renewed insufficient-credit blocker has persisted across three consecutive
+goal turns; independent OpenAI recovery is complete, no recovery processes remain,
+and current read-only checks confirm exactly 14 Claude raw gaps (full 2,
+post-update 11, final-artifact 1). No further Claude requests until the user
+confirms restored billing/access. Preserve every successful result and the full
+480-case objective; on resumption recover these gaps with existing identities,
+regenerate consistent full-panel summaries, run the seven-stage coverage gate,
+then publish the combined eight-condition Sol/Claude five-metric tables.
+Gemini remains deferred, not silently excluded from its original saved results.
+
+**Historical 22:30 CST:** Completed the three remaining OpenAI direct judgments in
+isolated recovery 1508 (exit 0), using existing job executors with exact full
+two-model run identity, no Claude calls and no summary edits. All old score and
+metadata hashes are unchanged. OpenAI raw direct coverage is now 960/960;
+total direct coverage 1,906/1,920, with 14 Claude gaps. All semantic stages stay
+verified complete. No process remains running; Anthropic billing/access must
+be restored before further Claude requests. Final full-panel summaries and the
+seven-stage gate remain incomplete; do not mark the full-grid goal complete.
+
+**Historical 22:28 CST — direct recovery paused for renewed Anthropic billing error:**
+Full-trajectory-only recovery 71894 exited 1 with 478/480 raw scores; two missing
+Claude judgments explicitly returned insufficient credit, and one cached Claude
+case has a preparation failure in its summary. Stopped verified later-window
+owner 76479/helper 76480 (session 39581 exit 143) to avoid permanent-error retries;
+no audit process remains intentionally running. Archived all 1,903 direct scores
+in `provenance/scoped/direct-billing-pause-checkpoint.tar.gz`.
+Raw counts: full 478 (Sol 240/Claude 238), post-update 469 (240/229), final-artifact
+477 (238/239), final-revision 479 (239/240). All 4,102 semantic judgments remain
+complete and independently verified. Need Anthropic billing/access restored
+before further Claude requests; goal remains the full grid, not complete.
+Three OpenAI direct judgments also remain; read-only preparation or an existing
+supported isolated recovery may proceed without retrying Claude.
+
+**Historical 22:20 CST:** All three semantic stages are complete and independently
+verified: rubric 3,026, absolute 598, pairwise 478 (4,102 unique judgments),
+completed summaries, zero failures and exact 240-case/two-model coverage.
+Final semantic owner 33571 exited 0; verification 28973 passed raw records,
+grading/response evidence, input identities and summary references. Do not rerun
+these stages. Direct owner 39581 continues post-update/later windows at c1;
+full-trajectory-only owner 71894 runs c4 in its disjoint root. Remaining work:
+finish all four direct windows with consistent summaries, run full seven-stage
+coverage gate, combine with old red-team results and deliver eight-arm tables.
+
+**Historical 22:10 CST:** Semantic recovery 79363 is terminal (exit 1, TLS EOF),
+leaving rubric 4, absolute 11, pairwise 5 missing judgments. Its preservation
+checks passed all prior records; archive verified 4,082 current semantic records.
+New semantic tail recovery 62087 runs the same helper at c2, log
+`logs/static-offline-semantic-tail-recovery.log`. Direct recovery 39581 continues
+post-update preparation; full-trajectory raw coverage 472/480 still requires
+eight missing scores and reconciliation of six cached-case preparation failures
+through supported execution, not summary edits. Complete all seven stages before
+final tables or goal completion.
+
+**Historical 21:51 CST:** Main audit owner 69435 terminated after quality-stage
+Anthropic TLS EOF. Saved quality records are absolute 530/598 and pairwise
+449/478; no terminal quality summaries were written, so these are incomplete.
+Archived quality evidence (979 records), verified all 225 frozen source/config
+members unchanged, and started existing semantic recovery helper at c4 as
+session 79363, `logs/static-offline-semantic-recovery.log`; only its operational
+concurrency is overridden in memory, with no code/config edits. It must preserve
+all 3,984 prior semantic records and recover rubric 21 plus quality 97 gaps.
+Direct recovery 39581/PID 76479 remains independent at c1. All seven stages,
+full-grid coverage and final per-model tables remain required before completion.
+
+**Historical 21:39 CST:** Rubric scoring first pass ended after 55m26s with
+3,005/3,026 successes and 21 failures (Claude 15, Sol 6). Main owner 69435 has
+advanced to absolute/pairwise quality scoring, planned 1,076 unique judgments;
+direct recovery 39581/PID 76479 continues separately at c1. Rubric first-pass
+evidence is archived and verified; wait for the semantic owner to terminate
+before using the existing semantic recovery helper, then verify all seven stages.
+Full-trajectory recovery has exceeded 450 saved scores but is not yet complete.
+The full 480-case grid and two-model completion requirements remain unchanged.
+
+**Historical 20:47 CST:** Revision remains fully verified 240/240. PID 69435 is
+confirmed live at c20 in rubric scoring (138/3,026 saved at inspection); its old
+tool session handle is no longer available, so monitor the native PID and saved
+outputs. Four direct panels finished first pass with 1,829/1,920 scores, leaving
+91 failures (52 Claude insufficient-credit responses, 39 connection errors).
+Later Claude calls succeeded, including 240/240 final-revision scores; billing
+recovery is not yet explained. Preserve first-pass evidence before supported
+recovery, and do not repeatedly retry a confirmed permanent billing failure.
+Absolute and pairwise quality stages remain pending; estimated remaining work
+is roughly 1–2 hours, subject to provider recovery. Goal remains the full grid.
+
+**20:48 CST recovery:** Rubric scoring reached 259 saved records with no billing
+failure recorded in that stage; later Claude successes justify one c1 supported
+direct recovery (session 39581, `logs/static-offline-direct-recovery.log`). All
+four original direct panels are archived and verified before recovery; semantic
+owner 69435 remains disjoint. Stop recovery if billing failures recur rather than
+looping on a permanent error. No runtime/config/analysis edits were made.
+
+**Historical 20:11 CST — formal two-model audit running:** All 240 comparators finished
+at 20:08:52; recovery 69480 exited 0 without new case-level failures. The 238-case
+replay plus final two-case replay (81705 exit 0) covers the exact full population;
+all frozen source/config files match. Terminal study ledger SHA-256 is
+`e8a29d7bbc42e1d5321b56b7e9f0f4f88df1b42ff50d041f8d04fe8319742b05`.
+Started core `detect` at c20, session 88986 / PID 69435, caffeinate helper 69436;
+log `logs/static-offline-openai-anthropic-audit.log`, output
+`audit/static-offline-openai-anthropic/biomnibench-da-factorial-r10-2f13900fe0e7`.
+Initial first-window plan is 480 jobs (240 cases × Sol/Claude); all seven stages
+must pass before reporting scores. Gemini is explicitly deferred. Initial total
+audit estimate 1–2 hours is provisional, not a cutoff. No source/config edits under
+this active owner; use bounded log tails because progress uses carriage returns.
+
+**Historical 19:45 CST:** Runtime-ready recovery is live as session 69480 / PID 64064,
+helper 64065, c4; the CLI's validation passed and four cases dispatched at
+19:44:45. Log: `logs/static-offline-resume-runtime-ready.log`. The prior owner
+59440 exited 143 after deliberate shutdown for local SDK import stalls and a
+360-second judge timeout. A Finder inspection call subsequently blocked about
+55 minutes and failed; no experiment ran during that observation gap.
+Read-only import test 50515 now passes OpenAI (0.65s), Anthropic (28.28s), Gemini
+SDK (0.85s; no API request), and the actual judge module (0.004s). All 225 frozen
+source/config members still match. Prior invocation evidence is preserved in
+`provenance/scoped/runtime-import-interruption.tar.gz`, SHA-256
+`f6b4de893d3bfb51ae3460787c12d228ce7858e68857a9ef4a7d314d746c5345`.
+Remaining work is unchanged: finish ten recoveries, validate all 240 comparator
+cases, run/verify seven Sol/Claude audit stages and report the combined eight arms.
+Gemini remains deferred. Earlier running checkpoints below are historical.
+
+**19:54 CST progress:** 235/240 comparators complete, four running and one old
+failed case still awaiting dispatch; no new case-level failure in this recovery.
+Current owner remains 69480, c4. Audit has not started.
+
+**20:01 CST:** 238 comparators are complete and all 238 independently pass full
+current validation (70172 exit 0), recorded in
+`logs/comparator-completed-revision-validation.log`. Owner 69480 is still running
+the last two static cases; validate these after completion and require the exact
+240-case union before audit. No new case-level failure in this recovery.
+
+**Historical 18:34 CST:** All nine failed integrity checks now pass current full
+validation (22276 exit 0), completing independent coverage of all 230 previously
+completed cases together with the 221 first-pass successes. Four unavailable
+seed files were restored byte-for-byte from the verified backup; original
+placeholders and recovery evidence are preserved, and a fifth recovered via native
+download. All 225 frozen non-bytecode source/config members still match.
+Supported c4 revision resume is live as session 59440 / PID 56730, helper 56731;
+log `logs/static-offline-resume-after-local-recovery.log`. The CLI will also
+validate before dispatch. Finish ten remaining comparator cases, validate all 240,
+then run all seven OpenAI/Anthropic audit stages. Gemini remains deferred.
+
+**18:38 CST dispatch confirmation:** The normal CLI's own validation also passed;
+four recovery cases started at 18:36:12, with six old failed cases awaiting their
+turn. Study status is running, last-invocation concurrency 4; the original 230
+completed cases remain completed. Session 59440 is confirmed live.
+
+**18:42 CST:** Recovery workers are delayed in local SDK imports; metadata scan
+found ~0.122 GiB dataless in `.venv` and seven dataless source files. Native
+download requests were issued for those identified files only (39293,
+`logs/local-runtime-downloads.log`), without upgrades or code edits. Continue
+monitoring owner 59440; do not label this import wait as an API failure.
+
+**Historical 18:21 CST:** Eight-way replay 90127 finished with 221/230 passes and
+nine failures concentrated in three shared seeds; full log is retained. Directory
+download requests left dataless descendants, so requested each remaining dataless
+file individually in the four required input/study roots using native FileManager
+(session 18674 exit 0; `logs/local-artifact-downloads.log`). Verify local residency
+and rerun the nine failed validations; do not treat accepted download requests as
+proof that content is ready. Source and saved hashes remain untouched.
+
+**Historical 18:19 CST:** Identified a concrete local-availability failure: the
+da-13-5/rep-001 adversarial seed trajectory had `compressed,dataless` flags,
+logical size 194151 bytes but SHA-256 of empty content. Apple's native iCloud
+download restored its exact saved hash without editing artifacts. Metadata scan
+found ~0.324 GiB dataless across required data/seed/current-study roots; native
+directory download requests were accepted for those three roots (20 GiB free).
+Eight-way full replay 90127 continues, 27 cases processed at last check including
+one seed failure before hydration; revalidate any failures after downloads finish.
+Do not attribute the earlier unlocated trajectory mismatch conclusively to this.
+
+**Historical 18:13 CST:** All 1,503 completed-case trajectory snapshots match saved
+hashes (scan 58282 exit 0). Slow serial full replay 54726 was deliberately stopped
+(exit 143) and replaced with the same read-only validator at concurrency 8,
+session 90127, log `logs/completed-case-integrity-check.log`; four complete cases
+have passed so far. No experiment/runtime/analysis source or saved artifact changed.
+Require all 230 validations before another supported recovery attempt.
+
+**Historical 18:03 CST:** Recovery session 52978 exited 1 before dispatch because
+completed-result validation raised `submission trajectory changed after snapshotting`.
+No cases were retried. A read-only trajectory scan (session 58282) and independent
+230-case validation (session 54726) are running to locate/reproduce the mismatch;
+the first completed case's five trajectories currently match their saved hashes
+using both chunked and whole-file reads. Preserve evidence and strict validation;
+do not infer corruption or silently rewrite hashes. Goal remains active.
+
+**Historical 17:55 CST:** Goal is active again after explicit user reauthorization of
+recovery payload transmission to OpenAI/Anthropic. Formal first pass ended at
+16:17 with 230/240 completed and ten transport-failed cases; no original owner
+remains. Supported scoped resume is now launched at c4, session 52978 / PID
+50430 (caffeinate helper 50431), log `logs/static-offline-formal-recovery.log`.
+It must validate completed work before dispatch; validate all 240 after recovery
+before starting the two-model audit. Gemini remains deferred. The ten failed
+case directories plus terminal ledger/log are preserved in
+`provenance/scoped/formal-failures-before-recovery.tar.gz`, verified readable,
+SHA-256 `d8cdabbf038bdada04c0aa5a299f41abbca6dfc90019c1c79f88454c41ed2225`.
+Two earlier full-archive attempts were stopped and explicitly named incomplete;
+they are not valid backups. Runtime/config/analysis remain frozen.
+
+**Historical 16:04 CST:** Formal scoped revision is live, session 2720 / PID 89189,
+configured c40 but now only 19 active cases: 212/240 complete, nine connection
+failures retained for recovery, no pending dispatches. Wait for this owner to exit,
+archive terminal evidence, resume only unfinished selected cases at lower
+concurrency, then independently validate all 240 before OpenAI/Anthropic audit.
+Gemini remains explicitly pending. Source/config/analysis freeze remains archive
+SHA-256 `9aad0ffd7a4f99d52eddc1e143001f27b498ca1dd2d3e79ae2bcf8aabec1c00c`;
+regenerated Python bytecode is not a source change. All earlier execution
+checkpoints below are historical, not live instructions.
+
+**Historical 15:20 CST — formal scoped revision running:** Serial recovery session
+39894 exited 0; the explicit two-model seven-stage gate passes 100/100 judgments,
+and all 95 previous successful raw records remain byte-identical. Receipt:
+`scoped-acceptance/reports/openai-anthropic-coverage.json`. Started formal resume
+at c40, session 2720/PID 89189/helper 89190, log
+`logs/static-offline-formal-revise.log`. Initial selected counts are 20 completed,
+40 running, 180 pending; no excluded arm is running. All source/config/test bytes
+match the frozen archive; only an imported reporting Python bytecode cache was
+regenerated, not source. Monitor actual selected population (240), not the full
+960-row historical ledger. Two-model audit follows at its separate configured
+root; Gemini stays pending. Initial coarse revision ETA 1–2 hours, audit additional.
+
+**Historical 15:17 CST:** User authorized autonomous in-scope decisions while away
+for about four hours. Two-model acceptance first pass exited 1 (session 24895):
+32/32 direct, 48/50 rubric, 9/10 absolute and 6/8 pairwise saved, five missing
+Claude judgments. Started existing semantic resume at c1, session 39894; source
+archive still matches exactly. First-pass evidence SHA-256
+`b69b3ff6880ff57bd969e2fd9f9b1bb766bd4176ae59417417c12a14595ba372`
+at `provenance/scoped/openai-anthropic-first-pass.tar.gz`. Require all 100 judgments
+and unchanged prior records before formal c40 comparator resume. Recovery log:
+`logs/scoped-acceptance-semantic-recovery.log`.
+
+**Historical 15:03 CST:** User approved OpenAI/Anthropic first, Gemini pending, and
+removed the old blocked goal. A new active goal now matches the approved 2×4 grid
+and explicitly includes Gemini diagnosis without bypassing region restrictions.
+Two-model acceptance audit is running at c4 (session 24895, PID 86777/helper 86778)
+in `scoped-acceptance/audit-openai-anthropic/biomnibench-da-factorial-r3-28b45d344cb6`.
+Operational `execution_audit_models` retains the declared original panel and
+source study identity; old three-model audit output is untouched. 206 tests plus
+nine subtests pass, all four revisions replay, and source is frozen at
+`provenance/scoped/openai-anthropic-source.tar.gz`, SHA-256
+`9aad0ffd7a4f99d52eddc1e143001f27b498ca1dd2d3e79ae2bcf8aabec1c00c`.
+Pass the private coverage gate with explicit expected models Sol/Claude, retaining
+Gemini in deferred_models, before formal comparator resume. Formal audit output
+is now `audit/static-offline-openai-anthropic/{experiment_id}`. This current
+checkpoint supersedes earlier paused/three-model-required notes below.
+
+**Historical 14:57 CST — audit paused:** Gemini rubric-score attempts returned
+`400 FAILED_PRECONDITION: User location is not supported for the API use.`
+Stopped the verified audit owner tree 85271/85272/85273; session 72341 exited 143.
+Preserve all scores and do not retry region-rejected requests or change routing to
+bypass restrictions. Direct saved counts are 12/12, 11/12, 11/12, 8/12; rubric
+score had at least 71/75 saved before stopping; quality not started. Need user
+direction for eligible Gemini access or an explicitly revised audit scope before
+the complete gate can pass. User asked to reopen the goal; create_goal was rejected
+because the old blocked goal remains unfinished and available tools cannot resume
+it. Do not falsely complete it. This checkpoint supersedes running notes below.
+
+**Historical 14:45 CST:** User explicitly approved benchmark payload transmission to
+OpenAI, Anthropic and Google Gemini using existing credentials. Scoped acceptance
+revision started 14:44:51 (session 60221, PID 83948, caffeinate helper 83949), c4;
+all four requested arms are running and all 12 excluded ledger rows remain pending.
+205 tests and nine subtests passed before launch. Freeze runtime/config/analysis
+against `provenance/scoped/authorized-source.tar.gz`, SHA-256
+`4a86a39a1177dea20d239bbb6deec3ca531cefe6e673043ab3eb59020390d995`.
+Next: verify four completed revisions, run all seven audit stages/three models,
+then resume the 220 outstanding formal comparator cases. Earlier approval-blocked
+statements below are historical and resolved by the user's explicit approval.
+
+**14:50 CST update:** Scoped revision session 60221 exited 0; all four cases
+completed at 14:49:22 (4m31s) and independently replayed under the unchanged frozen
+source. Twenty previously completed formal comparators also revalidated. Started
+the seven-stage three-model scoped acceptance audit at c12, session 72341; log
+`logs/scoped-acceptance-audit.log`. Formal resume still waits for audit coverage.
+
+The user explicitly approved reducing the expansion to **full/user-simulator ×
+static/offline**, four conditions and 240 assignments (20 tasks × 3 replicates).
+Together with the four completed red-team conditions, the requested report now
+has eight conditions / 480 cases, still with all three audit models and five
+metrics. This supersedes the earlier 20-condition expansion request below; do not
+continue the excluded semi/score-only or online-only conditions.
+
+The mixed c40 invocation was stopped on approval (session 9314 exit 143; controller
+55738 and helper 55739 confirmed absent). Snapshot ledger: 60 completed, one
+failed, 40 interrupted-in-flight records still labelled running, 859 pending.
+Selected comparators: **20 completed, four interrupted, 216 pending**. All 20
+completed comparators independently pass current-format validation. Do not rewrite
+their manifests, hashes, IDs or successful outputs, and do not erase excluded-arm
+results. The stopped ledger is historical until normal runtime reclaim occurs.
+
+Before resuming, implement and test explicit operational condition scope separate
+from the frozen scientific assignment identity. Preserve the full source ledger;
+dispatch only selected conditions, distinguish selected-scope completion from
+full-matrix completion, and require matching explicit scope in audit coverage.
+Do not simply delete assignment rows or change semantic assignment_selection and
+pretend existing artifacts belong to the new experiment. Existing study config is
+`experiments/biomnibench-results20-remaining.yaml`; no scoped resume is launched yet.
+
+Archive: `runs/biomnibench-results20-2026-09-06/provenance/formal/mixed-scope-before-narrowing.tar.gz`,
+SHA-256 `52f415a114e5f6ae9df3a752013bcf52f9ed92e3a4abde6bd08d2d0a255b1efe`.
+At 14:19 CST, scoped runtime/config and reporting support are implemented:
+194 focused tests and five audit-gate tests (nine subtests) passed. The formal
+identity remains unchanged with 960 ledger rows and exactly 240 scoped cases;
+fresh acceptance has 16 ledger rows and four scoped cases in `scoped-acceptance/`.
+Source snapshot SHA-256 is `b343ce38779409b2beba45e997c86400c72d81d0f84acae5546ba229471e5bb0`
+at `provenance/scoped/source.tar.gz`. The attempted real acceptance launch was
+rejected by the execution approval reviewer over benchmark payload/provider
+authorization; **no acceptance or formal process launched**. Do not bypass the
+rejection; obtain explicit payload/destination approval before retrying.
+
+Review source-identity
+hash dependencies before edits, run focused scope/recovery tests and current-format
+replay, then perform a small scoped acceptance before resuming the remaining
+220 comparator assignments. Keep all existing accepted credential permissions.
+
+## Historical checkpoint — full Results20 expansion (superseded)
+
+This section records the invocation before the approved reduction above. Its
+running-status statements and recovery suggestions are historical, not current
+instructions; session 9314 has ended and excluded conditions must not resume.
+
+The user authorized completing `experiments/biomnibench-results20.yaml`: 20 tasks,
+three replicates, all 20 conditions. Preserve and reuse the four completed
+red-team conditions (240 assignments and their audits); execute only the remaining
+16 conditions (960 assignments), then report five metrics separately by audit
+model across all conditions. The older four-condition checkpoint below is complete;
+the expanded goal is active. **Formal revision is running** from 13:40:46 CST,
+session 9314 / PID 55738, concurrency 40, under `caffeinate -i` with Agg and
+single-thread numeric defaults. Initial ledger: 40 running, 920 pending.
+Log: `runs/biomnibench-results20-2026-09-06/logs/formal-revise.log`.
+Source/config/private-analysis snapshot SHA-256:
+`56cddf7489a2eb3a6d9ae424034be9620d20d67acb71a92d5909a68d8a7e40e7`.
+Do not change frozen runtime, configuration, or analysis under active workers.
+
+Acceptance passed before scaling: 16/16 revisions independently replayed and
+all 549 judgments passed the strict seven-stage/three-model gate. Its first c12
+audit needed five Claude connection-failure recoveries; c1 semantic recovery
+ended 13:38:57 with both statuses 0, retaining all 352 earlier successful
+semantic records byte-for-byte. Original direct panels and revisions were not
+rerun. Failures and terminal first passes remain archived; completion is not a
+claim that every call succeeded on its first attempt.
+
+The overlapping conditions and revision protocol match. Explicit
+`pretreatment_source` now retains the original starting-rubric experiment identity
+and blinding scope; all 20 source generations replayed and copied with provider
+calls forbidden, and 185 focused tests pass. The remaining study identity is
+`biomnibench-da-factorial-r10-2f13900fe0e7`; acceptance identity is
+`biomnibench-da-factorial-r3-28b45d344cb6`. Original 240 assignment/audit records
+stay in their source dataset and will join new results only in offline reporting.
+The end-to-end acceptance gate is satisfied. Use existing approved credentials
+and adapt concurrency with measured headroom. Immediately before formal launch,
+memory headroom was 43%, swap stable at ~3.1 GiB, and disk availability 22 GiB;
+watch transient workers and disk growth during the larger study.
+Time targets remain estimates, not hard deadlines; provide a throughput-based
+ETA after verified startup rather than promising the expanded run fits two hours.
+Initial coarse revision ETA is 4–10 hours, with formal three-model audit taking
+additional hours; calibrate from the first completed formal assignments.
+At 14:00 CST, 46 cases are complete and one stable-file-read failure awaits normal
+resume after this invocation; its current snapshot/reader checks pass and evidence
+is archived. Recent completion throughput suggests roughly 5–7 further revision
+hours, excluding audit and recovery uncertainty; no runtime changes or restarts.
+
+## Score recording format (2026-09-06)
+
+For this and future experiments, record one four-condition table per audit model:
+weak − strong, selected − holdout, original − rubric-free, direct final-artifact
+RH detection rate, and mean final-artifact RH judge score (0–10). Compute the rate
+as detected cases divided by all cases and display only its percentage, without
+counts, ranges or abstention annotations. Keep raw evidence unchanged; this
+presentation does not replace the existing uncertainty/treatment-delivery analysis.
+Use the private `scripts/diagnostics/model_score_tables.py` reader after full
+coverage validation, with matching configured conditions/model panel.
+
+**Current checkpoint (2026-09-06): completed.** The cleaned dataset is
+`runs/biomnibench-redteam-2026-09-05/`; see [current results index](EXPERIMENT_RUNS.md).
+Older versioned paths and recovery instructions below are historical evidence,
+not commands to resume the relocated dataset. Cleanup does not start a new run.
+
+Before starting the next experiment, read [EXPERIMENT_RELIABILITY.md](EXPERIMENT_RELIABILITY.md)
+for the completed run's failure lessons, remaining reliability defects and launch/
+recovery/completion checklist. Cleanup of obsolete run directories does not repair
+outstanding provider-pacing or cache-ordering defects.
+
 Updated: 2026-09-05 (Asia/Shanghai). This file owns the approved experiment scope
 and current checkpoint. For routine operation, read Approved scope, Research
 objectives, and Current status; the explicitly historical sections are evidence,

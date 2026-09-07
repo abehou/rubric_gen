@@ -686,7 +686,8 @@ def _assignment_coverage(
         config.study_dir.resolve() / "study.json",
         "revision evaluation source study",
     )
-    records = study.get("records")
+    from rubric_gen.submission_revision.execution_scope import terminal_records
+    records = terminal_records(config.experiment, study)
     if not isinstance(records, list) or any(
         not isinstance(record, dict) for record in records
     ):
@@ -708,9 +709,14 @@ def _assignment_coverage(
         for record in records
         if record.get("status") != "completed"
     ]
-    return {
+    result = {
         "configured_assignment_count": len(records),
         "evaluated_assignment_count": len(evaluated_ids),
         "excluded_assignment_count": len(excluded),
         "excluded_assignments": excluded,
     }
+    if config.experiment.execution_conditions is not None:
+        result["execution_conditions"] = list(config.experiment.execution_conditions)
+        result["full_ledger_assignment_count"] = len(study["records"])
+        result["out_of_scope_assignment_count"] = len(study["records"]) - len(records)
+    return result

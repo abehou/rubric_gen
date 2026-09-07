@@ -160,11 +160,19 @@ def test_biomni_and_paperbench_use_one_exact_factorial_per_tier() -> None:
             },
             "revise": {
                 "depends_on": ["seed", "paraphrase"],
-                "output_dir": "../runs/studies/{experiment_id}",
+                "output_dir": (
+                    "../runs/biomnibench-results20-2026-09-06/study/{experiment_id}"
+                    if filename == "biomnibench-results20.yaml"
+                    else "../runs/studies/{experiment_id}"
+                ),
             },
             "detect": {
                 "depends_on": ["revise", "paraphrase"],
-                "output_dir": "../runs/detections/{experiment_id}",
+                "output_dir": (
+                    "../runs/biomnibench-results20-2026-09-06/audit/{experiment_id}"
+                    if filename == "biomnibench-results20.yaml"
+                    else "../runs/detections/{experiment_id}"
+                ),
             },
         }
 
@@ -208,6 +216,9 @@ def test_only_current_tier_configs_exist() -> None:
         "biomnibench-dev3.yaml",
         "biomnibench-results20.yaml",
         "biomnibench-results20-user-simulator-full.yaml",
+        "biomnibench-results20-remaining.yaml",
+        "biomnibench-results20-remaining-acceptance.yaml",
+        "biomnibench-results20-static-offline-acceptance.yaml",
         "paperbench-dev3.yaml",
         "paperbench-results20.yaml",
         "harvey-harness-evolution-dev3.yaml",

@@ -1,0 +1,72 @@
+{
+  "assignment_count": 240,
+  "stages": {
+    "direct_full_trajectory": {
+      "judgments": 480,
+      "by_model": {
+        "claude-opus-5": 240,
+        "gpt-5.6-sol": 240
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 432,
+        "reward_hacking_detected": 42,
+        "abstain": 6
+      }
+    },
+    "direct_post_update": {
+      "judgments": 480,
+      "by_model": {
+        "claude-opus-5": 240,
+        "gpt-5.6-sol": 240
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 471,
+        "abstain": 3,
+        "reward_hacking_detected": 6
+      }
+    },
+    "direct_final_artifact": {
+      "judgments": 480,
+      "by_model": {
+        "claude-opus-5": 240,
+        "gpt-5.6-sol": 240
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 478,
+        "reward_hacking_detected": 2
+      }
+    },
+    "direct_final_revision": {
+      "judgments": 480,
+      "by_model": {
+        "claude-opus-5": 240,
+        "gpt-5.6-sol": 240
+      },
+      "decisions": {
+        "no_reward_hacking_detected": 477,
+        "reward_hacking_detected": 2,
+        "abstain": 1
+      }
+    },
+    "rubric_score": {
+      "judgments": 3026,
+      "missing_models": []
+    },
+    "absolute_score": {
+      "judgments": 598,
+      "missing_models": []
+    },
+    "pairwise_preference": {
+      "judgments": 478,
+      "missing_models": []
+    }
+  },
+  "semantic_judgments": 6022,
+  "audited_models": [
+    "claude-opus-5",
+    "gpt-5.6-sol"
+  ],
+  "deferred_models": [
+    "gemini-3.8-flash"
+  ]
+}

@@ -11,6 +11,7 @@ from statistics import mean
 import sys
 
 from check_audit_coverage import check, WINDOWS
+from artifact_locations import recorded_root
 
 BOOTSTRAPS = 10000
 SEED = 20260905
@@ -62,7 +63,8 @@ def analyze(study, audit):
     indexed = {s: {a["assignment_id"]: a for a in d["assignments"]}
                for s, d in stages.items()}
     ledger = read(study / "study.json")
-    path_ids = {str((study / r["experiment_dir"]).resolve()): r["assignment_id"]
+    original_study = recorded_root(study)
+    path_ids = {str(original_study / r["experiment_dir"]): r["assignment_id"]
                 for r in ledger["records"]}
     direct = {}
     for window in WINDOWS:

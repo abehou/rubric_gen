@@ -13,6 +13,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from rubric_gen.submission_revision import pretreatment_reuse
 from datetime import datetime
 from pathlib import Path
 
@@ -118,6 +119,7 @@ class StudyRunner:
         self.seed_root = config.seed_run_dir.resolve()
         self.paraphrase_root = config.paraphrase_run_dir.resolve()
         self.pretreatment_root = self.root / "pretreatment-rubrics"
+        self.pretreatment_source_root = pretreatment_reuse.source_pool(self.experiment)
         self._manifest_lock = threading.Lock()
         providers = {
             self.experiment.solver_config(assignment.solver_id).provider
@@ -161,12 +163,12 @@ class StudyRunner:
 
         positions = _ProgressPositions(self.config.max_concurrency)
         with TerminalProgress(
-            total=len(assignments),
+            total=len(self.experiment.execution_assignments),
             description="randomized study",
             unit="assignment",
             position=0,
         ) as progress:
-            for _ in range(len(assignments) - len(pending)):
+            for _ in range(len(self.experiment.execution_assignments) - len(pending)):
                 progress.update()
             with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
                 futures = [
@@ -189,6 +191,13 @@ class StudyRunner:
             return manifest
         manifest = self._load_manifest()
         self._validate_manifest_identity(manifest, assignments)
+        if self.experiment.execution_conditions is not None:
+            for assignment in self.experiment.execution_assignments:
+                if _record_for(manifest, assignment.assignment_id).get("status") == "completed":
+                    study_validation.validate_completed_revision(
+                        self._experiment_dir(assignment), assignment, self.experiment,
+                        self.seed_root, self.paraphrase_root,
+                    )
         _reclaim_interrupted_records(manifest)
         return manifest
 
@@ -200,6 +209,8 @@ class StudyRunner:
         return [
             assignment
             for assignment in assignments
+            if (self.experiment.execution_conditions is None
+                or assignment.condition_id in self.experiment.execution_conditions)
             if _record_for(manifest, assignment.assignment_id).get("status")
             not in {"completed", "invalid"}
         ]
@@ -208,15 +219,22 @@ class StudyRunner:
         manifest["status"] = "running"
         manifest["finished_at"] = None
         manifest["max_concurrency_last_invocation"] = self.config.max_concurrency
+        if self.experiment.execution_conditions is not None:
+            manifest["execution_conditions"] = list(self.experiment.execution_conditions)
+        else:
+            manifest.pop("execution_conditions", None)
         self._write_manifest(manifest)
 
     def _finish_study(self, manifest: dict[str, object]) -> int:
-        statuses = {str(record["status"]) for record in _records(manifest)}
-        manifest["status"] = "completed" if statuses == {"completed"} else "failed"
+        scope = self.experiment.execution_conditions
+        selected = [r for r in _records(manifest) if scope is None or r["condition_id"] in scope]
+        statuses = {str(record["status"]) for record in selected}
+        successful = statuses == {"completed"}
+        manifest["status"] = ("completed" if successful else "failed") + ("_scope" if scope else "")
         manifest["finished_at"] = _now()
         self._write_manifest(manifest)
-        _report_noncompleted_records(manifest)
-        return int(manifest["status"] != "completed")
+        _report_noncompleted_records({"records": selected})
+        return int(not successful)
 
     def _execute_assignment(
         self,
@@ -343,14 +361,36 @@ class StudyRunner:
             service_tier=seed_agent.service_tier,
             max_retries=int(protocol["rubric_proposer_max_retries"]),
         )
-        ensure_pretreatment_rubric(
+        operation = ensure_pretreatment_rubric
+        if self.pretreatment_source_root is not None:
+            from rubric_gen.submission_revision.pretreatment_rubrics import validate_pretreatment_rubric
+            source = shared_pretreatment_rubric_dir(
+                self.pretreatment_source_root, task_id,
+                rubric.content_sha256, development_rubric.content_sha256,
+            )
+            validate_pretreatment_rubric(
+                root=source, experiment_id=pretreatment_reuse.scope_id(self.experiment),
+                task_dir=self.experiment.task_dir(task_id),
+                benchmark=get_submission_benchmark(self.experiment.benchmark),
+                initial_rubric=rubric, development_rubric=development_rubric,
+                seed_set=self.seed_root, seed_generator=seed_agent,
+                prompt_profile=PromptProfile(str(protocol["prompt"])),
+                seed_replicates=ELICITATION_SEED_REPLICATES, proposer=proposer,
+            )
+            destination = shared_pretreatment_rubric_dir(
+                self.pretreatment_root, task_id,
+                rubric.content_sha256, development_rubric.content_sha256,
+            )
+            pretreatment_reuse.copy_pool_entry(source, destination)
+            operation = validate_pretreatment_rubric
+        operation(
             root=shared_pretreatment_rubric_dir(
                 self.pretreatment_root,
                 task_id,
                 rubric.content_sha256,
                 development_rubric.content_sha256,
             ),
-            experiment_id=self.experiment.experiment_id,
+            experiment_id=pretreatment_reuse.scope_id(self.experiment),
             task_dir=self.experiment.task_dir(task_id),
             benchmark=get_submission_benchmark(self.experiment.benchmark),
             initial_rubric=rubric,

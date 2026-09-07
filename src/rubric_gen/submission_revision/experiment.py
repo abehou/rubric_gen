@@ -66,6 +66,10 @@ class Experiment:
         return str(self.payload["experiment_id"])
 
     @property
+    def pretreatment_source(self) -> dict[str, str] | None:
+        return self.payload.get("pretreatment_source")
+
+    @property
     def benchmark(self) -> SubmissionBenchmarkId:
         return SubmissionBenchmarkId(str(self.payload["benchmark"]))
 
@@ -86,12 +90,25 @@ class Experiment:
         return tuple(self.payload["assignments"])
 
     @property
+    def execution_conditions(self) -> tuple[str, ...] | None:
+        """Operational collection scope; never changes scientific assignment IDs."""
+        value = self.payload.get("execution_conditions")
+        return None if value is None else tuple(sorted(value))
+
+    @property
+    def execution_assignments(self) -> tuple[ExperimentAssignment, ...]:
+        scope = self.execution_conditions
+        return tuple(a for a in self.assignments if scope is None or a.condition_id in scope)
+
+    @property
     def protocol(self) -> dict[str, object]:
         return self.payload["protocol"]
 
     @property
     def outcome_audit(self) -> dict[str, object]:
-        return self.payload["outcome_audit"]
+        audit = self.payload["outcome_audit"]
+        scope = self.payload.get("execution_audit_models")
+        return audit if scope is None else {**audit, "models": list(scope)}
 
     @property
     def rubric_paraphrases(self) -> dict[str, object]:
@@ -197,12 +214,30 @@ def load_experiment(path: Path) -> Experiment:
     experiment_id = _validate(payload, resolved)
     payload["experiment_id"] = experiment_id
     payload["tasks_dir"] = str(_resolve_relative(resolved, payload["tasks_dir"]))
+    if "pretreatment_source" in payload:
+        source = payload["pretreatment_source"]
+        source["study_dir"] = str(_resolve_relative(resolved, source["study_dir"]))
+        source["experiment"] = str(_resolve_relative(resolved, source["experiment"]))
     for stage in payload["dag"].values():
         output_dir = str(stage["output_dir"]).replace(
             EXPERIMENT_ID_TOKEN, experiment_id
         )
         stage["output_dir"] = str(_resolve_relative(resolved, output_dir))
     payload["assignments"] = _randomized_assignments(payload)
+    if "execution_conditions" in payload:
+        scope = payload["execution_conditions"]
+        available = {a.condition_id for a in payload["assignments"]}
+        if (not isinstance(scope, list) or not scope
+                or any(type(c) is not str for c in scope)
+                or len(scope) != len(set(scope)) or not set(scope) <= available):
+            raise ValueError("execution_conditions must be unique nonempty selected condition IDs")
+    if "execution_audit_models" in payload:
+        models = payload["execution_audit_models"]
+        if (not isinstance(models, list) or not models
+                or any(type(m) is not str for m in models)
+                or len(models) != len(set(models))
+                or not set(models) <= set(payload["outcome_audit"]["models"])):
+            raise ValueError("execution_audit_models must be unique nonempty configured model IDs")
     return Experiment(resolved, payload)
 
 
@@ -213,8 +248,14 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         "assignment_selection", "protocol",
         "rubric_paraphrases", "outcome_audit", "dag",
     }
-    if set(payload) != required:
+    if not required <= set(payload) or set(payload) - required - {"pretreatment_source", "execution_conditions", "execution_audit_models"}:
         raise ValueError(f"experiment keys must be exactly {sorted(required)}")
+    if "pretreatment_source" in payload:
+        source = payload["pretreatment_source"]
+        if (not isinstance(source, dict)
+                or set(source) != {"experiment", "study_dir", "experiment_id"}
+                or any(type(v) is not str or not v.strip() for v in source.values())):
+            raise ValueError("pretreatment_source requires experiment, study_dir and experiment_id")
     if payload["kind"] != EXPERIMENT_KIND:
         raise ValueError("unsupported experiment kind")
     benchmark = SubmissionBenchmarkId(str(payload["benchmark"]))
@@ -464,6 +505,8 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
     """Derive one readable identity from the experiment's semantic YAML."""
 
     identity = {key: payload[key] for key in _IDENTITY_KEYS}
+    if "pretreatment_source" in payload:
+        identity["pretreatment_source"] = payload["pretreatment_source"]
     identity["prompt_implementation_sha256"] = prompt_implementation_sha256()
     digest = sha256_text(json.dumps(
         identity,

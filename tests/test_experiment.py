@@ -151,6 +151,50 @@ def _payload(root: Path) -> dict[str, object]:
     }
 
 
+def test_audit_model_scope_preserves_source_identity_and_declared_panel(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    path = tmp_path / "experiment.yaml"
+    payload = _payload(tmp_path)
+    path.write_text(yaml.safe_dump(payload))
+    original = load_experiment(path)
+    payload["execution_audit_models"] = ["judge-a"]
+    path.write_text(yaml.safe_dump(payload))
+    scoped = load_experiment(path)
+    assert scoped.experiment_id == original.experiment_id
+    assert scoped.assignments == original.assignments
+    assert scoped.outcome_audit["models"] == ["judge-a"]
+    assert scoped.payload["outcome_audit"]["models"] == ["judge-a", "judge-b"]
+    for invalid in ([], None, "judge-a", ["unknown"], ["judge-a"] * 2, [[]]):
+        payload["execution_audit_models"] = invalid
+        path.write_text(yaml.safe_dump(payload))
+        with pytest.raises(ValueError, match="execution_audit_models"):
+            load_experiment(path)
+
+
+def test_execution_scope_preserves_scientific_identity(tmp_path: Path) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    path = tmp_path / "experiment.yaml"
+    payload = _payload(tmp_path)
+    path.write_text(yaml.safe_dump(payload))
+    original = load_experiment(path)
+    scope = [f"{f}-{p}" for f in ("full", "user-simulator")
+             for p in ("static", "offline-rubric")]
+    payload["execution_conditions"] = scope
+    path.write_text(yaml.safe_dump(payload))
+    scoped = load_experiment(path)
+    assert scoped.experiment_id == original.experiment_id
+    assert scoped.assignments == original.assignments
+    assert scoped.execution_conditions == tuple(sorted(scope))
+    assert len(scoped.execution_assignments) == 24
+    for invalid in ([], None, "full-static", ["unknown"], ["full-static"] * 2, [[]]):
+        payload["execution_conditions"] = invalid
+        path.write_text(yaml.safe_dump(payload))
+        with pytest.raises(ValueError, match="execution_conditions"):
+            load_experiment(path)
+
+
 def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path: Path) -> None:
     _task(tmp_path, "da-1-1")
     _task(tmp_path, "da-2-1")

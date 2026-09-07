@@ -1,5 +1,23 @@
 # Agent instruction/workflow review — 2026-09-05
 
+## Recheck — 2026-09-06 09:58 CST
+
+Reopened the official Astra model guide, AGENTS.md discovery and skill discovery
+pages linked below, and inspected the actual root instructions and experiment
+skill. The prior instruction-level audit is implemented: focused context routing,
+authorized follow-through, risk-proportional verification and historical/current
+state separation remain aligned with the current guidance. This is not a measured
+Astra performance improvement or a change to model/reasoning settings.
+
+The skill still lives at `skills/rubric-experiments/SKILL.md` and is explicitly
+read through root guidance. Native `.agents/skills` discovery remains uninstalled
+under this session's protected-path constraints; do not describe it as automatic
+discovery. No new skill changes were needed for this read-only recheck.
+
+Result housekeeping subsequently moved private tools to `scripts/diagnostics/`
+and grouped unrelated historical outputs under `runs/archive/`. Current path
+documentation was updated; archived instructions remain historical evidence.
+
 ## Scope and official guidance
 
 Reviewed the repository's root instructions, skill inventory, setup/architecture

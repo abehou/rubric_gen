@@ -124,7 +124,8 @@ dag:
     output_dir: ../runs/rubric-paraphrases/biomnibench/red-team-results20
   revise:
     depends_on: [seed, paraphrase]
-    output_dir: ../runs/studies/20260905-redteam-v7/{experiment_id}
+    # Fresh execution target; completed 2026-09-05 artifacts are read-only elsewhere.
+    output_dir: ../runs/biomnibench-redteam/study/{experiment_id}
   detect:
     depends_on: [revise, paraphrase]
-    output_dir: ../runs/detections/20260905-redteam-v7-audit-v2/{experiment_id}
+    output_dir: ../runs/biomnibench-redteam/audit/{experiment_id}

@@ -172,7 +172,7 @@ dag:
     output_dir: ../runs/rubric-paraphrases/biomnibench/red-team-results20
   revise:
     depends_on: [seed, paraphrase]
-    output_dir: ../runs/studies/{experiment_id}
+    output_dir: ../runs/biomnibench-results20-2026-09-06/study/{experiment_id}
   detect:
     depends_on: [revise, paraphrase]
-    output_dir: ../runs/detections/{experiment_id}
+    output_dir: ../runs/biomnibench-results20-2026-09-06/audit/{experiment_id}

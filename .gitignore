@@ -12,3 +12,31 @@ seeds/
 tmp/
 logs/vllm/*.out
 /paperbench-large.out
+
+# Keep cleaned result documentation and offline readers visible to future backups.
+!runs/README.md
+!runs/archive/
+runs/archive/*
+!runs/archive/README.md
+!runs/archive/reports/
+!runs/archive/logs/
+runs/archive/logs/*
+!runs/archive/logs/*.py
+!runs/biomnibench-redteam-2026-09-05/
+runs/biomnibench-redteam-2026-09-05/*
+!runs/biomnibench-redteam-2026-09-05/*.md
+!runs/biomnibench-redteam-2026-09-05/*.location.json
+!runs/biomnibench-redteam-2026-09-05/inventories/
+!runs/biomnibench-redteam-2026-09-05/reports/
+!runs/biomnibench-redteam-2026-09-05/supplementary-analysis/
+runs/biomnibench-redteam-2026-09-05/supplementary-analysis/*
+!runs/biomnibench-redteam-2026-09-05/supplementary-analysis/*.md
+!runs/biomnibench-redteam-2026-09-05/acceptance/
+runs/biomnibench-redteam-2026-09-05/acceptance/*
+!runs/biomnibench-redteam-2026-09-05/acceptance/*.location.json
+!runs/biomnibench-redteam-2026-09-05/acceptance/inventories/
+
+# Current comparator results and recovery evidence; raw runs remain local.
+!runs/biomnibench-results20-2026-09-06/
+runs/biomnibench-results20-2026-09-06/*
+!runs/biomnibench-results20-2026-09-06/reports/

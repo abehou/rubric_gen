@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, replace
 from pathlib import Path
+from rubric_gen.submission_revision.pretreatment_reuse import scope_id
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import get_submission_benchmark
@@ -391,6 +392,11 @@ def _validated_generation(
     if proposer is None:
         raise RuntimeError("elicitation generation has no proposer")
     if generation_round == 1:
+        source_identity = read_json_object(
+            context.pretreatment_rubric_dir / "pretreatment.json", "pre-treatment identity"
+        )
+        if source_identity.get("experiment_id") != scope_id(context.experiment):
+            raise RuntimeError("pre-treatment source scope disagrees with experiment")
         installed = validate_installed_pretreatment_rubric(
             source_root=context.pretreatment_rubric_dir,
             destination_root=context.experiment_dir,
@@ -421,7 +427,7 @@ def _validated_generation(
             prompt_profile=str(context.protocol["prompt"]),
             seed_replicates=ELICITATION_SEED_REPLICATES,
             blinding_scope=pretreatment_blinding_scope(
-                context.experiment.experiment_id,
+                scope_id(context.experiment),
                 context.task_dir.name,
                 context.scoring.initial_generation.rubric.content_sha256,
                 context.selection.development_sha256,

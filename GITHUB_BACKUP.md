@@ -11,8 +11,13 @@ also includes this subsequent verification record.
 This is a backup of the completed Results20 v7 experiment: 240 assignments,
 seven audit stages, 9,327 unique judgments, Luna solver/proposer and
 Sol / Claude Opus 5 / Gemini 3.8 Flash audits. See the
-[report](runs/reports/20260905-redteam-v7/REPORT.md) and
-[coverage receipt](runs/reports/20260905-redteam-v7/audit-coverage-complete.json).
+[report](runs/biomnibench-redteam-2026-09-05/reports/REPORT.md) and
+[coverage receipt](runs/biomnibench-redteam-2026-09-05/reports/audit-coverage-complete.json).
+
+These local links reflect the subsequent descriptive directory rename. The
+release archives and verification receipts remain unchanged and restore the
+original layout shown below; this progress commit includes the descriptive
+directory cleanup.
 
 ## Download the original experiment outputs
 
@@ -69,3 +74,12 @@ saved v7 generation/evaluation artifacts and referenced seed outputs are bundled
 The backup commit is newer than the frozen experimental source identity because
 it adds reports, backup documentation, and helpers. Preserve and consult the
 archived runtime source/provenance when interpreting the completed experiment.
+
+## Latest progress — 2026-09-07
+
+The branch now includes scoped execution/reuse code, experiment recovery records,
+and the verified [OpenAI and Anthropic 480-case results](runs/biomnibench-results20-2026-09-06/reports/openai-anthropic-result-table.md),
+including coverage evidence and OpenAI case metrics. Gemini remains incomplete
+with 146 saved direct judgments, awaiting lab prepaid-credit restoration.
+The newer raw comparator/Gemini outputs remain local; the September 6 release
+assets still cover only the original completed red-team experiment.

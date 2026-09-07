@@ -1,0 +1,7 @@
+{
+  "kind": "completed-artifact-relocation-v1",
+  "created_at": "2026-09-06T09:33:40.511799+08:00",
+  "original_root": "/Users/yuenanhuang/Desktop/rubric_gen/runs/detections/20260905-redteam-v7-audit-v2/biomnibench-da-factorial-r10-8ab12c898ae7",
+  "destination_name": "audit",
+  "inventory_sha256": "ab9fd077f3c94c4fee48662a62a49f7d0197e2fc4a98a693920bff41b27628f8"
+}

@@ -1,0 +1,7 @@
+{
+  "kind": "completed-artifact-relocation-v1",
+  "created_at": "2026-09-06T09:33:41.295272+08:00",
+  "original_root": "/Users/yuenanhuang/Desktop/rubric_gen/runs/preflights/provider-availability-v7/biomnibench-da-factorial-r3-b07888ff76df",
+  "destination_name": "study",
+  "inventory_sha256": "7bfe928ad4751d0f179b88a9ce25ae6532e17babcef269daacb05e1213ebeb94"
+}

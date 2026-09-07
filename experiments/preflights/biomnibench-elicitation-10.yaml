@@ -109,7 +109,8 @@ dag:
     output_dir: ../../runs/rubric-paraphrases/biomnibench/red-team-dev3
   revise:
     depends_on: [seed, paraphrase]
-    output_dir: ../../runs/preflights/provider-availability-v7/{experiment_id}
+    # Fresh acceptance target, separate from the preserved completed acceptance.
+    output_dir: ../../runs/biomnibench-redteam-acceptance/study/{experiment_id}
   detect:
     depends_on: [revise, paraphrase]
-    output_dir: ../../runs/preflight-detections/provider-availability-v7-audit-v2/{experiment_id}
+    output_dir: ../../runs/biomnibench-redteam-acceptance/audit/{experiment_id}

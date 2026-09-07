@@ -203,6 +203,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
     }))
     experiment = SimpleNamespace(
         experiment_id="detection-experiment-1",
+        execution_conditions=None,
         path=experiment_path,
         assignments=(assignment,),
     )
@@ -298,6 +299,7 @@ def test_target_loader_excludes_failed_assignments_from_terminal_study(
     experiment = SimpleNamespace(
         path=experiment_path,
         assignments=assignments,
+        execution_conditions=None,
     )
     config = EvaluationConfig(
         experiment=experiment,
@@ -367,14 +369,14 @@ def test_target_loader_rejects_nonterminal_assignment(
         "records": [{**assignment.record_identity(), "status": "running"}],
     }))
     config = EvaluationConfig(
-        experiment=SimpleNamespace(path=experiment_path, assignments=(assignment,)),
+        experiment=SimpleNamespace(path=experiment_path, assignments=(assignment,), execution_conditions=None),
         study_dir=study,
         paraphrase_dir=paraphrases,
         output_dir=tmp_path / "output",
         max_concurrency=1,
     )
 
-    with pytest.raises(RuntimeError, match="every source assignment to be terminal"):
+    with pytest.raises(ValueError, match="every selected source assignment must be terminal"):
         evaluation_targets.load_evaluation_targets(config)
 
 
@@ -1743,15 +1745,16 @@ def test_gemini_incomplete_reads_use_bounded_rubric_free_retries(
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setattr(gemini.urllib.request, "urlopen", lambda request, **_kw: Response(request))
-    experiment = SimpleNamespace(experiment_id="experiment-1", protocol={}, outcome_audit={
+    experiment = SimpleNamespace(experiment_id="experiment-1", protocol={},
+                                 assignments=(target,), execution_conditions=None, outcome_audit={
         "models": ["gemini-test"], "rubric_free_evaluation_max_calls": 12,
         "rubric_free_evaluation_max_request_bytes": 1_000_000,
         "rubric_free_evaluation_max_output_tokens": 100_000,
     })
     study = tmp_path / "study"
     study.mkdir()
-    (study / "study.json").write_text(json.dumps({"records": [
-        {"assignment_id": target.assignment_id, "status": "completed"},
+    (study / "study.json").write_text(json.dumps({"status": "completed", "records": [
+        {"assignment_id": target.assignment_id, "condition_id": target.condition_id, "status": "completed"},
     ]}))
     output = tmp_path / "audit"
     runner = RubricFreeScoreRunner(EvaluationConfig(
@@ -1826,12 +1829,15 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         experiment_id="experiment-1",
         outcome_audit=audit,
         protocol={},
+        assignments=(target, other),
+        execution_conditions=None,
     )
     study = tmp_path / "study"
     study.mkdir()
     (study / "study.json").write_text(json.dumps({
+        "status": "completed",
         "records": [
-            {"assignment_id": current.assignment_id, "status": "completed"}
+            {"assignment_id": current.assignment_id, "condition_id": current.condition_id, "status": "completed"}
             for current in (target, other)
         ],
     }))

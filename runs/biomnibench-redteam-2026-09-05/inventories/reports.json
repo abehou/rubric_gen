@@ -1,0 +1,24 @@
+{
+  "original_root": "/Users/yuenanhuang/Desktop/rubric_gen/runs/reports/20260905-redteam-v7",
+  "files": {
+    "REPORT.md": "aad7f365e82c184895c414f69ab1ea549d833574df9bdedd6b4cf4c6704d6d02",
+    "acceptance-outcomes.json": "74c988027ba4cb190d747643594699e96323ebc9da2f92783ed7d57ed08cf466",
+    "acceptance.md": "b1249d181514ac3f361e97a12a1482c6ac06bff762c84bb98e601ad1078b42d0",
+    "audit-coverage-complete.json": "31b6494b25e6e6e9d6c389b1830cb70f66d1a44b792d14c45a7b275d4ddc5433",
+    "audit-planned-counts.json": "86e42007786bea189a47ddd5177d07d3636fdacc2051bc8947c20d1b25665712",
+    "audit-v2-acceptance-verification.json": "775655e03fd48c3adb0144f1cc6f3359f09515c5b06c1b3166a87b3bdfc87294",
+    "audit-v2-attempt-02-direct-errors-2235.json": "1481ed4050bf6d8bff553489ec7a94126e03022e50eab89978c3e037ff9016cb",
+    "audit-v2-attempt-02-direct-errors-2253.json": "3cc9f1e638dfac49af49383d27ce39834f5b9e51c4f1ac2e7e58b253a0e808b2",
+    "audit-v2-attempt-02-direct-errors-2305.json": "09fe60fb9a65f8d73af33b96bf33b764b4a9c6c92d0a4ec53f32a4ac95a73d77",
+    "environment-incident.md": "3c6ab4eece50e232f44f5f95684a7266811d3ef0927ca0352e3a90948e5d5eeb",
+    "final-windows-completion-verification.json": "149acbe6f11422f3911463130c61d716b891dad329318d913fa23f71b50afc35",
+    "full-trajectory-completion-verification.json": "325ab493d77123febc98ed3cb24e53c040c350ea3298131c3631b25fca8938cc",
+    "outcomes.json": "e11598e99a1c5ef2600477ab9e33209bc5b86dc23bc5a1b9aa51dfffc05c3b99",
+    "post-update-completion-verification.json": "2a237e251a2ddcb12f3e412241dfdd78c6c70150feac8a743314c4d3f35a1e9f",
+    "revision-validation-before-audit-237.json": "fb01a801b5fb37a2edd751bb33cdecef5893460a6b648c54178ee8f5065564af",
+    "revision-validation-terminal-240.json": "db7b1ef2a0f36757679294e9d5c9b47f8d991c45f75d6a4ab6c0c675e9c1e24a",
+    "rubric-score-completion-verification.json": "ecfdf457381d5609ddffd5d6691323f06b1e678b14469049799d266104397837",
+    "treatment-delivery.json": "d408a9757f292bac7fd6ec49cc2c712e08bcba327214e05246cfb59645ec7d2d",
+    "treatment-delivery.md": "dad732db5e0f0576b300a9e531d5873e57af09afbe50fca824eb82d441e1af6a"
+  }
+}
