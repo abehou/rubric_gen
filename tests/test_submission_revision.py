@@ -3531,7 +3531,7 @@ def test_rubric_feedback_uses_canonical_score_plus_only_elicited_penalty(
     assert projected.payload["criteria"]["criterion_2"]["points"] == -4
 
 
-@pytest.mark.parametrize("policy", [FeedbackPolicy.FULL, FeedbackPolicy.USER_SIMULATOR])
+@pytest.mark.parametrize("policy", list(FeedbackPolicy))
 def test_selected_reference_later_checkpoint_and_resume(tmp_path, monkeypatch, policy):
     task = _write_task(tmp_path)
     master_config = SubmissionJudgeConfig(
@@ -3581,13 +3581,24 @@ def test_selected_reference_later_checkpoint_and_resume(tmp_path, monkeypatch, p
         assert record["reference_score"] == score
         assert record["feedback_reference"]["rubric_sha256"] == sha256_file(selected)
         payload = json.loads((config.experiment_dir / f"feedback/s{i:03d}.json").read_text())
-        if policy is FeedbackPolicy.FULL:
-            assert payload["score"] == score
-            assert payload["rubric_text"] == selected.read_text()
-            assert payload["criteria"]["criterion_1"] == {
-                "level": _TEST_SCORE_LEVELS[score], "points": float(score), "judge_reason": "checked"}
-        else:
+        if policy is FeedbackPolicy.USER_SIMULATOR:
             assert set(payload) == {"decision", "concerns"}
+        else:
+            assert payload["score"] == score
+            if policy is FeedbackPolicy.SCORE_ONLY:
+                assert set(payload) == {"score"}
+            else:
+                criterion = payload["criteria"]["criterion_1"]
+                assert criterion["level"] == _TEST_SCORE_LEVELS[score]
+                assert criterion["points"] == float(score)
+                if policy is FeedbackPolicy.FULL:
+                    assert criterion["judge_reason"] == "checked"
+                    assert payload["rubric_text"] == selected.read_text()
+                else:
+                    assert set(payload) == {"score", "criteria"}
+                    assert criterion["title"] == "Selected public evidence"
+                    assert criterion["maximum_points"] == 100
+                    assert "judge_reason" not in criterion
         assert "Correct result" not in session.prompts[i]
         assert "holistic" not in session.prompts[i] and "holdout" not in session.prompts[i]
     counts = (selected_judge.calls, master.calls, len(requests), len(session.prompts))
