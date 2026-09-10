@@ -1,0 +1,19 @@
+{
+  "observed_utc": "2026-09-10T19:46:34.592910+00:00",
+  "journal_path": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel/events-babel-q9-20-1924336.jsonl",
+  "events": [
+    {
+      "event": "acquired",
+      "host": "babel-q9-20",
+      "job_id": "10387275",
+      "kind": "audit",
+      "lease_id": "34d3d770f2c045b8b93298acdcc2227d",
+      "pid": 1924336,
+      "slots": 1,
+      "time": 1789069440.290256,
+      "wait_seconds": 6307.065892205108
+    }
+  ],
+  "external_prior_owner_job": "10388169",
+  "external_prior_owner_exit": "FAILED 1:0; separate job, not a Result20 trace failure"
+}

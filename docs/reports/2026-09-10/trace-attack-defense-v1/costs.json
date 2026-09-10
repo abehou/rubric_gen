@@ -1,0 +1,551 @@
+{
+  "pricing_registry_date": "2026-08-18",
+  "stages": [
+    {
+      "stage": "application",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 1296,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 1296,
+      "usage_available": 1296,
+      "input_tokens": 7601074,
+      "output_tokens": 640730,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 7597186,
+      "usage_based_usd": 2.6689501,
+      "attempt_wall_seconds": 11656.086019018898
+    },
+    {
+      "stage": "audit_absolute_score",
+      "model": "claude-opus-5",
+      "saved_response_records": 180,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 180,
+      "usage_available": 180,
+      "input_tokens": 1541816,
+      "output_tokens": 149981,
+      "cached_input_tokens": 105452,
+      "cache_write_input_tokens": 10288,
+      "usage_based_usd": 10.996931,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_absolute_score",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 180,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 180,
+      "usage_available": 180,
+      "input_tokens": 970250,
+      "output_tokens": 35468,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 5.91529,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "claude-opus-5",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1102127,
+      "output_tokens": 16431,
+      "cached_input_tokens": 344298,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 4.372069,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 694975,
+      "output_tokens": 10348,
+      "cached_input_tokens": 205362,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 2.861186,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "claude-opus-5",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 4853287,
+      "output_tokens": 14154,
+      "cached_input_tokens": 344298,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 23.070944,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 3248794,
+      "output_tokens": 8866,
+      "cached_input_tokens": 205362,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 15.585821,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "claude-opus-5",
+      "saved_response_records": 389,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 389,
+      "usage_available": 389,
+      "input_tokens": 44598411,
+      "output_tokens": 60072,
+      "cached_input_tokens": 1077257,
+      "cache_write_input_tokens": 57383,
+      "usage_based_usd": 219.71792725,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 363,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 363,
+      "usage_available": 363,
+      "input_tokens": 30727403,
+      "output_tokens": 30849,
+      "cached_input_tokens": 594538,
+      "cache_write_input_tokens": 34227,
+      "usage_based_usd": 151.92984775,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "claude-opus-5",
+      "saved_response_records": 213,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 213,
+      "usage_available": 213,
+      "input_tokens": 20683407,
+      "output_tokens": 31020,
+      "cached_input_tokens": 603302,
+      "cache_write_input_tokens": 13525,
+      "usage_based_usd": 101.49458225,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 199,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 199,
+      "usage_available": 199,
+      "input_tokens": 14261673,
+      "output_tokens": 16244,
+      "cached_input_tokens": 344165,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 70.2469425,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "claude-opus-5",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1625173,
+      "output_tokens": 66717,
+      "cached_input_tokens": 69460,
+      "cache_write_input_tokens": 3020,
+      "usage_based_usd": 9.484995,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1027396,
+      "output_tokens": 12731,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 5.51891,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "claude-opus-5",
+      "saved_response_records": 964,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 964,
+      "usage_available": 964,
+      "input_tokens": 9854936,
+      "output_tokens": 854446,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 70.63583,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 964,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 964,
+      "usage_available": 964,
+      "input_tokens": 6012080,
+      "output_tokens": 311839,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 6009188,
+      "usage_based_usd": 46.927055,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "common_simulator",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 465,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 465,
+      "usage_available": 465,
+      "input_tokens": 8843831,
+      "output_tokens": 82797,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 1.8681226000000002,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "compilation",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 133,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 133,
+      "usage_available": 133,
+      "input_tokens": 1337762,
+      "output_tokens": 58565,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 1337363,
+      "usage_based_usd": 0.40469855,
+      "attempt_wall_seconds": 1087.3536240651738
+    },
+    {
+      "stage": "diagnosis",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 605,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 605,
+      "usage_available": 605,
+      "input_tokens": 11921639,
+      "output_tokens": 350454,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 11919824,
+      "usage_based_usd": 3.4008638,
+      "attempt_wall_seconds": 6176.815907609882
+    },
+    {
+      "stage": "optimizer_judge",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 1288,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 1288,
+      "usage_available": 1288,
+      "input_tokens": 8369728,
+      "output_tokens": 430118,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 8365864,
+      "usage_based_usd": 2.6083803999999997,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "quality",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 1988,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 1988,
+      "usage_available": 1988,
+      "input_tokens": 21012172,
+      "output_tokens": 1163443,
+      "cached_input_tokens": 2201486,
+      "cache_write_input_tokens": 18804722,
+      "usage_based_usd": 6.14253462,
+      "attempt_wall_seconds": 25867.916397819296
+    },
+    {
+      "stage": "rubric_view",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 3500,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 3500,
+      "usage_available": 3500,
+      "input_tokens": 25702979,
+      "output_tokens": 1748993,
+      "cached_input_tokens": 4252868,
+      "cache_write_input_tokens": 21439611,
+      "usage_based_usd": 7.54585171,
+      "attempt_wall_seconds": 41311.42081639683
+    },
+    {
+      "stage": "semantic",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 124,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 124,
+      "usage_available": 124,
+      "input_tokens": 527791,
+      "output_tokens": 35454,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 527419,
+      "usage_based_usd": 0.17447395,
+      "attempt_wall_seconds": 943.4478449050803
+    }
+  ],
+  "agents": [
+    {
+      "stage": "sidecar",
+      "streams": 783,
+      "events": {
+        "thread.started": 783,
+        "turn.started": 783,
+        "item.started": 13275,
+        "item.completed": 13274,
+        "codex.item.agentMessage.delta": 280600,
+        "codex.item.commandExecution.outputDelta": 3576,
+        "codex.turn.diff.updated": 4312,
+        "turn.completed": 783
+      },
+      "threads_with_usage": 783,
+      "estimated_lower_bound_usd": 9.844837,
+      "usage_totals": {
+        "cached_input_tokens": 106831360,
+        "input_tokens": 129949224,
+        "output_tokens": 2570530,
+        "reasoning_output_tokens": 692377,
+        "total_tokens": 132519754
+      },
+      "internal_model_request_count": "not exposed by saved agent protocol; agent turns and tool events reported separately"
+    },
+    {
+      "stage": "solver",
+      "streams": 783,
+      "events": {
+        "thread.started": 783,
+        "turn.started": 783,
+        "item.started": 7699,
+        "item.completed": 7698,
+        "codex.item.agentMessage.delta": 114582,
+        "turn.completed": 783,
+        "codex.turn.diff.updated": 3507,
+        "codex.item.commandExecution.outputDelta": 3300,
+        "codex.item.commandExecution.terminalInteraction": 3
+      },
+      "threads_with_usage": 120,
+      "estimated_lower_bound_usd": 6.740903,
+      "usage_totals": {
+        "cached_input_tokens": 142908416,
+        "input_tokens": 152024384,
+        "output_tokens": 1716285,
+        "reasoning_output_tokens": 151735,
+        "total_tokens": 153740669
+      },
+      "internal_model_request_count": "not exposed by saved agent protocol; agent turns and tool events reported separately"
+    }
+  ],
+  "failed_learning_attempts": 34,
+  "elapsed": {
+    "first_launch_utc": "2026-09-10T14:51:11+00:00",
+    "completion_file_mtime_utc": "2026-09-10T20:13:46.552327+00:00",
+    "cohort_and_audit_seconds": 19355.55232667923,
+    "revision_stage_seconds": 11262.22386097908,
+    "audit_stage_seconds": 8093.3284657001495,
+    "stage_events": [
+      {
+        "stage": "counted_smoke",
+        "assignments": [
+          "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+          "da-10-1--rep-001--solver-luna--full-red-team-trace"
+        ]
+      },
+      {
+        "stage": "complete_120",
+        "reuse_smoke": true
+      },
+      {
+        "stage": "audit",
+        "attempt": 1,
+        "time": "2026-09-10T17:58:53.223861+00:00"
+      },
+      {
+        "stage": "complete",
+        "coverage": {
+          "assignment_count": 120,
+          "stages": {
+            "direct_full_trajectory": {
+              "judgments": 240,
+              "by_model": {
+                "claude-opus-5": 120,
+                "gpt-5.6-sol": 120
+              },
+              "decisions": {
+                "no_reward_hacking_detected": 207,
+                "reward_hacking_detected": 27,
+                "abstain": 6
+              }
+            },
+            "direct_post_update": {
+              "judgments": 240,
+              "by_model": {
+                "claude-opus-5": 120,
+                "gpt-5.6-sol": 120
+              },
+              "decisions": {
+                "no_reward_hacking_detected": 227,
+                "reward_hacking_detected": 11,
+                "abstain": 2
+              }
+            },
+            "direct_final_artifact": {
+              "judgments": 240,
+              "by_model": {
+                "claude-opus-5": 120,
+                "gpt-5.6-sol": 120
+              },
+              "decisions": {
+                "no_reward_hacking_detected": 232,
+                "reward_hacking_detected": 7,
+                "abstain": 1
+              }
+            },
+            "direct_final_revision": {
+              "judgments": 240,
+              "by_model": {
+                "claude-opus-5": 120,
+                "gpt-5.6-sol": 120
+              },
+              "decisions": {
+                "no_reward_hacking_detected": 232,
+                "abstain": 3,
+                "reward_hacking_detected": 5
+              }
+            },
+            "rubric_score": {
+              "judgments": 1928,
+              "missing_models": []
+            },
+            "absolute_score": {
+              "judgments": 360,
+              "missing_models": []
+            },
+            "pairwise_preference": {
+              "judgments": 240,
+              "missing_models": []
+            }
+          },
+          "semantic_judgments": 3488,
+          "audited_models": [
+            "claude-opus-5",
+            "gpt-5.6-sol"
+          ],
+          "deferred_models": [
+            "gemini-3.8-flash"
+          ]
+        }
+      }
+    ]
+  },
+  "capacity": {
+    "operations": {
+      "solver-turn": {
+        "records": 903,
+        "status": {
+          "operation_completed": 903
+        },
+        "elapsed_seconds": 93261.1855771069
+      },
+      "evolution-generation": {
+        "records": 7680,
+        "status": {
+          "operation_completed": 7646,
+          "operation_failed": 34
+        },
+        "elapsed_seconds": 59397.74333650223
+      },
+      "optimizer-judge": {
+        "records": 1288,
+        "status": {
+          "operation_completed": 1288
+        },
+        "elapsed_seconds": 14256.21377514908
+      },
+      "hosted-generation": {
+        "records": 2709,
+        "status": {
+          "operation_completed": 2709
+        },
+        "elapsed_seconds": 14625.35310100019
+      },
+      "solver-resume": {
+        "records": 663,
+        "status": {
+          "operation_completed": 663
+        },
+        "elapsed_seconds": 25226.39187893481
+      },
+      "token-count": {
+        "records": 3164,
+        "status": {
+          "operation_completed": 3164
+        },
+        "elapsed_seconds": 508.84985279804096
+      },
+      "audit-stage": {
+        "records": 6,
+        "status": {
+          "operation_completed": 6
+        },
+        "elapsed_seconds": 1755.070092348149
+      },
+      "rubric-audit": {
+        "records": 1928,
+        "status": {
+          "operation_completed": 1928
+        },
+        "elapsed_seconds": 21189.28476284747
+      },
+      "audit-study": {
+        "records": 1,
+        "status": {
+          "operation_completed": 1
+        },
+        "elapsed_seconds": 1775.6652087830007
+      }
+    },
+    "maximum_owned_provider_leases": 59,
+    "provider_wait_seconds": 56415.221300694626,
+    "audit_slot_wait_seconds": 6307.065892205108,
+    "acquired_leases": 19180,
+    "jobs": [
+      "10387275"
+    ]
+  },
+  "limitations": [
+    "Usage-based estimates are not provider invoices.",
+    "Failed calls without returned usage are counted but have unknown token cost.",
+    "Persistent agent usage is cumulative: each thread contributes its maximum total, not a sum of turn totals.",
+    "Native operation durations include nested operations; do not sum them as independent API calls.",
+    "Stage request wall time includes capacity wait; concurrent durations are not elapsed cohort time.",
+    "Internal agent model-call counts are not exposed; agent invocations/terminal events are separate from direct structured calls.",
+    "Driver start wall time combines sidecars and initial solver turns; saved usage separates these channels, but their exact wall-time split is not instrumented. Resume durations are separately available in native capacity operations."
+  ],
+  "source_sha256": "c033d679a6ad4e8996e17032eb2e940735771bf930909db4d297071e041c0593"
+}

@@ -1,0 +1,107 @@
+{
+  "summary": {
+    "full": {
+      "quality": {
+        "unique_assignment_cache_entries": 673,
+        "entries_with_source_failure": 219,
+        "quoted_spans": 1800,
+        "invalid_spans": 269,
+        "missing_required_witnesses": 167,
+        "diagnostic_categories": {
+          "literal_in_other_displayed_artifact": 5,
+          "no_match_under_diagnostic_transforms": 98,
+          "markup_and_whitespace_match": 39,
+          "ellipsis_joined_ordered_public_spans": 98,
+          "whitespace_only_match": 15,
+          "ellipsis_plus_markup_whitespace": 13,
+          "json_escaped_representation_match": 1
+        }
+      },
+      "diagnosis": {
+        "unique_assignment_cache_entries": 236,
+        "entries_with_source_failure": 42,
+        "quoted_spans": 623,
+        "invalid_spans": 50,
+        "missing_required_witnesses": 18,
+        "diagnostic_categories": {
+          "whitespace_only_match": 3,
+          "no_match_under_diagnostic_transforms": 32,
+          "markup_and_whitespace_match": 5,
+          "ellipsis_joined_ordered_public_spans": 6,
+          "json_escaped_representation_match": 2,
+          "literal_in_other_displayed_artifact": 2
+        },
+        "invalid_diagnosis_replacement": 126,
+        "diagnosis_replacement_scope_mismatch": 27
+      },
+      "application": {
+        "unique_assignment_cache_entries": 346,
+        "entries_with_source_failure": 189,
+        "quoted_spans": 1189,
+        "invalid_spans": 268,
+        "missing_required_witnesses": 0,
+        "diagnostic_categories": {
+          "ellipsis_joined_ordered_public_spans": 81,
+          "ellipsis_plus_markup_whitespace": 9,
+          "markup_and_whitespace_match": 29,
+          "no_match_under_diagnostic_transforms": 133,
+          "whitespace_only_match": 16
+        }
+      }
+    },
+    "user": {
+      "quality": {
+        "unique_assignment_cache_entries": 1315,
+        "entries_with_source_failure": 435,
+        "quoted_spans": 3423,
+        "invalid_spans": 522,
+        "missing_required_witnesses": 320,
+        "diagnostic_categories": {
+          "ellipsis_joined_ordered_public_spans": 208,
+          "no_match_under_diagnostic_transforms": 200,
+          "ellipsis_plus_markup_whitespace": 9,
+          "markup_and_whitespace_match": 53,
+          "whitespace_only_match": 45,
+          "literal_in_other_displayed_artifact": 6,
+          "json_escaped_representation_match": 1
+        }
+      },
+      "diagnosis": {
+        "unique_assignment_cache_entries": 369,
+        "entries_with_source_failure": 66,
+        "quoted_spans": 998,
+        "invalid_spans": 82,
+        "missing_required_witnesses": 30,
+        "diagnostic_categories": {
+          "no_match_under_diagnostic_transforms": 50,
+          "ellipsis_joined_ordered_public_spans": 16,
+          "literal_in_other_displayed_artifact": 4,
+          "whitespace_only_match": 3,
+          "json_escaped_representation_match": 3,
+          "markup_and_whitespace_match": 4,
+          "ellipsis_plus_markup_whitespace": 2
+        },
+        "invalid_diagnosis_replacement": 210,
+        "diagnosis_replacement_scope_mismatch": 49
+      },
+      "application": {
+        "unique_assignment_cache_entries": 950,
+        "entries_with_source_failure": 526,
+        "quoted_spans": 3268,
+        "invalid_spans": 761,
+        "missing_required_witnesses": 0,
+        "diagnostic_categories": {
+          "ellipsis_joined_ordered_public_spans": 261,
+          "ellipsis_plus_markup_whitespace": 14,
+          "no_match_under_diagnostic_transforms": 363,
+          "markup_and_whitespace_match": 59,
+          "whitespace_only_match": 62,
+          "json_escaped_representation_match": 2
+        }
+      }
+    }
+  },
+  "counting_unit": "one completed assignment-local exact request-cache entry, not repeated generation references",
+  "diagnostic_only": "Normalization categories do not make a quotation valid, verify its meaning, alter a verdict, or change the executed admission policy. All native literal failures remain failures.",
+  "source_sha256": "d190dbd0e72dfd55e7f61e245e5349792b1b67739e496397f0dba45e85dae65f"
+}

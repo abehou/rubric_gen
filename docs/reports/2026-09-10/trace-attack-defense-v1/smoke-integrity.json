@@ -1,0 +1,22 @@
+{
+  "source": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/smoke-integrity.json",
+  "source_sha256": "a91b5849b054c1b0b3ecaf63bc00b7bc6d0712680d501f1af777e049715579e1",
+  "receipt": {
+    "assignments": [
+      {
+        "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+        "experiment_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace",
+        "s000_binding_sha256": "5a3b0238d5c7065ec2235041973e9ef56196a36f221afd3a8d04d9c0da26a9e3"
+      },
+      {
+        "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+        "experiment_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace",
+        "s000_binding_sha256": "a09d7fa704ebeb724af1427d50defdd519a999b00c4da5a32da1cbcbfcbcc718"
+      }
+    ],
+    "execution_only": true,
+    "experiment_id": "biomnibench-da-factorial-r10-3e186b5fe98c",
+    "no_endpoint_selection": true,
+    "passed": true
+  }
+}

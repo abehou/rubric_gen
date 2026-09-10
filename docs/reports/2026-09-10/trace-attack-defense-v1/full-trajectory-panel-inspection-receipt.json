@@ -1,0 +1,11 @@
+{
+  "summary_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/audit/biomnibench-da-factorial-r10-3e186b5fe98c/direct_full_trajectory/evaluations/20260910-154420-644823--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-3e186b5fe98c--source-biomnibench-da-factorial-r10-3e186b5fe98c--window-full_trajectory--max-input-250000--max-output-4096--primary-any_detect/summary.json",
+  "summary_sha256": "a831228fc71d986fbc6dfdc7796d533b5f0fc78729406c6ad6fc45cd9bc0480d",
+  "completed_cells": 240,
+  "models": [
+    "gpt-5.6-sol",
+    "claude-opus-5"
+  ],
+  "purpose": "Read-only case inspection after the complete full-trajectory panel; other outcome stages may still be running.",
+  "provider_calls": 0
+}

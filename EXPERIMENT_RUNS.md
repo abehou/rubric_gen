@@ -1211,3 +1211,15 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-10 — attack_defense_v1
 
 - 10:29 EDT: attack_defense_v1 development checkout: runs/babel-code/attack-defense-v1; config experiments/trace-attack-defense-v1/result20.yaml; new run root /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/. Provider-free input jobs10387137 and10387146; no behavioral calls yet.
+
+- 11:10 EDT: Production job10387275 runs snapshot106863b2ca1bfb543be3d6660aaeca56baec15af, experimentbiomnibench-da-factorial-r10-3e186b5fe98c, at the documented NFS root with32CPUs/32workers/shared60; counted smoke precedes the remaining118 and Sol+Opus audits.
+
+- 11:58 EDT — Queued provider-free report job `10387731` with `afterok:10387275` (replaces pending report-only job `10387689`, which never executed); it reads the completed sealed cohort and native judgments, writes compact tables to `docs/reports/2026-09-10/trace-attack-defense-v1/`, and leaves raw inspection packets under the existing NFS run root. No new behavioral or audit calls are in this reporting job.
+
+- 14:00 EDT: The complete120 trace cohort is sealed under the same study root; job10387275 has transitioned to authoritative audits, with report10387731 still dependent on full success. No static or preparation stage was regenerated.
+
+- 14:08 EDT: Read-only coordinator records identify PaperBench audit-recovery10388169 as the current one-audit-slot holder (lease7174ca0a39f44524b17933ae52ac0f6a); trace job10387275 waits before audit dispatch, with120/120 revisions complete. Preserve the shared one-study cap and the concurrent project; this is capacity waiting, not a trace revision failure.
+
+- 15:49 EDT: Production10387275 acquired the global audit slot at19:44:00UTC after6307.066seconds (105.12minutes) waiting behind the separate PaperBench recovery; the complete120-assignment Sol+Opus panel is now executing.
+
+- 16:32 EDT: Production 10387275 completed at 20:13:46 UTC (snapshot 106863b2ca1bfb543be3d6660aaeca56baec15af); native completion and all raw evidence remain under /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/. Read-only reporting 10389933 completed the paired tables/case review after report-only 10387731 stopped on the declared reminder-history hash difference; the published report is docs/reports/2026-09-10/trace-attack-defense-v1/README.md.

@@ -553,3 +553,9 @@
 - 10:29 EDT: New pre-revision schedule requires explicit submission/rubric bindings in live execution, replay, and outcome adapters; legacy g−1 invariant and absent-field hashes remain intact. Structural mocked tests check this boundary; model diagnoses and rule compliance remain empirical run outcomes.
 
 - 10:49 EDT: Resolved prelaunch interrupted-success cache recovery and bounded NFS cleanup; final focused suites pass (71 tests plus 55 recipe/MALT tests). Whole-suite residual failures are two unchanged assertions for pre-V2 pool paths; the PaperBench fixture and missing-BULK environment issues were verified separately.
+
+- 11:18 EDT: Audit cache identity hashes the entire rubric_score.py, so the new schedule metadata in its summary changes native W/S/A request identities despite unchanged grading prompts; exact historical imports may therefore miss. Preserve the committed recipe/native validation and report fresh versus reused calls, rather than fabricating equal producer hashes or changing execution during the cohort.
+
+- 14:50 EDT: The combined revision/audit driver retains its 32-CPU allocation while waiting for the global one-audit-study reservation; the current owner is a separate PaperBench recovery. This scheduling overhead is distinct from provider latency and revision reliability, and is recorded for operational follow-up without changing the frozen run or another session.
+
+- 16:32 EDT: Reporting validation now preserves the authorized reminder-history identity difference while requiring exact common simulator settings; native event source metadata no longer overwrites forensic stream-path anchors. Seven provider-free reporting tests and all 186 immutable execution-file hashes pass; no scientific source, saved revision or auditor verdict changed during these report fixes.

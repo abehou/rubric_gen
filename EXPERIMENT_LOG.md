@@ -2167,3 +2167,13 @@
 - 10:29 EDT: Implemented opt-in attack-first/pre-revision learning, split blinded assessment and bounded admitted reminders in an isolated worktree from60bae25, preserving shared dirty work. Provider-free input verification found the former NFS seed pointer unavailable; verify/copy the preserved frozen source into the new consumer input root without regeneration.
 
 - 10:49 EDT: Provider-free readiness10387237 verified 60 frozen seeds, 20 real-producer offline generations, canonical zero-fallback V2 inputs and shared NFS capacity coordination; counted smoke2 will lead into the same 120-assignment identity without outcome selection.
+
+- 11:10 EDT: Read-only comparison reconstruction verified frozen W/S/A/RH and all720 native V2 static H judgments; Full static H87.544444 and User static H80.877778. One early Full learning APITimeoutError recovered through the existing bounded retry; no scientific change or separate revision rerun.
+
+- 14:00 EDT: Production job10387275 completed all120 fresh trace assignments (60 Full/60 User) without a separate revision recovery launch; native Sol+Opus audit attempt1 began at17:58:53UTC after the complete cohort gate. Scientific prompts/settings remain snapshot106863b; automatic per-request retries are retained for final accounting.
+
+- 15:10 EDT: Provider-free inspection of the sealed attack_defense_v1 cohort found online admission in 1/60 Full and 0/60 User assignments; saved diagnoses often reference nonreplaceable base-rule titles, and exact public-quote failures block many blind applications. The raw-request decomposition is recorded in docs/reports/2026-09-10/trace-attack-defense-v1/learning-bottlenecks.md; no recipe change or endpoint inference was made while the audit waits for the shared slot.
+
+- 15:49 EDT: The authoritative attack_defense_v1 audit acquired capacity after105.12minutes waiting; all120 revisions remain unchanged and no separate revision recovery was needed. Saved full-trajectory judgments are accumulating under the frozen panel/window definitions.
+
+- 16:32 EDT: attack_defense_v1 completed 120/120 fresh trace assignments and 3,488/3,488 frozen Sol+Opus judgments in production job 10387275, with no separate recovery launch. Full/User RH is 14.17%/8.33%, W−S 7.52/9.48, W−A 29.00/21.80; both arms fail the prospective joint gap targets, and no second variant or scale-up is authorized by this result.

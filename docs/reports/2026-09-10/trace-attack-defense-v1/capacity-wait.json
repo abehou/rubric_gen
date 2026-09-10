@@ -1,0 +1,43 @@
+{
+  "observation_utc": "2026-09-10T18:44:51.045145+00:00",
+  "trace_completed_assignments": 120,
+  "observed_audit_owners": {
+    "peer": {
+      "job": "10388169",
+      "journal": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel/events-babel-l9-20-3517964.jsonl",
+      "audit_events": [
+        {
+          "event": "acquired",
+          "host": "babel-l9-20",
+          "job_id": "10388169",
+          "kind": "audit",
+          "lease_id": "7174ca0a39f44524b17933ae52ac0f6a",
+          "pid": 3517964,
+          "slots": 1,
+          "time": 1789062451.5082252,
+          "wait_seconds": 0.0011119558475911617
+        }
+      ],
+      "unreleased_acquisitions": [
+        {
+          "event": "acquired",
+          "host": "babel-l9-20",
+          "job_id": "10388169",
+          "kind": "audit",
+          "lease_id": "7174ca0a39f44524b17933ae52ac0f6a",
+          "pid": 3517964,
+          "slots": 1,
+          "time": 1789062451.5082252,
+          "wait_seconds": 0.0011119558475911617
+        }
+      ]
+    },
+    "trace": {
+      "job": "10387275",
+      "journal": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel/events-babel-q9-20-1924336.jsonl",
+      "audit_events": [],
+      "unreleased_acquisitions": []
+    }
+  },
+  "interpretation": "Append-only operational journal observation; active leases can change immediately afterward. Final trace acquisition records determine measured wait duration."
+}

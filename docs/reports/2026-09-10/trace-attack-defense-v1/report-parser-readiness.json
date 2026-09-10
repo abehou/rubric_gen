@@ -1,0 +1,15 @@
+{
+  "provider_calls": 0,
+  "unit_tests_passed": 5,
+  "tests": "tests/test_attack_defense_report_tables.py",
+  "completed_counted_smoke_parser_pass": true,
+  "timing_bindings_parser_pass": true,
+  "execution_snapshot_still_verified": "106863b2ca1bfb543be3d6660aaeca56baec15af",
+  "registered_execution_files": 186,
+  "scope": "Reporting arithmetic, abstention/union handling, semantic deduplication, cumulative agent usage, saved-record parsing and diagnostic quote classification only; not model-accuracy evidence.",
+  "complete_revision_cohort_pipeline_parser_pass": true,
+  "complete_revision_cohort_timing_parser_pass": true,
+  "quote_diagnostic_does_not_repair_native_failures": true,
+  "reporting_compute_job": "10387275",
+  "updated_utc": "2026-09-10T19:18:14.042097+00:00"
+}

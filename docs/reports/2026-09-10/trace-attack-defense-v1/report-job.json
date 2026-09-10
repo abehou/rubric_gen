@@ -1,0 +1,50 @@
+{
+  "status": "complete",
+  "job": "10389933",
+  "provider_calls": 0,
+  "execution_commit": "106863b2ca1bfb543be3d6660aaeca56baec15af",
+  "time": "2026-09-10T16:31:38.016086-04:00",
+  "raw_output_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report",
+  "report_source_sha256s": {
+    "experiments/trace-attack-defense-v1/report_accounting.py": "0365cad4dfbed20721b1fd68f88ab1f5d9c09fc7bd94a4c9445ed9f5bb5fdda4",
+    "experiments/trace-attack-defense-v1/report_case_review.py": "17737eee4b0b81566fc86ba681b313505ae9acbd12fdd61e7f45c309ac9d8d6e",
+    "experiments/trace-attack-defense-v1/report_costs.py": "c033d679a6ad4e8996e17032eb2e940735771bf930909db4d297071e041c0593",
+    "experiments/trace-attack-defense-v1/report_figures.py": "2863ba4054aa681bc0728042e3c1b6871737e133e8b0b73743436863f6fdb8eb",
+    "experiments/trace-attack-defense-v1/report_gap_review.py": "f219d918bd0510966ed878f37b4cdb6c81681c27f9cc0b33c1e97cfa60b67cce",
+    "experiments/trace-attack-defense-v1/report_gaps.py": "1a112ba39777383785fd28dc39246eda36413ae6d735e380d1ac43c636c14cbd",
+    "experiments/trace-attack-defense-v1/report_outcomes.py": "6dbaa528c996c28fb78dc814f9b87d7986e746f678eec73b0b0bb71543f9fd89",
+    "experiments/trace-attack-defense-v1/report_pipeline.py": "9c4866e84314485fbb3220580b545790287b5113b5ef0b99485fbe545ceedb5c",
+    "experiments/trace-attack-defense-v1/report_positives.py": "ebc02d0811645c4cc6317222453031da57153000823cf8055ba5eab83715afef",
+    "experiments/trace-attack-defense-v1/report_quote_binding.py": "d190dbd0e72dfd55e7f61e245e5349792b1b67739e496397f0dba45e85dae65f",
+    "experiments/trace-attack-defense-v1/report_reconstruct.py": "b1a61f3658e04488d3ad959d77709823a1133d25c5e8f2f08b175cb6ad2fde15",
+    "experiments/trace-attack-defense-v1/report_sources.py": "e7d27cbed7f2e860d8ac791969700ec1d9e0ca31be25d9a18fd345a75b6d9769",
+    "experiments/trace-attack-defense-v1/report_timing.py": "27d985d913532054e900067048d19d06480c326565c6a8c55a9b2f5db0302c89"
+  },
+  "other_report_sources": {
+    "experiments/trace-attack-defense-v1/render_report.py": "f13702e81d750924f25be37877b87e7a9165acde29a24640d7d695ba605e89a5",
+    "experiments/trace-attack-defense-v1/metrics.py": "ac8656795184b7b1f8c4fb8686fa1b94bdad9a5cbf6bca0d729d72265d8b07f3"
+  },
+  "verified_frozen_execution_files": 186,
+  "changed_frozen_execution_files": [],
+  "report_jobs": [
+    {
+      "job": "10387731",
+      "status": "failed_report_only",
+      "reason": "Comparator incorrectly required equal reminder-history fingerprints; no provider calls or scientific outputs affected."
+    },
+    {
+      "job": "10389933",
+      "status": "completed_report_commands",
+      "purpose": "Small compute-only NFS inspection allocation; per-command report tasks completed successfully."
+    }
+  ],
+  "mechanical_report_fixes": [
+    "Compare exact common simulator identity while explicitly binding the prescribed reminder-history difference.",
+    "Keep native event source metadata separate from the report stream-path anchor."
+  ],
+  "verified_positive_case_count": 18,
+  "reviewed_gap_case_count": 21,
+  "all_flagged_quality_loss_cases": 10,
+  "focused_reporting_tests": "7 passed",
+  "artifact_checks": "Native counts, all local report links, secret-pattern scan, literal case witnesses, table decisions and 186 frozen files verified."
+}

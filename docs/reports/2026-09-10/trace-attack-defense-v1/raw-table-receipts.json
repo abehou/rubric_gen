@@ -1,0 +1,50 @@
+{
+  "pipeline-requests.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/pipeline-requests.csv",
+    "rows": 7680,
+    "bytes": 6358417,
+    "sha256": "d977ca7c801149b78b708896c8573d329e383087cca18315f678328a4a18b4da"
+  },
+  "quote-binding-requests.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/quote-binding-requests.csv",
+    "rows": 3889,
+    "bytes": 2156034,
+    "sha256": "8dece25a15f585cc61b413efc77d12fe46eaf5a6db4c64940aa4107cd38a4aa4"
+  },
+  "quote-binding-failed-spans.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/quote-binding-failed-spans.csv",
+    "rows": 1952,
+    "bytes": 1494895,
+    "sha256": "d242d9b11e4990395c6604408297b07ee5fbeb00656b6444684d2d92ebba33e6"
+  },
+  "timing-scored-rules.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/timing-scored-rules.csv",
+    "rows": 351,
+    "bytes": 194608,
+    "sha256": "fa1d6cb375b893b1e11ed42443ddaf2441f84d9c9edef505fd919b3b879abc07"
+  },
+  "judgment-cells.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/judgment-cells.csv",
+    "rows": 4248,
+    "bytes": 3026971,
+    "sha256": "88b9d6004c867a7de4dd154730848bfc1e0d3c6e387e2bc9b5561b95283ed276"
+  },
+  "judgment-receipts.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/judgment-receipts.csv",
+    "rows": 3488,
+    "bytes": 2859542,
+    "sha256": "aeb29454964973f93e8a2db8f625ebb46c3f3bef15957f16e9dacfbed1fc232b"
+  },
+  "cost-responses.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/cost-responses.csv",
+    "rows": 13571,
+    "bytes": 6881166,
+    "sha256": "bf3bec99564f6c428261ae16b43fdc82974916e1f98615cff51e67e9373933e5"
+  },
+  "cost-agent-threads.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/cost-agent-threads.csv",
+    "rows": 903,
+    "bytes": 427425,
+    "sha256": "e577c7f3040b109a56c308bc7425ec7329f85e35e45a0f5c21046608995ae715"
+  }
+}
