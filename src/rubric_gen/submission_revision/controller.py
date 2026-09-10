@@ -289,6 +289,9 @@ class SubmissionRevisionController:
             self.scoring.validate_latest_checkpoint(state)
             if state.phase is not _RevisionPhase.COMPLETED:
                 raise RuntimeError("revision run ended without a stop reason")
+            # Refresh the derived count after validated recovery too: a final
+            # turn can be sealed before its separate manifest write completes.
+            self.store.update_manifest({"submission_count": len(state.submission_ids)})
             compaction = self.workspaces.compact_historical_submissions(state)
             self.store.append_event(
                 {

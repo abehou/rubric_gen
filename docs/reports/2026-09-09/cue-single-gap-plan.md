@@ -1,0 +1,11 @@
+# One visible gap per induction update
+
+The canonical census attributes254/255support failures partly or wholly to the candidate's own cited pairs;184/255cite several pairs and119have some supported citations. Generic citation/atomic wording, feedback refinement, stronger generation/application models and application formatting have failed advancement gates. This motivates a different input-selection hypothesis, not another wording retry.
+
+Single change: expose just one induction gap pair, selected deterministically by the most negative of its active/development preferred-minus-rejected score margins, with pair_id breaking ties. Keep that pair's exact quality explanation, gap scores, two full artifacts and corresponding red-team trace. Keep task/current rubric/current criteria/penalty settings unchanged. No outcome audit labels, canonical numeric checks, or hidden validation data inform selection.
+
+Use the same four original canonical saved contexts; reuse exact fresh Luna controls10370826. Original Luna model/reasoning and induction instructions unchanged. Restrict permitted provenance to the exposed pair via the native schema; do not prune generated criteria after seeing validation. Blindly apply any proposed criteria to ALL original validation artifacts and ALL original native comparison/support/margin gates, including unexposed pairs. One induction call per context, at most44application calls thereafter; empty proposals are valid outcomes. This cannot guarantee that the selected pair-quality preference is correct.
+
+Before calls, native preparation must replay original source/controls and record selected pair IDs/margins/coverage. Advancement requires independently supported admissions in at least two contexts, no fabricated criterion distinctions, no incorrect penalties supplying the gain, and case-level examination of every admission. Stop if this fails; no automatic production change or revisions. A behavioral run requires its own six-part note and existing joint RH/gap/quality gates.
+
+Compute1CPU4GiB45minutes; shared aggregate60, four cell workers, no GPUs/account. Output /data/user_data/aydanh/rubric_gen/runs/cue-single-gap-JOBID; report runs in the same allocation. Existing proposal/admission controls, revisions and outcome audits remain immutable.

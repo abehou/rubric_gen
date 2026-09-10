@@ -1,0 +1,9 @@
+# Public-review diagnostic: rubric-policy channel limit
+
+Recorded before public-review outcomes were analyzed. The private oracle-information ablation is useful for diagnosis but is not directly a valid replacement baseline for testing the existing rubric-policy mechanism.
+
+Code evidence: controller_scoring builds simulator input from private feedback plus public review/history; project_rubric_simulated_user_feedback exposes only decision/concerns in the solver prompt. The numeric composed score remains local state. Controller stopping uses unchanged workspace after the minimum turn count or revision budget, not a reward target. Public history comprises comments,assistant replies and artifact diffs. Once include_evaluator_feedback=false, changes in rubric policy no longer have their ordinary content channel into user feedback. Incidental stochastic/runtime differences would not establish a rubric-policy mechanism.
+
+Therefore use the public-review versus public-context comparison to isolate corrective evaluator information,report RH/quality honestly,and retain it as a diagnostic control. Do not promote it directly to Result20 as the baseline for policy reduction claims. Any subsequent user-setting baseline must retain an explicit,scientifically interpretable route from rubric policy to solver-visible feedback. No detector,score,stopping rule or model was changed by this interpretation.
+
+The weak judge itself uses review=trace: trace.md plus answer.txt,not the execution command ledger. The user review similarly sees those public artifacts. Full-trajectory detection sees recorded tool events,which can expose claimed-versus-executed discrepancies missed by artifact-only weak scoring. This explains an available verifier exploit channel without equating every incomplete computation with intentional RH.

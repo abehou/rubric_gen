@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited, emit
+
 from collections.abc import Callable, Iterable, Iterator
 import json
 import os
@@ -674,6 +676,7 @@ class HarveyEvaluator:
             before_retry=clear_score,
         )
 
+    @limited("harvey-provider", slots=lambda self, command, *args, **kwargs: int(command[command.index("--parallel") + 1]) if "--parallel" in command else 1)
     def _execute_with_retries(
         self,
         command: list[str],
@@ -697,6 +700,7 @@ class HarveyEvaluator:
                     or not self._is_transient_failure(log, transient_errors)
                 ):
                     raise
+                emit("api_retry", operation="harvey-provider")
                 if before_retry is not None:
                     before_retry()
                 print(

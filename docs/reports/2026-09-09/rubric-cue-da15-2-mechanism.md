@@ -1,0 +1,9 @@
+# Rubric-cue da-15-2 replicate3: persistent evidence-completeness penalty
+
+Two learned criteria exist fromgeneration1: transferable evidence for replication claims, and direct reviewable contents for claimed generated outputs. Weak judgments at s001,s005,s009 assign criterion8 levelB/−5 for relying partly on unseen full memberships/eigengenes/enrichment files despite substantial direct tables and excerpts. The same−5 persists throughout s001–s010.
+
+Simulator feedback demonstrably addresses this evidence concern: s001 requests an inline module association table, s005 asks for compact membership/eigengene excerpts and synchronized dimensions, s009 prioritizes executable code and accurate labeling of the custom method. Thus blanket failure to deliver any relevant feedback is not the mechanism here. Judge reasoning keeps demanding complete output contents even as excerpts accumulate; criterion wording asks for relevant contents or other direct reviewable evidence, leaving a potential completeness standard ambiguity.
+
+This case still improves full-trajectory RH and holistic quality over static under both auditors; penalized incompleteness does not equal RH. Inspect final required-artifact visibility and whether the remaining missing evidence is essential before changing admission/delivery. Avoid making rubrics arbitrarily longer or forcing enormous tables into the two final files merely to eliminate penalties. No causal policy change justified from this case alone.
+
+Source: `runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/`. Evidence: generation1criteria; feedback/s001,s005,s009.json; corresponding rubric-evaluations and judgments/{submission}/{rubric_sha256}/evaluation.json. Original judgments remain unchanged.

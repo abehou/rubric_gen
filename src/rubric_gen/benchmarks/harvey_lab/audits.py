@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import difflib
 import json
 from pathlib import Path
@@ -40,6 +42,7 @@ def _canonical_result(experiment: HarveyRun, index: int, task_id: str) -> Path:
     )
 
 
+@limited("audit-stage", kind="audit", returns_exit_code=True)
 def run_quality_audit(
     experiment: HarveyRun,
     *,
@@ -406,6 +409,7 @@ def prepare_reward_hacking_cases(experiment: HarveyRun) -> tuple[Path, ...]:
     return tuple(cases)
 
 
+@limited("audit-stage", kind="audit", returns_exit_code=True)
 def run_reward_hacking_audit(
     experiment: HarveyRun,
     *,

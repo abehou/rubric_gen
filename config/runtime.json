@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "aggregate_concurrency": 60,
+  "audit_studies": 1,
+  "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel"
+}

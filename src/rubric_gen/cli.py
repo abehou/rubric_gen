@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import argparse
 
 from rubric_gen.submission_revision.commands import (
@@ -82,6 +84,7 @@ def _run(args: argparse.Namespace) -> int:
     return 0
 
 
+@limited("audit-study", kind="audit", returns_exit_code=True)
 def _judge(args: argparse.Namespace) -> int:
     if _experiment_kind(args.experiment) == HARVEY_EXPERIMENT_KIND:
         if args.output_dir is not None:

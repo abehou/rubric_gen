@@ -1,4 +1,8 @@
+> Historical Mac checkpoint. Its concurrency/no-launch instructions are superseded by the current [Babel setup](BABEL_SETUP.md), [approved scope](../EXPERIMENT_PLAN.md), and [run ownership](../EXPERIMENT_RUNS.md). Preserve the historical results and commands below as provenance.
+
 # Final Mac checkpoint — 2026-09-08
+
+Current Babel preparation: [portable inputs, enforced aggregate 60, Slurm and resume](BABEL_SETUP.md). The latest user instruction supersedes the historical cap of 16 below, but does not authorize launching experiments. The historical checkpoint is preserved.
 
 This is the current handoff. **No new experiments or Results20 launches are authorized by this checkpoint.** All dev3 work described below is finished. Older authorization/launch entries are chronological history. The next recommended scientific step is targeted **dev3**, not Results20. Maintain aggregate provider concurrency ≤16 and at most one audit study at a time for any subsequently authorized work.
 

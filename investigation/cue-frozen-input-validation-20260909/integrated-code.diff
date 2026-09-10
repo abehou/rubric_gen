@@ -1,0 +1,191 @@
+diff --git a/src/rubric_gen/submission_revision/pretreatment_reuse.py b/src/rubric_gen/submission_revision/pretreatment_reuse.py
+index 13e8d2e..4f6598b 100644
+--- a/src/rubric_gen/submission_revision/pretreatment_reuse.py
++++ b/src/rubric_gen/submission_revision/pretreatment_reuse.py
+@@ -5,6 +5,8 @@ record is rewritten and no missing source rubric is generated implicitly.
+ """
+ from pathlib import Path
+ import shutil
++from rubric_gen.artifacts.hashing import sha256_file
++from rubric_gen.artifacts.serialization import write_json_atomic
+ 
+ from rubric_gen.runtime.yaml import load_yaml_strict
+ from rubric_gen.submission_revision.artifacts import read_json_object
+@@ -66,3 +68,36 @@ def copy_pool_entry(source: Path, destination: Path) -> None:
+         return
+     destination.parent.mkdir(parents=True, exist_ok=True)
+     shutil.copytree(source, destination)
++
++
++def input_receipt(source: Path, *, consumer_id: str) -> dict:
++    """Describe the exact immutable input; native validation is still required."""
++    if source.is_symlink() or not source.is_dir():
++        raise ValueError('frozen pre-treatment input is not a regular directory')
++    files = {}
++    for path in sorted(source.rglob('*')):
++        if path.is_symlink() or not (path.is_dir() or path.is_file()):
++            raise ValueError('frozen pre-treatment input contains a non-regular entry')
++        if path.is_file():
++            files[str(path.relative_to(source))] = sha256_file(path)
++    evolution = 'rubric-generations/generation-0001/evolution.json'
++    if evolution not in files:
++        raise ValueError('frozen pre-treatment input lacks producer evidence')
++    return dict(kind='frozen-pretreatment-input-v1', consumer_id=consumer_id,
++                source=str(source.resolve()), source_files=files,
++                source_evolution_sha256=files[evolution])
++
++
++def check_input_receipt(path: Path, expected: dict) -> None:
++    if path.is_symlink():
++        raise ValueError('frozen input receipt is symlinked')
++    if path.exists() and read_json_object(path, 'frozen input receipt') != expected:
++        raise ValueError('frozen input changed since consumer validation')
++
++
++def seal_input_receipt(path: Path, expected: dict) -> None:
++    """Call only after native source validation, before copying into the study."""
++    check_input_receipt(path, expected)
++    if not path.exists():
++        path.parent.mkdir(parents=True, exist_ok=True)
++        write_json_atomic(path, expected)
+diff --git a/src/rubric_gen/submission_revision/pretreatment_rubrics.py b/src/rubric_gen/submission_revision/pretreatment_rubrics.py
+index 4dc70d3..803ea9b 100644
+--- a/src/rubric_gen/submission_revision/pretreatment_rubrics.py
++++ b/src/rubric_gen/submission_revision/pretreatment_rubrics.py
+@@ -217,6 +217,7 @@ def validate_pretreatment_rubric(
+     prompt_profile: PromptProfile | str,
+     seed_replicates: int,
+     proposer: RubricProposer,
++    source_evolution_sha256: str | None = None,
+ ) -> RubricGeneration:
+     """Validate a complete shared pre-treatment rubric without new model work."""
+ 
+@@ -235,7 +236,7 @@ def validate_pretreatment_rubric(
+         rubric_generation_directory(root, 1) / "evolution.json",
+         "pre-treatment producer identity",
+     )
+-    if evolution.get("implementation_sha256") != rubric_generation_implementation_sha256(
++    if source_evolution_sha256 is None and evolution.get("implementation_sha256") != rubric_generation_implementation_sha256(
+         policy=RubricPolicy.OFFLINE_ELICITATION,
+     ):
+         raise RuntimeError(
+@@ -266,17 +267,23 @@ def validate_pretreatment_rubric(
+         prompt_profile=prompt_profile,
+         seed_replicates=seed_replicates,
+     )
+-    replayed = proposer.elicit_rubric(
++    replay_arguments = dict(
+         instruction=(task_dir / "instruction.md").read_text(encoding="utf-8"),
+         original_rubric=initial_rubric,
+         development_rubric=development_rubric,
+         current_generation=initial_generation,
+-        policy=RubricPolicy.OFFLINE_ELICITATION,
+-        generation_round=1,
+         output_dir=root,
+         artifact_history=history,
+-        source_checkpoint=None,
+     )
++    if source_evolution_sha256 is None:
++        replayed = proposer.elicit_rubric(
++            **replay_arguments, policy=RubricPolicy.OFFLINE_ELICITATION,
++            generation_round=1, source_checkpoint=None,
++        )
++    else:
++        replayed = proposer.validate_frozen_pretreatment_input(
++            **replay_arguments, source_evolution_sha256=source_evolution_sha256,
++        )
+     if replayed != generation:
+         raise RuntimeError("pre-treatment rubric generation changed")
+     expected = _manifest(
+diff --git a/src/rubric_gen/submission_revision/study.py b/src/rubric_gen/submission_revision/study.py
+index 8bf1ba4..04ed587 100644
+--- a/src/rubric_gen/submission_revision/study.py
++++ b/src/rubric_gen/submission_revision/study.py
+@@ -378,12 +378,25 @@ class StudyRunner:
+             max_retries=int(protocol["rubric_proposer_max_retries"]),
+         )
+         operation = ensure_pretreatment_rubric
++        reuse_arguments = {}
+         if self.pretreatment_source_root is not None:
+             from rubric_gen.submission_revision.pretreatment_rubrics import validate_pretreatment_rubric
+             source = shared_pretreatment_rubric_dir(
+                 self.pretreatment_source_root, task_id,
+                 rubric.content_sha256, development_rubric.content_sha256,
+             )
++            receipt_path = self.root / "pretreatment-input-receipts" / f"{task_id}.json"
++            destination = shared_pretreatment_rubric_dir(
++                self.pretreatment_root, task_id,
++                rubric.content_sha256, development_rubric.content_sha256,
++            )
++            if destination.exists() and not receipt_path.exists():
++                raise RuntimeError("installed frozen input lacks its consumer receipt")
++            receipt = pretreatment_reuse.input_receipt(
++                source, consumer_id=self.experiment.experiment_id,
++            )
++            pretreatment_reuse.check_input_receipt(receipt_path, receipt)
++            reuse_arguments = {"source_evolution_sha256": receipt["source_evolution_sha256"]}
+             validate_pretreatment_rubric(
+                 root=source, experiment_id=pretreatment_reuse.scope_id(self.experiment),
+                 task_dir=self.experiment.task_dir(task_id),
+@@ -392,11 +405,11 @@ class StudyRunner:
+                 seed_set=self.seed_root, seed_generator=seed_agent,
+                 prompt_profile=PromptProfile(str(protocol["prompt"])),
+                 seed_replicates=ELICITATION_SEED_REPLICATES, proposer=proposer,
++                **reuse_arguments,
+             )
+-            destination = shared_pretreatment_rubric_dir(
+-                self.pretreatment_root, task_id,
+-                rubric.content_sha256, development_rubric.content_sha256,
+-            )
++            if pretreatment_reuse.input_receipt(source, consumer_id=self.experiment.experiment_id) != receipt:
++                raise RuntimeError("frozen input changed during source validation")
++            pretreatment_reuse.seal_input_receipt(receipt_path, receipt)
+             pretreatment_reuse.copy_pool_entry(source, destination)
+             operation = validate_pretreatment_rubric
+         operation(
+@@ -416,7 +429,14 @@ class StudyRunner:
+             prompt_profile=PromptProfile(str(protocol["prompt"])),
+             seed_replicates=ELICITATION_SEED_REPLICATES,
+             proposer=proposer,
++            **reuse_arguments,
+         )
++        if self.pretreatment_source_root is not None:
++            installed = pretreatment_reuse.input_receipt(
++                destination, consumer_id=self.experiment.experiment_id,
++            )
++            if installed["source_files"] != receipt["source_files"]:
++                raise RuntimeError("installed frozen input differs from validated source")
+ 
+     def _revision_config(
+         self,
+diff --git a/tests/test_pretreatment_reuse.py b/tests/test_pretreatment_reuse.py
+index 5f2ec6b..264dd1f 100644
+--- a/tests/test_pretreatment_reuse.py
++++ b/tests/test_pretreatment_reuse.py
+@@ -149,3 +149,26 @@ def test_completed_validation_checks_producer_before_generation_or_provider(
+     if identity != 'current-producer':
+         assert 'before provider work' in str(error.value)
+     assert {str(p): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()} == before
++
++
++def test_frozen_receipt_pins_source_and_consumer(tmp_path):
++    source = tmp_path / 'source'
++    producer = source / 'rubric-generations/generation-0001/evolution.json'
++    producer.parent.mkdir(parents=True)
++    producer.write_text('{"implementation_sha256":"original"}')
++    receipt = tmp_path / 'consumer' / 'receipt.json'
++    expected = reuse.input_receipt(source, consumer_id='new-study')
++    reuse.seal_input_receipt(receipt, expected)
++    before = receipt.read_bytes()
++    reuse.seal_input_receipt(receipt, expected)
++    assert receipt.read_bytes() == before
++    changed_consumer = reuse.input_receipt(source, consumer_id='other-study')
++    with pytest.raises(ValueError, match='changed since'):
++        reuse.check_input_receipt(receipt, changed_consumer)
++    producer.write_text('changed producer evidence')
++    with pytest.raises(ValueError, match='changed since'):
++        reuse.check_input_receipt(receipt, reuse.input_receipt(source, consumer_id='new-study'))
++    assert receipt.read_bytes() == before
++    (source / 'linked').symlink_to(producer)
++    with pytest.raises(ValueError, match='non-regular'):
++        reuse.input_receipt(source, consumer_id='new-study')

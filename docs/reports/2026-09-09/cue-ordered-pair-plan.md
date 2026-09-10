@@ -1,0 +1,7 @@
+# Artifact-table order diagnostic
+
+2026-09-09 16:23 EDT. Single-pair isolation improved agreement but left wrong-letter descriptions in context1original andcontext9swapped. A plausible remaining cause is globally sorted artifact table order conflicting with pair A/B reference order. Exact request-order verification is part of the provider-free gate, not assumed from the observed response.
+
+One change from the completed single-pair diagnostic: reorder the two unchanged artifact-table entries into pair A/B order. Keep all original instructions, task text, schema, artifact IDs/content, navigation diff, model/settings, and preference handling identical. Twenty calls across the same10pairs/bothorders. Reuse completed single-pair controls10376267. Half the requests should already be aligned; fresh repeats for those cells provide a contemporaneous variability check, not evidence of an ordering intervention.
+
+Report order agreement, ties, all specific factual attribution failures, and aligned unchanged-control variation separately. Discoveryanchors remain separate. Do not promote solely because preferences agree. If factual errors persist or consistency worsens, preserve results and stop before revisions. A successful diagnostic is not RHmitigation; a future trace-only treatment needs original jointgates and a six-part decision note. No simulator, outcomeauditor, or admissionrule changes.

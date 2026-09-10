@@ -1,0 +1,65 @@
+#!/bin/bash
+#SBATCH --job-name=rubric-c1-analysis
+#SBATCH --partition=preempt
+#SBATCH --qos=preempt_cpu_qos
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00
+#SBATCH --no-requeue
+#SBATCH --dependency=afterok:10356519:10356523
+#SBATCH --chdir=/home/aydanh/repos/rubric_gen
+#SBATCH --output=runs/slurm-%x-%j.out
+set -euo pipefail
+umask 077
+MAIN_ROOT=/home/aydanh/repos/rubric_gen
+CODE_ROOT="$MAIN_ROOT/runs/babel-code/dev3-concern1-policy"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$CODE_ROOT/src"
+export UV_LINK_MODE=copy
+export UV_CACHE_DIR="${SLURM_TMPDIR:-/tmp}/rubric-analysis-uv-${UID}"
+export UV_PROJECT_ENVIRONMENT="${SLURM_TMPDIR:-/tmp}/rubric-analysis-${SLURM_JOB_ID}"
+cd "$CODE_ROOT"
+uv venv --python /usr/bin/python3.12 "$UV_PROJECT_ENVIRONMENT"
+uv sync --frozen --python /usr/bin/python3.12
+cd "$MAIN_ROOT"
+"$UV_PROJECT_ENVIRONMENT/bin/python" - <<'PY'
+from pathlib import Path
+import json,os,hashlib
+root=Path('/home/aydanh/repos/rubric_gen')
+seal=json.loads((root/'investigation/babel-overnight-20260907/concern-policy-analysis-seal.json').read_text())
+for name,expected in seal.items():
+ assert hashlib.sha256((root/name).read_bytes()).hexdigest()==expected, f'analysis source changed: {name}'
+for mode,job in [('controls','10356519'),('early','10356523')]:
+ owner=root/f'runs/babel-overnight-20260907/dispatcher-concern1-policy-{mode}-da-11-1'
+ receipts=[p for p in owner.glob('*/launch.json') if json.loads(p.read_text())['job_id']==job]
+ assert len(receipts)==1
+ p=receipts[0];launch=json.loads(p.read_text());result=json.loads((p.parent/'result.json').read_text())
+ assert result['success'] and result['source_unchanged'] and result['exits']==[0,0]
+ assert launch['git_commit']=='8705deca7d42828086cd6b1fc654a7eaabdef947'
+ for name,expected in launch['source_hashes'].items():assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==expected, f'producer source changed: {name}'
+receipt=root/f'runs/babel-overnight-20260907/policy-analysis-job-{os.environ["SLURM_JOB_ID"]}'
+receipt.mkdir(exist_ok=False)
+(receipt/'launch.json').write_text(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'dependencies':['10356519','10356523'],'source_seal':seal,'scope':'Read-only native outcome coverage and exposure analysis;no providers.'},indent=2)+'\n')
+PY
+EXP_ID=biomnibench-da-factorial-r10-360789db0d3d
+OUT=runs/babel-overnight-20260907/analysis-concern1-policy-10356519-10356523
+"$UV_PROJECT_ENVIRONMENT/bin/python" investigation/babel-overnight-20260907/analyze_babel.py \
+ --study "runs/babel-dev3-concern1-policy-controls-20260908/da-11-1/study/$EXP_ID" \
+ --audit "runs/babel-dev3-concern1-policy-controls-20260908/da-11-1/audit/$EXP_ID" \
+ --study "runs/babel-dev3-concern1-policy-early-20260908/da-11-1/study/$EXP_ID" \
+ --audit "runs/babel-dev3-concern1-policy-early-20260908/da-11-1/audit/$EXP_ID" \
+ --contrast user-simulator-static user-simulator-red-team-trace \
+ --contrast user-simulator-static user-simulator-red-team-trace-early \
+ --output "$OUT"
+"$UV_PROJECT_ENVIRONMENT/bin/python" investigation/babel-overnight-20260907/policy_exposure.py \
+ --analysis "$OUT/analysis.json" --output runs/babel-overnight-20260907/exposure-concern1-policy-10356519-10356523
+"$UV_PROJECT_ENVIRONMENT/bin/python" investigation/babel-overnight-20260907/feedback_exposure.py \
+ --analysis "$OUT/analysis.json" --output runs/babel-overnight-20260907/feedback-concern1-policy-10356519-10356523
+"$UV_PROJECT_ENVIRONMENT/bin/python" - <<'PY'
+from pathlib import Path
+import os,json
+p=Path('runs/babel-overnight-20260907')/f'policy-analysis-job-{os.environ["SLURM_JOB_ID"]}'/'result.json'
+p.write_text(json.dumps({'success':True,'analysis':'runs/babel-overnight-20260907/analysis-concern1-policy-10356519-10356523/analysis.json'})+'\n')
+PY

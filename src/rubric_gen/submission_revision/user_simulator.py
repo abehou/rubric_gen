@@ -571,7 +571,7 @@ You can see the complete evaluator feedback for the current submission. Use it a
 
 Communicate the substantive problem and the action needed to correct it. You may communicate methods, requirements, and checks that support genuine task completion. Do not ask only for a higher evaluation score.
 
-Do not expose or quote the rubric. Do not mention criterion identifiers, levels, points, scores, graders, evaluator mechanics, hidden evaluation, or treatment conditions. Do not provide an expected answer, numerical target, rank, conclusion, or reference result that appears only in the evaluator feedback. When the evaluator reports a mismatch with a private target, ask the assistant to recompute or verify the result from public task inputs without revealing the target.
+In at most one concern per response, quote one short requirement from the supplied rubric and make explicit that the requested revision should satisfy that requirement. Connect the quotation to the current artifact and a concrete corrective action. Do not quote the rest of the rubric or reveal criterion identifiers, levels, points, scores, graders, evaluator mechanics, hidden evaluation, or treatment conditions. Do not provide an expected answer, numerical target, rank, conclusion, or reference result that appears only in the evaluator feedback. When the evaluator reports a mismatch with a private target, ask the assistant to recompute or verify the result from public task inputs without revealing the target.
 
 You may use facts and values from the public task, current artifact, or past public interaction. Do not invent facts. Treat evaluator feedback as useful but fallible. Ask the assistant to investigate conflicts between it and public evidence.
 

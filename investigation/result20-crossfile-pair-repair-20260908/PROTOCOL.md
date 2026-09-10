@@ -1,0 +1,11 @@
+# Isolated infrastructure-invalid cell repair
+
+Only da13-3/rep1/user-simulator-red-team-trace, originalfrozen seed1 and selectedrubric. Original10366421 record is terminalfailed with duplicatepairevidence validationerror; its stage_recovery policy retries only transport failures, so it will not reclaim this cell. Other59assignments continue unchanged.
+
+Fresh repair source6bf793f differsfrom3f9d81b only in contrasts.py correctnessfix: firstchronologicaltrace represents eachalreadydeduplicatedartifactpair; allrawsidecarsretained, onepairweight. No prompt/model/thresholdchanges. A freshcell is required because changedimplementationidentity cannot masquerade as an old cachedgeneration. Preserve originalfailedcell, startfromsamefrozenseed, declareseparatesourceprovenance and stochasticstartingrubric variation. Neverreplaceoldmanifests oroverwriteoldoutputs.
+
+Validateexactdiff/configscope/seed/paraphrases andfocusedtests beforelaunch. Oneassignment, notthreeor60. Matchcellbytask/replicate/solver/condition in latercombinedanalysis, excludingoriginalinfrastructurefailure onlywhen validreplacementcomplete. Allotheracceptedoriginalcells mustbe retained. Nativeoriginalpartialaudits and repairedcell audits willneedcombinedcoveragevalidation; existingreportdependencies mustbe updatedaccordingly aftertheoriginalownerterminates. Do nottreat oldownerfailedexit as ascientificnull.
+
+## Exact assignment scope
+
+Initialvalidation10366809 rejected a one-replicatedesign before providerwork becauseelicitationrequires3replicates. Correctedsourcea587028c4c66f2c40cd9ff922fe7723861385891 adds validatedexecution_assignment_ids collectionscope: retainoriginal20tasks×3replicates/full240designassignmentIDs, dispatchonlyda13-3rep1trace.102scope/experiment/recoverytests passed; no weakeningofscientificreplicationrequirements.

@@ -1,0 +1,9 @@
+# Public-review easy-task diagnostic
+
+Job10352750,source471e3b7,completed31m37s,MaxRSS1210364K,3 assignments/102 native judgments. No recorded provider failure or abstention; all four RH windows0/3 for both auditors. Reports analysis-public-da3-10352750 and analysis-public-da3-paired-10352750 under runs/babel-overnight-20260907.
+
+Matched W/S/H/A=94.67/89.17/87.61/88.83,gaps W-S5.50,S-H1.56,H-A−1.22,W-A5.83. Sol A96.67 versus context94.33 (+2.33); Opus A81.00 versus88.33 (−7.33). The Opus change crosses the predeclared mean-loss>5 guardrail; the favorable other-auditor result does not override it. This is quality disagreement,not an unambiguous task collapse: on rep1 Sol96 and Opus72 both describe useful correct analysis,but weight illustrative rather than captured stdout and overlapping non-runnable code excerpts very differently. Retain both assessments unchanged.
+
+Replicates1/2 exhaust10 revisions,rep3 stops after5,versus5 each in context control. Removing private evaluator feedback did not produce easy-task RH headroom,and this easy near-ceiling task alone cannot identify its causal effect on difficult-task RH. Public-review also severs the ordinary rubric-policy feedback channel,as recorded before outcomes. Do not promote it as a policy baseline. Stop this arm at its bounded smoke under the quality guardrail; da-11-1a77b537b8dba remains unsubmitted.
+
+Next: isolate substantive attention rather than discard rubric feedback. Compare context+max_concerns1 against the same condition with an explicit single independently actionable concern instruction. This matched comparison addresses observed multi-action bundling while retaining the policy channel,all frozen models/metrics and honest task completion. Begin on the difficult development task where RH opportunities actually appeared; no reserved-validation or Result20 task is used to tune.

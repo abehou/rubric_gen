@@ -23,6 +23,7 @@ from rubric_gen.submission_revision.evolution_artifacts import (
 from rubric_gen.submission_revision.evolution_provider import (
     ProviderContract,
     RubricProposerProviderError,
+    RubricProposerInputLimitError,
     StructuredProviderOutput,
 )
 from rubric_gen.submission_revision.rubric_generation import (
@@ -462,7 +463,7 @@ def test_provider_contract_rejects_oversized_request_before_dispatch() -> None:
         max_request_bytes=1,
         service_tier=None,
     )
-    with pytest.raises(ValueError, match="request is"):
+    with pytest.raises(RubricProposerInputLimitError, match="request is"):
         contract.generate(
             instructions="instructions",
             evidence="evidence",
@@ -760,6 +761,17 @@ def test_trace_is_visible_only_to_trace_induction() -> None:
         **common,
     ))
 
+    table = {item["artifact_id"]: item for item in trace_aware["artifacts"]}
+    originals = {item.artifact_id: item.model_record() for item in history.artifacts}
+    used = set()
+    for comparison, gap in zip(induction, trace_aware["rubric_gaps"], strict=True):
+        for side, artifact_id in [("preferred", comparison.preferred_artifact_id),
+                                  ("rejected", comparison.rejected_artifact_id)]:
+            assert gap[side] == {"artifact_id": artifact_id}
+            assert table[artifact_id] == originals[artifact_id]
+            used.add(artifact_id)
+    assert set(table) == used
+    assert len(table) == len(trace_aware["artifacts"])
     assert artifact_only["red_team_pairs"] == [{
         "pair_id": pair.pair_id,
         "observed_artifact_id": pair.artifact_ids[0],
@@ -812,7 +824,7 @@ def test_pairwise_induction_builds_one_fixed_penalty_criterion(
     assert len(generation.elicited_criteria) == 1
     assert [level.points for level in parsed.criteria[-1].levels] == [0, -5, -10]
     assert parsed.normalization_maximum == 100
-    assert generation.proposer_call_budget == 16
+    assert generation.proposer_call_budget == 40
 
 
 def test_induction_does_not_see_sources_or_held_out_artifacts(tmp_path: Path) -> None:
@@ -1130,26 +1142,32 @@ def test_invalid_validation_rejects_all_candidates(tmp_path: Path) -> None:
 
 
 def test_validation_retry_is_exact_and_bounded(tmp_path: Path) -> None:
-    validation_calls = 0
+    from collections import Counter
+    from threading import Lock
+    validation_calls = Counter()
+    lock = Lock()
+    failing_id = assessment_module.validation_artifact_ids(_comparisons())[0]
 
     def propose(**kwargs):
-        nonlocal validation_calls
         if kwargs["stage"] == "validation":
-            validation_calls += 1
-            if validation_calls == 1:
+            aid = json.JSONDecoder().raw_decode(kwargs["evidence"])[0]["artifacts"][0]["artifact_id"]
+            with lock:
+                validation_calls[aid] += 1
+            if aid == failing_id and validation_calls[aid] == 1:
                 return _proposer_output({"validations": "invalid"}, "bad")
-            if validation_calls == 2:
+            if aid == failing_id:
                 assert "prior response failed validation" in kwargs["evidence"]
             else:
                 assert "prior response failed validation" not in kwargs["evidence"]
         return _proposer().run_proposer(**kwargs)
 
     generation = _replace(_proposer(propose, retries=1), tmp_path)
-    assert validation_calls == 5
+    assert sum(validation_calls.values()) == 5
+    assert validation_calls[failing_id] == 2
     assert len(generation.elicited_criteria) == 1
 
 
-@pytest.mark.parametrize("retries, expected_calls", [(0, 1), (1, 2), (5, 4)])
+@pytest.mark.parametrize("retries, expected_calls", [(0, 4), (1, 4), (5, 4)])
 def test_provider_failures_abort_without_publishing_generation(
     tmp_path: Path, retries: int, expected_calls: int,
 ) -> None:
@@ -1189,10 +1207,12 @@ def test_provider_retry_does_not_invent_a_validation_repair(tmp_path: Path) -> N
 def test_provider_failure_on_final_validation_attempt_is_not_fallback(tmp_path: Path) -> None:
     calls = 0
     default_call = _proposer().run_proposer
+    failing_id = assessment_module.validation_artifact_ids(_comparisons())[0]
 
     def propose(**kwargs):
         nonlocal calls
-        if kwargs["stage"] == "validation":
+        if (kwargs["stage"] == "validation" and
+                json.JSONDecoder().raw_decode(kwargs["evidence"])[0]["artifacts"][0]["artifact_id"] == failing_id):
             calls += 1
             if calls == 1:
                 return _proposer_output({"validations": "invalid"}, "bad")
@@ -1201,7 +1221,7 @@ def test_provider_failure_on_final_validation_attempt_is_not_fallback(tmp_path: 
 
     with pytest.raises(RubricProposerProviderError, match="stage validation"):
         _replace(_proposer(propose, retries=1), tmp_path)
-    assert calls == 2
+    assert calls == 5
     assert not (tmp_path / "rubric-generations/generation-0001").exists()
 
 
@@ -1225,7 +1245,7 @@ def test_raw_responses_preserve_line_endings_on_publish_and_replay(
 ) -> None:
     default_call = _proposer().run_proposer
     responses: dict[str, str] = {}
-    validation_responses = []
+    validation_responses = {}
 
     def formatted(**kwargs):
         output = default_call(**kwargs)
@@ -1233,7 +1253,8 @@ def test_raw_responses_preserve_line_endings_on_publish_and_replay(
         raw = raw.replace("\n", newline) + newline
         responses[kwargs["stage"]] = raw
         if kwargs["stage"] == "validation":
-            validation_responses.append(raw)
+            aid = json.loads(kwargs["evidence"])["artifacts"][0]["artifact_id"]
+            validation_responses[aid] = raw
         return replace(output, response_text=raw)
 
     first = _replace(_proposer(formatted), tmp_path)
@@ -1247,7 +1268,7 @@ def test_raw_responses_preserve_line_endings_on_publish_and_replay(
     }
     assert set(responses) == set(files)
     metadata = json.loads((root / "evolution.json").read_text())
-    assert [c["raw_text"] for c in metadata["validation_calls"]] == validation_responses
+    assert {c["artifact_id"]: c["raw_text"] for c in metadata["validation_calls"]} == validation_responses
     responses["validation"] = (root / "criterion-validation.json").read_text()
     for stage, filename in files.items():
         assert (root / filename).read_bytes() == responses[stage].encode("utf-8")
@@ -1463,13 +1484,14 @@ def test_validation_calls_isolate_artifacts_and_replay_raw_responses(tmp_path: P
         return default(**kwargs)
 
     first = _replace(_proposer(propose), tmp_path)
-    assert tuple(seen) == assessment_module.validation_artifact_ids(_comparisons())
+    expected_ids = assessment_module.validation_artifact_ids(_comparisons())
+    assert sorted(seen) == sorted(expected_ids)
     root = tmp_path / 'rubric-generations/generation-0001'
     metadata = json.loads((root / 'evolution.json').read_text())
-    assert [c['artifact_id'] for c in metadata['validation_calls']] == seen
+    assert tuple(c['artifact_id'] for c in metadata['validation_calls']) == expected_ids
     assert metadata['validation_attempt_count'] == len(seen)
     assert _replace(_proposer(lambda **kw: pytest.fail('unexpected fresh call')), tmp_path) == first
-    metadata['validation_calls'][0]['artifact_id'] = seen[-1]
+    metadata['validation_calls'][0]['artifact_id'] = expected_ids[-1]
     (root / 'evolution.json').write_text(json.dumps(metadata))
     with pytest.raises(RuntimeError):
         _replace(_proposer(lambda **kw: pytest.fail('unexpected fresh call')), tmp_path)
@@ -1490,7 +1512,13 @@ def test_interrupted_isolated_validation_reuses_completed_judgments(tmp_path: Pa
         _replace(_proposer(interrupted, retries=0), tmp_path)
     cache = tmp_path / 'rubric-proposer-records'
     saved = {p.name: p.read_bytes() for p in cache.glob('*.json')}
-    assert len(saved) == 5  # three assessments, proposal, first artifact validation
+    cached_ids = {
+        json.loads(record['request']['evidence'])['artifacts'][0]['artifact_id']
+        for value in saved.values()
+        if (record := json.loads(value))['request']['stage'] == 'validation'
+    }
+    assert ids[0] in cached_ids and ids[1] not in cached_ids
+    assert len(saved) == 4 + len(cached_ids)  # assessments, proposal, completed validations
     calls = []
 
     def recovered(**kwargs):
@@ -1499,6 +1527,129 @@ def test_interrupted_isolated_validation_reuses_completed_judgments(tmp_path: Pa
 
     result = _replace(_proposer(recovered, retries=0), tmp_path)
     assert len(result.elicited_criteria) == 1
-    assert len(calls) == len(ids) - 1
+    assert len(calls) == len(ids) - len(cached_ids)
     assert all(c['stage'] == 'validation' for c in calls)
+    assert {json.loads(c['evidence'])['artifacts'][0]['artifact_id'] for c in calls} == set(ids) - cached_ids
     assert all((cache / name).read_bytes() == value for name, value in saved.items())
+
+
+def test_local_input_limit_is_not_retried_as_provider_failure(tmp_path: Path) -> None:
+    calls = 0
+
+    def oversized(**_kwargs):
+        nonlocal calls
+        calls += 1
+        raise RubricProposerInputLimitError("request exceeds the local byte limit")
+
+    with pytest.raises(RubricProposerInputLimitError, match="local byte limit"):
+        _replace(_proposer(oversized, retries=5), tmp_path)
+    assert calls == 1
+    assert not (tmp_path / "rubric-generations/generation-0001").exists()
+
+
+def test_parallel_validation_preserves_blinding_and_shared_capacity(tmp_path, monkeypatch):
+    import threading
+    from rubric_gen.runtime import capacity
+
+    monkeypatch.setattr(capacity, "policy", lambda: dict(
+        version=1, aggregate_concurrency=2, audit_studies=1,
+        coordination_dir=str(tmp_path / "capacity"),
+    ))
+    barrier = threading.Barrier(2)
+    lock = threading.Lock()
+    active = peak = 0
+    observed = []
+
+    @capacity.limited("test-validation")
+    def generate(**kwargs):
+        nonlocal active, peak
+        if kwargs["stage"] == "validation":
+            evidence = json.loads(kwargs["evidence"])
+            assert len(evidence["artifacts"]) == 1
+            with lock:
+                active += 1
+                peak = max(peak, active)
+                observed.append(evidence["artifacts"][0]["artifact_id"])
+            try:
+                barrier.wait(timeout=10)
+                return _proposer().run_proposer(**kwargs)
+            finally:
+                with lock:
+                    active -= 1
+        return _proposer().run_proposer(**kwargs)
+
+    generation = _replace(_proposer(generate), tmp_path / "generation")
+    assert len(generation.elicited_criteria) == 1
+    assert len(observed) == len(set(observed)) == 4
+    assert peak == 2 and active == 0
+    assert capacity.Slots(tmp_path / "capacity" / "provider", 2).active_count() == 0
+
+
+def test_parallel_validation_matches_serial_admission(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from rubric_gen.submission_revision import evolution_validation
+
+    parallel = _replace(_proposer(), tmp_path / "parallel")
+    monkeypatch.setattr(evolution_validation, "ThreadPoolExecutor",
+                        lambda **kwargs: ThreadPoolExecutor(max_workers=1))
+    serial = _replace(_proposer(), tmp_path / "serial")
+    assert parallel.rubric.content == serial.rubric.content
+    assert parallel.elicited_criteria == serial.elicited_criteria
+    assert parallel.proposer_call_budget == serial.proposer_call_budget
+
+
+def test_assessment_deduplicates_complete_artifacts_without_changing_pairs():
+    history = _history()
+    payload = json.loads(assessment_module.assessment_evidence(
+        instruction="Solve.", artifact_history=history,
+        view=assessment_module.AssessmentView.RUBRIC_FREE, rubric=None,
+        current_generation=_initial_generation(),
+    ))
+    table = {record["artifact_id"]: record for record in payload["artifacts"]}
+    originals = {item.artifact_id: item.model_record() for item in history.artifacts}
+    used = set()
+    for pair, record in zip(history.pairs, payload["pairs"], strict=True):
+        ids = assessment_module.assessment_artifact_ids(pair)
+        assert record["pair_id"] == pair.pair_id
+        for side, artifact_id in zip(("artifact_A", "artifact_B"), ids, strict=True):
+            assert record[side] == {"artifact_id": artifact_id}
+            assert table[artifact_id] == originals[artifact_id]
+            used.add(artifact_id)
+    assert set(table) == used
+    assert len(table) == len(payload["artifacts"])
+
+
+def test_transport_retry_preserves_last_semantic_repair_and_native_replay(tmp_path, monkeypatch):
+    import rubric_gen.submission_revision.evolution_stage as stage_module
+    sleeps = []
+    monkeypatch.setattr(stage_module.time, "sleep", sleeps.append)
+    calls = []
+    default = _proposer().run_proposer
+    def propose(**kwargs):
+        if kwargs["stage"] == "induction":
+            calls.append(kwargs["evidence"])
+            if len(calls) == 1:
+                return _proposer_output({"criteria": "invalid"}, "invalid")
+            if len(calls) == 2:
+                raise TimeoutError("transient")
+        return default(**kwargs)
+    generation = _replace(_proposer(propose, retries=1), tmp_path)
+    assert len(calls) == 3 and calls[1] == calls[2]
+    assert sleeps == [0.5]
+    def forbidden(**kwargs):
+        raise AssertionError("completed generation must be replayed")
+    assert _replace(_proposer(forbidden, retries=1), tmp_path) == generation
+
+
+def test_permanent_provider_failure_is_not_retried(tmp_path, monkeypatch):
+    import rubric_gen.submission_revision.evolution_stage as stage_module
+    monkeypatch.setattr(stage_module.time, "sleep", lambda _: pytest.fail("no backoff"))
+    class PermanentError(Exception):
+        status_code = 401
+    calls = []
+    def fail(**kwargs):
+        calls.append(kwargs)
+        raise PermanentError()
+    with pytest.raises(RubricProposerProviderError):
+        _replace(_proposer(fail), tmp_path)
+    assert len(calls) == 1

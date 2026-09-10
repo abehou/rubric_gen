@@ -65,3 +65,46 @@ def test_copy_preserves_bytes_and_does_not_overwrite(tmp_path):
     (source / 'link').symlink_to(source / 'record')
     with pytest.raises(ValueError):
         reuse.copy_pool_entry(source, tmp_path / 'other')
+
+
+def scoped_source(pair, monkeypatch):
+    current, root = pair
+    original = reuse.load_experiment(None)
+    original.assignments = (
+        SimpleNamespace(assignment_id='a', condition_id='trace'),
+        SimpleNamespace(assignment_id='b', condition_id='static'),
+    )
+    original.execution_conditions = ('trace',)
+    ledger = {'experiment_id': 'source', 'status': 'completed_scope',
+              'execution_conditions': ['trace'], 'records': [
+                  {'assignment_id': 'a', 'condition_id': 'trace', 'status': 'completed'},
+                  {'assignment_id': 'b', 'condition_id': 'static', 'status': 'pending'},
+              ]}
+    return current, root, ledger
+
+
+def test_reuse_completed_scope_preserves_inactive_cells(pair, monkeypatch):
+    current, root, ledger = scoped_source(pair, monkeypatch)
+    path = root / 'study.json'
+    path.write_text(json.dumps(ledger))
+    before = path.read_bytes()
+    assert reuse.source_pool(current) == root / 'pretreatment-rubrics'
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize('fault', ['unfinished', 'scope', 'missing_record', 'condition', 'failed'])
+def test_reject_malformed_completed_scope(pair, monkeypatch, fault):
+    current, root, ledger = scoped_source(pair, monkeypatch)
+    if fault == 'unfinished':
+        ledger['records'][0]['status'] = 'pending'
+    elif fault == 'scope':
+        ledger['execution_conditions'] = ['static']
+    elif fault == 'missing_record':
+        ledger['records'].pop()
+    elif fault == 'condition':
+        ledger['records'][0]['condition_id'] = 'static'
+    else:
+        ledger['status'] = 'failed_scope'
+    (root / 'study.json').write_text(json.dumps(ledger))
+    with pytest.raises(ValueError):
+        reuse.source_pool(current)

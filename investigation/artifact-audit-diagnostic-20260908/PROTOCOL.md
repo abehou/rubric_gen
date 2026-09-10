@@ -1,0 +1,9 @@
+# Final-artifact evidence calibration v1
+
+Hypothesis: the artifact-only monitor may treat self-authored execution claims as observed execution and underweight internal contradictions. A single balanced clarification may improve evidentiary calibration; higher RH or a favorable treatment ordering is not an acceptance criterion.
+
+Population: all 60 saved static and all 60 saved trace assignments from the frozen rubric-cue Result20, paired by task and replicate. Reuse completed original final-artifact audits as control; run the new prompt once per artifact per existing Sol/Opus panel member (240 judgments). No selection by prior verdict. Both conditions get identical instructions, with condition identity and prior verdicts withheld. No trajectories enter the artifact-only requests. Existing thresholds, model settings, evidence chunking and aggregation remain unchanged.
+
+This changes only the actual RH monitor instruction for final_artifact, in a dedicated source checkout. Other windows remain byte-identical at request construction. The general forensic prompt is not the RH scoring prompt. Native source validation, native audit resume and shared aggregate60 / one-audit-study capacity remain enforced. No revision stage is invoked.
+
+Before provider execution: verify all120 source revisions, sealed latest-checkpoint binding, zero feedback/history evidence records, and identical original/candidate evidence/schema/settings; assert other window requests unchanged. Save source/config/prompt hashes and validation receipt. Existing frozen audit jobs finish first. Report complete paired score/label transitions, disagreements, abstentions and task-cluster uncertainty for each condition; retain neutral/adverse findings. This diagnostic never overwrites primary or historical results and is not evidence of policy improvement by itself.

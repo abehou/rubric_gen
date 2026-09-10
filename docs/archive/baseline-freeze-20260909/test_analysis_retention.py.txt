@@ -1,0 +1,28 @@
+from pathlib import Path
+from types import SimpleNamespace
+import pytest
+from rubric_gen.submission_revision import feedback as f
+from rubric_gen.submission_revision.artifacts import revision_manifest_keys
+
+@pytest.mark.parametrize('first_revision',[False,True])
+def test_retention_changes_only_delivered_revision_guidance(monkeypatch, first_revision):
+    monkeypatch.setattr(f,'compose_rubric_score',lambda *args:SimpleNamespace(score=72))
+    args=(None,Path('unused'),{'decision':'revise','concerns':[{'category':'quality','feedback':'Confirm the expected significant result.'}]})
+    kw=dict(task_instruction='Task instruction',first_revision=first_revision,reference_score=80)
+    control=f.project_rubric_simulated_user_feedback(*args,**kw)
+    candidate=f.project_rubric_simulated_user_feedback(*args,**kw,retain_analysis_specification=True)
+    assert candidate.score==control.score
+    assert candidate.payload==control.payload
+    assert candidate.prompt==control.prompt+'\n\n'+f.ANALYSIS_RETENTION_GUIDANCE
+    assert f.project_rubric_simulated_user_feedback(*args,**kw,retain_analysis_specification=False)==control
+
+def test_retention_does_not_create_revision_after_acceptance(monkeypatch):
+    monkeypatch.setattr(f,'compose_rubric_score',lambda *args:SimpleNamespace(score=95))
+    args=(None,Path('unused'),{'decision':'accept','concerns':[]})
+    kw=dict(task_instruction='Task',first_revision=False,reference_score=95)
+    assert f.project_rubric_simulated_user_feedback(*args,**kw,retain_analysis_specification=True)==f.project_rubric_simulated_user_feedback(*args,**kw)
+
+def test_retention_has_explicit_resume_identity():
+    control=revision_manifest_keys('user_simulator')
+    candidate=revision_manifest_keys('user_simulator',retain_analysis_specification=True)
+    assert candidate-control=={'retain_analysis_specification'}

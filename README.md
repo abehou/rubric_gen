@@ -1,6 +1,8 @@
 # Rubric Gen
 
-Current experiment state and Mac → Babel migration: [final checkpoint](docs/BABEL_HANDOFF.md). No new experiment launch; development continuation cap is 16, one audit study at a time.
+The BioMNIBench static baseline is frozen. Formal feedback conditions are **Full feedback** and **User simulator**, crossed with **Static rubric** and **Red-team trace**. See the [accepted checkpoint, scores and plots](docs/reports/2026-09-09/baseline-freeze/README.md) and [frozen configuration snapshots](experiments/frozen-biomnibench/README.md). Both static arms have60/60 assignments; User simulator trace has60/60 and Full feedback trace59/60. Trace mitigation is not yet jointly established. No new experiment is active or authorized by this checkpoint.
+
+Internal prompt provenance retains the version label `rubric-cue`; it is not a formal condition name. Historical reports/configs preserve their original evidence labels. [Babel runtime](docs/BABEL_SETUP.md) uses shared aggregate60, with one audit study at a time; [run records](EXPERIMENT_RUNS.md) retain output ownership.
 
 Run randomized submission-revision experiments with bounded rubric elicitation.
 Supported benchmarks are BiomniBench-DA, PaperBench Code-Dev, and Harvey LAB.
@@ -20,6 +22,15 @@ required.
 
 An uninterrupted assignment keeps one live Codex thread. Process recovery must
 reattach to saved thread state and still depends on provider resume support.
+
+For Babel execution, use Python 3.12 with `uv sync --frozen --python 3.12` and
+the validated Slurm launcher in [Babel setup](docs/BABEL_SETUP.md). Scientific
+provider work runs on compute nodes. The shared aggregate limit is 60 across
+studies and components, with one audit study at a time; older Mac limits do not
+apply. Current CPU jobs use account-free `preempt` / `preempt_cpu_qos` because the
+live cluster has no `cpu` partition. Recheck cluster availability before changing
+that profile. New experiment jobs request 4 CPUs (one task), retaining shared
+API concurrency 60 and 256 GiB RAM; historical resource requests remain in their launch receipts.
 
 Install the project:
 
@@ -72,6 +83,14 @@ current workflow.
 BioMNIBench and PaperBench have two task tiers. The development tier has three
 tasks. The results tier has 20 tasks. Each tier crosses four feedback policies
 with five rubric policies. All 20 cells use the `base` solver profile.
+
+Canonical BioMNIBench dev3 is `da-3-4`, `da-11-1`, and `da-18-1`, with three
+replicates per task. Recent Babel tuning uses the first two tasks; the saved
+development plan reserves `da-18-1` for validation after candidate freeze. This
+subset does not replace the canonical three-task tier. The canonical inventory
+comes from `experiments/biomnibench-dev3.yaml` and
+`experiments/biomnibench-results20.yaml`; their full factorial grids are reference
+designs, not instructions to launch every condition during bounded development.
 
 The `base` profile adds no behavioral guidance. For BioMNIBench, the initial
 solver prompt starts with the selected task's exact `instruction.md`. It appends
@@ -374,9 +393,19 @@ retry policy remains separate and explicit.
 | In-loop rubric grader | GPT-5.6 Luna | none | One successful call per artifact and rubric |
 | Reference rubric scorer | GPT-5.6 Sol | none; low text verbosity | One successful call per artifact and rubric |
 | Reference rubric scorer | Claude Opus 5 | low effort | One successful call per artifact and rubric |
-| Reference rubric scorer | Gemini 3.6 Flash | low thinking | One successful call per artifact and rubric |
+| Reference rubric scorer | Gemini 3.8 Flash | low thinking | One successful call per artifact and rubric |
 | Rubric-free evaluation panel | Same three models | Same settings | Two absolute-score and up to one pairwise-preference call per assignment and model |
 | Direct RH panel | Same three models | Same settings | One full-trajectory and one fixed post-update judgment per assignment and model, before retries |
+
+The intended strong panel is GPT-5.6 Sol, Claude Opus 5, and Gemini 3.8 Flash.
+Current Babel jobs explicitly use Sol + Opus while Gemini prepaid credits are
+unavailable (`429 RESOURCE_EXHAUSTED` on the last safe probe). Missing Gemini
+results are not imputed or relabeled as a complete three-model panel. Collect matched Gemini 3.8 audits only after legitimate access restoration and
+validation of an invocation that preserves existing outputs. Keep saved two-model
+configurations and provenance unchanged; changing audit model scope with
+`--resume` into an occupied output directory is rejected by the current preservation
+guard and is not a panel-extension recipe. Older frozen run checkouts may still
+replace incompatible stage outputs; keep their configurations unchanged.
 
 Primary development studies use three tasks. Primary results studies use 20
 tasks. All require five solver turns before no-change stopping and allow at most
@@ -478,6 +507,10 @@ Use the separate `malt` command for labeled MALT detector evaluation:
 uv run malt --help
 ```
 
+Run retention after a successful dev3-to-Result20 transition follows the
+[cleanup policy](docs/RUNS_CLEANUP_POLICY.md). Active runs and shared inputs stay
+in place; no cleanup occurs during the current search.
+
 ## Repository layout
 
 - `src/rubric_gen/benchmarks/`: all benchmark-owned contracts and workflows
@@ -500,3 +533,7 @@ extension rules.
 uv run rubric-gen --help
 uv run rubric-gen run --help
 ```
+
+### Babel storage
+
+All new large datasets, shared seed/paraphrase pools, revision workspaces, and caches use absolute paths under `/data/user_data/aydanh/rubric_gen/`. This persistent NFS mount is **compute-node-only**: perform access, validation, and generation through Slurm; login-node visibility is not required. New sbatch configurations and their launchers must resolve large outputs to that root. Keep code, configurations, manifests, hash/provenance receipts, and small reports in this repository. Preserve validated historical home-based Results20 data and outputs unchanged. See [storage validation and destinations](docs/reports/2026-09-09/shared-storage-policy.md).

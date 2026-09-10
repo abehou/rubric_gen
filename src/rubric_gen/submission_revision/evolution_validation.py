@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -34,15 +35,14 @@ def validate_independently(
     if set(artifacts) != set(artifact_ids):
         raise ValueError("validation evidence artifact coverage differs")
     fallback = json.loads(fallback_text)
-    parts: list[ValidationStageResult] = []
-    for artifact_id in artifact_ids:
+    def validate_one(artifact_id: str) -> ValidationStageResult:
         one_fallback = json.loads(fallback_text)
         for item in one_fallback["validations"]:
             item["artifact_applications"] = [
                 application for application in item["artifact_applications"]
                 if application["artifact_id"] == artifact_id
             ]
-        parts.append(stage(
+        return stage(
             stage="validation",
             evidence=canonical_json({**payload, "artifacts": [artifacts[artifact_id]]}),
             response_schema=validation_schema(candidates, (artifact_id,)),
@@ -50,7 +50,19 @@ def validate_independently(
                 text, candidates=candidates, artifact_ids=(aid,),
             ),
             fallback_text=canonical_json(one_fallback),
-        ))
+        )
+
+    # Independent blinded inputs; preserve artifact order when combining results.
+    # Each production provider call still acquires the shared global reservation.
+    # Bound local fan-out so many simultaneous studies cannot create unbounded
+    # worker threads; this is not an additional provider-capacity pool.
+    executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="rubric-validation")
+    futures = []
+    try:
+        futures = [executor.submit(validate_one, aid) for aid in artifact_ids]
+        parts = [future.result() for future in futures]
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
     return combine_validation_results(
         candidates=candidates, artifact_ids=artifact_ids,
         parts=parts, fallback_text=fallback_text,
@@ -89,4 +101,3 @@ def combine_validation_results(
         text, validated_validation_response(text, candidates=candidates,
                                             artifact_ids=artifact_ids), attempts, calls=calls,
     )
-

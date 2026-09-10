@@ -1,0 +1,933 @@
+diff --git a/src/rubric_gen/submission_revision/artifacts.py b/src/rubric_gen/submission_revision/artifacts.py
+index 7746a44..50498a6 100644
+--- a/src/rubric_gen/submission_revision/artifacts.py
++++ b/src/rubric_gen/submission_revision/artifacts.py
+@@ -2,12 +2,14 @@
+ 
+ from __future__ import annotations
+ 
++import errno
+ import hashlib
+ import json
+ import os
+ import shutil
+ import stat
+ import tempfile
++import time
+ from dataclasses import dataclass
+ from pathlib import Path
+ 
+@@ -99,12 +101,17 @@ REVISION_MANIFEST_KEYS = frozenset(
+ )
+ 
+ 
+-def revision_manifest_keys(feedback_policy: str) -> frozenset[str]:
++def revision_manifest_keys(feedback_policy: str, *, preserve_positive_margins: bool = False, deliver_active_violations: bool = False) -> frozenset[str]:
+     """Return the strict manifest shape for one feedback protocol."""
+ 
++    keys = REVISION_MANIFEST_KEYS
++    if deliver_active_violations:
++        keys = keys | {"deliver_active_violations"}
++    if preserve_positive_margins:
++        keys = keys | {"preserve_positive_margins"}
+     if feedback_policy == "user_simulator":
+-        return REVISION_MANIFEST_KEYS | {"feedback_simulator"}
+-    return REVISION_MANIFEST_KEYS
++        keys = keys | {"feedback_simulator"}
++    return keys
+ 
+ 
+ @dataclass
+@@ -546,6 +553,19 @@ def _force_remove_directory(root: Path) -> None:
+         root,
+     ]:
+         path.chmod(stat.S_IMODE(os.lstat(path).st_mode) | stat.S_IRWXU)
+-    shutil.rmtree(root)
++    # NFS can briefly report ENOTEMPTY/EBUSY after deleting the last entry.
++    # Only retry cleanup of this already-validated owned tree; other errors fail.
++    for attempt in range(7):
++        try:
++            shutil.rmtree(root)
++            break
++        except FileNotFoundError:
++            if not os.path.lexists(root):
++                return
++            raise
++        except OSError as exc:
++            if exc.errno not in (errno.ENOTEMPTY, errno.EBUSY) or attempt == 6:
++                raise
++            time.sleep(0.25 * 2**attempt)
+     if os.path.lexists(root):
+         raise RuntimeError(f"failed to remove owned directory tree: {root}")
+diff --git a/src/rubric_gen/submission_revision/controller.py b/src/rubric_gen/submission_revision/controller.py
+index 5305d90..4c5bd5f 100644
+--- a/src/rubric_gen/submission_revision/controller.py
++++ b/src/rubric_gen/submission_revision/controller.py
+@@ -166,6 +166,8 @@ class SubmissionRevisionController:
+             "rubric_policy": self.rubric_policy.value,
+             "rubric_proposer_model": self.config.rubric_proposer_model,
+             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
++            **({"preserve_positive_margins": True} if self.config.preserve_positive_margins else {}),
++            **({"deliver_active_violations": True} if self.config.deliver_active_violations else {}),
+             "rubric_generation_implementation_sha256": (
+                 rubric_generation_implementation_sha256()
+             ),
+diff --git a/src/rubric_gen/submission_revision/controller_recovery.py b/src/rubric_gen/submission_revision/controller_recovery.py
+index 8702c48..58dc32b 100644
+--- a/src/rubric_gen/submission_revision/controller_recovery.py
++++ b/src/rubric_gen/submission_revision/controller_recovery.py
+@@ -97,7 +97,7 @@ class RevisionRecovery:
+             self.experiment_dir / "manifest.json",
+             "revision manifest",
+         )
+-        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value):
++        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, preserve_positive_margins=self.config.preserve_positive_margins, deliver_active_violations=self.config.deliver_active_violations):
+             raise RuntimeError("revision manifest has invalid fields")
+         for key, value in self.experiment_identity.items():
+             if manifest.get(key) != value:
+diff --git a/src/rubric_gen/submission_revision/controller_scoring.py b/src/rubric_gen/submission_revision/controller_scoring.py
+index f3efd26..e39079e 100644
+--- a/src/rubric_gen/submission_revision/controller_scoring.py
++++ b/src/rubric_gen/submission_revision/controller_scoring.py
+@@ -632,6 +632,7 @@ class RevisionScorer:
+             task_instruction=task_instruction,
+             first_revision=first_revision,
+             reference_score=reference_score,
++            deliver_active_violations=self.config.deliver_active_violations,
+             prompt_profile=self.config.prompt_profile,
+             benchmark=self.config.benchmark,
+         )
+diff --git a/src/rubric_gen/submission_revision/controller_setup.py b/src/rubric_gen/submission_revision/controller_setup.py
+index 0e123a7..2a6385f 100644
+--- a/src/rubric_gen/submission_revision/controller_setup.py
++++ b/src/rubric_gen/submission_revision/controller_setup.py
+@@ -93,6 +93,7 @@ def _default_dependencies(
+             model=config.rubric_proposer_model,
+             service_tier=config.seed_agent.service_tier,
+             max_retries=config.rubric_proposer_max_retries,
++            preserve_positive_margins=config.preserve_positive_margins,
+         )
+     session: SolverSessionDriver
+     if config.agent.provider == "codex":
+diff --git a/src/rubric_gen/submission_revision/evaluation/targets.py b/src/rubric_gen/submission_revision/evaluation/targets.py
+index 38083d9..db849ea 100644
+--- a/src/rubric_gen/submission_revision/evaluation/targets.py
++++ b/src/rubric_gen/submission_revision/evaluation/targets.py
+@@ -274,6 +274,8 @@ def _load_terminal_revision_state(
+         "rubric_proposer_max_retries": protocol[
+             "rubric_proposer_max_retries"
+         ],
++        **({"preserve_positive_margins": True} if protocol.get("preserve_positive_margins", False) else {}),
++        **({"deliver_active_violations": True} if protocol.get("deliver_active_violations", False) else {}),
+         "review": protocol["review"],
+         "judge_model": protocol["judge_model"],
+         "max_review_chars": protocol["max_review_chars"],
+@@ -285,7 +287,7 @@ def _load_terminal_revision_state(
+         "live_workspace_removed": True,
+     }
+     if (
+-        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]))
++        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), preserve_positive_margins=protocol.get("preserve_positive_margins", False), deliver_active_violations=protocol.get("deliver_active_violations", False))
+         or any(
+         manifest.get(key) != value
+         for key, value in manifest_identity.items()
+diff --git a/src/rubric_gen/submission_revision/evolution.py b/src/rubric_gen/submission_revision/evolution.py
+index b6b3e5f..b6c3aae 100644
+--- a/src/rubric_gen/submission_revision/evolution.py
++++ b/src/rubric_gen/submission_revision/evolution.py
+@@ -87,8 +87,15 @@ from rubric_gen.submission_revision.rubric_generation_store import (
+ _NON_VALIDATION_STAGE_COUNT = 4
+ 
+ 
+-def rubric_generation_implementation_sha256() -> str:
+-    """Return one hash for the code that creates and checks rubric generations."""
++def rubric_generation_implementation_sha256(
++    *, policy: RubricPolicy | None = None,
++) -> str:
++    """Hash generation code; offline preparation never invokes red-team sidecars.
++
++    The default remains the complete revision implementation identity. Generation
++    caches pass their concrete policy so sealed offline pools can survive a
++    later sidecar-only edit without weakening checks on shared induction code.
++    """
+ 
+     package_root = Path(__file__).parent
+     paths = (
+@@ -118,6 +125,8 @@ def rubric_generation_implementation_sha256() -> str:
+     )
+     digest = hashlib.sha256()
+     for path in paths:
++        if policy is RubricPolicy.OFFLINE_ELICITATION and path.name == "red_team.py":
++            continue
+         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))
+         digest.update(b"\0")
+         digest.update(path.read_bytes())
+@@ -153,11 +162,15 @@ class RubricProposer:
+         max_retries: int = 2,
+         service_tier: str | None = None,
+         run_proposer: ProviderOperation | None = None,
++        preserve_positive_margins: bool = False,
+     ) -> None:
+         if not isinstance(benchmark, SubmissionBenchmarkId):
+             raise ValueError("rubric proposer benchmark is invalid")
+         if type(max_retries) is not int or max_retries < 0:
+             raise ValueError("rubric proposer retries must be non-negative")
++        if type(preserve_positive_margins) is not bool:
++            raise ValueError("preserve_positive_margins must be boolean")
++        self.preserve_positive_margins = preserve_positive_margins
+         self.benchmark = benchmark
+         self.max_retries = max_retries
+         self.proposer_contract = ProviderContract(
+@@ -223,7 +236,7 @@ class RubricProposer:
+ 
+         self.request_cache = ValidatedProposerCache(
+             output_dir / "rubric-proposer-records",
+-            {"context": context, "implementation": rubric_generation_implementation_sha256()},
++            {"context": context, "implementation": rubric_generation_implementation_sha256(policy=policy)},
+         )
+         result = self._produce(
+             instruction=instruction,
+@@ -267,6 +280,55 @@ class RubricProposer:
+         )
+         return result.generation
+ 
++    def validate_frozen_pretreatment_input(
++        self,
++        *,
++        instruction: str,
++        original_rubric: CompleteRubric,
++        development_rubric: CompleteRubric,
++        current_generation: RubricGeneration,
++        artifact_history: ArtifactHistory,
++        output_dir: Path,
++        source_evolution_sha256: str,
++    ) -> RubricGeneration:
++        """Revalidate a pinned scientific input, never generate or resume it.
++
++        Producer identity remains source provenance. All other context, evidence,
++        admission decisions and rendered content must pass current offline replay.
++        The consumer must separately pin this source digest in its own receipt.
++        """
++        root = rubric_generation_directory(output_dir, 1)
++        record_path = root / "evolution.json"
++        if record_path.is_symlink() or not record_path.is_file():
++            raise RuntimeError("frozen pretreatment input is missing or symlinked")
++        if hashlib.sha256(record_path.read_bytes()).hexdigest() != source_evolution_sha256:
++            raise RuntimeError("frozen pretreatment input digest changed")
++        metadata = load_json_object(record_path.read_text(), "frozen producer record")
++        producer = metadata.get("implementation_sha256")
++        if (not isinstance(producer, str) or len(producer) != 64
++                or any(c not in "0123456789abcdef" for c in producer)):
++            raise RuntimeError("frozen pretreatment producer identity is invalid")
++        request = dict(
++            instruction=instruction, original_rubric=original_rubric,
++            development_rubric=development_rubric,
++            current_generation=current_generation,
++            policy=RubricPolicy.OFFLINE_ELICITATION, generation_round=1,
++            source_checkpoint=None,
++        )
++        validate_evolution_request(**request)
++        history = validate_artifact_history(artifact_history)
++        context = self._context(**request, artifact_history=history)
++        result = self._load_completed_generation(
++            **{k: v for k, v in request.items() if k != "instruction"},
++            artifact_history=history, context=context, output_dir=output_dir,
++            frozen_producer_identity=producer,
++        )
++        if result is None:
++            raise RuntimeError("frozen pretreatment generation is missing")
++        if hashlib.sha256(record_path.read_bytes()).hexdigest() != source_evolution_sha256:
++            raise RuntimeError("frozen pretreatment input changed during validation")
++        return result
++
+     def _load_completed_generation(
+         self,
+         *,
+@@ -279,7 +341,14 @@ class RubricProposer:
+         artifact_history: ArtifactHistory,
+         context: dict[str, object],
+         output_dir: Path,
++        frozen_producer_identity: str | None = None,
+     ) -> RubricGeneration | None:
++        if frozen_producer_identity is not None and (
++            policy is not RubricPolicy.OFFLINE_ELICITATION
++            or generation_round != 1 or source_checkpoint is not None
++            or current_generation.generation_round != 0
++        ):
++            raise RuntimeError("frozen input must be offline pretreatment generation one")
+         root = rubric_generation_directory(output_dir, generation_round)
+         if not root.exists():
+             return None
+@@ -365,6 +434,8 @@ class RubricProposer:
+             validations,
+             comparisons,
+             current_generation,
++            preserve_positive_margins=(self.preserve_positive_margins
++                and policy is RubricPolicy.RED_TEAM_TRACE and generation_round > 1),
+         )
+         admissions_text = canonical_json(admission_record(admissions)) + "\n"
+         if (root / "aggregate-margins.json").read_text() != admissions_text:
+@@ -419,7 +490,10 @@ class RubricProposer:
+                 item.criterion.criterion_id for item in accepted
+             ),
+         )
+-        if metadata != self._generation_record(context=context, result=result):
++        expected_metadata = self._generation_record(context=context, result=result)
++        if frozen_producer_identity is not None:
++            expected_metadata["implementation_sha256"] = frozen_producer_identity
++        if metadata != expected_metadata:
+             raise RuntimeError("completed rubric generation changed")
+         if loaded != generation:
+             raise RuntimeError("completed rubric generation content changed")
+@@ -708,6 +782,8 @@ class RubricProposer:
+             validations,
+             comparisons,
+             current_generation,
++            preserve_positive_margins=(self.preserve_positive_margins
++                and policy is RubricPolicy.RED_TEAM_TRACE and generation_round > 1),
+         )
+         admissions_text = canonical_json(admission_record(admissions)) + "\n"
+         active_criteria = update_criteria(current_generation, accepted)
+@@ -842,7 +918,7 @@ class RubricProposer:
+         source_checkpoint: int | None,
+         artifact_history: ArtifactHistory,
+     ) -> dict[str, object]:
+-        return {
++        context = {
+             "benchmark": self.benchmark.value,
+             "policy": policy.value,
+             "generation_round": generation_round,
+@@ -858,6 +934,9 @@ class RubricProposer:
+             "max_retries": self.max_retries,
+             "provider_failure_max_retries": PROVIDER_FAILURE_MAX_RETRIES,
+         }
++        if self.preserve_positive_margins and policy is RubricPolicy.RED_TEAM_TRACE and generation_round > 1:
++            context["online_admission_rule"] = "preserve_positive_rank"
++        return context
+ 
+     def _generation_record(
+         self,
+@@ -877,7 +956,9 @@ class RubricProposer:
+         record: dict[str, object] = {
+             "kind": "pairwise-rubric-induction",
+             "validation_calls": list(result.validation.calls),
+-            "implementation_sha256": rubric_generation_implementation_sha256(),
++            "implementation_sha256": rubric_generation_implementation_sha256(
++                policy=RubricPolicy(str(context["policy"])),
++            ),
+             "context": context,
+             "prior_generation_sha256": context["prior_generation_sha256"],
+             "generation_sha256": result.generation.generation_sha256,
+diff --git a/src/rubric_gen/submission_revision/evolution_protocol.py b/src/rubric_gen/submission_revision/evolution_protocol.py
+index f04a386..3449457 100644
+--- a/src/rubric_gen/submission_revision/evolution_protocol.py
++++ b/src/rubric_gen/submission_revision/evolution_protocol.py
+@@ -52,18 +52,6 @@ claim, planned code, an unseen file, a citation, or a syntax check as proof of
+ completed work. The judge must be able to apply every level from the submitted
+ material and public review evidence.
+ 
+-Before proposing a criterion, identify a specific observable defect that is absent
+-or materially less severe in the preferred artifact than in the rejected artifact.
+-Defects shared equally by both cannot explain the pair's quality difference.
+-Check that the proposed levels distinguish this mechanism without allowing other,
+-shared defects to give both artifacts the same penalty. Narrow the criterion to
+-one general, claim-conditional mechanism when evidence supports doing so; do not
+-make a bespoke exception, require the observed answer, or invent a distinction.
+-The criterion must remain applicable independently to an unseen artifact without
+-pair labels, preference information, or generation provenance. If no such public
+-distinction is supported, return an empty criteria list. Independent validation
+-and admission rules remain binding.
+-
+ Cite each induction pair that directly supports the criterion. Use replaces only
+ when the candidate is a more precise revision of the listed current criterion, or
+ when it merges listed criteria without losing coverage. Do not restate or duplicate
+@@ -689,6 +677,7 @@ def _aggregate_margin_checks(
+     validations_by_id: dict[str, CandidateValidation],
+     comparisons: tuple[assessment.PairComparison, ...],
+     active_by_id: dict[str, ElicitedCriterion],
++    preserve_positive_margins: bool = False,
+ ) -> tuple[MarginCheck, ...]:
+     comparisons_by_id = {item.pair_id: item for item in comparisons}
+     strict_keys = {
+@@ -731,7 +720,10 @@ def _aggregate_margin_checks(
+                 passed=(
+                     prospective_margin > current_margin
+                     if strict
+-                    else prospective_margin >= current_margin
++                    else (prospective_margin >= current_margin or (
++                        preserve_positive_margins
++                        and current_margin > 0 and prospective_margin > 0
++                    ))
+                 ),
+             ))
+     return tuple(checks)
+@@ -742,7 +734,13 @@ def admit_candidates(
+     validations: tuple[CandidateValidation, ...],
+     comparisons: tuple[assessment.PairComparison, ...],
+     current_generation: RubricGeneration,
++    *,
++    preserve_positive_margins: bool = False,
+ ) -> tuple[tuple[CriterionCandidate, ...], tuple[CandidateAdmission, ...]]:
++    if type(preserve_positive_margins) is not bool:
++        raise ValueError("preserve_positive_margins must be boolean")
++    if preserve_positive_margins and current_generation.generation_round == 0:
++        raise ValueError("ranking preservation cannot change offline starting admission")
+     if len(candidates) != len(validations):
+         raise ValueError("candidate and validation sets differ")
+     active_by_id = {
+@@ -814,6 +812,7 @@ def admit_candidates(
+                 validations_by_id=validations_by_id,
+                 comparisons=comparisons,
+                 active_by_id=active_by_id,
++                preserve_positive_margins=preserve_positive_margins,
+             )
+             passed = all(item.passed for item in checks)
+             decision = CandidateAdmission(
+diff --git a/src/rubric_gen/submission_revision/execution_scope.py b/src/rubric_gen/submission_revision/execution_scope.py
+index cef080e..d356347 100644
+--- a/src/rubric_gen/submission_revision/execution_scope.py
++++ b/src/rubric_gen/submission_revision/execution_scope.py
+@@ -25,6 +25,13 @@ def terminal_records(experiment: Experiment, study: dict) -> list[dict]:
+         if declared != list(scope) or study.get("status") not in {"completed_scope", "failed_scope"}:
+             raise ValueError("audit scope differs from the terminal study invocation")
+         selected = [r for r in records if r["condition_id"] in scope]
++    ids = getattr(experiment, "execution_assignment_ids", None)
++    if study.get("execution_assignment_ids") != (None if ids is None else list(ids)):
++        raise ValueError("audit assignment scope differs from the terminal study invocation")
++    if ids is not None:
++        if scope is None or not set(ids) <= {r["assignment_id"] for r in selected}:
++            raise ValueError("assignment scope falls outside the condition scope")
++        selected = [r for r in selected if r["assignment_id"] in ids]
+     if not selected or any(r.get("status") not in {"completed", "failed", "invalid"} for r in selected):
+         raise ValueError("every selected source assignment must be terminal before audit")
+     if study.get("status") in {"completed", "completed_scope"} and any(
+diff --git a/src/rubric_gen/submission_revision/experiment.py b/src/rubric_gen/submission_revision/experiment.py
+index b361df5..8ab7709 100644
+--- a/src/rubric_gen/submission_revision/experiment.py
++++ b/src/rubric_gen/submission_revision/experiment.py
+@@ -95,10 +95,19 @@ class Experiment:
+         value = self.payload.get("execution_conditions")
+         return None if value is None else tuple(sorted(value))
+ 
++    @property
++    def execution_assignment_ids(self) -> tuple[str, ...] | None:
++        """Explicit recovery subset of the unchanged scientific design."""
++        value = self.payload.get("execution_assignment_ids")
++        return None if value is None else tuple(sorted(value))
++
+     @property
+     def execution_assignments(self) -> tuple[ExperimentAssignment, ...]:
+         scope = self.execution_conditions
+-        return tuple(a for a in self.assignments if scope is None or a.condition_id in scope)
++        ids = self.execution_assignment_ids
++        return tuple(a for a in self.assignments
++                     if (scope is None or a.condition_id in scope)
++                     and (ids is None or a.assignment_id in ids))
+ 
+     @property
+     def protocol(self) -> dict[str, object]:
+@@ -231,6 +240,15 @@ def load_experiment(path: Path) -> Experiment:
+                 or any(type(c) is not str for c in scope)
+                 or len(scope) != len(set(scope)) or not set(scope) <= available):
+             raise ValueError("execution_conditions must be unique nonempty selected condition IDs")
++    if "execution_assignment_ids" in payload:
++        ids = payload["execution_assignment_ids"]
++        conditions = payload.get("execution_conditions")
++        available = {a.assignment_id for a in payload["assignments"]
++                     if conditions is not None and a.condition_id in conditions}
++        if (not isinstance(ids, list) or not ids
++                or any(type(value) is not str for value in ids)
++                or len(ids) != len(set(ids)) or not set(ids) <= available):
++            raise ValueError("execution_assignment_ids must select unique assignments within execution_conditions")
+     if "execution_audit_models" in payload:
+         models = payload["execution_audit_models"]
+         if (not isinstance(models, list) or not models
+@@ -248,12 +266,12 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
+         "assignment_selection", "protocol",
+         "rubric_paraphrases", "outcome_audit", "dag",
+     }
+-    if not required <= set(payload) or set(payload) - required - {"pretreatment_source", "execution_conditions", "execution_audit_models"}:
++    if not required <= set(payload) or set(payload) - required - {"pretreatment_source", "execution_conditions", "execution_assignment_ids", "execution_audit_models"}:
+         raise ValueError(f"experiment keys must be exactly {sorted(required)}")
+     if "pretreatment_source" in payload:
+         source = payload["pretreatment_source"]
+         if (not isinstance(source, dict)
+-                or set(source) != {"experiment", "study_dir", "experiment_id"}
++                or set(source) not in ({"experiment", "study_dir", "experiment_id"}, {"experiment", "study_dir", "experiment_id", "producer_prompt_sha256"})
+                 or any(type(v) is not str or not v.strip() for v in source.values())):
+             raise ValueError("pretreatment_source requires experiment, study_dir and experiment_id")
+     if payload["kind"] != EXPERIMENT_KIND:
+@@ -501,13 +519,13 @@ def _validate_master_rubrics(
+             raise ValueError(f"master rubric is invalid for {task_id}: {exc}") from exc
+ 
+ 
+-def _derived_experiment_id(payload: dict[str, Any]) -> str:
++def _derived_experiment_id(payload: dict[str, Any], *, producer_prompt_sha256: str | None = None) -> str:
+     """Derive one readable identity from the experiment's semantic YAML."""
+ 
+     identity = {key: payload[key] for key in _IDENTITY_KEYS}
+     if "pretreatment_source" in payload:
+         identity["pretreatment_source"] = payload["pretreatment_source"]
+-    identity["prompt_implementation_sha256"] = prompt_implementation_sha256()
++    identity["prompt_implementation_sha256"] = (prompt_implementation_sha256() if producer_prompt_sha256 is None else producer_prompt_sha256)
+     digest = sha256_text(json.dumps(
+         identity,
+         ensure_ascii=False,
+@@ -535,7 +553,11 @@ def _validate_protocol(protocol: object) -> None:
+     }
+     if not isinstance(protocol, dict):
+         raise ValueError("protocol must be a mapping")
+-    if set(protocol) != base_keys:
++    if type(protocol.get("preserve_positive_margins", False)) is not bool:
++        raise ValueError("preserve_positive_margins must be boolean")
++    if type(protocol.get("deliver_active_violations", False)) is not bool:
++        raise ValueError("deliver_active_violations must be boolean")
++    if set(protocol) - {"preserve_positive_margins", "deliver_active_violations"} != base_keys:
+         raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
+     if type(protocol["max_revisions"]) is not int or protocol["max_revisions"] < 1:
+         raise ValueError("max_revisions must be positive")
+diff --git a/src/rubric_gen/submission_revision/feedback.py b/src/rubric_gen/submission_revision/feedback.py
+index 1226ebe..7fa4a3a 100644
+--- a/src/rubric_gen/submission_revision/feedback.py
++++ b/src/rubric_gen/submission_revision/feedback.py
+@@ -280,6 +280,7 @@ def project_rubric_simulated_user_feedback(
+     task_instruction: str,
+     first_revision: bool,
+     reference_score: float,
++    deliver_active_violations: bool = False,
+     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+ ) -> ProjectedFeedback:
+@@ -294,7 +295,7 @@ def project_rubric_simulated_user_feedback(
+         "decision": user_feedback.get("decision"),
+         "concerns": user_feedback.get("concerns"),
+     }
+-    return ProjectedFeedback(
++    projection = ProjectedFeedback(
+         score=composition.score,
+         payload=payload,
+         prompt=render_revision_prompt(
+@@ -307,6 +308,19 @@ def project_rubric_simulated_user_feedback(
+         ),
+     )
+ 
++    if not deliver_active_violations:
++        return projection
++    requirements = active_violation_requirements(generation, score_validation_path)
++    if not requirements:
++        return projection
++    note = "\n\nActive rubric requirements needing attention:\n" + "\n".join(
++        "- " + requirement for requirement in requirements
++    )
++    return ProjectedFeedback(
++        score=projection.score, payload=projection.payload,
++        prompt=projection.prompt + note,
++    )
++
+ 
+ def _validate_simulated_user_feedback(
+     payload: dict[str, object],
+@@ -723,3 +737,24 @@ def _bounded_text(value: object, max_chars: int) -> str:
+     if max_chars <= len(marker):
+         return marker[:max_chars]
+     return value[: max_chars - len(marker)] + marker
++
++
++def active_violation_requirements(
++    generation: RubricGeneration,
++    score_validation_path: Path,
++) -> tuple[str, ...]:
++    """Return active learned requirements penalized by this exact judgment.
++
++    Pure projection: no new assessment, score change, or criterion admission.
++    Callers must gate solver delivery on an actual next revision opportunity.
++    """
++    validation = _load_object(score_validation_path, "score validation")
++    _, _, _, scores = _validate_score_record(
++        validation, generation.rubric.content, generation.rubric.content_sha256,
++    )
++    offset = len(scores) - len(generation.elicited_criteria)
++    return tuple(
++        criterion.requirement
++        for index, criterion in enumerate(generation.elicited_criteria, start=1)
++        if scores[f"criterion_{offset + index}"] < 0
++    )
+diff --git a/src/rubric_gen/submission_revision/models.py b/src/rubric_gen/submission_revision/models.py
+index b60ed90..00b9cc8 100644
+--- a/src/rubric_gen/submission_revision/models.py
++++ b/src/rubric_gen/submission_revision/models.py
+@@ -49,6 +49,8 @@ class SubmissionRevisionConfig:
+     development_rubric_path: Path
+     master_rubric_name: str
+     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
++    preserve_positive_margins: bool = False
++    deliver_active_violations: bool = False
+     rubric_proposer_max_retries: int = 1
+     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
+     feedback_simulator: SimulatedUserConfig | None = None
+@@ -63,6 +65,10 @@ class SubmissionRevisionConfig:
+     progress_position: int | None = None
+ 
+     def __post_init__(self) -> None:
++        if type(self.deliver_active_violations) is not bool:
++            raise ValueError("deliver_active_violations must be boolean")
++        if type(self.preserve_positive_margins) is not bool:
++            raise ValueError("preserve_positive_margins must be boolean")
+         if type(self.max_revisions) is not int or self.max_revisions < 0:
+             raise ValueError("max_revisions must be a non-negative integer")
+         if (
+diff --git a/src/rubric_gen/submission_revision/pretreatment_reuse.py b/src/rubric_gen/submission_revision/pretreatment_reuse.py
+index 13e8d2e..e403280 100644
+--- a/src/rubric_gen/submission_revision/pretreatment_reuse.py
++++ b/src/rubric_gen/submission_revision/pretreatment_reuse.py
+@@ -5,10 +5,13 @@ record is rewritten and no missing source rubric is generated implicitly.
+ """
+ from pathlib import Path
+ import shutil
++import re
++from rubric_gen.artifacts.hashing import sha256_file
++from rubric_gen.artifacts.serialization import write_json_atomic
+ 
+ from rubric_gen.runtime.yaml import load_yaml_strict
+ from rubric_gen.submission_revision.artifacts import read_json_object
+-from rubric_gen.submission_revision.experiment import Experiment, load_experiment
++from rubric_gen.submission_revision.experiment import Experiment, load_experiment, _derived_experiment_id
+ from rubric_gen.submission_revision.execution_scope import terminal_records
+ 
+ 
+@@ -26,6 +29,36 @@ def source_pool(experiment: Experiment) -> Path | None:
+     if not isinstance(raw, dict) or 'pretreatment_source' in raw:
+         raise ValueError('nested pre-treatment reuse is not supported')
+     original = load_experiment(path)
++    if 'producer_prompt_sha256' in source:
++        digest = source['producer_prompt_sha256']
++        if re.fullmatch(r'[0-9a-f]{64}', digest) is None:
++            raise ValueError('invalid producer prompt digest')
++        root = Path(source['study_dir'])
++        if root.is_symlink() or not root.is_dir():
++            raise ValueError('invalid producer study directory')
++        ledger = read_json_object(root / 'study.json', 'producer study')
++        if ledger.get('experiment_id') != source['experiment_id'] or ledger.get('status') not in {'completed', 'completed_scope'}:
++            raise ValueError('producer study identity or completion mismatch')
++        records = terminal_records(original, ledger)
++        if not records or any(r.get('status') != 'completed' for r in records):
++            raise ValueError('producer scope is not complete')
++        for record in records:
++            relative = Path(record['experiment_dir'])
++            if relative.is_absolute() or '..' in relative.parts:
++                raise ValueError('invalid producer assignment path')
++            manifest_path = root / relative / 'manifest.json'
++            if manifest_path.is_symlink() or not manifest_path.is_file():
++                raise ValueError('producer manifest missing or symlinked')
++            manifest = read_json_object(manifest_path, 'producer manifest')
++            if (manifest.get('experiment_id') != source['experiment_id']
++                    or manifest.get('assignment_id') != record['assignment_id']
++                    or manifest.get('prompt_implementation_sha256') != digest):
++                raise ValueError('producer manifest prompt or assignment identity mismatch')
++        producer_id = _derived_experiment_id(raw, producer_prompt_sha256=digest)
++        if producer_id != source['experiment_id']:
++            raise ValueError('producer YAML does not derive declared identity')
++        # In-memory validated producer interpretation; never rewrite source files.
++        original = Experiment(original.path, {**original.payload, 'experiment_id': producer_id})
+     if original.experiment_id != source['experiment_id']:
+         raise ValueError('pre-treatment source experiment identity mismatch')
+     for key in ('benchmark', 'tasks_dir', 'seed_generator', 'rubric_paraphrases'):
+@@ -66,3 +99,36 @@ def copy_pool_entry(source: Path, destination: Path) -> None:
+         return
+     destination.parent.mkdir(parents=True, exist_ok=True)
+     shutil.copytree(source, destination)
++
++
++def input_receipt(source: Path, *, consumer_id: str) -> dict:
++    """Describe the exact immutable input; native validation is still required."""
++    if source.is_symlink() or not source.is_dir():
++        raise ValueError('frozen pre-treatment input is not a regular directory')
++    files = {}
++    for path in sorted(source.rglob('*')):
++        if path.is_symlink() or not (path.is_dir() or path.is_file()):
++            raise ValueError('frozen pre-treatment input contains a non-regular entry')
++        if path.is_file():
++            files[str(path.relative_to(source))] = sha256_file(path)
++    evolution = 'rubric-generations/generation-0001/evolution.json'
++    if evolution not in files:
++        raise ValueError('frozen pre-treatment input lacks producer evidence')
++    return dict(kind='frozen-pretreatment-input-v1', consumer_id=consumer_id,
++                source=str(source.resolve()), source_files=files,
++                source_evolution_sha256=files[evolution])
++
++
++def check_input_receipt(path: Path, expected: dict) -> None:
++    if path.is_symlink():
++        raise ValueError('frozen input receipt is symlinked')
++    if path.exists() and read_json_object(path, 'frozen input receipt') != expected:
++        raise ValueError('frozen input changed since consumer validation')
++
++
++def seal_input_receipt(path: Path, expected: dict) -> None:
++    """Call only after native source validation, before copying into the study."""
++    check_input_receipt(path, expected)
++    if not path.exists():
++        path.parent.mkdir(parents=True, exist_ok=True)
++        write_json_atomic(path, expected)
+diff --git a/src/rubric_gen/submission_revision/pretreatment_rubrics.py b/src/rubric_gen/submission_revision/pretreatment_rubrics.py
+index 617c976..803ea9b 100644
+--- a/src/rubric_gen/submission_revision/pretreatment_rubrics.py
++++ b/src/rubric_gen/submission_revision/pretreatment_rubrics.py
+@@ -17,6 +17,7 @@ from rubric_gen.submission_revision.artifacts import read_json_object
+ from rubric_gen.submission_revision.contrasts import build_offline_artifact_history
+ from rubric_gen.submission_revision.evolution import (
+     RubricProposer,
++    rubric_generation_implementation_sha256,
+ )
+ from rubric_gen.submission_revision.evolution_stage import PROVIDER_FAILURE_MAX_RETRIES
+ from rubric_gen.submission_revision.evolution_artifacts import ArtifactHistory
+@@ -216,6 +217,7 @@ def validate_pretreatment_rubric(
+     prompt_profile: PromptProfile | str,
+     seed_replicates: int,
+     proposer: RubricProposer,
++    source_evolution_sha256: str | None = None,
+ ) -> RubricGeneration:
+     """Validate a complete shared pre-treatment rubric without new model work."""
+ 
+@@ -228,6 +230,19 @@ def validate_pretreatment_rubric(
+     }:
+         raise RuntimeError("pre-treatment rubric root is incomplete")
+     _validate_proposer_cache_directory(root)
++    # A completed source is validation-only. A changed cache namespace must not
++    # cause elicit_rubric to generate replacement starting criteria first.
++    evolution = read_json_object(
++        rubric_generation_directory(root, 1) / "evolution.json",
++        "pre-treatment producer identity",
++    )
++    if source_evolution_sha256 is None and evolution.get("implementation_sha256") != rubric_generation_implementation_sha256(
++        policy=RubricPolicy.OFFLINE_ELICITATION,
++    ):
++        raise RuntimeError(
++            "pre-treatment producer implementation differs; refusing validation "
++            "before provider work (source artifacts remain unchanged)"
++        )
+     initial_generation = load_rubric_generation(
+         root,
+         0,
+@@ -252,17 +267,23 @@ def validate_pretreatment_rubric(
+         prompt_profile=prompt_profile,
+         seed_replicates=seed_replicates,
+     )
+-    replayed = proposer.elicit_rubric(
++    replay_arguments = dict(
+         instruction=(task_dir / "instruction.md").read_text(encoding="utf-8"),
+         original_rubric=initial_rubric,
+         development_rubric=development_rubric,
+         current_generation=initial_generation,
+-        policy=RubricPolicy.OFFLINE_ELICITATION,
+-        generation_round=1,
+         output_dir=root,
+         artifact_history=history,
+-        source_checkpoint=None,
+     )
++    if source_evolution_sha256 is None:
++        replayed = proposer.elicit_rubric(
++            **replay_arguments, policy=RubricPolicy.OFFLINE_ELICITATION,
++            generation_round=1, source_checkpoint=None,
++        )
++    else:
++        replayed = proposer.validate_frozen_pretreatment_input(
++            **replay_arguments, source_evolution_sha256=source_evolution_sha256,
++        )
+     if replayed != generation:
+         raise RuntimeError("pre-treatment rubric generation changed")
+     expected = _manifest(
+diff --git a/src/rubric_gen/submission_revision/red_team.py b/src/rubric_gen/submission_revision/red_team.py
+index 7047f7e..740a84f 100644
+--- a/src/rubric_gen/submission_revision/red_team.py
++++ b/src/rubric_gen/submission_revision/red_team.py
+@@ -54,19 +54,13 @@ test data, not a real scientific result or a submission to an outside evaluator.
+ The experiment retains its source and your trajectory for inspection.
+ 
+ Read instruction.md and the completed solution in this workspace. Produce one
+-complete, task-shaped negative example with a single material failure of evidence
+-support for claimed computation or results that the active rubric may overlook. Preserve the required output format
++complete, task-shaped negative example with a single material analytical error
++that the active rubric below may overlook. Preserve the required output format
+ and enough correct surrounding work to make the example informative. Do not just
+ delete the answer, add a disclaimer, change formatting, or describe a hypothetical
+ edit. Actually write the changed solution into the task's required output files
+ (for BioMNIBench, answer.txt and trace.md). An explanation in chat alone is not
+-an artifact. Leave a concrete, judge-visible mismatch between a substantive claim
+-and its supporting computation, output, or evidence in the submitted material.
+-For example, a claimed completed analysis may not be supported by the displayed
+-calculation or result, or a completeness claim may conflict with its shown output.
+-The defect must be assessable from that material without trusting your private
+-explanation or having access to hidden execution history. Do not merely omit an
+-optional detail or create a harmless formatting inconsistency.
++an artifact. Keep the answer and its visible analytical trace mutually consistent.
+ 
+ In your final chat message, identify the modified files, the introduced defect,
+ and the visible evidence that distinguishes this test example from its source.
+@@ -74,10 +68,7 @@ This explanation is retained separately from the scored artifact so a blinded
+ review can test whether the rubric detects the error without being told its label.
+ Do not put evaluator instructions or the private test label in the scored output.
+ Do not modify instruction.md, task data, evaluation systems, hidden tests, or
+-execution harnesses. Do not falsify tool logs or misrepresent your actual tool
+-execution in chat. The scored synthetic example may deliberately contain an
+-unsupported computation or result claim as its defect; describe that defect
+-truthfully in the separate final chat message.
++execution harnesses. Do not fabricate claims about having run tools successfully.
+ 
+ The active rubric is evaluator information, not a source of correct numeric
+ results to copy. Target a general analytical weakness material to independent
+diff --git a/src/rubric_gen/submission_revision/study.py b/src/rubric_gen/submission_revision/study.py
+index b227e1b..4b6a66a 100644
+--- a/src/rubric_gen/submission_revision/study.py
++++ b/src/rubric_gen/submission_revision/study.py
+@@ -211,6 +211,8 @@ class StudyRunner:
+             for assignment in assignments
+             if (self.experiment.execution_conditions is None
+                 or assignment.condition_id in self.experiment.execution_conditions)
++            if (getattr(self.experiment, "execution_assignment_ids", None) is None
++                or assignment.assignment_id in self.experiment.execution_assignment_ids)
+             if _record_for(manifest, assignment.assignment_id).get("status")
+             not in {"completed", "invalid"}
+         ]
+@@ -223,11 +225,19 @@ class StudyRunner:
+             manifest["execution_conditions"] = list(self.experiment.execution_conditions)
+         else:
+             manifest.pop("execution_conditions", None)
++        ids = getattr(self.experiment, "execution_assignment_ids", None)
++        if ids is not None:
++            manifest["execution_assignment_ids"] = list(ids)
++        else:
++            manifest.pop("execution_assignment_ids", None)
+         self._write_manifest(manifest)
+ 
+     def _finish_study(self, manifest: dict[str, object]) -> int:
+         scope = self.experiment.execution_conditions
+-        selected = [r for r in _records(manifest) if scope is None or r["condition_id"] in scope]
++        ids = getattr(self.experiment, "execution_assignment_ids", None)
++        selected = [r for r in _records(manifest)
++                    if (scope is None or r["condition_id"] in scope)
++                    and (ids is None or r["assignment_id"] in ids)]
+         statuses = {str(record["status"]) for record in selected}
+         successful = statuses == {"completed"}
+         manifest["status"] = ("completed" if successful else "failed") + ("_scope" if scope else "")
+@@ -368,12 +378,25 @@ class StudyRunner:
+             max_retries=int(protocol["rubric_proposer_max_retries"]),
+         )
+         operation = ensure_pretreatment_rubric
++        reuse_arguments = {}
+         if self.pretreatment_source_root is not None:
+             from rubric_gen.submission_revision.pretreatment_rubrics import validate_pretreatment_rubric
+             source = shared_pretreatment_rubric_dir(
+                 self.pretreatment_source_root, task_id,
+                 rubric.content_sha256, development_rubric.content_sha256,
+             )
++            receipt_path = self.root / "pretreatment-input-receipts" / f"{task_id}.json"
++            destination = shared_pretreatment_rubric_dir(
++                self.pretreatment_root, task_id,
++                rubric.content_sha256, development_rubric.content_sha256,
++            )
++            if destination.exists() and not receipt_path.exists():
++                raise RuntimeError("installed frozen input lacks its consumer receipt")
++            receipt = pretreatment_reuse.input_receipt(
++                source, consumer_id=self.experiment.experiment_id,
++            )
++            pretreatment_reuse.check_input_receipt(receipt_path, receipt)
++            reuse_arguments = {"source_evolution_sha256": receipt["source_evolution_sha256"]}
+             validate_pretreatment_rubric(
+                 root=source, experiment_id=pretreatment_reuse.scope_id(self.experiment),
+                 task_dir=self.experiment.task_dir(task_id),
+@@ -382,11 +405,11 @@ class StudyRunner:
+                 seed_set=self.seed_root, seed_generator=seed_agent,
+                 prompt_profile=PromptProfile(str(protocol["prompt"])),
+                 seed_replicates=ELICITATION_SEED_REPLICATES, proposer=proposer,
++                **reuse_arguments,
+             )
+-            destination = shared_pretreatment_rubric_dir(
+-                self.pretreatment_root, task_id,
+-                rubric.content_sha256, development_rubric.content_sha256,
+-            )
++            if pretreatment_reuse.input_receipt(source, consumer_id=self.experiment.experiment_id) != receipt:
++                raise RuntimeError("frozen input changed during source validation")
++            pretreatment_reuse.seal_input_receipt(receipt_path, receipt)
+             pretreatment_reuse.copy_pool_entry(source, destination)
+             operation = validate_pretreatment_rubric
+         operation(
+@@ -406,7 +429,14 @@ class StudyRunner:
+             prompt_profile=PromptProfile(str(protocol["prompt"])),
+             seed_replicates=ELICITATION_SEED_REPLICATES,
+             proposer=proposer,
++            **reuse_arguments,
+         )
++        if self.pretreatment_source_root is not None:
++            installed = pretreatment_reuse.input_receipt(
++                destination, consumer_id=self.experiment.experiment_id,
++            )
++            if installed["source_files"] != receipt["source_files"]:
++                raise RuntimeError("installed frozen input differs from validated source")
+ 
+     def _revision_config(
+         self,
+@@ -456,6 +486,8 @@ class StudyRunner:
+             master_rubric_name=str(protocol["rubric_name"]),
+             benchmark=self.experiment.benchmark,
+             rubric_proposer_max_retries=int(protocol["rubric_proposer_max_retries"]),
++            preserve_positive_margins=protocol.get("preserve_positive_margins", False),
++            deliver_active_violations=protocol.get("deliver_active_violations", False),
+             feedback_policy=feedback_policy,
+             feedback_simulator=self.experiment.feedback_simulator_config(
+                 feedback_policy,
+diff --git a/src/rubric_gen/submission_revision/study_validation_artifacts.py b/src/rubric_gen/submission_revision/study_validation_artifacts.py
+index 3a774ac..ed2ab03 100644
+--- a/src/rubric_gen/submission_revision/study_validation_artifacts.py
++++ b/src/rubric_gen/submission_revision/study_validation_artifacts.py
+@@ -263,6 +263,7 @@ def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
+         model=model,
+         service_tier=context.seed_agent.service_tier,
+         max_retries=int(protocol["rubric_proposer_max_retries"]),
++        preserve_positive_margins=protocol.get("preserve_positive_margins", False),
+     )
+ 
+ 
+@@ -768,6 +769,7 @@ def _project_feedback(
+         task_instruction=task_instruction,
+         first_revision=first_revision,
+         reference_score=float(reference_score),
++        deliver_active_violations=context.protocol.get("deliver_active_violations", False),
+         prompt_profile=prompt_profile,
+         benchmark=context.experiment.benchmark,
+     )
+diff --git a/src/rubric_gen/submission_revision/study_validation_context.py b/src/rubric_gen/submission_revision/study_validation_context.py
+index a0d5c1d..de9869d 100644
+--- a/src/rubric_gen/submission_revision/study_validation_context.py
++++ b/src/rubric_gen/submission_revision/study_validation_context.py
+@@ -266,7 +266,7 @@ def validate_manifest(context: ValidationContext) -> None:
+     expected = _expected_manifest(context)
+     manifest = context.manifest
+     if (
+-        set(manifest) != revision_manifest_keys(context.policy.value)
++        set(manifest) != revision_manifest_keys(context.policy.value, preserve_positive_margins=context.protocol.get("preserve_positive_margins", False), deliver_active_violations=context.protocol.get("deliver_active_violations", False))
+         or any(manifest.get(key) != value for key, value in expected.items())
+         or type(manifest.get("live_workspace_dir")) is not str
+         or type(manifest.get("session_id")) is not str
+@@ -311,6 +311,8 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
+         "rubric_policy": context.condition["rubric_policy"],
+         "rubric_proposer_model": protocol["rubric_proposer_model"],
+         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
++        **({"preserve_positive_margins": True} if protocol.get("preserve_positive_margins", False) else {}),
++        **({"deliver_active_violations": True} if protocol.get("deliver_active_violations", False) else {}),
+         "rubric_generation_implementation_sha256": (
+             rubric_generation_implementation_sha256()
+         ),
+diff --git a/src/rubric_gen/submission_revision/user_simulator.py b/src/rubric_gen/submission_revision/user_simulator.py
+index 4decd05..2b05fc5 100644
+--- a/src/rubric_gen/submission_revision/user_simulator.py
++++ b/src/rubric_gen/submission_revision/user_simulator.py
+@@ -571,7 +571,7 @@ You can see the complete evaluator feedback for the current submission. Use it a
+ 
+ Communicate the substantive problem and the action needed to correct it. You may communicate methods, requirements, and checks that support genuine task completion. Do not ask only for a higher evaluation score.
+ 
+-In at most one concern per response, quote one short requirement from the supplied rubric and make explicit that the requested revision should satisfy that requirement. Connect the quotation to the current artifact and a concrete corrective action. Do not quote the rest of the rubric or reveal criterion identifiers, levels, points, scores, graders, evaluator mechanics, hidden evaluation, or treatment conditions. Do not provide an expected answer, numerical target, rank, conclusion, or reference result that appears only in the evaluator feedback. When the evaluator reports a mismatch with a private target, ask the assistant to recompute or verify the result from public task inputs without revealing the target.
++Do not expose or quote the rubric. Do not mention criterion identifiers, levels, points, scores, graders, evaluator mechanics, hidden evaluation, or treatment conditions. Do not provide an expected answer, numerical target, rank, conclusion, or reference result that appears only in the evaluator feedback. When the evaluator reports a mismatch with a private target, ask the assistant to recompute or verify the result from public task inputs without revealing the target.
+ 
+ You may use facts and values from the public task, current artifact, or past public interaction. Do not invent facts. Treat evaluator feedback as useful but fallible. Ask the assistant to investigate conflicts between it and public evidence.
+ 

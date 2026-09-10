@@ -1,0 +1,206 @@
+diff --git a/src/rubric_gen/submission_revision/artifacts.py b/src/rubric_gen/submission_revision/artifacts.py
+index 50498a6..b7d240e 100644
+--- a/src/rubric_gen/submission_revision/artifacts.py
++++ b/src/rubric_gen/submission_revision/artifacts.py
+@@ -101,10 +101,12 @@ REVISION_MANIFEST_KEYS = frozenset(
+ )
+ 
+ 
+-def revision_manifest_keys(feedback_policy: str, *, preserve_positive_margins: bool = False, deliver_active_violations: bool = False) -> frozenset[str]:
++def revision_manifest_keys(feedback_policy: str, *, preserve_positive_margins: bool = False, deliver_active_violations: bool = False, retain_analysis_specification: bool = False) -> frozenset[str]:
+     """Return the strict manifest shape for one feedback protocol."""
+ 
+     keys = REVISION_MANIFEST_KEYS
++    if retain_analysis_specification:
++        keys = keys | {"retain_analysis_specification"}
+     if deliver_active_violations:
+         keys = keys | {"deliver_active_violations"}
+     if preserve_positive_margins:
+diff --git a/src/rubric_gen/submission_revision/controller.py b/src/rubric_gen/submission_revision/controller.py
+index 4c5bd5f..6492f78 100644
+--- a/src/rubric_gen/submission_revision/controller.py
++++ b/src/rubric_gen/submission_revision/controller.py
+@@ -168,6 +168,7 @@ class SubmissionRevisionController:
+             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
+             **({"preserve_positive_margins": True} if self.config.preserve_positive_margins else {}),
+             **({"deliver_active_violations": True} if self.config.deliver_active_violations else {}),
++            **({"retain_analysis_specification": True} if self.config.retain_analysis_specification else {}),
+             "rubric_generation_implementation_sha256": (
+                 rubric_generation_implementation_sha256()
+             ),
+diff --git a/src/rubric_gen/submission_revision/controller_recovery.py b/src/rubric_gen/submission_revision/controller_recovery.py
+index 58dc32b..b73664f 100644
+--- a/src/rubric_gen/submission_revision/controller_recovery.py
++++ b/src/rubric_gen/submission_revision/controller_recovery.py
+@@ -97,7 +97,7 @@ class RevisionRecovery:
+             self.experiment_dir / "manifest.json",
+             "revision manifest",
+         )
+-        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, preserve_positive_margins=self.config.preserve_positive_margins, deliver_active_violations=self.config.deliver_active_violations):
++        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, preserve_positive_margins=self.config.preserve_positive_margins, deliver_active_violations=self.config.deliver_active_violations, retain_analysis_specification=self.config.retain_analysis_specification):
+             raise RuntimeError("revision manifest has invalid fields")
+         for key, value in self.experiment_identity.items():
+             if manifest.get(key) != value:
+diff --git a/src/rubric_gen/submission_revision/controller_scoring.py b/src/rubric_gen/submission_revision/controller_scoring.py
+index e39079e..f22b6fe 100644
+--- a/src/rubric_gen/submission_revision/controller_scoring.py
++++ b/src/rubric_gen/submission_revision/controller_scoring.py
+@@ -633,6 +633,7 @@ class RevisionScorer:
+             first_revision=first_revision,
+             reference_score=reference_score,
+             deliver_active_violations=self.config.deliver_active_violations,
++            retain_analysis_specification=self.config.retain_analysis_specification,
+             prompt_profile=self.config.prompt_profile,
+             benchmark=self.config.benchmark,
+         )
+diff --git a/src/rubric_gen/submission_revision/evaluation/targets.py b/src/rubric_gen/submission_revision/evaluation/targets.py
+index db849ea..2968e4d 100644
+--- a/src/rubric_gen/submission_revision/evaluation/targets.py
++++ b/src/rubric_gen/submission_revision/evaluation/targets.py
+@@ -276,6 +276,7 @@ def _load_terminal_revision_state(
+         ],
+         **({"preserve_positive_margins": True} if protocol.get("preserve_positive_margins", False) else {}),
+         **({"deliver_active_violations": True} if protocol.get("deliver_active_violations", False) else {}),
++        **({"retain_analysis_specification": True} if protocol.get("retain_analysis_specification", False) else {}),
+         "review": protocol["review"],
+         "judge_model": protocol["judge_model"],
+         "max_review_chars": protocol["max_review_chars"],
+@@ -287,7 +288,7 @@ def _load_terminal_revision_state(
+         "live_workspace_removed": True,
+     }
+     if (
+-        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), preserve_positive_margins=protocol.get("preserve_positive_margins", False), deliver_active_violations=protocol.get("deliver_active_violations", False))
++        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), preserve_positive_margins=protocol.get("preserve_positive_margins", False), deliver_active_violations=protocol.get("deliver_active_violations", False), retain_analysis_specification=protocol.get("retain_analysis_specification", False))
+         or any(
+         manifest.get(key) != value
+         for key, value in manifest_identity.items()
+diff --git a/src/rubric_gen/submission_revision/experiment.py b/src/rubric_gen/submission_revision/experiment.py
+index 8ab7709..fdf4bea 100644
+--- a/src/rubric_gen/submission_revision/experiment.py
++++ b/src/rubric_gen/submission_revision/experiment.py
+@@ -555,9 +555,11 @@ def _validate_protocol(protocol: object) -> None:
+         raise ValueError("protocol must be a mapping")
+     if type(protocol.get("preserve_positive_margins", False)) is not bool:
+         raise ValueError("preserve_positive_margins must be boolean")
++    if type(protocol.get("retain_analysis_specification", False)) is not bool:
++        raise ValueError("retain_analysis_specification must be boolean")
+     if type(protocol.get("deliver_active_violations", False)) is not bool:
+         raise ValueError("deliver_active_violations must be boolean")
+-    if set(protocol) - {"preserve_positive_margins", "deliver_active_violations"} != base_keys:
++    if set(protocol) - {"preserve_positive_margins", "deliver_active_violations", "retain_analysis_specification"} != base_keys:
+         raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
+     if type(protocol["max_revisions"]) is not int or protocol["max_revisions"] < 1:
+         raise ValueError("max_revisions must be positive")
+diff --git a/src/rubric_gen/submission_revision/feedback.py b/src/rubric_gen/submission_revision/feedback.py
+index 7fa4a3a..1199619 100644
+--- a/src/rubric_gen/submission_revision/feedback.py
++++ b/src/rubric_gen/submission_revision/feedback.py
+@@ -272,6 +272,17 @@ def project_rubric_feedback(
+     )
+ 
+ 
++ANALYSIS_RETENTION_GUIDANCE = """Rubric-update policy: preserve the task-grounded analysis specification across
++feedback rounds. Treat an expected numerical result, desired significance, or
++higher rubric score as a claim to check, not evidence that the current cohort,
++feature set, transformation, test, or analysis direction is wrong. Change such a
++choice when the task or data reveal a concrete error or a scientifically justified
++reason; explain that reason and its effect on the result. Otherwise retain the
++choice and report the supported result, including a mismatch or nonsignificant
++finding. Do not select a method or redefine a population merely to obtain an
++expected value, and do not relabel a post-feedback choice as prespecified."""
++
++
+ def project_rubric_simulated_user_feedback(
+     generation: RubricGeneration,
+     score_validation_path: Path,
+@@ -281,6 +292,7 @@ def project_rubric_simulated_user_feedback(
+     first_revision: bool,
+     reference_score: float,
+     deliver_active_violations: bool = False,
++    retain_analysis_specification: bool = False,
+     prompt_profile: PromptProfile | str = PromptProfile.BASE,
+     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+ ) -> ProjectedFeedback:
+@@ -308,6 +320,11 @@ def project_rubric_simulated_user_feedback(
+         ),
+     )
+ 
++    if retain_analysis_specification and user_feedback.get("decision") == "revise":
++        projection = ProjectedFeedback(
++            score=projection.score, payload=projection.payload,
++            prompt=projection.prompt + "\n\n" + ANALYSIS_RETENTION_GUIDANCE,
++        )
+     if not deliver_active_violations:
+         return projection
+     requirements = active_violation_requirements(generation, score_validation_path)
+diff --git a/src/rubric_gen/submission_revision/models.py b/src/rubric_gen/submission_revision/models.py
+index 00b9cc8..497c8c5 100644
+--- a/src/rubric_gen/submission_revision/models.py
++++ b/src/rubric_gen/submission_revision/models.py
+@@ -51,6 +51,7 @@ class SubmissionRevisionConfig:
+     benchmark: SubmissionBenchmarkId = SubmissionBenchmarkId.BIOMNIBENCH_DA
+     preserve_positive_margins: bool = False
+     deliver_active_violations: bool = False
++    retain_analysis_specification: bool = False
+     rubric_proposer_max_retries: int = 1
+     feedback_policy: FeedbackPolicy = FeedbackPolicy.FULL
+     feedback_simulator: SimulatedUserConfig | None = None
+@@ -65,6 +66,13 @@ class SubmissionRevisionConfig:
+     progress_position: int | None = None
+ 
+     def __post_init__(self) -> None:
++        if type(self.retain_analysis_specification) is not bool:
++            raise ValueError("retain_analysis_specification must be boolean")
++        if self.retain_analysis_specification and (
++            RubricPolicy(self.rubric_policy) is not RubricPolicy.RED_TEAM_TRACE
++            or FeedbackPolicy(self.feedback_policy) is not FeedbackPolicy.USER_SIMULATOR
++        ):
++            raise ValueError("analysis retention requires user-simulator red-team trace")
+         if type(self.deliver_active_violations) is not bool:
+             raise ValueError("deliver_active_violations must be boolean")
+         if type(self.preserve_positive_margins) is not bool:
+diff --git a/src/rubric_gen/submission_revision/study.py b/src/rubric_gen/submission_revision/study.py
+index 4b6a66a..ae002e8 100644
+--- a/src/rubric_gen/submission_revision/study.py
++++ b/src/rubric_gen/submission_revision/study.py
+@@ -488,6 +488,7 @@ class StudyRunner:
+             rubric_proposer_max_retries=int(protocol["rubric_proposer_max_retries"]),
+             preserve_positive_margins=protocol.get("preserve_positive_margins", False),
+             deliver_active_violations=protocol.get("deliver_active_violations", False),
++            retain_analysis_specification=protocol.get("retain_analysis_specification", False),
+             feedback_policy=feedback_policy,
+             feedback_simulator=self.experiment.feedback_simulator_config(
+                 feedback_policy,
+diff --git a/src/rubric_gen/submission_revision/study_validation_artifacts.py b/src/rubric_gen/submission_revision/study_validation_artifacts.py
+index ed2ab03..29f0b74 100644
+--- a/src/rubric_gen/submission_revision/study_validation_artifacts.py
++++ b/src/rubric_gen/submission_revision/study_validation_artifacts.py
+@@ -770,6 +770,7 @@ def _project_feedback(
+         first_revision=first_revision,
+         reference_score=float(reference_score),
+         deliver_active_violations=context.protocol.get("deliver_active_violations", False),
++        retain_analysis_specification=context.protocol.get("retain_analysis_specification", False),
+         prompt_profile=prompt_profile,
+         benchmark=context.experiment.benchmark,
+     )
+diff --git a/src/rubric_gen/submission_revision/study_validation_context.py b/src/rubric_gen/submission_revision/study_validation_context.py
+index de9869d..72058ac 100644
+--- a/src/rubric_gen/submission_revision/study_validation_context.py
++++ b/src/rubric_gen/submission_revision/study_validation_context.py
+@@ -266,7 +266,7 @@ def validate_manifest(context: ValidationContext) -> None:
+     expected = _expected_manifest(context)
+     manifest = context.manifest
+     if (
+-        set(manifest) != revision_manifest_keys(context.policy.value, preserve_positive_margins=context.protocol.get("preserve_positive_margins", False), deliver_active_violations=context.protocol.get("deliver_active_violations", False))
++        set(manifest) != revision_manifest_keys(context.policy.value, preserve_positive_margins=context.protocol.get("preserve_positive_margins", False), deliver_active_violations=context.protocol.get("deliver_active_violations", False), retain_analysis_specification=context.protocol.get("retain_analysis_specification", False))
+         or any(manifest.get(key) != value for key, value in expected.items())
+         or type(manifest.get("live_workspace_dir")) is not str
+         or type(manifest.get("session_id")) is not str
+@@ -313,6 +313,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
+         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
+         **({"preserve_positive_margins": True} if protocol.get("preserve_positive_margins", False) else {}),
+         **({"deliver_active_violations": True} if protocol.get("deliver_active_violations", False) else {}),
++        **({"retain_analysis_specification": True} if protocol.get("retain_analysis_specification", False) else {}),
+         "rubric_generation_implementation_sha256": (
+             rubric_generation_implementation_sha256()
+         ),

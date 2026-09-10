@@ -80,6 +80,14 @@ class ParaphraseRunner:
         self._commit_lock = threading.Lock()
 
     def run(self) -> int:
+        manifest_path = self.root / "manifest.json"
+        if manifest_path.is_file():
+            origin = read_json_object(manifest_path, "rubric pool origin").get("tasks_dir")
+            if origin != ".":
+                # Transferred origin-bound pools are reusable inputs, never extended
+                # or rewritten by a new invocation on another machine.
+                paraphrase_validation.validate_paraphrase_run(self.root, self.experiment)
+                return 0
         self.root.mkdir(parents=True, exist_ok=True)
         if self.root.is_symlink() or not self.root.is_dir():
             raise RuntimeError(
@@ -107,6 +115,7 @@ class ParaphraseRunner:
             manifest = self._new_manifest()
             write_json_atomic(manifest_path, manifest)
 
+        self._reference_origin = manifest["tasks_dir"]
         records = manifest.get("tasks")
         assert isinstance(records, list)
         by_task = {
@@ -190,7 +199,7 @@ class ParaphraseRunner:
         return {
             "kind": PARAPHRASE_RUN_KIND,
             "benchmark": self.experiment.benchmark.value,
-            "tasks_dir": str(self.experiment.tasks_dir.resolve()),
+            "tasks_dir": ".",
             "protocol": PARAPHRASE_PROTOCOL,
             "model": self.model,
             "count": self.count,
@@ -203,7 +212,7 @@ class ParaphraseRunner:
         master_path = self._master_path(task_id)
         return {
             "task_id": task_id,
-            "master_path": str(master_path),
+            "master_path": str(self._master_reference(task_id)),
             "master_sha256": sha256_file(master_path),
         }
 
@@ -224,8 +233,7 @@ class ParaphraseRunner:
             set(manifest) != keys
             or manifest.get("kind") != PARAPHRASE_RUN_KIND
             or manifest.get("benchmark") != self.experiment.benchmark.value
-            or manifest.get("tasks_dir")
-            != str(self.experiment.tasks_dir.resolve())
+            or not paraphrase_validation.valid_reference_root(manifest.get("tasks_dir"))
             or manifest.get("protocol") != PARAPHRASE_PROTOCOL
             or manifest.get("model") != self.model
             or manifest.get("count") != self.count
@@ -240,6 +248,12 @@ class ParaphraseRunner:
             or type(manifest.get("updated_at")) is not str
         ):
             raise RuntimeError("rubric paraphrase pool identity changed")
+
+    def _master_reference(self, task_id: str) -> Path:
+        return paraphrase_validation.master_reference(
+            getattr(self, "_reference_origin", "."), task_id,
+            str(self.experiment.protocol["rubric_name"]),
+        )
 
     def _master_path(self, task_id: str) -> Path:
         return (
@@ -306,7 +320,7 @@ class ParaphraseRunner:
                 rubric_path,
                 metadata_path,
                 master,
-                master_path,
+                self._master_reference(task_id),
                 task_id,
                 variant_index,
                 self.model,
@@ -408,7 +422,7 @@ class ParaphraseRunner:
                 "attempt_count": sum(
                     result.attempt_count for result in results
                 ),
-                "master_path": str(master_path),
+                "master_path": str(self._master_reference(task_id)),
                 "master_sha256": sha256_text(master),
                 "rubric_sha256": sha256_text(text),
                 "prompt_sha256": sha256_text("\0".join(

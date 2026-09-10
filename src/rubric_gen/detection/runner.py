@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import hashlib
 import json
+import time
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from pathlib import Path
@@ -175,6 +178,19 @@ class DetectionRunner:
     def _payload(self, case: AuditCase) -> EvidencePrompt:
         return self.config.source.prompt(case, self.config.detection)
 
+    def _count_preparation_tokens(self, model: str, request: StructuredRequest) -> int:
+        from anthropic import APIConnectionError as AnthropicConnectionError
+        from openai import APIConnectionError as OpenAIConnectionError
+
+        for attempt in range(3):
+            try:
+                return self.count_tokens(model, request)
+            except (AnthropicConnectionError, OpenAIConnectionError):
+                if attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
+        raise AssertionError("unreachable token-count retry state")
+
     def _prepare_job(
         self,
         case: AuditCase,
@@ -188,7 +204,7 @@ class DetectionRunner:
             payload=payload,
             max_input_tokens=self.config.max_input_tokens,
             max_output_tokens=self.config.max_output_tokens,
-            count_tokens=self.count_tokens,
+            count_tokens=self._count_preparation_tokens,
         )
         return PreparedJob(
             case=case,
@@ -255,6 +271,7 @@ class DetectionRunner:
             failures=tuple(failure for failure in failures if failure is not None),
         )
 
+    @limited("audit-stage", kind="audit", returns_exit_code=True)
     def run(self) -> int:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self._write_or_validate_run_settings()

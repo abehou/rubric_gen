@@ -297,3 +297,31 @@ def test_blinded_artifact_ids_stay_stable_as_online_history_grows(
     second_ids = {item.content_sha256: item.artifact_id for item in second.artifacts}
     assert first_ids == {digest: second_ids[digest] for digest in first_ids}
     assert set(first.pairs) < set(second.pairs)
+
+
+def test_repeated_red_team_pair_keeps_first_trace_without_duplicate_weight(tmp_path, monkeypatch):
+    monkeypatch.setattr(contrast_module, "resolve_seed", _seed_resolver(tmp_path))
+    experiment = tmp_path / "experiment"
+    for index, text in enumerate(("initial\n", "unchanged live\n", "unchanged live\n")):
+        _workspace(experiment / "submissions", f"s{index:03d}", text)
+    sidecars = {}
+    for index in (1, 2):
+        workspace = _workspace(tmp_path, f"sidecar-{index}", "same attack\n")
+        trace = workspace.parent / "trajectory.stream.jsonl"
+        trace.write_text(f'{{"type":"item.completed","item":{{"type":"reasoning","text":"probe-{index}"}}}}\n')
+        sidecars[index] = workspace.parent
+    def load_sidecar(_root, index, **_kwargs):
+        return SimpleNamespace(included=True, root=sidecars[index])
+    monkeypatch.setattr(contrast_module, "load_red_team_artifact", load_sidecar)
+    history = contrast_module.build_online_artifact_history(
+        experiment_dir=experiment, source_checkpoint=2,
+        red_team_policy=RubricPolicy.RED_TEAM_TRACE,
+        red_team_generator_identity={"model": "red-team"},
+        **_arguments(tmp_path),
+    )
+    assert len(history.red_team_evidence) == 1
+    assert len({p.pair_id for p in history.pairs}) == len(history.pairs)
+    evidence = history.red_team_evidence[0]
+    assert "probe-1" in evidence.trajectory_excerpt
+    assert "probe-2" not in evidence.trajectory_excerpt
+    assert "probe-2" in (sidecars[2] / "trajectory.stream.jsonl").read_text()

@@ -29,6 +29,15 @@ installed dependencies. Scientific command defaults set OpenBLAS, OpenMP and vec
 thread counts to one to avoid nested numeric parallelism across many assignments;
 these are library defaults, not a hard process/thread quota.
 
+The persistent proxy keeps Codex session history in its durable home, but places
+disposable sandbox and CLI launcher locks in a private node-local directory.
+Only those runtime helpers are mounted read-only; command `TMPDIR` still points
+to the task's writable scratch directory. Existing Codex temporary contents are
+preserved and restored when the proxy exits. A hard kill can leave a runtime
+symlink and preserved directory: the next launch rejects that state until the
+terminal owner's temporary paths are reconciled. Never change an active owner's
+paths or replace session history to make a resume pass.
+
 `rubric_gen.submission_revision` owns seed, revision, judging, and study workflows.
 It selects a submission benchmark through the registry. Its audit adapter converts
 completed revisions into blinded evidence sources.
@@ -172,3 +181,17 @@ Do not create new top-level benchmark packages. Do not put provider clients or
 generic model calls inside a benchmark package.
 
 `tests/test_architecture.py` enforces these rules with import checks.
+
+## Shared runtime capacity
+
+`runtime/capacity.py` owns cross-process admission from `config/runtime.json`: one
+60-slot provider pool and one audit-study lease, shared across Babel jobs. Agent
+turns/processes, hosted generation/token counting and optimizer-judge subprocess
+lifetimes acquire the same provider slots; stage worker pools cannot multiply the
+budget. `scripts/babel/` owns private Slurm dispatch, immutable resume receipts and
+operational sampling; see [Babel execution](BABEL_SETUP.md).
+
+Telemetry uses one append descriptor per host/PID journal and a process-local
+thread lock; forked children reset both before opening their own journal. This
+avoids per-event NFS open/close and distributed-lock cycles without changing the
+shared admission locks. Writes remain synchronous and can still wait on NFS I/O.

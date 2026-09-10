@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
@@ -292,6 +294,7 @@ def _summarize_rubric_scores(
 class RubricScoreRunner(rubric_score.RubricScoreStage):
     """Score with strong judges that complete every rubric_score job."""
 
+    @limited("audit-stage", kind="audit", returns_exit_code=True)
     def run(self) -> int:
         self.preflight()
         prepared = self._prepared
@@ -438,6 +441,7 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
 class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
     """Run the absolute-score and pairwise-preference instruments."""
 
+    @limited("audit-stage", kind="audit", returns_exit_code=True)
     def run(self) -> int:
         self.preflight()
         prepared = self._prepared

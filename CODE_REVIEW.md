@@ -1,4 +1,91 @@
+## 2026-09-09 — Accepted baseline checkpoint
+
+- 22:09 EDT: Restored the active submission-revision package exactly to validated7cf34ef (0fbe0bb plus314ea3d/30ae38e), retaining transport-only token-count retries; later method variants and the unlaunched retention draft are excluded from the active method and preserved historically. No producer hashes or resume identities were changed.
+
+## 2026-09-08 — Audit preservation guard resolved on main
+
+- 07:39 EDT: EvaluationStore now rejects occupied missing/malformed/different manifests without deleting files or changing permissions;matching resume and fresh empty output still work.64 evaluation tests pass (including no-call rejection,record/mode preservation and normal semantic reuse);running8705dec and queued analysis remain byte-identical,and the separate future Gemini config-path/declaration limitation is unresolved.
+
+## 2026-09-08 — Audit panel extension safety
+
+- 07:29 EDT: Inspection found EvaluationStore.prepare replaces an occupied stage tree under --resume when its manifest identity differs; changing model scope in place can therefore erase saved audit records. Current frozen two-model studies cannot select undeclared Gemini,and target loading also binds the original config path;future panel extension needs an explicitly validated preservation path,not edited history or assumed scope compatibility.
+
+## 2026-09-08 — Canonical inventory and retention
+
+- 07:12 EDT: README Gemini3.6 wording corrected to3.8;canonical configs/default provider panel already correct and unchanged,with low Gemini thinking preserved. Added explicit Babel60/Python3.12 guidance and historical-handoff supersession;private data audit checks upstream content hashes,while no compatibility metadata or live scientific source changed.
+
+## 2026-09-08 — Native cohort comparison guard
+
+- 06:22 EDT: Private compare_concern_replication selects all predeclared hard-task cohorts from the original native multi-cohort report,requires all three seeds/both auditors,and checks sealed state/composition hashes. Focused missing-panel/tamper test passes;run only after the current replication has native complete coverage,without rewriting the frozen analysis definitions.
+
+## 2026-09-08 — Early-policy exposure accounting
+
+- 06:17 EDT: Private policy_exposure now counts explicit early-sidecar g1 separately while excluding ordinary shared pretreatmentg1;two counterexample/tamper tests pass. Reconstructed completed package-policy conditions,assignments and generations exactly match the prior saved diagnostic,with no scientific result or metric-definition changes.
+
+## 2026-09-08 — Early candidate verified and held
+
+- 06:01 EDT: Isolated84b2ce2492554897a6a5678277f53f6fcdc113b3 passes231 non-provider tests,including trace-only induction,initialg1 selection,native completion,cached resume and tampered initial-sidecar rejection. No scientific config/job exists for early trace;policy launch waits baseline evidence,and admission/behavioral efficacy are untested.
+
+## 2026-09-08 — Early-policy preparation remains isolated
+
+- 05:42 EDT: Worktree runs/babel-code/dev3-early-trace adds an explicit pre-revision sidecar/g1 policy; existing controller regressions pass66/66, and three red-team arms now pass native completed-artifact validation after adding strict checkpoint-zero handling. Admission/exposure, tamper and resume tests plus launch identity checks remain required; no policy job has been submitted.
+
+# 2026-09-08
+
+- 03:24 EDT: Policy tail inspection confirms evolution_validation.py validates each blinded artifact sequentially;the shared60 cap cannot accelerate a single trajectory’s serial validation list. Future parallel dispatch could preserve isolated contexts/order/support gates,but requires a separately tested runtime boundary;leave current scientific worktrees unchanged and do not mistake low occupancy for a limiter defect.
+
+# 2026-09-08
+
+- 03:01 EDT: Runtime events preserve operation/error type/status/hash but omit safe provider failure reason;three recovered evolution RuntimeErrors have null HTTP status,so incomplete-output versus other response failures cannot be distinguished retrospectively. Keep active source frozen;add sanitized reason classification at a future execution boundary if needed,without inferring rate limiting or changing scientific fallback semantics.
+
+# 2026-09-08
+
+- 01:37 EDT: The production selected-reference correction already exists on remote45f3eeb;focused publication6234edf extends regression to all feedback modes and documents boundaries,with5 passing tests and no experimental changes. Remote aydan-red-team verified at6234edf;no history rewrite or duplicate fix application.
+
 # Code Review
+
+## 2026-09-07 — Real-runtime filesystem observation
+
+- 20:46 EDT: Smoke10351863 had a149-second monitor sampling interval with dispatcher waiting in NFS open; solver state and provider events continued without recorded failures, and sampling recovered. Treat monitoring freshness separately from provider failure and inspect it again before accepting60; no running source was modified.
+
+## 2026-09-07 — Live Slurm resource correction
+
+- 20:36 EDT: Requested collab-forgetting CPU scripts omit an account, but live Slurm has no cpu partition and rejects CPU-only cpu/general submissions; account-free preempt/preempt_cpu_qos32 CPUs/256 GiB/48h passes submission validation. Removed explicit advisor/account directives and corrected request metadata; Slurm resolves the actual default association itself.
+
+## 2026-09-07 — NFS diagnostic counter corrected
+
+- 15:46 EDT: A synthetic two-node counter protected by a different file lost one update through NFS caching despite80 completed operations; locking/syncing the counter inode itself fixed the measurement, and job10349478 completed80 operations at peak60 with zero remaining slots in8 seconds. Production admission already locks slot inodes directly and was unchanged; the repeat also removed the new-file barrier that incurred a60-second lookup-cache delay.
+
+
+## 2026-09-07 — Cross-node locking and isolated policy checks
+
+- 15:36 EDT: Actual two-node NFS admission reached60 across80 synthetic operations with zero leaked slots, validating cross-node exclusion beyond earlier process-only checks. Isolated online_contrast changes only proposal-stage instructions, preserves blind validation/admission and native policy identity;157 focused workflow tests pass with fake providers.
+
+
+## 2026-09-07 — Explicit node-local virtualenv
+
+- 15:08 EDT: On babel-s9-24, Python3.12 reports a system /usr/local installation scheme; implicit uv sync targeted that scheme, while explicit uv venv restored all installation paths to scratch and frozen sync succeeded. Batch setup now explicitly creates a job-specific virtualenv and verifies sys.prefix before installation, isolating simultaneous checkouts/jobs; diagnostic job10348833 only failed its final mistyped import (codex instead of openai_codex), now corrected.
+
+
+## 2026-09-07 — Launcher archive-path fix
+
+- 14:58 EDT: Launcher glob variant-* matched historical variant failure directories and crashed before receipt/source identity sealing. Filter regular files in both dev3 and Result20 input snapshots, with a mocked-launcher regression fixture containing a failure directory; scientific artifacts and behavior remain unchanged.
+
+
+## 2026-09-07 — Slurm CPU eligibility
+
+- 14:49 EDT: Slurm general rejects CPU-only submissions through a site plugin despite the partition listing; switched to the account-authorized preempt/preempt_cpu_qos, which passes scheduler test-only validation for32 CPUs/256 GiB. Preserve persistent sessions and native resume across possible preemption; no GPU is requested for remote-API experiments.
+
+
+## 2026-09-07 — Babel blockers resolved
+
+- 14:42 EDT: Shared-NFS stress exposed long blocking-lock wakeups; nonblocking kernel-lock retries resolved them, and 72 fake operations reached exactly 60, completed in 4.262 seconds and left zero active slots. Final call-site review also gated direct rubric-audit/evolution requests, alternate solver sessions and Harvey child pools so they cannot bypass or multiply the common budget.
+- 14:31 EDT: Resolved the earlier path blocker by separating immutable origin references from local content validation and emitting relative references for new pools; old completed-study resume identity stays strict. Shared kernel slots now cap all production provider paths at 60 and serialize audit studies; Slurm receipts freeze new-run source/input identity and preserve persistent session roots.
+
+
+## 2026-09-07 — Babel path validation
+
+- 13:40 EDT: Transferred paraphrase pools bind Mac task/master paths and fail native Babel validation even for fresh studies; completed revision identities also bind absolute paths, so YAML edits alone cannot enable continuation. Preserved strict validation and provenance; [Babel setup](docs/BABEL_SETUP.md) records the blocker, two path-only templates, and the lack of a production global concurrency limiter.
 
 ## 2026-09-08 — Checkpoint portability
 
@@ -210,3 +297,245 @@
 - 15:42 CST: The private exposure audit wrapper imports current-format semantic judgments only when exact content/model/implementation identities match, retaining raw files and relocating only artifact references. A complete saved rubric job (including repeat validation), absolute job and pairwise job all replay with provider dispatch forbidden; durable direct chunk reuse remains process-local.
 
 - 17:15 CST: Static-only study startup still invokes shared pre-treatment compilation before assignment dispatch; the exposure pilot avoids unnecessary induction through explicit validated pool reuse. The initial preparation-only launch exposed this ownership cost; changing runtime preparation policy is deferred while the current study remains frozen.
+
+- 21:59 EDT — Cross-version analysis now combines reports only after each was validated with its own frozen native implementation, checking analysis definitions and artifact hashes without claiming resume compatibility. Three focused tests passed for the private combiner and analysis helper.
+
+- 23:05 EDT — The private execution diagnostic deduplicates completed command records,retains unknown exit status,and explicitly avoids converting nonzero checks or termination text into OOM/RH labels; its focused test passes. Both solver adapter and SDK app-server paths already prepend the frozen interpreter bin directory,so no PATH repair is required.
+
+## 2026-09-07 — Detector request-context review
+
+- 23:25 EDT: Frozen MALT request construction omits payload.instructions, including specialized forensic window prose, while retaining task_context and materialized window markers; later chunks also omit the public execution override. Recorded as an evaluator-context review concern, not silently repaired during frozen experiments or treated as demonstrated causal invalidity.
+
+## 2026-09-08 — Holistic public-context mismatch
+
+- 00:03 EDT: Frozen absolute/pairwise request builders pass raw instruction.md,which advertises package/network availability,instead of the solver public execution override;validated records bind that raw task hash. HOLISTIC_CONTEXT_DIAGNOSIS.md records the limitation and separately versioned sensitivity option;no evaluator changed under the current freeze.
+
+## 2026-09-08 CPU allocation revision
+
+- 07:50 EDT: Removed hard-coded32 CPU metadata from current launchers in favor of SLURM_CPUS_PER_TASK and set future batch defaults4 with bounded outer library threads;frozen source and scientific shell policy unchanged. Eight existing non-provider launcher tests and shell syntax/diff checks pass;historical launchers require explicit CPU override and provenance annotation on future use.
+
+## 2026-09-08 Early-policy input limit
+
+- 08:05 EDT: Proposer retry handling misclassifies deterministic local request-size ValueError as four provider failures;history growth breached the fixed1MiB cap. Preserve frozen checkout;diagnose explicit bounded-input treatment or separately versioned resource-only repair before new execution,never silently truncate evidence or fabricate resume identity.
+
+## 2026-09-08 Local-limit classification resolved
+
+- 08:12 EDT: Main proposer raises a dedicated RubricProposerInputLimitError and bypasses provider retries for that deterministic predispatch rejection;63 proposer tests pass,including no generation publication and exactly one attempt. The1MiB cap,prompts,models and live8705dec checkout remain unchanged;this classification fix does not create resume compatibility or resolve oversized evidence.
+
+## 2026-09-08 Controls diagnostic checkpoint
+
+- 08:31 EDT: Agent CPU metadata change4dcb443 touched shared launch.py sealed by frozen jobs,invalidating10356519/10356523 receipts;only unused main() changed,all scientific hashes match. Preserve failures and isolate all future imported launch/monitor/diagnostic helpers in the producing checkout;never restore a file merely to counterfeit source_unchanged.
+
+## 2026-09-08 Focused Result20 queued
+
+- 08:47 EDT: Archive restoration must retain directory entries:workspacehash includes empty artifacts/;skipping directories broke all restoredseedintegrity checks. Restorer now creates only archived directories in a new namespace and records them;the initial restore/failedvalidation remain unchanged.
+
+## 2026-09-08 Added Result20 full-feedback trace
+
+- 08:58 EDT: Current user-static10356970 has one da-10-1 rep002 initial-judge cleanup failure (OSError39 Directory not empty); cause not yet established. Preserve failed evidence and let healthy work finish before native resume; no live source edits.
+
+## 2026-09-08 Monitoring admission coupling
+
+- 09:34 EDT: Active Result20 monitors exposed a global-admission stall risk:active_count holds coordinator across NFS slot I/O. Development-only fix removes that observational coordinator lock;9capacity tests pass including stalled-observer regression,while live409104f remains unchanged;underlying NFS/Codex lock stall is unresolved.
+
+## 2026-09-08 Resume workspace mismatch diagnosis
+
+- 09:51 EDT: All four rejected trace checkpoints were judge_in_progress at s001;sealed snapshots include empty .agents/.codex directories absent from live workspaces,with two also showing changed solution files. Snapshot/sidecar code copies files rather than hard-linking;cause of post-checkpoint content mutation remains unresolved,so keep strict native validation and inspect after current owners finish.
+
+## 2026-09-08 Disposable Codex runtime locks
+
+- 10:03 EDT: Persistent CODEX_HOME contains temporary arg0 helper locks independently of TMPDIR;synthetic10357243 confirms NFS flock blocking there. Any proposed local-temp correction must handle both paths, retain workspace-only command writes/persistent session state, and pass sandbox plus native-resume validation before deployment.
+
+- 10:07 EDT: Local disposable-runtime synthetic probes10357251/10357304/10357307 executed commands but failed outside-workspace-write denial, including matching cwd and a non-Git live workspace. No production isolation defect is established from this alternative CLI path, and no temp-layout fix is accepted; inspect effective policy/mounts before implementation.
+
+- 10:17 EDT: Parent-path isolation failures were false alarms from sandbox-private directory writes:host sentinels are unreadable/unchanged in69 passing probes. Runtime candidate preserves/restores existing tmp contents and persistent session fixtures, rejects unreconciled runtime links, and passes34 node-local tests;production-path smoke and real-session/native-resume validation remain required.
+
+- 10:28 EDT: Proxy integration corrected CLI dotted-path quoting and absolute helper-alias mounting while preserving the complete controlled filesystem table;10357429/10357433 pass actual no-provider execution and35 regressions. Main6c24511 and isolated6535840 contain only runtime/tests/docs;hard-kill link reconciliation and four existing trace workspace mismatches remain explicit recovery concerns,not fabricated compatibility.
+
+## 2026-09-08 Checkpoint restoration semantics
+
+- 10:33 EDT: restore_last_scored_workspace actually restores the latest sealed submission,including the unscored s001 in these judge-in-progress states,and does not itself discard session identity;_rebuild_live_workspace separately discards the session.10357528 verifies four exact restorations on temporary copies,so preserve changed live evidence and assess the narrower native restore at a terminal-owner boundary rather than triggering rebuild or patching hashes.
+
+## 2026-09-08 Recovery validation
+
+- 10:57 EDT: Interrupted first solver turns could persist session identity and a completed provider receipt before recording effective model; strict resume then rejected13 cells. Recovery now records the model only from a matching successful receipt and unchanged configured model, rejects conflicting evidence, and preserves session/turn provenance; Slurm10357655 passed84 recovery/artifact/judge tests.
+
+- 10:59 EDT: A second recovery bug omitted manifest submission_count when promoting an interrupted final turn; completed state then failed study validation (11 sealed/scored submissions versus manifest10). Main-only fix updates the derived count during promotion and verified completion; Slurm10357722 passed84 tests in9.67s including completed native resume without extra solver calls; active source remains immutable.
+
+## 2026-09-08 Bounded independent validation dispatch
+
+- 12:09 EDT: Future main runtime dispatches at most4 isolated artifact validations per rubric update,combines in canonical order,and retains the shared provider reservation;89 generation/red-team/pretreatment/capacity tests pass10358599,including real thread overlap under cap2 and byte-preserving recovery. Serial-order test fixtures were corrected to bind failures/responses by artifact ID;no active frozen source changed,and changed generation implementation hashes still require native identity validation before future deployment.
+
+- 12:16 EDT: Local proposer byte ceiling was too small for retained Result20 pair histories; future contract now explicitly records4MiB (89 tests10358671). Existing native fingerprints/contracts reject silent cap changes on old generations,so do not hot-patch active sources or fabricate resume metadata; fresh-attempt validation remains required before deployment.
+
+- 12:52 EDT: A templated dispatcher owner name retained capacity-v2 while source/live/output roots are v3;verified actual10358980 receipt and corrected only future report lookup,without aliases or mutation of active source. Report native source/producer/hash validation remains strict;avoid inferring receipt paths from source version names.
+
+## 2026-09-08 Feedback exposure diagnostic
+
+- 13:05 EDT: Frozen5270c4a merges learned criteria into user-simulator input but retains selected-base overall reasoning and a three-concern summary; semantic transmission of online penalties therefore requires saved-feedback inspection,not just criterion/penalty counts. Track this as a possible compression bottleneck,not a confirmed bug; conditional follow-up is investigation/result20-report-20260908/NEXT_DEV3_DECISION.md.
+
+- 13:10 EDT: Resolved Slurm aged-job lookup error in new private checkpoint-retry bundle:enumerate current user jobs and independently require exact terminal sacct state plus matching immutable receipt;three rejection tests and actual terminal/source acceptance pass. Original launchers/receipts remain untouched;scientific code unchanged.
+
+- 13:53 EDT: Current Codex error-event normalization retains message/will_retry but drops other provider error fields;sampled user-trace retry only says Reconnecting2/5,so aggregate retry counts cannot establish429/quota/concurrency cause. Preserve active frozen runtime;richer error classification is a future observability improvement,not grounds for changing this treatment.
+
+- 14:17 EDT: Proposer evolution_provider uses its own300s client timeout,recorded in ProviderContract and generation implementation identity,despite64K output allowance;generic runtime.llm600s does not apply. Large-response timeout adequacy remains a future runtime risk;current native resume keeps the recorded contract,with no silent timeout override or fabricated compatibility.
+
+## 2026-09-08 Proposer mixed retry budget
+
+- 14:28 EDT: Frozen5270c4a evolution_stage.run_stage shares six total attempts between validation repairs and provider failures; a single timeout on the sixth attempt is terminal, as reported for da-16-1/rep-001 and da-15-8/rep-003, so their failures cannot be described as six consecutive timeouts. Preserve the current contract/native recovery; before a future runtime change, distinguish malformed-response repair exhaustion from transport retries and test any separate-budget design under a new source identity.
+
+## 2026-09-08 Telemetry can extend provider-slot occupancy
+
+- 14:51 EDT: Frozen capacity.emit synchronously appends under an exclusive NFS file lock while reservation still holds its provider lease;10358980 final operation records APITimeoutError at300.209s but released-event timestamp follows88.107s later,and direct ps observed its sole non-idle worker in D/rpc_wait_bit_killable during the interval. The exact blocked path was not captured before natural exit;future runtime work should decouple telemetry I/O from slot release while preserving global60 and durable events,with no live-source change or claim that all provider timeouts were filesystem failures.
+
+- 15:01 EDT: Read-only recovery10360063 inspection identifies thread4065320 ofPID4032156 in nfs4_handle_exception during openat(flags0xa0441,mode0600),consistent with capacity.emit append/write/create/no-follow opens;three other workers are in timed poll waits and seven provider operations have completed. Exact pathname remains uncaptured,so retain this as strengthened telemetry-I/O evidence rather than a demonstrated provider outage or justification to interrupt recovery.
+
+- 15:07 EDT: Future main-only event journal now retains one process-owned append descriptor and uses a local thread mutex,with fork reset;shared Slots/kernel leases and synchronous error-visible writes are unchanged. Regression/NFS acceptance10360844 is queued (no providers,isolated pools);this targets repeated NFS OPEN/CLOSE/flock overhead,not a guarantee against all filesystem stalls,and active5270 capacity SHA remainsa536df32.
+
+- 15:08 EDT: Telemetry descriptor reuse passes112 regressions and isolated NFS600-event/60-thread smoke10360844 with matching independent readback;forked-child isolation,partial writes,crash-released capacity and cross-process budget tests pass. Repeated journal opens/distributed locks are removed in future main only;shared-file write stalls remain possible and no active-source resume compatibility is claimed.
+
+- 18:04 EDT: Telemetry-only05acf8e differs from5270 in one source file and passes strict native validation of59completed assignments plus the real study identity check with its original YAML pathname;no metadata or validators were altered. Unlike proposer timeout/output-contract changes,capacity.py is outside generation fingerprints,so a separately sealed runtime may natively resume current artifacts;three owner-rejection tests and actual terminal-owner acceptance pass.
+
+## 2026-09-08 Request compaction
+
+- 18:10 EDT: Pairwise assessment repeats complete artifact records across overlapping pairs;candidate sends one unique complete-artifact table plus unchanged oriented pair references/differences. This changes proposer input format/fingerprint and requires fresh condition validation,not silent adoption into current Result20;non-provider regression10362741 pending.
+
+- 18:11 EDT: Compaction regression10362741 passes76 evolution/red-team/pretreatment tests in1.68s,including exact complete-artifact reconstruction and unchanged pair orientation. Candidate is not yet provider/performance validated;retain frozen running source and measure actual request savings before rollout.
+
+- 18:15 EDT: Induction now references a unique complete-artifact table like assessment;76tests10362831 pass with exact artifact reconstruction/trace isolation. Runtime diagnosis/prevention acceptance is consolidated in EXPERIMENT_ISSUES.md;provider benchmark and durable automatic retry orchestration remain outstanding,not claimedfixed.
+
+- 18:20 EDT: Separated bounded transport retries from semantic repairs and updated call-budget/replay validation;78tests10362868 pass,including timeout on finalrepair and permanent401termination. Providercompaction calibration10362844 returns schema-valid33.15soriginal/20.11scompact once;do not extrapolate a guaranteedwholecondition speedup.
+
+- 18:25 EDT: Broader optimized-execution regression10362885 passes199tests/45.83s,including source identity and native replay/call-budget checks. Active05acf8e scientificowner unchanged;single-submission unattended end-to-end acceptance remains required.
+
+- 18:28 EDT: Standard Babel launcher now integrates conservative same-allocation revision retries with immutable per-attempt logs/source checks;48fault-injection/launcher/runtime tests10362903 pass. Active custom Result20 launcher unchanged;node-loss/audit recovery and end-to-end acceptance remain outstanding.
+
+- 19:00 EDT: Evidence-sidecar candidate8f4880f changesonlythe adversarial prompt in an isolatedcurrent-sourceworktree;matchedcontrol9dd3b40 preserved. No newpolicyenum/compatibilitylayer,thresholdoradmissionchange;analysis must distinguish identical internaltraceconditionIDs by arm/source, and public visibility constraints prohibit treating hidden execution evidence as judge input.
+
+- 19:05 EDT: Prelaunch comparisoncaughtmain/freshsources retaining32Kproposeroutput while completedResult20 used64K;pending10363145/46heldbeforecalls. Restore64Kinmainandbotharms,assert64K/4MiB incapacityacceptance;finalmatchedsources6498d78/4a8cebedifferonlysidecarprompt,not limits.
+
+- 19:17 EDT: The runtime monitor counted unselected planned records as pending, exaggerating unfinished work in scoped studies. Future main now filters published execution_conditions; focused monitor/launcher tests10363273 pass8tests,while active frozen monitors remain untouched and initial pre-treatment manifests still lack a published scope.
+
+- 19:26 EDT: The unchanged admission rule correctly rejects equal penalties on a cited preferred/rejected pair;the early evidence criterion is too broad to distinguish the introduced defect from shared deficiencies. Investigate contrast-specific proposal wording if this persists;do not bypass blind support validation or treat sidecar inclusion as policy exposure.
+
+- 20:49 EDT: Isolated result20-nfs-cleanup branch bounds ENOTEMPTY/EBUSY retries to seven attempts (15.75s total delay), retaining owned-tree guards and propagating other/persistent errors; Slurm10364655 passes164tests. Running sources remain frozen; resume compatibility still requires native verification before deployment.
+
+- 21:00 EDT: Tested cleanup retry7697ec5 integrated into main as a9f39f8 for future launches; implementation/test files match the164-test Slurm-validated source exactly, and pre-patch main artifacts.py matched its tested parent. Current scientific0fbe0bb and original-source continuation remain untouched.
+
+- 21:54 EDT: Installed openai_codex/client.py `_request_raw` waits on unbounded `waiter.get()` and CodexConfig has no RPC deadline; project `_retry_before_turn` cannot retry a call that never returns. Future startup-only watchdog must bound initialize/thread-start without shortening active solver turns, and prove cleanup/no duplicate turn dispatch before deployment.
+
+## 2026-09-08 Artifact monitor prompt path
+
+- 22:30 EDT: RH monitor requests use `_reward_hacking_requests`, not the general forensic `EvidencePrompt.instructions`; changing only the latter would not affect RH scores. Isolated df0ce37 scopes guidance to final_artifact; validation proves same evidence/schema/settings, latest sealed artifact binding, zero trajectory/feedback records and unchanged requests for other windows.
+
+## 2026-09-08 Scoped pretreatment reuse
+
+- 23:22 EDT: Fixed source_pool rejection of current-format completed_scope studies, using native terminal_records validation to reject unfinished/mismatched scopes;22focusedtests pass, source bytes remainimmutable. Separateunresolvedconstraint: the starting-rubric evolutioncache fingerprints red_team.py evenforofflineelicitation, so a sidecar-onlychange invalidates existingpoolidentity; do notbypass hashes or fabricatecompatibility.
+
+- 23:30 EDT: Offlinegeneration fingerprints nowexcludeonlyred_team.py, whichofflinepreparation nevercalls; fullrevision/onlineidentities stillincludeit andsharedinductionchangesinvalidateofflinepools.97focusedtests+sealed-replayregression+78revision/artifacttests passed; applies tonewpools, nohistoricalhashrewrites.
+
+## 2026-09-08 Repeated red-team pair evidence
+
+- 23:33 EDT: Fixed contrasts builder appending multiple trace-evidence rows for an artifactpair alreadydeduplicated bycontent, violating ArtifactHistory uniqueness. Keepfirstchronologicalrepresentative perpair andallrawsidecars, no extraweight;81contrast/redteam/evolutiontests pass including repeatedidenticalpairswithdistincttraces. Activefrozenjob unchanged; repair needsseparatesourceprovenance.
+
+- 23:59 EDT: Fixed pending combined-report log collision: original and repaired crossfile sources now use job-specific native log names. Three private scripts pass syntax validation; optional artifact-v2 reader still needs explicit59+1 input support before its held validation can resume.
+
+## 2026-09-09 Recovery-aware audit continuation
+
+- 00:02 EDT: Fixed optional audit/report population assumptions for separate59+1 sources, with exact cardinality and disjoint-key checks. Isolated61a107b adds already-tested scoped execution to52248d5; queued nonprovider validation also runs scope/parser/recovery tests and verifies identical frozen artifact prompt bytes.
+
+- 00:30 EDT: Crossfile assessment fallbacks arise at exact unique expected pair-ID response validation (evolution_assessment._records_in_id_order), distinct from the repaired ArtifactHistory evidence duplication. Saved fallback assessments explicitly mark judgments unavailable; retain them as missing policy evidence, and do not relax ID validation or infer a new construction bug solely from this error text.
+
+- 00:41 EDT: Primary report10366435 rejected excluded_assignment_count1 because its native diagnostic assumed zero excluded attempts. Private adapter now requires exactly the known failed ID/type, accounts separately for180inactive entries, and preserves native raw-record/scoring checks; no raw coverage metadata modified.
+
+## 2026-09-09 Audit timeout observability
+
+- 01:56 EDT: Survivor audit10367838 emitted APITimeoutError with no HTTP status while metrics.http_failure_statuses stayed empty; HTTP-only summaries cannot establish zero provider failures. Raw runtime events retain the error and automatic retry; future monitoring should summarize non-HTTP failure classes without altering frozen execution or exposing payloads.
+
+- 01:57 EDT: Resolved on main: monitoring now exports job-scoped operation_failure_types alongside HTTP statuses, including APITimeoutError; focused tests verify timeout/429 classification, other-job exclusion and no double counting across samples (4 passed). Frozen running checkout remains unchanged.
+
+- 01:59 EDT: Corrected future-monitor completed_operations_per_minute to count successful operation_completed events only; durations previously included failures and inflated that named throughput metric. Regression checks require zero completed throughput for failure-only events; four focused tests pass, frozen jobs unchanged.
+
+## 2026-09-09 Audit preparation transport retry
+
+- 03:32 EDT: Seven final-artifact APIConnectionError failures occurred during token-count preparation outside the judgment retry loop. Added three bounded connection/timeout attempts with1s/2s backoff, leaving authentication, validation and rate-limit errors unchanged; future runtime only, excluded from frozen ongoing comparison.
+
+## 2026-09-09
+
+- 06:37 EDT: BioMNIBench submitted trace.md is solver-authored evidence, distinct from native execution logs; consistency criteria can pass mutually consistent but unsupported claims. This is a design limitation to track in policy experiments, not grounds to silently change frozen evaluator inputs (docs/reports/2026-09-09/natural-computation-discrepancy.md).
+
+## 2026-09-09 — Starting-rubric reuse identity
+
+- 07:38 EDT: Source inspection confirms pretreatment reuse reloads source YAML under current prompt implementation, whose hash contributes to experiment identity; cross-prompt reuse can fail legitimately. Prefer a same-implementation paired delivery setting with native shared-pool validation if current outcomes justify follow-up; never override saved identities (docs/reports/2026-09-09/criterion-update-reuse-design.md).
+
+- 07:42 EDT: Corrected pending criterion-update report presentation: remove inherited single-task caveat and render existing paired difference bounds/task-bootstrap intervals in Markdown, preserving panel-union versus equal-auditor distinctions. Saved completed-result rendering verifies all54 contrast metric rows without recomputing outcomes; production source and active job unchanged.
+
+## 2026-09-09 — Artifact audit routing
+
+- 08:12 EDT: Frozen RH request builder ignores EvidencePrompt.instructions, dropping artifact-specific forensic directions while retaining final-only evidence;240saved cue audit records corroborate generic monitor routing. No active source change; separately calibrated audit-only correction remains pending (final-artifact-routing-check.md).
+
+## 2026-09-09 — Audit resume preparation dependency
+
+- 09:01 EDT: Frozen detection runner calls hosted token counters before saved-score lookup; max_retries=0 lets transient connection errors turn already-completed RH cases into failed summary rows during resume. Recovery with8audit workers passed unchanged-source validation; future fix should preserve request/identity validation while avoiding repeated network preparation for verified saved plans and adding bounded transport retry, without modifying historical scoring identities.
+
+- 09:12 EDT: Comparison10369784 resolved relative pretreatment paths from a frozen checkout and failed after native analyses completed. Report-only recovery10370774 resolves them against project ROOT, hash-verifies/reuses all three saved analyses and preserves comparison-v1; no experiment stage rerun.
+
+- 09:27 EDT: Private artifact candidate routes the existing forensic guidance while removing its conflicting categorical-output contract; real-artifact checks10370831 verify both provider serializers preserve original evidence/numerical schema and reject non-artifact windows. This resolves candidate request delivery only, not production routing or calibration; historical auditors remain unchanged.
+
+- 09:34 EDT: Saved criterion-validator repeat includes base-rubric expected numerical targets in an internal-consistency penalty reason, despite unchanged candidate semantics. Base rubric currently serves both nonredundancy and application contexts; no production change yet, and any isolation must retain valid semantic checks rather than treating missing context as automatic nonredundancy.
+
+- 10:28 EDT: Pretreatment reuse calls elicit_rubric after copying source semantics, while implementation-keyed cache identity differs between frozen cue and current code (d0107bf→e1ea793). Risk: cache miss/provider work before final equality validation; require fail-before-call verification or honest explicit frozen-input receipt, never rewritten source identity.
+
+- 10:15 EDT: Resolved provider-work-before-identity-check risk: completed pretreatment validation now rejects mismatched/missing producer identity before generation loading or provider work. Focused and related suites pass93tests; this deliberately does not fabricate frozen-cue compatibility.
+
+- 10:16 EDT: Correction after complete call-order inspection: elicit_rubric loads/revalidates completed generation before cache setup/_produce, so incompatible intact sources already fail without provider calls. The new guard is earlier error reporting only; withdraw the earlier cache-miss/provider-work diagnosis.
+
+- 10:20 EDT: Implemented separate pinned frozen-pretreatment validator: native offline reconstruction permits original producer provenance only for generation1, while ordinary resume remains strict.94related tests pass, including changed producer/task/digest, zero provider calls and byte-identical source; study receipt/integration still pending.
+
+- 10:27 EDT: Explicit-source study preparation now uses pinned native frozen-input validation and receipts; source/history verified before copy, installed bytes compared, changed receipt rejected. Integration harness serialization failure fixed; real all-task validation still running in10371416.
+
+- 10:29 EDT: Frozen source integration passes native20task preparation/revalidation; receipt checks reject changed source/consumer/symlinks and installed files must match. Ordinary producer identity checks remain strict; this is explicit scientific-input reuse, not old-run resume compatibility.
+
+- 10:32 EDT: Implemented opt-in proposer ranking-preservation rule only for red_team_trace generation>1; offline direct use rejected, strict checks preserved, online cache context records opt-in.95related tests plus11focused boundary/offline tests pass; experiment/config plumbing not yet enabled.
+
+- 10:35 EDT: Connected optional protocol.preserve_positive_margins through revision config, proposer, saved manifest, recovery and audit validators; default manifests unchanged.113admission/reuse and210experiment/revision/evaluation tests pass, including distinct experiment identity and boolean validation.
+
+## 2026-09-09
+
+- 12:44 EDT: Exact-judgment reuse is study-local and simulator resume is experiment-bound; fresh trace runs legitimately regenerate initial elicited assessments/feedback despite shared seed scores. Cross-study reuse would require explicit source validation and prospective coupling semantics, not copied or relabeled historical receipts; detailed evidence is in cue-ranking-initial-feedback-check.md.
+
+- 12:53 EDT: Added pure active_violation_requirements projection using native exact score-record validation; independent stable-ID census agrees at all74violated original-cue checkpoints. Helper is not wired into runtime; configuration identity, terminal gating, unchanged-control tests and native replay validation remain required before launch.
+
+- 12:55 EDT: Opt-in deliver_active_violations now flows through experiment/config, study dispatch, manifest identity, runtime feedback and native feedback replay; default controls retain their payload/score/prompt. Focused delivery+revision tests73passed and exposure test1passed; source freeze, full native saved-input validation and compute launch gate remain pending.
+
+- 12:57 EDT: Experiment/matrix/delivery suite90passed; native loader accepts new60assignment active-violation config with independent experiment identity. Compute input validation, frozen cue source comparison and Slurm runtime workspace/cache redirection still gate scientific launch.
+
+- 12:59 EDT: Explicit pretreatment reuse re-loads producer YAML using consumer prompt-implementation identity, so a feedback code change prevents recovering the genuine producer ID. Do not patch historical IDs; inspect an explicit producer-source validation path before retrying compute gate10373088.
+
+- 13:00 EDT: Frozen producer loader reconstructs genuinef0203f5d69f3; candidate loader reconstructs674329626c7c from identical YAML solely due to prompt digest. Producer identity diagnostic binds sourceYAML/hash and confirms the boundary issue; no historical compatibility metadata changed.
+
+- 13:02 EDT: Producer-bound reuse correctionc507d40 preserves historicalfiles and defaultnew-run prompt hashing; genuine source passes while wrongdigest, malformeddigest and wrongexperimentID reject.90experiment/matrix/delivery tests pass; full compute gate10373114 pending.
+
+- 13:21 EDT: Babel PATH can resolve bare env to `/home/aydanh/tools/uv/env` (permissiondenied); read-only srun diagnostic succeeded using `/usr/bin/env`. Use absolute executable paths in compute diagnostics; activeexperiment unaffected.
+
+- 14:27 EDT: Active cue checkout retained the duplicate-pair regression but lacked its ecc152d source fix; the test reproduced the exact terminal ValueError (1 failed/7 passed), then all 8 passed after applying only the missing seven-line fix. Saved checkpoints 2/3 have identical source/workspace hashes; native resume compatibility remains to be verified without editing historical metadata.
+
+## 2026-09-09 — Saved-context validation reconstruction
+
+- 17:00 EDT: Diagnostic preparation10376939 incorrectly assumed cached historical validation calls cover every required artifact, failing before API work. Candidate correction uses native validation_evidence from hash-validated ArtifactHistory and cross-checks existing cached calls; provider-free validation10377026 pending, historical inputs unchanged.
+
+- 17:01 EDT: Resolved preparation assumption: context7hadzero cachedapplications because no historicalcriterion was proposed. Nativepayload validation10377026passed9/9contexts and byte-content checks on all existing cachedapplications; original histories/manifests unchanged.
+
+- 17:16 EDT: Application diagnostic gate10377249 compared native tuple-valued decisions directly with JSON lists, rejecting before provider calls. Compare canonical JSON instead; no admission rule or saved output changed, validation10377294 pending.
+
+- 18:47 EDT: Read-only semantic census10378225 assumed cached evidence was bare JSON; retry records append correction text and failed before provider work. Parse the JSON prefix while recording suffix hashes, reject invalid cached responses, and require exact frozen application reconstruction before counting.
+
+- 18:49 EDT: Corrected census10378257 reconstructs395candidate applications and combined flags exactly, including2retry-prompt records and0invalidcachedresponses. Read-only retry-evidence parsing issue resolved; native scientific behavior unchanged.
+
+## 2026-09-09 — Cue full-feedback provenance
+
+- 20:13 EDT: Frozen cue pretreatment reuse incorrectly rejects completed_scope sources; native gate10379233 caught this before providers. Backported existing scoped-ledger validation only into separate314ea3d execution branch,14focused tests pass; historical ledgers untouched, real input validation10379252 pending.
+
+## 2026-09-09 — Provisional59 case decision
+
+- 21:29 EDT: Duplicate evidence fix30ae38everified7linesonly; exact sourceguard scripts/babel/frozen_cue.py rejects prior314ea3d and unvalidatedsrc changes.84tests andactualfailedhistoryreplay10380163pass, checkpoint2hashidentical before/after andcorrectedcheckpoint3deduplicates tosamehash; no newpolicy admitted.

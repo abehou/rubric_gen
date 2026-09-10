@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -13,6 +14,7 @@ import sys
 import tempfile
 import threading
 import time
+import tomllib
 from pathlib import Path
 
 from websockets.exceptions import ConnectionClosed
@@ -52,57 +54,121 @@ def main() -> int:
         raise RuntimeError("Codex scientific sessions require a POSIX host")
     # Codex rejects a symlink as the immediate parent of its listening socket.
     # On macOS, `/tmp` is a symlink, so create a private real directory below it.
-    socket_dir = Path(
-        tempfile.mkdtemp(
-            prefix=f"rg-codex-{os.getuid()}-{secrets.token_hex(4)}-",
-            dir="/tmp",
-        )
-    )
-    socket_path = socket_dir / "rpc.sock"
-    arguments = [
-        resolved,
-        "app-server",
-        "--strict-config",
-        "--listen",
-        f"unix://{socket_path}",
-    ]
-    try:
-        process = subprocess.Popen(
-            arguments,
-            cwd=workspace,
-            env=environment,
-            stdin=subprocess.DEVNULL,
-            stdout=sys.stderr,
-            stderr=sys.stderr,
-        )
-    except BaseException:
-        socket_dir.rmdir()
-        raise
+    with tempfile.TemporaryDirectory(
+        prefix=f"rg-codex-{os.getuid()}-{secrets.token_hex(4)}-", dir="/tmp"
+    ) as socket_root:
+        socket_dir = Path(socket_root)
+        with _local_cli_temporary(Path(codex_home), socket_dir / "runtime"):
+            socket_path = socket_dir / "rpc.sock"
+            runtime = socket_dir / "runtime"
+            environment["TMPDIR"] = str(runtime)
+            helper_bin = runtime / "bin"
+            helper_bin.mkdir()
+            (helper_bin / "codex-linux-sandbox").symlink_to(resolved)
+            first, _, remainder = environment["PATH"].partition(os.pathsep)
+            environment["PATH"] = os.pathsep.join((first, str(helper_bin), remainder))
+            arguments = [
+                resolved,
+                "app-server",
+                "--strict-config",
+                "-c",
+                _runtime_filesystem_override(Path(codex_home), runtime),
+                "-c",
+                f"shell_environment_policy.set.TMPDIR={json.dumps(temporary)}",
+                "--listen",
+                f"unix://{socket_path}",
+            ]
+            process = subprocess.Popen(
+                arguments,
+                cwd=workspace,
+                env=environment,
+                stdin=subprocess.DEVNULL,
+                stdout=sys.stderr,
+                stderr=sys.stderr,
+            )
 
-    def terminate_on_signal(_signum: int, _frame: object) -> None:
-        _terminate(process)
-        raise SystemExit(143)
+            def terminate_on_signal(_signum: int, _frame: object) -> None:
+                _terminate(process)
+                raise SystemExit(143)
 
-    signal.signal(signal.SIGTERM, terminate_on_signal)
-    signal.signal(signal.SIGINT, terminate_on_signal)
-    connection: ClientConnection | None = None
+            signal.signal(signal.SIGTERM, terminate_on_signal)
+            signal.signal(signal.SIGINT, terminate_on_signal)
+            connection: ClientConnection | None = None
+            try:
+                connection = _connect(process, socket_path)
+                guard = CodexRpcGuard()
+                request_thread = threading.Thread(
+                    target=_forward_requests,
+                    args=(connection, guard),
+                    daemon=True,
+                )
+                request_thread.start()
+                _forward_responses(connection, guard)
+                return process.poll() or 0
+            finally:
+                if connection is not None:
+                    connection.close()
+                _terminate(process)
+                socket_path.unlink(missing_ok=True)
+
+
+@contextmanager
+def _local_cli_temporary(codex_home: Path, runtime: Path):
+    """Relocate disposable CLI locks while preserving persistent session state.
+
+    The caller must exclusively own this Codex home, as for the app-server
+    itself. Existing temporary contents are restored without modification.
+    A hard kill may leave the link and backup: fail closed on the next start
+    until the terminal owner's runtime link is reconciled, never guess ownership.
+    """
+    runtime.mkdir(mode=0o700)
+    cli_tmp = runtime / "cli-tmp"
+    cli_tmp.mkdir(mode=0o700)
+    original = codex_home / "tmp"
+    backup = None
+    if os.path.lexists(original):
+        if original.is_symlink() or not original.is_dir():
+            raise RuntimeError("Codex tmp requires terminal-owner reconciliation: " + str(original))
+        backup = codex_home / (".tmp-preserved-" + secrets.token_hex(12))
+        original.rename(backup)
+    linked = False
     try:
-        connection = _connect(process, socket_path)
-        guard = CodexRpcGuard()
-        request_thread = threading.Thread(
-            target=_forward_requests,
-            args=(connection, guard),
-            daemon=True,
-        )
-        request_thread.start()
-        _forward_responses(connection, guard)
-        return process.poll() or 0
+        original.symlink_to(cli_tmp, target_is_directory=True)
+        linked = True
+        yield
     finally:
-        if connection is not None:
-            connection.close()
-        _terminate(process)
-        socket_path.unlink(missing_ok=True)
-        socket_dir.rmdir()
+        if linked:
+            if not original.is_symlink() or original.readlink() != cli_tmp:
+                raise RuntimeError("Codex runtime temporary link changed during owned session")
+            original.unlink()
+        if backup is not None:
+            if os.path.lexists(original):
+                raise RuntimeError("Codex temporary backup preserved; destination occupied")
+            backup.rename(original)
+
+
+def _runtime_filesystem_override(codex_home: Path, runtime: Path) -> str:
+    # Override the complete controlled filesystem table: CLI dotted keys do not
+    # parse quoted path segments, and persistent home paths can contain dots.
+    config = tomllib.loads((codex_home / "config.toml").read_text())
+    filesystem = dict(config["permissions"]["benchmark-task"]["filesystem"])
+    filesystem[str(runtime)] = "read"
+    # App-server uses this absolute helper alias, not only PATH lookup.
+    filesystem[str(codex_home / "tmp")] = "read"
+
+    def table(value: dict) -> str:
+        fields = []
+        for key, item in value.items():
+            if isinstance(item, dict):
+                encoded = table(item)
+            elif isinstance(item, str):
+                encoded = json.dumps(item)
+            else:
+                raise RuntimeError("Unexpected controlled Codex filesystem value")
+            fields.append(json.dumps(key) + "=" + encoded)
+        return "{" + ",".join(fields) + "}"
+
+    return "permissions.benchmark-task.filesystem=" + table(filesystem)
 
 
 def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:

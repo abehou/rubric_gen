@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited, emit
+
 import json
 import os
 import signal
@@ -80,6 +82,7 @@ class CliSolverSessionDriver:
     def close(self) -> None:
         """Release provider resources held by this driver."""
 
+    @limited("solver-turn")
     def start(
         self,
         workspace: Path,
@@ -108,6 +111,7 @@ class CliSolverSessionDriver:
         self._bind_session(result.session_id, workspace, result.model)
         return result
 
+    @limited("solver-resume")
     def resume(
         self,
         workspace: Path,
@@ -150,6 +154,8 @@ class CliSolverSessionDriver:
         effective_exit_code = 1
 
         for attempt_index in range(1, self.config.retries + 2):
+            if attempt_index > 1:
+                emit("api_retry" if attempt_records[-1].get("stream_errors") else "output_retry", operation="solver-cli")
             if attempt_index == 1:
                 attempt_prompt = prompt
             elif attempt_records[-1].get("stream_errors"):

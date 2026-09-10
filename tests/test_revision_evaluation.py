@@ -146,24 +146,48 @@ def test_evaluation_store_rejects_record_symlink_and_path_escape(
         store.path("records", "..", "outside.json")
 
 
-def test_evaluation_store_resume_replaces_incompatible_stage(
-    tmp_path: Path,
-) -> None:
+@pytest.mark.parametrize("change", ("kind", "models", "implementation"))
+def test_evaluation_store_resume_preserves_incompatible_stage(tmp_path: Path, change: str) -> None:
     root = tmp_path / "output"
     store = EvaluationStore(root)
-    store.prepare({"kind": "old-stage"}, resume=False)
+    identity = {"kind": "test-stage", "models": ["sol", "opus"], "implementation": "frozen"}
+    store.prepare(identity, resume=False)
     store.write_json(("records", "old.json"), {"score": 10})
-    make_tree = root / "sealed"
-    make_tree.mkdir()
-    (make_tree / "artifact.json").write_text("{}")
-    make_tree_read_only(make_tree)
+    sealed = root / "sealed"
+    sealed.mkdir()
+    (sealed / "artifact.json").write_text("{}")
+    make_tree_read_only(sealed)
+    before = {str(p.relative_to(root)): (p.read_bytes() if p.is_file() else None, p.stat().st_mode)
+              for p in root.rglob("*")}
+    changed = {**identity, change: ["gemini"] if change == "models" else "changed"}
+    with pytest.raises(RuntimeError, match="identity changed.*preserved"):
+        store.prepare(changed, resume=True)
+    after = {str(p.relative_to(root)): (p.read_bytes() if p.is_file() else None, p.stat().st_mode)
+             for p in root.rglob("*")}
+    assert after == before
+    store.prepare(identity, resume=True)
+    assert (root / "records/old.json").read_bytes() == before["records/old.json"][0]
 
-    store.prepare({"kind": "current-stage"}, resume=True)
 
-    assert json.loads((root / "manifest.json").read_text()) == {
-        "kind": "current-stage"
-    }
-    assert {path.name for path in root.iterdir()} == {"manifest.json"}
+@pytest.mark.parametrize("manifest", (None, "broken JSON", "[]"))
+def test_evaluation_store_resume_preserves_unidentified_output(tmp_path: Path, manifest: str | None) -> None:
+    root = tmp_path / "output"
+    root.mkdir()
+    (root / "saved.json").write_text('{"score":10}')
+    if manifest is not None:
+        (root / "manifest.json").write_text(manifest)
+    before = {p.name: p.read_bytes() for p in root.iterdir()}
+    with pytest.raises(RuntimeError, match="no valid manifest.*fresh output"):
+        EvaluationStore(root).prepare({"kind": "test-stage"}, resume=True)
+    assert {p.name: p.read_bytes() for p in root.iterdir()} == before
+
+
+@pytest.mark.parametrize("resume", (False, True))
+def test_evaluation_store_initializes_empty_output(tmp_path: Path, resume: bool) -> None:
+    root = tmp_path / "output"
+    root.mkdir()
+    EvaluationStore(root).prepare({"kind": "test-stage"}, resume=resume)
+    assert json.loads((root / "manifest.json").read_text()) == {"kind": "test-stage"}
 
 
 def test_target_loader_uses_lightweight_terminal_state_validation(
@@ -1918,8 +1942,11 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
             (target, other),
             generation_operation=generate,
         )
-        assert changed_implementation.run() == 0
-    assert len(calls) == 6
+        before = {str(p.relative_to(output)): p.read_bytes() for p in output.rglob("*") if p.is_file()}
+        with pytest.raises(RuntimeError, match="identity changed.*preserved"):
+            changed_implementation.run()
+        assert {str(p.relative_to(output)): p.read_bytes() for p in output.rglob("*") if p.is_file()} == before
+    assert len(calls) == 3
 
     same_identity_resume = RubricFreeScoreRunner(
         EvaluationConfig(
@@ -1934,7 +1961,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         generation_operation=generate,
     )
     assert same_identity_resume.run() == 0
-    assert len(calls) == 9
+    assert len(calls) == 3
 
     tampered_summary = json.loads(
         (output / "absolute_score" / "summary.json").read_text()
@@ -1945,7 +1972,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
         json.dumps(tampered_summary)
     )
     assert same_identity_resume.run() == 0
-    assert len(calls) == 9
+    assert len(calls) == 3
     repaired_summary = json.loads(
         (output / "absolute_score" / "summary.json").read_text()
     )

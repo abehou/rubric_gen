@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
 from rubric_gen.submission_revision.artifacts import read_json_object
@@ -111,6 +111,23 @@ def resolve_paraphrase_selection(
     )
 
 
+def valid_reference_root(value: object) -> bool:
+    """A recorded origin is provenance, never a path to open on this machine."""
+    if not isinstance(value, str) or not value or "\\" in value:
+        return False
+    path = PurePosixPath(value)
+    return (value == "." or path.is_absolute()) and ".." not in path.parts and str(path) == value
+
+
+def master_reference(origin: object, task_id: str, rubric_name: str) -> Path:
+    if not valid_reference_root(origin):
+        raise RuntimeError("invalid rubric pool reference origin")
+    for component in (task_id, rubric_name):
+        if not component or PurePosixPath(component).name != component or component in {".", ".."}:
+            raise RuntimeError("invalid rubric reference component")
+    return Path(str(PurePosixPath(str(origin)) / task_id / "tests" / rubric_name))
+
+
 def validate_paraphrase_run(root: Path, experiment: Experiment) -> None:
     resolved = root.resolve()
     if root.is_symlink() or not resolved.is_dir():
@@ -155,7 +172,7 @@ def _valid_manifest(
         }
         and manifest.get("kind") == PARAPHRASE_RUN_KIND
         and manifest.get("benchmark") == experiment.benchmark.value
-        and manifest.get("tasks_dir") == str(experiment.tasks_dir.resolve())
+        and valid_reference_root(manifest.get("tasks_dir"))
         and manifest.get("protocol") == PARAPHRASE_PROTOCOL
         and manifest.get("model") == experiment.rubric_paraphrases["model"]
         and manifest.get("count") == experiment.rubric_paraphrases["count"]
@@ -183,10 +200,12 @@ def validate_task_record(
         / "tests"
         / str(experiment.protocol["rubric_name"])
     )
+    manifest = read_json_object(root / "manifest.json", "rubric pool origin")
+    reference = master_reference(manifest.get("tasks_dir"), task_id, str(experiment.protocol["rubric_name"]))
     if (
         set(record) != {"task_id", "master_path", "master_sha256"}
         or record.get("task_id") != task_id
-        or record.get("master_path") != str(master_path)
+        or record.get("master_path") != str(reference)
         or record.get("master_sha256") != sha256_file(master_path)
     ):
         raise RuntimeError(f"rubric paraphrase task identity changed: {task_id}")
@@ -199,7 +218,7 @@ def validate_task_record(
             rubric_path,
             metadata_path,
             master,
-            master_path,
+            reference,
             task_id,
             variant_index,
             model,

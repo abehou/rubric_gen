@@ -1,0 +1,15 @@
+## Main guard resolved — 2026-09-08
+
+Main EvaluationStore now preserves occupied audit outputs and raises on missing/malformed/changed manifests;64 evaluation tests pass. The older frozen8705dec implementation described below remains in current jobs,whose exact-identity outputs are untouched. This fix prevents destructive resume;it does not make undeclared Gemini or changed config paths compatible. A future Gemini invocation still needs explicit source/output validation.
+
+# Gemini extension constraints — inspected without provider calls
+
+Current canonical YAMLs and default provider panel name Gemini3.8Flash;thinking stays low. Current Babel tuning studies deliberately declare Sol/Opus only and remain immutable. Credits are still unavailable;safe probe10354654 was depleted-prepayment429. No repeated probe or Gemini audit is authorized by an assumed recovery.
+
+Existing execution_audit_models is an operational subset of the declared panel and is excluded from experiment identity (tests/test_experiment.py). It cannot select an undeclared Gemini model in a two-model study. Moreover evaluation/targets.py binds the source study's original experiment_path,while evaluation/store.py EvaluationStore.prepare calls _replace under --resume if the output manifest changes. Model lists are part of stage manifests. Merely changing model scope and resuming into an occupied audit root is therefore unsafe:it can replace prior stage outputs.
+
+Do not edit current configs,study manifests or source hashes to fabricate three-model compatibility;do not run an expanded/singleton panel over occupied historical output paths. A future Gemini pass requires a verified invocation with preserved source identity,explicit evaluator scope and separate output ownership. Before making that workflow change,test native source validation and preservation of every existing successful judgment. No implementation change was made during the active jobs.
+
+For future studies,declare the intended three-model panel from the outset and explicitly scope initial execution to Sol/Opus while credits are unavailable,only after validating how later audit invocation and output isolation preserve frozen source configuration. This avoids undeclared-panel expansion but does not by itself solve config-path/output identity constraints. Do not promise turnkey Gemini resume from YAML scope alone. Keep two-model conclusions explicitly separate from complete three-model results and preserve all prompts,thresholds,aggregation semantics and settings.
+
+Source inspection:src/rubric_gen/submission_revision/experiment.py,outcome_audit and execution_audit_models validation;evaluation/targets.py load_evaluation_targets;evaluation/store.py prepare/_replace;evaluation/runner.py model-bearing manifests. These files remain unchanged;current exact-identity owned launches are unaffected. Revisit this execution limitation when preparing the next design or when legitimate Gemini access is restored,without delaying the active Sol/Opus experiments.

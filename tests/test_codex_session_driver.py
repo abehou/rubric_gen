@@ -377,6 +377,12 @@ socket_dir = Path(path).parent
 assert socket_dir.parent == Path("/tmp")
 assert socket_dir.name.startswith(f"rg-codex-{{os.getuid()}}-")
 assert Path(path).name == "rpc.sock"
+runtime = socket_dir / "runtime"
+assert Path(os.environ["TMPDIR"]) == runtime
+assert (Path(os.environ["CODEX_HOME"]) / "tmp").resolve() == runtime / "cli-tmp"
+overrides = [sys.argv[i + 1] for i, value in enumerate(sys.argv[:-1]) if value == "-c"]
+assert any(value.startswith('shell_environment_policy.set.TMPDIR=') for value in overrides)
+assert any(value.startswith('permissions.benchmark-task.filesystem=') for value in overrides)
 
 def handle(connection):
     request = json.loads(connection.recv())
@@ -414,6 +420,10 @@ server.serve_forever()
     codex_home = tmp_path / "codex-home"
     for path in (workspace, state_home, temporary, codex_home):
         path.mkdir()
+    (codex_home / "config.toml").write_text(
+        '[permissions.benchmark-task.filesystem]\n":minimal"="read"\n'
+        '[permissions.benchmark-task.filesystem.":workspace_roots"]\n"."="write"\n'
+    )
     request = {"id": "request-1", "method": "initialize", "params": {}}
 
     process = subprocess.Popen(

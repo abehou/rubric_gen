@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import argparse
 import json
 import os
@@ -69,6 +71,7 @@ def run_paraphrase(args: argparse.Namespace) -> int:
     )).run()
 
 
+@limited("audit-study", kind="audit", returns_exit_code=True)
 def run_detect(args: argparse.Namespace) -> int:
     from rubric_gen.submission_revision.evaluation.direct import (
         DirectDetectionConfig,

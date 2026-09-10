@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import math
 import os
 from collections.abc import Callable
@@ -14,8 +16,10 @@ from rubric_gen.submission_revision.evolution_serialization import (
 )
 
 
-PROPOSER_MAX_OUTPUT_TOKENS = 32_768
-PROPOSER_MAX_REQUEST_BYTES = 1024 * 1024
+PROPOSER_MAX_OUTPUT_TOKENS = 65_536
+# Full Result20 trace histories can exceed 1 MiB before the last update.
+# Preserve complete evidence; the provider still enforces its context limit.
+PROPOSER_MAX_REQUEST_BYTES = 4 * 1024 * 1024
 _REQUEST_TIMEOUT_SECONDS = 300.0
 _REASONING_EFFORT = "low"
 _TEXT_VERBOSITY = "low"
@@ -40,6 +44,10 @@ class StructuredProviderOutput:
 
 
 ProviderOperation = Callable[..., StructuredProviderOutput]
+
+
+class RubricProposerInputLimitError(ValueError):
+    """A deterministic local request limit rejected input before dispatch."""
 
 
 class RubricProposerProviderError(RuntimeError):
@@ -166,6 +174,7 @@ def _valid_generation(value: object) -> bool:
     )
 
 
+@limited("evolution-generation")
 def generate_structured(
     *,
     model: str,
@@ -180,7 +189,7 @@ def generate_structured(
 ) -> StructuredProviderOutput:
     size = request_bytes(instructions, evidence, response_schema)
     if size > max_request_bytes:
-        raise ValueError(
+        raise RubricProposerInputLimitError(
             f"{request_context} request is {size} UTF-8 bytes; "
             f"limit is {max_request_bytes}"
         )

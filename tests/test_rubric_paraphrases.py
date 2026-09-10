@@ -717,3 +717,24 @@ def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
     )
     with pytest.raises(ValueError, match="changed its numbers"):
         numeric_group.expand(injected)
+
+
+def test_new_pool_relocates_and_resumes_without_generation(tmp_path):
+    import shutil
+    from rubric_gen.submission_revision.paraphrase_validation import validate_paraphrase_run
+    source=tmp_path/'machine-a';source.mkdir()
+    experiment=_experiment(source)
+    root=Path(experiment.dag['paraphrase']['output_dir'])
+    def generate(_model,request):
+        index=int(re.search(r'Paraphrase variant: (\d+)',request.evidence).group(1))
+        return GenerationResult(text=json.dumps(_wording_response(index)),provider='test',requested_model='test',effective_model='test',response_id=str(index),request_parameters={})
+    assert ParaphraseRunner(ParaphraseRunConfig(experiment=experiment,output_dir=root,max_concurrency=2),generation_operation=generate).run()==0
+    manifest=json.loads((root/'manifest.json').read_text())
+    assert manifest['tasks_dir']=='.'
+    assert manifest['tasks'][0]['master_path']=='da-1-1/tests/rubric.txt'
+    destination=tmp_path/'machine-b';shutil.copytree(source,destination)
+    moved=load_experiment(destination/experiment.path.relative_to(source))
+    moved_root=destination/root.relative_to(source)
+    validate_paraphrase_run(moved_root,moved)
+    def forbidden(*a):pytest.fail('resume must reuse sealed variants')
+    assert ParaphraseRunner(ParaphraseRunConfig(experiment=moved,output_dir=moved_root,max_concurrency=2),generation_operation=forbidden).run()==0

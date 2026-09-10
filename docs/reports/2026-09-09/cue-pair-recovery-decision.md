@@ -1,0 +1,7 @@
+# One-assignment infrastructure recovery
+
+The original trace attempt completed 59 assignments; da-14-3 rep-001 failed at s004 because duplicate artifact pairs produced duplicate evidence rows. Existing regression fails before the missing ecc152d seven-line fix and passes afterward (30ae38e). This is an infrastructure-invalid assignment, not a scientific exclusion.
+
+Native full-file generation identity forbids in-place resume after this repair. Generate only the failed assignment in a fresh versioned study, reusing the same seed, sealed paraphrases and explicitly validated original pretreatment rubrics. Preserve the failed trajectory and all 59 completed assignments. The single code change deduplicates evidence consistently with artifact pairs, retaining the first chronological trace; all raw sidecars remain available. No simulator, evaluator, scoring or policy redesign.
+
+The replacement must pass native input validation and complete its own revision/audits; report its separate source identity when joining by the prespecified task/replicate key. Do not replace any successful assignment. Audit completed original assignments only under their genuine producing implementation; do not rewrite their hashes. If native reuse fails, stop that path and diagnose rather than bypass validation. Scientific success criteria remain the prospective cue policy gates; replacement is selected by infrastructure failure before outcome auditing.

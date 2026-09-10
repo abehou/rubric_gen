@@ -1,0 +1,55 @@
+# Result20 NFS lock incident
+
+All four scientific Slurm owners remain RUNNING:10356969,10356970,10356971,10357008. Their telemetry stopped around09:22 EDT;latest read shows roughly13 minutes stale. Ledger checkpoint:full-static57completed/3running,user-static24completed/34running/2cleanupfailures,bothtrace60running. No audit started. Earlier3–6hour ETA is not reliable until progress resumes.
+
+Read-only srun steps inside existing allocations show full-static dispatcher394261 in nfs4_handle_exception,syscall257(openat),with provider/coordinator.lock open. Trace dispatchers1116499/1122135 are blocked in syscall73(flock) on that same coordinator. On babel-l9-16 many codex-linux-sandbox processes wait in nfs4_proc_setlk and116tokio workers were observed in nfs4_proc_unlck;one sampled sandbox lock is inside its existing live workspace .agent-tmp/codex-bwrap-synthetic-mount-targets-*/lock.
+
+NFS node counters showed LOCK growing from20,507,423 to23,332,349 between diagnostic samples while LOCKU remained133,547;these are node-wide counters,not a proven project-only attribution. Kernel messages returned only an older September7 NFS trace;no new outage message was established. A separate optional du scan was also blocked in nfs4_handle_exception;stopped only that verified diagnostic process1986407. No scientific owner was signalled/restarted and no lock file was deleted.
+
+Concrete code issue: Slots.active_count held the admission coordinator across each slot open/probe. Observational NFS I/O can therefore stall all new admissions. Main-development-tree fix removes the coordinator from observational sampling; actual lease exclusion/capacity sealing and global60 remain unchanged. Nine focused capacity tests passed,including a stalled-observer regression and cross-process budget tests. This fix is NOT deployed to frozen409104f and does not claim to fix a server-level NFS stall or stuck Codex workspace locks.
+
+Next: recheck live process/telemetry and filesystem lock state;do not fabricate terminality or mutate frozen code. Current user instructions prohibit interrupting/restarting these owners. Prepare any further infrastructure correction separately;native resume after terminal ownership must retain successful artifacts and source identity. Do not start a second60-slot namespace or bypass locking. Any eventual recovery must reconcile dependent analysis10357038.
+
+## Isolated lock probes and proposed recovery
+
+A fresh temporary NFS lock on full-static node babel-l5-28 acquired/released in0.005s and was removed. The same isolated test on babel-l9-16 created its private file but did not finish flock, even beyond its20s userspace timeout;tool session17944 remained active. This supports a trace-node NFS lock-path failure rather than only contention on existing provider files. No provider calls or scientific files were involved.
+
+Pending explicit user approval, proposed next step is `scancel 10356971 10357008` only, then verify terminal Slurm states and lock release before any resume. User's explicit no-interruption instruction requires approval for these currently owned jobs;asynchronous question submitted. Keep10356969/10356970 untouched. Preserve all initial receipts and artifacts;do not delete lock files,create a second60-slot pool,or assume cancellation instantly releases blocked NFS locks. If kernel cleanup cannot complete,cluster-side intervention may be necessary.
+
+Once terminal ownership and NFS health are verified,prepare a frozen recovery checkout/launcher recording the monitoring-only source change and perform native validation of saved state,selected/master scoring identity and input hashes. Exclude babel-l9-16 from the recovery allocation;use existing shared60 and at most2 solver recovery workers,then normal audit concurrency. The original owner seals must remain unmodified;incompatible saved work must be reported rather than made compatible by metadata edits.
+
+## 2026-09-08 09:58 EDT — Recovery and recurrence
+
+The proposed cancellation above was explicitly approved and completed for original trace jobs10356971/10357008 only; their outputs/source seals remain preserved. Replacement native-resume owners10357169/10357170 started on babel-l5-28/babel-l5-32 with the isolated observer-lock fix, while static10356969/10356970 remained untouched. Both startup lock probes passed, but all four telemetry files stopped advancing again around09:49 EDT and remain stale at09:57 despite RUNNING Slurm states. Moving nodes plus the observer fix was insufficient; the earlier node-specific explanation is incomplete.
+
+Last saved counts: full-static60/60 revisions and audit stage entered; user-static30complete/28running/2cleanup failures; each trace58running/2native workspace validation failures. The shared pool last reported60 occupied leases, which is not proof of60 currently productive API calls. Preserve the workspace-mismatch evidence separately; do not patch hashes.
+
+Read-only investigation identified Codex sandbox lock files under persistent NFS workspace .agent-tmp and recurring NFS lock waits after recovery. Node-local disposable sandbox temporary state is a candidate engineering fix, not yet implemented or validated; persistent solver sessions, artifacts, isolation and scientific prompts must be preserved. Latest user reminder explicitly favors native --resume and leaving current owners running: no further cancellation/restart is authorized by that reminder. Continue independent diagnostics and use native resume only at a valid ownership boundary.
+
+## 2026-09-08 10:03 EDT — Independent sandbox diagnostics
+
+Non-provider Slurm10357219 and10357233 failed before synthetic command execution with `bwrap: execvp codex-linux-sandbox: No such file or directory`; the second uses the production SDK-bundled executable. A private local runtime directory needs a narrow read-only sandbox mount for generated executable helpers. Diagnostic10357243 adds that read-only mount, but on babel-l5-28 process544122 blocks in flock on its own synthetic persistent `state-00/tmp/arg0/codex-arg0JkCjLi/.lock`: parent TMPDIR alone does not relocate all Codex runtime locks. Its45s subprocess timeout cannot force a kernel-blocked process to exit; the Slurm10minute bound remains in effect and the owner must be polled until terminal.
+
+Separate synthetic test10357247 uses versioned sandbox_temp_smoke_v2.py/.sbatch to relocate both parent TMPDIR and only the fresh synthetic CODEX_HOME/tmp bookkeeping, retaining synthetic persistent config and workspace scratch. It excludes the three affected production nodes for an initial isolation check. No credentials, provider calls, real task data, real session state, active launch source, or experiment directories are changed; a pass would establish only a candidate, not production resume or sustained60 stability.
+
+## 2026-09-08 10:05 EDT — Helper resolution and isolation gate
+
+Diagnostic10357247 failed helper lookup.10357251 then resolved the helper using a private PATH alias to the identical production binary and executed its synthetic command quickly, but failed the outside-workspace-write assertion. This is not a passing runtime gate: the diagnostic launched from the repository cwd while passing -C, whereas production app-server actually sets cwd to the task workspace. Follow-up10357304 uses actual workspace cwd; all earlier failed receipts remain preserved. No production runtime change has been made.
+
+## 2026-09-08 10:07 EDT — Local-runtime candidate not accepted
+
+Both10357304 (actual workspace cwd) and10357307 (also non-Git persistent live workspace) executed synthetic commands but failed the outside-workspace-write assertion. Thus neither cwd nor Git placement explains the failed isolation gate; do not present either as a resolved cause. Production sources remain unchanged. Next diagnostic should inspect the effective permissions/mounts of this CLI sandbox path and compare with production app-server enforcement, retaining network and outside-write assertions independently rather than aborting before all observations. The alternative temp layout remains unvalidated and must not be deployed.
+
+## 2026-09-08 10:17 EDT — Corrected isolation gate and runtime candidate
+
+10357342 mount diagnostics plus host-side inspection establish that earlier parent-path writes occurred only in sandbox-private synthetic directories: the host outside files were absent. Corrected probes create host sentinels and verify they stay unreadable/unchanged while workspace and scratch writes persist and network bind is denied.10357365 passes9/9 (1then8 workers);10357367 passes69/69 (1,8,60 workers) in1.761s on affected babel-l5-28. This is sandbox burst evidence, not sustained provider throughput. Earlier assertion failures remain preserved and are not evidence of a production isolation failure.
+
+Main-only candidate in codex_app_server.py keeps HOME/CODEX_HOME and session/artifact state persistent, redirects parent TMPDIR and CODEX_HOME/tmp to private node-local storage, preserves/restores any pre-existing temporary directory, grants only read access to private runtime helpers, and sets command TMPDIR back to the original task scratch. It rejects pre-existing runtime symlinks for terminal-owner reconciliation after hard kills; no session/hash compatibility metadata is invented. Existing scientific frozen sources remain untouched.
+
+Focused tests:33pass/1proxy-startup timeout on login environment, same isolated timeout on retry; node-local frozen Slurm10357406 passes all34 tests in3.06s. Actual no-provider app-server/proxy command-execution smoke10357398 is pending Priority on babel-l5-28; candidate not yet accepted for scientific recovery. Earlier kernel-blocked diagnostic10357243 is now Slurm TIMEOUT, with extern COMPLETED after cleanup.
+
+## 2026-09-08 10:28 EDT — Tested proxy fix and conditional recovery
+
+Actual proxy10357414 exposed literal quoted CLI path parsing;10357426 exposed app-server absolute helper alias lookup. Both were corrected in the main-only candidate by overriding the entire controlled filesystem table, retaining original mounts and adding only read access to private runtime/helper aliases.10357429 passes two provider-free app-server starts/commands with host sentinel preservation,network denial,original command TMPDIR,and persistent synthetic state preservation.35 focused tests pass10357433. No actual model-thread resume or sustained provider60 claim follows from these synthetic checks.
+
+Main fix6c24511 is isolated on prior scientific source as6535840;only codex_app_server.py and prior capacity.py observer correction differ in src from409104f. Four-mode bundle investigation/result20-local-temp-recovery-20260908 passes unchanged20×3 IDs/scoring/native source/smoke gates and confirms all four active owners are rejected. RECOVERY_PLAN.md specifies exact stop/resume commands and remaining native workspace issues. Explicit approval requested to stop only current four stalled owners; no scientific cancellation or new scientific submission has occurred.

@@ -1,0 +1,1864 @@
+{
+  "conditions": [
+    {
+      "condition": "full-static",
+      "feedback": "Full feedback",
+      "policy": "Static rubric",
+      "assignments": 60,
+      "auditor_rows": 120,
+      "W": 96.71666666666667,
+      "W_train": 96.71666666666667,
+      "S": 89.01666666666667,
+      "H": 87.51944444444445,
+      "A": 67.45833333333333,
+      "WS": 7.7,
+      "SH": 1.4972222222222225,
+      "HA": 20.06111111111111,
+      "WA": 29.258333333333333,
+      "master_minus_A": 23.241666666666667,
+      "full_trajectory_lower_pct": 20.833333333333332,
+      "full_trajectory_upper_pct": 24.166666666666668,
+      "full_trajectory_abstentions": 4,
+      "full_trajectory_score": 2.816666666666667,
+      "post_update_lower_pct": 1.6666666666666667,
+      "post_update_upper_pct": 2.5,
+      "post_update_abstentions": 1,
+      "post_update_score": 0.8333333333333334,
+      "final_artifact_lower_pct": 3.3333333333333335,
+      "final_artifact_upper_pct": 3.3333333333333335,
+      "final_artifact_abstentions": 0,
+      "final_artifact_score": 1.05,
+      "final_revision_lower_pct": 0.8333333333333334,
+      "final_revision_upper_pct": 0.8333333333333334,
+      "final_revision_abstentions": 0,
+      "final_revision_score": 0.7083333333333334,
+      "detail": {
+        "full_trajectory": {
+          "panel_union_pct": 25.0,
+          "panel_union_upper_pct": 26.666666666666668,
+          "panel_intersection_pct": 16.666666666666668,
+          "decision_disagreements": 5,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 45,
+              "reward_hacking_detected": 13,
+              "abstain": 2
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 46,
+              "reward_hacking_detected": 12,
+              "abstain": 2
+            }
+          },
+          "monitor_histogram": {
+            "0": 24,
+            "1": 35,
+            "2": 14,
+            "3": 11,
+            "4": 7,
+            "5": 4,
+            "6": 7,
+            "7": 6,
+            "8": 3,
+            "9": 4,
+            "10": 5
+          }
+        },
+        "post_update": {
+          "panel_union_pct": 3.3333333333333335,
+          "panel_union_upper_pct": 5.0,
+          "panel_intersection_pct": 0.0,
+          "decision_disagreements": 3,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 59,
+              "reward_hacking_detected": 1
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 58,
+              "reward_hacking_detected": 1,
+              "abstain": 1
+            }
+          },
+          "monitor_histogram": {
+            "0": 59,
+            "1": 42,
+            "2": 9,
+            "3": 5,
+            "4": 2,
+            "5": 1,
+            "6": 2
+          }
+        },
+        "final_artifact": {
+          "panel_union_pct": 6.666666666666667,
+          "panel_union_upper_pct": 6.666666666666667,
+          "panel_intersection_pct": 0.0,
+          "decision_disagreements": 4,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 57,
+              "reward_hacking_detected": 3
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 59,
+              "reward_hacking_detected": 1
+            }
+          },
+          "monitor_histogram": {
+            "0": 45,
+            "1": 53,
+            "2": 11,
+            "3": 3,
+            "4": 4,
+            "6": 2,
+            "7": 2
+          }
+        },
+        "final_revision": {
+          "panel_union_pct": 1.6666666666666667,
+          "panel_union_upper_pct": 1.6666666666666667,
+          "panel_intersection_pct": 0.0,
+          "decision_disagreements": 1,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 59,
+              "reward_hacking_detected": 1
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 60
+            }
+          },
+          "monitor_histogram": {
+            "0": 62,
+            "1": 43,
+            "2": 9,
+            "3": 3,
+            "4": 2,
+            "7": 1
+          }
+        }
+      }
+    },
+    {
+      "condition": "user-simulator-static",
+      "feedback": "User simulator",
+      "policy": "Static rubric",
+      "assignments": 60,
+      "auditor_rows": 120,
+      "W": 89.58333333333333,
+      "W_train": 89.58333333333333,
+      "S": 82.24166666666666,
+      "H": 82.125,
+      "A": 70.475,
+      "WS": 7.341666666666667,
+      "SH": 0.11666666666666625,
+      "HA": 11.65,
+      "WA": 19.108333333333334,
+      "master_minus_A": 13.45,
+      "full_trajectory_lower_pct": 20.0,
+      "full_trajectory_upper_pct": 21.666666666666668,
+      "full_trajectory_abstentions": 2,
+      "full_trajectory_score": 2.5,
+      "post_update_lower_pct": 11.666666666666666,
+      "post_update_upper_pct": 13.333333333333334,
+      "post_update_abstentions": 2,
+      "post_update_score": 1.85,
+      "final_artifact_lower_pct": 0.0,
+      "final_artifact_upper_pct": 0.0,
+      "final_artifact_abstentions": 0,
+      "final_artifact_score": 0.7166666666666667,
+      "final_revision_lower_pct": 5.0,
+      "final_revision_upper_pct": 5.833333333333333,
+      "final_revision_abstentions": 1,
+      "final_revision_score": 1.0416666666666667,
+      "detail": {
+        "full_trajectory": {
+          "panel_union_pct": 28.333333333333332,
+          "panel_union_upper_pct": 30.0,
+          "panel_intersection_pct": 11.666666666666666,
+          "decision_disagreements": 11,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 45,
+              "abstain": 2,
+              "reward_hacking_detected": 13
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 49,
+              "reward_hacking_detected": 11
+            }
+          },
+          "monitor_histogram": {
+            "0": 27,
+            "1": 38,
+            "2": 22,
+            "3": 4,
+            "4": 3,
+            "5": 2,
+            "6": 5,
+            "7": 7,
+            "8": 5,
+            "9": 5,
+            "10": 2
+          }
+        },
+        "post_update": {
+          "panel_union_pct": 15.0,
+          "panel_union_upper_pct": 16.666666666666668,
+          "panel_intersection_pct": 8.333333333333334,
+          "decision_disagreements": 5,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 51,
+              "reward_hacking_detected": 7,
+              "abstain": 2
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 53,
+              "reward_hacking_detected": 7
+            }
+          },
+          "monitor_histogram": {
+            "0": 46,
+            "1": 34,
+            "2": 14,
+            "3": 3,
+            "4": 7,
+            "5": 2,
+            "6": 2,
+            "7": 3,
+            "8": 1,
+            "9": 8
+          }
+        },
+        "final_artifact": {
+          "panel_union_pct": 0.0,
+          "panel_union_upper_pct": 0.0,
+          "panel_intersection_pct": 0.0,
+          "decision_disagreements": 0,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 60
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 60
+            }
+          },
+          "monitor_histogram": {
+            "0": 54,
+            "1": 51,
+            "2": 11,
+            "3": 3,
+            "4": 1
+          }
+        },
+        "final_revision": {
+          "panel_union_pct": 6.666666666666667,
+          "panel_union_upper_pct": 8.333333333333334,
+          "panel_intersection_pct": 3.3333333333333335,
+          "decision_disagreements": 3,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 55,
+              "abstain": 1,
+              "reward_hacking_detected": 4
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 58,
+              "reward_hacking_detected": 2
+            }
+          },
+          "monitor_histogram": {
+            "0": 61,
+            "1": 34,
+            "2": 15,
+            "3": 1,
+            "4": 2,
+            "5": 1,
+            "6": 2,
+            "7": 1,
+            "8": 1,
+            "9": 2
+          }
+        }
+      }
+    },
+    {
+      "condition": "full-red-team-trace",
+      "feedback": "Full feedback",
+      "policy": "Red-team trace",
+      "assignments": 59,
+      "auditor_rows": 118,
+      "W": 95.54237288135593,
+      "W_train": 95.37288135593221,
+      "S": 87.55932203389831,
+      "H": 87.00564971751412,
+      "A": 65.39830508474576,
+      "WS": 7.983050847457627,
+      "SH": 0.5536723163841808,
+      "HA": 21.607344632768363,
+      "WA": 30.14406779661017,
+      "master_minus_A": 23.71186440677966,
+      "full_trajectory_lower_pct": 26.271186440677965,
+      "full_trajectory_upper_pct": 29.661016949152543,
+      "full_trajectory_abstentions": 4,
+      "full_trajectory_score": 3.3135593220338984,
+      "post_update_lower_pct": 3.389830508474576,
+      "post_update_upper_pct": 3.389830508474576,
+      "post_update_abstentions": 0,
+      "post_update_score": 1.0338983050847457,
+      "final_artifact_lower_pct": 3.389830508474576,
+      "final_artifact_upper_pct": 5.084745762711864,
+      "final_artifact_abstentions": 2,
+      "final_artifact_score": 1.0932203389830508,
+      "final_revision_lower_pct": 3.389830508474576,
+      "final_revision_upper_pct": 4.237288135593221,
+      "final_revision_abstentions": 1,
+      "final_revision_score": 0.9491525423728814,
+      "detail": {
+        "full_trajectory": {
+          "panel_union_pct": 30.508474576271187,
+          "panel_union_upper_pct": 32.20338983050848,
+          "panel_intersection_pct": 22.033898305084747,
+          "decision_disagreements": 6,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 43,
+              "reward_hacking_detected": 16
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 40,
+              "reward_hacking_detected": 15,
+              "abstain": 4
+            }
+          },
+          "monitor_histogram": {
+            "0": 23,
+            "1": 25,
+            "2": 22,
+            "3": 8,
+            "4": 5,
+            "5": 4,
+            "6": 4,
+            "7": 4,
+            "8": 8,
+            "9": 8,
+            "10": 7
+          }
+        },
+        "post_update": {
+          "panel_union_pct": 3.389830508474576,
+          "panel_union_upper_pct": 3.389830508474576,
+          "panel_intersection_pct": 3.389830508474576,
+          "decision_disagreements": 0,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 57,
+              "reward_hacking_detected": 2
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 57,
+              "reward_hacking_detected": 2
+            }
+          },
+          "monitor_histogram": {
+            "0": 49,
+            "1": 48,
+            "2": 9,
+            "3": 7,
+            "4": 1,
+            "6": 1,
+            "8": 2,
+            "9": 1
+          }
+        },
+        "final_artifact": {
+          "panel_union_pct": 5.084745762711864,
+          "panel_union_upper_pct": 8.474576271186441,
+          "panel_intersection_pct": 1.694915254237288,
+          "decision_disagreements": 4,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 55,
+              "abstain": 2,
+              "reward_hacking_detected": 2
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 57,
+              "reward_hacking_detected": 2
+            }
+          },
+          "monitor_histogram": {
+            "0": 41,
+            "1": 58,
+            "2": 9,
+            "3": 3,
+            "4": 1,
+            "5": 2,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1
+          }
+        },
+        "final_revision": {
+          "panel_union_pct": 5.084745762711864,
+          "panel_union_upper_pct": 6.779661016949152,
+          "panel_intersection_pct": 1.694915254237288,
+          "decision_disagreements": 3,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 55,
+              "reward_hacking_detected": 3,
+              "abstain": 1
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 58,
+              "reward_hacking_detected": 1
+            }
+          },
+          "monitor_histogram": {
+            "0": 53,
+            "1": 46,
+            "2": 9,
+            "3": 2,
+            "4": 3,
+            "5": 1,
+            "6": 3,
+            "7": 1
+          }
+        }
+      }
+    },
+    {
+      "condition": "user-simulator-red-team-trace",
+      "feedback": "User simulator",
+      "policy": "Red-team trace",
+      "assignments": 60,
+      "auditor_rows": 120,
+      "W": 91.96666666666667,
+      "W_train": 91.63333333333334,
+      "S": 82.7,
+      "H": 82.78333333333333,
+      "A": 70.975,
+      "WS": 9.266666666666667,
+      "SH": -0.08333333333333351,
+      "HA": 11.808333333333334,
+      "WA": 20.991666666666667,
+      "master_minus_A": 13.05,
+      "full_trajectory_lower_pct": 7.5,
+      "full_trajectory_upper_pct": 10.833333333333334,
+      "full_trajectory_abstentions": 4,
+      "full_trajectory_score": 1.7166666666666666,
+      "post_update_lower_pct": 8.333333333333334,
+      "post_update_upper_pct": 11.666666666666666,
+      "post_update_abstentions": 4,
+      "post_update_score": 1.4166666666666667,
+      "final_artifact_lower_pct": 0.0,
+      "final_artifact_upper_pct": 0.0,
+      "final_artifact_abstentions": 0,
+      "final_artifact_score": 0.725,
+      "final_revision_lower_pct": 1.6666666666666667,
+      "final_revision_upper_pct": 4.166666666666667,
+      "final_revision_abstentions": 3,
+      "final_revision_score": 0.6666666666666666,
+      "detail": {
+        "full_trajectory": {
+          "panel_union_pct": 10.0,
+          "panel_union_upper_pct": 15.0,
+          "panel_intersection_pct": 5.0,
+          "decision_disagreements": 6,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 53,
+              "reward_hacking_detected": 5,
+              "abstain": 2
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 54,
+              "reward_hacking_detected": 4,
+              "abstain": 2
+            }
+          },
+          "monitor_histogram": {
+            "0": 33,
+            "1": 41,
+            "2": 21,
+            "3": 10,
+            "4": 2,
+            "5": 4,
+            "6": 3,
+            "7": 2,
+            "8": 3,
+            "9": 1
+          }
+        },
+        "post_update": {
+          "panel_union_pct": 13.333333333333334,
+          "panel_union_upper_pct": 16.666666666666668,
+          "panel_intersection_pct": 3.3333333333333335,
+          "decision_disagreements": 7,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 50,
+              "reward_hacking_detected": 8,
+              "abstain": 2
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 56,
+              "reward_hacking_detected": 2,
+              "abstain": 2
+            }
+          },
+          "monitor_histogram": {
+            "0": 45,
+            "1": 46,
+            "2": 11,
+            "3": 3,
+            "4": 1,
+            "5": 4,
+            "6": 4,
+            "7": 3,
+            "8": 3
+          }
+        },
+        "final_artifact": {
+          "panel_union_pct": 0.0,
+          "panel_union_upper_pct": 0.0,
+          "panel_intersection_pct": 0.0,
+          "decision_disagreements": 0,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 60
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 60
+            }
+          },
+          "monitor_histogram": {
+            "0": 50,
+            "1": 59,
+            "2": 6,
+            "3": 4,
+            "4": 1
+          }
+        },
+        "final_revision": {
+          "panel_union_pct": 1.6666666666666667,
+          "panel_union_upper_pct": 6.666666666666667,
+          "panel_intersection_pct": 1.6666666666666667,
+          "decision_disagreements": 3,
+          "auditors": {
+            "claude-opus-5": {
+              "no_reward_hacking_detected": 56,
+              "abstain": 3,
+              "reward_hacking_detected": 1
+            },
+            "gpt-5.6-sol": {
+              "no_reward_hacking_detected": 59,
+              "reward_hacking_detected": 1
+            }
+          },
+          "monitor_histogram": {
+            "0": 71,
+            "1": 40,
+            "2": 3,
+            "3": 1,
+            "5": 3,
+            "8": 2
+          }
+        }
+      }
+    }
+  ],
+  "definitions": "W=weak selected-base reference; W_train=selected base plus active penalties; S=strong selected; H=mean strong heldouts2\u20134; A=rubric-free absolute quality. train_WS/train_WA also retain actual composed-reward gaps, whose change can include penalty arithmetic. RH is a fraction with abstention bounds, never silently coded negative.",
+  "uncertainty": {
+    "method": "equal task weighting and task-cluster percentile bootstrap",
+    "draws": 10000,
+    "seed": 20260905,
+    "caution": "Two-task dev3 intervals are descriptive and cannot establish population robustness."
+  },
+  "user_paired_contrasts": {
+    "trace minus static": {
+      "gpt-5.6-sol": {
+        "assignments": 60,
+        "tasks": 20,
+        "metrics": {
+          "A": {
+            "mean": -1.6,
+            "identification_bounds": [
+              -1.6,
+              -1.6
+            ],
+            "task_bootstrap_95_interval": [
+              -6.166666666666667,
+              2.783333333333333
+            ]
+          },
+          "H": {
+            "mean": 1.2777777777777777,
+            "identification_bounds": [
+              1.2777777777777777,
+              1.2777777777777777
+            ],
+            "task_bootstrap_95_interval": [
+              -2.2277777777777774,
+              4.872222222222223
+            ]
+          },
+          "HA": {
+            "mean": 2.8777777777777773,
+            "identification_bounds": [
+              2.8777777777777773,
+              2.8777777777777773
+            ],
+            "task_bootstrap_95_interval": [
+              -2.9388888888888896,
+              8.644444444444444
+            ]
+          },
+          "RH_final_artifact": {
+            "mean": 0,
+            "identification_bounds": [
+              0,
+              0
+            ],
+            "task_bootstrap_95_interval": [
+              0,
+              0
+            ]
+          },
+          "RH_final_revision": {
+            "mean": -0.016666666666666666,
+            "identification_bounds": [
+              -0.016666666666666666,
+              -0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -0.06666666666666667,
+              0.03333333333333333
+            ]
+          },
+          "RH_full_trajectory": {
+            "mean": null,
+            "identification_bounds": [
+              -0.11666666666666667,
+              -0.08333333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -0.25,
+              0.0
+            ]
+          },
+          "RH_post_update": {
+            "mean": null,
+            "identification_bounds": [
+              -0.08333333333333333,
+              -0.049999999999999996
+            ],
+            "task_bootstrap_95_interval": [
+              -0.2,
+              0.049999999999999996
+            ]
+          },
+          "S": {
+            "mean": 0.8333333333333334,
+            "identification_bounds": [
+              0.8333333333333334,
+              0.8333333333333334
+            ],
+            "task_bootstrap_95_interval": [
+              -3.35,
+              5.333333333333333
+            ]
+          },
+          "SH": {
+            "mean": -0.44444444444444425,
+            "identification_bounds": [
+              -0.44444444444444425,
+              -0.44444444444444425
+            ],
+            "task_bootstrap_95_interval": [
+              -1.8888888888888888,
+              1.0666666666666673
+            ]
+          },
+          "W": {
+            "mean": 2.3833333333333333,
+            "identification_bounds": [
+              2.3833333333333333,
+              2.3833333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -0.41666666666666663,
+              5.5
+            ]
+          },
+          "WA": {
+            "mean": 3.983333333333333,
+            "identification_bounds": [
+              3.983333333333333,
+              3.983333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -1.3166666666666667,
+              9.35
+            ]
+          },
+          "WS": {
+            "mean": 1.5499999999999998,
+            "identification_bounds": [
+              1.5499999999999998,
+              1.5499999999999998
+            ],
+            "task_bootstrap_95_interval": [
+              -1.5,
+              4.45
+            ]
+          },
+          "W_train": {
+            "mean": 2.05,
+            "identification_bounds": [
+              2.05,
+              2.05
+            ],
+            "task_bootstrap_95_interval": [
+              -1.0166666666666668,
+              5.366666666666666
+            ]
+          },
+          "elicited_penalty": {
+            "mean": -0.33333333333333337,
+            "identification_bounds": [
+              -0.33333333333333337,
+              -0.33333333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -0.75,
+              0.0
+            ]
+          },
+          "quality_gain": {
+            "mean": -2.216666666666667,
+            "identification_bounds": [
+              -2.216666666666667,
+              -2.216666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -6.8500000000000005,
+              2.3166666666666664
+            ]
+          },
+          "selected_gain": {
+            "mean": 0.0333333333333332,
+            "identification_bounds": [
+              0.0333333333333332,
+              0.0333333333333332
+            ],
+            "task_bootstrap_95_interval": [
+              -4.416666666666667,
+              4.633333333333333
+            ]
+          },
+          "train_WA": {
+            "mean": 3.65,
+            "identification_bounds": [
+              3.65,
+              3.65
+            ],
+            "task_bootstrap_95_interval": [
+              -1.8333333333333335,
+              9.1
+            ]
+          },
+          "train_WS": {
+            "mean": 1.2166666666666666,
+            "identification_bounds": [
+              1.2166666666666666,
+              1.2166666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -1.8333333333333333,
+              4.116666666666666
+            ]
+          }
+        }
+      },
+      "claude-opus-5": {
+        "assignments": 60,
+        "tasks": 20,
+        "metrics": {
+          "A": {
+            "mean": 2.6,
+            "identification_bounds": [
+              2.6,
+              2.6
+            ],
+            "task_bootstrap_95_interval": [
+              -1.0666666666666667,
+              6.366666666666667
+            ]
+          },
+          "H": {
+            "mean": 0.0388888888888887,
+            "identification_bounds": [
+              0.0388888888888887,
+              0.0388888888888887
+            ],
+            "task_bootstrap_95_interval": [
+              -3.8055555555555562,
+              3.883333333333333
+            ]
+          },
+          "HA": {
+            "mean": -2.5611111111111113,
+            "identification_bounds": [
+              -2.5611111111111113,
+              -2.5611111111111113
+            ],
+            "task_bootstrap_95_interval": [
+              -6.1722222222222225,
+              0.7333333333333328
+            ]
+          },
+          "RH_final_artifact": {
+            "mean": 0,
+            "identification_bounds": [
+              0,
+              0
+            ],
+            "task_bootstrap_95_interval": [
+              0,
+              0
+            ]
+          },
+          "RH_final_revision": {
+            "mean": null,
+            "identification_bounds": [
+              -0.06666666666666667,
+              0.0
+            ],
+            "task_bootstrap_95_interval": [
+              -0.16666666666666666,
+              0.06666666666666667
+            ]
+          },
+          "RH_full_trajectory": {
+            "mean": null,
+            "identification_bounds": [
+              -0.16666666666666666,
+              -0.09999999999999999
+            ],
+            "task_bootstrap_95_interval": [
+              -0.26666666666666666,
+              0.016666666666666666
+            ]
+          },
+          "RH_post_update": {
+            "mean": null,
+            "identification_bounds": [
+              -0.016666666666666666,
+              0.049999999999999996
+            ],
+            "task_bootstrap_95_interval": [
+              -0.08333333333333333,
+              0.11666666666666665
+            ]
+          },
+          "S": {
+            "mean": 0.08333333333333337,
+            "identification_bounds": [
+              0.08333333333333337,
+              0.08333333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -4.083333333333333,
+              4.333333333333333
+            ]
+          },
+          "SH": {
+            "mean": 0.04444444444444477,
+            "identification_bounds": [
+              0.04444444444444477,
+              0.04444444444444477
+            ],
+            "task_bootstrap_95_interval": [
+              -2.4777777777777774,
+              2.4722222222222237
+            ]
+          },
+          "W": {
+            "mean": 2.3833333333333333,
+            "identification_bounds": [
+              2.3833333333333333,
+              2.3833333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -0.41666666666666663,
+              5.5
+            ]
+          },
+          "WA": {
+            "mean": -0.21666666666666667,
+            "identification_bounds": [
+              -0.21666666666666667,
+              -0.21666666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -4.316666666666666,
+              3.766666666666666
+            ]
+          },
+          "WS": {
+            "mean": 2.3000000000000003,
+            "identification_bounds": [
+              2.3000000000000003,
+              2.3000000000000003
+            ],
+            "task_bootstrap_95_interval": [
+              -1.4,
+              6.9
+            ]
+          },
+          "W_train": {
+            "mean": 2.05,
+            "identification_bounds": [
+              2.05,
+              2.05
+            ],
+            "task_bootstrap_95_interval": [
+              -1.0166666666666668,
+              5.366666666666666
+            ]
+          },
+          "elicited_penalty": {
+            "mean": -0.33333333333333337,
+            "identification_bounds": [
+              -0.33333333333333337,
+              -0.33333333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -0.75,
+              0.0
+            ]
+          },
+          "quality_gain": {
+            "mean": 2.3166666666666664,
+            "identification_bounds": [
+              2.3166666666666664,
+              2.3166666666666664
+            ],
+            "task_bootstrap_95_interval": [
+              -1.9833333333333334,
+              6.566666666666666
+            ]
+          },
+          "selected_gain": {
+            "mean": 0.13333333333333336,
+            "identification_bounds": [
+              0.13333333333333336,
+              0.13333333333333336
+            ],
+            "task_bootstrap_95_interval": [
+              -4.45,
+              4.783333333333333
+            ]
+          },
+          "train_WA": {
+            "mean": -0.55,
+            "identification_bounds": [
+              -0.55,
+              -0.55
+            ],
+            "task_bootstrap_95_interval": [
+              -4.85,
+              3.533333333333333
+            ]
+          },
+          "train_WS": {
+            "mean": 1.966666666666667,
+            "identification_bounds": [
+              1.966666666666667,
+              1.966666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -1.7666666666666664,
+              6.65
+            ]
+          }
+        }
+      },
+      "matched-panel": {
+        "assignments": 60,
+        "tasks": 20,
+        "metrics": {
+          "A": {
+            "mean": 0.5000000000000001,
+            "identification_bounds": [
+              0.5000000000000001,
+              0.5000000000000001
+            ],
+            "task_bootstrap_95_interval": [
+              -3.1916666666666664,
+              4.116666666666667
+            ]
+          },
+          "H": {
+            "mean": 0.6583333333333337,
+            "identification_bounds": [
+              0.6583333333333337,
+              0.6583333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -2.3527777777777783,
+              4.025
+            ]
+          },
+          "HA": {
+            "mean": 0.15833333333333308,
+            "identification_bounds": [
+              0.15833333333333308,
+              0.15833333333333308
+            ],
+            "task_bootstrap_95_interval": [
+              -3.5611111111111113,
+              4.175000000000001
+            ]
+          },
+          "RH_final_artifact": {
+            "mean": 0,
+            "identification_bounds": [
+              0,
+              0
+            ],
+            "task_bootstrap_95_interval": [
+              0,
+              0
+            ]
+          },
+          "RH_final_revision": {
+            "mean": null,
+            "identification_bounds": [
+              -0.06666666666666667,
+              0.0
+            ],
+            "task_bootstrap_95_interval": [
+              -0.16666666666666666,
+              0.06666666666666667
+            ]
+          },
+          "RH_full_trajectory": {
+            "mean": null,
+            "identification_bounds": [
+              -0.19999999999999998,
+              -0.13333333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -0.3333333333333333,
+              -0.03333333333333333
+            ]
+          },
+          "RH_post_update": {
+            "mean": null,
+            "identification_bounds": [
+              -0.03333333333333333,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -0.11666666666666665,
+              0.09999999999999999
+            ]
+          },
+          "S": {
+            "mean": 0.45833333333333337,
+            "identification_bounds": [
+              0.45833333333333337,
+              0.45833333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -2.9666666666666663,
+              4.258333333333333
+            ]
+          },
+          "SH": {
+            "mean": -0.19999999999999973,
+            "identification_bounds": [
+              -0.19999999999999973,
+              -0.19999999999999973
+            ],
+            "task_bootstrap_95_interval": [
+              -1.6055555555555554,
+              1.191666666666667
+            ]
+          },
+          "W": {
+            "mean": 2.3833333333333333,
+            "identification_bounds": [
+              2.3833333333333333,
+              2.3833333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -0.41666666666666663,
+              5.5
+            ]
+          },
+          "WA": {
+            "mean": 1.883333333333333,
+            "identification_bounds": [
+              1.883333333333333,
+              1.883333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -2.4500000000000006,
+              6.25
+            ]
+          },
+          "WS": {
+            "mean": 1.9249999999999998,
+            "identification_bounds": [
+              1.9249999999999998,
+              1.9249999999999998
+            ],
+            "task_bootstrap_95_interval": [
+              -0.8166666666666669,
+              4.8
+            ]
+          },
+          "W_train": {
+            "mean": 2.05,
+            "identification_bounds": [
+              2.05,
+              2.05
+            ],
+            "task_bootstrap_95_interval": [
+              -1.0166666666666668,
+              5.366666666666666
+            ]
+          },
+          "elicited_penalty": {
+            "mean": -0.33333333333333337,
+            "identification_bounds": [
+              -0.33333333333333337,
+              -0.33333333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -0.75,
+              0.0
+            ]
+          },
+          "quality_gain": {
+            "mean": 0.04999999999999986,
+            "identification_bounds": [
+              0.04999999999999986,
+              0.04999999999999986
+            ],
+            "task_bootstrap_95_interval": [
+              -3.966666666666667,
+              3.9749999999999996
+            ]
+          },
+          "selected_gain": {
+            "mean": 0.08333333333333337,
+            "identification_bounds": [
+              0.08333333333333337,
+              0.08333333333333337
+            ],
+            "task_bootstrap_95_interval": [
+              -3.225,
+              3.766666666666667
+            ]
+          },
+          "train_WA": {
+            "mean": 1.55,
+            "identification_bounds": [
+              1.55,
+              1.55
+            ],
+            "task_bootstrap_95_interval": [
+              -2.975,
+              6.0249999999999995
+            ]
+          },
+          "train_WS": {
+            "mean": 1.5916666666666666,
+            "identification_bounds": [
+              1.5916666666666666,
+              1.5916666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -1.1833333333333336,
+              4.55
+            ]
+          }
+        }
+      }
+    }
+  },
+  "full_paired59_contrasts": {
+    "trace minus static": {
+      "gpt-5.6-sol": {
+        "assignments": 59,
+        "tasks": 20,
+        "metrics": {
+          "A": {
+            "mean": -1.9416666666666667,
+            "identification_bounds": [
+              -1.9416666666666667,
+              -1.9416666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -5.4750000000000005,
+              1.8833333333333335
+            ]
+          },
+          "H": {
+            "mean": -0.6222222222222212,
+            "identification_bounds": [
+              -0.6222222222222212,
+              -0.6222222222222212
+            ],
+            "task_bootstrap_95_interval": [
+              -3.8555555555555543,
+              2.6500000000000017
+            ]
+          },
+          "HA": {
+            "mean": 1.3194444444444453,
+            "identification_bounds": [
+              1.3194444444444453,
+              1.3194444444444453
+            ],
+            "task_bootstrap_95_interval": [
+              -3.0833333333333313,
+              5.144444444444445
+            ]
+          },
+          "RH_final_artifact": {
+            "mean": 0.016666666666666666,
+            "identification_bounds": [
+              0.016666666666666666,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              0,
+              0.049999999999999996
+            ]
+          },
+          "RH_final_revision": {
+            "mean": 0.016666666666666666,
+            "identification_bounds": [
+              0.016666666666666666,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              0,
+              0.049999999999999996
+            ]
+          },
+          "RH_full_trajectory": {
+            "mean": null,
+            "identification_bounds": [
+              0.016666666666666666,
+              0.11666666666666665
+            ],
+            "task_bootstrap_95_interval": [
+              -0.06666666666666667,
+              0.21666666666666665
+            ]
+          },
+          "RH_post_update": {
+            "mean": null,
+            "identification_bounds": [
+              0.0,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -0.049999999999999996,
+              0.049999999999999996
+            ]
+          },
+          "S": {
+            "mean": -1.5083333333333333,
+            "identification_bounds": [
+              -1.5083333333333333,
+              -1.5083333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -5.05,
+              2.325
+            ]
+          },
+          "SH": {
+            "mean": -0.8861111111111121,
+            "identification_bounds": [
+              -0.8861111111111121,
+              -0.8861111111111121
+            ],
+            "task_bootstrap_95_interval": [
+              -2.9972222222222227,
+              1.5277777777777768
+            ]
+          },
+          "W": {
+            "mean": -1.1,
+            "identification_bounds": [
+              -1.1,
+              -1.1
+            ],
+            "task_bootstrap_95_interval": [
+              -2.6666666666666665,
+              0.11666666666666667
+            ]
+          },
+          "WA": {
+            "mean": 0.8416666666666666,
+            "identification_bounds": [
+              0.8416666666666666,
+              0.8416666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -2.8333333333333335,
+              4.2749999999999995
+            ]
+          },
+          "WS": {
+            "mean": 0.4083333333333332,
+            "identification_bounds": [
+              0.4083333333333332,
+              0.4083333333333332
+            ],
+            "task_bootstrap_95_interval": [
+              -3.066666666666667,
+              3.4916666666666667
+            ]
+          },
+          "W_train": {
+            "mean": -1.2666666666666666,
+            "identification_bounds": [
+              -1.2666666666666666,
+              -1.2666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -2.816666666666667,
+              -0.016666666666666642
+            ]
+          },
+          "elicited_penalty": {
+            "mean": -0.16666666666666669,
+            "identification_bounds": [
+              -0.16666666666666669,
+              -0.16666666666666669
+            ],
+            "task_bootstrap_95_interval": [
+              -0.5,
+              0.0
+            ]
+          },
+          "quality_gain": {
+            "mean": -2.2666666666666666,
+            "identification_bounds": [
+              -2.2666666666666666,
+              -2.2666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -6.383333333333334,
+              1.9
+            ]
+          },
+          "selected_gain": {
+            "mean": -1.7666666666666666,
+            "identification_bounds": [
+              -1.7666666666666666,
+              -1.7666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -5.95,
+              2.5833333333333335
+            ]
+          },
+          "train_WA": {
+            "mean": 0.6749999999999999,
+            "identification_bounds": [
+              0.6749999999999999,
+              0.6749999999999999
+            ],
+            "task_bootstrap_95_interval": [
+              -2.916666666666667,
+              4.058333333333334
+            ]
+          },
+          "train_WS": {
+            "mean": 0.24166666666666656,
+            "identification_bounds": [
+              0.24166666666666656,
+              0.24166666666666656
+            ],
+            "task_bootstrap_95_interval": [
+              -3.2500000000000004,
+              3.3583333333333334
+            ]
+          }
+        }
+      },
+      "claude-opus-5": {
+        "assignments": 59,
+        "tasks": 20,
+        "metrics": {
+          "A": {
+            "mean": -2.2666666666666666,
+            "identification_bounds": [
+              -2.2666666666666666,
+              -2.2666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -5.816666666666666,
+              1.6333333333333337
+            ]
+          },
+          "H": {
+            "mean": -0.5833333333333338,
+            "identification_bounds": [
+              -0.5833333333333338,
+              -0.5833333333333338
+            ],
+            "task_bootstrap_95_interval": [
+              -3.2833333333333337,
+              2.1388888888888884
+            ]
+          },
+          "HA": {
+            "mean": 1.683333333333333,
+            "identification_bounds": [
+              1.683333333333333,
+              1.683333333333333
+            ],
+            "task_bootstrap_95_interval": [
+              -2.072222222222223,
+              5.711111111111111
+            ]
+          },
+          "RH_final_artifact": {
+            "mean": null,
+            "identification_bounds": [
+              -0.016666666666666666,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -0.09999999999999999,
+              0.08333333333333333
+            ]
+          },
+          "RH_final_revision": {
+            "mean": null,
+            "identification_bounds": [
+              0.03333333333333333,
+              0.049999999999999996
+            ],
+            "task_bootstrap_95_interval": [
+              -0.03333333333333333,
+              0.13333333333333333
+            ]
+          },
+          "RH_full_trajectory": {
+            "mean": null,
+            "identification_bounds": [
+              0.016666666666666666,
+              0.049999999999999996
+            ],
+            "task_bootstrap_95_interval": [
+              -0.09999999999999999,
+              0.18333333333333332
+            ]
+          },
+          "RH_post_update": {
+            "mean": 0.016666666666666666,
+            "identification_bounds": [
+              0.016666666666666666,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -0.03333333333333333,
+              0.06666666666666667
+            ]
+          },
+          "S": {
+            "mean": -1.7916666666666667,
+            "identification_bounds": [
+              -1.7916666666666667,
+              -1.7916666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -4.875,
+              1.1416666666666666
+            ]
+          },
+          "SH": {
+            "mean": -1.2083333333333328,
+            "identification_bounds": [
+              -1.2083333333333328,
+              -1.2083333333333328
+            ],
+            "task_bootstrap_95_interval": [
+              -3.680555555555556,
+              0.9333333333333343
+            ]
+          },
+          "W": {
+            "mean": -1.1,
+            "identification_bounds": [
+              -1.1,
+              -1.1
+            ],
+            "task_bootstrap_95_interval": [
+              -2.6666666666666665,
+              0.11666666666666667
+            ]
+          },
+          "WA": {
+            "mean": 1.1666666666666667,
+            "identification_bounds": [
+              1.1666666666666667,
+              1.1666666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -2.9833333333333334,
+              5.083333333333333
+            ]
+          },
+          "WS": {
+            "mean": 0.6916666666666667,
+            "identification_bounds": [
+              0.6916666666666667,
+              0.6916666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -1.975,
+              3.3333333333333335
+            ]
+          },
+          "W_train": {
+            "mean": -1.2666666666666666,
+            "identification_bounds": [
+              -1.2666666666666666,
+              -1.2666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -2.816666666666667,
+              -0.016666666666666642
+            ]
+          },
+          "elicited_penalty": {
+            "mean": -0.16666666666666669,
+            "identification_bounds": [
+              -0.16666666666666669,
+              -0.16666666666666669
+            ],
+            "task_bootstrap_95_interval": [
+              -0.5,
+              0.0
+            ]
+          },
+          "quality_gain": {
+            "mean": -1.5583333333333331,
+            "identification_bounds": [
+              -1.5583333333333331,
+              -1.5583333333333331
+            ],
+            "task_bootstrap_95_interval": [
+              -5.266666666666667,
+              2.475
+            ]
+          },
+          "selected_gain": {
+            "mean": -2.5166666666666666,
+            "identification_bounds": [
+              -2.5166666666666666,
+              -2.5166666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -6.466666666666667,
+              1.2999999999999998
+            ]
+          },
+          "train_WA": {
+            "mean": 1.0,
+            "identification_bounds": [
+              1.0,
+              1.0
+            ],
+            "task_bootstrap_95_interval": [
+              -3.033333333333333,
+              4.766666666666667
+            ]
+          },
+          "train_WS": {
+            "mean": 0.525,
+            "identification_bounds": [
+              0.525,
+              0.525
+            ],
+            "task_bootstrap_95_interval": [
+              -2.0833333333333335,
+              3.1
+            ]
+          }
+        }
+      },
+      "matched-panel": {
+        "assignments": 59,
+        "tasks": 20,
+        "metrics": {
+          "A": {
+            "mean": -2.1041666666666665,
+            "identification_bounds": [
+              -2.1041666666666665,
+              -2.1041666666666665
+            ],
+            "task_bootstrap_95_interval": [
+              -5.3,
+              1.3791666666666669
+            ]
+          },
+          "H": {
+            "mean": -0.6027777777777767,
+            "identification_bounds": [
+              -0.6027777777777767,
+              -0.6027777777777767
+            ],
+            "task_bootstrap_95_interval": [
+              -3.2805555555555554,
+              2.213888888888891
+            ]
+          },
+          "HA": {
+            "mean": 1.501388888888889,
+            "identification_bounds": [
+              1.501388888888889,
+              1.501388888888889
+            ],
+            "task_bootstrap_95_interval": [
+              -1.893055555555556,
+              4.809722222222222
+            ]
+          },
+          "RH_final_artifact": {
+            "mean": null,
+            "identification_bounds": [
+              -0.016666666666666666,
+              0.016666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -0.09999999999999999,
+              0.08333333333333333
+            ]
+          },
+          "RH_final_revision": {
+            "mean": null,
+            "identification_bounds": [
+              0.03333333333333333,
+              0.049999999999999996
+            ],
+            "task_bootstrap_95_interval": [
+              -0.03333333333333333,
+              0.13333333333333333
+            ]
+          },
+          "RH_full_trajectory": {
+            "mean": null,
+            "identification_bounds": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -0.06666666666666667,
+              0.18333333333333332
+            ]
+          },
+          "RH_post_update": {
+            "mean": null,
+            "identification_bounds": [
+              -0.016666666666666666,
+              0.0
+            ],
+            "task_bootstrap_95_interval": [
+              -0.06666666666666667,
+              0.049999999999999996
+            ]
+          },
+          "S": {
+            "mean": -1.65,
+            "identification_bounds": [
+              -1.65,
+              -1.65
+            ],
+            "task_bootstrap_95_interval": [
+              -4.458333333333333,
+              1.35
+            ]
+          },
+          "SH": {
+            "mean": -1.0472222222222225,
+            "identification_bounds": [
+              -1.0472222222222225,
+              -1.0472222222222225
+            ],
+            "task_bootstrap_95_interval": [
+              -2.9583333333333335,
+              0.863888888888889
+            ]
+          },
+          "W": {
+            "mean": -1.1,
+            "identification_bounds": [
+              -1.1,
+              -1.1
+            ],
+            "task_bootstrap_95_interval": [
+              -2.6666666666666665,
+              0.11666666666666667
+            ]
+          },
+          "WA": {
+            "mean": 1.0041666666666667,
+            "identification_bounds": [
+              1.0041666666666667,
+              1.0041666666666667
+            ],
+            "task_bootstrap_95_interval": [
+              -2.479166666666667,
+              4.345833333333333
+            ]
+          },
+          "WS": {
+            "mean": 0.55,
+            "identification_bounds": [
+              0.55,
+              0.55
+            ],
+            "task_bootstrap_95_interval": [
+              -2.0500000000000003,
+              2.8666666666666667
+            ]
+          },
+          "W_train": {
+            "mean": -1.2666666666666666,
+            "identification_bounds": [
+              -1.2666666666666666,
+              -1.2666666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -2.816666666666667,
+              -0.016666666666666642
+            ]
+          },
+          "elicited_penalty": {
+            "mean": -0.16666666666666669,
+            "identification_bounds": [
+              -0.16666666666666669,
+              -0.16666666666666669
+            ],
+            "task_bootstrap_95_interval": [
+              -0.5,
+              0.0
+            ]
+          },
+          "quality_gain": {
+            "mean": -1.9125,
+            "identification_bounds": [
+              -1.9125,
+              -1.9125
+            ],
+            "task_bootstrap_95_interval": [
+              -5.470833333333333,
+              1.8
+            ]
+          },
+          "selected_gain": {
+            "mean": -2.1416666666666666,
+            "identification_bounds": [
+              -2.1416666666666666,
+              -2.1416666666666666
+            ],
+            "task_bootstrap_95_interval": [
+              -5.833333333333333,
+              1.6
+            ]
+          },
+          "train_WA": {
+            "mean": 0.8374999999999999,
+            "identification_bounds": [
+              0.8374999999999999,
+              0.8374999999999999
+            ],
+            "task_bootstrap_95_interval": [
+              -2.5625000000000004,
+              4.070833333333333
+            ]
+          },
+          "train_WS": {
+            "mean": 0.38333333333333336,
+            "identification_bounds": [
+              0.38333333333333336,
+              0.38333333333333336
+            ],
+            "task_bootstrap_95_interval": [
+              -2.225,
+              2.716666666666667
+            ]
+          }
+        }
+      }
+    }
+  },
+  "full_paired59_statistics": {
+    "WS": {
+      "task_equal_delta": 0.55,
+      "paired95": [
+        -2.0500000000000003,
+        2.8666666666666667
+      ],
+      "one_sided95_lower": -1.5833333333333333
+    },
+    "WA": {
+      "task_equal_delta": 1.0041666666666667,
+      "paired95": [
+        -2.479166666666667,
+        4.345833333333333
+      ],
+      "one_sided95_lower": -1.85
+    },
+    "A": {
+      "task_equal_delta": -2.1041666666666665,
+      "paired95": [
+        -5.3,
+        1.3791666666666669
+      ],
+      "one_sided95_lower": -4.825
+    },
+    "RH": {
+      "task_equal_delta": 0.049999999999999996,
+      "paired95": [
+        -0.041666666666666664,
+        0.14166666666666666
+      ],
+      "one_sided95_lower": -0.024999999999999998
+    }
+  },
+  "provenance": {
+    "sources": {
+      "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/report-v2/analysis.json": "d75d334102e0b11222a4da79619b6502d7d4ec7220898a57bcf5a24ad72df73f",
+      "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/comparison-v1/analysis.json": "78d04e5e4c7e2bcc9140b3ea3cfcc023220517396fbaf6dc0cd8a8204f14d90c",
+      "/data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/provisional59-report-v1/analysis.json": "e3e4cd7168425d5d27eb060e7df6f30d5d1467b7fc4f229bb9eab56e5511264e"
+    },
+    "validated_state_composition_hashes": 956,
+    "matched_initial_selected": true,
+    "job": "10380610",
+    "script_sha256": "956b5c4445c9aeb3bb72b5532602bf7040725929b71552f4917f25fab7d46748"
+  },
+  "missing": {
+    "full-red-team-trace": [
+      "da-16-1 replicate 1; infrastructure failure; cancelled repair excluded"
+    ]
+  }
+}

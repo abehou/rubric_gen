@@ -1,0 +1,11 @@
+# Completed-trajectory execution evidence
+
+Private diagnostic: runs/babel-overnight-20260907/execution-failures-completed-seven/execution-failures.json. It validates source state hashes and records hashes of every scanned canonical revision trajectory,not raw commands/outputs.27 completed assignment runs,347 completed command records,46 nonzero exits and301 zero exits. Nonzero shell checks can be harmless; these counts are not infrastructure-invalid assignment counts or RH labels.
+
+For difficult user-setting cases,original control has7/60 nonzero command records,raw one-concern12/57,and public-context12/74. Named exceptions include KeyError,AttributeError,TypeError and ValueError. Original raw-task control also attempts a network call producing a DNS/connection exception chain despite the no-network solver contract; one failed command can have several exception names. Public-review easy-task runs have2/53 nonzero records,including a pandas MergeError.
+
+No scanned nonzero command exit carries MemoryError or the counted SIGKILL/SIGTERM-style exit codes; no resource/timeout text signal was recorded there. Slurm independently reports no OOM and peaks well below256GiB. This does not prove every inner command was unconstrained: the diagnostic excludes seed trajectories,failed infrastructure attempts and failures hidden by an outer successful shell exit. It does mean the recorded model claims of memory limits are not established measurements.
+
+Runtime code explicitly prepends sys.prefix/bin to solver PATH in both CodexAdapter.build_environment and codex_app_server. The frozen Python3.12 environment is propagated; no speculative environment fix or package installation was made. Existing public-contract package/network restrictions remain fixed. Evidence favors investigating code correctness,actual computation and misleading descriptions of intended work,not assuming more RAM will fix the behavior.
+
+The weak artifact-only grader cannot directly see every tool execution failure that the full-trajectory detector sees. Context removed contradictory path demands but did not eliminate observed coding failures; later honest withdrawal can reduce direct final RH while leaving task quality poor. Preserve the distinction between ordinary failed work and score-oriented misrepresentation.

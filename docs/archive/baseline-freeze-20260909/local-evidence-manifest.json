@@ -1,0 +1,1080 @@
+{
+  "local_history_branch": "archive/aydan-red-team-pre-freeze-20260909",
+  "local_history_head": "6719ce3f3b1661cbc489f19657048a4cfe8cd1c2",
+  "files": [
+    {
+      "path": "docs/reports/2026-09-09/cue-active-case-index-v2.json",
+      "bytes": 402257,
+      "sha256": "c63bdf07ca20e1224c79db68ee48ad73285c95b9f7b5cafb1a0b46a08eb0163b",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-active-case-index.json",
+      "bytes": 299538,
+      "sha256": "7afbe019998c65ec37b846c0bca9274f5ad5d86ee36d53803eece86b597e1080",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-active-joint-gates.json",
+      "bytes": 1525,
+      "sha256": "0af702ebe30e99ffe06aed872676bf67850724e6d715320402b0b3c219a1af6c",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-active-mechanism-census.json",
+      "bytes": 173997,
+      "sha256": "4cd1eb029d017cc62b923abe57f810772528372b3829cf6f5e8ab58938762b92",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-active-violation-exposure.json",
+      "bytes": 141258,
+      "sha256": "9be8f535a583872ac8b8277e3702160a208b45a6bb18693a6a547b9d0f93931e",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-admission-cases.json",
+      "bytes": 392553,
+      "sha256": "8983645e222487266accc31c81b1475fcb157d64a4079c0ad8309755a64f9627",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-admission-census.json",
+      "bytes": 291216,
+      "sha256": "70d06e0cd377ddb2efa2100bcb4170d568f38fa0c5c4853e689d18e4f6ea5ab7",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-application-check-result.json",
+      "bytes": 102869,
+      "sha256": "145d25e0f2a1bba8970c2594904876b44a42f62e5e04c508286167bbd9a06c4b",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-application-check-support.json",
+      "bytes": 157207,
+      "sha256": "43cd284613b5e564b96196c246af384e82bbea49712bf9610f2b10fc8e4d1c2e",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-application-context-result.json",
+      "bytes": 62460,
+      "sha256": "6ca11ba3dbb051516e4571c729e1d03ef461460a78d99894767a9b7cca165e18",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-application-order-result.json",
+      "bytes": 80728,
+      "sha256": "c2c3b89b69d8061ff5aad92a4400fd66e9691b42c71c37095c1da6308b1eb6c7",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-application-reasoning-result.json",
+      "bytes": 84725,
+      "sha256": "982fe638279e109418793b84a1a0723071d4fa9871813a8b59f4ec48824096f5",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-atomic-criterion-result.json",
+      "bytes": 40884,
+      "sha256": "398ee9a220b179a0bb09dc23b541727544cd18efee5b70411f4be63024c645e1",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-consensus-coverage.json",
+      "bytes": 19456,
+      "sha256": "52a763e0701be90735c400c8159d9682cca6591ad3960fdd16f3354cf044a844",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-consistency-adjudication.json",
+      "bytes": 596,
+      "sha256": "1ae8b3cb4c4b4169f6bbc37485e827ef3b4a77c163579439141155ac4ca8c4e9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-coverage-gap-join.json",
+      "bytes": 47329,
+      "sha256": "81afdecaa72532d1d576cc55cbd81025ebafea19f3fc5da0f31067a2d0bee4ac",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-criterion-timing.json",
+      "bytes": 723266,
+      "sha256": "3b92d0f8babb3a6ba6e0f627149915336737d396b0521df0b8432cc3ac4e0a70",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-cross-pair-verification.json",
+      "bytes": 22143,
+      "sha256": "1242e99bae96f78706eb88622a76d86e8c95bb2d18a75dd6686ec35bcc354ec9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-da14-8-coverage.json",
+      "bytes": 6530,
+      "sha256": "1c4589ef720715b6f2406c40dfa7498768eed3331b61568c2ec9f47de4684680",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-filter-data-result.json",
+      "bytes": 649,
+      "sha256": "8380dc2e3ed5f9b3e8b5d23ff5287e6e34cf088ac103dfa2527b27f217d58000",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-full-compatibility.json",
+      "bytes": 1036152,
+      "sha256": "33400d50743e6d0a2a6e8672bab783f42a2e7c26e06fb95f475a0023fcd6b56d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-margin-failure-screen.json",
+      "bytes": 79189,
+      "sha256": "15fe1195c311bc221d56d4c94ad935f324dab5929ff7ebe8787971a5fcd64c0e",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ordered-pair-acceptance.json",
+      "bytes": 8094,
+      "sha256": "99abd55353333e71b7a36015480e2ee02d404358b44de5e5d8560ef7bf713035",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ordered-pair-result.json",
+      "bytes": 42912,
+      "sha256": "47075559f9218bb3bbec79d483195820e6773520542485fca8798bf571f34df4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-attribution-10376113.json",
+      "bytes": 23672,
+      "sha256": "ae04499828381ed7dc3c281c05fde7a3e557aa271dfd80f4592aa565827ccd8f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-attribution-10376267.json",
+      "bytes": 7702,
+      "sha256": "f33949c13597c1049532327d3bd2c721f23499eeb774fcf8b99f5fbaea36fecf",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-attribution-10376310.json",
+      "bytes": 7762,
+      "sha256": "7d727c801d741b11ad0d42b24a04b5766f08f8ce4d25cb911e5eb5c43deefd78",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-attribution-10376798.json",
+      "bytes": 11816,
+      "sha256": "db3ebe8ac894a41f016a457fa1fd121f68a935569f5e2b7233bf2b138a4d3b41",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-attribution-acceptance.json",
+      "bytes": 4983,
+      "sha256": "c77a58dc713234dc1c8f3855a355889c51ad73213499be2b6d45484b0691b239",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-attribution-analysis.json",
+      "bytes": 42824,
+      "sha256": "c601a415bf206eec2ff4cdb25fc411cfa02f48a3e61b046d6e073bf169418876",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-census-receipt.json",
+      "bytes": 606,
+      "sha256": "6643a083c627f5f0ed4b7e637f56aded370032fbc1331bdb7abbdcc3ec919ddf",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-content.json",
+      "bytes": 4255,
+      "sha256": "32fb8b4a989cd74dc548b0e9a5c855099ac3b4bdd22f1fcd2495d0a00c9f6b23",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-context-index.json",
+      "bytes": 89437,
+      "sha256": "61b810b5a8cc24dea82659e73e967c0db3e70b610d6da441b7e88a7909292551",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-orientation.json",
+      "bytes": 1998,
+      "sha256": "b29ce6fc300793a7713aadd175166cce58527da005c4c20529e67b90c34e2921",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-pair-quote-sources.json",
+      "bytes": 106956,
+      "sha256": "6863d409762245b1d2428f90abf223c5ec44977ae1a451997f946a9c45724a25",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-producer-identity-check.json",
+      "bytes": 731,
+      "sha256": "0920173cc77de79542bb811df9010a63c9fc9c49b37b8405edb994df911a22cf",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-proposal-rejections-v2.json",
+      "bytes": 964046,
+      "sha256": "26de3016bd193dc28320943ce488ea6ec2d4fab9526db8fcf0e155971a8b49dd",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-proposal-rejections.json",
+      "bytes": 327007,
+      "sha256": "4f1047a0d49d060315acd5aef8e533367225d3e3da9ac8ff1aa474e05c384a22",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ranking-criterion-assessments.json",
+      "bytes": 50691,
+      "sha256": "10f088a05a102309641fc3c79c0ab1585f2dced0b42bd8601d9a33431bb60f35",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ranking-enabled-delivery.json",
+      "bytes": 48409,
+      "sha256": "1af8883ced720c88293f498156bb1d2887a665424de22af300905d6caed6f59f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ranking-initial-feedback-check.json",
+      "bytes": 169248,
+      "sha256": "88a292d8444e6cb56f05a060e5d7481f493126f16d02b79b9a7a5d03001d547a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ranking-mechanism-census.json",
+      "bytes": 516839,
+      "sha256": "3a26ae8d194a2bcfd1ffd642e6ae082a645ee68808a0b1a3d1079b9ea57c37d4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-ranking-rule-exposure.json",
+      "bytes": 8426,
+      "sha256": "7495ccb295d8c9bab848019e8ab9d3315be29c5629f8e44c8c2d1b5b7dbdd26f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-reasoning-filtering-evidence.json",
+      "bytes": 43109,
+      "sha256": "bfa3a89e5a5b0128fb75b7dafdcc520180f53128a35a35917c4980a6ac5fdc11",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-semantic-bound.json",
+      "bytes": 81417,
+      "sha256": "bdad07e90039e8a3572d62804e383ae8c6a7fe4f9710774c3f16ed67ff6d49d8",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-semantic-census.json",
+      "bytes": 634,
+      "sha256": "53e26de3bac4cb24825d9ba4c1be35cdbd56c4f3108ddec6a92f7850902a1dd3",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-single-pair-acceptance.json",
+      "bytes": 2316,
+      "sha256": "3397ecf4fbeb10d7d73001588dfe9700f13fc257656bb54796618bee59a7745d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-single-pair-result.json",
+      "bytes": 39599,
+      "sha256": "791e0921198f1efead9b046c2311d613fd2074a7ce0f619b313d7787af1164de",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-acceptance.json",
+      "bytes": 2133,
+      "sha256": "73e03068ed6bc0371358e01958ebd128648750c3bc5bc7c013063aa80bfa1f33",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-application-artifacts.json",
+      "bytes": 82223,
+      "sha256": "bb718ec44faf0c0515ee4e3d137a6381aa28d66d61d0c10c3e4b1da2622ff8e9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-application-result.json",
+      "bytes": 176148,
+      "sha256": "3a365870e8a7e430f241a3c96b190992fa8c9aef167cb3b8affac45e9f832fcc",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-conditional-result.json",
+      "bytes": 44809,
+      "sha256": "092943f4ef1e4b73a07a218fe8c0eae429611832feddd7bdd641579f1c53bb3a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-gap-impact.json",
+      "bytes": 8329,
+      "sha256": "9cd933c755f7d557ed518a2d1a72a4ac5e75630776bfbc44d628d40cb9120c11",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-induction-result.json",
+      "bytes": 48093,
+      "sha256": "7d52e2123174764b7becf5a13c46d292a0f5f49e09e6e44109cb299ec22ae808",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-pair-result.json",
+      "bytes": 45833,
+      "sha256": "366e42f8e5e5cc553b56339891002029bbe375408453a07d6d94d544dfbf6632",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-supervision-result.json",
+      "bytes": 132298,
+      "sha256": "e42664a9635f261cdf911bc581acd8a818df7b56b95366804d5b6a8d68988f07",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-sol-supervision-support.json",
+      "bytes": 200505,
+      "sha256": "6978e695416e7a67cc65fe779117201b91e92dfef0b378390786267028e7f98a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-support-decomposition.json",
+      "bytes": 474697,
+      "sha256": "69454fa69fabcc51c96284bc9660870454618d89804cf58064f0d2054cfc1649",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-support-levels.json",
+      "bytes": 11996,
+      "sha256": "6b31f4f65e1dcb56f3028297802186f73bdf167848b01efdb66a3bf43573610b",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-support-refinement-result.json",
+      "bytes": 9429,
+      "sha256": "6f1be4b8f3fdf27026775dc32854be64e11db2ae0e93d3c6be5f201fae32f96c",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-surviving-support.json",
+      "bytes": 22987,
+      "sha256": "da0e509ec4fb8f190b300f2c36ed157454be90974b1b202f34f0d84bbdb2d0ff",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-validation-repeat-result.json",
+      "bytes": 8059,
+      "sha256": "9fe77595a6c107628f83457f8b79f1aad67d920f84f25711d100cc64f78aab1f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/rubric-cue-case-transitions.json",
+      "bytes": 228543,
+      "sha256": "cc7feb584a47915ddbbedc03da3de576eb74bee9409830e6d5c8c778344abcb4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/rubric-cue-gap-census.json",
+      "bytes": 915270,
+      "sha256": "7a557c0b9dd0ee3290b46d54e42798944d58ff278602e6ee831a19e2c4e0bbbd",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/rubric-cue-penalty-census.json",
+      "bytes": 26901,
+      "sha256": "5767ca954b61a3da75de686d24b2ec01a8c274e39c0839851b7edf7f23205f83",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/rubric-cue-support-census.json",
+      "bytes": 1037458,
+      "sha256": "2d4527ed29d4db469df8ad52ec82a5be1a2f2e2eba724cb9a830a3c78113eb00",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/rubric-cue-support-replay.json",
+      "bytes": 106724,
+      "sha256": "d1d2af4d24d3c28f82dc8349a7694452ec1264657e2b072b9d5d0e4dd5effd36",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/score-first-case-transitions.json",
+      "bytes": 266209,
+      "sha256": "8c61c7afd7f13bb67e1f4a933695cdf9a12b3a6f3345dc2c948266bb20b6e6bb",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/artifact-audit-diagnostic-20260908/mapping-conflict-evidence.json",
+      "bytes": 49279,
+      "sha256": "c592b0c40775ec571640ab288f355948affdd9027e1fdc1361917c259c789991",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/artifact-audit-diagnostic-20260908/paired-static.json",
+      "bytes": 227798,
+      "sha256": "9b7717109a792afb4f8d908382dd9333802fa4b4d67a80aa86a8113c74e3486f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/artifact-audit-diagnostic-20260908/workbook-modality-evidence.json",
+      "bytes": 1602,
+      "sha256": "ec585e6f209367da94045cc2c15bb0002632f40b98cd8200b8e387e8432d513d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/artifact-routing-candidate-20260909/verification.json",
+      "bytes": 532,
+      "sha256": "b580d575fd1bd85dedcefee6727f9443c54f0e99653b537bf0bc6612e87c9b75",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/RESUME_STATE.json",
+      "bytes": 23242,
+      "sha256": "693e20366b3b08ef6297ea9fbeac70aa16b039fd0a39dfecf03d56e114a05791",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/concern-controls-analysis-seal.json",
+      "bytes": 887,
+      "sha256": "081ab3b22ca9d3af98648802549dd207b242d765e5feb07429ab55e26ad34656",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/concern-controls-diagnostic-seal.json",
+      "bytes": 1046,
+      "sha256": "cf079bf5f2b6b1c1e14f05b4ac4fd4b3a197830011dd5a825d69f1bee16b0b8c",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/concern-policy-analysis-seal.json",
+      "bytes": 885,
+      "sha256": "fbf870054dc4b8d1a351e37bbd93988dfa2c6b14170c229501b6c40ffc8d5ac1",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/dev3-reconstruction.json",
+      "bytes": 136916,
+      "sha256": "e3483668b6c314ec86005889e1e1836bc24d8e66cb9876613e98df9c55172d5f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/result20-design.json",
+      "bytes": 971,
+      "sha256": "a32608c5b593718244b19c5a827150fd2eb1c4d8811e0c5c59639a9aec204ae2",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/babel-overnight-20260907/simulator-feedback-audit.json",
+      "bytes": 22182,
+      "sha256": "0c04e23cbc6c3b83594e6339d1a722499364f1893e7696be3f578b86910678e0",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/biomnibench-results45-20260908/inventory.json",
+      "bytes": 47257,
+      "sha256": "f728fa5cefa3103f171737c10b7930ec4a4ad821c3788122ed299a459b9a0255",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/confirmation-pools-20260909/freeze.json",
+      "bytes": 2471,
+      "sha256": "7fafa7421704aa2d45f6340bee431597080858aefdb397caa68dbcfc28533bc1",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-application-check-20260909/acceptance.json",
+      "bytes": 94861,
+      "sha256": "1e71879e5f9cc036289d520118f79986847f7db34f0e907d7e29efd34179bb1b",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-application-context-20260909/acceptance.json",
+      "bytes": 41094,
+      "sha256": "a130b849a355bc2165a9054e123786dab1b2aa50810479a351ac367393d4f757",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-atomic-criterion-20260909/acceptance-v2.json",
+      "bytes": 31600,
+      "sha256": "473e6a0e8599bd2ad7d2c0ce980c5ad0110943a0bd9fd9e9059ff1c34f8f3136",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-atomic-criterion-20260909/acceptance.json",
+      "bytes": 31600,
+      "sha256": "4f23aa6a5a5ad2d62586c9cb7d449b0c76a2c026d3449956fb7ce61b7ec9ca74",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-atomic-criterion-20260909/inputs.json",
+      "bytes": 3348,
+      "sha256": "471c18a7b6a2d2e3d5a1de69f718604f374b7d042439bac00e720e5649e1d38f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-citation-diagnostic-20260909/acceptance.json",
+      "bytes": 30744,
+      "sha256": "2f77445b78cd8fc18ec950230a72a855f30a1324c84407eac16f999b6bee8e8e",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-citation-diagnostic-20260909/inputs.json",
+      "bytes": 5408,
+      "sha256": "ee2fd0030920d0d45f6a7ec2188a3041f54ef648abf40bbd639cb65bedf87582",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-citation-diagnostic-20260909/repeat-acceptance.json",
+      "bytes": 30917,
+      "sha256": "a56f4b3f851713f2ed9c0fd4fc81a5100e18079e5366a2552f8c2376ee225939",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-full-compatibility-20260909/acceptance.json",
+      "bytes": 31184,
+      "sha256": "5847cd0fae917612105fa0b038b016dfead235f8e35fa06962ad2326182c4efb",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-full-compatibility-20260909/baseline-freeze.json",
+      "bytes": 2143,
+      "sha256": "3e70087cb895fc9c5e40e834b9cc98773a24783df232f89adec2b10b05253df9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-single-gap-20260909/inputs.json",
+      "bytes": 5414,
+      "sha256": "eda74cd257e9ba584a8f018c22de9bc7d031772b055987d7f75d631e00e307af",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-sol-application-20260909/acceptance.json",
+      "bytes": 69538,
+      "sha256": "cda7a6447fbe36f21fd979798d3edc2298c1b8734804bbb8ccc8fe23f9e41317",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-sol-induction-20260909/acceptance.json",
+      "bytes": 55729,
+      "sha256": "3d2c149c7867d5d2a8aa5055ff9687937491a5921e3c23cb0c7394285f3ca6a4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-sol-induction-20260909/inputs.json",
+      "bytes": 5443,
+      "sha256": "6bc086f2d4b1db9463f29df35e9f7249b16f8f17103ab6416fc805fcfe265f83",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-sol-supervision-20260909/acceptance-v2.json",
+      "bytes": 33549,
+      "sha256": "905255cee808709218556163a6558bccb802f5d6db0edcb366f2addf686c92c6",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-sol-supervision-20260909/inputs.json",
+      "bytes": 9881,
+      "sha256": "843e73a760a4daccd1ccdab52fb9d1976e6c8567d0755d3b5736e549cf35c290",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-support-refinement-20260909/acceptance.json",
+      "bytes": 47134,
+      "sha256": "7ef33f719071bfb0645b19382098491085ac8d41a2538dc769cc41f40126d1b4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/cue-support-refinement-20260909/inputs.json",
+      "bytes": 4265,
+      "sha256": "825e300daac3d8f088f59a5e3baf19090a753b84d1dbdfa29182d0860589fe8d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-da18-inputs-20260908/completion.json",
+      "bytes": 990,
+      "sha256": "41fffd12f8a19bd6d6dc096fcfe7aed0f2674a1ca8d5251529e9d05a6c5c5648",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-evidence-contrast-20260908/acceptance.json",
+      "bytes": 30796,
+      "sha256": "1c5fc396aa6a2ab427c7614d2ed94bb3a4800c8d7d28880098ef3da029b2ca64",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-evidence-contrast-20260908/admission-checkpoint.json",
+      "bytes": 5987,
+      "sha256": "73a9fc439219fb2c863dd132979b3a5a562d21ed9ecdb12df60d55864c9837b4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-evidence-sidecar-20260908/admission-checkpoint-1944.json",
+      "bytes": 34899,
+      "sha256": "98b3b8363b21ef68f7c6b9ff22037df792636f5d5098ce35f77c868101e43264",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-evidence-sidecar-20260908/early-admission-case.json",
+      "bytes": 4173,
+      "sha256": "75c0dea4378740df8f7957fed7d1211f22d7b54209dc19042b687cc9d989b4f8",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-evidence-sidecar-20260908/transport-recovery-checkpoint.json",
+      "bytes": 1834,
+      "sha256": "73ed04c234da96e2e5b85160a45d526100ee48454d07eb38321534f5b03749e9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/dev3-rubric-cue-20260908/feedback-dose-checkpoint.json",
+      "bytes": 11165,
+      "sha256": "4fd86ce1254f0c4b133629959dba542494f356933af08ee475cfa94deb780c30",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/parallel-validation-20260908/regression.json",
+      "bytes": 895,
+      "sha256": "607d8ee4a742421642c9cd6d3946a4358b5911584fecaad384b0b6065c999409",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/parallel-validation-20260908/test-source-seal-final.json",
+      "bytes": 769,
+      "sha256": "87db983503600ae72c98a079de48433b68865fa55432594e77d6060c65ba7359",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/parallel-validation-20260908/test-source-seal-v2.json",
+      "bytes": 629,
+      "sha256": "7a6246cd1c33f39b7b43aa93461d528e20e1a0f4d0fc9685bb55d3f00d2ba72f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/parallel-validation-20260908/test-source-seal.json",
+      "bytes": 629,
+      "sha256": "7037249c121958f00272b5b68874555c449f4de018675b88c6a92918d20e7ba2",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-capacity-20260908/capacity-regression.json",
+      "bytes": 541,
+      "sha256": "b5bd97e1ae142920edbb05a340529efc05b7bd9e986ce1e7833894d10a777001",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-capacity-20260908/regression.json",
+      "bytes": 486,
+      "sha256": "6277a298faf5e466d7d0338c30d12cb05d2946a83a67b2ab2a140e1d86fb247f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-capacity-v3-20260908/capacity-regression.json",
+      "bytes": 541,
+      "sha256": "2c359fd62ec1ffd4a59d1b481bc6a2a31ca74f0df7dfa9aea14bcb8936ac16aa",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-capacity-v3-20260908/regression.json",
+      "bytes": 486,
+      "sha256": "6277a298faf5e466d7d0338c30d12cb05d2946a83a67b2ab2a140e1d86fb247f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-checkpoint-recovery-20260908/regression.json",
+      "bytes": 486,
+      "sha256": "6277a298faf5e466d7d0338c30d12cb05d2946a83a67b2ab2a140e1d86fb247f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-checkpoint-retry-20260908/acceptance.json",
+      "bytes": 513,
+      "sha256": "e130de954b9c3d16ee166e693e9db666ccbab9656726233da8ea52cb17a12543",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-checkpoint-retry-20260908/regression.json",
+      "bytes": 486,
+      "sha256": "6277a298faf5e466d7d0338c30d12cb05d2946a83a67b2ab2a140e1d86fb247f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-criterion-update-20260909/report_recovery_inputs.json",
+      "bytes": 871,
+      "sha256": "f87f3747dafeed6dac2f8502ceaf6267b8ccd40b495d11843ce4ab3e8d74e8b2",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-crossfile-consistency-20260908/acceptance.json",
+      "bytes": 31365,
+      "sha256": "ea967fd6d9d10d347d73cd6d52e3bddf2aa7a0fb50392ac2419a57f8f12327fe",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-active-violations-20260909/acceptance.json",
+      "bytes": 31311,
+      "sha256": "9838b4c3994dba614fa6270d3ad55901c65acb22ecac6eca009867f9527dea6a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-contrast-20260908/cleanup-failure-checkpoint.json",
+      "bytes": 1045,
+      "sha256": "4d8212a3f5688ab2476bd9b88b7936e34e8e05e0e78696670ff462989365b90f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-contrast-20260908/runtime-checkpoint.json",
+      "bytes": 4153,
+      "sha256": "5a482ae073c0b3b9411be6f22f63118846163dd67e42bfcfc1c7874143347112",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-contrast-20260908/trajectory-checkpoint.json",
+      "bytes": 2548,
+      "sha256": "c5d8f609df848a714ffe5d608b81c13368520913db6a51f9d20ee747f3dfa038",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-pair-recovery-20260909/acceptance.json",
+      "bytes": 31310,
+      "sha256": "4314f3983452598c66c2d42d29560f0166bb9ac9bd75abd070c61952b6d4a10f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-ranking-20260909/acceptance.json",
+      "bytes": 29760,
+      "sha256": "1b2f3b644748df821dfa2b1d1bfe258c7a4a942d11eb88132c2091c7fa3f34ea",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-score-preempt-repair-20260909/invalid-source-records.json",
+      "bytes": 11364,
+      "sha256": "f9aadc12fe080390eed99b581085a96563ec0452fd7fbda876f6dfade7da310b",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-cue-score-scale-20260909/exposure-acceptance.json",
+      "bytes": 788,
+      "sha256": "1f229acfed3b57ae074b0bd95b1bd0b884bfadd505fbba6e753129d326203b76",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-full-trace-20260908/validation.json",
+      "bytes": 455,
+      "sha256": "5b43b0282e3746849897e18a0ddcb5c9ae2b405291e877663e2d6d0b25f5d62a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-input-capacity-20260908/regression.json",
+      "bytes": 562,
+      "sha256": "2f3f8d33d424135c4a6d6325fa46979e9d24dd20dd826a3b01ff2d211d639afb",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-local-temp-recovery-20260908/validation.json",
+      "bytes": 1405,
+      "sha256": "9ea273c90eb09b1d2bf93093deb373cf81d03275adf8a406e6068496fb1d8604",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-nfs-recovery-20260908/validation.json",
+      "bytes": 1027,
+      "sha256": "860d4de89f17652311cbc3aae91ec24ae14ba80ab5a6f8c3024c6507321fd022",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-full-pair-seal.json",
+      "bytes": 929,
+      "sha256": "da7a7b84dcdc079346aff11270048dad29256116155a23caa0c62f1fd54520ce",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-seal.json",
+      "bytes": 929,
+      "sha256": "9f8c9df42dec141496d3ace54550b67b3ae67f6e6214de8648500ab5f016ff0d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v2-seal.json",
+      "bytes": 935,
+      "sha256": "885a71a58e9c8dd34c4cba3da6bbeab9f64ef2985d83dfeef8a7953cc7f5e5e9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v3-seal.json",
+      "bytes": 935,
+      "sha256": "d5385f3a55f3f2fa0ae5b4ac5efe3f9f04340bbd3bfa3568de993d24ab8860bb",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v4-seal.json",
+      "bytes": 935,
+      "sha256": "0e3f240d4bb0499b1a0b43af7f0371e8174c3ce46e697fbcfb118eb5d3112d0c",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v5-seal.json",
+      "bytes": 935,
+      "sha256": "1984300d73d6a76255e1d3835cfa7e1504d5095454dff3650da9f004aba74fdb",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v6-seal.json",
+      "bytes": 935,
+      "sha256": "7901308ba22cd56c39fb943adcf68353fd54ba47574270143ff946c7c3af5273",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v7-seal.json",
+      "bytes": 935,
+      "sha256": "716400d472bd1d82562d7a1d8510f99df2d31551a674288f30504f92714cdcef",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v8-seal.json",
+      "bytes": 935,
+      "sha256": "6adbf83a5b3a0a24e9960657270ee97b1175f296673bdca222b30021206cdbbb",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combine-validated-v9-seal.json",
+      "bytes": 935,
+      "sha256": "a6a06ef39c04fc123dede028657cf2c52ddb8ab0408fc07fa41d40392ba0faaa",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/combined-current-seal.json",
+      "bytes": 1335,
+      "sha256": "444d054dffeb7d62cc3937e9fdf5d6c3d8b97bdf139c28ec7da38ee9ebaa4335",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/da16-1-feedback-exposure.json",
+      "bytes": 1806,
+      "sha256": "44f90939414d4648fa49cc3949a264c3571c772e21346d872881668a3aa60dee",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/derive-capacity-seal.json",
+      "bytes": 812,
+      "sha256": "4dd39b6e6ed92e3c4fcc67843441089143b10eb5e914a7686f5e4f0296f693e0",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/exposure-source-seal.json",
+      "bytes": 267,
+      "sha256": "b5dfde507f2a6128e727abc07fb3915498cc53ea9570983db10e355dff8fcd9f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/failure-checkpoint.json",
+      "bytes": 1378,
+      "sha256": "e6d15c01e25ec8ad82b37c2a75ae4bb25248b7f51a6b54934417e63ef7011530",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/full-positive-criterion-mechanisms.json",
+      "bytes": 29862,
+      "sha256": "ebe091d056656cd10cbb2ce8936dd9cea55b05e2e8f141693de76713c74c5864",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/full-trace-current-analysis-seal.json",
+      "bytes": 805,
+      "sha256": "84ba9d6ba1e585bb33c22a0c4d9488f9434413af7056724c413a02a478130652",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/full-trace-resume-analysis-seal.json",
+      "bytes": 804,
+      "sha256": "fb8b1949c01699579a09a40f8ea319ac42378ce756272ced2d8207afd46198e8",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/full-trace-retry-analysis-seal.json",
+      "bytes": 803,
+      "sha256": "5871cf8faf609ff25be1dd274a615b48ad7d7e435073e52ce256244167ac4f4a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/improved-case-initial-criteria.json",
+      "bytes": 3373,
+      "sha256": "a3fde02575564ae6b4e94ca4697b9bb2a5e7e4f063553d10c076679c45c3ef70",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/local-temp-identity-validation.json",
+      "bytes": 1478,
+      "sha256": "acba06edd20731d4fd16c3196f0e4db45f781b0354a700749238fe7e38eb9cc9",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/no-criteria-first-feedback.json",
+      "bytes": 2817,
+      "sha256": "7c6b7946055c1b0f2e768e6ed664c7aef8504fcebef915be0b8a10949fc0e132",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/recovered-trace-request.json",
+      "bytes": 948,
+      "sha256": "c4f5d23bdb6230b169480516930711e88394aa7d8acf7167216e72985e0551ae",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/recovery-evidence.json",
+      "bytes": 581,
+      "sha256": "47cfaf4e404fa39981276b44ff779161b053db1f510d7344747662d8dae9a28c",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/resume-workspace-metadata.json",
+      "bytes": 3623,
+      "sha256": "fd4fd24fac0f432a31463a1b9d308d2bf018668f5cddfec975108af790cc2741",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/static-analysis-seal.json",
+      "bytes": 750,
+      "sha256": "b3781194d9f7b6473a21a1ee08e53e02f193bda62abf55b6fc091581a9f23af8",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/static-pair-seal.json",
+      "bytes": 933,
+      "sha256": "5e3f7b312f2c91a1cb01912b05d2247b78406a3afe10091df00509bc97251159",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/static-recovery-analysis-seal.json",
+      "bytes": 771,
+      "sha256": "abdedf916660aefa0a83a2c867635feee08b55df554c746abd75fa29b5b0328e",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-pair-seal.json",
+      "bytes": 929,
+      "sha256": "20e63943ca8ad2a17a5bed5cef9275429d7e2c7635c2078cc7bcc9b3feaf7527",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-static-current-analysis-seal.json",
+      "bytes": 806,
+      "sha256": "5af23e77e3e85d18cc81d518ad27a0341f0c245f5dd4d74cc8bd5e02ae0085cc",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-capacity-actual-analysis-seal.json",
+      "bytes": 781,
+      "sha256": "6b97405d858b222279534d09e2633785240152035da5d5c2c13e5a7d4ce935cc",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-capacity-analysis-seal.json",
+      "bytes": 774,
+      "sha256": "e8c939790cdcfab8300c201f3f1b1a65e8f2d0a8aa891aa143241b48828beca4",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-capacity-v3-analysis-seal.json",
+      "bytes": 777,
+      "sha256": "baabac1181e23b73d774d7d7a4a6f736833ff53d9549dd6cbf25c3d7b8649e6f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-current-analysis-seal.json",
+      "bytes": 769,
+      "sha256": "24b4fce4819f56861a630c0ac64476c85b023f5982e74c3dc0e38d5382374d34",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-resume-analysis-seal.json",
+      "bytes": 772,
+      "sha256": "5a730311f7b63d64a9042b9a3656904e956a65db99574338b3c380a138bb9e52",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-telemetry-analysis-seal.json",
+      "bytes": 799,
+      "sha256": "2fa0ca8f7186bad4935363038eddcee9fa1b49e84c8ee30b9bb4cc7ff9cab668",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-report-20260908/user-trace-token-analysis-seal.json",
+      "bytes": 779,
+      "sha256": "3746cfb35917bcce6a08c83b4f6150286ad6b608cbb20412fbd0c973202a672d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-telemetry-recovery-20260908/capacity-regression.json",
+      "bytes": 541,
+      "sha256": "2c359fd62ec1ffd4a59d1b481bc6a2a31ca74f0df7dfa9aea14bcb8936ac16aa",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-telemetry-recovery-20260908/gate-acceptance.json",
+      "bytes": 989,
+      "sha256": "ffa5b1f4175538cdf722c34130d40ac3c23ed4045e18eb6b9f47b52fa77d180d",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-telemetry-recovery-20260908/regression.json",
+      "bytes": 486,
+      "sha256": "6277a298faf5e466d7d0338c30d12cb05d2946a83a67b2ab2a140e1d86fb247f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-user-resume-20260908/capacity-regression.json",
+      "bytes": 541,
+      "sha256": "2c359fd62ec1ffd4a59d1b481bc6a2a31ca74f0df7dfa9aea14bcb8936ac16aa",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-user-resume-20260908/live-owner-acceptance.json",
+      "bytes": 76,
+      "sha256": "0419d74b8ee589286a39bb285dbc095bd8a7cd37fe90893d447a8a7e698c9c7a",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/result20-user-resume-20260908/regression.json",
+      "bytes": 486,
+      "sha256": "6277a298faf5e466d7d0338c30d12cb05d2946a83a67b2ab2a140e1d86fb247f",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/runs-cleanup-20260908/inventory.json",
+      "bytes": 17030,
+      "sha256": "0127c3468f3e280e0938896e67adf0bae321bfb868c0ae7284138d7548792da7",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/runs-cleanup-20260908/log-archive-manifest.json",
+      "bytes": 42682,
+      "sha256": "899341c05ad084bc67834a22d4661f6bfaf0072cf4c4830ca97f199768d5fd9b",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/runs-cleanup-20260908/log-ownership.json",
+      "bytes": 20454,
+      "sha256": "17d2a9c40b2188c1093b4e0e555fec8d2434a82c68cfb91982b3692e974a2166",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "investigation/telemetry-journal-20260908/acceptance.json",
+      "bytes": 1009,
+      "sha256": "c0e2fcfe3ef02bf5880f7cc6b6b45cee89bb42cb35601cf6428aeb4928d8c2db",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    },
+    {
+      "path": "docs/reports/2026-09-09/cue-single-gap-result.json",
+      "bytes": 22310,
+      "sha256": "d3a64618518c10e780765a6bbc47c1d1bc7a4dc686593f8e0897f33b865a1fe5",
+      "disposition": "retained locally at original path; excluded from GitHub checkpoint"
+    }
+  ]
+}

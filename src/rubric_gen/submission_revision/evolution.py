@@ -53,7 +53,7 @@ from rubric_gen.submission_revision.evolution_provider import (
     StructuredProviderOutput,
 )
 from rubric_gen.submission_revision.evolution_cache import ValidatedProposerCache
-from rubric_gen.submission_revision.evolution_stage import PROVIDER_FAILURE_MAX_RETRIES, run_stage
+from rubric_gen.submission_revision.evolution_stage import PROVIDER_FAILURE_MAX_RETRIES, maximum_stage_attempts, run_stage
 from rubric_gen.submission_revision.evolution_validation import (
     ValidationStageResult as _StageResult,
     combine_validation_results,
@@ -508,7 +508,7 @@ class RubricProposer:
             units = len(validation_artifact_ids(comparisons)) if name == "validation" else 1
             if (
                 type(count) is not int
-                or (required and not units <= count <= units * (self.max_retries + 1))
+                or (required and not units <= count <= units * maximum_stage_attempts(self.max_retries))
                 or (not required and count != 0)
                 or (
                     fallback is not None
@@ -537,7 +537,7 @@ class RubricProposer:
                         "artifact_id", "raw_text", "attempt_count", "fallback_reason"
                     } or call["artifact_id"] != aid or type(call["raw_text"]) is not str
                         or type(call["attempt_count"]) is not int
-                        or not 1 <= call["attempt_count"] <= self.max_retries + 1):
+                        or not 1 <= call["attempt_count"] <= maximum_stage_attempts(self.max_retries)):
                         raise RuntimeError("completed validation call changed")
                     parsed = validated_validation_response(
                         call["raw_text"], candidates=candidates, artifact_ids=(aid,),
@@ -757,7 +757,7 @@ class RubricProposer:
             rubric=render_augmented_rubric(original_rubric, active_criteria),
             elicited_criteria=active_criteria,
             proposer_call_budget=(_NON_VALIDATION_STAGE_COUNT + validation_artifact_count)
-            * (self.max_retries + 1),
+            * maximum_stage_attempts(self.max_retries),
         )
         generation.validate_successor(current_generation)
         return generation

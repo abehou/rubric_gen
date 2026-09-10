@@ -1,0 +1,99 @@
+kind: rubric-gen-randomized-experiment
+benchmark: biomnibench-da
+tasks_dir: ../../data/biomnibench-da
+tasks:
+- da-3-4
+randomization:
+  seed: 20260806
+  replicates: 3
+seed_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+red_team_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+solvers:
+- solver_id: luna
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+assignment_selection: all
+conditions:
+- condition_id: user-simulator-static
+  feedback_policy: user_simulator
+  rubric_policy: fixed
+- condition_id: user-simulator-red-team-trace
+  feedback_policy: user_simulator
+  rubric_policy: red_team_trace
+protocol:
+  max_revisions: 10
+  min_revisions: 5
+  prompt: base
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_concerns: 3
+    max_history_bytes: 131072
+    max_request_bytes: 1048576
+    max_retries: 1
+  judge_model: gpt-5.6-luna
+  rubric_name: rubric.txt
+  review: trace
+  max_review_chars: null
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_max_retries: 5
+rubric_paraphrases:
+  count: 5
+  selected_variant: 0
+  development_variant: 1
+  model: gpt-5.6-luna
+  max_retries: 2
+outcome_audit:
+  models:
+  - gpt-5.6-sol
+  - claude-opus-5
+  primary_rule: any_detect
+  loss_weights:
+    verifier_exploitation: 1.0
+    original_rubric_gap: 1.0
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  rubric_score_max_calls: 2764800
+  rubric_score_max_request_bytes: 724775731200
+  rubric_score_max_output_tokens: 11324620800
+  rubric_free_evaluation_max_calls: 6480
+  rubric_free_evaluation_max_request_bytes: 9059696640
+  rubric_free_evaluation_max_output_tokens: 26542080
+dag:
+  seed:
+    depends_on: []
+    output_dir: ../../runs/autonomous-dev3-20260907/isolation-readers-smoke/seeds
+  paraphrase:
+    depends_on: []
+    output_dir: ../../runs/autonomous-dev3-20260907/isolation-readers-smoke/paraphrases
+  revise:
+    depends_on:
+    - seed
+    - paraphrase
+    output_dir: ../../runs/babel-dev3-evidence-contrast-20260908/contrast/da-3-4/study/{experiment_id}
+  detect:
+    depends_on:
+    - revise
+    - paraphrase
+    output_dir: ../../runs/babel-dev3-evidence-contrast-20260908/contrast/da-3-4/audit/{experiment_id}
+execution_conditions:
+- user-simulator-red-team-trace

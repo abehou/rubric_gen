@@ -286,6 +286,7 @@ def build_online_artifact_history(
     }
     pair_ids = {item.pair_id for item in history.pairs}
     evidence: list[RedTeamEvidence] = []
+    represented_pairs: set[str] = set()
     for observed, adversarial, trajectory_path in red_team_sources:
         if observed.sha256 == adversarial.sha256:
             continue
@@ -295,6 +296,12 @@ def build_online_artifact_history(
         )
         if pair.pair_id not in pair_ids:
             raise RuntimeError("red-team evidence has no matched artifact pair")
+        # The history already collapses identical artifact pairs. Keep the first
+        # chronological trace as their representative too; every later raw
+        # sidecar remains sealed on disk, but must not multiply pair weight.
+        if pair.pair_id in represented_pairs:
+            continue
+        represented_pairs.add(pair.pair_id)
         full_trajectory = trajectory_path.read_text(encoding="utf-8")
         excerpt, truncated = _trace_excerpt(trajectory_path)
         evidence.append(RedTeamEvidence(

@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import os
-import shutil
 import stat
 from pathlib import Path
 
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.artifacts import (
-    make_tree_owner_writable,
     read_json_object,
 )
 
@@ -52,19 +50,22 @@ class EvaluationStore:
                 allow_missing=False,
             )
             self.validate_tree()
+            if not any(self.root.iterdir()):
+                self.write_json(("manifest.json",), identity)
+                return
             try:
                 manifest_path = self.regular_file("manifest.json")
                 manifest = read_json_object(manifest_path, "evaluation manifest")
-            except RuntimeError:
-                if not resume:
-                    raise
-                self._replace(identity)
-                return
+            except RuntimeError as exc:
+                raise RuntimeError(
+                    "existing evaluation output has no valid manifest; "
+                    "preserve it and use a fresh output directory"
+                ) from exc
             if manifest != identity:
-                if not resume:
-                    raise RuntimeError("evaluation resume identity changed")
-                self._replace(identity)
-                return
+                raise RuntimeError(
+                    "evaluation resume identity changed; existing output preserved; "
+                    "use a fresh output directory"
+                )
             if not resume and any(
                 path.name != "manifest.json" for path in self.root.iterdir()
             ):
@@ -72,17 +73,6 @@ class EvaluationStore:
                     f"evaluation output is not empty: {self.root}"
                 )
             return
-        self._ensure_directory_path(self.root)
-        self.write_json(("manifest.json",), identity)
-
-    def _replace(self, identity: dict[str, object]) -> None:
-        self.validate_tree()
-        make_tree_owner_writable(self.root)
-        shutil.rmtree(self.root)
-        if os.path.lexists(self.root):
-            raise RuntimeError(
-                f"failed to replace incompatible evaluation output: {self.root}"
-            )
         self._ensure_directory_path(self.root)
         self.write_json(("manifest.json",), identity)
 

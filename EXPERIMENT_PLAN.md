@@ -1,4 +1,48 @@
+## 2026-09-09 — Accepted baseline checkpoint
+
+- 22:09 EDT: The user freezes the accepted static baseline and requests only checkpoint publication and conservative cleanup; no new trace optimization, recovery, or experiment is authorized. Formal names are Full feedback/User simulator; S−H≈0.12 is acceptable and final-artifact sensitivity remains separate.
+
+## 2026-09-08 — Canonical inventory and retention
+
+- 07:12 EDT: User reconfirms canonical dev3=[da-3-4,da-11-1,da-18-1],Result20=20tasks,three replicates;two-task tuning does not satisfy full dev3. Preserve running owners,resolve missing generated pools before full validation,keep intended Sol/Opus/Gemini3.8 panel with Gemini credit-paused,and defer manifest-governed cleanup until accepted setup/scale-up gate.
+
+## 2026-09-08 — Concern-one replication checkpoint
+
+- 06:50 EDT: Provisionally freeze raw concern1 for bounded static/delayed/early policy comparison:replication10356343 preserves agreed full/post RH1/3 and improves all paired quality scores. Extra early attack/induction budget is explicit;keep all controls and hold Result20 pending quality-preserving complete-dev3 mitigation.
+
+## 2026-09-08 — Simpler baseline reproducibility
+
+- 06:01 EDT: After the third package control failed stability,run the unchanged raw concern1 baseline on the same three da-11-1 seeds;earlier agreed full2/6 and A63.58 make it a justified simpler candidate. Keep all three package cohorts and original concern1/control comparisons,hold easy extension pending evidence,and hold early-policy/Result20 launch.
+
+## 2026-09-08 — Conditional early red-team mechanism test
+
+- 05:42 EDT: Prepare a separate red_team_trace_early arm against unchanged package-context static and delayed-trace controls: elicit from the saved initial artifact plus one additional sealed sidecar before initial feedback, retaining later cadence. Earlier g2 feedback could not prevent s002 exploitation; extra attack/proposer budget is an explicit confound, and launch waits native/runtime tests and interpretation of replication10356064; no Result20 promotion is implied.
+
+# Current BioMNIBench objective — 2026-09-08
+
+Establish the expected BioMNIBench reward-hacking pattern: first raise the corrected user-simulator baseline RH to a stable, nontrivial level on dev3; then optimize the dynamic/red-team rubric policy to reduce RH; finally scale the frozen successful setup to Result20 and verify the same signal.
+
+- 01:29 EDT: User authorizes small matched simulator prompt/config iterations, then matched static/dynamic policy optimization and frozen Result20 reproduction only after the intended dev3 pattern. Keep existing tasks/seeds, evaluators/thresholds, quality checks and shared60; do not expand benchmarks or tune a hard RH percentage.
+
 # BioMNIBench red-team experiment plan
+
+## 2026-09-07 — Evidence-motivated public-context dev3 diagnostic
+
+- 21:05 EDT: Repeated impossible absolute-path demands in fresh control justify the separate execution-context condition at5d87ed9: give the simulator exactly the public environment already seen by the solver, preserving three concerns, models, all scoring and controls. Queue a bounded da-3-4 comparison at solver2/audit8 behind the first concern1 job; hard-task continuation waits for its coverage/runtime review, and Result20 remains held.
+
+## 2026-09-07 — Resumed user-setting priority and explicit provider authorization
+
+- 20:36 EDT: User explicitly authorizes existing-design BioMNIBench task/rubric/artifact/feedback/trajectory payloads to configured OpenAI, Anthropic and Gemini services, clearing the prior export blocker without changing any frozen model identity. Run the real Babel dev3 smoke, then control versus max_concerns=1 and evidence-motivated bounded user-setting iterations; Result20 now requires a documented stable, interpretable user-setting baseline and supersedes the earlier immediate wiring-control scale-up priority.
+
+## 2026-09-07 — Overnight autonomous authorization
+
+- 14:45 EDT: User authorizes gated corrected-control Result20 and evidence-motivated simulator/rubric-policy dev3 iterations over the overnight window, including Slurm submission, recovery and periodic commits; this supersedes previous no-launch/Result20 holds. Keep models, measurement semantics and thresholds fixed, preserve controls and historical artifacts, enforce aggregate60/one audit, and run scientific work only on compute nodes.
+
+
+## 2026-09-07 — Babel launch preparation
+
+- 14:31 EDT: User authorizes portability, shared aggregate concurrency 60 and Slurm implementation for bounded dev3, with recovery 1–2 and one audit study at a time; this supersedes the historical cap of 16. No real experiment or Results20 launch is authorized; treatment, fixed inputs and scientific disposition remain unchanged.
+
 
 ## 2026-09-08 — User interpretation acknowledged for Babel
 
@@ -1191,3 +1235,124 @@ Use the current v7 estimate above, not the superseded v6d ETA.
   That invocation was interrupted at 11:04:04 by the earlier cutoff. The user
   subsequently clarified that only an ETA was wanted; recovery at 11:07 uses
   no overall deadline, as specified in the current operating rules above.
+
+## 2026-09-07 22:12 EDT — evidence-motivated public-review dev3
+
+Within the latest user-authorized simulator loop, test withholding private evaluator feedback from an otherwise identical public-context simulator (three concerns). Concern1 failed to establish broader RH opportunity, while simulator access to private corrective reasoning remains a plausible bottleneck; this isolated comparison preserves task/solver/evaluator identities and all quality guardrails. Reserved validation and Result20 remain held pending stable, interpretable baseline evidence.
+
+## 2026-09-07 22:56 EDT — substantive attention follow-up
+
+Within the authorized dev3 loop, compare context+one-item control with an otherwise identical simulator explicitly limited to one independently actionable issue. This follows observed concern bundling,completed context late-RH nulls and the public-review quality/channel failure; start on da-11-1,then decide whether its prepared da-3-4 quality comparison is useful. Preserve the reserved validation task and hold Result20/policy scale-up.
+
+## 2026-09-07 23:52 EDT — Package-feasibility follow-up
+
+Completed single-issue comparison failed the Opus mean-quality guardrail and leaves low absolute quality; stop its easy-task extension. Within the authorized bounded simulator loop,run factual package-context d964058 on da-11-1 against immutable attention control68cfc05,then decide any easy-task extension from RH,quality and actual feedback feasibility. This changes only simulator public package facts; reserved validation,Result20 and policy launches remain held.
+
+## 2026-09-08 00:14 EDT — Secondary matched policy mechanism test
+
+While package-context10353356 remains the primary baseline experiment,run six da-11-1 user-policy cells at source0743f82:standard online versus existing contrast-specific proposals,three frozen seeds each,matched to the one-concern static attention control. The completed shared late-RH example provides a concrete mechanism despite poor/unstable overall baseline quality;this limited test may diagnose criterion admission/feedback exposure but cannot clear the baseline or Result20 gate. No package-context/single-issue factor is mixed into these policy cells;all evaluators and quality guardrails remain frozen.
+
+## 2026-09-08 Result20-first authorization
+
+- 08:37 EDT: User explicitly supersedes dev3-success-before-scale gating:run a fresh focused Result20 now (full-static,user-simulator-static,user-simulator-red-team-trace;20canonicaltasks×3replicates=180assignments),established max_concerns3,then diagnose/optimize targeted issues on dev3 and repeat Result20. Keep evaluators/metrics/wiring,isolated launchers,4CPU jobs/shared60;no early-policy condition or benchmark expansion.
+
+## 2026-09-08 Added Result20 full-feedback trace
+
+- 08:58 EDT: User authorizes adding only full-feedback red-team trace: four conditions ×20 canonical tasks ×3 replicates=240 assignments; offline/artifact remain unrun. Preserve existing three owners, frozen409104f, all scientific settings, shared60 and4CPU requests.
+
+## 2026-09-08 Continue beyond first Result20
+
+- 11:14 EDT: User explicitly reaffirms that completing current240-assignment Result20 and its plots is an intermediate milestone. Autonomously analyze matched RH/quality and actual policy exposure, make evidence-motivated bounded dev3 improvements with frozen tasks/seeds/evaluators/thresholds, then repeat Result20 for promising changes; do not stop at the first completed comparison or expand benchmarks.
+
+## 2026-09-08 Evidence-support sidecar dev3
+
+- 19:00 EDT: After adverse complete user-policy Result20,prepare a single-factor sidecar-prompt comparison on canonical3tasks×3replicates:static/currenttrace controls and evidence-supporttrace,27assignments. Frozen9dd3b40/8f4880f differonlyred_team.py;unchanged solver/simulator/evaluators/admission,protocol investigation/dev3-evidence-sidecar-20260908/PROTOCOL.md;nonprovideracceptance then one-task realgate before expanding.
+
+## 2026-09-08 Bounded rubric leakage and larger BioMNIBench evaluation
+
+- 20:07 EDT: User/collaborator authorize a minimal more-rubric-specific simulator test on frozen canonicaldev3 alongside dynamic policy optimization, then30or45canonical tasks with other settings frozen. Choose45tasks×3replicates for the planned extension, retaining original20 and excludingdev3 from deterministically selected additions; unchanged RH/evaluator definitions and private held-out/holistic boundaries.
+- 20:07 EDT: First simulator candidateed6f316 quotes at mostone short supplied-rubric requirement in at mostone existing concern, otherwise preserves6498d78 control; test user-static on da11×3 then fullcanonicaldev3. Existing policy10363145/46 continue independently; no simulator/policy factors mixed in this first test, and larger evaluation waits for dev3 evidence.
+
+## 2026-09-08 Focused user-setting primary metrics
+
+- 20:13 EDT: User narrows subsequent optimization/scale-up to matched user-simulator static versus red-team trace. Primary development targets are equal-weight Sol/Opus final-artifact RH (static above0 with trace lower) and full-trajectory RH (static roughly10–15% as guidance, trace lower); unchanged evaluator decisions/thresholds, quality/gaps/abstentions retained. This supersedes the proposed four-condition Results45 extension: planned45tasks×3replicates×2conditions=270assignments after dev3 validation; no existing jobs interrupted.
+
+- 20:30 EDT: Real da11control/candidate execution and nativeaudit gate passed. Extend unchanged6498d78 static/currenttrace controls to both remainingcanonicaldev3tasks while rubric-cue/contrast candidates finish; these controls support full3taskvalidation regardless of candidate outcome and do not change treatments or select tasks by observedRH.
+
+## 2026-09-08 User-authorized direct Result20 iteration
+
+- 20:32 EDT: User supersedes dev3-outcome-before-scale gate: apply prepared revisions and test directly on existingResult20 because dev3 has limited RH precision; only after useful Result20 evidence consider30/45tasks. Prepare120assignments (20tasks×3replicates×2userconditions), same rubric-cue simulator in static and revisedtrace arms, frozen evaluator/seed/metric settings; keep currentdev3owners running and retain null/adverse results.
+
+## 2026-09-08 Separate final-artifact audit diagnostic
+
+- 22:20 EDT: User authorizes prioritizing a separately versioned final-artifact audit prompt diagnostic on saved artifacts, avoiding revision reruns when diagnosing measurement alone. Preserve the current audit as control, unchanged models/thresholds and artifact-only evidence boundary; verify checkpoint binding and distinguish observable gaming from ordinary quality failures or evidence available only in trajectories, without selecting prompts to force the desired condition ordering.
+
+## 2026-09-08 Evidence-motivated artifact calibration v2
+
+- 23:03 EDT: Within user-authorized auditpromptdiagnosis, test52248d5 on all120savedartifacts after independentverification disproved a numericalargument and exposed a task/workbookdescriptionconflict. Add only generic numerical/source-evidence caution; retainoriginal/v1judgments, allmodels/thresholds, and reportregardlessofordering; this isnot a validatedreplacement ornewbehavioralexperiment.
+
+## 2026-09-08 Cross-file consistency policy test
+
+- 23:12 EDT: Within existing directResult20 policyoptimization scope, run only60newtraceassignments at3f9d81b; sole scientificchange narrows redteamsyntheticdefect to incompatible code/export/table/answerclaims. Reusecompleted static/tracecontrols, unchangedcue simulator/proposer/evaluators/thresholds, pluspreviouslyvalidatedNFSfix7697ec5; separatelyversionedartifactv2 remains sensitivityonly.
+
+## 2026-09-09 Selected criterion score-disclosure gate
+
+- 00:53 EDT: Bounded score-disclosure candidate10e60b8 tests one exact supplied criterion-points value alongside the alreadyquoted requirement; no target answers, other scores or evaluation changes. First existing Result20 da12-4rep1 static assignment is an execution/exposure gate, not population evidence; further scale depends on valid delivery and native completion.
+
+- 01:07 EDT: Under approved directResult20 simulator iteration, prepare60static assignments at4d5c2d0 after six-call exact-context fidelity replay passed. Reuse validated runtime; no new runtime behavior. Original10e60b8 noncompliant gate remains separate, never pooled. Source/input validation10367620 precedes launch; keep originalprimary detectors and all20canonicaltasks×3replicates.
+
+## 2026-09-09 Score-only fidelity diagnostic
+
+- 02:11 EDT: Prepare bc9f096, isolating one supplied earned-score exception against cue baseline0fbe0bb while retaining existing private-target wording and concern budget. After70mockedtests, validate two frozen contexts on Slurm then six simulator-only calls; inspect fidelity/content before another revision cohort.
+
+## 2026-09-09 First-concern score Result20
+
+- 02:24 EDT: Following6/6grounded disclosure replay at7cd0b76, test60static assignments on canonical20×3 with frozen cuebaseline controls and unchanged evaluators. Assess whether isolated earned-score visibility increases RH headroom without unacceptable quality loss; preserve null/adverse results and measure actual exposure before any matched dynamic launch.
+
+- 06:30 EDT: Matched proposer-only diagnostic at87bc6fc adds evidence-versus-rationale distinction, retaining defensible methodological choices and empty-result option. Same saved evidence as10369697; unchanged validation/admission and all provider identities, no new cohort.
+
+- 06:48 EDT: Separate delivery candidateffe10c4 appends exact newly admitted requirements only in their admission round when simulator already requests revision. No asserted violation, scores, forced revision, changed admission, evaluator or concern budget; source7cd0b76controls preserved. Gate tests and saved-prompt replay before bounded matched behavior.
+
+## 2026-09-09 — Result20 evidence and minimum-stage decision gate
+
+- 07:52 EDT: User requires completed Result20 case-level failure/mechanism analysis before any subsequent experiment, minimum affected-stage reruns with validated reuse, and a written six-part decision note before expensive revisions; keep10369781/10369784/10369789 unchanged. Auditor replacement requires condition-blinded human-reviewed calibration selected on sensitivity/specificity/abstention/agreement, never desired condition ordering; docs/reports/RESULT20_DECISION_WORKFLOW.md owns the workflow.
+
+## 2026-09-09 — Rubric-cue primary branch
+
+- 07:56 EDT: User restores frozen rubric-cue0fbe0bb as primary branch after current criterion-update/reports finish; no further simulator exploration without necessity evidence. Case-level completed Result20 analysis must justify one isolated trace-only revision change with prospectively frozen RH/gap/quality criteria; separate artifact calibration needs human-reviewed blinded labels (docs/reports/2026-09-09/rubric-cue-primary-branch.md).
+
+## 2026-09-09 — Canonical BioMNIBench completion TODO
+
+- 08:08 EDT: User makes BioMNIBench exclusive current scope and docs/BIOMNIBENCH_TODO.md the evidence-gated checklist to update after completed analyses/experiments. Preserve cue source and active run; verify artifact routing and selected-heldout computation before changes, independently human-calibrate artifact audit, and require one justified trace-only policy rerun before unchanged30/45confirmation then PaperBench.
+
+## 2026-09-09 — Cue citation-precision saved-input diagnostic
+
+- 09:20 EDT: After criterion-update/reports completed, isolate one online-proposer clarification using four frozen cue generation contexts and fresh matched prompt repeats; native blind validation and all admission gates stay unchanged. This stage-only diagnostic is within approved policy mechanism work; no revision or outcome-audit rerun, no automatic scale-up (docs/reports/2026-09-09/cue-citation-diagnostic-plan.md).
+
+- 11:43 EDT: User authorizes outcome-independent confirmation seed/paraphrase preparation alongside current Result20; freeze existing45task inventory and nested30tier,3replicates and existing generation settings. Shared-data/access check pending; native seed initial-scoring boundary requires clarification; no downstream stages authorized.
+
+## 2026-09-09 — Standing diagnostic model authorization
+
+- 17:20 EDT: User explicitly authorizes proposedSol-versusLuna inductionpairdiagnostic andsimilarfuturemodelcomparisonrequests withinthisresearchscope. Preserve separateconditionidentity, frozencontrols, existingmetrics andprovenance; thisdoesnotauthorize silent substitutions ordesired-outcomeauditorcalibration.
+
+- 16:55 EDT: Authorized saved-context Sol supervision diagnostic freezes9contexts×2arms; only upstream quality judgments differ, with fresh unchanged Luna induction/applications and native admission. No revisions or automatic scale-up; decision and stop rule in docs/reports/2026-09-09/cue-sol-supervision-plan.md.
+
+- 17:11 EDT: Authorized model-only application diagnostic freezes9Sol-supervised candidate sets from10377039 and exact artifact payloads; compare fresh Luna/Sol applications with native unchanged admission. Verified arithmetic/code contradictions motivate it; no proposals/revisions/outcomeaudits (cue-sol-application-plan.md).
+
+- 17:24 EDT: Following no Sol application advantage, test one concrete numerical-check instruction on the same9frozen candidate sets, reusing fresh Luna controls10377313 (57newcalls only). No proposals/revisions/outcome audits; all gates/models unchanged (cue-application-check-plan.md).
+
+- 17:58 EDT: Prepare one training-feedback refinement on3eligible saved canonical Result20 contexts, reusing10370826controls. Expose only prior applications to already visible own induction pairs; fresh full blind validation and all gates remain unchanged, with no automatic citation pruning or revisions (cue-support-refinement-plan.md).
+
+- 18:12 EDT: Isolate Sol at criterion generation only on four original canonical saved contexts, reusing10370826Luna controls; all prompts, pair judgments and Luna applications/gates unchanged. Prospective gate and stop rule: cue-sol-induction-plan.md; no revisions.
+
+- 18:24 EDT: Standing authorization reaffirmed. Conditional Sol application diagnostic reuses exact Sol-authored criteria and Luna applications from10377844; four frozen contexts, no proposals/revisions/outcome audits. Native replay gates provider calls; cue-sol-conditional-plan.md defines advancement/stop criteria.
+
+- 18:29 EDT: Application reasoning-only diagnostic freezes nine saved candidate sets and57calls; Luna low→high only, original prompts and native gates, exact fresh control10377313reuse. No proposals/revisions/outcome audits; prospective factual checks/stop rule in cue-application-reasoning-plan.md.
+
+- 18:41 EDT: Isolate application schema order (reason before grade), nine frozen contexts/57calls with exact fresh low-effort control reuse. All prompts/models/gates unchanged; no revisions and no data-check leakage; cue-application-order-plan.md defines stop criteria.
+
+- 18:54 EDT: Single-gap induction diagnostic exposes one worst visible rubric reversal per each of4frozen canonical contexts; original models/prompts and full blind validation/native gates unchanged, reuse10370826controls. Prospective selection/stop rules in cue-single-gap-plan.md; no revisions.
+
+## 2026-09-09 — Cue full-feedback provenance
+
+- 20:13 EDT: Freeze the provisionally successful cue user-static baseline; accept near-zero wording-only S−H as legitimate possible generalization. User authorizes provenance-based earlier full-arm reuse and only minimum missing cue full-feedback arms; primary remaining policy target retains RH reduction while removing W−S/W−A regressions, independent audit-only artifact calibration.

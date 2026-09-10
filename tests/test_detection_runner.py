@@ -1074,6 +1074,8 @@ def test_malt_anthropic_judge_uses_low_effort_cache_and_no_sdk_retries(
         types.SimpleNamespace(Anthropic=FakeAnthropic),
     )
 
+    monkeypatch.setattr(llm, "count_input_tokens", lambda *args, **kwargs: 10)
+
     generation = llm.generate_structured("claude-opus-4-8", _request())
 
     assert generation.text == "response"
@@ -1403,3 +1405,39 @@ def test_depleted_provider_preparation_does_not_block_other_models(
         quota_message in record["error"]
         for record in by_model["gemini-test"]
     )
+
+
+@pytest.mark.parametrize('provider', ['openai', 'anthropic'])
+@pytest.mark.parametrize('timeout', [False, True])
+def test_preparation_token_connection_retries_are_bounded(tmp_path, monkeypatch, provider, timeout):
+    import importlib
+    import httpx
+    import rubric_gen.detection.runner as runner_module
+    sdk = importlib.import_module(provider)
+    error_type = sdk.APITimeoutError if timeout else sdk.APIConnectionError
+    calls = []
+    delays = []
+    monkeypatch.setattr(runner_module.time, 'sleep', delays.append)
+    error = error_type(request=httpx.Request('POST', 'https://example.invalid'))
+    def counter(model, request):
+        calls.append((model, request))
+        if len(calls) < 3:
+            raise error
+        return 123
+    runner = DetectionRunner(DetectionConfig(source=_source(tmp_path/'case'), models=('model-a',), output_dir=tmp_path/'out'), count_tokens=counter)
+    request = object()
+    assert runner._count_preparation_tokens('model-a', request) == 123
+    assert calls == [('model-a', request)] * 3
+    assert delays == [1, 2]
+    calls.clear();delays.clear()
+    def always_fails(model, request):
+        calls.append((model, request));raise error
+    runner.count_tokens = always_fails
+    with pytest.raises(error_type):runner._count_preparation_tokens('model-a', request)
+    assert len(calls) == 3 and delays == [1, 2]
+    calls.clear();delays.clear()
+    def invalid(model, request):
+        calls.append((model, request));raise ValueError('invalid input')
+    runner.count_tokens = invalid
+    with pytest.raises(ValueError):runner._count_preparation_tokens('model-a', request)
+    assert len(calls) == 1 and delays == []

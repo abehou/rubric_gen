@@ -42,3 +42,9 @@ Record meaningful new knowledge without a separate request:
 Use a date-starting section and prefix each entry with local time and timezone.
 Keep entries to one or two sentences. Separate experimental and code concerns;
 do not duplicate text, routine checks, or repeated commands across the logs.
+
+## Babel storage
+
+- All new large datasets, shared pools, revision workspaces, and caches use absolute paths under `/data/user_data/aydanh/rubric_gen/`. This is persistent compute-only NFS: access and validate it through Slurm; login-node invisibility is not a blocker.
+- New sbatch configurations must resolve large input/output/cache paths to that root. Keep only code, configuration, manifests, provenance receipts, and small reports in the home repository. Preserve existing validated home-based Results20 datasets and historical outputs.
+- Current verified coverage and receipts: `docs/reports/2026-09-09/shared-storage-policy.md`.

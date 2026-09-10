@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited, emit
+
 import json
 from importlib.resources import files
 import random
@@ -129,6 +131,7 @@ class CodexSdkSessionDriver:
         self._model: str | None = None
         self._closed = False
 
+    @limited("solver-turn")
     def start(
         self,
         workspace: Path,
@@ -152,6 +155,7 @@ class CodexSdkSessionDriver:
             on_session_id(session_id)
         return self._run_turn_attempts(paths, prompt, resumed=False)
 
+    @limited("solver-resume")
     def resume(
         self,
         workspace: Path,
@@ -298,6 +302,7 @@ class CodexSdkSessionDriver:
                         f"Codex {phase} failed after {len(failures)} attempts: "
                         f"{failures[-1]}"
                     ) from exc
+                emit("api_retry", operation="solver", phase=phase)
                 self._sleeper(self._retry_delay(retry_index))
         raise AssertionError("unreachable")
 
@@ -619,6 +624,8 @@ class CodexSdkSessionDriver:
         self.close()
 
     def _write_event(self, log: Any, event: dict[str, object]) -> None:
+        if event.get("type") == "transport.retry":
+            emit("api_retry", operation="solver", phase=event.get("phase"))
         line = json.dumps(event, sort_keys=True) + "\n"
         log.write(line)
         log.flush()

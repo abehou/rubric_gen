@@ -1,0 +1,164 @@
+{
+  "original_local_receipt": "docs/reports/2026-09-09/cue-full-compatibility.json",
+  "sha256": "33400d50743e6d0a2a6e8672bab783f42a2e7c26e06fb95f475a0023fcd6b56d",
+  "job": "10379227",
+  "analysis_hashes": {
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/report-v2/analysis.json": "d75d334102e0b11222a4da79619b6502d7d4ec7220898a57bcf5a24ad72df73f",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/comparison-v1/analysis.json": "78d04e5e4c7e2bcc9140b3ea3cfcc023220517396fbaf6dc0cd8a8204f14d90c"
+  },
+  "comparisons": {
+    "full-static": {
+      "assignments": 60,
+      "inventory_sha256": "c357a4ba431735bae8754bc84fa08f9fb6973d4341d3382a0763fe222aad38fc",
+      "rubrics_sha256": "42bf5bec9a8b71f10e85fc31a22b14c4549d2311b7f7af7e779aeed68d9b7df6",
+      "initial_inputs_sha256": "81dd379ffd1f4629fd58dd74c1846b694c14258f149952fee4ea6137309e3b69",
+      "auditors": [
+        "claude-opus-5",
+        "gpt-5.6-sol"
+      ],
+      "differing_field_counts": {
+        "assignment_id": 60,
+        "condition_id": 60,
+        "execution_order": 60,
+        "experiment_id": 60,
+        "feedback_policy": 60,
+        "feedback_simulator": 60,
+        "live_workspace_dir": 60,
+        "pretreatment_rubric_dir": 60,
+        "rubric_generation_implementation_sha256": 60,
+        "session_id": 60,
+        "submission_count": 41
+      },
+      "initial_inputs_records": 60,
+      "rubrics_records": 60
+    },
+    "full-red-team-trace": {
+      "assignments": 60,
+      "inventory_sha256": "c357a4ba431735bae8754bc84fa08f9fb6973d4341d3382a0763fe222aad38fc",
+      "rubrics_sha256": "42bf5bec9a8b71f10e85fc31a22b14c4549d2311b7f7af7e779aeed68d9b7df6",
+      "initial_inputs_sha256": "81dd379ffd1f4629fd58dd74c1846b694c14258f149952fee4ea6137309e3b69",
+      "auditors": [
+        "claude-opus-5",
+        "gpt-5.6-sol"
+      ],
+      "differing_field_counts": {
+        "assignment_id": 60,
+        "condition_id": 60,
+        "execution_order": 60,
+        "feedback_policy": 60,
+        "feedback_simulator": 60,
+        "live_workspace_dir": 60,
+        "pretreatment_rubric_dir": 60,
+        "rubric_generation_implementation_sha256": 60,
+        "rubric_policy": 60,
+        "session_id": 60,
+        "submission_count": 42
+      },
+      "initial_inputs_records": 60,
+      "rubrics_records": 60
+    },
+    "cue-user-simulator-static": {
+      "assignments": 60,
+      "inventory_sha256": "c357a4ba431735bae8754bc84fa08f9fb6973d4341d3382a0763fe222aad38fc",
+      "rubrics_sha256": "42bf5bec9a8b71f10e85fc31a22b14c4549d2311b7f7af7e779aeed68d9b7df6",
+      "initial_inputs_sha256": "81dd379ffd1f4629fd58dd74c1846b694c14258f149952fee4ea6137309e3b69",
+      "auditors": [
+        "claude-opus-5",
+        "gpt-5.6-sol"
+      ],
+      "differing_field_counts": {},
+      "initial_inputs_records": 60,
+      "rubrics_records": 60
+    },
+    "cue-user-simulator-red-team-trace": {
+      "assignments": 60,
+      "inventory_sha256": "c357a4ba431735bae8754bc84fa08f9fb6973d4341d3382a0763fe222aad38fc",
+      "rubrics_sha256": "42bf5bec9a8b71f10e85fc31a22b14c4549d2311b7f7af7e779aeed68d9b7df6",
+      "initial_inputs_sha256": "81dd379ffd1f4629fd58dd74c1846b694c14258f149952fee4ea6137309e3b69",
+      "auditors": [
+        "claude-opus-5",
+        "gpt-5.6-sol"
+      ],
+      "differing_field_counts": {
+        "assignment_id": 60,
+        "condition_id": 60,
+        "execution_order": 60,
+        "live_workspace_dir": 60,
+        "pretreatment_rubric_dir": 60,
+        "rubric_policy": 60,
+        "session_id": 60,
+        "submission_count": 29
+      },
+      "initial_inputs_records": 60,
+      "rubrics_records": 60
+    }
+  },
+  "launch_receipts": {
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-static-result20/10356969-20260908T125000040002Z/launch.json": {
+      "sha256": "36c0fb17a81e67385b3316b0fb9d5902e3ed904f89f890b8b51ba0c02eed7630",
+      "commit": "409104fd98290f2577d9644b36f43c7a35338c6f",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-trace-result20-checkpoint-retry/10359309-20260908T170958711953Z/launch.json": {
+      "sha256": "1adcc0057522f5d6592cb3b505ee100272581d184e90b99fcee813b75893e6e8",
+      "commit": "1f995dfa53cd51582ce2b3f84db78ceca055a4ea",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-static-result20-local-temp-recovery/10357585-20260908T144317364349Z/launch.json": {
+      "sha256": "6f352d02e85f5cd78f0627c65f0dd2cbd70217a9c5c65edb3297bb702a0570bf",
+      "commit": "653584034445d39dc4429142d30481e1178ee6f0",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-trace-result20-nfs-recovery/10357170-20260908T134639764983Z/launch.json": {
+      "sha256": "332d23fccb952b6474252e05386e43f821857e958cc76da52ff8bcd980f67fb5",
+      "commit": "b4d751da4440c6563c6c72b90538ffee7e853f94",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-trace-result20-checkpoint-recovery/10357852-20260908T161631534340Z/launch.json": {
+      "sha256": "68c2b266a29334312c24fbff9f45abafcf17525dcbdf32827bfce44c53549ed1",
+      "commit": "1f995dfa53cd51582ce2b3f84db78ceca055a4ea",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-trace-result20/10357008-20260908T130128969037Z/launch.json": {
+      "sha256": "83ca2395984af19db60bf08061244873c73aea3aed9e3b149f8b0dd56addb714",
+      "commit": "409104fd98290f2577d9644b36f43c7a35338c6f",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-overnight-20260907/dispatcher-full-trace-result20-local-temp-recovery/10357631-20260908T144923181904Z/launch.json": {
+      "sha256": "840d401d662816b59c4cf3d8c17aff90de189fee227a1666f9675bf6b4817f92",
+      "commit": "653584034445d39dc4429142d30481e1178ee6f0",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/owners/static-results20/10364765-20260909T012747340842Z/launch.json": {
+      "sha256": "2544d015465bcd3a6a8b3fcb944c0082afd49eadc80bc1c939c1661c04a60715",
+      "commit": "0fbe0bbd9acfb8846bb62dbdefa3cfc646c3aa1a",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/owners/static-results20/10364363-20260909T003952901768Z/launch.json": {
+      "sha256": "72f8efa0865bc7acc7cf3a54c588a09c43701df3800bde7587b4d337059fa89d",
+      "commit": "0fbe0bbd9acfb8846bb62dbdefa3cfc646c3aa1a",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/owners/static-results20/10365215-20260909T014309215734Z/launch.json": {
+      "sha256": "99df0747317ee78e1061d325d079b8d364cea654b841292439eb2f786bc04abc",
+      "commit": "0fbe0bbd9acfb8846bb62dbdefa3cfc646c3aa1a",
+      "mismatches": [],
+      "source_count": 153
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/owners/trace-results20/10364364-20260909T004011147111Z/launch.json": {
+      "sha256": "c857d55dbc71c6ec7147f7eb696672f410d01f75e8ec7bbb69994c8e14f980fc",
+      "commit": "0fbe0bbd9acfb8846bb62dbdefa3cfc646c3aa1a",
+      "mismatches": [],
+      "source_count": 153
+    }
+  }
+}

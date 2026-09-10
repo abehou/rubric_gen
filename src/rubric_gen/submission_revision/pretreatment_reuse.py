@@ -9,6 +9,7 @@ import shutil
 from rubric_gen.runtime.yaml import load_yaml_strict
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
+from rubric_gen.submission_revision.execution_scope import terminal_records
 
 
 def scope_id(experiment: Experiment) -> str:
@@ -42,8 +43,12 @@ def source_pool(experiment: Experiment) -> Path | None:
     if root.is_symlink() or not root.is_dir():
         raise ValueError('pre-treatment source study is not a regular directory')
     ledger = read_json_object(root / 'study.json', 'pre-treatment source study')
-    if ledger.get('experiment_id') != original.experiment_id or ledger.get('status') != 'completed':
+    if ledger.get('experiment_id') != original.experiment_id or ledger.get('status') not in {'completed', 'completed_scope'}:
         raise ValueError('pre-treatment source study is not completed with the expected identity')
+    if ledger.get('status') == 'completed_scope':
+        # Validate the declared scope and complete full ledger; inactive cells
+        # may remain pending, but every selected assignment must be completed.
+        terminal_records(original, ledger)
     pool = root / 'pretreatment-rubrics'
     if pool.is_symlink() or not pool.is_dir():
         raise ValueError('pre-treatment source pool is missing or symlinked')

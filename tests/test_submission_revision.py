@@ -2224,7 +2224,8 @@ def test_simulated_user_feedback_sees_full_feedback_artifacts_and_history(
         assert "Guide the assistant toward genuine improvement" in (
             request.instructions
         )
-        assert "Do not expose or quote the rubric" in request.instructions
+        assert "In at most one concern per response, quote one short requirement" in request.instructions
+        assert "Do not quote the rest of the rubric" in request.instructions
         assert public_value in request.evidence
         expected_score = 80.0 if len(requests) == 1 else 90.0
         assert f'"score":{expected_score}' in request.evidence
@@ -3020,8 +3021,12 @@ def test_failed_solver_turn_rejects_a_prompt_that_differs_from_executed_turn(
         ).run()
 
 
+@pytest.mark.parametrize("missing_model", [False, True])
+@pytest.mark.parametrize("invalid_receipt", [None, "session", "model", "exit"])
 def test_resume_promotes_an_existing_valid_submission_snapshot(
     tmp_path: Path,
+    missing_model: bool,
+    invalid_receipt: str | None,
 ) -> None:
     task = _write_task(tmp_path)
     config = _config(tmp_path, task, rounds=1)
@@ -3057,6 +3062,12 @@ def test_resume_promotes_an_existing_valid_submission_snapshot(
     state_path = config.experiment_dir / "state.json"
     state = json.loads(state_path.read_text())
     state["phase"] = "turn_in_progress"
+    if missing_model:
+        state["effective_solver_model"] = None
+        manifest_path = config.experiment_dir / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["effective_solver_model"] = None
+        manifest_path.write_text(json.dumps(manifest))
     state_path.write_text(json.dumps(state))
     turn = config.experiment_dir / "turns" / "turn-001"
     status_path = turn / "status.json"
@@ -3074,7 +3085,26 @@ def test_resume_promotes_an_existing_valid_submission_snapshot(
             "output_errors": [],
         }],
     })
+    if missing_model:
+        status["model"] = "test-model"
+        status["session_id"] = state["session_id"]
+        if invalid_receipt == "session":
+            status["session_id"] = "different-session"
+        elif invalid_receipt == "model":
+            status["model"] = "different-model"
+        elif invalid_receipt == "exit":
+            status["exit_code"] = 1
     status_path.write_text(json.dumps(status))
+
+    if missing_model and invalid_receipt is not None:
+        before = state_path.read_bytes()
+        with pytest.raises(RuntimeError, match="lacks matching completed evidence"):
+            SubmissionRevisionController(
+                replace(config, resume=True), dependencies
+            ).run()
+        assert state_path.read_bytes() == before
+        assert len(session.prompts) == 1
+        return
 
     result = SubmissionRevisionController(
         replace(config, resume=True), dependencies
@@ -3085,6 +3115,15 @@ def test_resume_promotes_an_existing_valid_submission_snapshot(
     recovered_status = json.loads(status_path.read_text())
     assert recovered_status["recovered_on_resume"] is True
     assert recovered_status["status"] == "accepted_after_interrupted_checkpoint"
+    manifest_path = config.experiment_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["submission_count"] == len(result.submission_ids)
+    # The final state may have reached disk before the derived manifest count.
+    manifest["submission_count"] -= 1
+    manifest_path.write_text(json.dumps(manifest))
+    SubmissionRevisionController(replace(config, resume=True), dependencies).run()
+    assert json.loads(manifest_path.read_text())["submission_count"] == 2
+    assert len(session.prompts) == 1
 
 
 @pytest.mark.parametrize(
@@ -3628,3 +3667,18 @@ def test_selected_reference_later_checkpoint_and_resume(tmp_path, monkeypatch, p
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(RuntimeError, match="manifest has invalid fields"):
         SubmissionRevisionController(replace(config, resume=True), dependencies).run()
+
+
+def test_completed_mac_task_identity_is_not_made_resume_compatible(tmp_path):
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=0)
+    dependencies = RevisionDependencies(session=FakeSession(), judge=FakeJudge(task, (80,), tmp_path / "judge"))
+    SubmissionRevisionController(config, dependencies).run()
+    manifest_path=config.experiment_dir / "manifest.json"
+    manifest=json.loads(manifest_path.read_text())
+    manifest["task_dir"]="/Users/source/rubric_gen/data/"+task.name
+    manifest_path.write_text(json.dumps(manifest))
+    before=manifest_path.read_bytes()
+    with pytest.raises(RuntimeError):
+        SubmissionRevisionController(replace(config,resume=True), dependencies).run()
+    assert manifest_path.read_bytes()==before

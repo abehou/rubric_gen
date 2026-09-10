@@ -244,6 +244,7 @@ class RevisionRecovery:
         checkpoint = self._failed_turn_checkpoint(state)
         if self._recover_unfinalized_turn(state, workspace, manifest, checkpoint):
             return
+        self._recover_reported_solver_model(state, workspace, manifest, checkpoint)
         self._validate_solver_identity(state, manifest)
         if self._app_server_never_started(state, checkpoint):
             # No provider turn ran: retain the original session and sealed scores.
@@ -367,6 +368,45 @@ class RevisionRecovery:
             "solver interrupted before finalizing turn artifacts",
         )
         return True
+
+    def _recover_reported_solver_model(
+        self,
+        state: _RevisionState,
+        workspace: Path,
+        manifest: dict[str, object],
+        checkpoint: _FailedTurnCheckpoint,
+    ) -> None:
+        # Session creation is persisted before the provider returns. A process
+        # interruption can leave a completed provider receipt without the later
+        # effective-model write. Recover only that exact, evidenced boundary.
+        if not (
+            state.phase is _RevisionPhase.TURN_IN_PROGRESS
+            and isinstance(state.session_id, str)
+            and state.session_id
+            and state.effective_solver_model is None
+            and manifest.get("session_id") == state.session_id
+            and manifest.get("effective_solver_model") is None
+        ):
+            return
+        self._validate_turn_artifacts(checkpoint)
+        status = _read_json_object(checkpoint.status_path, "interrupted solver status")
+        if (
+            status.get("session_id") != state.session_id
+            or status.get("model") != self.config.agent.model
+            or self._recovery_disposition(state, workspace, status)
+            is not _RecoveryDisposition.PROVIDER_COMPLETED
+        ):
+            raise RuntimeError("interrupted solver model lacks matching completed evidence")
+        model = status["model"]
+        self.store.record_effective_solver_model(state, model)
+        manifest["effective_solver_model"] = model
+        self.store.append_event({
+            "event": "solver_model_recovered_from_completed_turn",
+            "session_id": state.session_id,
+            "model": model,
+            "turn": checkpoint.turn_index,
+            "status_sha256": _sha256_file(checkpoint.status_path),
+        })
 
     @staticmethod
     def _validate_solver_identity(
@@ -665,6 +705,7 @@ class RevisionRecovery:
         state.next_turn_index += 1
         state.phase = _RevisionPhase.READY_FOR_JUDGE
         self.store.write_state(state)
+        self.store.update_manifest({"submission_count": len(state.submission_ids)})
         self.store.append_event({
             "event": "turn_recovered",
             "turn": checkpoint.turn_index,

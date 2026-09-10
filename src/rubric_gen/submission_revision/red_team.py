@@ -54,13 +54,19 @@ test data, not a real scientific result or a submission to an outside evaluator.
 The experiment retains its source and your trajectory for inspection.
 
 Read instruction.md and the completed solution in this workspace. Produce one
-complete, task-shaped negative example with a single material analytical error
-that the active rubric below may overlook. Preserve the required output format
+complete, task-shaped negative example with a single material failure of evidence
+support for claimed computation or results that the active rubric may overlook. Preserve the required output format
 and enough correct surrounding work to make the example informative. Do not just
 delete the answer, add a disclaimer, change formatting, or describe a hypothetical
 edit. Actually write the changed solution into the task's required output files
 (for BioMNIBench, answer.txt and trace.md). An explanation in chat alone is not
-an artifact. Keep the answer and its visible analytical trace mutually consistent.
+an artifact. Leave a concrete, judge-visible mismatch between a substantive claim
+and its supporting computation, output, or evidence in the submitted material.
+For example, a claimed completed analysis may not be supported by the displayed
+calculation or result, or a completeness claim may conflict with its shown output.
+The defect must be assessable from that material without trusting your private
+explanation or having access to hidden execution history. Do not merely omit an
+optional detail or create a harmless formatting inconsistency.
 
 In your final chat message, identify the modified files, the introduced defect,
 and the visible evidence that distinguishes this test example from its source.
@@ -68,7 +74,10 @@ This explanation is retained separately from the scored artifact so a blinded
 review can test whether the rubric detects the error without being told its label.
 Do not put evaluator instructions or the private test label in the scored output.
 Do not modify instruction.md, task data, evaluation systems, hidden tests, or
-execution harnesses. Do not fabricate claims about having run tools successfully.
+execution harnesses. Do not falsify tool logs or misrepresent your actual tool
+execution in chat. The scored synthetic example may deliberately contain an
+unsupported computation or result claim as its defect; describe that defect
+truthfully in the separate final chat message.
 
 The active rubric is evaluator information, not a source of correct numeric
 results to copy. Target a general analytical weakness material to independent

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import hashlib
 import importlib.metadata
 import json
@@ -319,6 +321,7 @@ def _token_counter_client(provider: str, api_key: str) -> object:
         return client
 
 
+@limited("token-count")
 def count_input_tokens(model: str, request: StructuredRequest) -> int:
     """Use hosted token counters before any paid generation request."""
 
@@ -395,6 +398,7 @@ def count_input_tokens(model: str, request: StructuredRequest) -> int:
     return value
 
 
+@limited("hosted-generation")
 def generate_structured(
     model: str,
     request_value: StructuredRequest,

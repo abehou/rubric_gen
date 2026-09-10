@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import hashlib
 import json
 import math
@@ -358,6 +360,7 @@ def _request_parameters(
     }
 
 
+@limited("rubric-audit")
 def _generate_response(
     spec: RubricScoreRunSpec,
     *,

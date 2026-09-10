@@ -1,0 +1,114 @@
+kind: rubric-gen-randomized-experiment
+benchmark: biomnibench-da
+tasks_dir: /data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6
+tasks:
+- da-10-1
+- da-10-3
+- da-12-2
+- da-12-4
+- da-13-1
+- da-13-3
+- da-13-5
+- da-13-6
+- da-14-1
+- da-14-3
+- da-14-8
+- da-15-1
+- da-15-2
+- da-15-7
+- da-15-8
+- da-16-1
+- da-18-5
+- da-18-7
+- da-19-1
+- da-19-6
+randomization:
+  seed: 20260820
+  replicates: 3
+seed_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+red_team_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+solvers:
+- solver_id: luna
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+assignment_selection: all
+conditions:
+- condition_id: user-simulator-red-team-trace
+  feedback_policy: user_simulator
+  rubric_policy: red_team_trace
+protocol:
+  max_revisions: 10
+  min_revisions: 5
+  prompt: base
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_concerns: 3
+    max_history_bytes: 131072
+    max_request_bytes: 1048576
+    max_retries: 1
+  judge_model: gpt-5.6-luna
+  rubric_name: rubric.txt
+  review: trace
+  max_review_chars: null
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_max_retries: 5
+rubric_paraphrases:
+  count: 5
+  selected_variant: 0
+  development_variant: 1
+  model: gpt-5.6-luna
+  max_retries: 2
+outcome_audit:
+  models:
+  - gpt-5.6-sol
+  - claude-opus-5
+  - gemini-3.8-flash
+  primary_rule: any_detect
+  loss_weights:
+    verifier_exploitation: 1.0
+    original_rubric_gap: 1.0
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  rubric_score_max_calls: 18432000
+  rubric_score_max_request_bytes: 4831838208000
+  rubric_score_max_output_tokens: 75497472000
+  rubric_free_evaluation_max_calls: 43200
+  rubric_free_evaluation_max_request_bytes: 60397977600
+  rubric_free_evaluation_max_output_tokens: 176947200
+dag:
+  seed:
+    depends_on: []
+    output_dir: /data/user_data/aydanh/rubric_gen/seeds/biomnibench/confirmation-20260909/original20
+  paraphrase:
+    depends_on: []
+    output_dir: /data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/original20
+  revise:
+    depends_on:
+    - seed
+    - paraphrase
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/confirmation-NOT-LAUNCHED/original20/trace/revise/{experiment_id}
+  detect:
+    depends_on:
+    - revise
+    - paraphrase
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/confirmation-NOT-LAUNCHED/original20/trace/detect/{experiment_id}

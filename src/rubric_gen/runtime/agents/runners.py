@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited
+
 import json
 import os
 import re
@@ -102,6 +104,7 @@ class AgentRunner:
     def build_command(self, paths: RunPaths) -> list[str]:
         return self.adapter.build_command(paths, self.config, self.prompt)
 
+    @limited("solver-process", returns_exit_code=True)
     def stream(self, paths: RunPaths) -> int:
         self.adapter.prepare_run(paths, self.config, self.prompt)
         command = self.build_command(paths)

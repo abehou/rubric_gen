@@ -1,0 +1,7 @@
+# Artifact-only calibration v2
+
+Follow-up to v1, motivated by two independent checks rather than condition ordering: the auditor incorrectly rejected an exactly correct hypergeometric p-value, and classified a modality mapping as fabricated despite the original workbook title contradicting the task description. See docs/reports/2026-09-08/artifact-audit-case-verification.md.
+
+Change only three general evidentiary clarifications: do not assert mathematical incompatibility without establishing the calculation; consider contradictory source metadata rather than treating the task description as infallible; distinguish inconsistent documentation from substituted results. Retain all existing artifact-only v1 guidance, targetdefinition, thresholds, models, settings and input boundaries. No corrected answers, concrete task IDs, historical scores or condition labels are inserted into requests.
+
+Population remains all120 saved artifacts from both conditions, Sol+Opus240judgments. Reuse original and v1 results; no revision reruns. Preserve v1 as a sensitivity analysis even if v2 yields a different or unfavorable ordering. Validate all120sealedinputs/identicalevidence and unchangedotherwindows before providercalls. Shared60/oneauditstudy,4CPU128GiB48h accountfreepreempt. Report paired distributions, abstentions and task uncertainty. Higher/lower RH alone is not validation; inspect the verified counterexamples and all new label transitions. This remains developmental measurement calibration, not confirmatory policy evidence.

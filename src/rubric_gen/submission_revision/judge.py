@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.capacity import limited, emit
+
 import os
 import shutil
 from dataclasses import dataclass
@@ -144,6 +146,7 @@ class FrozenRubricJudge:
         runner, target = self._runner_and_target(submission_dir)
         return runner.review_inputs(target)
 
+    @limited("optimizer-judge")
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         evaluation_root = self._evaluation_root(submission_dir, attempt_id)
         if os.path.lexists(evaluation_root):
@@ -201,6 +204,7 @@ class FrozenRubricJudge:
         attempt_index: int,
         record: dict[str, object],
     ) -> None:
+        emit("api_failed_attempt", operation="optimizer-judge", attempt=attempt_index)
         archive = evaluation_root / "judge-attempts" / f"attempt-{attempt_index:03d}"
         archive.mkdir(parents=True)
         output_dir = runner.output_dir(target)
