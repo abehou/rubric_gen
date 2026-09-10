@@ -1,3 +1,7 @@
+## 2026-09-09 — Publication and cleanup complete
+
+- 22:18 EDT: Missing Git identity caused commit failure while a non-fail-fast shell continued to push old6719ce3; corrected the exact tip with a lease-protected update to clean9eea696 and verified remotely. Future publication must set the established identity and check every subprocess before pushing; local prior history and raw payload hashes remain preserved.
+
 ## 2026-09-09 — Accepted baseline checkpoint
 
 - 22:09 EDT: Restored the active submission-revision package exactly to validated7cf34ef (0fbe0bb plus314ea3d/30ae38e), retaining transport-only token-count retries; later method variants and the unlaunched retention draft are excluded from the active method and preserved historically. No producer hashes or resume identities were changed.

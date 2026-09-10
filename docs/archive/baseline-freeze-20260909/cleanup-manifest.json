@@ -1,0 +1,2798 @@
+{
+  "job": "10380691",
+  "hostname": "babel-l5-16",
+  "phase": "completed",
+  "removed": [
+    {
+      "path": ".pytest_cache/README.md",
+      "bytes": 302,
+      "sha256": "73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": ".pytest_cache/.gitignore",
+      "bytes": 37,
+      "sha256": "3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": ".pytest_cache/CACHEDIR.TAG",
+      "bytes": 191,
+      "sha256": "37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": ".pytest_cache/v/cache/nodeids",
+      "bytes": 67423,
+      "sha256": "2e0f0edb797846f995a0ddd23c6ccc13bfabd89fd407123d316d87a278b94248",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": ".pytest_cache/v/cache/lastfailed",
+      "bytes": 2,
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 230,
+      "sha256": "eb26f6ab48da6ab7993c8f868ae143a0f25289eb9493d11bc892eb130f322e22",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/artifacts/__pycache__/serialization.cpython-312.pyc",
+      "bytes": 2306,
+      "sha256": "32532203c318368c2e2fed89f7bb98b0051d4dc5ed2136b6b053934aa91589c7",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/artifacts/__pycache__/hashing.cpython-312.pyc",
+      "bytes": 1683,
+      "sha256": "0139efe54ac3ad94502d9e79a2a2f673726090b4606e7fa5077782e609a7ee17",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/artifacts/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 433,
+      "sha256": "149d0f91310557b03f3663f2de78280190dfc31f50e5111e2b7f552c9ec1635d",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/__pycache__/base.cpython-312.pyc",
+      "bytes": 5926,
+      "sha256": "c72d383059742288d8ca905660e719f8bb176e11040c1bee80b763bed7c1afc5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/__pycache__/registry.cpython-312.pyc",
+      "bytes": 1089,
+      "sha256": "55e1f885cd3b90fe823368f6492f1b053fc0ec3b19d71ec8eb2a75b9e94864c0",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 498,
+      "sha256": "2f2f8bed6498496153dc52a0625bd62e6ab0cf1027d0506473b974284ca86a68",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/biomnibench_da/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 340,
+      "sha256": "d3e4121f4b05bfe1a76db6cc19f2641b3a30fceeadbe07c3bc5533bb07e52abb",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/biomnibench_da/__pycache__/contract.cpython-312.pyc",
+      "bytes": 5836,
+      "sha256": "3adc76958e6fd1d396ee4a3395b8a98fcc279e8631900a54befd9419ef4067a9",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/paperbench_code_dev/__pycache__/submission.cpython-312.pyc",
+      "bytes": 2539,
+      "sha256": "a2f5ddc99ca8250c027dd64ac254ee931ffa61f08f885b5e18637a6df32ac814",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/paperbench_code_dev/__pycache__/contract.cpython-312.pyc",
+      "bytes": 9519,
+      "sha256": "ba4f924fed5745aeeecdf1624249da7a069751ed5bc71857d6aa93d06e74ef6e",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/paperbench_code_dev/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 781,
+      "sha256": "359f08f10d2026d60726141ac1915e641dd7378b79856800837b894be98bd118",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/benchmarks/paperbench_code_dev/__pycache__/dataset.cpython-312.pyc",
+      "bytes": 31352,
+      "sha256": "1ad7653cbd97d186729dfd10bc5592cb230d9bc2f1e8b95b3b3dc2fc31607734",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/metrics.cpython-312.pyc",
+      "bytes": 22768,
+      "sha256": "46cf425137da7b3846c7fb9d4ecb6825e9b9df316012b24289bfb403df5281f0",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/targets.cpython-312.pyc",
+      "bytes": 6655,
+      "sha256": "0b1c48aa7f084c41393572df10488a8dae2c8ef9a60d6aff71a8715afa61ac7d",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 236,
+      "sha256": "922caf8122d4c4477081b649f417afb08d842e6695af374d7108d52bfab4a3ff",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/costs.cpython-312.pyc",
+      "bytes": 4269,
+      "sha256": "c7983b594f4dfaf7bc3f33bd4a61bd431d65e2de9cb6584395fdd2cb77b9efca",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/prompts.cpython-312.pyc",
+      "bytes": 22289,
+      "sha256": "b65ce4d3b2b8aded220b9477f42eec1b8a1d04e471330ce11a47d0fb42af8738",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/job_runner.cpython-312.pyc",
+      "bytes": 19914,
+      "sha256": "9395ee25408770f5d681c54f295a1cd096a657237c7576966e8d9f10e0964e34",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/jobs.cpython-312.pyc",
+      "bytes": 5644,
+      "sha256": "3097737ee75bf57f5e566b4ffe2fcf3ad9ba8a1c2d5463752f8ea9091f99a7bb",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/sources.cpython-312.pyc",
+      "bytes": 15590,
+      "sha256": "3aa322dc4e5de32c748a925fd59281a53f167a701f53d0d5a4029e84b66741dc",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/runner.cpython-312.pyc",
+      "bytes": 19365,
+      "sha256": "244445910cf4d0cdbdd47cd52bd23dd88afd11e349091e2a83062ffd97c7d32c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/config.cpython-312.pyc",
+      "bytes": 1378,
+      "sha256": "3e0ebef7af947877d52cba4ee0c695c94cf8fb732f6f7f7413e909ef3af08cdf",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/detection/__pycache__/planning.cpython-312.pyc",
+      "bytes": 6564,
+      "sha256": "0b67bd0ee707dbe97359d69ef185543ff3e1066e74c56706badebcbf322efa1b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/evidence/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 227,
+      "sha256": "dcc00444188d88d3618dbf9032c5fb1dd1001eb6a5e2730037df8a203af101e1",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/evidence/__pycache__/index.cpython-312.pyc",
+      "bytes": 24316,
+      "sha256": "32ed4b079cb1f38720e3622964eaf6390d914b66b5b59a0363f631478ac076ab",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/paths.cpython-312.pyc",
+      "bytes": 1956,
+      "sha256": "496cc81e43238050c3495c979f198ca3e099b5b51e3c406ab7c78f4f5d3ae4c5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/pricing.cpython-312.pyc",
+      "bytes": 2050,
+      "sha256": "8bf58280dfe1f975f27fa1f4452139949ee24621343c4a0e9ace0e61f3c7e0a5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/llm.cpython-312.pyc",
+      "bytes": 19589,
+      "sha256": "30485655135e55bcf1d375b617158f8b55478042ff9bdfa07bff06889dce9aac",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/yaml.cpython-312.pyc",
+      "bytes": 2118,
+      "sha256": "ec0ccd872815b91c98624b82fbaa37d3b52bfee18ea198fea24485807e4fe388",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/progress.cpython-312.pyc",
+      "bytes": 2735,
+      "sha256": "f916a367d6f4bf1c022d60f93c339ebbcc4f6b41551d0e78d87ec6505a85d573",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/capacity.cpython-312.pyc",
+      "bytes": 21240,
+      "sha256": "1a452b6bd352111ea4f87341accb92787cad760b7585d71019ec5a9294d0d71e",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 225,
+      "sha256": "d3130e1809f4bb83f0dc4a6cb3d9cabc7ffa4eec32f6262cd09486ae7f90ce0e",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/costs.cpython-312.pyc",
+      "bytes": 12328,
+      "sha256": "58e781f8ffe53b14342fd673e7a9b1cbbcfa5eda60bf7313958010be5425b014",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/adapters.cpython-312.pyc",
+      "bytes": 19008,
+      "sha256": "b64060cea4577dbd4882b0cc0c047531a3872a5d96befad56154a40277cf5c1c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/codex_sessions.cpython-312.pyc",
+      "bytes": 29905,
+      "sha256": "5f08c07189ede579d261bdd8ddfbb72f3570a2f10bcf6499fc27d17488bf5a0b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/codex_events.cpython-312.pyc",
+      "bytes": 6136,
+      "sha256": "030d1d2127672a86b8fd63594b3d83378f3e22b32ba5a52c5662b66e4430c978",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/sessions.cpython-312.pyc",
+      "bytes": 26626,
+      "sha256": "82253504ca5dc5d5804149e37e7012ecfca7d36a66dd5d998d0a0889e0f93983",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/events.cpython-312.pyc",
+      "bytes": 1448,
+      "sha256": "9330174575fbb0970a4bb203ebbfc30c216f78ea3d97e54ce02c0a702335ddb6",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/policy.cpython-312.pyc",
+      "bytes": 651,
+      "sha256": "f7a2aa95b89997266c2890157e7d5da61365587ee41de7698ffc0db98a5f999a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 929,
+      "sha256": "edbb73749339b91f4b1ccc7674975c9981eb78177baf8880726febfb71d3091c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/contracts.cpython-312.pyc",
+      "bytes": 3012,
+      "sha256": "2cc0e276f1c51e8bfccae93a244acbc53f46d856e3c2d1c4639ffd492fc28726",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/codex_app_server.cpython-312.pyc",
+      "bytes": 13258,
+      "sha256": "d3817a6ef007d00958dc8bf68393ba885798e45bd09f646bb6e49134c7e021d3",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/runners.cpython-312.pyc",
+      "bytes": 22184,
+      "sha256": "956a4159266114d3c85ee354715365c9f5667de221f1a360ea84bed76f7031c4",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/models.cpython-312.pyc",
+      "bytes": 4296,
+      "sha256": "ad2c34ea8ac906a712d1fcd66f3188b3dfd186c00b44e5be5a0ecd77dd80184a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/workspaces.cpython-312.pyc",
+      "bytes": 6784,
+      "sha256": "e743c4cc3350039d9ff59a4f8e57d90c61e381bb870c93efd3cd770f5ec147d0",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/agents/__pycache__/codex_rpc.cpython-312.pyc",
+      "bytes": 7731,
+      "sha256": "6209e3a782c82436c7a9b356567b42962a3a1e5df63db520fd2fd4e5b093c213",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/integrations/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 369,
+      "sha256": "90098ffeb5a4d0b3c7e47c196a6d7574f46ac73360864ec0eec6093e8b3aa3b6",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/runtime/integrations/__pycache__/gemini.cpython-312.pyc",
+      "bytes": 9648,
+      "sha256": "70def08e5d88f5451bf7633f96e231fd182b45cbe9c85f9b1ebe96c8dbbad497",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/original_rubric_summary.cpython-312.pyc",
+      "bytes": 7838,
+      "sha256": "7d657c477743951bd873dddc59e9f6dbfed3732524f5bd41ce0fe49e6888f9d5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller_setup.cpython-312.pyc",
+      "bytes": 12023,
+      "sha256": "631ec8f9e17068e962d582b3c502db44864ad504fe2217ea84b054e70d8881e0",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/rubric_generation_store.cpython-312.pyc",
+      "bytes": 14563,
+      "sha256": "0bea7089558355114574360d1541924773a80a90d009dc84e1dc746f44383a26",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/artifacts.cpython-312.pyc",
+      "bytes": 28798,
+      "sha256": "5912becce7cd7efa1ce1e6fa2cf16f9a8e6a6e8b963fa44d7d5f019d2009c820",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/experiment.cpython-312.pyc",
+      "bytes": 38239,
+      "sha256": "d31d7e02eb9b96cec9f0d95c2f81b8ed951164b7f09fe7f1398e587c5fdb9d42",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/commands.cpython-312.pyc",
+      "bytes": 16477,
+      "sha256": "e59b7c65f40fc0c31b760123e03cbc913ccddacbbc873250686a5c2f54378cf2",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/user_simulator.cpython-312.pyc",
+      "bytes": 32633,
+      "sha256": "1d1591d0b597e736ed0575ddbe1e393ffcea0343c5528c7d0323167315238a8a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/judge.cpython-312.pyc",
+      "bytes": 17492,
+      "sha256": "958b47c706d254ce80299d513ca4afa2a09ca956aca2080f011b993250791fe9",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 402,
+      "sha256": "a1235890a7b4d8160b9614b755e93077127014ba49a197b87ca4043981076654",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/judgment_reuse.cpython-312.pyc",
+      "bytes": 26006,
+      "sha256": "5644dccb1521702bf0312e371e024dba4a266622ed24675a779a06a0f178e6ba",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller.cpython-312.pyc",
+      "bytes": 26559,
+      "sha256": "c99b450990cc28bc87129881502580524e3f26b4157ff8b52c1e98cd343ab77b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/paraphrase_protocol.cpython-312.pyc",
+      "bytes": 25178,
+      "sha256": "d7eb40d9533f4d9de1909ef6eb9a4412e58bee28ba4c11aac58cdc20fe20de98",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/prompts.cpython-312.pyc",
+      "bytes": 11530,
+      "sha256": "64ea9abe2fa09cfc14fa376e14b1f39ed96ea147f8272083654dc0151f7b7a4a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/user_simulator_history.cpython-312.pyc",
+      "bytes": 4092,
+      "sha256": "ae3bf2e3fdba348a804713e921b7ab26e10fb8e819721a606b3c529bc888d769",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/study_validation.cpython-312.pyc",
+      "bytes": 1309,
+      "sha256": "7669434c829f0aff1d29fc79080afd6195250d283985a16402befbefbefe551a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/study.cpython-312.pyc",
+      "bytes": 37364,
+      "sha256": "83f798a350b729165ea15cecb0013855b6fdbe5eb5095902313b590a9c8f6d4a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller_workspace.cpython-312.pyc",
+      "bytes": 14635,
+      "sha256": "e101b3c9f5cfe11fea69d27c7e5f47983e05df8622845c436adbd23839ffb994",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/autorubric.cpython-312.pyc",
+      "bytes": 14199,
+      "sha256": "a743dc871b2215a7353be9fd6018ac46df7156adee8176aecc1331ca3c2e7c00",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_validation.cpython-312.pyc",
+      "bytes": 6758,
+      "sha256": "c6147561430057bf9819500163d3b08185f2fd1a7ad6a66b063a393a160192ed",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_provider.cpython-312.pyc",
+      "bytes": 13026,
+      "sha256": "98b2b0fefc7c28328b035d95469cee570630c056745d5e5c769b938847b0ff76",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/original_rubric_inputs.cpython-312.pyc",
+      "bytes": 21140,
+      "sha256": "a57c44f90fdaae3c36a959561f53301cd384cba6d3ad31be3268c13337f3721e",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller_recovery.cpython-312.pyc",
+      "bytes": 44707,
+      "sha256": "ae5a71a6469dae11adf5504de97c6afe3dcedbda9036f99e76985605022b198d",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_request.cpython-312.pyc",
+      "bytes": 3608,
+      "sha256": "32fd88a59e8f73afb437f70dd5713440732e6569339a7d1422c6f19b5ebc5eb2",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_assessment.cpython-312.pyc",
+      "bytes": 28119,
+      "sha256": "87521fdf024aab6ac9ae9544a5730314909c9d39db61128ad70daef05f0d4330",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/seeds.cpython-312.pyc",
+      "bytes": 40439,
+      "sha256": "03e7a10d5b4e3af883986520e0b3679cb3a7e127ecd2f2be18275bee82184dee",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/execution_scope.cpython-312.pyc",
+      "bytes": 4222,
+      "sha256": "d97a4bc842e80deefbf57bace0d4e4a64de4c280fc0aaf12be8d632c34ab260b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_serialization.cpython-312.pyc",
+      "bytes": 1818,
+      "sha256": "3b19cc9571c496ad2ab2903243f73a9f714547b72633160767fe4d95d00ea8b4",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/original_rubric.cpython-312.pyc",
+      "bytes": 38176,
+      "sha256": "382a7c40c89d2c454b6915e3ea136a169c23cd8bd57d67831527c9c61a6db0b6",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_cache.cpython-312.pyc",
+      "bytes": 2697,
+      "sha256": "e069838ae898a7c3df7e937b29ddc4dfd73419ef952b7a0fcde13c5c7d985717",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/detection_windows.cpython-312.pyc",
+      "bytes": 898,
+      "sha256": "e4aa364baff75c4ce098ebca433fa285a192f2e7400a0385e9e039711a50d29f",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller_scoring.cpython-312.pyc",
+      "bytes": 35278,
+      "sha256": "5912f7c7989447cc6f432cae5013672f220e0f429273ff933420fa3559a87926",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_validation.cpython-39.pyc",
+      "bytes": 5089,
+      "sha256": "bf69664f2643159b01c3e5719f666a0dc815d0fec3d19ab75475eb7e4ab4d4d7",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution.cpython-312.pyc",
+      "bytes": 36397,
+      "sha256": "140db36b738d291116b67b3b3c02679bb4f9042f628addb4e6feb2385aea5174",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/study_validation_context.cpython-312.pyc",
+      "bytes": 20455,
+      "sha256": "f6d8af8bcf4d4c07f92aee9ea37b25475d9f08f63f4e57ce9124ed006ee5ed07",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/rubric_generation.cpython-312.pyc",
+      "bytes": 30117,
+      "sha256": "aab030d532997f3e72ffcf3005792ea080b3b56f374bc37a6620b3af9c2408d8",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/store.cpython-312.pyc",
+      "bytes": 8314,
+      "sha256": "af0a76274318c6fb2283ca1bc28ef7c82a8e8f10e2ccf2ef36f6a314896277f9",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/pretreatment_rubrics.cpython-312.pyc",
+      "bytes": 16634,
+      "sha256": "a5cd83deb5cecff827a46c882f303407fb0a35ac1f6445f3000f72681851ee91",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller_reference.cpython-312.pyc",
+      "bytes": 2994,
+      "sha256": "274759356c1ddec5f55027a64dcc01eb103132ef36524b6e1abbfd7052e74a37",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/pretreatment_reuse.cpython-312.pyc",
+      "bytes": 9534,
+      "sha256": "23987dfffb14938eddd2d058357d8848c9ebe833279af56edd28d7a5527c6ea9",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/paraphrase_validation.cpython-312.pyc",
+      "bytes": 15746,
+      "sha256": "fb231686c1d4de348c05494c2a7c3b2822dd8b23eebb25af114522fa59c70b8a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_stage.cpython-312.pyc",
+      "bytes": 3820,
+      "sha256": "3bb104568141d5e4bedee17e28913b28ecfb94f427caad531fdc2f028191a055",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/generation_scoring.cpython-312.pyc",
+      "bytes": 3510,
+      "sha256": "d80d999bdd069de3a9874737230bb41e2ba674bd6777e9490fcc7b19a36291b4",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/contrasts.cpython-312.pyc",
+      "bytes": 15309,
+      "sha256": "9c4b91d034e37c33abdb04ea744eed0291881d80190953a03454045369cab9ef",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/controller_recovery_artifacts.cpython-312.pyc",
+      "bytes": 5394,
+      "sha256": "da4b65e80bf9cd3657539113f68e9fd80b97d3e2f60a642ca1d9eb8cb842355e",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/red_team.cpython-312.pyc",
+      "bytes": 16762,
+      "sha256": "503a043bbb6e82f55864b51aa2c1d53e1e74c1532289ee97ec6f04f7d2ac268a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/study_layout.cpython-312.pyc",
+      "bytes": 1760,
+      "sha256": "7677611b761f327e036b2d1fc6dfedae34b5d56bcde023515fd38a165dd24434",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/feedback.cpython-312.pyc",
+      "bytes": 32444,
+      "sha256": "835b8e09f317b35fe20b5d3d0a7c6b7fa36b81bfa23075748dcc393bf9c2ec14",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/models.cpython-312.pyc",
+      "bytes": 16720,
+      "sha256": "26e08d81b0d17365f154a48e2cbdda178294d2efc2d4470a7afa110e848f1859",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_artifacts.cpython-312.pyc",
+      "bytes": 18757,
+      "sha256": "16a4bb3ddd9127dce264a2a2f6ad8f74a8c0b7fbb5d8b0f28930de6c10975294",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/assignments.cpython-312.pyc",
+      "bytes": 3229,
+      "sha256": "88f0f7a214fa71d156348ff3cab01fbf3e57c5c9964ae4787e128ff3328b5db5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/evolution_protocol.cpython-312.pyc",
+      "bytes": 38448,
+      "sha256": "a7d6a736cfb6b75973583a392fc1de6261cdc65956468bd06e8df94336926a69",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/paraphrases.cpython-312.pyc",
+      "bytes": 28733,
+      "sha256": "6546e3e2499a150018d1c2bb29fcfd385b24b7f2af2faa6c1453c688ae15cbd5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/__pycache__/study_validation_artifacts.cpython-312.pyc",
+      "bytes": 32575,
+      "sha256": "1c67a7e82d4b77793042f166039f6c7d8e2ef8618bc1941cdac2c9ca102aa4c1",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/rubric_score.cpython-312.pyc",
+      "bytes": 31104,
+      "sha256": "31113573a36d2adfc8719adadddc7fed156f2a5dd2ee4e6b6e87cac0890116f0",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/panel_bounds.cpython-312.pyc",
+      "bytes": 4099,
+      "sha256": "b51cbbb3a245f55138ebf5c005ac21ad6e999e8d8f44d815bd4638fbe414812c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/targets.cpython-312.pyc",
+      "bytes": 19891,
+      "sha256": "177958ef4db427e47b2f30476981c37cabe9d31c4ab1385030e084a7ae352a14",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 246,
+      "sha256": "88eea3b0c85bb7b2cadcdf90055238989681f8792514f4045262f3cb27dcf0c5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/evidence.cpython-312.pyc",
+      "bytes": 16874,
+      "sha256": "1c241db7c34ba2081b470baca1f7da547535ae491337176cfbc3583d61e0803d",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/store.cpython-312.pyc",
+      "bytes": 10888,
+      "sha256": "c6439acd2886bc6339ca555e6f3b79696793e7fa7253da91b4ce7536432e46ce",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/rubric_judge.cpython-312.pyc",
+      "bytes": 35118,
+      "sha256": "e43ba42137124869e2c7e67eaafd9f29aec69698fa531ca7a8fa6a03b70fd37b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/jobs.cpython-312.pyc",
+      "bytes": 35139,
+      "sha256": "c429b071c909376bf6482c1fd5cefb5103784340cfdde9de23b8766b85651fa8",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/direct.cpython-312.pyc",
+      "bytes": 8708,
+      "sha256": "583ffc4d31e0f6426f552e15c40e93ffe88225c1c78173bae74fcd59aa2cf03a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/runner.cpython-312.pyc",
+      "bytes": 31595,
+      "sha256": "4e047bab4f86556afc60e5d83d6d3e7f86f54bd16b8d5b96648969014f098e54",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/evidence_ledger.cpython-312.pyc",
+      "bytes": 20819,
+      "sha256": "4615c6e2ff2efb3623ec95630da3cda7c04b3e4fbef46aa80824fa29d4dbfbd1",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/config.cpython-312.pyc",
+      "bytes": 6052,
+      "sha256": "8e0f76deb032f2554801786d2d7059e65d004438b525ea7bf8a949dd18ef8eb2",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/score_execution.cpython-312.pyc",
+      "bytes": 15853,
+      "sha256": "852d78fc618ae07a0ae5ed0fc8b3cbefa10fe89e980da240c3176df947056c01",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/pairwise_preference.cpython-312.pyc",
+      "bytes": 5157,
+      "sha256": "7f8470236146f20bb64cf5ef1e40b43082e7f51b18a7fac2b3ade5b5b4cd5c46",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/evaluation/__pycache__/absolute_score.cpython-312.pyc",
+      "bytes": 4444,
+      "sha256": "4a25c1cc9b13fa5e494b1e00dd7fa2c5047d8d51016ecef684d066f8df1c66ea",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/scoring.cpython-312.pyc",
+      "bytes": 9561,
+      "sha256": "8fd8e0c9be47517462edfe614ff4d206eab56a018bfec129eecf4bf4fd8f6cd3",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/runner.cpython-312.pyc",
+      "bytes": 36790,
+      "sha256": "88d86390a28d84c1d6ace30286d2e3fc4e3dad68b651c14991ef9049cfd9a6e4",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/models.cpython-312.pyc",
+      "bytes": 8952,
+      "sha256": "1f97b15516c811047a4740e206d0baf4ff639873041f0d72dc080e30e7e96224",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/artifacts.cpython-312.pyc",
+      "bytes": 22919,
+      "sha256": "e01419ae1998494100ef4b9bf9c98c5b3e9fda28a4a6957cef252ccea95b4570",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/preflight.cpython-312.pyc",
+      "bytes": 4135,
+      "sha256": "560f8adb14b36a60fa95712dcecae27c18f2bc75352b06d85a740cae0c63c5c5",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/executor.cpython-312.pyc",
+      "bytes": 22892,
+      "sha256": "684e19d194a3165f9cf15ca52c9dab7dc6d7c05232b8d212245041dbd7444ec6",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/full_rubric_judge.cpython-312.pyc",
+      "bytes": 9409,
+      "sha256": "a9d6dbf573c2dbf005f2a70b3a3afd9c9916bbc62e26c9dd1c6d9476f72bbe7b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/full_rubric_protocol.cpython-312.pyc",
+      "bytes": 26540,
+      "sha256": "a82bf6681a5dcf83e11823f821a6ee318eddf8068665366a58bc64a76707ddf7",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 245,
+      "sha256": "bf3a7a2b848f2154d4ed291e38e70f40f5ddd266afda01b501bb7dd3f5e8d108",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/judging/__pycache__/discovery.cpython-312.pyc",
+      "bytes": 18667,
+      "sha256": "cc819e024addb379d55caa0beb00d8929ebfb5cbff9e23414f325f044aadd86f",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/rubrics/__pycache__/snapshots.cpython-312.pyc",
+      "bytes": 26695,
+      "sha256": "f7816cb484a5f37bb2d5b1e4633b30962f7bd50f0d05a2046b793502c8ab2044",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/rubrics/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 258,
+      "sha256": "86451514c6ad88bc1fe7a38e0a56db01cd7325377725bf4e999f8b3b889c354c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/rubrics/__pycache__/bundles.cpython-312.pyc",
+      "bytes": 32755,
+      "sha256": "4f7b5d33f6dc4b7eeecc078112a9fb8acf5b2655a24106a12af171f343f3af38",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/rubrics/__pycache__/prompts.cpython-312.pyc",
+      "bytes": 3664,
+      "sha256": "1c01c5b3d53c016eacfd9196fde964776eabb6a65838551453dd8e183c2539d7",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/rubrics/__pycache__/schema.cpython-312.pyc",
+      "bytes": 30617,
+      "sha256": "9f548a4ecbd1054b6ac47b78966422c3d955ba2e70fa8747683f87a5e73652c3",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/visualization/__pycache__/backend.cpython-312.pyc",
+      "bytes": 827,
+      "sha256": "8e7ca0521c08b4d2db6c455b7096d265021cd801156b2e9d30d361690fac9d36",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/visualization/__pycache__/revisions.cpython-312.pyc",
+      "bytes": 4291,
+      "sha256": "26c9e6db0c1abc57705d0144a9240b38552342cc0009b0411b658562925cab35",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "src/rubric_gen/submission_revision/visualization/__pycache__/__init__.cpython-312.pyc",
+      "bytes": 326,
+      "sha256": "76b3640c18a39e81f4a5794151babb561e07d38e5cc0ea42f408c79df8d77a42",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_experiment.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 152489,
+      "sha256": "7ff31a79bc0ec96a936a2ee1af09bf4be15eb8c448a32c148a8a609d97626a41",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_babel_monitor_scope.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 7482,
+      "sha256": "ea947f7991a8b3c858b0eb5104ef4ccd14893694d0258545baea55a01a162d87",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_revision_evaluation.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 150842,
+      "sha256": "cd8ef315f2fd85071cb0d58c4d3331d552f6f31acce046433375ddb1fbc2d85b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_submission_revision.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 313437,
+      "sha256": "d35df0905683c55879ef28c79aa855aa754d0c46c751f73308d81db84ce8368c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_execution_scope.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 15614,
+      "sha256": "cfdbf49bd5375ac97dc3617b0b7501d44980894c0e39863ef1184ff5d4b82efe",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/conftest.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 1008,
+      "sha256": "5e8ee844e17d1dccd23eddef1976da5f201d480618cfaffa674299a30d56751e",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_experiment_matrix.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 46154,
+      "sha256": "75e86ab432b82ba7dccd0720178df1cd288c6a5c775515a1fcf69781d4d8e4fe",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_detection_runner.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 192042,
+      "sha256": "5381ad6c93adf3e53a7fc3fc3970978479d4e10de8865f2c2914f823d3afea17",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_rubric_evolution.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 198678,
+      "sha256": "336a768d775777d651c6c6d6ad0e5fbb976c835de1f173eabc52f787b7acf15a",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_codex_runtime_temporary.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 12746,
+      "sha256": "1bb4091390d6cd457105cf33aae27bc9e40f79406b0eb9f3dc333632d6882fc6",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_rubric_generation.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 13894,
+      "sha256": "6d628b3f0631fc53c7012bb4b3ff5ec6f4ca2029793538526e92087f60b5b41b",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_active_violation_delivery.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 7656,
+      "sha256": "42207a6895c0da0dee1ecad1a37ce668ca673ba656bbfa2f02a6d53d94d3d790",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_babel_feedback_exposure.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 4994,
+      "sha256": "504b0b0a2fffa57a39c57d41138a8ebcbb85ef39330a84372b2d45c1d7e0a1df",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_analysis_retention.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 10456,
+      "sha256": "2e28f7fbebe5c97cd9a69282a52c19a55b38532d1896f3c796301774ed65360c",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_pretreatment_reuse.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 22488,
+      "sha256": "5f191062246edbb1e054e6c8e3ae7cd1c5ed65797577304f14fa4b192c5b6941",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_submission_revision_artifacts.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 37672,
+      "sha256": "7437abcd362fe78b5250d0fe35cfb436ea1de5fd7deb799fb1c7421f5d131a27",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_rubric_evolution.cpython-39.pyc",
+      "bytes": 48824,
+      "sha256": "255283cc29cb24c1d598c58143bff43962bd2965a7200874a34ea3e484a5d0d7",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_codex_session_driver.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 47293,
+      "sha256": "3e29e7ea93bb9e08b6d71f1db2e214b783343ba8081a57866a38d04032278385",
+      "action": "remove disposable Python/pytest cache"
+    },
+    {
+      "path": "tests/__pycache__/test_session_drivers.cpython-312-pytest-9.1.1.pyc",
+      "bytes": 58910,
+      "sha256": "230c3297c93271f43aca5b49d7dc80eea436cc9092c3951231baa9dab9c342c4",
+      "action": "remove disposable Python/pytest cache"
+    }
+  ],
+  "archived": [
+    {
+      "source": "avg.png",
+      "destination": "docs/archive/baseline-freeze-20260909/reference-figures/original-gap-artifact-reference.png",
+      "sha256": "20163439b3c67a1120888d8434713fe6b808375c69590395a3eaf3e3177c076c",
+      "bytes": 592756,
+      "action": "archive unchanged supplied reference figure"
+    },
+    {
+      "source": "Openal + Anthropic averace.png",
+      "destination": "docs/archive/baseline-freeze-20260909/reference-figures/original-trajectory-reference.png",
+      "sha256": "074fc5c657c8f593589afbed4edbd9dd41b79a0d11fd6c58fa00711ab7ee6cd7",
+      "bytes": 141237,
+      "action": "archive unchanged supplied reference figure"
+    }
+  ],
+  "runs_inventory": [
+    {
+      "path": "runs/.runtime-babel",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/README.md",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/archive",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/autonomous-dev3-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-artifact-audit-evidence-v1-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-artifact-audit-evidence-v2-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-code",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-cue-score-bounded-replay-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-cue-score-explicit-replay-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-cue-score-first-replay-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-cue-score-only-replay-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-attention-control-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-attention-policy-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-completion-request-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-concern1-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-concern1-policy-controls-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-concern1-policy-early-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-concern1-replication-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-context-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-da18-inputs-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-evidence-contrast-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-evidence-sidecar-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-input-readiness-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-material-review-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-outcome-request-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-package-atomic-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-package-context-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-package-policy-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-package-replication-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-package-three-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-preserve-work-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-public-review-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-rubric-cue-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-dev3-single-issue-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-overnight-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-capacity-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-capacity-v3-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-criterion-update-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-crossfile-consistency-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-crossfile-pair-repair-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-contrast-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-ranking-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-score-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-score-bounded-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-score-first-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-score-first-trace-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-cue-score-preempt-repair-20260909",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-current-20260908",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-input-restore-10356929",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/babel-result20-input-restore-10356965",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/biomnibench-redteam-2026-09-05",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/biomnibench-results20-2026-09-06",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirm-paraphrases-10372887.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirm-paraphrases-10372893.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirmation-data-validated-10372829",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirmation-paraphrases-10372887",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirmation-paraphrases-10372893",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirmation-pool-data-10372102.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/confirmation-pool-data-check-10372102",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/criterion-update-replay-10369771",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-delivery-10374602.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-gates-10375000.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-gates-10375124.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-input-validation-10373088",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-input-validation-10373114",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-input-validation-10374477",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-validation-10373088.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-validation-10373114.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-active-validation-10374477.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-admission-census-10377581.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-admissions-10375556.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-check-10377384.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-check-10377405.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-check-10377408.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-check-10377554.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-context-10370981",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-order-10378196.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-order-10378203.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-reasoning-10377995.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-reasoning-10378006.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-application-reasoning-10378007.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-atomic-criterion-10376440.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-atomic-criterion-10376454.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-atomic-criterion-10376457.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-atomic-prepare-10376426.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-case-evidence-10375158.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-case-evidence-10375173.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-citation-diagnostic-10370826",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-consensus-coverage-10376361.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-cross-pair-verify-10376211.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-duplicate-replay-10380163.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-filter-data-10378062.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-filter-inspect-10378035.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-frozen-input-validation-10371323",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-frozen-integrated-10371412",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-frozen-integrated-10371416",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-frozen-integrated-10371424",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-full-input-validation-10379233",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-full-input-validation-10379252",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-full-recovery-validation-10380137",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-full-recovery-validation-10380154",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-full-validation-10379233.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-full-validation-10379252.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-gates-receipt-10375150.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-inspect-10374342.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-joint-exposure-10371561.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-mechanism-10375125.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-ordered-pair-10376310.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-ordered-pair-analysis-10376313.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-ordered-pair-prepare-10376304.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-attribution-10376113.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-attribution-analysis-10376132.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-attribution-prepare-10376065.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-census-10375963.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-check-10374384.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-content-10375905.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-context-index-10376030.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-orientation-10375869.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-pair-quote-sources-10376201.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-proposals-10375659.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-ranking-input-validation-10371494",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-ranking-replay-10371227",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovered-report-10374557.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovered-report-10374962.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovered-report-10374998.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovery-inventory-10380122.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovery-validation-10380129.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovery-validation-10380137.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-recovery-validation-10380154.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-semantic-bound-10378281.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-semantic-census-10378225.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-semantic-census-10378257.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-single-gap-10378342.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-single-gap-10378400.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-single-pair-10376267.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-single-pair-analysis-10376273.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-single-pair-prepare-10376248.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-application-10377249.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-application-10377294.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-application-10377313.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-application-10377314.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-conditional-10377943.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-conditional-10377953.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-conditional-10377954.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-gap-impact-10376905.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-induction-10377836.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-induction-10377844.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-induction-10377853.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-pair-10376798.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-pair-analysis-10376833.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-supervision-10377039.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-supervision-10377042.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-supervision-10377119.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-supervision-10377170.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-supervision-prepare-10376939.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-sol-supervision-prepare-10377026.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-support-10375687.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-support-decomposition-10377626.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-support-refinement-10377720.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-support-refinement-10377742.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-support-refinement-10377749.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-surviving-support-10376387.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-terminal-penalties-10371023",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-timing-10375221.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/cue-validation-repeat-10370858",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-evidence-contrast-check-10363823",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-evidence-contrast-launchcheck-10364008",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-evidence-validation-10363122",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-evidence-validation-10363123",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-evidence-validation-10363149",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-evidence-validation-10363150",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/dev3-rubric-cue-validation-10364128",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/execution-evidence-diagnostic-10369738",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/input-provenance-count-check-10369681",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/input-provenance-count-check-10369689",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/input-provenance-fixed-assessment-10369714",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/input-provenance-induction-10369697",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/input-provenance-mechanism-10369662",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/input-provenance-proposer-induction-10369710",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/paperbench-data-prepare-10372604",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/paperbench-data-prepare-10372686",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/remove-collab-dirs-10372756.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/remove-swe-dirs-10372622.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/request-compaction-measure-10362791",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/request-compaction-provider-10362844",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-criterion-update-input-validation-10369780",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-crossfile-consistency-validation-10366419",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-crossfile-pair-repair-validation-10366924",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-contrast-validation-10364343",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-score-bounded-input-validation-10367620",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-score-first-input-validation-10368389",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-score-first-trace-input-validation-10368823",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-score-input-validation-10367516",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-score-repair-input-validation-10367826",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-cue-score-scale-input-validation-10367561",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-telemetry-acceptance-10361108",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-telemetry-acceptance-10361125",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/result20-token-validation-10362926",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/results45-data-prepare-10364235",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/results45-data-prepare-10372571",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/results45-storage-check-10364194",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/results45-storage-check-10372804",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/rubric-nfs-lock-probe-djt9d6p7",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/runtime-performance-10362795",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/selected-reference-wiring-smoke-20260907-attempt02",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-artifact-routing-check-10370831.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-baseline-checkpoint-10380610.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-baseline-cleanup-10380691.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-citation-diagnostic-10370826.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-citation-validate-10370819.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-context-probe-10370981.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-context-validate-10370980.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-frozen-input-10371323.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-frozen-integrated-10371412.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-frozen-integrated-10371416.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-frozen-integrated-10371424.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-full-original-audit-10380169.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-full-recovery-10380168.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-full-report59-10380215.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-provenance-10379209.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-provenance-10379227.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-ranking-inputs-10371494.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-ranking-replay-10371227.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-ranking-report-10371512.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-terminal-census-10371023.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-validation-repeat-10370858.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-validation-repeat-check-10370851.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-cue-validation-repeat-report-10370933.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-paperbench-data-10372604.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-paperbench-data-10372686.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-audit-v1-10365973.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-audit-v1-10365985.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-audit-v1-10366032.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-audit-v2-10366357.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-audit-v2-10366366.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-report-v1-10366051.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-artifact-report-v2-10366367.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-canonical-controls-10365649.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-canonical-controls-10365669.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-contrast-check-10363823.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-contrast-da11-10364255.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-contrast-launchcheck-10364008.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-contrast-report-10364276.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-control-da18-10364289.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-control-da3-10364286.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-criterion-census-10366145.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-audit-report-10367029.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-audit-v2-10367025.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-audit-v2-10367028.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-census-10367281.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-report-10366435.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-report-10367427.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-crossfile-survivors-10366975.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-active-10373129.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-active-10374492.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-audit59-10374539.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-bounded-tests-10367576.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-bounded-tests-10367595.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-bounded-tests-10367602.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-bounded-tests-10367607.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-full-10379267.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-launchcheck-10364139.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-report-10364169.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-explicit-10368336.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-explicit-10368341.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-first-10368371.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-first-10368372.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-only-10368292.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-only-10368294.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10367495.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10367516.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10367561.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10367620.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10367826.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10368389.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10368823.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-score-tests-10369780.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-static-da11-10364143.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-support-10370591.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-support-replay-10370742.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-cue-validate-10364128.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-candidate-da11-10363146.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-control-da11-10363145.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-launchcheck-10363142.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-launchcheck-10363152.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-report-10363168.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-test-10369738.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-validate-10363122.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-validate-10363123.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-validate-10363149.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-evidence-validate-10363150.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-fixed-assess-10369714.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-flag-counts-10369689.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-input-counts-10369681.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-input-induction-10369697.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-input-mechanism-10369662.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-input-provenance-check-10369646.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-invalid-archive-10365214.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-invalid-archive-10365243.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-monitor-scope-10363273.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-nfs-cleanup-check-10364655.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-proposer-test-10369710.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-capacity-10362700.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-final-figures-10359093.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-markdown-10362912.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-token-recovery-10362935.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-user-mechanism-10363080.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-user-trace-report-10362937.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-validated-merge-10362938.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-r20-validated-merge-10362939.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-repair-coverage-10367049.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10366421.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10366940.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10367528.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10367631.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10367784.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10367835.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10368391.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10368806.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10368826.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10369781.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10370563.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10370740.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-10371501.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-check-10364343.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-check-10366419.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-check-10366809.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-check-10366924.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-launchcheck-10364359.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-report-10364371.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-static-10364363.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-static-resume-10364765.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-cue-trace-10364364.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-result20-static-fresh-cells-10365215.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-results45-data-10364235.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-results45-data-10372571.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-runtime-regression-10362885.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-score-exposure-10368839.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-score-first-report-10368397.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-score-first-report-10368828.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-score-first-report-10369784.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-score-report-10367657.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-score-survivors-10367838.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-stage-recovery-10362903.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-storage-check-10364194.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-storage-check-10372804.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-token-pacing-10362923.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-token-validation-10362926.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-update-census-10369789.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-update-check-10369770.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-update-replay-10369771.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-update-report-reuse-10370774.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-weak-context-10369750.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-weak-context-10369754.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/slurm-rubric-weak-context-10369755.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/static-neutral-20260907",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/telemetry-journal-check-10360844",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/user-capacity-policy-exposure-10359085.log",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/verify-biomni45-10372829.out",
+      "kind": "file",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/weak-context-diagnostic-10369750",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/weak-context-diagnostic-10369754",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    },
+    {
+      "path": "runs/weak-context-diagnostic-10369755",
+      "kind": "directory",
+      "action": "retain unchanged; scientific evidence, provenance or reproducibility dependency not deleted"
+    }
+  ],
+  "raw_evidence_removed": false,
+  "removed_bytes": 3275101,
+  "removed_files": 159,
+  "archived_bytes": 733993
+}

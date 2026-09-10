@@ -1,3 +1,7 @@
+## 2026-09-09 — Publication and cleanup complete
+
+- 22:18 EDT: Baseline9eea696 published; CPUcleanup10380691 archived two reference figures unchanged and removed159 disposable cache files(3.12MiB), retaining every raw run/input and all rejected-policy evidence. Final publication/cleanup receipt: docs/reports/2026-09-09/baseline-freeze/publication.md; no further scientific work started.
+
 ## 2026-09-09 — Accepted baseline checkpoint
 
 - 22:09 EDT: Accepted static baseline frozen: Full feedback RH20.83%, User simulator20%; new formal four-cell report preserves trace7.5% user and26.27% full(59cases), with all gaps/missingness and adverse outcomes. No scientific calls made; see docs/reports/2026-09-09/baseline-freeze/README.md.

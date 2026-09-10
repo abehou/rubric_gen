@@ -1,3 +1,7 @@
+## 2026-09-09 — Publication and cleanup complete
+
+- 22:18 EDT: Report10380610 and cleanup10380691 completed exit0; all363 top-level run entries retained, no scientific owner active. Accepted output index remains docs/reports/2026-09-09/baseline-freeze/README.md.
+
 ## 2026-09-09 — Accepted baseline checkpoint
 
 - 22:09 EDT: Provider-free report10380610 completed, validating956 hashes and available coverage60/60/59/60; outputs and source receipts: docs/reports/2026-09-09/baseline-freeze/. Existing raw outputs and frozen execution checkouts remain untouched; no active scientific owner.
