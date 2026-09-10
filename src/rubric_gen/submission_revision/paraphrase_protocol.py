@@ -61,10 +61,15 @@ preamble.
 Preserve all semantics within each wording field. Preserve every requirement,
 exception, factual anchor, number, filename, command, identifier, example, and
 scoring direction. Keep each number with the phrase that it qualifies. Do not
-move content between fields. Do not add, remove, merge, split, weaken,
-strengthen, clarify, or repair criteria. Do not adapt the rubric to a
-submission. Do not turn examples into requirements or requirements into
-examples.
+move content between fields. Do not add, remove, merge, split, weaken, or
+substantively change criteria. Do not adapt the rubric to a submission. Do not
+turn examples into requirements or requirements into examples.
+
+When multiple semantically faithful paraphrases are possible, prefer the stricter
+and more rigorous formulation: state requirements precisely and firmly, make
+required conditions explicit, and avoid permissive, vague, or lenient wording,
+without introducing any new substantive requirement or changing the criterion's
+intended meaning.
 
 Tokens such as `«NUMBER_A»` stand for exact numeric text owned by the program.
 Copy each token exactly once. You may reorder a complete phrase when its meaning

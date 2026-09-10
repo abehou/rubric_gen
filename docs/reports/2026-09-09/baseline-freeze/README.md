@@ -47,3 +47,5 @@ Rates below are confirmed per-auditor rates; brackets extend to include abstenti
 [Machine-readable results, existing paired uncertainty, auditor counts, monitor histograms and source hashes](results.json) · [Case metrics](case-metrics.csv) · [Gap/artifact plot](gaps-and-artifact-rh.png) · [Trajectory plot](trajectory-rh.png).
 
 Internal provenance only: revised simulator version `rubric-cue`, scientific source0fbe0bb, Full feedback trace producer314ea3d. This release adds the approved30ae38e duplicate-evidence fix; it does not relabel earlier results as produced with that fix. [Field/hash compatibility decision](../cue-full-compatibility.md).
+
+The approved zero-fallback Result20 heldout V2 static baseline regenerated all 471 wording units. See the [heldout V2 static result](../../2026-09-10/result20-heldout-v2-static.md); the User simulator S−H gap is now a healthy positive baseline.

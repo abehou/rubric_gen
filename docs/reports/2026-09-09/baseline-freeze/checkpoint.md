@@ -20,6 +20,8 @@ Freeze tasks, seeds, simulator, scoring and current Sol/Opus auditors. Gemini3.8
 
 The baseline is accepted, not the complete mitigation hypothesis. Further trace optimization and30/45 confirmation await the user's next instruction.
 
+The [Result20 heldout V2 static baseline](../../2026-09-10/result20-heldout-v2-static.md) regenerated all 471 wording units with zero fallbacks. User simulator S−H is now a healthy positive baseline at1.364.
+
 ## Historical evidence and cleanup
 
 [Failed variants](failed-trace-variants.md) remain negative/adverse evidence. [Archived drafts](../../../archive/baseline-freeze-20260909/README.md) are not active methods. Raw outcomes, execution worktrees, input pools, manifests, audit logs and failed-attempt traces are retained at their original paths. Cleanup is limited to explicitly inventoried disposable caches and moving supplied reference figures to a labeled historical archive after publication.
