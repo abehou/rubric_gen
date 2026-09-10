@@ -1,0 +1,173 @@
+{
+  "original_user": {
+    "first_admission_generation": {
+      "n": 41,
+      "mean": 3.8536585365853657,
+      "median": 3,
+      "histogram": {
+        "2": 13,
+        "3": 9,
+        "4": 8,
+        "5": 4,
+        "6": 2,
+        "7": 2,
+        "8": 1,
+        "9": 1,
+        "10": 1
+      }
+    },
+    "admission_to_first_eligible_turn": {
+      "n": 51,
+      "mean": 1,
+      "median": 1,
+      "histogram": {
+        "1": 51
+      }
+    },
+    "admitted_terminal_only": 1,
+    "online_penalty_criterion_checkpoints": 38,
+    "online_penalty_criterion_deliveries": 37,
+    "active_criterion_feedback_opportunities": 195,
+    "literal_criterion_exposures": 0
+  },
+  "original_full": {
+    "first_admission_generation": {
+      "n": 31,
+      "mean": 3.096774193548387,
+      "median": 3,
+      "histogram": {
+        "2": 11,
+        "3": 9,
+        "4": 8,
+        "5": 3
+      }
+    },
+    "admission_to_first_eligible_turn": {
+      "n": 35,
+      "mean": 1,
+      "median": 1,
+      "histogram": {
+        "1": 35
+      }
+    },
+    "admitted_terminal_only": 0,
+    "online_penalty_criterion_checkpoints": 17,
+    "online_penalty_criterion_deliveries": 17,
+    "active_criterion_feedback_opportunities": 91,
+    "literal_criterion_exposures": 35
+  },
+  "candidate_user": {
+    "first_admission_generation": {
+      "n": 28,
+      "mean": 3.2142857142857144,
+      "median": 3.0,
+      "histogram": {
+        "2": 8,
+        "3": 14,
+        "4": 4,
+        "7": 1,
+        "9": 1
+      }
+    },
+    "admission_to_first_eligible_turn": {
+      "n": 33,
+      "mean": 1,
+      "median": 1,
+      "histogram": {
+        "1": 33
+      }
+    },
+    "admitted_terminal_only": 0,
+    "online_penalty_criterion_checkpoints": 33,
+    "online_penalty_criterion_deliveries": 32,
+    "active_criterion_feedback_opportunities": 161,
+    "literal_criterion_exposures": 1
+  },
+  "candidate_full": {
+    "first_admission_generation": {
+      "n": 27,
+      "mean": 2.5185185185185186,
+      "median": 2,
+      "histogram": {
+        "2": 19,
+        "3": 2,
+        "4": 6
+      }
+    },
+    "admission_to_first_eligible_turn": {
+      "n": 32,
+      "mean": 1,
+      "median": 1.0,
+      "histogram": {
+        "1": 32
+      }
+    },
+    "admitted_terminal_only": 0,
+    "online_penalty_criterion_checkpoints": 29,
+    "online_penalty_criterion_deliveries": 29,
+    "active_criterion_feedback_opportunities": 101,
+    "literal_criterion_exposures": 32
+  },
+  "candidate_user_positive_manual": {
+    "buckets": {
+      "G": 5,
+      "F": 5,
+      "D": 1,
+      "B": 4
+    },
+    "first_relevant_proposal_generation": {
+      "n": 15,
+      "mean": 2.3333333333333335,
+      "median": 2,
+      "histogram": {
+        "2": 11,
+        "3": 3,
+        "4": 1
+      }
+    },
+    "verified_event_turn": {
+      "n": 10,
+      "mean": 2.7,
+      "median": 2.5,
+      "histogram": {
+        "1": 2,
+        "2": 3,
+        "3": 3,
+        "4": 1,
+        "6": 1
+      }
+    },
+    "earliest_risky_turn": {
+      "n": 15,
+      "mean": 2.8666666666666667,
+      "median": 2,
+      "histogram": {
+        "1": 4,
+        "2": 7,
+        "4": 1,
+        "5": 1,
+        "8": 2
+      }
+    },
+    "proposal_to_admission_generations": {
+      "n": 6,
+      "mean": 0.6666666666666666,
+      "median": 1.0,
+      "histogram": {
+        "0": 2,
+        "1": 4
+      }
+    },
+    "admission_to_exposure_turns": {
+      "n": 6,
+      "mean": 1,
+      "median": 1.0,
+      "histogram": {
+        "1": 6
+      }
+    },
+    "verified_before_online_possible": 5,
+    "verified_cases": 10,
+    "flagged_cases": 15
+  }
+}

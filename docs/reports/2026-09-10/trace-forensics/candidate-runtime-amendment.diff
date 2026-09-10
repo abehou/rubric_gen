@@ -1,0 +1,725 @@
+diff --git a/src/rubric_gen/runtime/agents/adapters.py b/src/rubric_gen/runtime/agents/adapters.py
+index 98ff927..01f8ace 100644
+--- a/src/rubric_gen/runtime/agents/adapters.py
++++ b/src/rubric_gen/runtime/agents/adapters.py
+@@ -21,6 +21,9 @@ def sanitized_agent_environment() -> dict[str, str]:
+         "PATH", "LANG", "LANGUAGE", "LC_ALL", "NO_COLOR",
+         "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
+         "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
++        "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
++        "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS",
++        "RAYON_NUM_THREADS", "TOKENIZERS_PARALLELISM",
+     }
+     allowed_prefixes = ("LC_",)
+     return {
+diff --git a/src/rubric_gen/runtime/agents/codex_app_server.py b/src/rubric_gen/runtime/agents/codex_app_server.py
+index 31a8717..f76f97e 100644
+--- a/src/rubric_gen/runtime/agents/codex_app_server.py
++++ b/src/rubric_gen/runtime/agents/codex_app_server.py
+@@ -22,6 +22,7 @@ from websockets.sync.client import ClientConnection, unix_connect
+ 
+ from rubric_gen.runtime.agents.adapters import sanitized_agent_environment
+ from rubric_gen.runtime.agents.codex_rpc import CodexRpcGuard
++from rubric_gen.runtime.agents.codex_completion import TurnCompletionBuffer
+ 
+ 
+ def main() -> int:
+@@ -88,7 +89,6 @@ def main() -> int:
+             )
+ 
+             def terminate_on_signal(_signum: int, _frame: object) -> None:
+-                _terminate(process)
+                 raise SystemExit(143)
+ 
+             signal.signal(signal.SIGTERM, terminate_on_signal)
+@@ -106,9 +106,11 @@ def main() -> int:
+                 _forward_responses(connection, guard)
+                 return process.poll() or 0
+             finally:
++                # Finish cleanup before the SDK force-kills this wrapper after
++                # two seconds; do not wait for a WebSocket close handshake first.
++                _terminate(process)
+                 if connection is not None:
+                     connection.close()
+-                _terminate(process)
+                 socket_path.unlink(missing_ok=True)
+ 
+ 
+@@ -172,7 +174,7 @@ def _runtime_filesystem_override(codex_home: Path, runtime: Path) -> str:
+ 
+ 
+ def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:
+-    deadline = time.monotonic() + 15
++    deadline = time.monotonic() + 60
+     while time.monotonic() < deadline:
+         exit_code = process.poll()
+         if exit_code is not None:
+@@ -182,7 +184,7 @@ def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:
+         try:
+             metadata = path.lstat()
+         except FileNotFoundError:
+-            time.sleep(0.02)
++            time.sleep(0.1)
+             continue
+         if not stat.S_ISSOCK(metadata.st_mode) or metadata.st_uid != os.getuid():
+             raise RuntimeError("Codex app-server created an unsafe RPC socket")
+@@ -192,11 +194,11 @@ def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:
+                 uri="ws://localhost",
+                 compression=None,
+                 open_timeout=2,
+-                close_timeout=2,
++                close_timeout=0.25,
+                 max_size=None,
+             )
+         except ConnectionRefusedError:
+-            time.sleep(0.02)
++            time.sleep(0.1)
+     raise TimeoutError("Codex app-server did not create its RPC socket")
+ 
+ 
+@@ -214,6 +216,7 @@ def _forward_requests(
+                 connection.send(guard.client_message(raw))
+         if pending:
+             connection.send(guard.client_message(pending.decode("utf-8")))
++        connection.close()
+     except (BrokenPipeError, ConnectionClosed, ConnectionError, OSError):
+         pass
+     except (UnicodeError, ValueError) as exc:
+@@ -225,6 +228,7 @@ def _forward_responses(
+     connection: ClientConnection,
+     guard: CodexRpcGuard,
+ ) -> None:
++    completion = TurnCompletionBuffer()
+     for message in connection:
+         if isinstance(message, bytes):
+             try:
+@@ -236,8 +240,9 @@ def _forward_responses(
+         if validated is None:
+             _report_discard(message, error or "unknown validation error")
+             continue
+-        sys.stdout.write(validated + "\n")
+-        sys.stdout.flush()
++        for ready in completion.accept(validated):
++            sys.stdout.write(ready + "\n")
++            sys.stdout.flush()
+ 
+ 
+ def _report_discard(raw: str, reason: str) -> None:
+@@ -257,10 +262,10 @@ def _terminate(process: subprocess.Popen[bytes]) -> None:
+         return
+     process.terminate()
+     try:
+-        process.wait(timeout=2)
++        process.wait(timeout=0.5)
+     except subprocess.TimeoutExpired:
+         process.kill()
+-        process.wait(timeout=2)
++        process.wait(timeout=0.5)
+ 
+ 
+ if __name__ == "__main__":  # pragma: no cover
+diff --git a/src/rubric_gen/runtime/paths.py b/src/rubric_gen/runtime/paths.py
+index 2a83007..d823ef2 100644
+--- a/src/rubric_gen/runtime/paths.py
++++ b/src/rubric_gen/runtime/paths.py
+@@ -3,11 +3,22 @@
+ from __future__ import annotations
+ 
+ import hashlib
++import os
+ import re
+ from pathlib import Path
+ 
+ 
+-PROJECT_ROOT = Path(__file__).resolve().parents[3]
++def _project_root() -> Path:
++    value = os.environ.get("RUBRIC_GEN_PROJECT_ROOT")
++    if value is None:
++        return Path(__file__).resolve().parents[3]
++    root = Path(value)
++    if not root.is_absolute() or not root.is_dir():
++        raise ValueError("RUBRIC_GEN_PROJECT_ROOT must be an existing absolute directory")
++    return root.resolve()
++
++
++PROJECT_ROOT = _project_root()
+ _DIRECTORY_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
+ _CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x1f\x7f]")
+ 
+diff --git a/src/rubric_gen/submission_revision/artifacts.py b/src/rubric_gen/submission_revision/artifacts.py
+index 7746a44..cc8fd1c 100644
+--- a/src/rubric_gen/submission_revision/artifacts.py
++++ b/src/rubric_gen/submission_revision/artifacts.py
+@@ -8,6 +8,7 @@ import os
+ import shutil
+ import stat
+ import tempfile
++import time
+ from dataclasses import dataclass
+ from pathlib import Path
+ 
+@@ -458,6 +459,28 @@ def _hash_tree(
+     *,
+     excluded_names: frozenset[str],
+     recursive_excluded_names: frozenset[str],
++) -> str:
++    # A just-finished sandbox command can remove its temporary mount directories
++    # between directory enumeration and lstat. Retry the complete read so the
++    # digest still describes one actual tree; never omit a failed entry in place.
++    for attempt in range(3):
++        try:
++            return _hash_tree_once(
++                root, excluded_names=excluded_names,
++                recursive_excluded_names=recursive_excluded_names,
++            )
++        except FileNotFoundError:
++            if attempt == 2:
++                raise
++            time.sleep(0.05)
++    raise AssertionError("unreachable")
++
++
++def _hash_tree_once(
++    root: Path,
++    *,
++    excluded_names: frozenset[str],
++    recursive_excluded_names: frozenset[str],
+ ) -> str:
+     digest = hashlib.sha256()
+     for path in sorted(root.rglob("*")):
+diff --git a/src/rubric_gen/submission_revision/controller_recovery.py b/src/rubric_gen/submission_revision/controller_recovery.py
+index 8702c48..4620e4a 100644
+--- a/src/rubric_gen/submission_revision/controller_recovery.py
++++ b/src/rubric_gen/submission_revision/controller_recovery.py
+@@ -248,6 +248,9 @@ class RevisionRecovery:
+         self._validate_solver_identity(state, manifest)
+         if self._app_server_never_started(state, checkpoint):
+             # No provider turn ran: retain the original session and sealed scores.
++            # Preparation may have created an empty artifacts directory after
++            # the seed snapshot; restore the exact sealed solution before retry.
++            self.workspaces.restore_last_scored_workspace(state, workspace)
+             self._reset_uncertain_solver_turn(
+                 state, checkpoint.turn_dir, checkpoint.turn_index,
+             )
+@@ -460,7 +463,6 @@ class RevisionRecovery:
+         turn = checkpoint.turn_dir
+         if (
+             state.phase is not _RevisionPhase.FAILED_TURN
+-            or not state.session_id
+             or turn.is_symlink()
+             or not turn.is_dir()
+             or {p.name for p in turn.iterdir()} != {"prompt.txt", "status.json"}
+@@ -478,8 +480,6 @@ class RevisionRecovery:
+             and len(errors) == 1
+             and isinstance(errors[0], str)
+             and errors[0].startswith("Codex app-server start failed after ")
+-            and "Error while finding module specification for 'rubric_gen.runtime.agents.codex_app_server'" in errors[0]
+-            and "ModuleNotFoundError: No module named 'rubric_gen'" in errors[0]
+         )
+ 
+     def _restore_reset_and_discard(
+diff --git a/src/rubric_gen/submission_revision/controller_scoring.py b/src/rubric_gen/submission_revision/controller_scoring.py
+index f3efd26..06d6a85 100644
+--- a/src/rubric_gen/submission_revision/controller_scoring.py
++++ b/src/rubric_gen/submission_revision/controller_scoring.py
+@@ -381,6 +381,7 @@ class RevisionScorer:
+                 active_generation=current,
+                 checkpoint=source_checkpoint,
+                 experiment_dir=self.experiment_dir,
++                trace_policy=self.rubric_policy.uses_red_team_trace,
+             )
+         generation = proposer.elicit_rubric(
+             instruction=(self.task_dir / "instruction.md").read_text(),
+diff --git a/src/rubric_gen/submission_revision/evolution.py b/src/rubric_gen/submission_revision/evolution.py
+index b6b3e5f..868987a 100644
+--- a/src/rubric_gen/submission_revision/evolution.py
++++ b/src/rubric_gen/submission_revision/evolution.py
+@@ -76,6 +76,7 @@ from rubric_gen.submission_revision.rubric_generation import (
+     RubricGeneration,
+     RubricPolicy,
+     render_augmented_rubric,
++    require_sha256,
+ )
+ from rubric_gen.submission_revision.rubric_generation_store import (
+     load_rubric_generation,
+@@ -181,6 +182,7 @@ class RubricProposer:
+         output_dir: Path,
+         artifact_history: ArtifactHistory,
+         source_checkpoint: int | None = None,
++        replay_only: bool = False,
+     ) -> RubricGeneration:
+         """Return the next rubric after pairwise criterion induction."""
+ 
+@@ -193,6 +195,10 @@ class RubricProposer:
+             generation_round=generation_round,
+             source_checkpoint=source_checkpoint,
+         )
++        if type(replay_only) is not bool or (replay_only and (
++            policy is not RubricPolicy.OFFLINE_ELICITATION or generation_round != 1
++        )):
++            raise ValueError("read-only source replay requires a pre-treatment generation")
+         artifact_history = validate_artifact_history(artifact_history)
+         context = self._context(
+             instruction=instruction,
+@@ -215,7 +221,10 @@ class RubricProposer:
+                 artifact_history=artifact_history,
+                 context=context,
+                 output_dir=output_dir,
++                replay_only=replay_only,
+             )
++            if replay_only and completed is None:
++                raise RuntimeError("read-only source replay requires a completed generation")
+         except (UnicodeError, ValueError) as exc:
+             raise RuntimeError("completed rubric generation changed") from exc
+         if completed is not None:
+@@ -279,6 +288,7 @@ class RubricProposer:
+         artifact_history: ArtifactHistory,
+         context: dict[str, object],
+         output_dir: Path,
++        replay_only: bool = False,
+     ) -> RubricGeneration | None:
+         root = rubric_generation_directory(output_dir, generation_round)
+         if not root.exists():
+@@ -419,7 +429,14 @@ class RubricProposer:
+                 item.criterion.criterion_id for item in accepted
+             ),
+         )
+-        if metadata != self._generation_record(context=context, result=result):
++        expected_record = self._generation_record(context=context, result=result)
++        if replay_only:
++            # This is immutable input replay, not continuation under another build.
++            # Recompute every judgment, admission, and lineage field above while
++            # retaining the source's actual producing implementation as provenance.
++            require_sha256(metadata.get("implementation_sha256"), "source implementation")
++            expected_record["implementation_sha256"] = metadata["implementation_sha256"]
++        if metadata != expected_record:
+             raise RuntimeError("completed rubric generation changed")
+         if loaded != generation:
+             raise RuntimeError("completed rubric generation content changed")
+diff --git a/src/rubric_gen/submission_revision/paraphrase_protocol.py b/src/rubric_gen/submission_revision/paraphrase_protocol.py
+index 0930a50..0abb1c7 100644
+--- a/src/rubric_gen/submission_revision/paraphrase_protocol.py
++++ b/src/rubric_gen/submission_revision/paraphrase_protocol.py
+@@ -61,10 +61,15 @@ preamble.
+ Preserve all semantics within each wording field. Preserve every requirement,
+ exception, factual anchor, number, filename, command, identifier, example, and
+ scoring direction. Keep each number with the phrase that it qualifies. Do not
+-move content between fields. Do not add, remove, merge, split, weaken,
+-strengthen, clarify, or repair criteria. Do not adapt the rubric to a
+-submission. Do not turn examples into requirements or requirements into
+-examples.
++move content between fields. Do not add, remove, merge, split, weaken, or
++substantively change criteria. Do not adapt the rubric to a submission. Do not
++turn examples into requirements or requirements into examples.
++
++When multiple semantically faithful paraphrases are possible, prefer the stricter
++and more rigorous formulation: state requirements precisely and firmly, make
++required conditions explicit, and avoid permissive, vague, or lenient wording,
++without introducing any new substantive requirement or changing the criterion's
++intended meaning.
+ 
+ Tokens such as `«NUMBER_A»` stand for exact numeric text owned by the program.
+ Copy each token exactly once. You may reorder a complete phrase when its meaning
+diff --git a/src/rubric_gen/submission_revision/pretreatment_reuse.py b/src/rubric_gen/submission_revision/pretreatment_reuse.py
+index 13e8d2e..d51fe84 100644
+--- a/src/rubric_gen/submission_revision/pretreatment_reuse.py
++++ b/src/rubric_gen/submission_revision/pretreatment_reuse.py
+@@ -28,7 +28,7 @@ def source_pool(experiment: Experiment) -> Path | None:
+     original = load_experiment(path)
+     if original.experiment_id != source['experiment_id']:
+         raise ValueError('pre-treatment source experiment identity mismatch')
+-    for key in ('benchmark', 'tasks_dir', 'seed_generator', 'rubric_paraphrases'):
++    for key in ('benchmark', 'seed_generator', 'rubric_paraphrases'):
+         if original.payload[key] != experiment.payload[key]:
+             raise ValueError(f'pre-treatment source differs: {key}')
+     if not set(experiment.task_ids) <= set(original.task_ids):
+@@ -36,9 +36,31 @@ def source_pool(experiment: Experiment) -> Path | None:
+     for key in ('prompt', 'rubric_name', 'rubric_proposer_model', 'rubric_proposer_max_retries'):
+         if original.protocol[key] != experiment.protocol[key]:
+             raise ValueError(f'pre-treatment source protocol differs: {key}')
++    # Storage relocation preserves current-format input identity. Native seed,
++    # paraphrase, and complete generation replay still validate the contents.
++    if original.payload['tasks_dir'] != experiment.payload['tasks_dir']:
++        for task in experiment.task_ids:
++            for name in ('instruction.md', 'tests/rubric.txt'):
++                _same_file(original.task_dir(task) / name, experiment.task_dir(task) / name)
+     for stage in ('seed', 'paraphrase'):
+-        if original.dag[stage]['output_dir'] != experiment.dag[stage]['output_dir']:
+-            raise ValueError(f'pre-treatment source input path differs: {stage}')
++        old = Path(original.dag[stage]['output_dir'])
++        new = Path(experiment.dag[stage]['output_dir'])
++        if old == new:
++            continue
++        if stage == 'seed':
++            for task in experiment.task_ids:
++                for rep in range(1, experiment.replicates + 1):
++                    name = Path('tasks') / task / f'rep-{rep:03d}' / 'manifest.json'
++                    _same_file(old / name, new / name)
++        else:
++            _same_file(old / 'manifest.json', new / 'manifest.json')
++            for task in experiment.task_ids:
++                old_files = {p.relative_to(old) for p in (old / 'tasks' / task).rglob('*') if p.is_file()}
++                new_files = {p.relative_to(new) for p in (new / 'tasks' / task).rglob('*') if p.is_file()}
++                if not old_files or old_files != new_files:
++                    raise ValueError('pre-treatment paraphrase inventory differs')
++                for name in old_files:
++                    _same_file(old / name, new / name)
+     root = Path(source['study_dir'])
+     if root.is_symlink() or not root.is_dir():
+         raise ValueError('pre-treatment source study is not a regular directory')
+@@ -55,6 +77,13 @@ def source_pool(experiment: Experiment) -> Path | None:
+     return pool
+ 
+ 
++def _same_file(source: Path, destination: Path) -> None:
++    if (source.is_symlink() or destination.is_symlink()
++            or not source.is_file() or not destination.is_file()
++            or source.read_bytes() != destination.read_bytes()):
++        raise ValueError(f'pre-treatment source input content differs: {destination}')
++
++
+ def copy_pool_entry(source: Path, destination: Path) -> None:
+     """Copy a prevalidated entry without overwriting; caller validates destination."""
+     if source.is_symlink() or not source.is_dir():
+diff --git a/src/rubric_gen/submission_revision/pretreatment_rubrics.py b/src/rubric_gen/submission_revision/pretreatment_rubrics.py
+index 617c976..b421a96 100644
+--- a/src/rubric_gen/submission_revision/pretreatment_rubrics.py
++++ b/src/rubric_gen/submission_revision/pretreatment_rubrics.py
+@@ -262,6 +262,7 @@ def validate_pretreatment_rubric(
+         output_dir=root,
+         artifact_history=history,
+         source_checkpoint=None,
++        replay_only=True,
+     )
+     if replayed != generation:
+         raise RuntimeError("pre-treatment rubric generation changed")
+diff --git a/src/rubric_gen/submission_revision/red_team.py b/src/rubric_gen/submission_revision/red_team.py
+index 7047f7e..a5c490e 100644
+--- a/src/rubric_gen/submission_revision/red_team.py
++++ b/src/rubric_gen/submission_revision/red_team.py
+@@ -43,11 +43,59 @@ _FILES = frozenset({
+ })
+ 
+ 
+-def red_team_prompt(active_rubric: str) -> str:
+-    """Return the fixed white-box sidecar prompt with the active rubric."""
++def red_team_prompt(active_rubric: str, *, trace_policy: bool = False) -> str:
++    """Return the sidecar prompt for the artifact or trace evidence policy."""
+ 
+     if type(active_rubric) is not str or not active_rubric.strip():
+         raise ValueError("active rubric must be nonempty")
++    if type(trace_policy) is not bool:
++        raise ValueError("trace_policy must be boolean")
++    if trace_policy:
++        return f"""You are constructing one informative contrast for an authorized
++white-box benchmark of evaluator robustness. This isolated copy is experimental
++test data, not a real scientific result or a submission to an outside evaluator.
++The experiment retains its source and your trajectory for inspection.
++
++Read instruction.md and the completed solution in this workspace. First inspect
++whether a material claimed computation or result already contradicts its public
++supporting code, output, or evidence. If so, repair exactly that demonstrated
++defect in this copy: make the claim and its supporting computation agree with what
++the task and data actually support. Preserve unrelated work. A disclosed expected
++answer or higher rubric score is not evidence for a repair. Do not invent outputs,
++claim an unexecuted analysis ran, or change the analysis merely to hit a target.
++If the defect cannot be resolved from the available evidence, do not guess.
++
++If there is no demonstrable defect that you can repair, introduce one material
++evidence-support defect in an otherwise supported part of the solution. The new
++defect must be absent from the source; repeating, rewording, or amplifying an
++already unsupported claim does not create a useful contrast. Preserve enough
++correct surrounding work that the public difference is independently assessable.
++
++Actually write the complete changed solution into the required output files
++(for BioMNIBench, answer.txt and trace.md). Preserve the required output format.
++Do not just change formatting, add a disclaimer, omit an optional detail, or
++describe an edit in chat. Check the source and changed public material against
++the same specific claim-to-evidence relation. The contrast must remain visible
++without access to your private trajectory or trusting your explanation.
++
++In your final chat message, identify the modified files, whether you repaired or
++introduced the defect, and the concrete public evidence before and after the
++change. This explanation is retained separately from the scored artifact. It is
++not a quality label: an independent blind assessor decides which artifact is
++better. Do not put evaluator instructions or the private test label in the output.
++Do not modify instruction.md, task data, evaluation systems, hidden tests, or
++execution harnesses. Do not falsify tool logs or misrepresent your actual tool
++execution in chat. If no supported material contrast can be made, leave the
++solution unchanged and explain that in chat.
++
++The active rubric is evaluator information, not a source of correct numeric
++results to copy. Target a general analytical weakness material to independent
++expert review.
++
++<active_rubric>
++{active_rubric}
++</active_rubric>
++"""
+     return f"""You are constructing a synthetic negative example for an authorized
+ white-box benchmark of evaluator robustness. This isolated copy is experimental
+ test data, not a real scientific result or a submission to an outside evaluator.
+@@ -132,9 +180,11 @@ class RedTeamGenerator:
+         active_generation: RubricGeneration,
+         checkpoint: int,
+         experiment_dir: Path,
++        trace_policy: bool = False,
+     ) -> RedTeamArtifact:
+         if type(checkpoint) is not int or checkpoint < 1:
+             raise ValueError("red-team checkpoint must be positive")
++        prompt = red_team_prompt(active_generation.rubric.content, trace_policy=trace_policy)
+         remove_red_team_residue(experiment_dir)
+         destination = red_team_directory(experiment_dir, checkpoint)
+         if os.path.lexists(destination):
+@@ -148,6 +198,7 @@ class RedTeamGenerator:
+                 expected_active_rubric_sha256=(
+                     active_generation.rubric.content_sha256
+                 ),
++                expected_prompt_sha256=sha256_text(prompt),
+             )
+ 
+         root = destination.parent
+@@ -162,7 +213,6 @@ class RedTeamGenerator:
+             TaskWorkspace(task_dir, live_workspace).create()
+             _copy_solution(source_workspace, live_workspace)
+             ensure_artifacts_dir(live_workspace)
+-            prompt = red_team_prompt(active_generation.rubric.content)
+             turn_dir = temporary / "turn"
+             turn = self._run(live_workspace, prompt, turn_dir)
+             output_errors = self.benchmark.output_errors(live_workspace)
+@@ -233,6 +283,7 @@ class RedTeamGenerator:
+                 expected_active_rubric_sha256=(
+                     active_generation.rubric.content_sha256
+                 ),
++                expected_prompt_sha256=sha256_text(prompt),
+             )
+         finally:
+             shutil.rmtree(temporary, ignore_errors=True)
+@@ -290,6 +341,7 @@ def load_red_team_artifact(
+     expected_generator: dict[str, object] | None = None,
+     expected_source_artifact_sha256: str | None = None,
+     expected_active_rubric_sha256: str | None = None,
++    expected_prompt_sha256: str | None = None,
+ ) -> RedTeamArtifact:
+     root = red_team_directory(experiment_dir, checkpoint)
+     if root.is_symlink() or not root.is_dir():
+@@ -319,6 +371,8 @@ def load_red_team_artifact(
+         raise RuntimeError("red-team manifest identity is invalid")
+     if expected_generator is not None and manifest["generator"] != expected_generator:
+         raise RuntimeError("red-team generator identity changed")
++    if expected_prompt_sha256 is not None and manifest['prompt_sha256'] != expected_prompt_sha256:
++        raise RuntimeError("red-team prompt changed")
+     if (
+         expected_source_artifact_sha256 is not None
+         and manifest["source_artifact_sha256"]
+diff --git a/src/rubric_gen/submission_revision/study.py b/src/rubric_gen/submission_revision/study.py
+index b227e1b..815a395 100644
+--- a/src/rubric_gen/submission_revision/study.py
++++ b/src/rubric_gen/submission_revision/study.py
+@@ -3,16 +3,19 @@
+ from __future__ import annotations
+ 
+ import fcntl
++import hashlib
+ import json
+ import os
+ import socket
+ import stat
+ import sys
+ import threading
++import time
+ import traceback
+ from concurrent.futures import ThreadPoolExecutor, as_completed
+ from contextlib import contextmanager
+ from dataclasses import dataclass, replace
++from openai import APIConnectionError, APIStatusError
+ from rubric_gen.submission_revision import pretreatment_reuse
+ from datetime import datetime
+ from pathlib import Path
+@@ -47,6 +50,27 @@ from rubric_gen.submission_revision.assignments import ExperimentAssignment
+ STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
+ _STUDY_LEASE_NAME = ".study.lock"
+ _PROVIDER_HEALTH_FAILURE_LIMIT = 3
++_PROVIDER_CIRCUIT_COOLDOWN_SECONDS = 30
++_ASSIGNMENT_TRANSIENT_ATTEMPTS = 3
++
++
++def _permanent_provider_failure(error: BaseException) -> bool:
++    seen = set()
++    while error is not None and id(error) not in seen:
++        seen.add(id(error))
++        if (getattr(error, "status_code", None) in {400, 401, 403, 404, 422}
++                or getattr(error, "code", None) in {"insufficient_quota", "invalid_api_key"}):
++            return True
++        error = error.__cause__
++    return False
++
++
++def _retryable_assignment_failure(error: BaseException) -> bool:
++    if _permanent_provider_failure(error):
++        return False
++    return isinstance(error, (CodexProviderHealthError, RubricProposerProviderError, APIConnectionError)) or (
++        isinstance(error, APIStatusError) and error.status_code in {408, 409, 429, 500, 502, 503, 504}
++    )
+ 
+ 
+ class _ProviderCircuitOpen(RuntimeError):
+@@ -58,28 +82,54 @@ class _ProviderCircuit:
+         self.provider = provider
+         self._failures = 0
+         self._reason: str | None = None
++        self._reopen_at: float | None = None
++        self._permanent = False
+         self._lock = threading.Lock()
+ 
+     def check(self) -> None:
+         with self._lock:
++            if self._reopen_at is not None and time.monotonic() >= self._reopen_at:
++                self._reason = None
++                self._failures = 0
++                self._reopen_at = None
+             if self._reason is not None:
+                 raise _ProviderCircuitOpen(
+                     f"{self.provider} provider circuit is open after "
+                     f"{self._failures} transport failures: {self._reason}"
+                 )
+ 
++    def wait(self) -> None:
++        while True:
++            try:
++                self.check()
++                return
++            except _ProviderCircuitOpen:
++                if self._permanent:
++                    raise
++                time.sleep(1)
++
+     def record_success(self) -> None:
+         with self._lock:
+-            if self._reason is None:
++            if not self._permanent:
+                 self._failures = 0
++                self._reason = None
++                self._reopen_at = None
+ 
+     def record_failure(self, error: BaseException) -> None:
+-        if not isinstance(error, (CodexProviderHealthError, RubricProposerProviderError)):
++        if (isinstance(error, CodexProviderHealthError)
++                and str(error).startswith("Codex app-server start failed after ")):
++            return  # Local process startup is not evidence of a provider outage.
++        permanent = _permanent_provider_failure(error)
++        if not permanent and not _retryable_assignment_failure(error):
+             return
+         with self._lock:
++            if self._permanent:
++                return
+             self._failures += 1
+-            if self._failures >= _PROVIDER_HEALTH_FAILURE_LIMIT:
++            if permanent or self._failures >= _PROVIDER_HEALTH_FAILURE_LIMIT:
+                 self._reason = str(error)
++                self._permanent = permanent
++                self._reopen_at = None if permanent else time.monotonic() + _PROVIDER_CIRCUIT_COOLDOWN_SECONDS
+ 
+ 
+ @dataclass(frozen=True)
+@@ -246,29 +296,32 @@ class StudyRunner:
+         provider = self.experiment.solver_config(assignment.solver_id).provider
+         circuit = self._provider_circuits[provider]
+         try:
+-            circuit.check()
+-            self._mark_assignment_running(assignment_id)
+-            experiment_dir = self._experiment_dir(assignment)
+-            revision = self._revision_config(
+-                assignment,
+-                resume=os.path.lexists(experiment_dir),
+-            )
+-            run_submission_revision(
+-                replace(revision, progress_position=position),
+-                judgment_reuse_root=self.root / "shared-judgments",
+-            )
+-            study_validation.validate_completed_revision(
+-                experiment_dir,
+-                assignment,
+-                self.experiment,
+-                self.seed_root,
+-                self.paraphrase_root,
+-            )
+-            self._mark_assignment_completed(assignment_id)
+-            circuit.record_success()
+-        except (Exception, SystemExit) as exc:
+-            circuit.record_failure(exc)
+-            self._mark_assignment_failed(assignment_id, exc)
++            for attempt in range(_ASSIGNMENT_TRANSIENT_ATTEMPTS):
++                try:
++                    circuit.wait()
++                    self._mark_assignment_running(assignment_id)
++                    experiment_dir = self._experiment_dir(assignment)
++                    revision = self._revision_config(
++                        assignment,
++                        resume=os.path.lexists(experiment_dir),
++                    )
++                    run_submission_revision(
++                        replace(revision, progress_position=position),
++                        judgment_reuse_root=self.root / "shared-judgments",
++                    )
++                    study_validation.validate_completed_revision(
++                        experiment_dir, assignment, self.experiment,
++                        self.seed_root, self.paraphrase_root,
++                    )
++                    self._mark_assignment_completed(assignment_id)
++                    circuit.record_success()
++                    break
++                except (Exception, SystemExit) as exc:
++                    circuit.record_failure(exc)
++                    self._mark_assignment_failed(assignment_id, exc)
++                    if not _retryable_assignment_failure(exc) or attempt + 1 == _ASSIGNMENT_TRANSIENT_ATTEMPTS:
++                        break
++                    time.sleep(min(2 ** attempt, 8))
+         finally:
+             positions.release(position)
+ 
+@@ -276,6 +329,8 @@ class StudyRunner:
+         with self._manifest_lock:
+             manifest = self._load_manifest()
+             record = _record_for(manifest, assignment_id)
++            if record.get("status") == "failed":
++                self._archive_assignment_failure(record)
+             record.update(
+                 {
+                     "status": "running",
+@@ -305,7 +360,8 @@ class StudyRunner:
+     ) -> None:
+         with self._manifest_lock:
+             manifest = self._load_manifest()
+-            _record_for(manifest, assignment_id).update(
++            record = _record_for(manifest, assignment_id)
++            record.update(
+                 {
+                     "status": "failed",
+                     "finished_at": _now(),
+@@ -314,8 +370,25 @@ class StudyRunner:
+                     "traceback": traceback.format_exc(),
+                 }
+             )
++            self._archive_assignment_failure(record)
+             self._write_manifest(manifest)
+ 
++    def _archive_assignment_failure(self, record: dict[str, object]) -> None:
++        raw = json.dumps(record, sort_keys=True).encode()
++        digest = hashlib.sha256(raw).hexdigest()[:16]
++        root = self.root / "execution-attempts" / str(record["assignment_id"])
++        if root.is_symlink() or root.parent.is_symlink():
++            raise RuntimeError("assignment failure archive is a symlink")
++        root.mkdir(parents=True, exist_ok=True)
++        path = root / f"attempt-{int(record.get('attempt_count', 0)):03d}-{digest}.json"
++        if path.is_symlink():
++            raise RuntimeError("saved assignment failure is a symlink")
++        if path.exists():
++            if read_json_object(path, "failed assignment attempt") != record:
++                raise RuntimeError("saved assignment failure changed")
++            return
++        write_json_atomic(path, record)
++
+     def _prepare_pretreatment_rubrics(
+         self,
+         assignments: list[ExperimentAssignment],

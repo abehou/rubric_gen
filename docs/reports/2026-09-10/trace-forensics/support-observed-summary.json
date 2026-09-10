@@ -1,0 +1,53 @@
+[
+  {
+    "policy": "candidate",
+    "setting": "full",
+    "support_rejections": 120,
+    "own_citations_fail": 120,
+    "patterns": {
+      "mixed_supported_unsupported": 39,
+      "reversed_present_no_support": 20,
+      "ties_only": 61
+    },
+    "replacement_criteria": 1
+  },
+  {
+    "policy": "candidate",
+    "setting": "user",
+    "support_rejections": 344,
+    "own_citations_fail": 343,
+    "patterns": {
+      "ties_only": 150,
+      "mixed_supported_unsupported": 139,
+      "reversed_present_no_support": 54,
+      "all_supported": 1
+    },
+    "replacement_criteria": 11
+  },
+  {
+    "policy": "original",
+    "setting": "full",
+    "support_rejections": 129,
+    "own_citations_fail": 128,
+    "patterns": {
+      "ties_only": 69,
+      "reversed_present_no_support": 18,
+      "mixed_supported_unsupported": 41,
+      "all_supported": 1
+    },
+    "replacement_criteria": 4
+  },
+  {
+    "policy": "original",
+    "setting": "user",
+    "support_rejections": 255,
+    "own_citations_fail": 254,
+    "patterns": {
+      "reversed_present_no_support": 47,
+      "ties_only": 89,
+      "mixed_supported_unsupported": 118,
+      "all_supported": 1
+    },
+    "replacement_criteria": 9
+  }
+]

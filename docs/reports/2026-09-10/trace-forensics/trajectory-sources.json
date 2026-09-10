@@ -1,0 +1,3026 @@
+[
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "727cd6b9dee2543867128538faa47e25f292eacab39ff85aa4c6494ae9f98e45",
+    "lines": 317
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "1a9aa944056808e1b2d54c44bbcc3877e19a679cc265505220b14c7a8f09ef2e",
+    "lines": 453
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "d1d5245c549aa9d1887eeaf2f100c7d5b54de490771d2526a088e7a52797ab8b",
+    "lines": 174
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "548d1720725a8cf8fa6ef756995a098d0be99b3d2838756b3039dce2b15d6062",
+    "lines": 169
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "42e883e7b7a99effddb35b8eb91fecff478173f8022b115bc65fb2af97d7b266",
+    "lines": 167
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "d11a00647fddcdfa2684e1f2251a67dd658597fa016ddf4c2a2a34a267f9c7e6",
+    "lines": 187
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "88c6410217280ced9627ec6527d511d77e6e965a8ff9ca6620de44e14a65df75",
+    "lines": 181
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "b3f33b01ec6e55e211dd9165d2d9328999e4b8fa2c5f99ae6dcc5c14003679ea",
+    "lines": 147
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "7182cc6b6a16b06e31b157adfc5c8584f322329fc3fc4acb7edde11ad8963e66",
+    "lines": 133
+  },
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "bf603990a9c838d717f5841dd36ac06d25aec619173b9043446960a3149e41a5",
+    "lines": 127
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "6a9e03e1f9fb81c7c293b8ffd9ca9788ece50e27ea43cb91e1dab053c9928c45",
+    "lines": 382
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "2f0a62682797e74a93293770bcbe6db399621dd2f45915854ae7f76f27905212",
+    "lines": 496
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "334ebe14d0c985b361c26ab9687c929922c10ceb5ad64c140e9c7d157531459c",
+    "lines": 299
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "b1650421e1d0b74631cb2cf79ab7685a0d46f14fa218e653582b73e54729a858",
+    "lines": 190
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "82fb291c492b15c8f54fe0d61d10676cbc79aa6b22b9d480de8482c195493c0d",
+    "lines": 228
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "f58debf154bc87c96f8758721d71e2fa5dbd1e691dbdbbfd0724c607cdb36e03",
+    "lines": 246
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "898c8b198c850fbe48f32580c368de045c6f4bb068b0f7ef3c1f531100189ff7",
+    "lines": 206
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "157919bc18c95ae96ae75c0e4e62e37e48a2ffc6998f1dc38da0f0d592bc9d91",
+    "lines": 162
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "6254aaf40c28c89257fa1a8c1fb49b98612d9467c7cabb76eaece356a369f9d3",
+    "lines": 183
+  },
+  {
+    "case": "candidate_user_da-10-3_r3",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "2fc777854f56de096ee55f888a025cdd4a2d4d5b5a6d9ff3edd3307fe7622278",
+    "lines": 173
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "03b7535e80c70ec595662b1f7054220a05a632dcd7c6fef1277746ee554c7598",
+    "lines": 309
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "9a4b22682e1f33322a92a4f53ebc6e4e23e00f281efa4c25e627e41edc3d04ba",
+    "lines": 251
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "7c98a81af70a6d658dc15aa158d94bbf350bb61b99232fda64ac0b6ee08d7d8e",
+    "lines": 244
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "c6edc4a2b3043691364947017170f03e30539ba31558897f6778da6fff144844",
+    "lines": 368
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "3f9a6d5f1aafe09469e6394c5cc16cc6b2e4c91d5b90706d237e27a62c8bcc80",
+    "lines": 282
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "fc99b4bf21d2371788900571a3c65fc6d7bfd4359edf44ba8885c570df4f1f3f",
+    "lines": 239
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "faa5f37d52c5cb96007edb7efb4df2f193a3470ed3a95929a8b3a29ab99080ee",
+    "lines": 135
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "e7f2a64583f5a691d253bdf7636a629fe3a6d750f787f2277e42ebd63c8fccae",
+    "lines": 172
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "3e3d9433a0e24e9629760bb313ce89a714f906f5d328f4eb7f8441b3f81fe50a",
+    "lines": 147
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "bdb66281c62156c791c9ff8c0004ae6cf1b979a4597a3c0698f8e8be60ce67c0",
+    "lines": 218
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "2c4fd59b55bdaad1b1e783160f002a582a2529d1882f9b006f02084c77ba116a",
+    "lines": 316
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "8ab4dd9a3256f17279d77737e550b540a82aef45cdfa59b2a0daa661b88388d3",
+    "lines": 270
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "dd1ce395ed4ae1badb944b80db9d7acf87856162116267d73657ff42cd8bc8c6",
+    "lines": 271
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "a15e2db9157a98ef4dc967d6e73bd19a5516854d407da081f95553f5f2436660",
+    "lines": 298
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "e0c4301adcb3b140c031ef6d68a98c0260323ff3b78f0e30bede7f14a8cf80db",
+    "lines": 322
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "83c25bc1718e1b6ae4d0e076ccf2a1b53bf4cd28ba5cfb46c70a54adc3784da6",
+    "lines": 234
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "a165aebd2c8242fd5f2b111196955bf6583f4168d8fbcbc1d9bee7d1e14afc7c",
+    "lines": 262
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "53a219fce21e5b9d5f865a47a37040ee29aa78828fcf5c14e39355314487652b",
+    "lines": 222
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "16b481bab1308f7aebc987b732f3d72b5c12dfac2b9fd9223ec3d47180d94bd2",
+    "lines": 455
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "4efc47fb9e55497d8d1aaeb76ef7b785c289dc51ff15420334cb1bc5a3deda33",
+    "lines": 221
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "2226e85ce48ed6d3358ea2cd0311c462e90035e951e66466648f07554b3fe22d",
+    "lines": 348
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "afc3fd0957443343bdb81d56de3d59b3a67f06e2fa5bd0c397e1032227374806",
+    "lines": 485
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "d422c013b7e12a501268e26f8a300b99d6fecd5b8e9d52707e22dbad5602acbc",
+    "lines": 202
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "10a49ce28403f63b83f1fedf9fc2389442e4bb76132c764d103bd32905ff0c4d",
+    "lines": 257
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "16e12b1a97df81d914a6c38f37a0d6b0bfc586df285c0eca69cdbf852639caed",
+    "lines": 194
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "4df2c33a1297a79d67ed916028f6d022aca94f7fc7bc64b877e56627eb07e206",
+    "lines": 214
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "2df99dcee69c4970834a98563c532edf26fea8466423ff5504d3b77e51b05eb1",
+    "lines": 194
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "df20730dbf59ed3551871d1c35e4b8065365ea68492f0bdf6e77ce5d2c2bea7c",
+    "lines": 243
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "b8626728b163f84455545c3a9bec6d3a8106fea6ce18aba577737387e03062f1",
+    "lines": 483
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "1becb61f88ac22b7533748f061be37fda202db01d04143560ac979d0f9b8cda2",
+    "lines": 310
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "5cc5236acf4244dfcc8566cc0004044d25e1257a194fc745e8cb81d2b6d051c5",
+    "lines": 505
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "5a474847ef2ff1b637719bb259f78bd2f67abdb311f7ebaf3d91f12f7fa3c130",
+    "lines": 261
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "0908293ccf3d507f20474e425f11a045a73bca0757af71009524dae80f9bb58a",
+    "lines": 344
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "f0771ea86a8e3f3bef253cd1eace891e76c0c230916a8d73ac73dd93697970a1",
+    "lines": 345
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "7abf01b9b10acc0cc419ddfde93a6d4b6e8fe8e9c03987a9d6aae6a97e738096",
+    "lines": 302
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "a40a694f7262b127ac6a5bea33ea432185907788f37e5b90286f0e2afc42c5c9",
+    "lines": 525
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "f7b4e1d800260f74e168c5eb858a070f35cb493b9808bd418920304fe62124f2",
+    "lines": 334
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "45791a6c95cbf0ec274ca1a36d3ae3f859fa8487bd1c83a57a28409de29c9c2c",
+    "lines": 208
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "6f55f9666df54f392730304c45614a35d1ba11ac523d7c7542b29425b817e80c",
+    "lines": 503
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "9287005629b07d230c7d7df41c30e111d98921e9f55dda5a5de5559cd0ac2740",
+    "lines": 316
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "ddd54221ac07ba2a8a555d5375b1d0567b6e69c35c30d260ebee4becaea77b49",
+    "lines": 301
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "d3b0da6adaa3a44d35bacb64c3224dbb88b3dae70116e9de5b54fffcd0907312",
+    "lines": 347
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "083ef024acbc71fbd27fac8cbe5a546f089dfc8edf76ce8eca8d7f01970c5787",
+    "lines": 306
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "fa62c0907ac82f9ec23a64b08a58e2c30980a05de98bf507dea22f550c13017c",
+    "lines": 184
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "5eead5abc2fee77ef52a13cd27069d3e7c6dc25d5fe6c8121dc9db8c519796e8",
+    "lines": 363
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "a8ef19c7372e6aec07e39db6ffffb8a292d68a4ee76c777d28fa82087dae3397",
+    "lines": 290
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "fc5be2f2ca5120ccabdb458da4899d47c5a56abb0b01873db5c37fb9a9b64d09",
+    "lines": 258
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "9d20a3e1511b49cbcca31542e7fdf1711500c73553659ba7fec6cbb05d6de1ee",
+    "lines": 289
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "31d6a4295ad939264d3f5c82601ca38e0d76120d13e61a44ea934b54d6f44dce",
+    "lines": 494
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "6471ce69e71fbc901794aac5efde3596ff908861022ae4a05d237af293848238",
+    "lines": 147
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "6d965d3615b798b85ecf66458e9aafe9dce4931bb4a1db2a21989a5692456aee",
+    "lines": 234
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "e73d70784c090eb00344c99b884c06adff46afd0c673a669a95bca2efbc3c4ab",
+    "lines": 148
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "8829a4f3d1eab45e9cade0e1fa39433f896776d680f697f4fbdacb2647aa2cb9",
+    "lines": 141
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "25074706c92cbc6d4a6d324f9ebe965767c546b90fc4ae25f03362be420c4a2a",
+    "lines": 180
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "6b2c36e7c285fef7c33df49240f83eb5dfc0b4d2cd5cf31150cb5464be7d836e",
+    "lines": 124
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "b15c02c1b81a8646a684dc7dc6cf0784fb4417cb4766f3fffec45f58d633b0d2",
+    "lines": 127
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "3eec1c1980a1081cb21e0f14fb44601003a18c0aa9814e75c2d9fba65ffd28cb",
+    "lines": 130
+  },
+  {
+    "case": "candidate_user_da-13-6_r1",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "d714c51f06e90cc1be06a855d70821bb8fe7d08269907690e32498ee9b8e8f2e",
+    "lines": 148
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "65b05dd70ec495c6d76945ec3a62e87bb1095d5cad1c3a391df9dbf96052d814",
+    "lines": 826
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "034361de2702e721d7ea509b0d0fef5195845f50f939ed716764d8ab5f07d159",
+    "lines": 200
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "785d895512d3fb69c32d2c0eba3c5534fde3e3c341c4f2aba5af6c8bfc80c22f",
+    "lines": 252
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "c6ba124950700c203317324f4dcfe555bdf8dacdd9c7bdc6904729a254fd22ab",
+    "lines": 227
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "3d1c202d89d3378e4ab0f8a4bcfa859fcb6004a62166b3b54ece0a4fa3894194",
+    "lines": 270
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "300541d00cc8a6f1d4d6140c1e31b46d1bc33d307ed7d7959987aec7b7d72e1a",
+    "lines": 190
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "49d2617137cb0337553019538b78cf7a82a3a715ad14bc6c582ecec2eb48418c",
+    "lines": 447
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "44f38821cc3c74a224c5ef29a31490476c90da51bc460b47becd510b26722eb2",
+    "lines": 221
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "e1f53fe89310732ab327e6bafa6ba0aefe8327bb12d3a416e7c30e24327dd5cb",
+    "lines": 316
+  },
+  {
+    "case": "candidate_user_da-13-6_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "a3bb52c2b623b8414d7f05b07f60c29f6eb5220ab3b2958305ca3328181338fe",
+    "lines": 271
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "72befc74d2583f21d09ec569aad25339f22471228266d47a9698adbe42e49057",
+    "lines": 337
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "aa78db35417d61c6aec3cd4403229ea2ba071ba90203557ba85af7244995972e",
+    "lines": 264
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "f0db2848f0a028c857f966d236f531875e3ed43979070eae2f04b50b52aadccd",
+    "lines": 342
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "24ea34dc998cd46c07bd3f265392d6cb8f6ff0cda447ba3b43d5e7ff5f241930",
+    "lines": 413
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "1539575514cd7298c7cd2fc6f04f011378e746acdf1534258a762d94b8561822",
+    "lines": 364
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "616a232973c40d284b6b3996df0b58ceb2f983766500c9a57512b41ce2f441b5",
+    "lines": 348
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "afe068dcae8d2264b7fb91b70f9f8c31d0979ae2ec2aa1ccba1e44989d2e3f6f",
+    "lines": 357
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "ccd687bbad7d6bfd934c0428c17c7eba45e4d72e072be0374ea65d260f78efe4",
+    "lines": 297
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "acfe1090b55daf4b2a256a9b25c14f7b158154c2a12aa633550c32bb470b9740",
+    "lines": 346
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "806d8e0dc3ac1af8a63b6378a9f201aa79e40952a3d915f1702363576a49b012",
+    "lines": 333
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "16f7607be61161fbe1d75f1f60bd4f248de6710d4ab1a5bf13b085961dd2a808",
+    "lines": 375
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "de08a64c46b7b4a11b5fec1f4bebb229ffedee99aa4e63f8cde1d984c4cd2460",
+    "lines": 229
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "df90ef0cd452219b5f024e588c83d17eaf4576216b76e76d1dd7160eca85d4e8",
+    "lines": 241
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "fd4baab3ea49e29bb43d01e54d7301768e4e140e7e6196b25940b6188ea551d7",
+    "lines": 249
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "56485773aed73c1ba8811eeb0be71323640c2e77c393047d2856b8790aad855a",
+    "lines": 231
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "2bbcfad496558e54e3880b977046f1f23a51761ff2f963f4e8600254b47e1fa7",
+    "lines": 227
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "b3a4c4166b9086722ae73c26bc655f45c7e9138150b4a813fbc6c31bec8f6ba0",
+    "lines": 228
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "f6fe2a98764c7cf35bf49263f4b4ed1128c3f7c674058278d955bac0f447daf7",
+    "lines": 250
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "94224da8f685d9b01b38284557ddd1658beeeb69b019744a4582d69bb7773fca",
+    "lines": 147
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "6b1a54a600b59352059ec96b7286858dd84c5adef951ba79901890d0a4ad9a53",
+    "lines": 252
+  },
+  {
+    "case": "candidate_user_da-14-3_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "05929d8de5c970f149e76aa351bb522017e4947a9bb5b94509f80e8fe7288d52",
+    "lines": 383
+  },
+  {
+    "case": "candidate_user_da-14-3_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "5cd4af9448af7c2a0f02391b0876d41525235267a1683e79af164e34042e031e",
+    "lines": 334
+  },
+  {
+    "case": "candidate_user_da-14-3_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "011ac4e61d50b4d37407669a274ffbb4936e7a501144c39b35df8fcbc4570f9f",
+    "lines": 159
+  },
+  {
+    "case": "candidate_user_da-14-3_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "6921c9eb636867bf90a0e0694cf80da8dcd99896520a19ebff69f337d354fef1",
+    "lines": 97
+  },
+  {
+    "case": "candidate_user_da-14-3_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "79ed73154bddc1771e58b8e118018be985279044233692f3d3296befed8b77b5",
+    "lines": 21
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "3e1cdc211366224058d40dd0160926baf3f61fdeba4fd220f31712e04c6f9eac",
+    "lines": 485
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "51fcbc6b1d1f9f923f8a56f2ce7eda727a8ed6a6e6f54a12fe6730510af656a7",
+    "lines": 154
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "1e21a003751e0dad38b80d3a9ecaf1845cfccd549861fed41c1abec89475a558",
+    "lines": 183
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "e736a214746610843b93d9f97aa22a6141576cb17ac54c31b3b16b8528edcfd7",
+    "lines": 114
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "22c5a9ab4ec09aae92032941fe16f45b878a92c799336b30d5cb55f71a1a71ff",
+    "lines": 133
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "6e4b765c858e55c9a2136e429543b102a4ec1dfb9eb67e02c88eefd4e687b2ac",
+    "lines": 134
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "5e2075620d794769b98dc3df10a6d8c1fdfdcfb7c6d5145f8a9ca3058d64d442",
+    "lines": 351
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "2047c8693da56b4b228aa60930ce6cd5cae9ffd43c08065b89396d01bc9c6f9d",
+    "lines": 288
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "60ada07cdbd40b2cd280717afa5b11e28a419bf66c1ac8ea4d073fb1aeeda523",
+    "lines": 247
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "f91edd4da047d0612862442a0fc5167cd06dcb2ffefeb67c8d12611e5e0d0e23",
+    "lines": 159
+  },
+  {
+    "case": "candidate_user_da-14-8_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "361a143bc7754c61965be9ed7f060505a7e39fb788397b760308dbc334426bc4",
+    "lines": 339
+  },
+  {
+    "case": "candidate_user_da-14-8_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "1409d685e788cf032602fef6d41055716a84cdb6ce90e2a1f64df6cc86a08e03",
+    "lines": 30
+  },
+  {
+    "case": "candidate_user_da-14-8_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "9f05bf040bf48034f74676a80be5369808b814a59b5b9047d51cba5765dc7ab5",
+    "lines": 30
+  },
+  {
+    "case": "candidate_user_da-14-8_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "56065e9daa935e626b4911580c2e540a2e1c79148aade216b4ddd540a35c1f1f",
+    "lines": 291
+  },
+  {
+    "case": "candidate_user_da-14-8_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "d823efbaa71e4713c5ac617606799fcff9e6dbc470d863102b1c20541f390aee",
+    "lines": 30
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "1442cc96ad18c38d60a5db3f01babbe347fb8f0c7e8a3cbe52205d11c3e8a2fc",
+    "lines": 537
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "ffb484d06c445ba17e7be5fa1e0f09ca352f3662bb5e054e8ec9d3e63c5d7a02",
+    "lines": 376
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "0178aa57ffd7d40ce91f6b905a600ebcb23921cab2288e1c8832aa48021b30f9",
+    "lines": 208
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "676f354fc036be28ef0dcab324b8d05961d1520b3d9e422d5de1051743fadd9e",
+    "lines": 151
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "f47eb85bde1ee6c63f241a34c96f79b67398e92b6db5108f0a919b014a12a86b",
+    "lines": 197
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "20830407ab0d780ea121c7735789448ffdf47130f5c5169a47dafe490372edf6",
+    "lines": 178
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "a102c85de637d66645237dd7117ebeec2d9e8264257c46442a0563b372ef4a18",
+    "lines": 239
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "e344da03b19f701f3e851969ad3ab4c37cbbdf2c57a559a249ab2aa1f2f9cea2",
+    "lines": 218
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "d12e8c90c4a2f7a06816faf31bd4f314cdab9c99042c510bbd40f76c55a878be",
+    "lines": 225
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "a67ad862adc86f028280e01bb305dfa6a82561dc784952754d70955f01fdf42d",
+    "lines": 280
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "5b2dc2b76d98ad021d32bf52c84b61fe89532ae96ebce511a4c8a5f140b27bf1",
+    "lines": 557
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "6e83ce968f8d17e802f4f3e3c1da43661a4e88bc4eb57c83e60ef4954d8969ec",
+    "lines": 407
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "9a2c7d5a5d90fb33bf93df24c46741db199feab8f02806ff20b3c7abc7c01546",
+    "lines": 272
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "d99d37f11853caf24a977e9095fb8e2e769efb40b8d44977ab99bbdb6e2a848d",
+    "lines": 253
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "bbd18870452cfebedcf3177b27796459fbdc27e29229a9ab112a43d101318910",
+    "lines": 317
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "5f19a7e43a8f93b164ba07c8268c00804db537b107195231b8a382afafbcdcb2",
+    "lines": 382
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "27e4aa54f15eff7d06c00b270f5f69810ae8d89047aa01ec58a888a027293712",
+    "lines": 445
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "9d3873b4dd7c7288c45f83ea1aa3a6f784aaa036f6e248ccba2c67b20743c318",
+    "lines": 288
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "fbd1e9d547f12db50318154855bd33c98559ba8bd713b87aa76f9e6c61ee08c9",
+    "lines": 316
+  },
+  {
+    "case": "candidate_user_da-15-1_r3",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "b3720952406aaa79dbc03ff9d337115cd47fe39b7ec31d60a6992137969ddd83",
+    "lines": 330
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "94737f2800b0dafad74593b6bd36d6d1239df8497b9ae01c6c7915feb4a873a7",
+    "lines": 1197
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "ae5ead19734e672bff471fc2ff270576b01df7bcbe1f789155c82adc5fc50c4d",
+    "lines": 206
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "7c28f0c518bba1e3a29c3807d75db1aaa1220790feadfce50b665275d74e043e",
+    "lines": 237
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "2558f0274b7420c32c9142b0ab2c37a2f57d4cf6d24ed79aea78725131ec1388",
+    "lines": 160
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "6ead0b2776a51d7e32a0e0bf6771749b295d7eca781cc2f10aaad744ddff3971",
+    "lines": 197
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "db2d07f5b0fa5ee1e96b8d314a673a1ff16873490b1ca7e819e6ab6b85394fd5",
+    "lines": 174
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "e1d5b7af159c4a16be0be6ab62862694853344350b5f656edc85886b441f894b",
+    "lines": 146
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "839a49ecf69a6d2a62c3b24337636fc7ec35ee35e31fdf550836b3a9db46acd7",
+    "lines": 405
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "d7b87690251012bb52f3a1c982badcd995f74fa624fa671783bbb13b9b8e4093",
+    "lines": 218
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "3a72c9c9c7b4b11c41f0d7a11a260658478d3862adf654cb76204e57612b046b",
+    "lines": 197
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "b8cab944cf10ac1e1b87d606151811ac1f7a0dc70dbd2a6a248f9a4102c9c72e",
+    "lines": 661
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "7e667437260bc42349b061de360b1670a08dc98816ba2897a4d3817a0a380043",
+    "lines": 699
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "21e3fbee446af3b41861421ca20cd112ecd7d90b28024b70790df34927438d01",
+    "lines": 762
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "e7f8a3b4a71da1b05608b5e510e0c92fce34957336f1c5f40de2c1eeabe8f90b",
+    "lines": 263
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "074cb0da76e585ced62726bacba0518d181f6192df0d35e4355eb77e9bc67ad9",
+    "lines": 321
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "ceff53e2d051e9ca004bf5bc09da881492ece5ef5e7bca432403ba87158cec39",
+    "lines": 232
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "f5f722fe63e14668114fe6e400a8cb555542625a22166a33af9ed3fc03bc4104",
+    "lines": 230
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "0393bc195352953f7fe8a1da3c95871ba85dcfa86c23b7deffa01d3c1cbd18c0",
+    "lines": 264
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "c38774e8e68a422518cdf2dda81f4aa63322e862a503ce9f14bf83e6692f10e1",
+    "lines": 131
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "3c538d1f453efeb2db17103f91de0c23deb7a5d64dddaf2018f59e7417447bee",
+    "lines": 192
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "643389ea6c8c2ea431c993cf619e381d7a5cee82e95d3f2bf88380a0aca0f918",
+    "lines": 484
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "ee6acafa44e0f7a158698cfebe8d5975cf6e69e467b2a41c2df0ae5b46d401b2",
+    "lines": 344
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "305ff6b14facf06d7ba6fd281e7cdbd695c3d34db7b92ce610ed14c6c9166a01",
+    "lines": 355
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "278fb7c072950893fb096541a7a3e6b1ac4cfede8874900a3aa1efb015ad1cb8",
+    "lines": 338
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "de5d93e4d0c5c4667cce005d5a5f7ecdb419c2ff1619c33b0d871b98f2716bcf",
+    "lines": 352
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "0c17ae134412ef743aeabd95ff586484e0f6fbedce82a415589faa3ab22f65f4",
+    "lines": 271
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "56793d0de4fdf856b2d742a76b2beab39aaf047c7bb4d6092f1186801545e26e",
+    "lines": 216
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "9e9b9056d57cea5dc634d1ed33631921a162a3b04d68b0c560137774535332bc",
+    "lines": 151
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "d4a0171f3776141897a23e827eb6e954d5a6c92a2d091fb1b1de12c02042ab90",
+    "lines": 322
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "4231d81c07537256f561b52fc3c8af8a14950e628fd48808488bbbacfa299fad",
+    "lines": 178
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "efdd22fbbcfacb84014fdd91514e42772d4b768b227d9d26819c32f5eee90453",
+    "lines": 591
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "e0bd773c8f08c266438406d1d0f7ddbcb24eda2e0525020ff820a356b41e1dee",
+    "lines": 197
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "9a0f0b1339f5c74c2aa9b1ecee69ef8c6bf5da487978323169b9407d2bd718b9",
+    "lines": 181
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "be61308e3dd5e70a9591b0e0f647c9644f36c395c40a1e016f9a639fb61b4f4c",
+    "lines": 90
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "6d4761ac2b1aa589ca1ae8c9f1b56a3ef54d6267cdeacfd75e779e5382476b96",
+    "lines": 121
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "fcb1a31318dde5230a4c7190838815ac76734f05e33786bb4fdbcdf29aa5acc0",
+    "lines": 120
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "b388215810f9bff8aa296e6f16b5f5e82f2a413a9785373215bf0bd5c72d9532",
+    "lines": 150
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "23e7aa6f1f010ba7624cca1e549a5b32ed7d10131d64ae6c92642964a4ce65b8",
+    "lines": 112
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "4d760d8c6517b928dddfb2c1e4e3d9b4871a9cf60309c90dbd957685857e7f29",
+    "lines": 139
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "9bc45d9094f0785aedb4eb1bd009e9150494a88fdb3eb4f3d0836a20d0684ca1",
+    "lines": 169
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "097a694683f7100f2aac989076300d27f72b5f29ff0a50a84f475c926e59a5fd",
+    "lines": 285
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "46c8368515a301466898c448d93a14b4c080facc361f451126fc5883e1e3fc56",
+    "lines": 257
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "66a02c73284baac3cd823cde15a006134fda44eeb282c6892efcaeb528db7dc3",
+    "lines": 187
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "c96a2f713a78cde7ce6aaebf705a481a2df6f391982d96636e0d1ec9ab329b65",
+    "lines": 143
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "0de1b926ef406dbba75097a8041c42a1ce6126f73868b185a8f48c164ca101c2",
+    "lines": 194
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "4efa99be2a567ce7fe2f63622a78382856bc7a78e681202dbf9dcd4a2d78b7a2",
+    "lines": 201
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "4c18ee0e931f5b8945b4db32171cfebaa9506a4a724184d776d5470077348854",
+    "lines": 224
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "2e7b286a0a91fd9ac61e34e411613c3f8e973808aa40ed33c54e1e5c624adda2",
+    "lines": 216
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "2a5a32f2c9c12b51650a9975f1e8bfe446a721a96af347019e3a7e08e75a7f9b",
+    "lines": 250
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "8c2032a8f199213d416353024f88cef5f45512b2bb320965c06f0e5dfd83b51d",
+    "lines": 184
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "73ba960f2e8d2ec8b67b5c0a249c985401ccd83e65880344cc37c8e231413b15",
+    "lines": 427
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "272a57ab04fdbdcf2361e434e2f3fcf5255e77b43fce43fe39ffd9725d2f80ac",
+    "lines": 213
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "11078c20f3342160283f19b4e0ad427c98f4bd3840366e8a25aa455aab533be4",
+    "lines": 183
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "ed00b27e86e11d9d10e930d6d32603ef17c6ce75682937c6e5b9f4c5d779c3f3",
+    "lines": 232
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "95538c1bab48dd4571ad34cae9b174be7e0a72ac43f8920d25bba121d58e8065",
+    "lines": 148
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "9be8edddbad175b095578a9fae7bd9b93a83349545c7438ae1ba94a0f2e927a4",
+    "lines": 202
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "da8934654349510291ddff34a64fc6735e284806231ed9a91195296b02823678",
+    "lines": 139
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 8,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "553241d76936573cd2c85d7a7d1602323b7245421e3282c1a2e396867fab51fe",
+    "lines": 155
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 9,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "09e8991b8397e469001baa07f4e4347e337399017e50232d3fa8aaf890055df5",
+    "lines": 216
+  },
+  {
+    "case": "candidate_user_da-18-7_r1",
+    "turn": 10,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "b742cefa51555bf63c3fbf840f87095545e69a4e329d0711a1a784de0d0aea6f",
+    "lines": 163
+  },
+  {
+    "case": "candidate_user_da-19-6_r2",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "6ee51adbcebab2aae4b93727e2ae1d474b09f6e38f734298a0775eb99af79849",
+    "lines": 323
+  },
+  {
+    "case": "candidate_user_da-19-6_r2",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "ddaea317940a21ad488085fb26a7761fd317aa4b67b41b90b658730a69c085a8",
+    "lines": 250
+  },
+  {
+    "case": "candidate_user_da-19-6_r2",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "a309843fa14fea55a97c7f3cf567321c754f61d9585dc2d79efb8d3746b12b05",
+    "lines": 195
+  },
+  {
+    "case": "candidate_user_da-19-6_r2",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "0b505324d233bbdc9becec6b7a56d7f51b31a747f563d1c1988b99066a294a3c",
+    "lines": 184
+  },
+  {
+    "case": "candidate_user_da-19-6_r2",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "486a23ac81594434a58e472d8349a028162400af8b91022808731b470e173433",
+    "lines": 20
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 1,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "829280ac4543f17c58a7f31ef6d74554c10efc38b1ea9f62a9891ec49eddc840",
+    "lines": 321
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 2,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "668d805f58044562696e492b1e5ea22952ad918f8e1aeacad82ccde03d9c2d1a",
+    "lines": 164
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 3,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "ecaafa8edafe739b1cba0b6a7121f7c13f1265f40aef79c11d86830a7654dbad",
+    "lines": 212
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 4,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "d5f745da3b26caff2acf392d75c64f2e13dbc231258b3f27e0ac696da46fb1ba",
+    "lines": 19
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 5,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "18150c01865570236dc6efee4a07a74bf5f7bb53265ad2177e81cb0fff06eedb",
+    "lines": 155
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 6,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "ff8238c54d23e92c9686f852af156b49ba683e9258de749a79b3cb871ed636ca",
+    "lines": 130
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turn": 7,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "82456d50e26c189721bfc58dfccf91d0e6bddd2e6f8c65cef298a64077d773f3",
+    "lines": 125
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "a2dca9c4cbc7e922f237b2c02cb70f41c200690d55e9d39af50d518c626d6e68",
+    "lines": 1207
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "225963f0e39fcdd5f6ff6c129f8072ecbd48e0ff99095ef327bc456ca4e47ff0",
+    "lines": 252
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "cde39a53f34ab868a2073a8fd5a1438d702dceaf98b867e9177d96db60c242c7",
+    "lines": 287
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "a48241141f0d5e17c9dee5453ec663d77289cdd8a4cff142f995ddeaa64e6d8f",
+    "lines": 284
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "9a8d643847d36dc8371ba3e4d043d749b13bd0e688e36e5ee8121c8f67794937",
+    "lines": 360
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "8a45b5e47f2e64234a17c6d71224ff048e7a69e8a3e64268c1d6aa8d0e40bbaa",
+    "lines": 207
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "66834282a3771e511d3a96b454b95e8e804e627131d84aaa77744436b371f71c",
+    "lines": 254
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "53cd6e2fbf5eaa685fa17c1a355a3e37815b236911d75eff00772741e648ce25",
+    "lines": 329
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "efeae9208d192b673cb4213f689866dbad729a18138b16e857c62ce5a4515b2f",
+    "lines": 222
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "dff4670f5b0868a9ae326b68b62a02e689d01ce39f1dcf586c6a0dd09b400b8f",
+    "lines": 218
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "c426c5c7ead7d5cc5602747dceb62ab501bfe3eb0431b997194d6e136d06bd5b",
+    "lines": 426
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "4ba73113e34aaf723d7b3a7697b44245d08b1839aa70e01d0f93eef81d782969",
+    "lines": 243
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "4f5a8fd9e9e92db6e1df41976094f714d1aad458ce1ec451b0f291b53a66e5d0",
+    "lines": 154
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "277806d1e1c721be7447a2cb9168b87b2749604512a9c3e70e323bbaa777b1fc",
+    "lines": 158
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "74199d7b2727918ad0526ce31b550af9914fd752af6fd43f73653d523e17282a",
+    "lines": 217
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "d75da051d652aa887bffa2e52c25175d2eb2ae677758df2e3ef84c25aa02fa3f",
+    "lines": 153
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "c21cbe599a4748ad4e6d03b14737400a8d653516923f1b9558b895a23252576e",
+    "lines": 263
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "927bba0041dcdceeb4b33245cc3bb9eb2c84356467a02177519b690bed20b913",
+    "lines": 238
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "73c187c867e7f73095ccd2122303b63d037f395dd6d96118b27cc0ac2a2ec3f1",
+    "lines": 212
+  },
+  {
+    "case": "original_user_da-10-3_r3",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-10-3/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "d45ed4a78f7941891926ffba85b3b4cc4d9d929e6a63d59e715c878dcda0a22e",
+    "lines": 133
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "12404ac8a95be69ad6791a187182297a550c8dca35d1ac53f77738fb882d77ce",
+    "lines": 490
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "fa5c883536dfd5bc98c40131c9b49cdb757eb1e6618d93aa96417fd66f3094a0",
+    "lines": 235
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "12e132c5891b9e2acc8080fa3397282626392a7d007648e6017c9e57d0967bc7",
+    "lines": 257
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "931b36d453a677c46f240d4132555b29b27dd9314d37d36b0b1adb7c7c60c945",
+    "lines": 167
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "615157a58cc5ab058910777b6730c446893db877ff696cf7a8389fd85290d8ee",
+    "lines": 246
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "492730cb21ec5483b93b6f5cd6344c8fd50899d0ef8e6a2a6c47bae9f5ac3719",
+    "lines": 201
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "922f272571b4ae91a1b23742da236ed52a51189db2b30b9244e000d8cda24876",
+    "lines": 20
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "624db4dc42e0560948318d88a1a3b866a3630d0e5254d6bf09953bce5d3a9f5b",
+    "lines": 403
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "4a3391c2d071be3145e42b5cc4ed0e3e1d6f5fddbca1243ca52e2d12ec93e68f",
+    "lines": 414
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "82af63d7170defb0b9cb9bd9eeaf9bfd1aaf49530476ab7b5cd0b3a9fe46e41c",
+    "lines": 252
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "3118508c4130275f14a514b737bf013fe6ae231f442302ce1cb1cfe912d7bc03",
+    "lines": 304
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "e0460ca0995327b6eba30401bfe18b07f7676429ed2d1afc9947aa7960643861",
+    "lines": 360
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "e7f000b1d61e9dba05c22f811c9180203e0368c1e86b2ab2e6ed9546d1817b94",
+    "lines": 292
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "8e6e541c46bc3500baada3b5615822183024bfba510f2b5b609a77b7460a7145",
+    "lines": 361
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "5924ed5515642cf6f90908cbaf731370f3448e62f054d44d1534e6a8d71d019a",
+    "lines": 243
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "4909ff19f7c80f4e9f4db133258537cf525a1b9c73ecfde798a9d5710359ed9c",
+    "lines": 280
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "a5e6b5bdd4d53668ede7ee5fa55731f58f26af30cff60d7bcc85f6bdeb7f70cb",
+    "lines": 229
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "19f6c2f8521a3aa7d665242c864721e09b2a807e273fdad93fe4d3c0728d9959",
+    "lines": 308
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "37bb459c59e8a4b19e76864a3039e4438d40de81e61986fc54306b90b46f67b8",
+    "lines": 379
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "dea86f292bf3a1671487cb882d1b8f4d6baccfb55ec933595f29e55fd8e1da2d",
+    "lines": 244
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "710072ff84db7ebcbdcac40cd550e2f9a2acb787fd006a1affaa58f3a29687da",
+    "lines": 251
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "bb7d85ca8b12ff678a0d99496fe85450e5d229e481983148ec7219441f01a5ce",
+    "lines": 169
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "b85b9f7f6c6034160aee0f28669d83650b0f6eecf9a793fb0d9dac7161cdfedd",
+    "lines": 165
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "c1b31673b4717fed102677dc27ffdcfd143121244b0ae70ce25e5d2ca187b01a",
+    "lines": 290
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "857628fa7470138785d07a3dc508021344e3e5937349db17afe3f5991fd0daff",
+    "lines": 329
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "fea7ad1c660f53e04d1dec9c9bb7ecbbbaa44cc89ec0c124674e08e20c2290c5",
+    "lines": 159
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "005924dc01cbb14dce6432ec23e509e67810ed021f3a59bc77ff91a5fc0907b8",
+    "lines": 241
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "d57d57362f453c2a9823bc2c62d4b42be3c51751bb842804adcea95fdf8c7dd2",
+    "lines": 496
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "a61cd4ca942c84bc079060ae31d9fdb2da0f39751511e34dbe5cf63b0b0bc409",
+    "lines": 168
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "a226a3ce73d7c0350340db334d86c75b835d66889b75a79745837e58be17a7c9",
+    "lines": 518
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "afa3493c39a7c6751f19214ba8809eafce7ae04524a5a973dabeacc75ee730b2",
+    "lines": 365
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "95b0648e7f34533eb10878cf7e0770951f38cf4b38385a36cd32abf588dd26ed",
+    "lines": 310
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "f8b022d48771b1da61c5bb9c9904845bd4bd07360dc2fae7ae04d0228dc7d394",
+    "lines": 294
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "8eae5f14dd84a3b900a30ab80621aef07ea6f8533336dc55244524e5aeab4766",
+    "lines": 335
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "b0c4a9456a17e7b6b43376d5ed2b60eaeb69f4cbce0a32cae5e733e20e61885d",
+    "lines": 316
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "88db5779f3edef27965d3529ee74274335c82328a6266076a5f14fadb9dbffee",
+    "lines": 257
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "aaaa972c55b160866db9fb1ce21f6e36fa49c3b668e7d27cc9da10d38160a439",
+    "lines": 426
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "8db8241573be46cb19e83e5ae8a80c19d2d3335d38989a9ea1209c557d9f2c37",
+    "lines": 311
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "eefa7b3000e825e5bd93a29f6a5b32021046880e31fe05f72d12a91a6ee04cf9",
+    "lines": 417
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "5a1d6c6dc9031b8e42eaf57f17ca713ce55b0292a5627a90a7b8b57994607493",
+    "lines": 199
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "a1a7c45d86ecf1a8876c9a4f83e7832c01c01a00f4a7135f52b9ea8c6bdb69f9",
+    "lines": 180
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "6e256322ff4ba2fca3ff1d650b106ea31504b021cc2e62363301157b16a05ccd",
+    "lines": 80
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "c8a98d5cec24689e16bca631206b4298b9b2c037805b6be050a6b8187a22a541",
+    "lines": 268
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "ee945b11ecf2493de86f8b11800be656fc2326d2cbffe834fd75292d14f329f8",
+    "lines": 168
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "7de2786bb128183f70a0fcca7bcafc51459eb026de4aadc6477bdd4ea87a64d9",
+    "lines": 275
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "9e4ebe17b089b58ca23af5ee57fb3ac4ac542578500fad7cb2b49e843c240f37",
+    "lines": 164
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "6d4c331feeee70415289f6a9a577d0f01f427a38200bb2c3fff6684c9d2ecad1",
+    "lines": 20
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "e4756fc0951a34a09b21593bea3e27c5fd12c559c8769dd35be1941a39da636b",
+    "lines": 334
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "a29ecfe03c785a39bc9e85cd05c88c93c9d6a8330f9dbdb9494f918acbc7bda5",
+    "lines": 195
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "fdbf6ac9160d27ddaa25043c3110ad5592b4f57ebe002fb4fc09e8ea1b09d9c2",
+    "lines": 32
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "a23b1ef82de1b76df2bfb8fad51b7473d343a00614c4c7184879073c7f7fcb6b",
+    "lines": 32
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "f2f966dea7779c3faf87a73d22b93ccb1978d5790878421f6afb90516f7d5994",
+    "lines": 168
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "e8d4456265db94df0c3745ffbb0492927d92f561fc50850d721095763a7d0f67",
+    "lines": 160
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "04bb3bffbc10a61a504a459dac04544cc74beecddc4df6daa2257d8d0a238de9",
+    "lines": 186
+  },
+  {
+    "case": "original_user_da-13-6_r1",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "c823838b2773aca54812b398c4b4c59e124151cd6dc0a28517e0b2a6a28c78f5",
+    "lines": 32
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "422d3aa8c31e046a9e6e8301d520170e51ec51a131b376f39410306d468829f7",
+    "lines": 321
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "275161d82f12554280d640f12acbc101673b79446b4f63318a3f4d3f0e6ad36e",
+    "lines": 395
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "667f19cbf422dfc496d4866eec2a3e6472497d097edb1f346645433f5cea7c12",
+    "lines": 148
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "b69827bc2d4db1c4ffb2ad7eea250263d8fb8efb5018253283aea966de56f183",
+    "lines": 150
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "04c47ede8c2be731c38612a355ab88868c2da0822356543ba2d047347d2b9461",
+    "lines": 172
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "158eb56e46ecbee3c27b408203616299a720f118fd2472e8e251afc4e8042593",
+    "lines": 265
+  },
+  {
+    "case": "original_user_da-13-6_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "afdc5619d8333826b8fc366afef31e263318ad4a749a83b674563e5f20665cf6",
+    "lines": 18
+  },
+  {
+    "case": "original_user_da-13-6_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "5836052b0dd68f3a520d4a30aa5d8d8dcfdf68c11a836a11c8db18029e1bd36e",
+    "lines": 280
+  },
+  {
+    "case": "original_user_da-13-6_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "44cb555e12e0fb40f2ec2ca2cf89e97f8b1cd9c26c52781707eaa9b983348767",
+    "lines": 187
+  },
+  {
+    "case": "original_user_da-13-6_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "5a105c036e281954c9789a7450c77fdf00a61c3f8fabfcfaa8238ced8687e6fd",
+    "lines": 31
+  },
+  {
+    "case": "original_user_da-13-6_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "6488f07d04390d55619ae73b0d41cfae79ef523c000a7cb100a055b2d22bc8f5",
+    "lines": 27
+  },
+  {
+    "case": "original_user_da-13-6_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "ecea5e2427af26a453d471cd7064385544ebecb18df341eb9a0188709bfb38b9",
+    "lines": 27
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "ef51629e39316ea31ff1783de372ec3c57e73fffbc5fb8fd8c921bbf5d83b133",
+    "lines": 300
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "1b64d51781264fdbbd58e1d5a68a67739fa44fd139e3d0bd58fb8ab6b67ef5ba",
+    "lines": 263
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "9f23cd49a1917578ac31d737a2fc8c6cbd27432858df9b50aa5cb2a9d3f0aba2",
+    "lines": 151
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "279f988e753a3432906bf820da947f00471518661a57787c84ca64d826ef3b45",
+    "lines": 215
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "31f309978daec6f35977922d48e2cb13e0323f87a8a211dd959ef4b304af550d",
+    "lines": 178
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "b0469e7505c29dc0ad48f0e2db00327aa59fe2b5651f2160974f40289d91fc01",
+    "lines": 157
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "0fcc55f84ccf0f2182f860d0270abf62114dfe77e491927ddc78769723927b2c",
+    "lines": 135
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "0258b4649d8517128eb8329bda7805e8f2db39eda63aa9c2195bb569fa4b9cb1",
+    "lines": 164
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "76043e7442111362ecfe0061fbee895d34106dd21c08ea7dfc7908cac66ffb85",
+    "lines": 84
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "24e1cedad420d27a993d5019a22966dd48b24ffd2985dc92978c9d7da366b33d",
+    "lines": 156
+  },
+  {
+    "case": "original_user_da-14-3_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "995995487daf75193b4d8130a1cde41665090b583d6af013a7ef8c07c83a7a58",
+    "lines": 307
+  },
+  {
+    "case": "original_user_da-14-3_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "7333b01500055ef0ec26d3ec9bbd9983bc98ebd298c210141e0bb1b30a469eab",
+    "lines": 166
+  },
+  {
+    "case": "original_user_da-14-3_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "49581f2166d47fb4c482e4ec6133500fc6b5535a71116ac9761a51898b83c50d",
+    "lines": 175
+  },
+  {
+    "case": "original_user_da-14-3_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "2081287c7cd1eb6dfaf1219e31c2608b6ea1cabb9d5bf48d325479405de7cf2b",
+    "lines": 24
+  },
+  {
+    "case": "original_user_da-14-3_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "38bc3aedec0445b0a850271e9144c262101c3983105f1858beb6c0650bb56c7c",
+    "lines": 24
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "bb9ca73f3a37a93434b0eef6fc21c2898b62cc138202d4df6f28a1b2402e0fec",
+    "lines": 300
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "88079e4362b84eb5449774ba064d5fb85749f9a1ecf23a3d66fc76048aa1dc1c",
+    "lines": 297
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "95d5b75ec08bd868768c57db9da6be67f0e53b3d63e77c6d16fa342c3b38f0f8",
+    "lines": 170
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "e087cb04062e8b968a82c7581dc27c0f7d89ae43670adaf4bb50a886b9c2638c",
+    "lines": 212
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "d107b477558d48ca588e7c6a5a25922ff0856220a314b0f1e6a1d9df92408930",
+    "lines": 364
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "a8e4d348133dfdeb01ccb6e48991cfe3938a8b5179fbfc8214061607db923f9c",
+    "lines": 251
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "36fbf9e2b9e1f7afd0dadd7fc7ae10a5793f8d6d9090b5d4f8c9f27d6688ac7c",
+    "lines": 224
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "db62df52504439ae19520abcea733b94a529e4681569dc6043cec2d3181a2083",
+    "lines": 187
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "cae6fcec4c9a36246477d27d59ae8946bd7fd745db6caf99fd6a9dd7a6c6a3dc",
+    "lines": 122
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "738b893f4d50cbadd6e170f2368e365f58d4308a6ec472f2bad2c5d464895008",
+    "lines": 123
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "9e5369e76778bcffae1754f8dddcaf362f84b7ad3c9319ecfda4e4782825927e",
+    "lines": 379
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "d24cda638aa9895816259e733dfb0ba03258d51cb05d3802aa5c517f053a7561",
+    "lines": 346
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "d87974b0e53847914d347f3c0af014191990c12f00ae17c57dbd5861898965e7",
+    "lines": 248
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "f293c8db470be9e37b57b3542fdab6b1a33dd9365853054a54accce68435ccaf",
+    "lines": 250
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "523be494834d13c3c2b48a27e1c67752f5ef050c971d32d8d34a6f7c6ef074be",
+    "lines": 246
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "732afdcafb0bb04b8c145f0dd39cad5e9ce646502a9db8a8e861434300282002",
+    "lines": 283
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "4f37a41ed70c5630c33dd53036c748763e96ebba31a2b5621cbfd2b0c87ad332",
+    "lines": 282
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "a6dd81297c7deb1032e5b90f442c6992ec0bb903a0685ccd460e0a4ccfee01e2",
+    "lines": 311
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "52ca06d973f0ea7edd7492e4beba0e46e6d34a885aaca4df86ed5f5e43a6a1f8",
+    "lines": 118
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "ee9dc8ae911e784b634363c33c9275c9b75ec0323dcc21025e21f0c867e2bdf1",
+    "lines": 581
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "2351162a7ea0f25c273253abad53a1021a5504cc7e48dfc1ac46380eb7c7cee6",
+    "lines": 297
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "69fdacd92e4edc042f1ca457bf77c1f3fa57673470619ef044c0ae521f0a324c",
+    "lines": 511
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "4179f296dcd2754195019777243aac934c1cb6904360327620bbd8f1b8ef9d37",
+    "lines": 651
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "ebcdd514fbd9fa44a17ff12b09bac3249fac6d1ffe0600603f7754c6751600c2",
+    "lines": 293
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "63514dc8c8be026071ca415d2b26f6141ce2e65fa2050c07f3c36f2e25cbb986",
+    "lines": 253
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "058a47ac97064022489b6857f9bb1e1b1a4fd1fe5c8f233e0b04e1fc216c4f3b",
+    "lines": 211
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "abd017a775709b7610fff1bc2e60c9fc1941f8ed8023c95c1b20828cf80c7856",
+    "lines": 191
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "d1245e042d9fb201096fdbda3401c9ced13a5d5ea9bbeba27aae7bf5c63bf62a",
+    "lines": 207
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "0d173fe1575ab2f0c3dedf1a7290b76babb73caf47608bf3e1f373e5a6b83293",
+    "lines": 228
+  },
+  {
+    "case": "original_user_da-15-1_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "926487c693e1321c0225bbd02c07c439670a5860620daa8224f36e0d7821cb6e",
+    "lines": 453
+  },
+  {
+    "case": "original_user_da-15-1_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "6fa61625657f0e04ca89377e68db8cba530398b8ff54ee5bb77e3b94121914e0",
+    "lines": 204
+  },
+  {
+    "case": "original_user_da-15-1_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "c0044e08011afa28084881f5d32ab2270e8b631f46e48edbc29a628a1a018afb",
+    "lines": 182
+  },
+  {
+    "case": "original_user_da-15-1_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "0df0191399c72291ad3b8330c4819604276891328d1ce1a790a07e0553637cf5",
+    "lines": 149
+  },
+  {
+    "case": "original_user_da-15-1_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "60518df5def3091fc5ab63ff2546278b7f1c028c889ad05fc605309f44152901",
+    "lines": 161
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "a7a7091378c414c7e7324bbb76244360297cd389bb9573a313e5dea80208ce4b",
+    "lines": 573
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "06033e12c43fc3c45cfa1905806d8d686ca875ecc6c045cf4d8011a0c54a3469",
+    "lines": 252
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "3db3f5418e960c396223f7e41ff3ce373427cc57ad2212eb46dd94c13db52ee1",
+    "lines": 301
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "40eb4dd9172dffa7e51e8ea8be5b0b3d5c589c92db48d5bd21731f723e327916",
+    "lines": 358
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "72b435c998859738971e8eafabe2a9727dd8781183fcffd0115ef80f2cc75de3",
+    "lines": 328
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "bca5f82516d7f137cdcb995b71daa541f73d4b04416f824630aba618589b954e",
+    "lines": 279
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "47dc50f6d1d8c696844f31b8da104adab1517bfc79620635d62a1e0c18e8155c",
+    "lines": 191
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "47363084ee707525b696c9b4444d58ab70cebff193f6676d103c64227e027877",
+    "lines": 270
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "1a5f9eccca92dd766344cc7171d9ececc7dab5468525253a1ab96ffe4ce778d2",
+    "lines": 266
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "5e678bfcdce83571d03d4a755460102ef968270e32f82a800b9b00bdccf1cdcf",
+    "lines": 222
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "d61ead651538d4ae3d2c6234103a8657cb91acba7e265df5ad4d19736fbf1bd8",
+    "lines": 543
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "79183e54d2d09c9571dcc55859eb5fdd0f3959b27df03f2bf4ec2495590bbfe4",
+    "lines": 281
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "90ac6718d5d739fdf8a9856187a5fe2194ec1af1943d296200e042613b5def98",
+    "lines": 240
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "2929d83711504db00aebb0a572ab253aa0f5acf4bf69278c3f55c170867e47c0",
+    "lines": 239
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "371ea88e8c328edeabbe3f2a39d4f6b2b593d4c77571d2aca577a6243c70a7ec",
+    "lines": 215
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "37f239c8088495e41daffbe6128181599e44f49ba5bd1282b39a2b34bbcd68d0",
+    "lines": 274
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "9a8e2e03c8b6d6443958cde4aa2f61dad43d9c10597375d0e77bb7436e76d9bc",
+    "lines": 164
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "0fe9a8c2147facb9154c589cbe89f1ef6e5598cca055a6406f9cbd1810a05213",
+    "lines": 239
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "5ee31daeea371113b2f4c40306e14e0f54f42f0cad5b958773b596759927f0eb",
+    "lines": 112
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "4d0461188263fe4fe1916130541b54fae63613a6dd14bd77ac24092e61455d49",
+    "lines": 202
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "b2224e15b4ff8137b30ba4dad57bc7c8e3bb9f29cac9e7dd7d8bea9ad828e2cb",
+    "lines": 442
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "93ae1881044f0271b877062c7c14f8eb7d57687a82d7efa07fe0418047ac330a",
+    "lines": 332
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "04a051a78b7a0cc4de9b497a094a3be95a0c32a39733a3e4953659d79e4428d4",
+    "lines": 262
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "2c70fe8cb7f60b2621fe3da5b7240ce4f27a1bc64f96e0870b87cace802e3b6f",
+    "lines": 222
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "54ea01380f28d24eca2626d2abb89168a04e1f343356ced39aa63c3a4e955c2d",
+    "lines": 197
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "6fa5a383231bf86054190b06615ae1349bcdf13d4fe042331bdbabf578336536",
+    "lines": 148
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "192296d86c0797ecc0ba98dd4f4cc6e5805b366bd2e7f2277e431f6b1266194a",
+    "lines": 173
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "9cb536df60528fbd1fdac5790b41655b30ff4fb88f6e49b0e2e6cc0cdaa0e8b5",
+    "lines": 156
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "501254a3aa12996fd720a48c70d951e37cc4d9613fac0a8222f5e8ea4c2db620",
+    "lines": 185
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "9c26ab276c82382fdb8a4f84e991d051701ea0ff45f4aa2e0f8f7d606b7553f0",
+    "lines": 183
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "610268a0511daa3befb2f6dab18f0142ecf10f2cf2cb6beefc9e7bbd6a1f3576",
+    "lines": 379
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "7fd9e94839b9168a67f08b5290e516ff7390655f6473f063810fed684c964a79",
+    "lines": 177
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "cd349a24d12856951189ed3832f9540da8583149954b3fb5257d6d3944927eea",
+    "lines": 166
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "684180cdbbc1c81f3e9bf4399f8fa93870d1e94f0892df51632c5ba0b05d66d0",
+    "lines": 186
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "e38d4aae09dfad52836d099b7b42d5342ed163752e82f8e50cb301a5bf07583a",
+    "lines": 125
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "fae5add9910efcafc06ddbcf805a88ca2decf47f34fa091b270b8bac0f0a5198",
+    "lines": 164
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "9bf2aca016729cc9f66504d1461f134d4fe85ba985f84d0ee507fae9f7d98786",
+    "lines": 132
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "771fbf5a1dcc08435c7cb6a085718360dcfb50fdf3cc1caeec2154b90eab8daf",
+    "lines": 146
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "50e8c99d99847ec834e4eeeadbab9a1126bbe683e49ce3d77f8552d35df5c8ea",
+    "lines": 19
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "546bfaf19973217ff46b0445150fdda81e3f624d208ef219399ac4617f58a007",
+    "lines": 482
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "f1806103a84c65debb10e046a226584c11d6078e3f76c9d52f579b5cd27c3d87",
+    "lines": 222
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "dc171214bb80110e31b1adb2b3f64222b0b88bec4758e6304e98e52d9ab30b96",
+    "lines": 80
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "8066c80c94798381afe1a15fb9979d8032fde33e324dbe01d2b01f392fd8ef6d",
+    "lines": 214
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "04d204d17468f91da2a3be4f05976af09bf8b39ab1bd4e2ac7a3667caa6e3350",
+    "lines": 139
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "0d5ec5ee68f6e6be394ec434e447e2076ba44eb318f8a298727b8fa5ef59eed0",
+    "lines": 151
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "e53534a52aea63c03299384fca68ffadb9198c45e7762d83c024a220442ac64d",
+    "lines": 174
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "1398bad8140330459f93fa73e9fb17f3ceec992600a932c175a15c7d00dac597",
+    "lines": 178
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "a39ec1eaed974514fa7b67546ba5190cc7e30d8d3f9025a736360bd0e47aa31b",
+    "lines": 180
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "3a3bf501ef2adb3954570a5f0b1e9361be0198d542302961e6d9d6b7ce41f2d1",
+    "lines": 168
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "bc1923b468f920767bbb6703df828d6dd0299737ff7a39be35bfdb77e1ae8f02",
+    "lines": 376
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "6678d594d78e783a6ce50bd53bc679b00737421c1c93d4f8090942e2f846db1d",
+    "lines": 301
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "ee2bc73d9136f0de71794fffb0bf60829872c6136fe56efe98b165cb6af1e7bd",
+    "lines": 231
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "bb9263dde6c8c1cdf8f40a44bb3a12478f780ff01eb0f9af00f1618a642a0eea",
+    "lines": 218
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "842d066d4a617ef390c26d5f90fad4aa5cab88af9500522d44ae546e264bc943",
+    "lines": 240
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "0cf970c505bb613371607c2ee59c1fbb811995373fa4dbe3fadaa5ddf7a418ba",
+    "lines": 108
+  },
+  {
+    "case": "original_user_da-18-7_r1",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "b17a547234122ef47e251d8e50a5fb406f30a6dd4f1d6745969cd8256cdb2561",
+    "lines": 163
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "4e3e8d5a012e811f8a629772a5956358bb84ff9c76a3e07776b37167950045e9",
+    "lines": 376
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "ea21c2e56e75d9ea053329afd40fa0161de97115e557784271c84c2bcdda9ae7",
+    "lines": 230
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "459e62f4f2872a6154b857ce38ef2ff66c82075d0d6eca9cfc3a1dd3be6fbc59",
+    "lines": 222
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "b0c4796c56cc6a6c534687f436860ca6a6ff33f3fe6d4a3647088e0dedf93020",
+    "lines": 191
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "5ce69d5fe421deff2827f1f60cc90ddd67fd61f8039fce5e6b0152b78747ac65",
+    "lines": 183
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "27a18967f7b761b6ba5790740feeb1ea83906487328485377c3a6bab7eef7844",
+    "lines": 187
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "cab9a599b39b2e167ed41144adbeed70b74cc0c8f48c0206a4151d99d1339966",
+    "lines": 152
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "f589f8029f735422564ec2510e3cd87738216e41beb39282629fb142a1b36191",
+    "lines": 157
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "82e21707e766b9cdeddb142b0c70486aef099c4ae7f81631ee6eb5e3ca44cef2",
+    "lines": 220
+  },
+  {
+    "case": "original_user_da-19-6_r2",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "ae39f9525522cefb74660351487d8819f17f16c9f22f8cac7782e4c480d7e12a",
+    "lines": 251
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 1,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/trajectory.stream.jsonl",
+    "sha256": "a9e0ca8ed9cd20b6f4aa422e8787bab15570f78f1bafc0839c560f6c84b47574",
+    "lines": 431
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 2,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/trajectory.stream.jsonl",
+    "sha256": "c0e467a3a494eafa4df5774c5955647ab332b0cfae35020762d886ffaca5936c",
+    "lines": 131
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 3,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/trajectory.stream.jsonl",
+    "sha256": "5af2223437300411637aad49cbc86c31f6076323b4ac5dec3926d81fc8bfaf15",
+    "lines": 163
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 4,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/trajectory.stream.jsonl",
+    "sha256": "44f619d95ae2619c160dafa0e9b63128aded394197558ff2f5c7fdcf67873776",
+    "lines": 176
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 5,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/trajectory.stream.jsonl",
+    "sha256": "a35fa33d552e6d26df8a29944b9d896fb19ea5c4fa0ef5bf41b3a2d035b9729f",
+    "lines": 167
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 6,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/trajectory.stream.jsonl",
+    "sha256": "690a80e51bd231bcda9e1a1e0dc36b24a11e564de1305d2c42104d201761df66",
+    "lines": 158
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 7,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/trajectory.stream.jsonl",
+    "sha256": "810163700477ade16a00327ea1a24da7e6d318d26b402565c164c1e40f983d1c",
+    "lines": 195
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 8,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/trajectory.stream.jsonl",
+    "sha256": "de4d91e579ddf32691a45a19c5b61595c14d510d36359dcd777c4f9980a94e78",
+    "lines": 163
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 9,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/trajectory.stream.jsonl",
+    "sha256": "5c2bb13520c9bbcf4b477d9ce58ac88695e720c0e2f5e912bba5bdfc81abdfda",
+    "lines": 146
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turn": 10,
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/trajectory.stream.jsonl",
+    "sha256": "a1833e707e0f2d9477ab89e40d226ff62e1de6d433db4031c33c7549cbbb165d",
+    "lines": 158
+  }
+]

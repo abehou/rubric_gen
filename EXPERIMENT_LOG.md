@@ -1,3 +1,7 @@
+## 2026-09-10 — Original trace versus public-witness forensics
+
+- 08:58 EDT: Completed a read-only comparison of 60 matched User and 59 matched Full assignments: User admission loses 22 cases and gains 9, while retained-admission cases account for more of the net RH regression than lost coverage. Published [the forensic report and CSV/JSON evidence](docs/reports/2026-09-10/trace-forensics/README.md), preserving all frozen verdicts; no experiments, revisions, audits or provider calls were launched.
+
 ## 2026-09-09 — Publication and cleanup complete
 
 - 22:18 EDT: Baseline9eea696 published; CPUcleanup10380691 archived two reference figures unchanged and removed159 disposable cache files(3.12MiB), retaining every raw run/input and all rejected-policy evidence. Final publication/cleanup receipt: docs/reports/2026-09-09/baseline-freeze/publication.md; no further scientific work started.

@@ -1,0 +1,21 @@
+{
+  "selection": "First online support-rejected execution/claim/consistency/traceability/reproducibility-titled criterion in each candidate-positive User assignment, plus the same original assignments. 15 candidate + 14 original; one original has no eligible proposal. Purposive, not population-random.",
+  "counts": {
+    "original": {
+      "reversed_pair": 3,
+      "both_fail": 6,
+      "mixed_citations": 4,
+      "application_error": 1
+    },
+    "candidate": {
+      "both_fail": 2,
+      "mixed_citations": 3,
+      "reversed_pair": 2,
+      "poor_scope": 6,
+      "application_error": 1,
+      "other": 1
+    }
+  },
+  "validated_pair_mappings": 53,
+  "bookkeeping_errors": 0
+}

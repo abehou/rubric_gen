@@ -1,0 +1,66 @@
+diff --git a/src/rubric_gen/detection/runner.py b/src/rubric_gen/detection/runner.py
+index 6fff04b..f7807ac 100644
+--- a/src/rubric_gen/detection/runner.py
++++ b/src/rubric_gen/detection/runner.py
+@@ -6,6 +6,7 @@ from rubric_gen.runtime.capacity import limited
+ 
+ import hashlib
+ import json
++import time
+ from collections import deque
+ from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
+ from pathlib import Path
+@@ -177,6 +178,19 @@ class DetectionRunner:
+     def _payload(self, case: AuditCase) -> EvidencePrompt:
+         return self.config.source.prompt(case, self.config.detection)
+ 
++    def _count_preparation_tokens(self, model: str, request: StructuredRequest) -> int:
++        from anthropic import APIConnectionError as AnthropicConnectionError
++        from openai import APIConnectionError as OpenAIConnectionError
++
++        for attempt in range(3):
++            try:
++                return self.count_tokens(model, request)
++            except (AnthropicConnectionError, OpenAIConnectionError):
++                if attempt == 2:
++                    raise
++                time.sleep(2 ** attempt)
++        raise AssertionError("unreachable token-count retry state")
++
+     def _prepare_job(
+         self,
+         case: AuditCase,
+@@ -190,7 +204,7 @@ class DetectionRunner:
+             payload=payload,
+             max_input_tokens=self.config.max_input_tokens,
+             max_output_tokens=self.config.max_output_tokens,
+-            count_tokens=self.count_tokens,
++            count_tokens=self._count_preparation_tokens,
+         )
+         return PreparedJob(
+             case=case,
+diff --git a/src/rubric_gen/submission_revision/contrasts.py b/src/rubric_gen/submission_revision/contrasts.py
+index 0f9dd72..dc2837b 100644
+--- a/src/rubric_gen/submission_revision/contrasts.py
++++ b/src/rubric_gen/submission_revision/contrasts.py
+@@ -286,6 +286,7 @@ def build_online_artifact_history(
+     }
+     pair_ids = {item.pair_id for item in history.pairs}
+     evidence: list[RedTeamEvidence] = []
++    represented_pairs: set[str] = set()
+     for observed, adversarial, trajectory_path in red_team_sources:
+         if observed.sha256 == adversarial.sha256:
+             continue
+@@ -295,6 +296,12 @@ def build_online_artifact_history(
+         )
+         if pair.pair_id not in pair_ids:
+             raise RuntimeError("red-team evidence has no matched artifact pair")
++        # The history already collapses identical artifact pairs. Keep the first
++        # chronological trace as their representative too; every later raw
++        # sidecar remains sealed on disk, but must not multiply pair weight.
++        if pair.pair_id in represented_pairs:
++            continue
++        represented_pairs.add(pair.pair_id)
+         full_trajectory = trajectory_path.read_text(encoding="utf-8")
+         excerpt, truncated = _trace_excerpt(trajectory_path)
+         evidence.append(RedTeamEvidence(

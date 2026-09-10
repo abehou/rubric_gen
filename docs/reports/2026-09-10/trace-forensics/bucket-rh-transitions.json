@@ -1,0 +1,28 @@
+{
+  "A": {},
+  "B": {
+    "positive->positive": 2,
+    "negative->positive": 3,
+    "abstain->positive": 1,
+    "negative->abstain": 2
+  },
+  "C": {},
+  "D": {
+    "abstain->positive": 1,
+    "positive->positive": 1
+  },
+  "E": {},
+  "F": {
+    "negative->positive": 6,
+    "positive->positive": 1,
+    "negative->negative": 3
+  },
+  "G": {
+    "negative->negative": 2,
+    "negative->positive": 5,
+    "positive->positive": 1,
+    "positive->abstain": 1,
+    "negative->abstain": 1
+  },
+  "H": {}
+}

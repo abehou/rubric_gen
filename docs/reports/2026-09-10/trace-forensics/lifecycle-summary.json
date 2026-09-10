@@ -1,0 +1,272 @@
+[
+  {
+    "policy": "candidate",
+    "setting": "full",
+    "assignments": 60,
+    "any_proposal": 60,
+    "any_admission": 27,
+    "proposed": 199,
+    "admitted": 32,
+    "rejections": {
+      "semantic_validation_failed": 15,
+      "criterion_support_failed": 120,
+      "aggregate_margin_failed": 32
+    },
+    "penalized_checkpoints": 45,
+    "penalty_total": -320.0,
+    "solver_turns": 334,
+    "first_proposal": {
+      "n": 60,
+      "mean": 2.216666666666667,
+      "median": 2.0,
+      "histogram": {
+        "2": 48,
+        "3": 11,
+        "4": 1
+      }
+    },
+    "first_admission": {
+      "n": 27,
+      "mean": 2.5185185185185186,
+      "median": 2,
+      "histogram": {
+        "2": 19,
+        "3": 2,
+        "4": 6
+      }
+    },
+    "proposal_generations": {
+      "n": 199,
+      "mean": 3.557788944723618,
+      "median": 3,
+      "histogram": {
+        "2": 55,
+        "3": 53,
+        "4": 63,
+        "5": 9,
+        "6": 5,
+        "7": 6,
+        "8": 4,
+        "9": 2,
+        "10": 2
+      }
+    },
+    "admission_generations": {
+      "n": 32,
+      "mean": 2.6875,
+      "median": 2.0,
+      "histogram": {
+        "2": 20,
+        "3": 3,
+        "4": 8,
+        "5": 1
+      }
+    }
+  },
+  {
+    "policy": "candidate",
+    "setting": "user",
+    "assignments": 60,
+    "any_proposal": 59,
+    "any_admission": 28,
+    "proposed": 481,
+    "admitted": 33,
+    "rejections": {
+      "criterion_support_failed": 344,
+      "semantic_validation_failed": 41,
+      "aggregate_margin_failed": 63
+    },
+    "penalized_checkpoints": 54,
+    "penalty_total": -460.0,
+    "solver_turns": 489,
+    "first_proposal": {
+      "n": 59,
+      "mean": 2.1186440677966103,
+      "median": 2,
+      "histogram": {
+        "2": 52,
+        "3": 7
+      }
+    },
+    "first_admission": {
+      "n": 28,
+      "mean": 3.2142857142857144,
+      "median": 3.0,
+      "histogram": {
+        "2": 8,
+        "3": 14,
+        "4": 4,
+        "7": 1,
+        "9": 1
+      }
+    },
+    "proposal_generations": {
+      "n": 481,
+      "mean": 5.550935550935551,
+      "median": 5,
+      "histogram": {
+        "2": 64,
+        "3": 73,
+        "4": 64,
+        "5": 51,
+        "6": 45,
+        "7": 53,
+        "8": 49,
+        "9": 41,
+        "10": 41
+      }
+    },
+    "admission_generations": {
+      "n": 33,
+      "mean": 3.4242424242424243,
+      "median": 3,
+      "histogram": {
+        "2": 8,
+        "3": 16,
+        "4": 5,
+        "6": 1,
+        "7": 2,
+        "9": 1
+      }
+    }
+  },
+  {
+    "policy": "original",
+    "setting": "full",
+    "assignments": 59,
+    "any_proposal": 58,
+    "any_admission": 31,
+    "proposed": 210,
+    "admitted": 35,
+    "rejections": {
+      "criterion_support_failed": 129,
+      "aggregate_margin_failed": 30,
+      "semantic_validation_failed": 16
+    },
+    "penalized_checkpoints": 35,
+    "penalty_total": -220.0,
+    "solver_turns": 325,
+    "first_proposal": {
+      "n": 58,
+      "mean": 2.1379310344827585,
+      "median": 2.0,
+      "histogram": {
+        "2": 52,
+        "3": 5,
+        "5": 1
+      }
+    },
+    "first_admission": {
+      "n": 31,
+      "mean": 3.096774193548387,
+      "median": 3,
+      "histogram": {
+        "2": 11,
+        "3": 9,
+        "4": 8,
+        "5": 3
+      }
+    },
+    "proposal_generations": {
+      "n": 210,
+      "mean": 3.414285714285714,
+      "median": 3.0,
+      "histogram": {
+        "2": 58,
+        "3": 59,
+        "4": 62,
+        "5": 15,
+        "6": 12,
+        "7": 3,
+        "8": 1
+      }
+    },
+    "admission_generations": {
+      "n": 35,
+      "mean": 3.2857142857142856,
+      "median": 3,
+      "histogram": {
+        "2": 12,
+        "3": 9,
+        "4": 9,
+        "5": 3,
+        "6": 1,
+        "7": 1
+      }
+    }
+  },
+  {
+    "policy": "original",
+    "setting": "user",
+    "assignments": 60,
+    "any_proposal": 60,
+    "any_admission": 41,
+    "proposed": 395,
+    "admitted": 52,
+    "rejections": {
+      "aggregate_margin_failed": 49,
+      "criterion_support_failed": 255,
+      "semantic_validation_failed": 39
+    },
+    "penalized_checkpoints": 74,
+    "penalty_total": -495.0,
+    "solver_turns": 460,
+    "first_proposal": {
+      "n": 60,
+      "mean": 2.0833333333333335,
+      "median": 2.0,
+      "histogram": {
+        "2": 55,
+        "3": 5
+      }
+    },
+    "first_admission": {
+      "n": 41,
+      "mean": 3.8536585365853657,
+      "median": 3,
+      "histogram": {
+        "2": 13,
+        "3": 9,
+        "4": 8,
+        "5": 4,
+        "6": 2,
+        "7": 2,
+        "8": 1,
+        "9": 1,
+        "10": 1
+      }
+    },
+    "proposal_generations": {
+      "n": 395,
+      "mean": 5.179746835443038,
+      "median": 5,
+      "histogram": {
+        "2": 65,
+        "3": 60,
+        "4": 63,
+        "5": 41,
+        "6": 42,
+        "7": 40,
+        "8": 34,
+        "9": 25,
+        "10": 25
+      }
+    },
+    "admission_generations": {
+      "n": 52,
+      "mean": 4.038461538461538,
+      "median": 3.5,
+      "histogram": {
+        "2": 13,
+        "3": 13,
+        "4": 11,
+        "5": 5,
+        "6": 3,
+        "7": 2,
+        "8": 2,
+        "9": 2,
+        "10": 1
+      }
+    }
+  }
+]

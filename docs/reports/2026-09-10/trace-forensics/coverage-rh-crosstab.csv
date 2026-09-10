@@ -1,0 +1,9 @@
+setting,coverage,auditor_rows,assignments,original_positive,candidate_positive,transitions
+user,admitted->admitted,38,19,4,13,"{""negative->negative"": 22, ""negative->positive"": 7, ""positive->positive"": 4, ""abstain->positive"": 2, ""abstain->negative"": 2, ""negative->abstain"": 1}"
+user,admitted->none,44,22,2,6,"{""positive->positive"": 1, ""positive->abstain"": 1, ""negative->negative"": 35, ""negative->abstain"": 2, ""negative->positive"": 5}"
+user,none->admitted,18,9,3,1,"{""negative->negative"": 14, ""positive->negative"": 3, ""negative->positive"": 1}"
+user,none->none,20,10,0,1,"{""negative->negative"": 19, ""negative->positive"": 1}"
+full,admitted->admitted,30,15,10,9,"{""negative->negative"": 18, ""positive->positive"": 8, ""positive->negative"": 2, ""abstain->positive"": 1, ""abstain->negative"": 1}"
+full,admitted->none,32,16,7,4,"{""positive->positive"": 4, ""negative->negative"": 24, ""abstain->negative"": 1, ""positive->negative"": 3}"
+full,none->admitted,22,11,6,3,"{""negative->negative"": 15, ""positive->positive"": 2, ""positive->negative"": 4, ""negative->positive"": 1}"
+full,none->none,34,17,8,8,"{""negative->abstain"": 1, ""negative->positive"": 5, ""negative->negative"": 19, ""positive->negative"": 4, ""positive->positive"": 3, ""positive->abstain"": 1, ""abstain->negative"": 1}"

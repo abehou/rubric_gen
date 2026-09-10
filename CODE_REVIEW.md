@@ -1,3 +1,7 @@
+## 2026-09-10 — Trace forensic provenance and mapping review
+
+- 08:58 EDT: Saved A/B presentation mapping and ordinal-to-criterion penalty accounting validate; reviewed support failures include model application/preference mistakes rather than a demonstrated bookkeeping inversion. The current candidate YAML was repointed after execution, so the [forensic report](docs/reports/2026-09-10/trace-forensics/README.md) binds conclusions to native manifests, launch hashes and immutable source receipts; active implementation remains unchanged.
+
 ## 2026-09-09 — Publication and cleanup complete
 
 - 22:18 EDT: Missing Git identity caused commit failure while a non-fail-fast shell continued to push old6719ce3; corrected the exact tip with a lease-protected update to clean9eea696 and verified remotely. Future publication must set the established identity and check every subprocess before pushing; local prior history and raw payload hashes remain preserved.

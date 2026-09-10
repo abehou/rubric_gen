@@ -1,0 +1,56 @@
+[
+  {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10381602-20260910T043109Z",
+    "files": [
+      "scientific.diff",
+      "revise-1-command.json",
+      "metrics.jsonl",
+      "revise-1.log",
+      "launch.json"
+    ]
+  },
+  {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382423-20260910T061730Z",
+    "files": [
+      "result.json",
+      "metrics.jsonl",
+      "launch.json",
+      "parent-study.json",
+      "revise-1.log",
+      "scientific.diff",
+      "revise-1-command.json"
+    ]
+  },
+  {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382970-20260910T080302Z",
+    "files": [
+      "parent-study.json",
+      "revise-1-command.json",
+      "revise-1.log",
+      "complete.py",
+      "execution.json",
+      "implementation.diff",
+      "result.json",
+      "launch.json",
+      "detect-1-command.json",
+      "process.json",
+      "detect-1.log",
+      "metrics.jsonl"
+    ]
+  },
+  {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10384474-20260910T093253Z",
+    "files": [
+      "launch.json",
+      "result.json",
+      "execution.json",
+      "audit_completion.py",
+      "process.json",
+      "detect-1.log",
+      "detect-1-command.json",
+      "metrics.jsonl",
+      "coverage.json",
+      "preserved.json"
+    ]
+  }
+]

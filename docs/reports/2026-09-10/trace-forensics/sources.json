@@ -1,0 +1,18 @@
+[
+  {
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/report-v2/analysis.json",
+    "sha256": "d75d334102e0b11222a4da79619b6502d7d4ec7220898a57bcf5a24ad72df73f"
+  },
+  {
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/comparison-v1/analysis.json",
+    "sha256": "78d04e5e4c7e2bcc9140b3ea3cfcc023220517396fbaf6dc0cd8a8204f14d90c"
+  },
+  {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/provisional59-report-v1/analysis.json",
+    "sha256": "e3e4cd7168425d5d27eb060e7df6f30d5d1467b7fc4f229bb9eab56e5511264e"
+  },
+  {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/report-v1/candidate-rows.json",
+    "sha256": "aa02ff228a4a4ee1ee22b7636510be9efc316b142751b65673fada408c78abd9"
+  }
+]

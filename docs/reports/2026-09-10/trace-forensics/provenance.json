@@ -1,0 +1,1110 @@
+{
+  "commits": {
+    "original_user": "0fbe0bbd9acfb8846bb62dbdefa3cfc646c3aa1a",
+    "original_full": "314ea3ddf60796f4dc705920a7828466b2f6be2c",
+    "checkpoint": "73289de5433267f39e77258b553ea0117d987fb9",
+    "investigation_head": "609ce6889fc8d66db60f77b564a19c8f2d7a2919"
+  },
+  "execution_package": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/manifest.json",
+    "sha256": "0be8dc37af8abc73c3461dd6a3da586172d0d9ddddf767970201dc4186c3f289"
+  },
+  "owners": [
+    {
+      "job": "10381602",
+      "hostname": "babel-n5-20",
+      "started_at": "20260910T043109Z",
+      "commit": "73289de5433267f39e77258b553ea0117d987fb9",
+      "scientific_diff_sha256": "29b83f9dc5e2c383ef343ec9b071f4a2b729e3c37484c633f5cf916a19e736b7",
+      "experiment": "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-e2a0eda2a680",
+      "outputs": {
+        "detect": {
+          "depends_on": [
+            "revise",
+            "paraphrase"
+          ],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/audit/biomnibench-da-factorial-r10-e2a0eda2a680"
+        },
+        "paraphrase": {
+          "depends_on": [],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases"
+        },
+        "revise": {
+          "depends_on": [
+            "seed",
+            "paraphrase"
+          ],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680"
+        },
+        "seed": {
+          "depends_on": [],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/seeds"
+        }
+      },
+      "workers": 60,
+      "audit_workers": 60,
+      "runtime": {
+        "version": 1,
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel"
+      },
+      "mount": {
+        "filesystem": "nfs4",
+        "server_locking": true
+      },
+      "command": [
+        "experiments/trace-repair-result20/launch.py",
+        "candidate"
+      ],
+      "cpus": 4,
+      "memory": "256G",
+      "live_root": "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10381602-20260910T043109Z/launch.json",
+      "sha256": "5c5f2dabbf24e369473b284d4d77112b5dc448e2e6b3fe10092fed0937d0d819",
+      "recorded_config_hashes": {
+        "/home/aydanh/repos/rubric_gen/config/runtime.json": "fe01612dad6cfb33a64e3a4afeacc58b220848ab605428022ec9e7c89a3fa3df",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/smoke.yaml": "04babce98d4811c9aa385de68990ce44b9f3c1b34a764c587a3ffa1ba5b8bf47",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml": "a3c7b5e65c4df1d16ee859375c3d685a06fae332c535c601703406a7cb65c742"
+      }
+    },
+    {
+      "recovery": true,
+      "parent": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10381602-20260910T043109Z",
+      "parent_result_absent": true,
+      "source_reconciliation": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/source-reconciliation-v1/receipt.json",
+      "source_contract": {
+        "path": "/home/aydanh/repos/rubric_gen/src/rubric_gen/submission_revision/paraphrase_protocol.py",
+        "original_sha256": "9febac0340c953a067ed6590dbf6cbc001ddacdf096a1e9229a1b5aa668470f2",
+        "validator_ast_sha256": "f1499241db81ae00302a1570f0d5e2b481276354af812d6d4dc32ed3b8d025fd",
+        "excluded_assignment": "PARAPHRASE_INSTRUCTIONS",
+        "reason": "Only revise and detect execute; sealed paraphrases are reused and generation never runs."
+      },
+      "source_observations": [
+        {
+          "path": "/home/aydanh/repos/rubric_gen/src/rubric_gen/submission_revision/paraphrase_protocol.py",
+          "sha256": "265d0aa326e3db344cfd5ea7bc3e4e7004b15e7e9e0a93525fa4f3c4da7e1ad1"
+        }
+      ],
+      "parent_scientific_diff_sha256": "29b83f9dc5e2c383ef343ec9b071f4a2b729e3c37484c633f5cf916a19e736b7",
+      "parent_study_sha256": "2e24ce8740ae4e3a9929c66ffec928e06f80af9a83b5475547440466e01ac852",
+      "job": "10382423",
+      "hostname": "babel-q9-20",
+      "started_at": "20260910T061730Z",
+      "experiment": "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-e2a0eda2a680",
+      "scientific_diff_sha256": "6a5641405d9de0a1fc932ad016c5f69f778422b6eddaf2b3c8a88b6325efc9c0",
+      "workers": 32,
+      "audit_workers": 60,
+      "command": [
+        "experiments/trace-repair-result20/recovery/resume.py"
+      ],
+      "cpus": 32,
+      "memory": "256G",
+      "outputs": {
+        "detect": {
+          "depends_on": [
+            "revise",
+            "paraphrase"
+          ],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/audit/biomnibench-da-factorial-r10-e2a0eda2a680"
+        },
+        "paraphrase": {
+          "depends_on": [],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases"
+        },
+        "revise": {
+          "depends_on": [
+            "seed",
+            "paraphrase"
+          ],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680"
+        },
+        "seed": {
+          "depends_on": [],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/seeds"
+        }
+      },
+      "live_root": "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate",
+      "runtime": {
+        "version": 1,
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel"
+      },
+      "mount": {
+        "filesystem": "nfs4",
+        "server_locking": true
+      },
+      "preserved_completed_states": {
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-002/luna/user-simulator-red-team-trace/state.json": "1db551e26175b151d6c6b00ec63382ad729926041157cdcd8abd5ed262a9be2d",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/full-red-team-trace/state.json": "e9f99a1187b0bba08bfdefa06438c85b16c19ebbba16e54eff9ccf657748c8da",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-5/rep-002/luna/full-red-team-trace/state.json": "f3c642c8dc36fbe31cdd13ad6853a7ca22e2ca85145200d15d78ff8c2e5cdc67",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/state.json": "73540436dee1a17b7740977dc1309d55c2f865c784386ce6487761b536b35f1c",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/full-red-team-trace/state.json": "93ce01bf0bcbc66dc69372969edffa0b65282e8585161bd546a8b1612a3c833b",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-5/rep-001/luna/user-simulator-red-team-trace/state.json": "69db5acb11bed4825ca2b79f3e65a2fd7c67677bb025e0b14f6745d24c194b54",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-3/rep-002/luna/full-red-team-trace/state.json": "a2e31f9d5ce05ce286875ce98656cdf048fdf4f239361df68fc4291d53b22754",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-1/rep-003/luna/user-simulator-red-team-trace/state.json": "d1a84826c2db31a34384ddf1d3fb99d789a0fb5155e3e63a82d04e5b40b3f543",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/full-red-team-trace/state.json": "ae882a8b4d2d34ddda63e4e59c48719dc9a686d88061ce84ef617d62e0df644c",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/user-simulator-red-team-trace/state.json": "0d34e423e9e86a94e740ad3cac1f10b81b163c44ea1b9753cd43cdf91e46a331",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/state.json": "8e7492a5cd41272f04d49de9c6c2bed4b51088b5dd451845af8cacde071fe5c5",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/full-red-team-trace/state.json": "a7e828adb2ad7156742b982866efbe7da1cc4820510599562591f384d4f5fb06",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/full-red-team-trace/state.json": "0c8099987116535aa92575a90e5e11382a8456d1dd833fc70b6bce41143ffebc",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-002/luna/full-red-team-trace/state.json": "6862d6f5f9c79cb0278a0eb87b86afa217f6855cf513a17d2e2e5640667ee46c",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-002/luna/user-simulator-red-team-trace/state.json": "a64840bb10d33395cb46f2113552871aabb253780aae4d8da8e9f76e5bc35f51",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/state.json": "d073ff9cf29e5c62c56829dd803fb24852718577605155478dc43088314eaf3f",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-003/luna/user-simulator-red-team-trace/state.json": "71c10a2031653e9b10c6bf6604766b925bcc1c9589d65ec2287211ea9c6b05a7",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/state.json": "141f770a0cc1b8347311ab81ecf8d5f0e24d5c89a47e6aefea97346fbc16c955",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/state.json": "605f996e4e2162a3fa40731eb306a1ee5cc4e6b0982e410bc549b9c982d779ca",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/state.json": "6094650af2bb1f773cee176faa40bce5d67e581cec625227acddcaf81a91dcb8",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/full-red-team-trace/state.json": "1bee78b046a27a71c908676097bdc4f106315cd7b747e214b824dc401783687d",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/state.json": "22e6bebdc2385f480120642db7758f4ee5d9ab2b398dda2183ac127d4ee86864",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-003/luna/user-simulator-red-team-trace/state.json": "38645dc037b8d67fea1af0c0be12df0d0e9a3cb88043fa63549241e0fc4ba366",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-003/luna/full-red-team-trace/state.json": "2bbd94011d02982c11b1ad2bd1186ce3e5bc71d287863f48e8137b909305d73f",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/state.json": "57753152a65b0e12e7e32daf7b4f481907888b9952f8de858039250eb05f0776",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-001/luna/user-simulator-red-team-trace/state.json": "012a78866523b0ac2496843874ec8e0c88b1a7120bfd8b766e23253746192e34",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/state.json": "5e7b3bf311f417ff305b867403f98e3909c4365c51cc2eaca1038b78585bf9f2",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/state.json": "03f06ba0274f8620deec677019c9ffe680bb78d5d9418c4ddf20fdf5eff2bb3d",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-3/rep-003/luna/full-red-team-trace/state.json": "547c58c31a289c758d92118356e5928a5142c2e6603a3b0a988660ae84594ee9",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-3/rep-001/luna/full-red-team-trace/state.json": "b3fe5dbaa30a75e5c0c594b6dfe8382a444adcf93828b1a5cd45fcd67b5874e6",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/state.json": "ea116a121267cf554afe6486d9f479d36cf0ce6c1c7476719143f73029474c25",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-5/rep-003/luna/full-red-team-trace/state.json": "1f14587732cb68c46e40b55c2e715c4c6e04c124b4d5e5de7e85229209a06fc5",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-2/rep-003/luna/full-red-team-trace/state.json": "ed726dfbd5be8c384a8c88326337774f5da5494473ab1a63fa3669cd0fce10a3",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-003/luna/full-red-team-trace/state.json": "77ff885fdab5b413ddf386c9d353de33ed94e5673de586b5d7bece747c33e3e3",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-1/rep-001/luna/user-simulator-red-team-trace/state.json": "20da8c51e435a0b65d996ce65662234f759b3de76d00f1a70ef62a79f5ae5296",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-3/rep-003/luna/full-red-team-trace/state.json": "7a6cc9e9abdfede21460d1f79a6744203e73f718f580bde2e1511516b5d3bbca",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-001/luna/user-simulator-red-team-trace/state.json": "407fbb80052e1463438359305c88ce5a1424b2b3bf14f91b5f218f0fc056b5ff",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/state.json": "27b2b9ad70533df6766488f73ee68c3472b4d06a95ce0c69d290a5025768ba0d",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-7/rep-001/luna/full-red-team-trace/state.json": "b1ae4f671a2ce661e1326e6b2a344935bf6e7d9c30f75328a2aa81f92a0840bc",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/state.json": "1d634486b9a4ca846def6a89e25aab4319040880a7b3a9e4bfd172de8928a88b",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-8/rep-002/luna/user-simulator-red-team-trace/state.json": "859c560797c413fcd326b04bcb2b55b538cbb3e2ef1750aa38aa47b43a975ab8",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/state.json": "249214bdc1d3c6380fa8cb463daa7835edeb91cf74ff5098a42d5ad5a5a51342",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/state.json": "2b7cd3cc8fa9b2c7276ba0f0325b219a4795ddc374531361dc798ad4eb3caac6",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-002/luna/full-red-team-trace/state.json": "b63239e5b3567122b90a13618d526eac4d21a330268d4784eed52839bdf19195",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/state.json": "8fe91a7cbb65c853afe26ed35cf1694ba463e5a8a76221d852d46f1f0250faf5",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/state.json": "4c54bb17fa603b199fa811ffa7234b91460db91fe6a850bba17aec95a687a6a7",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-3/rep-001/luna/full-red-team-trace/state.json": "e2c524a0e8f934dd8628b8d128bd2f9dd46831dfabb8398f09faeacbeeb71ff5",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/state.json": "056b3b6ef6951c351c0d3ab81bde5e662e4da9602ff4a0d8b31aceb4586e4dbf",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-003/luna/full-red-team-trace/state.json": "48793367ce7797e73fc8b17182508661354ce2bff57a1e4e22260f4e3b5748e5",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-10-1/rep-002/luna/user-simulator-red-team-trace/state.json": "6a84fae7b8f44b9c8e5204a6754da06f91aa03a2f7cc6217cacc41c4a0bce524",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-1/rep-001/luna/full-red-team-trace/state.json": "8ebd33869c9de47a4fa10629d49086cbb11ac96a2e120db7f9068b50b655d319",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/state.json": "a060c616842f89d7ca941fcb3e6a78aa86afea6cec272b94b7e66e8f0ae89d48",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-1/rep-003/luna/full-red-team-trace/state.json": "7210677d08fc35bd6c8c86aa3a9eecc20b23c06dd150d3ceb0c315bea1f84702",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-5/rep-001/luna/full-red-team-trace/state.json": "47aee59008a9da409b95a969b50486bbbd96e787ee91676917b948c6b9d7b465",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-001/luna/full-red-team-trace/state.json": "1fefce07ae034d66e79cd7e725a2e73375043a7eaf880fefd587f1bf6f44a7a3"
+      },
+      "failures": [
+        {
+          "assignment_id": "da-13-6--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-16-1--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "FileNotFoundError",
+          "error": "[Errno 2] No such file or directory: '/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate/submission-revision-live-21z4imiq/workspace/.agents'"
+        },
+        {
+          "assignment_id": "da-13-1--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-12-2--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-3--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-18-5--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-6--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-3--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_SolverTurnFailure",
+          "error": "[Errno 2] No such file or directory: '/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate/submission-revision-live-eanepm49/workspace/.agents'"
+        },
+        {
+          "assignment_id": "da-12-2--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-3--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-6--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-2--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-1--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-1--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-1--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-1--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-3--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-1--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-8--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-18-7--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-2--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-3--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 3 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-5--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-18-7--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-1--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-16-1--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-12-2--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-12-4--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-3--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-6--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-16-1--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-7--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-8--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-1--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-8--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-8--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-3--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-5--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-6--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-1--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-1--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-12-4--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 4 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-3--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-3--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-12-2--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-1--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-2--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-18-5--rep-003--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-19-1--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-13-5--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-3--rep-002--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-14-1--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-7--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-8--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-8--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-8--rep-003--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-7--rep-002--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        },
+        {
+          "assignment_id": "da-15-8--rep-001--solver-luna--user-simulator-red-team-trace",
+          "error_type": "_ProviderCircuitOpen",
+          "error": "codex provider circuit is open after 5 transport failures: Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 267, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 98, in main\n    connection = _connect(process, socket_path)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/src/rubric_gen/runtime/agents/codex_app_server.py\", line 200, in _connect\n    raise TimeoutError(\"Codex app-server did not create its RPC socket\")\nTimeoutError: Codex app-server did not create its RPC socket"
+        }
+      ],
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382423-20260910T061730Z/launch.json",
+      "sha256": "c9b47d4bec09642557c293fcb00261963306c4378078175c0b2997cc4373684d",
+      "recorded_config_hashes": {
+        "/home/aydanh/repos/rubric_gen/config/runtime.json": "fe01612dad6cfb33a64e3a4afeacc58b220848ab605428022ec9e7c89a3fa3df",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/smoke.yaml": "04babce98d4811c9aa385de68990ce44b9f3c1b34a764c587a3ffa1ba5b8bf47",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml": "a3c7b5e65c4df1d16ee859375c3d685a06fae332c535c601703406a7cb65c742"
+      }
+    },
+    {
+      "job": "10382970",
+      "started_at": "2026-09-10T08:03:07.432970+00:00",
+      "hostname": "babel-n5-20",
+      "experiment": "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-e2a0eda2a680",
+      "implementation_diff_sha256": "1cf117c79eee7fb23a479c6ca10edb006f3a689884d1908e60c1d0a8a224eeba",
+      "scientific_identity": {
+        "generation": "869833ac8edcc23e0f628d2b1bf0f6a26db7d60610469017df83e3baf7c917bb",
+        "prompts": "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788"
+      },
+      "runtime_amendment": true,
+      "original_global_source_unchanged": false,
+      "replay": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-replay-10382926/result.json",
+      "execution_acceptance": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/result.json",
+      "preserved_completions": 84,
+      "remaining_assignments": 36,
+      "incompatible_attempt": {
+        "assignment": "da-16-1--rep-003--solver-luna--full-red-team-trace",
+        "reason": "live workspace changed after the last checkpoint",
+        "directory": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-003/luna/full-red-team-trace",
+        "live": "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate/submission-revision-live-21z4imiq"
+      },
+      "relocations": {
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-16-1/rep-003/luna/full-red-team-trace": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-replay-10382926/incompatible-attempt/experiment",
+        "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate/submission-revision-live-21z4imiq": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-replay-10382926/incompatible-attempt/live"
+      },
+      "workers": 32,
+      "audit_workers": 60,
+      "cpus": 32,
+      "memory": "256G",
+      "runtime": {
+        "version": 1,
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel"
+      },
+      "mount": {
+        "filesystem": "nfs4",
+        "server_locking": true
+      },
+      "outputs": {
+        "detect": {
+          "depends_on": [
+            "revise",
+            "paraphrase"
+          ],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/audit/biomnibench-da-factorial-r10-e2a0eda2a680"
+        },
+        "paraphrase": {
+          "depends_on": [],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases"
+        },
+        "revise": {
+          "depends_on": [
+            "seed",
+            "paraphrase"
+          ],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680"
+        },
+        "seed": {
+          "depends_on": [],
+          "output_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/seeds"
+        }
+      },
+      "live_root": "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate",
+      "command": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382970-20260910T080302Z/complete.py",
+        "worker",
+        "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382970-20260910T080302Z"
+      ],
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382970-20260910T080302Z/launch.json",
+      "sha256": "614041cc930cd9964691780dfc76c8d31651d99ee4698b83a07a6bc4c9f34cb7",
+      "recorded_config_hashes": {
+        "/home/aydanh/repos/rubric_gen/config/runtime.json": "fe01612dad6cfb33a64e3a4afeacc58b220848ab605428022ec9e7c89a3fa3df",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/smoke.yaml": "04babce98d4811c9aa385de68990ce44b9f3c1b34a764c587a3ffa1ba5b8bf47",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml": "a3c7b5e65c4df1d16ee859375c3d685a06fae332c535c601703406a7cb65c742"
+      }
+    },
+    {
+      "job": "10384474",
+      "started_at": "2026-09-10T09:33:01.794665+00:00",
+      "parent": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10382970-20260910T080302Z",
+      "experiment_id": "biomnibench-da-factorial-r10-e2a0eda2a680",
+      "audit_only": true,
+      "revision_calls": 0,
+      "workers": 60,
+      "cpus": 8,
+      "initial_failures": [
+        {
+          "stage": "direct_full_trajectory",
+          "attempt_count": 3,
+          "case_id": "revision-000035",
+          "cost": {
+            "observed_api_usd": 0.013922,
+            "observed_by_model_usd": {
+              "claude-opus-5": 0.013922
+            }
+          },
+          "error": "Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': 'req_011CeuWG9StgMiVs1RGsSqSh'}",
+          "error_type": "OverloadedError",
+          "max_attempts": 3,
+          "model": "claude-opus-5",
+          "provider": "claude-opus-5",
+          "source_kind": "revision",
+          "source_path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace",
+          "status": "failed"
+        },
+        {
+          "stage": "direct_full_trajectory",
+          "attempt_count": 3,
+          "case_id": "revision-000045",
+          "cost": {
+            "observed_api_usd": 0.0,
+            "observed_by_model_usd": {}
+          },
+          "error": "Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': 'req_011CeuWF6taC1jGfu96LUHxA'}",
+          "error_type": "OverloadedError",
+          "max_attempts": 3,
+          "model": "claude-opus-5",
+          "provider": "claude-opus-5",
+          "source_kind": "revision",
+          "source_path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-19-6/rep-003/luna/full-red-team-trace",
+          "status": "failed"
+        },
+        {
+          "stage": "direct_full_trajectory",
+          "attempt_count": 3,
+          "case_id": "revision-000120",
+          "cost": {
+            "observed_api_usd": 2.0140185,
+            "observed_by_model_usd": {
+              "claude-opus-5": 2.0140185
+            }
+          },
+          "error": "Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': 'req_011CeuWendeAd6zsxvnaNH7V'}",
+          "error_type": "OverloadedError",
+          "max_attempts": 3,
+          "model": "claude-opus-5",
+          "provider": "claude-opus-5",
+          "source_kind": "revision",
+          "source_path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-15-7/rep-003/luna/full-red-team-trace",
+          "status": "failed"
+        },
+        {
+          "stage": "direct_full_trajectory",
+          "attempt_count": 3,
+          "case_id": "revision-000125",
+          "cost": {
+            "observed_api_usd": 0.0,
+            "observed_by_model_usd": {}
+          },
+          "error": "Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': 'req_011CeuWFC4sjh7a8PHg1RYzC'}",
+          "error_type": "OverloadedError",
+          "max_attempts": 3,
+          "model": "claude-opus-5",
+          "provider": "claude-opus-5",
+          "source_kind": "revision",
+          "source_path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace",
+          "status": "failed"
+        },
+        {
+          "stage": "direct_full_trajectory",
+          "attempt_count": 3,
+          "case_id": "revision-000214",
+          "cost": {
+            "observed_api_usd": 1.2599580000000001,
+            "observed_by_model_usd": {
+              "claude-opus-5": 1.2599580000000001
+            }
+          },
+          "error": "Error code: 529 - {'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}, 'request_id': 'req_011CeuWFdaYEo8tgCcQt9FxN'}",
+          "error_type": "OverloadedError",
+          "max_attempts": 3,
+          "model": "claude-opus-5",
+          "provider": "claude-opus-5",
+          "source_kind": "revision",
+          "source_path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/experiments/da-13-5/rep-002/luna/user-simulator-red-team-trace",
+          "status": "failed"
+        }
+      ],
+      "preserved_files": 3754,
+      "command": [
+        "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/audit.py",
+        "--experiment",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml",
+        "--max-concurrency",
+        "60",
+        "--resume"
+      ],
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/owners/candidate/10384474-20260910T093253Z/launch.json",
+      "sha256": "86e496626f5b2d56f82ce511b8d540cb1df3b7b7d0e7710b0a4c505ef38a7b27",
+      "recorded_config_hashes": {
+        "/home/aydanh/repos/rubric_gen/config/runtime.json": "fe01612dad6cfb33a64e3a4afeacc58b220848ab605428022ec9e7c89a3fa3df",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/smoke.yaml": "04babce98d4811c9aa385de68990ce44b9f3c1b34a764c587a3ffa1ba5b8bf47",
+        "/home/aydanh/repos/rubric_gen/experiments/trace-repair-result20/candidate.yaml": "a3c7b5e65c4df1d16ee859375c3d685a06fae332c535c601703406a7cb65c742"
+      }
+    }
+  ],
+  "executed_files_different_from_original_user": [
+    "src/rubric_gen/detection/runner.py",
+    "src/rubric_gen/runtime/agents/adapters.py",
+    "src/rubric_gen/runtime/agents/codex_app_server.py",
+    "src/rubric_gen/runtime/agents/codex_completion.py",
+    "src/rubric_gen/runtime/paths.py",
+    "src/rubric_gen/submission_revision/artifacts.py",
+    "src/rubric_gen/submission_revision/contrasts.py",
+    "src/rubric_gen/submission_revision/controller_recovery.py",
+    "src/rubric_gen/submission_revision/controller_scoring.py",
+    "src/rubric_gen/submission_revision/evolution.py",
+    "src/rubric_gen/submission_revision/paraphrase_protocol.py",
+    "src/rubric_gen/submission_revision/pretreatment_reuse.py",
+    "src/rubric_gen/submission_revision/pretreatment_rubrics.py",
+    "src/rubric_gen/submission_revision/red_team.py",
+    "src/rubric_gen/submission_revision/study.py"
+  ],
+  "matched_manifest_difference_counts": {
+    "rubric_generation_implementation_sha256": 119
+  },
+  "representative_manifests": {
+    "candidate_full_da-12-2_r1": {
+      "assignment_id": "da-12-2--rep-001--solver-luna--full-red-team-trace",
+      "benchmark": "biomnibench-da",
+      "command_network_access": false,
+      "condition_id": "full-red-team-trace",
+      "data_sha256": "60dc5523bcac822c92135108cfa517a8bc5cc9853e9ab8fe9baa55ad8980e146",
+      "development_rubric_path": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases/tasks/da-12-2/variant-001.txt",
+      "development_rubric_sha256": "e6a6998725647345d04d6bb8218832fbdfaf6eceb48aac3d76fd1ed4eb35217b",
+      "effective_solver_model": "gpt-5.6-luna",
+      "elicitation_seed_replicates": 3,
+      "executable": null,
+      "execution_order": 135,
+      "experiment_id": "biomnibench-da-factorial-r10-e2a0eda2a680",
+      "feedback_policy": "full",
+      "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+      "initial_generation_sha256": "945d749fbb3aaa4d473d8b05d8425d9e2ade419353603fc86fec42c9e58b3140",
+      "initial_rubric_path": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases/tasks/da-12-2/variant-000.txt",
+      "initial_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+      "initial_scoring_identity": {
+        "benchmark": "biomnibench-da",
+        "effective_judge_model": "gpt-5.6-luna",
+        "grading_engine": "full-rubric-structured",
+        "manifest_sha256": null,
+        "max_review_chars": null,
+        "rendered_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+        "review_mode": "trace",
+        "rubric_id": null,
+        "rubric_set_id": null,
+        "rubric_source": "rubric-path",
+        "scoring_implementation_sha256": "3a8237da34fd7f9627d9639370ee34eecd686f2787793a142934161cb203be1f",
+        "structured_rubric_sha256": null
+      },
+      "instruction_sha256": "8b418846803b4eefe297faf41f879fa57b7d987f611427af79be92d85f304399",
+      "isolation": "codex-custom-permission-profile",
+      "judge_model": "gpt-5.6-luna",
+      "kind": "rubric-gen-submission-revision-experiment",
+      "live_workspace_dir": "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate/submission-revision-live-6r3tr6xy/workspace",
+      "live_workspace_removed": true,
+      "master_rubric_name": "rubric.txt",
+      "master_rubric_sha256": "80ba70d6705f0b0bd3684d57cf81817943d6a7d6f447555a1f656f8b8ac442a2",
+      "max_review_chars": null,
+      "max_revisions": 10,
+      "min_revisions": 5,
+      "model": "gpt-5.6-luna",
+      "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/pretreatment-rubrics/da-12-2/15320099e8e21b5c21793a812c4e025ea92c033f9881aa27d60a248ce85c44d3",
+      "prompt": "base",
+      "prompt_implementation_sha256": "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788",
+      "provider": "codex",
+      "reasoning_effort": "low",
+      "red_team_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "replicate": 1,
+      "review": "trace",
+      "rubric_generation_implementation_sha256": "869833ac8edcc23e0f628d2b1bf0f6a26db7d60610469017df83e3baf7c917bb",
+      "rubric_policy": "red_team_trace",
+      "rubric_proposer_max_retries": 5,
+      "rubric_proposer_model": "gpt-5.6-luna",
+      "seed_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "seed_run_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/seeds",
+      "seed_sha256": "17740fe96248693c1fd6d207f89fba97a8d9153a9ed2ad4750913ca6d0919467",
+      "service_tier": null,
+      "session_id": "01a089f8-7d6a-7c53-8587-8d49b1c988e1",
+      "solver_id": "luna",
+      "submission_count": 9,
+      "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-12-2",
+      "task_id": "da-12-2",
+      "turn_timeout_seconds": 7200,
+      "web_search": false
+    },
+    "candidate_user_da-12-2_r1": {
+      "assignment_id": "da-12-2--rep-001--solver-luna--user-simulator-red-team-trace",
+      "benchmark": "biomnibench-da",
+      "command_network_access": false,
+      "condition_id": "user-simulator-red-team-trace",
+      "data_sha256": "60dc5523bcac822c92135108cfa517a8bc5cc9853e9ab8fe9baa55ad8980e146",
+      "development_rubric_path": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases/tasks/da-12-2/variant-001.txt",
+      "development_rubric_sha256": "e6a6998725647345d04d6bb8218832fbdfaf6eceb48aac3d76fd1ed4eb35217b",
+      "effective_solver_model": "gpt-5.6-luna",
+      "elicitation_seed_replicates": 3,
+      "executable": null,
+      "execution_order": 43,
+      "experiment_id": "biomnibench-da-factorial-r10-e2a0eda2a680",
+      "feedback_policy": "user_simulator",
+      "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+      "feedback_simulator": {
+        "history_implementation_sha256": "d28bb3479de662ea6adf4c442737562a39780c3455f78600d28ce8c4855c23d0",
+        "implementation_sha256": "b47bfc598f7097a0fdc244a475784914db991fd95a61e004e41a78ebbad68df6",
+        "max_concerns": 3,
+        "max_history_bytes": 131072,
+        "max_output_tokens": 1024,
+        "max_request_bytes": 1048576,
+        "max_retries": 1,
+        "model": "gpt-5.6-luna"
+      },
+      "initial_generation_sha256": "945d749fbb3aaa4d473d8b05d8425d9e2ade419353603fc86fec42c9e58b3140",
+      "initial_rubric_path": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/paraphrases/tasks/da-12-2/variant-000.txt",
+      "initial_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+      "initial_scoring_identity": {
+        "benchmark": "biomnibench-da",
+        "effective_judge_model": "gpt-5.6-luna",
+        "grading_engine": "full-rubric-structured",
+        "manifest_sha256": null,
+        "max_review_chars": null,
+        "rendered_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+        "review_mode": "trace",
+        "rubric_id": null,
+        "rubric_set_id": null,
+        "rubric_source": "rubric-path",
+        "scoring_implementation_sha256": "3a8237da34fd7f9627d9639370ee34eecd686f2787793a142934161cb203be1f",
+        "structured_rubric_sha256": null
+      },
+      "instruction_sha256": "8b418846803b4eefe297faf41f879fa57b7d987f611427af79be92d85f304399",
+      "isolation": "codex-custom-permission-profile",
+      "judge_model": "gpt-5.6-luna",
+      "kind": "rubric-gen-submission-revision-experiment",
+      "live_workspace_dir": "/data/user_data/aydanh/rubric_gen/live/trace-repair-candidate/submission-revision-live-cz8b37qh/workspace",
+      "live_workspace_removed": true,
+      "master_rubric_name": "rubric.txt",
+      "master_rubric_sha256": "80ba70d6705f0b0bd3684d57cf81817943d6a7d6f447555a1f656f8b8ac442a2",
+      "max_review_chars": null,
+      "max_revisions": 10,
+      "min_revisions": 5,
+      "model": "gpt-5.6-luna",
+      "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/candidate/study/biomnibench-da-factorial-r10-e2a0eda2a680/pretreatment-rubrics/da-12-2/15320099e8e21b5c21793a812c4e025ea92c033f9881aa27d60a248ce85c44d3",
+      "prompt": "base",
+      "prompt_implementation_sha256": "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788",
+      "provider": "codex",
+      "reasoning_effort": "low",
+      "red_team_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "replicate": 1,
+      "review": "trace",
+      "rubric_generation_implementation_sha256": "869833ac8edcc23e0f628d2b1bf0f6a26db7d60610469017df83e3baf7c917bb",
+      "rubric_policy": "red_team_trace",
+      "rubric_proposer_max_retries": 5,
+      "rubric_proposer_model": "gpt-5.6-luna",
+      "seed_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "seed_run_dir": "/data/user_data/aydanh/rubric_gen/pools/biomnibench/result20-frozen-73289de/seeds",
+      "seed_sha256": "17740fe96248693c1fd6d207f89fba97a8d9153a9ed2ad4750913ca6d0919467",
+      "service_tier": null,
+      "session_id": "01a08996-c88e-70e2-8149-7decf800ed51",
+      "solver_id": "luna",
+      "submission_count": 11,
+      "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-12-2",
+      "task_id": "da-12-2",
+      "turn_timeout_seconds": 7200,
+      "web_search": false
+    },
+    "original_full_da-12-2_r1": {
+      "assignment_id": "da-12-2--rep-001--solver-luna--full-red-team-trace",
+      "benchmark": "biomnibench-da",
+      "command_network_access": false,
+      "condition_id": "full-red-team-trace",
+      "data_sha256": "60dc5523bcac822c92135108cfa517a8bc5cc9853e9ab8fe9baa55ad8980e146",
+      "development_rubric_path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965/archive-inputs/runs/rubric-paraphrases/biomnibench/red-team-results20/tasks/da-12-2/variant-001.txt",
+      "development_rubric_sha256": "e6a6998725647345d04d6bb8218832fbdfaf6eceb48aac3d76fd1ed4eb35217b",
+      "effective_solver_model": "gpt-5.6-luna",
+      "elicitation_seed_replicates": 3,
+      "executable": null,
+      "execution_order": 135,
+      "experiment_id": "biomnibench-da-factorial-r10-39ddcf24f8aa",
+      "feedback_policy": "full",
+      "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+      "initial_generation_sha256": "945d749fbb3aaa4d473d8b05d8425d9e2ade419353603fc86fec42c9e58b3140",
+      "initial_rubric_path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965/archive-inputs/runs/rubric-paraphrases/biomnibench/red-team-results20/tasks/da-12-2/variant-000.txt",
+      "initial_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+      "initial_scoring_identity": {
+        "benchmark": "biomnibench-da",
+        "effective_judge_model": "gpt-5.6-luna",
+        "grading_engine": "full-rubric-structured",
+        "manifest_sha256": null,
+        "max_review_chars": null,
+        "rendered_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+        "review_mode": "trace",
+        "rubric_id": null,
+        "rubric_set_id": null,
+        "rubric_source": "rubric-path",
+        "scoring_implementation_sha256": "3a8237da34fd7f9627d9639370ee34eecd686f2787793a142934161cb203be1f",
+        "structured_rubric_sha256": null
+      },
+      "instruction_sha256": "8b418846803b4eefe297faf41f879fa57b7d987f611427af79be92d85f304399",
+      "isolation": "codex-custom-permission-profile",
+      "judge_model": "gpt-5.6-luna",
+      "kind": "rubric-gen-submission-revision-experiment",
+      "live_workspace_dir": "/data/user_data/aydanh/rubric_gen/live/result20-cue-full-trace-trace-results20/submission-revision-live-algvpyky/workspace",
+      "live_workspace_removed": true,
+      "master_rubric_name": "rubric.txt",
+      "master_rubric_sha256": "80ba70d6705f0b0bd3684d57cf81817943d6a7d6f447555a1f656f8b8ac442a2",
+      "max_review_chars": null,
+      "max_revisions": 10,
+      "min_revisions": 5,
+      "model": "gpt-5.6-luna",
+      "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/trace/study/biomnibench-da-factorial-r10-39ddcf24f8aa/pretreatment-rubrics/da-12-2/15320099e8e21b5c21793a812c4e025ea92c033f9881aa27d60a248ce85c44d3",
+      "prompt": "base",
+      "prompt_implementation_sha256": "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788",
+      "provider": "codex",
+      "reasoning_effort": "low",
+      "red_team_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "replicate": 1,
+      "review": "trace",
+      "rubric_generation_implementation_sha256": "d0107bf0286231b7ec01127bae9843e0c7157af0801afa75783a1710641e4b0b",
+      "rubric_policy": "red_team_trace",
+      "rubric_proposer_max_retries": 5,
+      "rubric_proposer_model": "gpt-5.6-luna",
+      "seed_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "seed_run_dir": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965/archive-inputs/seeds/biomnibench/native-prompt-results20",
+      "seed_sha256": "17740fe96248693c1fd6d207f89fba97a8d9153a9ed2ad4750913ca6d0919467",
+      "service_tier": null,
+      "session_id": "01a088ae-99e6-7993-a3d4-fffdcd97faca",
+      "solver_id": "luna",
+      "submission_count": 10,
+      "task_dir": "/home/aydanh/repos/rubric_gen/data/biomnibench-da/da-12-2",
+      "task_id": "da-12-2",
+      "turn_timeout_seconds": 7200,
+      "web_search": false
+    },
+    "original_user_da-12-2_r1": {
+      "assignment_id": "da-12-2--rep-001--solver-luna--user-simulator-red-team-trace",
+      "benchmark": "biomnibench-da",
+      "command_network_access": false,
+      "condition_id": "user-simulator-red-team-trace",
+      "data_sha256": "60dc5523bcac822c92135108cfa517a8bc5cc9853e9ab8fe9baa55ad8980e146",
+      "development_rubric_path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965/archive-inputs/runs/rubric-paraphrases/biomnibench/red-team-results20/tasks/da-12-2/variant-001.txt",
+      "development_rubric_sha256": "e6a6998725647345d04d6bb8218832fbdfaf6eceb48aac3d76fd1ed4eb35217b",
+      "effective_solver_model": "gpt-5.6-luna",
+      "elicitation_seed_replicates": 3,
+      "executable": null,
+      "execution_order": 43,
+      "experiment_id": "biomnibench-da-factorial-r10-f0203f5d69f3",
+      "feedback_policy": "user_simulator",
+      "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+      "feedback_simulator": {
+        "history_implementation_sha256": "d28bb3479de662ea6adf4c442737562a39780c3455f78600d28ce8c4855c23d0",
+        "implementation_sha256": "b47bfc598f7097a0fdc244a475784914db991fd95a61e004e41a78ebbad68df6",
+        "max_concerns": 3,
+        "max_history_bytes": 131072,
+        "max_output_tokens": 1024,
+        "max_request_bytes": 1048576,
+        "max_retries": 1,
+        "model": "gpt-5.6-luna"
+      },
+      "initial_generation_sha256": "945d749fbb3aaa4d473d8b05d8425d9e2ade419353603fc86fec42c9e58b3140",
+      "initial_rubric_path": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965/archive-inputs/runs/rubric-paraphrases/biomnibench/red-team-results20/tasks/da-12-2/variant-000.txt",
+      "initial_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+      "initial_scoring_identity": {
+        "benchmark": "biomnibench-da",
+        "effective_judge_model": "gpt-5.6-luna",
+        "grading_engine": "full-rubric-structured",
+        "manifest_sha256": null,
+        "max_review_chars": null,
+        "rendered_rubric_sha256": "15d953402ae06eab1e7d693be3e8980831790cd6d8ac8ecc4b0f4411bfc7ccce",
+        "review_mode": "trace",
+        "rubric_id": null,
+        "rubric_set_id": null,
+        "rubric_source": "rubric-path",
+        "scoring_implementation_sha256": "3a8237da34fd7f9627d9639370ee34eecd686f2787793a142934161cb203be1f",
+        "structured_rubric_sha256": null
+      },
+      "instruction_sha256": "8b418846803b4eefe297faf41f879fa57b7d987f611427af79be92d85f304399",
+      "isolation": "codex-custom-permission-profile",
+      "judge_model": "gpt-5.6-luna",
+      "kind": "rubric-gen-submission-revision-experiment",
+      "live_workspace_dir": "/home/aydanh/rubric-gen-live/result20-cue-contrast-trace-results20/submission-revision-live-dfuei_a0/workspace",
+      "live_workspace_removed": true,
+      "master_rubric_name": "rubric.txt",
+      "master_rubric_sha256": "80ba70d6705f0b0bd3684d57cf81817943d6a7d6f447555a1f656f8b8ac442a2",
+      "max_review_chars": null,
+      "max_revisions": 10,
+      "min_revisions": 5,
+      "model": "gpt-5.6-luna",
+      "pretreatment_rubric_dir": "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/study/biomnibench-da-factorial-r10-f0203f5d69f3/pretreatment-rubrics/da-12-2/15320099e8e21b5c21793a812c4e025ea92c033f9881aa27d60a248ce85c44d3",
+      "prompt": "base",
+      "prompt_implementation_sha256": "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788",
+      "provider": "codex",
+      "reasoning_effort": "low",
+      "red_team_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "replicate": 1,
+      "review": "trace",
+      "rubric_generation_implementation_sha256": "d0107bf0286231b7ec01127bae9843e0c7157af0801afa75783a1710641e4b0b",
+      "rubric_policy": "red_team_trace",
+      "rubric_proposer_max_retries": 5,
+      "rubric_proposer_model": "gpt-5.6-luna",
+      "seed_generator": {
+        "executable": null,
+        "model": "gpt-5.6-luna",
+        "provider": "codex",
+        "reasoning_effort": "low",
+        "retries": 1,
+        "service_tier": null,
+        "timeout_seconds": 7200
+      },
+      "seed_run_dir": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965/archive-inputs/seeds/biomnibench/native-prompt-results20",
+      "seed_sha256": "17740fe96248693c1fd6d207f89fba97a8d9153a9ed2ad4750913ca6d0919467",
+      "service_tier": null,
+      "session_id": "01a083a5-0cc9-7e31-906d-d82407cd8404",
+      "solver_id": "luna",
+      "submission_count": 7,
+      "task_dir": "/home/aydanh/repos/rubric_gen/data/biomnibench-da/da-12-2",
+      "task_id": "da-12-2",
+      "turn_timeout_seconds": 7200,
+      "web_search": false
+    }
+  }
+}

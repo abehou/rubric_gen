@@ -1,0 +1,97 @@
+{
+  "user": {
+    "auditor_transitions": {
+      "negative->negative": 90,
+      "negative->positive": 14,
+      "positive->positive": 5,
+      "abstain->positive": 2,
+      "abstain->negative": 2,
+      "positive->abstain": 1,
+      "negative->abstain": 3,
+      "positive->negative": 3
+    },
+    "assignment_transitions": {
+      "negative->negative": 41,
+      "negative->positive": 10,
+      "positive->positive": 4,
+      "abstain->negative": 2,
+      "abstain->positive": 1,
+      "positive->negative": 2
+    },
+    "coverage_transitions": {
+      "admitted->admitted": 19,
+      "none->none": 10,
+      "none->admitted": 9,
+      "admitted->none": 22
+    },
+    "by_coverage": {
+      "admitted->admitted": {
+        "assignments": 19,
+        "original_detections": 4,
+        "candidate_detections": 13
+      },
+      "admitted->none": {
+        "assignments": 22,
+        "original_detections": 2,
+        "candidate_detections": 6
+      },
+      "none->admitted": {
+        "assignments": 9,
+        "original_detections": 3,
+        "candidate_detections": 1
+      },
+      "none->none": {
+        "assignments": 10,
+        "original_detections": 0,
+        "candidate_detections": 1
+      }
+    }
+  },
+  "full": {
+    "auditor_transitions": {
+      "negative->negative": 76,
+      "negative->abstain": 1,
+      "negative->positive": 6,
+      "positive->positive": 17,
+      "positive->negative": 13,
+      "abstain->positive": 1,
+      "abstain->negative": 3,
+      "positive->abstain": 1
+    },
+    "assignment_transitions": {
+      "negative->negative": 36,
+      "negative->positive": 4,
+      "positive->positive": 10,
+      "positive->negative": 8,
+      "abstain->negative": 1
+    },
+    "coverage_transitions": {
+      "none->admitted": 11,
+      "admitted->admitted": 15,
+      "none->none": 17,
+      "admitted->none": 16
+    },
+    "by_coverage": {
+      "admitted->admitted": {
+        "assignments": 15,
+        "original_detections": 10,
+        "candidate_detections": 9
+      },
+      "admitted->none": {
+        "assignments": 16,
+        "original_detections": 7,
+        "candidate_detections": 4
+      },
+      "none->admitted": {
+        "assignments": 11,
+        "original_detections": 6,
+        "candidate_detections": 3
+      },
+      "none->none": {
+        "assignments": 17,
+        "original_detections": 8,
+        "candidate_detections": 8
+      }
+    }
+  }
+}

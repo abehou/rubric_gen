@@ -1,0 +1,172 @@
+[
+  {
+    "case": "candidate_user_da-10-1_r3",
+    "turns": 10,
+    "events": 154
+  },
+  {
+    "case": "candidate_user_da-12-2_r1",
+    "turns": 10,
+    "events": 106
+  },
+  {
+    "case": "candidate_user_da-12-2_r2",
+    "turns": 8,
+    "events": 90
+  },
+  {
+    "case": "candidate_user_da-12-2_r3",
+    "turns": 10,
+    "events": 179
+  },
+  {
+    "case": "candidate_user_da-12-4_r2",
+    "turns": 10,
+    "events": 188
+  },
+  {
+    "case": "candidate_user_da-12-4_r3",
+    "turns": 10,
+    "events": 150
+  },
+  {
+    "case": "candidate_user_da-13-6_r3",
+    "turns": 10,
+    "events": 102
+  },
+  {
+    "case": "candidate_user_da-14-1_r2",
+    "turns": 10,
+    "events": 110
+  },
+  {
+    "case": "candidate_user_da-14-8_r2",
+    "turns": 10,
+    "events": 154
+  },
+  {
+    "case": "candidate_user_da-14-8_r3",
+    "turns": 5,
+    "events": 48
+  },
+  {
+    "case": "candidate_user_da-15-1_r2",
+    "turns": 10,
+    "events": 182
+  },
+  {
+    "case": "candidate_user_da-15-2_r1",
+    "turns": 10,
+    "events": 151
+  },
+  {
+    "case": "candidate_user_da-15-7_r1",
+    "turns": 10,
+    "events": 206
+  },
+  {
+    "case": "candidate_user_da-15-7_r2",
+    "turns": 10,
+    "events": 164
+  },
+  {
+    "case": "candidate_user_da-15-8_r2",
+    "turns": 10,
+    "events": 143
+  },
+  {
+    "case": "candidate_user_da-16-1_r1",
+    "turns": 10,
+    "events": 113
+  },
+  {
+    "case": "candidate_user_da-19-6_r3",
+    "turns": 7,
+    "events": 58
+  },
+  {
+    "case": "original_user_da-10-1_r3",
+    "turns": 10,
+    "events": 142
+  },
+  {
+    "case": "original_user_da-12-2_r1",
+    "turns": 7,
+    "events": 94
+  },
+  {
+    "case": "original_user_da-12-2_r2",
+    "turns": 10,
+    "events": 128
+  },
+  {
+    "case": "original_user_da-12-2_r3",
+    "turns": 10,
+    "events": 124
+  },
+  {
+    "case": "original_user_da-12-4_r2",
+    "turns": 10,
+    "events": 157
+  },
+  {
+    "case": "original_user_da-12-4_r3",
+    "turns": 10,
+    "events": 140
+  },
+  {
+    "case": "original_user_da-13-6_r3",
+    "turns": 5,
+    "events": 40
+  },
+  {
+    "case": "original_user_da-14-1_r2",
+    "turns": 10,
+    "events": 108
+  },
+  {
+    "case": "original_user_da-14-8_r2",
+    "turns": 10,
+    "events": 126
+  },
+  {
+    "case": "original_user_da-14-8_r3",
+    "turns": 9,
+    "events": 110
+  },
+  {
+    "case": "original_user_da-15-1_r2",
+    "turns": 10,
+    "events": 184
+  },
+  {
+    "case": "original_user_da-15-2_r1",
+    "turns": 10,
+    "events": 136
+  },
+  {
+    "case": "original_user_da-15-7_r1",
+    "turns": 10,
+    "events": 138
+  },
+  {
+    "case": "original_user_da-15-7_r2",
+    "turns": 10,
+    "events": 131
+  },
+  {
+    "case": "original_user_da-15-8_r2",
+    "turns": 9,
+    "events": 92
+  },
+  {
+    "case": "original_user_da-16-1_r1",
+    "turns": 10,
+    "events": 156
+  },
+  {
+    "case": "original_user_da-19-6_r3",
+    "turns": 10,
+    "events": 102
+  }
+]
