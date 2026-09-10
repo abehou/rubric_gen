@@ -169,7 +169,8 @@ dag:
     output_dir: ../seeds/biomnibench/native-prompt-results20
   paraphrase:
     depends_on: []
-    output_dir: ../runs/rubric-paraphrases/biomnibench/red-team-results20
+    # Canonical paraphrase manifest SHA-256: 404d8cb9437c4f6d766c40a1c9fade066a0e53aab249c37fc63da990a68bc0e8
+    output_dir: /data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910
   revise:
     depends_on: [seed, paraphrase]
     output_dir: ../runs/biomnibench-results20-2026-09-06/study/{experiment_id}
