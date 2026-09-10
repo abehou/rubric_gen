@@ -3,11 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+def _project_root() -> Path:
+    value = os.environ.get("RUBRIC_GEN_PROJECT_ROOT")
+    if value is None:
+        return Path(__file__).resolve().parents[3]
+    root = Path(value)
+    if not root.is_absolute() or not root.is_dir():
+        raise ValueError("RUBRIC_GEN_PROJECT_ROOT must be an existing absolute directory")
+    return root.resolve()
+
+
+PROJECT_ROOT = _project_root()
 _DIRECTORY_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
 _CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x1f\x7f]")
 

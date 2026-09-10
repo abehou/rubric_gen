@@ -19,6 +19,8 @@ def validate_evolution_request(
     policy: RubricPolicy,
     generation_round: int,
     source_checkpoint: int | None,
+    source_schedule: str | None = None,
+    red_team_trace_version: str | None = None,
 ) -> None:
     """Reject an invalid request before model dispatch or filesystem mutation."""
 
@@ -42,6 +44,7 @@ def validate_evolution_request(
         ),
         elicited_criteria=current_generation.elicited_criteria,
         proposer_call_budget=current_generation.proposer_call_budget,
+        **current_generation.schedule_record(),
     )
     if (
         development_generation.normalization_maximum
@@ -64,6 +67,17 @@ def validate_evolution_request(
         raise ValueError("generation_round must be an integer")
     if generation_round != current_generation.generation_round + 1:
         raise ValueError("rubric generations must be consecutive")
+    from .trace_defense_prompts import SOURCE_SCHEDULE, enabled
+    if source_schedule is not None:
+        if source_schedule != SOURCE_SCHEDULE or not enabled(policy, red_team_trace_version):
+            raise ValueError("invalid evolution schedule/version/policy")
+        if generation_round < 2 or type(source_checkpoint) is not int or source_checkpoint != generation_round - 2:
+            raise ValueError("pre-revision evolution requires checkpoint g-2")
+        if current_generation.generation_round >= 2 and current_generation.source_schedule != source_schedule:
+            raise ValueError("cannot mix evolution schedules")
+        return
+    if red_team_trace_version is not None or current_generation.source_schedule is not None:
+        raise ValueError("versioned live evolution requires its explicit schedule")
     if policy is RubricPolicy.OFFLINE_ELICITATION:
         if generation_round != 1:
             raise ValueError("offline elicitation has one pre-treatment generation")

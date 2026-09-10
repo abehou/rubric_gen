@@ -1,0 +1,60 @@
+[
+  {
+    "path": "src/rubric_gen/runtime/agents/adapters.py",
+    "sha256": "1134225b1c17a438c40d2723ceee242651192825a7a1e6da7734ffd0c2928671",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/runtime/agents/adapters.py"
+  },
+  {
+    "path": "src/rubric_gen/runtime/agents/codex_app_server.py",
+    "sha256": "be146a18a5d102200a3b8e963a6f5d3084e6329d791eb1afa7740aa2fed596fc",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/runtime/agents/codex_app_server.py"
+  },
+  {
+    "path": "src/rubric_gen/runtime/agents/codex_completion.py",
+    "sha256": "2f5527ae18226e7fb48bc845ec63c9dcb1eb6ccc9d15f3ad9e9609473bb9d308",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/runtime/agents/codex_completion.py"
+  },
+  {
+    "path": "src/rubric_gen/runtime/paths.py",
+    "sha256": "74bb937fbf50e954324144997807b1b6e1703875cedc2e260eca4b82dd1d1d13",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/runtime/paths.py"
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/artifacts.py",
+    "sha256": "a6fde5ee9b20b999bb06429fa13715ea5a5deb4706f7ecf4109daeb3a2bac823",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/artifacts.py"
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/controller_recovery.py",
+    "sha256": "f629b616e99e88b3a33389c1352347910234a0f987e7a299fe17e0f25391e621",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/controller_recovery.py"
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/controller_scoring.py",
+    "sha256": "aa1db3593c207bd39d3822662633c3ba1d4c475daf3ef59718e8b60aeef68e64",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/controller_scoring.py",
+    "excluded_scientific_hunks": [
+      "trace_policy=... argument for the public-witness repair-first branch; legacy call restored and new method separately opted in"
+    ]
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/evolution.py",
+    "sha256": "3ff63481bbbcaaab0bffcfe449937c3062c801de4e813555fbb1bf8917e657d1",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/evolution.py"
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/pretreatment_reuse.py",
+    "sha256": "c3892e74b71fec9816cb8b156fe0eb89632ab985e1c76bc3649545f7924f8a84",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/pretreatment_reuse.py"
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/pretreatment_rubrics.py",
+    "sha256": "6e74eee056eaf6cb828ba4b45dbc4830cc3b406650cf6b2d7b233952df924a07",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/pretreatment_rubrics.py"
+  },
+  {
+    "path": "src/rubric_gen/submission_revision/study.py",
+    "sha256": "dfa7eb0dc2a3524a20dfdba91368dae69ddf1ab62099f18ffdf396121379e365",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-repair-result20-20260909/diagnostics/runtime-validation-10382894/execution/src/rubric_gen/submission_revision/study.py"
+  }
+]

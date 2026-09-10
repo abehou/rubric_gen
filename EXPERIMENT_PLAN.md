@@ -1356,3 +1356,7 @@ While package-context10353356 remains the primary baseline experiment,run six da
 ## 2026-09-09 — Cue full-feedback provenance
 
 - 20:13 EDT: Freeze the provisionally successful cue user-static baseline; accept near-zero wording-only S−H as legitimate possible generalization. User authorizes provenance-based earlier full-arm reuse and only minimum missing cue full-feedback arms; primary remaining policy target retains RH reduction while removing W−S/W−A regressions, independent audit-only artifact calibration.
+
+## 2026-09-10 — attack_defense_v1
+
+- 10:29 EDT: User authorized one attack_defense_v1 bundled Result20 cohort, 120 fresh trace assignments with counted da-10-1/rep-001 smoke, frozen static reuse and V2 heldouts; endpoint/resource rules are preregistered in docs/reports/2026-09-10/trace-attack-defense-v1/preregistration.md. No scientific variant search or automatic scale-up.

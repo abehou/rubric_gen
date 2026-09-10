@@ -1207,3 +1207,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 21:29 EDT: Current owneraudit10380169; report10380215dependsafterok. Output /data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/provisional59-report-v1 and docs/reports/2026-09-09/cue-full-provisional59.md. Recovery10380168cancelled atuserrequest; obsolete report10379269cancelled. No scientific revisionowner remains.
 
 - 21:42 EDT: Audit10380169completed16m05s;report10380215completed~1m04s, native59×2auditor tracecoverage and59matchedstatic cases validated. Final report docs/reports/2026-09-09/cue-full-provisional59.md; shared provisional59-report-v1/analysis.json under result20-cue-full-trace-20260909. Missing da16-1rep1 explicitly omitted frombotharms; cancelled replacementexcluded; all59originalmanifest/state/source seals preserved.
+
+## 2026-09-10 — attack_defense_v1
+
+- 10:29 EDT: attack_defense_v1 development checkout: runs/babel-code/attack-defense-v1; config experiments/trace-attack-defense-v1/result20.yaml; new run root /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/. Provider-free input jobs10387137 and10387146; no behavioral calls yet.

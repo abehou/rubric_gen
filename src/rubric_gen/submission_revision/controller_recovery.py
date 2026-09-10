@@ -97,7 +97,7 @@ class RevisionRecovery:
             self.experiment_dir / "manifest.json",
             "revision manifest",
         )
-        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value):
+        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, self.config.red_team_trace_version if self.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None):
             raise RuntimeError("revision manifest has invalid fields")
         for key, value in self.experiment_identity.items():
             if manifest.get(key) != value:
@@ -248,6 +248,9 @@ class RevisionRecovery:
         self._validate_solver_identity(state, manifest)
         if self._app_server_never_started(state, checkpoint):
             # No provider turn ran: retain the original session and sealed scores.
+            # Preparation may have created an empty artifacts directory after
+            # the seed snapshot; restore the exact sealed solution before retry.
+            self.workspaces.restore_last_scored_workspace(state, workspace)
             self._reset_uncertain_solver_turn(
                 state, checkpoint.turn_dir, checkpoint.turn_index,
             )
@@ -460,7 +463,6 @@ class RevisionRecovery:
         turn = checkpoint.turn_dir
         if (
             state.phase is not _RevisionPhase.FAILED_TURN
-            or not state.session_id
             or turn.is_symlink()
             or not turn.is_dir()
             or {p.name for p in turn.iterdir()} != {"prompt.txt", "status.json"}
@@ -478,8 +480,6 @@ class RevisionRecovery:
             and len(errors) == 1
             and isinstance(errors[0], str)
             and errors[0].startswith("Codex app-server start failed after ")
-            and "Error while finding module specification for 'rubric_gen.runtime.agents.codex_app_server'" in errors[0]
-            and "ModuleNotFoundError: No module named 'rubric_gen'" in errors[0]
         )
 
     def _restore_reset_and_discard(
@@ -861,7 +861,7 @@ class RevisionRecovery:
         maximum_generation = (
             1
             if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION
-            else max(1, self.config.max_revisions)
+            else max(1, self.config.max_revisions + (1 if self.scoring.trace_defense_enabled else 0))
         )
         remove_owned_rubric_generation_residue(
             generation_root,
@@ -903,11 +903,12 @@ class RevisionRecovery:
                 policy=self.rubric_policy,
                 generation_round=generation_round,
                 output_dir=self.experiment_dir,
+                **({"source_schedule": "pre_revision_v1"} if self.scoring.trace_defense_enabled else {}),
                 artifact_history=self.scoring.elicitation_history(
                     generation_round
                 ),
                 source_checkpoint=(
-                    generation_round - 1
+                    generation_round - (2 if self.scoring.trace_defense_enabled else 1)
                     if self.rubric_policy.uses_online_evidence
                     else None
                 ),

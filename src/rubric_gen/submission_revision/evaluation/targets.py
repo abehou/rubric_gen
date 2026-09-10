@@ -159,6 +159,11 @@ def _load_evaluation_target(
         rubric_policy,
         len(submission_ids) - 1,
     )
+    from ..trace_defense_prompts import enabled
+    if enabled(rubric_policy, config.experiment.protocol.get("red_team_trace_version")):
+        from ..trace_defense_binding import load_binding
+        initial_generation_round = load_binding(experiment_dir, submission_ids[0])["active_generation_round"]
+        final_generation_round = load_binding(experiment_dir, submission_ids[-1])["active_generation_round"]
     generations = {
         generation_round: load_rubric_generation(
             experiment_dir,
@@ -284,8 +289,10 @@ def _load_terminal_revision_state(
         "seed_generator": seed_generator_identity(seed_agent),
         "live_workspace_removed": True,
     }
+    from ..trace_defense_binding import method_identity
+    manifest_identity.update(method_identity(condition["rubric_policy"], protocol.get("red_team_trace_version")))
     if (
-        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]))
+        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), protocol.get("red_team_trace_version") if condition["rubric_policy"] == "red_team_trace" else None)
         or any(
         manifest.get(key) != value
         for key, value in manifest_identity.items()

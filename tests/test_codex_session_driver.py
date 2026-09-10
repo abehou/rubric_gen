@@ -481,10 +481,10 @@ def test_provider_circuit_opens_after_three_transport_failures(error_type) -> No
     for index in range(3):
         circuit.check()
         circuit.record_failure(error_type(f"failure {index}"))
-    circuit.record_success()
-
     with pytest.raises(_ProviderCircuitOpen, match="3 transport failures"):
         circuit.check()
+    circuit.record_success()
+    circuit.check()
 
 
 def test_provider_circuit_resets_before_open_and_ignores_validation_errors() -> None:
@@ -501,7 +501,7 @@ def test_provider_circuit_resets_before_open_and_ignores_validation_errors() -> 
         circuit.check()
 
 
-def test_open_proposer_circuit_prevents_assignment_execution(monkeypatch) -> None:
+def test_permanent_proposer_failure_prevents_further_assignment_execution(monkeypatch) -> None:
     import rubric_gen.submission_revision.study as study_module
 
     runner = object.__new__(study_module.StudyRunner)
@@ -512,10 +512,34 @@ def test_open_proposer_circuit_prevents_assignment_execution(monkeypatch) -> Non
     monkeypatch.setattr(runner, "_mark_assignment_failed", lambda aid, exc: failures.append((aid, exc)))
     monkeypatch.setattr(runner, "_mark_assignment_running", lambda _: pytest.fail("must not start"))
     monkeypatch.setattr(study_module, "run_submission_revision", lambda *a, **k: pytest.fail("must not call provider"))
-    for _ in range(3):
-        circuit.record_failure(RubricProposerProviderError("unavailable"))
+    failure = RubricProposerProviderError("credentials rejected")
+    failure.__cause__ = RuntimeError("invalid credentials")
+    failure.__cause__.status_code = 401
+    circuit.record_failure(failure)
     positions = study_module._ProgressPositions(1)
     runner._execute_assignment(SimpleNamespace(assignment_id="blocked", solver_id="luna"), positions)
     assert len(failures) == 1
     assert isinstance(failures[0][1], _ProviderCircuitOpen)
     assert positions.acquire() == 1
+
+
+def test_local_app_server_failures_do_not_open_provider_circuit():
+    circuit = _ProviderCircuit("codex")
+    for _ in range(10):
+        circuit.record_failure(CodexProviderHealthError(
+            "Codex app-server start failed after 2 attempts: local RPC timeout"
+        ))
+    circuit.check()
+
+
+def test_transient_provider_circuit_allows_recovery_after_cooldown(monkeypatch):
+    import rubric_gen.submission_revision.study as study
+    now = [100.0]
+    monkeypatch.setattr(study.time, "monotonic", lambda: now[0])
+    circuit = _ProviderCircuit("codex")
+    for _ in range(3):
+        circuit.record_failure(RubricProposerProviderError("temporarily unavailable"))
+    with pytest.raises(_ProviderCircuitOpen):
+        circuit.check()
+    now[0] += study._PROVIDER_CIRCUIT_COOLDOWN_SECONDS
+    circuit.check()

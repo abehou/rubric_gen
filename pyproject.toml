@@ -10,6 +10,7 @@ dependencies = [
   "certifi>=2024.8.30",
   "complexipy>=7.0.1",
   "google-genai>=1.0.0",
+  "jsonschema>=4.0",
   "matplotlib>=3.8",
   "numpy>=1.26",
   "openai>=1.66.0",

@@ -499,6 +499,8 @@ class RubricGeneration:
     rubric: CompleteRubric
     elicited_criteria: tuple[ElicitedCriterion, ...]
     proposer_call_budget: int
+    source_schedule: str | None = None
+    red_team_trace_version: str | None = None
 
     def __post_init__(self) -> None:
         generation_round = require_nonnegative_int(
@@ -506,12 +508,20 @@ class RubricGeneration:
             "generation_round",
         )
         require_nonnegative_int(self.proposer_call_budget, "proposer_call_budget")
+        from .trace_defense_prompts import SOURCE_SCHEDULE, VERSION
+        if (self.source_schedule, self.red_team_trace_version) not in {
+            (None, None), (SOURCE_SCHEDULE, VERSION)
+        }:
+            raise ValueError("invalid rubric source schedule/method version")
+        if self.source_schedule is not None and (generation_round < 2 or self.source_checkpoint is None):
+            raise ValueError("pre-revision schedule requires a live generation")
+        offset = 2 if self.source_schedule == SOURCE_SCHEDULE else 1
         if self.source_checkpoint is not None:
             source_checkpoint = require_nonnegative_int(
                 self.source_checkpoint,
                 "source_checkpoint",
             )
-            if generation_round < 2 or source_checkpoint != generation_round - 1:
+            if generation_round < 2 or source_checkpoint != generation_round - offset:
                 raise ValueError(
                     "live source checkpoint must precede its rubric generation"
                 )
@@ -554,12 +564,19 @@ class RubricGeneration:
                     criterion.as_dict() for criterion in self.elicited_criteria
                 ],
                 "proposer_call_budget": self.proposer_call_budget,
+                **self.schedule_record(),
             },
             ensure_ascii=False,
             separators=(",", ":"),
             sort_keys=True,
         )
         return sha256_text(payload)
+
+    def schedule_record(self) -> dict[str, str]:
+        """Omit default fields so historical generation bytes/hashes are unchanged."""
+        return ({"source_schedule": self.source_schedule,
+                 "red_team_trace_version": self.red_team_trace_version}
+                if self.source_schedule is not None else {})
 
     @property
     def scoring_protocol(self) -> str | None:
@@ -578,6 +595,8 @@ class RubricGeneration:
             raise ValueError("prior must be a RubricGeneration")
         if self.generation_round != prior.generation_round + 1:
             raise ValueError("rubric generations must be consecutive")
+        if prior.generation_round >= 2 and self.source_schedule != prior.source_schedule:
+            raise ValueError("cannot mix rubric source schedules")
         if self.scoring_protocol != prior.scoring_protocol:
             raise ValueError("a rubric generation cannot change scoring protocol")
         if self.normalization_maximum != prior.normalization_maximum:

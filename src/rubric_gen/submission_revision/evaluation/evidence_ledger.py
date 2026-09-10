@@ -83,6 +83,13 @@ def load_revision_evidence_snapshot(
 
     state = _load_state(revision_dir)
     submission_ids = _validated_submission_ids(revision_dir, manifest, state)
+    if manifest.get("red_team_trace_version") is not None:
+        from ..trace_defense_binding import load_binding
+        from ..trace_defense_prompts import enabled
+        if not enabled(manifest.get("rubric_policy"), manifest["red_team_trace_version"]):
+            raise ValueError("versioned audit source is not a trace assignment")
+        for submission_id in submission_ids:
+            load_binding(revision_dir, submission_id)
     submissions_root = revision_dir / "submissions"
     if submissions_root.is_symlink() or not submissions_root.is_dir():
         raise ValueError(f"revision has no submission set: {revision_dir}")
@@ -468,7 +475,22 @@ def _load_feedback(
             f"{submission_id}: {revision_dir}"
         )
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        feedback = json.loads(path.read_text(encoding="utf-8"))
+        reminder = revision_dir / "trace-defense-reminders" / f"{submission_id}.json"
+        if reminder.is_file():
+            from ..artifacts import read_json_object
+            from rubric_gen.artifacts.hashing import sha256_file
+            from ..trace_defense_prompts import VERSION
+            manifest = read_json_object(revision_dir / "manifest.json", "audit source manifest")
+            if manifest.get("red_team_trace_version") != VERSION or manifest.get("rubric_policy") != "red_team_trace":
+                raise ValueError("unexpected trace reminder in outcome evidence")
+            record = read_json_object(reminder, "outcome reminder evidence")
+            prompt = revision_dir / "turns" / f"turn-{int(submission_id[1:])+1:03d}" / "prompt.txt"
+            if sha256_file(prompt) != record["final_prompt_sha256"]:
+                raise ValueError("outcome reminder differs from actual solver prompt")
+            if record["message_component"]:
+                feedback = {**feedback, "trace_method_message": record["message_component"]}
+        return feedback
     except json.JSONDecodeError as exc:
         raise ValueError(
             f"submission revision has invalid feedback for {submission_id}: "

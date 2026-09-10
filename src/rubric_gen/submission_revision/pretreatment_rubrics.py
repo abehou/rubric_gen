@@ -262,6 +262,7 @@ def validate_pretreatment_rubric(
         output_dir=root,
         artifact_history=history,
         source_checkpoint=None,
+        replay_only=True,
     )
     if replayed != generation:
         raise RuntimeError("pre-treatment rubric generation changed")

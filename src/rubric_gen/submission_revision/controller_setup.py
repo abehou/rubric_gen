@@ -93,6 +93,8 @@ def _default_dependencies(
             model=config.rubric_proposer_model,
             service_tier=config.seed_agent.service_tier,
             max_retries=config.rubric_proposer_max_retries,
+            red_team_trace_version=(config.red_team_trace_version
+                                    if rubric_policy is RubricPolicy.RED_TEAM_TRACE else None),
         )
     session: SolverSessionDriver
     if config.agent.provider == "codex":
@@ -116,6 +118,8 @@ def _default_dependencies(
             RedTeamGenerator(
                 agent=config.red_team_agent,
                 benchmark=benchmark,
+                red_team_trace_version=(config.red_team_trace_version
+                                        if rubric_policy is RubricPolicy.RED_TEAM_TRACE else None),
             )
             if rubric_policy.uses_red_team
             else None
@@ -146,6 +150,9 @@ def _validate_proposer(
         config.rubric_proposer_max_retries,
         expected_service_tier,
     )
+    expected_version = config.red_team_trace_version if rubric_policy is RubricPolicy.RED_TEAM_TRACE else None
+    if getattr(proposer, "red_team_trace_version", None) != expected_version:
+        raise ValueError("rubric proposer method version differs from revision config")
     if actual != expected:
         raise ValueError("rubric proposer contract differs from revision config")
 
@@ -183,6 +190,9 @@ def _validate_red_team_generator(
             raise ValueError(
                 "red-team rubric policy requires a red-team generator"
             )
+        expected_version = config.red_team_trace_version if rubric_policy is RubricPolicy.RED_TEAM_TRACE else None
+        if getattr(generator, "red_team_trace_version", None) != expected_version:
+            raise ValueError("red-team generator method version differs from revision config")
         if generator.identity() != seed_generator_identity(config.red_team_agent):
             raise ValueError(
                 "red-team generator identity differs from revision config"

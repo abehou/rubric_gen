@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -206,10 +208,13 @@ def build_online_artifact_history(
     source_checkpoint: int,
     red_team_policy: RubricPolicy | None = None,
     red_team_generator_identity: dict[str, object] | None = None,
+    red_team_trace_version: str | None = None,
 ) -> ArtifactHistory:
     """Return matched seed, revision, and optional sidecar pairs."""
 
-    if type(source_checkpoint) is not int or source_checkpoint < 1:
+    from .trace_defense_prompts import enabled
+    early = red_team_policy is not None and enabled(red_team_policy, red_team_trace_version)
+    if type(source_checkpoint) is not int or source_checkpoint < (0 if early else 1):
         raise ValueError("source_checkpoint must be a positive integer")
     submissions = experiment_dir / "submissions"
     if red_team_policy not in {
@@ -240,7 +245,7 @@ def build_online_artifact_history(
             and index in {0, source_checkpoint}
         ):
             pair_keys.append(f"initial-current-{source_checkpoint:03d}")
-        if include_red_team and index >= 1:
+        if include_red_team and index >= (0 if early else 1):
             pair_keys.append(f"red-team-{index:03d}")
         observed = _Artifact(
             source_id=f"live:{submission_id}",
@@ -248,11 +253,12 @@ def build_online_artifact_history(
             pair_keys=tuple(pair_keys),
         )
         live.append(observed)
-        if include_red_team and index >= 1:
+        if include_red_team and index >= (0 if early else 1):
             sidecar = load_red_team_artifact(
                 experiment_dir,
                 index,
                 expected_generator=red_team_generator_identity,
+                expected_trace_version=red_team_trace_version,
                 expected_source_artifact_sha256=sha256_text(
                     benchmark.render_user_review(workspace)
                 ),
@@ -312,8 +318,28 @@ def build_online_artifact_history(
             trajectory_excerpt_sha256=sha256_text(excerpt),
             trajectory_excerpt=excerpt,
             trajectory_truncated=truncated,
+            **({"source_checkpoint": int(trajectory_path.parent.name.split("-")[-1]),
+                "attack_record": json.loads((trajectory_path.parent / "attack-record.json").read_text())}
+               if early else {}),
         ))
+    pair_checkpoints = {}
+    newest_pair_id = None
+    if early:
+        memberships = {}
+        for item in (*seeds, *live):
+            for key in item.pair_keys:
+                memberships.setdefault(key, set()).add(artifact_id_by_hash[item.sha256])
+        for key, members in memberships.items():
+            if len(members) != 2:
+                continue
+            pid = ArtifactPair.create(*sorted(members)).pair_id
+            checkpoint = max((int(x) for x in key.split("-") if x.isdigit()), default=-1) if key.startswith(("revision-", "initial-current-", "red-team-")) else -1
+            pair_checkpoints[pid] = max(pair_checkpoints.get(pid, -1), checkpoint)
+            if key == f"red-team-{source_checkpoint:03d}":
+                newest_pair_id = pid
     return ArtifactHistory(
+        pair_source_checkpoints=tuple(sorted(pair_checkpoints.items())),
+        newest_sidecar_pair_id=newest_pair_id,
         artifacts=history.artifacts,
         pairs=history.pairs,
         red_team_evidence=tuple(sorted(evidence, key=lambda item: item.pair_id)),
@@ -334,6 +360,7 @@ def build_elicitation_artifact_history(
     source_checkpoint: int | None,
     red_team_policy: RubricPolicy | None = None,
     red_team_generator_identity: dict[str, object] | None = None,
+    red_team_trace_version: str | None = None,
 ) -> ArtifactHistory:
     """Route one policy to its matched blinded artifact history."""
 
@@ -356,6 +383,7 @@ def build_elicitation_artifact_history(
             source_checkpoint=source_checkpoint,
             red_team_policy=red_team_policy,
             red_team_generator_identity=red_team_generator_identity,
+            red_team_trace_version=red_team_trace_version,
             **arguments,
         )
     if red_team_policy is not None or red_team_generator_identity is not None:

@@ -117,6 +117,8 @@ class RevisionScorer:
         self.instruction_sha256 = instruction_sha256
         self.data_sha256 = data_sha256
         self.store = store
+        from .trace_defense_prompts import enabled
+        self.trace_defense_enabled = enabled(rubric_policy, config.red_team_trace_version)
 
     def verify_canonical_task_inputs(self) -> None:
         if _sha256_file(self.task_dir / "instruction.md") != self.instruction_sha256:
@@ -212,7 +214,10 @@ class RevisionScorer:
         submission_dir = self.experiment_dir / "submissions" / submission_id
         _verify_submission_snapshot(submission_dir)
         self.verify_canonical_task_inputs()
-        self.ensure_online_rubric_generation(turn_index)
+        if self.trace_defense_enabled:
+            self.ensure_pre_revision_generation(turn_index, has_next_turn=(state.stop_reason is None and turn_index < self.config.max_revisions))
+        else:
+            self.ensure_online_rubric_generation(turn_index)
         generation = self.active_rubric_generation(turn_index)
         review_text, answer_text = self.dependencies.judge.review_inputs(
             submission_dir
@@ -343,6 +348,29 @@ class RevisionScorer:
             }
         )
 
+    def ensure_pre_revision_generation(self, checkpoint: int, *, has_next_turn: bool) -> None:
+        from .trace_defense_binding import persist_binding, load_binding
+        from .trace_defense_prompts import SOURCE_SCHEDULE
+        if has_next_turn:
+            prior = load_rubric_generation(self.experiment_dir, 1 if checkpoint == 0 else
+                load_binding(self.experiment_dir, f"s{checkpoint-1:03d}")["active_generation_round"],
+                expected_policy=self.rubric_policy)
+            generator = self.dependencies.red_team_generator
+            proposer = self.dependencies.rubric_proposer
+            if generator is None or proposer is None:
+                raise RuntimeError("trace defense requires its attacker and proposer")
+            generator.ensure(task_dir=self.task_dir, source_workspace=self.experiment_dir / "submissions" / f"s{checkpoint:03d}" / "workspace",
+                active_generation=prior, checkpoint=checkpoint, experiment_dir=self.experiment_dir)
+            active = proposer.elicit_rubric(instruction=(self.task_dir / "instruction.md").read_text(),
+                original_rubric=CompleteRubric.from_content(self.initial_rubric.text), development_rubric=self.development_rubric,
+                current_generation=prior, policy=self.rubric_policy, generation_round=checkpoint+2,
+                artifact_history=self.elicitation_history(checkpoint+2), source_checkpoint=checkpoint,
+                source_schedule=SOURCE_SCHEDULE, output_dir=self.experiment_dir)
+        else:
+            binding = load_binding(self.experiment_dir, f"s{checkpoint-1:03d}")
+            active = load_rubric_generation(self.experiment_dir, binding["active_generation_round"], expected_policy=self.rubric_policy)
+        persist_binding(self.experiment_dir, f"s{checkpoint:03d}", active, feedback_opportunity=has_next_turn, benchmark=self.config.benchmark)
+
     def ensure_online_rubric_generation(self, turn_index: int) -> None:
         """Create an online rubric only when a new submission needs it."""
 
@@ -459,7 +487,17 @@ class RevisionScorer:
             "score": composition.score,
         }
 
-    def project_checkpoint_feedback(
+    def project_checkpoint_feedback(self, **kwargs):
+        projected = self._ordinary_checkpoint_feedback(**kwargs)
+        if not self.trace_defense_enabled:
+            return projected
+        from .trace_defense_delivery import append_reminder
+        return append_reminder(projected, generation=kwargs["generation"],
+            score_validation_path=kwargs["artifacts"].score_validation_path, root=self.experiment_dir,
+            submission_id=kwargs["submission_id"], instruction=(self.task_dir / "instruction.md").read_text(),
+            allow_generation=kwargs["allow_generation"])
+
+    def _ordinary_checkpoint_feedback(
         self,
         *,
         artifacts: JudgeArtifacts,
@@ -661,6 +699,10 @@ class RevisionScorer:
             )
 
     def active_rubric_generation(self, checkpoint: int) -> RubricGeneration:
+        if self.trace_defense_enabled:
+            from .trace_defense_binding import load_binding
+            binding = load_binding(self.experiment_dir, f"s{checkpoint:03d}", benchmark=self.config.benchmark)
+            return load_rubric_generation(self.experiment_dir, binding["active_generation_round"], expected_policy=self.rubric_policy)
         generation_round = 0
         if checkpoint > 0:
             if self.rubric_policy is RubricPolicy.OFFLINE_ELICITATION:
@@ -709,8 +751,9 @@ class RevisionScorer:
                 self.development_rubric.content_sha256,
             ),
             source_checkpoint=(
-                generation_round - 1 if generation_round >= 2 else None
+                generation_round - (2 if self.trace_defense_enabled else 1) if generation_round >= 2 else None
             ),
+            red_team_trace_version=self.config.red_team_trace_version if self.trace_defense_enabled else None,
             red_team_policy=(
                 self.rubric_policy if uses_live_red_team else None
             ),

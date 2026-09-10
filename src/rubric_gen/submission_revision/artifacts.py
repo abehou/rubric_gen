@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import errno
 import json
 import os
 import shutil
 import stat
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -99,12 +101,17 @@ REVISION_MANIFEST_KEYS = frozenset(
 )
 
 
-def revision_manifest_keys(feedback_policy: str) -> frozenset[str]:
+def revision_manifest_keys(feedback_policy: str, red_team_trace_version: str | None = None) -> frozenset[str]:
     """Return the strict manifest shape for one feedback protocol."""
 
+    from .trace_defense_prompts import validate_version
+    validate_version(red_team_trace_version)
+    keys = REVISION_MANIFEST_KEYS
+    if red_team_trace_version:
+        keys |= {"red_team_trace_version", "source_schedule", "trace_defense_prompt_hashes"}
     if feedback_policy == "user_simulator":
-        return REVISION_MANIFEST_KEYS | {"feedback_simulator"}
-    return REVISION_MANIFEST_KEYS
+        keys |= {"feedback_simulator"}
+    return keys
 
 
 @dataclass
@@ -459,6 +466,28 @@ def _hash_tree(
     excluded_names: frozenset[str],
     recursive_excluded_names: frozenset[str],
 ) -> str:
+    # A just-finished sandbox command can remove its temporary mount directories
+    # between directory enumeration and lstat. Retry the complete read so the
+    # digest still describes one actual tree; never omit a failed entry in place.
+    for attempt in range(3):
+        try:
+            return _hash_tree_once(
+                root, excluded_names=excluded_names,
+                recursive_excluded_names=recursive_excluded_names,
+            )
+        except FileNotFoundError:
+            if attempt == 2:
+                raise
+            time.sleep(0.05)
+    raise AssertionError("unreachable")
+
+
+def _hash_tree_once(
+    root: Path,
+    *,
+    excluded_names: frozenset[str],
+    recursive_excluded_names: frozenset[str],
+) -> str:
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*")):
         relative_path = path.relative_to(root)
@@ -546,6 +575,13 @@ def _force_remove_directory(root: Path) -> None:
         root,
     ]:
         path.chmod(stat.S_IMODE(os.lstat(path).st_mode) | stat.S_IRWXU)
-    shutil.rmtree(root)
+    for attempt in range(7):
+        try:
+            shutil.rmtree(root)
+            break
+        except OSError as exc:
+            if exc.errno not in {errno.ENOTEMPTY, errno.EBUSY} or attempt == 6:
+                raise
+            time.sleep(0.25 * 2 ** attempt)
     if os.path.lexists(root):
         raise RuntimeError(f"failed to remove owned directory tree: {root}")

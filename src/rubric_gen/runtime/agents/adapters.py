@@ -21,6 +21,9 @@ def sanitized_agent_environment() -> dict[str, str]:
         "PATH", "LANG", "LANGUAGE", "LC_ALL", "NO_COLOR",
         "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
         "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY",
+        "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS",
+        "RAYON_NUM_THREADS", "TOKENIZERS_PARALLELISM",
     }
     allowed_prefixes = ("LC_",)
     return {

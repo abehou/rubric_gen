@@ -31,9 +31,20 @@ def build_simulated_user_history(
             experiment_dir / "feedback" / f"{before_id}.json",
             "simulated-user feedback history",
         )
+        component = {}
+        reminder_path = experiment_dir / "trace-defense-reminders" / f"{before_id}.json"
+        if reminder_path.is_file():
+            from .trace_defense_prompts import VERSION
+            manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
+            if manifest.get("red_team_trace_version") != VERSION or manifest.get("rubric_policy") != "red_team_trace":
+                raise RuntimeError("trace reminder in an incompatible public history")
+            reminder = read_json_object(reminder_path, "trace reminder history")
+            if reminder["message_component"]:
+                component = {"trace_method_message": reminder["message_component"]}
         history.append(
             {
                 "feedback_checkpoint": before_id,
+                **component,
                 "user_feedback": {
                     "decision": feedback.get("decision"),
                     "concerns": feedback.get("concerns"),

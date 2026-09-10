@@ -22,6 +22,7 @@ from websockets.sync.client import ClientConnection, unix_connect
 
 from rubric_gen.runtime.agents.adapters import sanitized_agent_environment
 from rubric_gen.runtime.agents.codex_rpc import CodexRpcGuard
+from rubric_gen.runtime.agents.codex_completion import TurnCompletionBuffer
 
 
 def main() -> int:
@@ -88,7 +89,6 @@ def main() -> int:
             )
 
             def terminate_on_signal(_signum: int, _frame: object) -> None:
-                _terminate(process)
                 raise SystemExit(143)
 
             signal.signal(signal.SIGTERM, terminate_on_signal)
@@ -106,9 +106,11 @@ def main() -> int:
                 _forward_responses(connection, guard)
                 return process.poll() or 0
             finally:
+                # Finish cleanup before the SDK force-kills this wrapper after
+                # two seconds; do not wait for a WebSocket close handshake first.
+                _terminate(process)
                 if connection is not None:
                     connection.close()
-                _terminate(process)
                 socket_path.unlink(missing_ok=True)
 
 
@@ -172,7 +174,7 @@ def _runtime_filesystem_override(codex_home: Path, runtime: Path) -> str:
 
 
 def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:
-    deadline = time.monotonic() + 15
+    deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         exit_code = process.poll()
         if exit_code is not None:
@@ -182,7 +184,7 @@ def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:
         try:
             metadata = path.lstat()
         except FileNotFoundError:
-            time.sleep(0.02)
+            time.sleep(0.1)
             continue
         if not stat.S_ISSOCK(metadata.st_mode) or metadata.st_uid != os.getuid():
             raise RuntimeError("Codex app-server created an unsafe RPC socket")
@@ -192,11 +194,11 @@ def _connect(process: subprocess.Popen[bytes], path: Path) -> ClientConnection:
                 uri="ws://localhost",
                 compression=None,
                 open_timeout=2,
-                close_timeout=2,
+                close_timeout=0.25,
                 max_size=None,
             )
         except ConnectionRefusedError:
-            time.sleep(0.02)
+            time.sleep(0.1)
     raise TimeoutError("Codex app-server did not create its RPC socket")
 
 
@@ -214,6 +216,7 @@ def _forward_requests(
                 connection.send(guard.client_message(raw))
         if pending:
             connection.send(guard.client_message(pending.decode("utf-8")))
+        connection.close()
     except (BrokenPipeError, ConnectionClosed, ConnectionError, OSError):
         pass
     except (UnicodeError, ValueError) as exc:
@@ -225,6 +228,7 @@ def _forward_responses(
     connection: ClientConnection,
     guard: CodexRpcGuard,
 ) -> None:
+    completion = TurnCompletionBuffer()
     for message in connection:
         if isinstance(message, bytes):
             try:
@@ -236,8 +240,9 @@ def _forward_responses(
         if validated is None:
             _report_discard(message, error or "unknown validation error")
             continue
-        sys.stdout.write(validated + "\n")
-        sys.stdout.flush()
+        for ready in completion.accept(validated):
+            sys.stdout.write(ready + "\n")
+            sys.stdout.flush()
 
 
 def _report_discard(raw: str, reason: str) -> None:
@@ -257,10 +262,10 @@ def _terminate(process: subprocess.Popen[bytes]) -> None:
         return
     process.terminate()
     try:
-        process.wait(timeout=2)
+        process.wait(timeout=0.5)
     except subprocess.TimeoutExpired:
         process.kill()
-        process.wait(timeout=2)
+        process.wait(timeout=0.5)
 
 
 if __name__ == "__main__":  # pragma: no cover

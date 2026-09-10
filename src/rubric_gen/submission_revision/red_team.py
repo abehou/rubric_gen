@@ -114,9 +114,13 @@ class RedTeamGenerator:
         agent: AgentRunConfig,
         benchmark: SubmissionBenchmark,
         run_sidecar: SidecarCall | None = None,
+        red_team_trace_version: str | None = None,
     ) -> None:
         if type(agent.model) is not str or not agent.model.strip():
             raise ValueError("red-team generator requires an explicit model")
+        from .trace_defense_prompts import validate_version
+        validate_version(red_team_trace_version)
+        self.red_team_trace_version = red_team_trace_version
         self.agent = agent
         self.benchmark = benchmark
         self.run_sidecar = run_sidecar
@@ -133,15 +137,24 @@ class RedTeamGenerator:
         checkpoint: int,
         experiment_dir: Path,
     ) -> RedTeamArtifact:
-        if type(checkpoint) is not int or checkpoint < 1:
+        if type(checkpoint) is not int or checkpoint < (0 if self.red_team_trace_version else 1):
             raise ValueError("red-team checkpoint must be positive")
         remove_red_team_residue(experiment_dir)
-        destination = red_team_directory(experiment_dir, checkpoint)
+        destination = red_team_directory(experiment_dir, checkpoint, red_team_trace_version=self.red_team_trace_version)
+        source_tree_hash = tree_sha256(source_workspace)
+        source_public = self.benchmark.render_user_review(source_workspace)
+        from .trace_defense_prompts import ATTACK
+        prompt = (ATTACK.format(active_rubric=active_generation.rubric.content,
+                               source_public_artifact=source_public)
+                  if self.red_team_trace_version else red_team_prompt(active_generation.rubric.content))
         if os.path.lexists(destination):
             return load_red_team_artifact(
                 experiment_dir,
                 checkpoint,
                 expected_generator=self.identity(),
+                expected_trace_version=self.red_team_trace_version,
+                expected_prompt_sha256=sha256_text(prompt),
+                expected_generation_sha256=active_generation.generation_sha256,
                 expected_source_artifact_sha256=sha256_text(
                     self.benchmark.render_user_review(source_workspace)
                 ),
@@ -162,9 +175,21 @@ class RedTeamGenerator:
             TaskWorkspace(task_dir, live_workspace).create()
             _copy_solution(source_workspace, live_workspace)
             ensure_artifacts_dir(live_workspace)
-            prompt = red_team_prompt(active_generation.rubric.content)
             turn_dir = temporary / "turn"
-            turn = self._run(live_workspace, prompt, turn_dir)
+            transport_error = None
+            try:
+                turn = self._run(live_workspace, prompt, turn_dir)
+            except Exception as exc:
+                if self.red_team_trace_version is None:
+                    raise
+                transport_error = {"type": type(exc).__name__, "message": str(exc)}
+                turn_dir.mkdir(parents=True, exist_ok=True)
+                trajectory = turn_dir / "trajectory.stream.jsonl"
+                if not trajectory.exists():
+                    trajectory.write_text(json.dumps({"type": "attack_transport_failure", **transport_error}) + "\n")
+                turn = SessionTurnResult("unavailable", self.agent.model, 1, trajectory)
+            if tree_sha256(source_workspace) != source_tree_hash:
+                raise RuntimeError("sidecar mutated the sealed solver workspace")
             output_errors = self.benchmark.output_errors(live_workspace)
             input_errors: list[str] = []
             if sha256_file(live_workspace / "instruction.md") != sha256_file(
@@ -198,6 +223,15 @@ class RedTeamGenerator:
                 json.dumps(status, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
+            file_names = _FILES
+            if self.red_team_trace_version:
+                from .trace_defense_attack import attack_record
+                record = attack_record(trajectory, source_public,
+                    self.benchmark.render_user_review(stage / "workspace"),
+                    source_workspace, stage / "workspace")
+                record["transport_error"] = transport_error
+                write_json_atomic(stage / "attack-record.json", record)
+                file_names = _FILES | {"attack-record.json"}
             workspace_sha256 = tree_sha256(stage / "workspace")
             payload_hashes = {
                 name: (
@@ -205,10 +239,11 @@ class RedTeamGenerator:
                     if name == "workspace"
                     else sha256_file(stage / name)
                 )
-                for name in sorted(_FILES - {"manifest.json"})
+                for name in sorted(file_names - {"manifest.json"})
             }
             write_json_atomic(stage / "manifest.json", {
                 "kind": RED_TEAM_KIND,
+                **({"red_team_trace_version": self.red_team_trace_version} if self.red_team_trace_version else {}),
                 "checkpoint": checkpoint,
                 "generator": self.identity(),
                 "source_artifact_sha256": sha256_text(
@@ -227,6 +262,9 @@ class RedTeamGenerator:
                 experiment_dir,
                 checkpoint,
                 expected_generator=self.identity(),
+                expected_trace_version=self.red_team_trace_version,
+                expected_prompt_sha256=sha256_text(prompt),
+                expected_generation_sha256=active_generation.generation_sha256,
                 expected_source_artifact_sha256=sha256_text(
                     self.benchmark.render_user_review(source_workspace)
                 ),
@@ -260,8 +298,10 @@ class RedTeamGenerator:
             driver.close()
 
 
-def red_team_directory(experiment_dir: Path, checkpoint: int) -> Path:
-    if type(checkpoint) is not int or checkpoint < 1:
+def red_team_directory(experiment_dir: Path, checkpoint: int, *, red_team_trace_version: str | None = None) -> Path:
+    from .trace_defense_prompts import validate_version
+    validate_version(red_team_trace_version)
+    if type(checkpoint) is not int or checkpoint < (0 if red_team_trace_version else 1):
         raise ValueError("red-team checkpoint must be positive")
     return experiment_dir / RED_TEAM_ROOT / f"checkpoint-{checkpoint:04d}"
 
@@ -290,11 +330,15 @@ def load_red_team_artifact(
     expected_generator: dict[str, object] | None = None,
     expected_source_artifact_sha256: str | None = None,
     expected_active_rubric_sha256: str | None = None,
+    expected_trace_version: str | None = None,
+    expected_prompt_sha256: str | None = None,
+    expected_generation_sha256: str | None = None,
 ) -> RedTeamArtifact:
-    root = red_team_directory(experiment_dir, checkpoint)
+    root = red_team_directory(experiment_dir, checkpoint, red_team_trace_version=expected_trace_version)
+    file_names = _FILES | ({"attack-record.json"} if expected_trace_version else set())
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError("red-team artifact directory is invalid")
-    if {path.name for path in root.iterdir()} != _FILES:
+    if {path.name for path in root.iterdir()} != file_names:
         raise RuntimeError("red-team artifact files are invalid")
     manifest_path = root / "manifest.json"
     try:
@@ -313,6 +357,8 @@ def load_red_team_artifact(
         "workspace_sha256",
         "file_sha256s",
     }
+    if expected_trace_version:
+        keys.add("red_team_trace_version")
     if not isinstance(manifest, dict) or set(manifest) != keys:
         raise RuntimeError("red-team manifest fields are invalid")
     if manifest["kind"] != RED_TEAM_KIND or manifest["checkpoint"] != checkpoint:
@@ -330,11 +376,18 @@ def load_red_team_artifact(
         and manifest["active_rubric_sha256"] != expected_active_rubric_sha256
     ):
         raise RuntimeError("red-team active rubric changed")
+    if manifest.get("red_team_trace_version") != expected_trace_version:
+        raise RuntimeError("red-team method version changed")
+    for key, expected in [("prompt_sha256", expected_prompt_sha256), ("active_generation_sha256", expected_generation_sha256)]:
+        if expected is not None and manifest[key] != expected:
+            raise RuntimeError("red-team " + key + " changed")
+    if sha256_file(root / "prompt.txt") != manifest["prompt_sha256"]:
+        raise RuntimeError("red-team prompt content changed")
     included = manifest["included"]
     if type(included) is not bool:
         raise RuntimeError("red-team admission state is invalid")
     file_hashes = manifest["file_sha256s"]
-    expected_names = _FILES - {"manifest.json"}
+    expected_names = file_names - {"manifest.json"}
     if not isinstance(file_hashes, dict) or set(file_hashes) != expected_names:
         raise RuntimeError("red-team file hashes are invalid")
     for name in expected_names:

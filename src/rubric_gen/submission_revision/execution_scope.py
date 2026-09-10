@@ -25,6 +25,13 @@ def terminal_records(experiment: Experiment, study: dict) -> list[dict]:
         if declared != list(scope) or study.get("status") not in {"completed_scope", "failed_scope"}:
             raise ValueError("audit scope differs from the terminal study invocation")
         selected = [r for r in records if r["condition_id"] in scope]
+    assignment_scope = study.get("execution_assignment_ids")
+    if assignment_scope is not None:
+        if (not isinstance(assignment_scope, list) or not assignment_scope
+            or len(set(assignment_scope)) != len(assignment_scope)
+            or not set(assignment_scope) <= {r["assignment_id"] for r in selected}):
+            raise ValueError("invalid study invocation assignment scope")
+        selected = [r for r in selected if r["assignment_id"] in assignment_scope]
     if not selected or any(r.get("status") not in {"completed", "failed", "invalid"} for r in selected):
         raise ValueError("every selected source assignment must be terminal before audit")
     if study.get("status") in {"completed", "completed_scope"} and any(

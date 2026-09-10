@@ -114,7 +114,8 @@ def load_rubric_generation(
         raise RuntimeError(f"rubric generation directory is missing: {generation_dir}")
     manifest_path = generation_dir / "manifest.json"
     manifest = _read_json_object(manifest_path, "rubric generation manifest")
-    if set(manifest) != _MANIFEST_KEYS:
+    schedule_keys = {"source_schedule", "red_team_trace_version"} if "source_schedule" in manifest else set()
+    if set(manifest) != _MANIFEST_KEYS | schedule_keys:
         raise RuntimeError("rubric generation manifest has invalid fields")
     try:
         policy = RubricPolicy(manifest["policy"])
@@ -156,6 +157,8 @@ def load_rubric_generation(
                 parse_elicited_criterion(value) for value in criteria_value
             ),
             proposer_call_budget=manifest["proposer_call_budget"],
+            source_schedule=manifest.get("source_schedule"),
+            red_team_trace_version=manifest.get("red_team_trace_version"),
         )
         _validate_policy_generation(policy, generation)
     except (TypeError, ValueError) as exc:
@@ -185,6 +188,7 @@ def _generation_files(
         "generation_round": generation.generation_round,
         "source_checkpoint": generation.source_checkpoint,
         "proposer_call_budget": generation.proposer_call_budget,
+        **generation.schedule_record(),
         "generation_sha256": generation.generation_sha256,
         "rubric_sha256": generation.rubric.content_sha256,
         "file_sha256s": {
@@ -213,6 +217,10 @@ def _validate_policy_generation(
     policy: RubricPolicy,
     generation: RubricGeneration,
 ) -> None:
+    if generation.source_schedule is not None:
+        if policy is not RubricPolicy.RED_TEAM_TRACE:
+            raise ValueError("pre-revision schedule is trace-only")
+        return  # Domain constructor validates the explicit g-2 schedule.
     if policy is RubricPolicy.FIXED:
         if generation.generation_round != 0 or generation.source_checkpoint is not None:
             raise ValueError("fixed policy permits only the initial rubric")

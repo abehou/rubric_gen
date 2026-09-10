@@ -116,6 +116,8 @@ class RedTeamEvidence:
     trajectory_excerpt_sha256: str
     trajectory_excerpt: str
     trajectory_truncated: bool
+    source_checkpoint: int | None = None
+    attack_record: dict | None = None
 
     def __post_init__(self) -> None:
         pair = ArtifactPair.create(
@@ -147,6 +149,9 @@ class RedTeamEvidence:
         if include_trace:
             record["trajectory_excerpt"] = self.trajectory_excerpt
             record["trajectory_truncated"] = self.trajectory_truncated
+            if self.source_checkpoint is not None:
+                record["source_checkpoint"] = self.source_checkpoint
+                record["attack_record"] = self.attack_record
         return record
 
     def artifact_record(self) -> dict[str, object]:
@@ -164,6 +169,8 @@ class ArtifactHistory:
     artifacts: tuple[BlindedArtifact, ...]
     pairs: tuple[ArtifactPair, ...]
     red_team_evidence: tuple[RedTeamEvidence, ...]
+    pair_source_checkpoints: tuple[tuple[str, int], ...] = ()
+    newest_sidecar_pair_id: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -195,6 +202,11 @@ class ArtifactHistory:
         ):
             raise ValueError("artifact history has invalid matched pairs")
         pair_by_id = {item.pair_id: item for item in self.pairs}
+        if (type(self.pair_source_checkpoints) is not tuple
+            or any(p not in pair_by_id or type(k) is not int or k < -1 for p,k in self.pair_source_checkpoints)
+            or len(dict(self.pair_source_checkpoints)) != len(self.pair_source_checkpoints)
+            or (self.newest_sidecar_pair_id is not None and self.newest_sidecar_pair_id not in pair_by_id)):
+            raise ValueError("invalid pair checkpoint provenance")
         if (
             type(self.red_team_evidence) is not tuple
             or any(
@@ -227,6 +239,8 @@ class ArtifactHistory:
         return {
             "artifacts": [item.artifact_record() for item in self.artifacts],
             "pairs": [item.as_dict() for item in self.pairs],
+            **({"pair_source_checkpoints": [list(x) for x in self.pair_source_checkpoints],
+                "newest_sidecar_pair_id": self.newest_sidecar_pair_id} if self.pair_source_checkpoints else {}),
             "red_team_evidence": [
                 item.artifact_record() for item in self.red_team_evidence
             ],

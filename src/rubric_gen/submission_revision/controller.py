@@ -137,7 +137,9 @@ class SubmissionRevisionController:
         )
 
     def _experiment_identity(self) -> dict[str, object]:
+        from .trace_defense_binding import method_identity
         identity: dict[str, object] = {
+            **method_identity(self.rubric_policy, self.config.red_team_trace_version),
             "experiment_id": self.config.experiment_id,
             "benchmark": str(self.config.benchmark),
             "assignment_id": self.config.assignment_id,
@@ -167,7 +169,9 @@ class SubmissionRevisionController:
             "rubric_proposer_model": self.config.rubric_proposer_model,
             "rubric_proposer_max_retries": self.config.rubric_proposer_max_retries,
             "rubric_generation_implementation_sha256": (
-                rubric_generation_implementation_sha256()
+                rubric_generation_implementation_sha256(
+                    self.config.red_team_trace_version if self.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None
+                )
             ),
             "review": self.config.review,
             "judge_model": self.config.judge_model,

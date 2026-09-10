@@ -266,7 +266,7 @@ def validate_manifest(context: ValidationContext) -> None:
     expected = _expected_manifest(context)
     manifest = context.manifest
     if (
-        set(manifest) != revision_manifest_keys(context.policy.value)
+        set(manifest) != revision_manifest_keys(context.policy.value, context.protocol.get("red_team_trace_version") if context.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None)
         or any(manifest.get(key) != value for key, value in expected.items())
         or type(manifest.get("live_workspace_dir")) is not str
         or type(manifest.get("session_id")) is not str
@@ -281,7 +281,9 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
     protocol = context.protocol
     agent = context.agent
     scoring = context.scoring
+    from .trace_defense_binding import method_identity
     expected: dict[str, object] = {
+        **method_identity(context.rubric_policy, protocol.get("red_team_trace_version")),
         "kind": "rubric-gen-submission-revision-experiment",
         "experiment_id": context.experiment.experiment_id,
         "benchmark": str(context.experiment.benchmark),
@@ -312,7 +314,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
         "rubric_generation_implementation_sha256": (
-            rubric_generation_implementation_sha256()
+            rubric_generation_implementation_sha256(protocol.get("red_team_trace_version") if context.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None)
         ),
         "review": protocol["review"],
         "judge_model": protocol["judge_model"],

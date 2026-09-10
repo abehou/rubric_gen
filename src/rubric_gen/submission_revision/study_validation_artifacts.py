@@ -65,11 +65,22 @@ from rubric_gen.submission_revision.user_simulator_history import (
 )
 
 
+from .trace_defense_prompts import enabled, VERSION
+from .trace_defense_binding import load_binding
+
+def _trace_version(context):
+    return VERSION if enabled(context.rubric_policy, context.protocol.get("red_team_trace_version")) else None
+
 RubricArtifacts = tuple[Path, Path]
 
 
 def validate_revision_artifacts(context: ValidationContext) -> None:
     roots = _validate_artifact_sets(context)
+    if _trace_version(context):
+        _require_directory_names(context.experiment_dir / "submission-rubric-bindings",
+            [s + ".json" for s in context.expected_ids], "submission/rubric binding inventory differs")
+        _require_directory_names(context.experiment_dir / "trace-defense-reminders",
+            [s + ".json" for s in _feedback_submission_ids(context)], "trace reminder inventory differs")
     _validate_red_team_artifacts(context)
     proposer = _generation_proposer(context)
     instruction = (context.task_dir / "instruction.md").read_text(encoding="utf-8")
@@ -177,6 +188,8 @@ def _validate_red_team_artifacts(context: ValidationContext) -> None:
         if context.rubric_policy.uses_red_team
         else []
     )
+    if _trace_version(context):
+        checkpoints = [int(s[1:]) for s in _feedback_submission_ids(context)]
     _validate_optional_directory_names(
         root,
         [f"checkpoint-{checkpoint:04d}" for checkpoint in checkpoints],
@@ -192,13 +205,15 @@ def _validate_red_team_artifacts(context: ValidationContext) -> None:
         )
         generation = load_rubric_generation(
             context.experiment_dir,
-            checkpoint,
+            (load_binding(context.experiment_dir, f"s{checkpoint:03d}")["active_generation_round"] - 1) if _trace_version(context) else checkpoint,
             expected_policy=context.rubric_policy,
         )
         load_red_team_artifact(
             context.experiment_dir,
             checkpoint,
             expected_generator=identity,
+            expected_trace_version=_trace_version(context),
+            expected_generation_sha256=generation.generation_sha256 if _trace_version(context) else None,
             expected_source_artifact_sha256=sha256_text(
                 get_submission_benchmark(
                     context.experiment.benchmark
@@ -242,6 +257,9 @@ def _validate_rubric_generation_set(
             else range(max(2, len(context.expected_ids)))
         )
     )
+    if _trace_version(context):
+        maximum = max(load_binding(context.experiment_dir, s)["active_generation_round"] for s in context.expected_ids)
+        indices = range(maximum + 1)
     expected = [f"generation-{index:04d}" for index in indices]
     if (
         root.is_symlink()
@@ -263,6 +281,7 @@ def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
         model=model,
         service_tier=context.seed_agent.service_tier,
         max_retries=int(protocol["rubric_proposer_max_retries"]),
+        red_team_trace_version=_trace_version(context),
     )
 
 
@@ -287,6 +306,11 @@ def _validate_submission(
     if not has_next_turn and os.path.lexists(feedback_path):
         raise RuntimeError(f"terminal submission contains feedback: {submission_id}")
     generation_round = _generation_round(context.rubric_policy, index)
+    if _trace_version(context):
+        binding = load_binding(context.experiment_dir, submission_id)
+        if binding["feedback_opportunity"] != has_next_turn:
+            raise RuntimeError("binding feedback opportunity disagrees with completed trajectory")
+        generation_round = binding["active_generation_round"]
     generation = _validated_generation(
         context,
         roots,
@@ -342,6 +366,10 @@ def _validate_submission(
             reference_artifacts,
             reference_score,
         )
+        if _trace_version(context):
+            from .trace_defense_delivery import append_reminder
+            projected = append_reminder(projected, generation=generation, score_validation_path=rubric_artifacts[0],
+                root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False)
         if (
             read_json_object(feedback_path, "revision feedback")
             != projected.payload
@@ -437,7 +465,8 @@ def _validated_generation(
                 context.scoring.initial_generation.rubric.content_sha256,
                 context.selection.development_sha256,
             ),
-            source_checkpoint=generation_round - 1,
+            source_checkpoint=generation.source_checkpoint,
+            red_team_trace_version=_trace_version(context),
             red_team_policy=(
                 context.rubric_policy
                 if context.rubric_policy.uses_red_team
@@ -449,7 +478,8 @@ def _validated_generation(
                 else None
             ),
         ),
-        source_checkpoint=generation_round - 1,
+        source_checkpoint=generation.source_checkpoint,
+        **({"source_schedule": generation.source_schedule} if _trace_version(context) else {}),
     )
     if validated != generation:
         raise RuntimeError("rubric generation disagrees with the active rubric")

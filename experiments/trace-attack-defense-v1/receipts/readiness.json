@@ -1,0 +1,38 @@
+{
+  "auditors": [
+    "gpt-5.6-sol",
+    "claude-opus-5"
+  ],
+  "executable": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python",
+  "experiment_id": "biomnibench-da-factorial-r10-3e186b5fe98c",
+  "job": "10387237",
+  "jsonschema": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/lib64/python3.12/site-packages/jsonschema/__init__.py",
+  "provider_calls": 0,
+  "python": "3.12.13 (main, Jun  1 2026, 00:00:00) [GCC 11.5.0 20240719 (Red Hat 11.5.0-14)]",
+  "reuse_sources": [
+    "/data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/trace/audit/biomnibench-da-factorial-r10-39ddcf24f8aa",
+    "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/full-static",
+    "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/user-simulator-static",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-capacity-v3-20260908/user-trace/audit/biomnibench-da-factorial-r10-bfbdd0f9833c",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/static/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/full-static/audit/biomnibench-da-factorial-r10-bfbdd0f9833c",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/full-trace/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+    "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/user-static/audit/biomnibench-da-factorial-r10-bfbdd0f9833c"
+  ],
+  "runtime": {
+    "aggregate_concurrency": 60,
+    "audit_studies": 1,
+    "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+    "version": 1
+  },
+  "shared_mount": {
+    "filesystem": "nfs4",
+    "server_locking": true
+  },
+  "smoke_assignments": [
+    "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+    "da-10-1--rep-001--solver-luna--full-red-team-trace"
+  ],
+  "success": true
+}

@@ -688,6 +688,7 @@ def _generation_score_panel(
         "role": role,
         "generation_round": generation.generation_round,
         "source_checkpoint": generation.source_checkpoint,
+        **generation.schedule_record(),
         "proposer_call_budget": generation.proposer_call_budget,
         "generation_sha256": generation.generation_sha256,
         "rubric_sha256": rubric_sha256,

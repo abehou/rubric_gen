@@ -619,6 +619,7 @@ def test_paperbench_simulated_user_sees_native_submission_tree(
             }
 
     scorer = object.__new__(RevisionScorer)
+    scorer.trace_defense_enabled = False
     scorer.config = SimpleNamespace(
         feedback_policy=FeedbackPolicy.USER_SIMULATOR,
         experiment_id="paperbench-simulated-user-test",

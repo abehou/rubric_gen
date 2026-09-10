@@ -2161,3 +2161,9 @@
 - 21:29 EDT: User explicitly stops the remainingcase recovery to obtain a provisional59case check. Cancelled10380168 preserving partialoutputs; released original59audit10380169; matched59report10380215afterok, same da16-1rep1 omitted from static andtrace with explicit infrastructure missingness, no60/60claim.
 
 - 21:42 EDT: Provisional59matched full-feedback report10380215passed after audit10380169:static→cue trace trajectoryRH21.19→26.27%, artifactRH3.39→3.39%(uncalibrated), WS7.52→7.98, SH1.57→0.55, HA20.19→21.61, WA29.27→30.14, A67.39→65.40. No primary joint gate passes; paired intervals includezero, so adverse pointestimates are not conclusive harm; no further experiment authorized.
+
+## 2026-09-10 — attack_defense_v1
+
+- 10:29 EDT: Implemented opt-in attack-first/pre-revision learning, split blinded assessment and bounded admitted reminders in an isolated worktree from60bae25, preserving shared dirty work. Provider-free input verification found the former NFS seed pointer unavailable; verify/copy the preserved frozen source into the new consumer input root without regeneration.
+
+- 10:49 EDT: Provider-free readiness10387237 verified 60 frozen seeds, 20 real-producer offline generations, canonical zero-fallback V2 inputs and shared NFS capacity coordination; counted smoke2 will lead into the same 120-assignment identity without outcome selection.

@@ -76,6 +76,7 @@ from rubric_gen.submission_revision.rubric_generation import (
     RubricGeneration,
     RubricPolicy,
     render_augmented_rubric,
+    require_sha256,
 )
 from rubric_gen.submission_revision.rubric_generation_store import (
     load_rubric_generation,
@@ -87,7 +88,7 @@ from rubric_gen.submission_revision.rubric_generation_store import (
 _NON_VALIDATION_STAGE_COUNT = 4
 
 
-def rubric_generation_implementation_sha256() -> str:
+def rubric_generation_implementation_sha256(red_team_trace_version: str | None = None) -> str:
     """Return one hash for the code that creates and checks rubric generations."""
 
     package_root = Path(__file__).parent
@@ -116,6 +117,10 @@ def rubric_generation_implementation_sha256() -> str:
         package_root.parent / "artifacts" / "hashing.py",
         package_root.parent / "runtime" / "llm.py",
     )
+    from .trace_defense_prompts import validate_version
+    validate_version(red_team_trace_version)
+    if red_team_trace_version is not None:
+        paths += tuple(sorted(package_root.glob("trace_defense*.py")))
     digest = hashlib.sha256()
     for path in paths:
         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))
@@ -153,11 +158,15 @@ class RubricProposer:
         max_retries: int = 2,
         service_tier: str | None = None,
         run_proposer: ProviderOperation | None = None,
+        red_team_trace_version: str | None = None,
     ) -> None:
         if not isinstance(benchmark, SubmissionBenchmarkId):
             raise ValueError("rubric proposer benchmark is invalid")
         if type(max_retries) is not int or max_retries < 0:
             raise ValueError("rubric proposer retries must be non-negative")
+        from .trace_defense_prompts import validate_version
+        validate_version(red_team_trace_version)
+        self.red_team_trace_version = red_team_trace_version
         self.benchmark = benchmark
         self.max_retries = max_retries
         self.proposer_contract = ProviderContract(
@@ -181,9 +190,23 @@ class RubricProposer:
         output_dir: Path,
         artifact_history: ArtifactHistory,
         source_checkpoint: int | None = None,
+        replay_only: bool = False,
+        source_schedule: str | None = None,
     ) -> RubricGeneration:
         """Return the next rubric after pairwise criterion induction."""
 
+        from .trace_defense_prompts import enabled
+        if enabled(policy, self.red_team_trace_version) and generation_round >= 2:
+            from .trace_defense import elicit_trace_defense
+            return elicit_trace_defense(
+                proposer=self, instruction=instruction, original_rubric=original_rubric,
+                development_rubric=development_rubric, current_generation=current_generation,
+                policy=policy, generation_round=generation_round, output_dir=output_dir,
+                artifact_history=artifact_history, source_checkpoint=source_checkpoint,
+                source_schedule=source_schedule,
+            )
+        if source_schedule is not None:
+            raise ValueError("legacy evolution cannot use a versioned source schedule")
         validate_evolution_request(
             instruction=instruction,
             original_rubric=original_rubric,
@@ -193,6 +216,10 @@ class RubricProposer:
             generation_round=generation_round,
             source_checkpoint=source_checkpoint,
         )
+        if type(replay_only) is not bool or (replay_only and (
+            policy is not RubricPolicy.OFFLINE_ELICITATION or generation_round != 1
+        )):
+            raise ValueError("read-only source replay requires a pre-treatment generation")
         artifact_history = validate_artifact_history(artifact_history)
         context = self._context(
             instruction=instruction,
@@ -215,7 +242,10 @@ class RubricProposer:
                 artifact_history=artifact_history,
                 context=context,
                 output_dir=output_dir,
+                replay_only=replay_only,
             )
+            if replay_only and completed is None:
+                raise RuntimeError("read-only source replay requires a completed generation")
         except (UnicodeError, ValueError) as exc:
             raise RuntimeError("completed rubric generation changed") from exc
         if completed is not None:
@@ -279,6 +309,7 @@ class RubricProposer:
         artifact_history: ArtifactHistory,
         context: dict[str, object],
         output_dir: Path,
+        replay_only: bool = False,
     ) -> RubricGeneration | None:
         root = rubric_generation_directory(output_dir, generation_round)
         if not root.exists():
@@ -419,7 +450,14 @@ class RubricProposer:
                 item.criterion.criterion_id for item in accepted
             ),
         )
-        if metadata != self._generation_record(context=context, result=result):
+        expected_record = self._generation_record(context=context, result=result)
+        if replay_only:
+            # This is immutable input replay, not continuation under another build.
+            # Recompute every judgment, admission, and lineage field above while
+            # retaining the source's actual producing implementation as provenance.
+            require_sha256(metadata.get("implementation_sha256"), "source implementation")
+            expected_record["implementation_sha256"] = metadata["implementation_sha256"]
+        if metadata != expected_record:
             raise RuntimeError("completed rubric generation changed")
         if loaded != generation:
             raise RuntimeError("completed rubric generation content changed")

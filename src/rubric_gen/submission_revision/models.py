@@ -54,6 +54,7 @@ class SubmissionRevisionConfig:
     feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_policy: RubricPolicy = RubricPolicy.FIXED
+    red_team_trace_version: str | None = None
     rubric_proposer_model: str = "gpt-5.6-luna"
     review: str = "trace"
     judge_model: str | None = None
@@ -152,6 +153,8 @@ class SubmissionRevisionConfig:
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)
         RubricPolicy(self.rubric_policy)
+        from .trace_defense_prompts import validate_version
+        validate_version(self.red_team_trace_version)
         if (
             type(self.rubric_proposer_model) is not str
             or not self.rubric_proposer_model.strip()

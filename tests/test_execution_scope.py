@@ -46,6 +46,7 @@ def test_dispatch_and_completion_preserve_full_ledger():
     experiment, ledger = fixture()
     runner = object.__new__(StudyRunner)
     runner.experiment = experiment
+    runner.config = SimpleNamespace(assignment_ids=None)
     runner._write_manifest = lambda value: None
     ledger["records"][1]["status"] = "running"
     ledger["records"][2]["status"] = "failed"
@@ -55,3 +56,24 @@ def test_dispatch_and_completion_preserve_full_ledger():
     assert ledger["status"] == "completed_scope"
     assert len(ledger["records"]) == 3
     assert ledger["records"][2]["status"] == "failed"
+
+
+def test_counted_smoke_scope_keeps_scientific_ledger_and_identity():
+    experiment, ledger = fixture()
+    runner = object.__new__(StudyRunner)
+    runner.experiment = experiment
+    runner.config = SimpleNamespace(assignment_ids=("1",),max_concurrency=32)
+    runner._write_manifest = lambda value: None
+    ledger["records"][0]["status"] = "pending"
+    ledger["records"][1]["status"] = "pending"
+    assert [a.assignment_id for a in runner._pending_assignments(ledger,experiment.assignments)] == ["1"]
+    runner._mark_study_running(ledger)
+    ledger["records"][1]["status"] = "completed"
+    assert runner._finish_study(ledger) == 0
+    assert len(ledger["records"]) == 3
+    assert ledger["execution_assignment_ids"] == ["1"]
+    assert [r["assignment_id"] for r in terminal_records(experiment,ledger)] == ["1"]
+    runner.config = SimpleNamespace(assignment_ids=None,max_concurrency=32)
+    runner._mark_study_running(ledger)
+    assert "execution_assignment_ids" not in ledger
+    assert [a.assignment_id for a in runner._pending_assignments(ledger,experiment.assignments)] == ["0"]

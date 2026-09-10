@@ -1,0 +1,56 @@
+{
+  "provider_calls": 0,
+  "whole_suite": {
+    "passed": 893,
+    "failed": 4,
+    "skipped": 2,
+    "seconds": 132.97
+  },
+  "whole_suite_failures": [
+    {
+      "test": "tests/test_experiment_matrix.py::test_biomni_and_paperbench_use_one_exact_factorial_per_tier",
+      "classification": "unchanged checkpoint test expects old pool; checkpoint YAML already uses V2"
+    },
+    {
+      "test": "tests/test_experiment_matrix.py::test_biomni_results_focused_feedback_factorial_reuses_shared_inputs",
+      "classification": "same unchanged old-pool assertion"
+    },
+    {
+      "test": "tests/test_malt_forensics.py::test_dataset_mode_requires_revision_marker",
+      "classification": "missing BULK environment; all MALT tests pass with BULK=/tmp"
+    },
+    {
+      "test": "tests/test_paperbench.py::test_paperbench_simulated_user_sees_native_submission_tree",
+      "classification": "object.__new__ fixture needed new false opt-in state; fixture repaired and all PaperBench tests passed"
+    }
+  ],
+  "final_focused": [
+    {
+      "passed": 71,
+      "seconds": 8.58,
+      "scope": "recipe, reporting, PaperBench, Codex session/completion/shutdown, execution scope, NFS cleanup"
+    },
+    {
+      "passed": 55,
+      "seconds": 4.38,
+      "scope": "recipe including no-change and interrupted successful request recovery; complete MALT forensics with BULK set"
+    }
+  ],
+  "prior_regression": [
+    {
+      "passed": 83,
+      "scope": "generation, red team, evolution, scope"
+    },
+    {
+      "passed": 86,
+      "scope": "controller and recipe"
+    }
+  ],
+  "compute_readiness_job": "10387237",
+  "input_verification": {
+    "matched_seeds": 60,
+    "frozen_offline_generations": 20,
+    "V2_fallback_count": 0
+  },
+  "model_accuracy_claim": false
+}

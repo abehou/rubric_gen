@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import json
 import os
 import socket
 import stat
 import sys
 import threading
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from openai import APIConnectionError, APIStatusError
 from rubric_gen.submission_revision import pretreatment_reuse
 from datetime import datetime
 from pathlib import Path
@@ -47,6 +50,27 @@ from rubric_gen.submission_revision.assignments import ExperimentAssignment
 STUDY_RUN_KIND = "rubric-gen-randomized-revision-study"
 _STUDY_LEASE_NAME = ".study.lock"
 _PROVIDER_HEALTH_FAILURE_LIMIT = 3
+_PROVIDER_CIRCUIT_COOLDOWN_SECONDS = 30
+_ASSIGNMENT_TRANSIENT_ATTEMPTS = 3
+
+
+def _permanent_provider_failure(error: BaseException) -> bool:
+    seen = set()
+    while error is not None and id(error) not in seen:
+        seen.add(id(error))
+        if (getattr(error, "status_code", None) in {400, 401, 403, 404, 422}
+                or getattr(error, "code", None) in {"insufficient_quota", "invalid_api_key"}):
+            return True
+        error = error.__cause__
+    return False
+
+
+def _retryable_assignment_failure(error: BaseException) -> bool:
+    if _permanent_provider_failure(error):
+        return False
+    return isinstance(error, (CodexProviderHealthError, RubricProposerProviderError, APIConnectionError)) or (
+        isinstance(error, APIStatusError) and error.status_code in {408, 409, 429, 500, 502, 503, 504}
+    )
 
 
 class _ProviderCircuitOpen(RuntimeError):
@@ -58,28 +82,54 @@ class _ProviderCircuit:
         self.provider = provider
         self._failures = 0
         self._reason: str | None = None
+        self._reopen_at: float | None = None
+        self._permanent = False
         self._lock = threading.Lock()
 
     def check(self) -> None:
         with self._lock:
+            if self._reopen_at is not None and time.monotonic() >= self._reopen_at:
+                self._reason = None
+                self._failures = 0
+                self._reopen_at = None
             if self._reason is not None:
                 raise _ProviderCircuitOpen(
                     f"{self.provider} provider circuit is open after "
                     f"{self._failures} transport failures: {self._reason}"
                 )
 
+    def wait(self) -> None:
+        while True:
+            try:
+                self.check()
+                return
+            except _ProviderCircuitOpen:
+                if self._permanent:
+                    raise
+                time.sleep(1)
+
     def record_success(self) -> None:
         with self._lock:
-            if self._reason is None:
+            if not self._permanent:
                 self._failures = 0
+                self._reason = None
+                self._reopen_at = None
 
     def record_failure(self, error: BaseException) -> None:
-        if not isinstance(error, (CodexProviderHealthError, RubricProposerProviderError)):
+        if (isinstance(error, CodexProviderHealthError)
+                and str(error).startswith("Codex app-server start failed after ")):
+            return  # Local process startup is not evidence of a provider outage.
+        permanent = _permanent_provider_failure(error)
+        if not permanent and not _retryable_assignment_failure(error):
             return
         with self._lock:
+            if self._permanent:
+                return
             self._failures += 1
-            if self._failures >= _PROVIDER_HEALTH_FAILURE_LIMIT:
+            if permanent or self._failures >= _PROVIDER_HEALTH_FAILURE_LIMIT:
                 self._reason = str(error)
+                self._permanent = permanent
+                self._reopen_at = None if permanent else time.monotonic() + _PROVIDER_CIRCUIT_COOLDOWN_SECONDS
 
 
 @dataclass(frozen=True)
@@ -90,10 +140,17 @@ class StudyRunConfig:
     output_dir: Path
     max_concurrency: int
     resume: bool = False
+    assignment_ids: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         if type(self.max_concurrency) is not int or self.max_concurrency < 1:
             raise ValueError("max_concurrency must be positive")
+        if self.assignment_ids is not None:
+            allowed = {a.assignment_id for a in self.experiment.execution_assignments}
+            if (type(self.assignment_ids) is not tuple or not self.assignment_ids
+                or len(set(self.assignment_ids)) != len(self.assignment_ids)
+                or any(i not in allowed for i in self.assignment_ids)):
+                raise ValueError("invocation assignment scope must select unique declared execution assignments")
 
 
 class _ProgressPositions:
@@ -129,6 +186,12 @@ class StudyRunner:
             provider: _ProviderCircuit(provider) for provider in providers
         }
 
+    @property
+    def invocation_assignments(self):
+        selected = self.config.assignment_ids
+        return tuple(a for a in self.experiment.execution_assignments
+                     if selected is None or a.assignment_id in selected)
+
     def run(self) -> int:
         assignments = sorted(
             self.experiment.assignments,
@@ -163,12 +226,12 @@ class StudyRunner:
 
         positions = _ProgressPositions(self.config.max_concurrency)
         with TerminalProgress(
-            total=len(self.experiment.execution_assignments),
+            total=len(self.invocation_assignments),
             description="randomized study",
             unit="assignment",
             position=0,
         ) as progress:
-            for _ in range(len(self.experiment.execution_assignments) - len(pending)):
+            for _ in range(len(self.invocation_assignments) - len(pending)):
                 progress.update()
             with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
                 futures = [
@@ -211,6 +274,7 @@ class StudyRunner:
             for assignment in assignments
             if (self.experiment.execution_conditions is None
                 or assignment.condition_id in self.experiment.execution_conditions)
+            if self.config.assignment_ids is None or assignment.assignment_id in self.config.assignment_ids
             if _record_for(manifest, assignment.assignment_id).get("status")
             not in {"completed", "invalid"}
         ]
@@ -223,14 +287,20 @@ class StudyRunner:
             manifest["execution_conditions"] = list(self.experiment.execution_conditions)
         else:
             manifest.pop("execution_conditions", None)
+        if self.config.assignment_ids is not None:
+            manifest["execution_assignment_ids"] = list(self.config.assignment_ids)
+        else:
+            manifest.pop("execution_assignment_ids", None)
         self._write_manifest(manifest)
 
     def _finish_study(self, manifest: dict[str, object]) -> int:
         scope = self.experiment.execution_conditions
         selected = [r for r in _records(manifest) if scope is None or r["condition_id"] in scope]
+        if self.config.assignment_ids is not None:
+            selected = [r for r in selected if r["assignment_id"] in self.config.assignment_ids]
         statuses = {str(record["status"]) for record in selected}
         successful = statuses == {"completed"}
-        manifest["status"] = ("completed" if successful else "failed") + ("_scope" if scope else "")
+        manifest["status"] = ("completed" if successful else "failed") + ("_scope" if scope or self.config.assignment_ids else "")
         manifest["finished_at"] = _now()
         self._write_manifest(manifest)
         _report_noncompleted_records({"records": selected})
@@ -246,29 +316,32 @@ class StudyRunner:
         provider = self.experiment.solver_config(assignment.solver_id).provider
         circuit = self._provider_circuits[provider]
         try:
-            circuit.check()
-            self._mark_assignment_running(assignment_id)
-            experiment_dir = self._experiment_dir(assignment)
-            revision = self._revision_config(
-                assignment,
-                resume=os.path.lexists(experiment_dir),
-            )
-            run_submission_revision(
-                replace(revision, progress_position=position),
-                judgment_reuse_root=self.root / "shared-judgments",
-            )
-            study_validation.validate_completed_revision(
-                experiment_dir,
-                assignment,
-                self.experiment,
-                self.seed_root,
-                self.paraphrase_root,
-            )
-            self._mark_assignment_completed(assignment_id)
-            circuit.record_success()
-        except (Exception, SystemExit) as exc:
-            circuit.record_failure(exc)
-            self._mark_assignment_failed(assignment_id, exc)
+            for attempt in range(_ASSIGNMENT_TRANSIENT_ATTEMPTS):
+                try:
+                    circuit.wait()
+                    self._mark_assignment_running(assignment_id)
+                    experiment_dir = self._experiment_dir(assignment)
+                    revision = self._revision_config(
+                        assignment,
+                        resume=os.path.lexists(experiment_dir),
+                    )
+                    run_submission_revision(
+                        replace(revision, progress_position=position),
+                        judgment_reuse_root=self.root / "shared-judgments",
+                    )
+                    study_validation.validate_completed_revision(
+                        experiment_dir, assignment, self.experiment,
+                        self.seed_root, self.paraphrase_root,
+                    )
+                    self._mark_assignment_completed(assignment_id)
+                    circuit.record_success()
+                    break
+                except (Exception, SystemExit) as exc:
+                    circuit.record_failure(exc)
+                    self._mark_assignment_failed(assignment_id, exc)
+                    if not _retryable_assignment_failure(exc) or attempt + 1 == _ASSIGNMENT_TRANSIENT_ATTEMPTS:
+                        break
+                    time.sleep(min(2 ** attempt, 8))
         finally:
             positions.release(position)
 
@@ -276,6 +349,8 @@ class StudyRunner:
         with self._manifest_lock:
             manifest = self._load_manifest()
             record = _record_for(manifest, assignment_id)
+            if record.get("status") == "failed":
+                self._archive_assignment_failure(record)
             record.update(
                 {
                     "status": "running",
@@ -305,7 +380,8 @@ class StudyRunner:
     ) -> None:
         with self._manifest_lock:
             manifest = self._load_manifest()
-            _record_for(manifest, assignment_id).update(
+            record = _record_for(manifest, assignment_id)
+            record.update(
                 {
                     "status": "failed",
                     "finished_at": _now(),
@@ -314,7 +390,24 @@ class StudyRunner:
                     "traceback": traceback.format_exc(),
                 }
             )
+            self._archive_assignment_failure(record)
             self._write_manifest(manifest)
+
+    def _archive_assignment_failure(self, record: dict[str, object]) -> None:
+        raw = json.dumps(record, sort_keys=True).encode()
+        digest = hashlib.sha256(raw).hexdigest()[:16]
+        root = self.root / "execution-attempts" / str(record["assignment_id"])
+        if root.is_symlink() or root.parent.is_symlink():
+            raise RuntimeError("assignment failure archive is a symlink")
+        root.mkdir(parents=True, exist_ok=True)
+        path = root / f"attempt-{int(record.get('attempt_count', 0)):03d}-{digest}.json"
+        if path.is_symlink():
+            raise RuntimeError("saved assignment failure is a symlink")
+        if path.exists():
+            if read_json_object(path, "failed assignment attempt") != record:
+                raise RuntimeError("saved assignment failure changed")
+            return
+        write_json_atomic(path, record)
 
     def _prepare_pretreatment_rubrics(
         self,
@@ -462,6 +555,7 @@ class StudyRunner:
             ),
             prompt_profile=PromptProfile(str(protocol["prompt"])),
             rubric_policy=RubricPolicy(str(condition["rubric_policy"])),
+            red_team_trace_version=protocol.get("red_team_trace_version"),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),

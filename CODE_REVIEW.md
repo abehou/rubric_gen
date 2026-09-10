@@ -547,3 +547,9 @@
 ## 2026-09-09 — Provisional59 case decision
 
 - 21:29 EDT: Duplicate evidence fix30ae38everified7linesonly; exact sourceguard scripts/babel/frozen_cue.py rejects prior314ea3d and unvalidatedsrc changes.84tests andactualfailedhistoryreplay10380163pass, checkpoint2hashidentical before/after andcorrectedcheckpoint3deduplicates tosamehash; no newpolicy admitted.
+
+## 2026-09-10 — attack_defense_v1
+
+- 10:29 EDT: New pre-revision schedule requires explicit submission/rubric bindings in live execution, replay, and outcome adapters; legacy g−1 invariant and absent-field hashes remain intact. Structural mocked tests check this boundary; model diagnoses and rule compliance remain empirical run outcomes.
+
+- 10:49 EDT: Resolved prelaunch interrupted-success cache recovery and bounded NFS cleanup; final focused suites pass (71 tests plus 55 recipe/MALT tests). Whole-suite residual failures are two unchanged assertions for pre-V2 pool paths; the PaperBench fixture and missing-BULK environment issues were verified separately.
