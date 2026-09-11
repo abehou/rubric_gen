@@ -16,7 +16,7 @@ change. The shared limits remain **60 provider reservations and one audit study*
 | P0: permanent two-worker recovery ceiling | Active `paperbench_launch.py:152`: `workers = 2 if args.recovery else 60`; shared launcher's subsequent-attempt ceiling also removed for future launches | Fixed 18-assignment workload: 2.827s at two workers, 1.553s at four, 0.933s at eight. The earlier 1–8 occupied global slots preceded the later Bio audit contention. |
 | P0: serial audit suite; naive threaded stages would reacquire the sole parent-owned audit lease | `commands.run_detect`, `runtime/audit_execution.py`, internal `run_prepared` methods: one output owner, one global admission, six coordinators, one bounded provider-fair executor | Ownership/nesting tests complete without deadlock and preserve the global cap; a stalled provider leaves a worker for the other provider. Live measurements below distinguish admission wait from execution. |
 | P0: saved neutral-policy request rejected | `paraphrase_validation.py`: exact criterion-specific attempt-envelope replay | All 51 saved PaperBench requests match configured semantic inputs. Criterion 014, attempt 2 has the documented schema repair. The private checker keyed failures by attempt number alone, confusing criteria; delay was not measured. |
-| P1: serial source loading before completed futures were drained | `detection/runner.py`, shared evidence cache: bounded preparation, immediate ready-job dispatch, explicit phases | Controlled identical 18-source/36-request work: first dispatch 1.456s → 0.085s; wall time 2.416s → 0.597s. |
+| P1: serial source loading before completed futures were drained | `detection/runner.py`, shared evidence cache: bounded preparation, immediate ready-job dispatch, explicit phases | Controlled identical 18-source/36-request work, plotting startup equalized: first dispatch 1.456s → 0.086s; wall time 1.658s → 0.595s. |
 | P1: healthy full-rubric streams killed; Anthropic criterion schema/cardinality failures | Retain `fe1c87d3`; durable raw response before decoding/publication; terminal-stream checks | Prior census attributed about 90 aggregate request-minutes to failed calls, not cohort wall time. Controlled streams survive 480s of healthy activity, time out on inactivity, and reject truncation; large indexed criterion coverage passes. |
 | P1: startup/preemption or post-save NFS cleanup reported as scientific failure | Existing owned-session retry/checkpoint rules; completed-output cleanup records/quarantines only the owned tree | Eight real app servers started successfully; fault injection covers startup failure, preemption, attempt exhaustion and EBUSY cleanup after durable completion. No claim of eliminating cluster/provider failures. |
 
@@ -124,14 +124,22 @@ wait for the reporting interval, and no logcheck Slurm jobs are needed.
 |---|---:|---:|---|
 | Native 18 assignments × three sequential 0.1s turns | Two workers: 2.827186s | Four: 1.553315s; eight: 0.933077s | **3.03×** two-to-eight; 1.66× four-to-eight; observed peak workers exactly 2/4/8 |
 | First assignment dispatch, same workload | 0.01048s | Four: 0.004855s; eight: 0.004828s | Prompt refill; no wait for a slow pair |
-| 18 sources × 80ms preparation, 36 × 20ms requests | Serial loading boundary: 2.415915s | Bounded pipeline: 0.596573s | **4.05×**, same 18 reads and 36 requests |
-| First dispatch, same preparation workload | 1.455964s | 0.085227s | **17.1×** lower preparation barrier |
+| 18 sources × 80ms preparation, 36 × 20ms requests | Serial loading boundary: 1.658488s | Bounded pipeline: 0.594634s | **2.79×**, same 18 reads and 36 requests |
+| First dispatch, same preparation workload | 1.456035s | 0.085645s | **17.0×** lower preparation barrier |
 
 These use controlled service times, not a second slow live cohort. A repeat
 scheduler measurement under concurrent startup was 2.792/1.535/0.916s, consistent
 with the first comparison. No workload was shrunk to meet a speed target.
 Duplicate known successful dispatches are zero in missing-only and second-resume
 fixtures.
+
+Both preparation variants read 3,032 serialized source-payload bytes and dispatch
+92,140 serialized request bytes, with peak eight active requests. Aggregate
+source preparation was 1.4415s/1.4423s; last generation completed at
+1.5754s/0.5174s; post-generation publication/plotting took 0.0831s/0.0773s.
+These byte counts describe controlled payloads, not NFS traffic. The initial
+2.416s/0.597s comparison included first-use plotting overhead in the serial arm;
+the table uses the rerun with plotting initialized before both variants.
 
 The focused suite exercises the actual native source selection, StudyRunner,
 detect/resume, stage execution and publication paths with captured record/schema
@@ -164,6 +172,7 @@ cold-mount claim.
 | Re-render within the same invocation | 0.007738s; zero additional trajectory reads |
 | First normal complete 120-assignment resume, source `5c15bbcf` | 85.3549s preparation; all six stages reused; zero provider/token-count operations |
 | Second normal complete resume, same source, clean launch receipt | 38.8104s preparation; all six stages reused; zero provider/token-count operations |
+| Final launcher/status check, source `1194cb4`, clean receipt | 46.0865s total including monitoring; exit zero, terminal `finished=true`, all 120 complete and zero owned reservations |
 | Eight real Codex app-server startups, no model turns | All ready in 6.31s; total including closure 7.7755s; zero startup errors |
 | Startup process-tree measurements | Peak 17 processes, 1,207,324 KiB sampled RSS, 0.974 sampled CPU cores; cgroup peak 1,307,193,344 bytes, no OOM events |
 

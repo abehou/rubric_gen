@@ -355,23 +355,38 @@ def test_completed_cleanup_failure_is_local_and_preserves_scientific_output(tmp_
 
 
 def test_preparation_dispatches_before_slow_source_and_reads_once(tmp_path, monkeypatch):
+    from dataclasses import asdict
+    import matplotlib.pyplot as plt
     from rubric_gen.detection.runner import DetectionRunner
     from rubric_gen.detection.jobs import DetectionConfig
     from rubric_gen.detection.sources import AuditSource, AuditCase
     from rubric_gen.detection.prompts import EvidencePrompt
     from test_detection_runner import _generation, _reward_hacking_text
     cases=tuple(AuditCase(str(i),'transcript',tmp_path/str(i),(str(i),)) for i in range(18))
+    # Equalize one-time plotting/font startup before either timed invocation.
+    figure=plt.figure();figure.savefig(tmp_path/'plot-startup.png');plt.close(figure)
     results=[]
     for serial in (True,False):
-        reads=[];calls=[];start=time.monotonic()
+        reads=[];calls=[];source_bytes=[];request_bytes=[];finished=[];preparation=[]
+        active=0;peak=0;lock=threading.Lock();start=time.monotonic()
         def payload(case,detection):
+            began=time.monotonic()
             time.sleep(.08)
             reads.append(case.case_id)
-            return EvidencePrompt(instructions='unchanged', evidence='fixed evidence',
+            result=EvidencePrompt(instructions='unchanged', evidence='fixed evidence',
                 task_context='task '+case.case_id, behavior_messages=('user: original task','assistant: completed'), stats={})
+            source_bytes.append(len(json.dumps(asdict(result),sort_keys=True).encode()))
+            preparation.append(time.monotonic()-began)
+            return result
         source=AuditSource(cases=cases,provenance={'kind':'controlled-runtime-work'},load_prompt=payload)
         def generate(model,request):
-            calls.append(time.monotonic()-start);time.sleep(.02)
+            nonlocal active,peak
+            request_bytes.append(len(json.dumps(asdict(request),sort_keys=True).encode()))
+            with lock:
+                active+=1;peak=max(peak,active);calls.append(time.monotonic()-start)
+            time.sleep(.02)
+            with lock:
+                active-=1;finished.append(time.monotonic()-start)
             return _generation(model,_reward_hacking_text())
         runner=DetectionRunner(DetectionConfig(source=source, models=('gpt-5.6-sol', 'claude-opus-5'),
             output_dir=tmp_path/('serial' if serial else 'pipeline'), max_concurrency=8),
@@ -388,11 +403,16 @@ def test_preparation_dispatches_before_slow_source_and_reads_once(tmp_path, monk
         else:
             assert runner.run()==0
         results.append({'serial':serial,'elapsed':time.monotonic()-start,'first_dispatch':min(calls),
-                        'source_reads':len(reads),'requests':len(calls)})
+                        'source_reads':len(reads),'source_payload_bytes':sum(source_bytes),
+                        'request_bytes':sum(request_bytes),'requests':len(calls),'peak_active_requests':peak,
+                        'aggregate_source_preparation_seconds':sum(preparation),'last_generation':max(finished),
+                        'post_generation_seconds':time.monotonic()-start-max(finished)})
         assert len(reads)==18 and len(set(reads))==18 and len(calls)==36
     print('PREPARATION_COMPARISON',json.dumps(results))
     assert results[1]['first_dispatch'] < results[0]['first_dispatch']/2
     assert results[1]['elapsed'] < results[0]['elapsed']/2
+    assert results[0]['source_payload_bytes']==results[1]['source_payload_bytes']
+    assert results[0]['request_bytes']==results[1]['request_bytes']
 
 
 @pytest.mark.parametrize('status,category',[(429,'transient_provider'),(529,'transient_provider'),
