@@ -6,7 +6,11 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=256G
+# The canonical control hit the 256G cgroup ceiling after its sealed outputs
+# were written. Stress keeps the same scientific workload but reserves the
+# smallest observed high-memory class to make that infrastructure failure
+# observable/recoverable without rerunning assignments.
+#SBATCH --mem=512G
 #SBATCH --time=2-00:00:00
 #SBATCH --output=experiments/trace-attack-defense-v3/stress-%j.log
 #SBATCH --error=experiments/trace-attack-defense-v3/stress-%j.err

@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
+from dotenv import dotenv_values
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.artifacts.serialization import write_json_atomic
@@ -44,6 +45,11 @@ def main() -> None:
     runtime = policy()
     if runtime["aggregate_concurrency"] != 60 or runtime["audit_studies"] != 1:
         raise RuntimeError("shared capacity policy differs")
+    credentials = dotenv_values("/home/aydanh/repos/rubric_gen/.env.local")
+    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        if not credentials.get(key):
+            raise RuntimeError(f"configured {key} absent")
+        os.environ[key] = str(credentials[key])
     install_reuse()
     tasks = TASKS if args.cohort == "canonical" else STRESS_TASKS
     config_dir = BUNDLE / ("control-v21-compatible" if args.flavor == "control-v21-compatible" else "stress")

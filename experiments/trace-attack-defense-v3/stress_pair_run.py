@@ -22,14 +22,14 @@ from rubric_gen.submission_revision.study_validation import validate_completed_r
 
 BUNDLE = Path(__file__).resolve().parent
 ROOT = BUNDLE.parents[1]
-RUN = Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress")
+RUN = Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1")
 TASKS = ("da-15-1", "da-13-6", "da-18-5")
 FLAVORS = ("v21-control", "v3-candidate")
 
 
-def load_specs() -> list[tuple[str, object, StudyRunner]]:
+def load_specs(flavors=FLAVORS) -> list[tuple[str, object, StudyRunner]]:
     specs = []
-    for flavor in FLAVORS:
+    for flavor in flavors:
         for task in TASKS:
             path = BUNDLE / "stress" / f"{flavor}-{task}.yaml"
             exp = load_experiment(path)
@@ -46,7 +46,10 @@ def load_specs() -> list[tuple[str, object, StudyRunner]]:
                     Path(exp.dag["seed"]["output_dir"]),
                     Path(exp.dag["paraphrase"]["output_dir"]),
                     Path(exp.dag["revise"]["output_dir"]),
-                    3,
+                    # Keep six matched study runners within the validated
+                    # node budget. This is scheduling only; assignment seeds,
+                    # prompts and all scientific settings are unchanged.
+                    1,
                     resume=Path(exp.dag["revise"]["output_dir"]).exists(),
                 )
             )
@@ -73,7 +76,10 @@ def main() -> None:
     if not credentials.get("OPENAI_API_KEY"):
         raise RuntimeError("configured OpenAI credential absent")
     os.environ["OPENAI_API_KEY"] = str(credentials["OPENAI_API_KEY"])
-    specs = load_specs()
+    # v3 consumes the v2.1 arm's current-code pretreatment pool. Load and run
+    # that producer first; otherwise native source validation correctly rejects
+    # a consumer whose producer study does not yet exist.
+    producer_specs = load_specs(("v21-control",))
     owner = RUN / "owners" / os.environ["SLURM_JOB_ID"]
     owner.mkdir(parents=True, exist_ok=True)
     write_json_atomic(owner / "launch.json", {
@@ -87,12 +93,13 @@ def main() -> None:
         "tasks": list(TASKS),
         "flavors": list(FLAVORS),
         "expected_assignments": 18,
-        "configs": {str(exp.path): sha256_file(exp.path) for _, exp, _ in specs},
+        "configs": {str(exp.path): sha256_file(exp.path) for _, exp, _ in producer_specs},
         "time": datetime.now(timezone.utc).isoformat(),
         "outcome_audits": False,
         "shared_v21_source": SOURCE_STUDY if (SOURCE_STUDY := "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0") else None,
     })
     stop = threading.Event()
+    specs = list(producer_specs)
     def monitor() -> None:
         while not stop.is_set():
             rows = []
@@ -107,22 +114,30 @@ def main() -> None:
                 "time": datetime.now(timezone.utc).isoformat(),
             })
             stop.wait(30)
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        list(pool.map(prepare, specs))
-    runners = [
-        (flavor, exp, StudyRunner(StudyRunConfig(exp, runner.seed_root, runner.paraphrase_root, runner.root, 3, resume=True)))
-        for flavor, exp, runner in specs
-    ]
+    def run_group(group_specs, label):
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            list(pool.map(prepare, group_specs))
+        group = [
+            (flavor, exp, StudyRunner(StudyRunConfig(exp, runner.seed_root, runner.paraphrase_root, runner.root, 1, resume=True)))
+            for flavor, exp, runner in group_specs
+        ]
+        specs.extend([] if label == "producer" else group)
+        start = time.monotonic()
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            exits = list(pool.map(lambda item: item[2].run(), group))
+        write_json_atomic(owner / f"{label}-revision-exits.json", {"exits": exits, "wall_seconds": time.monotonic() - start})
+        if any(exits):
+            raise RuntimeError(f"{label} stress run has incomplete assignments; successful outputs retained")
+        return group
+
     threading.Thread(target=monitor, daemon=True).start()
-    start = time.monotonic()
-    try:
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            exits = list(pool.map(lambda item: item[2].run(), runners))
-    finally:
-        stop.set()
-    write_json_atomic(owner / "revision-exits.json", {"exits": exits, "wall_seconds": time.monotonic() - start})
-    if any(exits):
-        raise RuntimeError("stress run has incomplete assignments; successful outputs retained")
+    producer_runners = run_group(producer_specs, "producer")
+    # The producer is complete and its sealed g1 pools are now available to the
+    # v3 consumer configs bound by finalize_stress_configs.py.
+    consumer_specs = load_specs(("v3-candidate",))
+    consumer_runners = run_group(consumer_specs, "consumer")
+    runners = producer_runners + consumer_runners
+    stop.set()
     rows = []
     for flavor, exp, runner in runners:
         ledger = json.loads((runner.root / "study.json").read_text())

@@ -18,7 +18,7 @@ dag:
     depends_on:
     - revise
     - paraphrase
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress/v21-control/da-18-5/audit/{experiment_id}
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v21-control/da-18-5/audit/{experiment_id}
   paraphrase:
     depends_on: []
     output_dir: /data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910
@@ -26,10 +26,10 @@ dag:
     depends_on:
     - seed
     - paraphrase
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress/v21-control/da-18-5/study/{experiment_id}
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v21-control/da-18-5/study/{experiment_id}
   seed:
     depends_on: []
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/inputs/seeds
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/inputs/seeds/da-18-5
 execution_audit_models:
 - gpt-5.6-sol
 - claude-opus-5
@@ -53,10 +53,6 @@ outcome_audit:
   rubric_score_max_calls: 18432000
   rubric_score_max_output_tokens: 75497472000
   rubric_score_max_request_bytes: 4831838208000
-pretreatment_source:
-  experiment: /home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v21/result20.yaml
-  experiment_id: biomnibench-da-factorial-r10-5115fffdd1c0
-  study_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0
 protocol:
   feedback_simulator:
     max_concerns: 3
