@@ -224,12 +224,59 @@ The selection was recorded before generation; no scientific outcome determines
 repetition. The current live owner uses frozen `5c15bbcf`; its first shared
 source preparation took 1.0724s.
 
-**Live audit completion/coverage and admission/execution/resource measurements
-will be filled from the owning invocation before publication.** An earlier
-owned, zero-call waiting invocation was stopped at a safe boundary to install the
-completed-resume admission fix; it had spent 397.1459s waiting. The active
-PaperBench source and owner were not changed. The replacement bounded live owner
-waits normally for that owner's existing audit lease.
+The native launch and its automatic missing-only resume both completed. Coverage
+validation found **60/60 logical judgments**: 34 rubric, six absolute, four
+pairwise, and four judgments in each of four direct windows. Both configured
+auditors are complete with no missing/failed cells. Full-trajectory RH used ten
+physical chunk calls for its four judgments; the other windows used four each.
+Thus the fixed cohort's normal audit made **66 generation calls** (34 full-rubric,
+22 direct, ten free-score), plus 38 token-count operations. There were **zero
+additional transport probes**, zero solver turns, and no seed/paraphrase/revision
+regeneration. These are new runtime-only audit samples of the two reused
+revisions; they are not combined with the historical scientific results.
+
+| Live phase or resource | Measured result |
+|---|---:|
+| Whole launcher wall time | 2,656.689s / 44m16.7s |
+| Initial shared source/scope preparation | 1.0724s |
+| Global audit admission wait | **2,550.554s / 42m30.6s** |
+| Admission to first generation | **2.5085s** |
+| Execution after admission, through final stage publication | **103.3588s** |
+| Direct full / post-update / final artifact / final revision | 40.634 / 26.235 / 24.110 / 24.883s, overlapping |
+| Free score / rubric score | 34.186 / 103.358s, overlapping |
+| Aggregate generation-operation elapsed time | 677.687s; about **6.56 concurrent generation-operation envelopes** averaged over execution |
+| Token-count operation elapsed time | 22.555s aggregate, included honestly as provider work |
+| Direct preparation fields | 21.017s aggregate planning, 1.762s aggregate source loading/waiting; these overlap execution |
+| Owned provider reservations | **Eight peak**, from complete lease events |
+| Sampled global provider occupancy | Eleven peak observed; global cap remains 60 |
+| Owned HTTP audit process tree | Two processes; 295,420 KiB peak sampled RSS; 0.098 peak sampled CPU cores over reporting intervals |
+| Provider failures / retries / token waits | **0 / 0 / 0** |
+| Automatic complete-audit resume | 0.5666s preparation; **zero provider/token-count operations** |
+
+All 16 direct judgments returned valid negative RH verdicts; none was retried or
+excluded. Live rubric shapes had ten or 11 criteria. Large indexed coverage and
+healthy >300s streams are covered by controlled tests and the reviewed prior
+evidence, not claimed as new long live calls. Cleanup had no observed live
+failure; separate cleanup-only wall time and a full hash-versus-validation
+breakdown were not measured. The low CPU/RSS numbers describe this HTTP-only
+audit and do not establish working Codex solver memory requirements.
+
+The latest source, `ddac6a2`, then passed normal **revise --resume** in 6.618s
+and **detect --resume** in 2.280s, with clean launch receipts and terminal status.
+The ledger still contains two completed and 238 pending rows. Audit preparation
+took 0.5396s, admission 0.00013s, and local stage completion 0.0347s; no generation
+or token-count call occurred. Across the live namespace's resumes, **zero known
+completed judgments were dispatched again**. The pipeline's final original
+120-assignment resume also reused all 3,668 judgments with zero calls, in
+41.2996s preparation.
+
+An earlier owned, zero-call waiting invocation was stopped at a safe boundary to
+install the completed-resume admission fix; it had spent 397.1459s waiting.
+Neither the PaperBench source/owner nor its shared policy was changed. Its final
+coverage was 270 rubric, 54 absolute and 36 pairwise judgments before this audit
+acquired the existing lease. Audit-study serialization plainly dominated the
+live check (about 96% of launcher wall time); no two-study policy change was
+activated while older participating worktrees remained active.
 
 ## Source versions, commands, and adoption
 
@@ -239,7 +286,11 @@ resume/ownership/terminal responses), and `5c15bbc` (completed-audit admission a
 saved token-plan reuse). Merge `d783505` preserved newer published remote history,
 including `c43a921`, `5879c76` and `5389caf`; those incoming changes were inspected
 before integration. Commit `1f67355` preserves declared subset membership and
-terminal runtime status. Active PaperBench 10397534 used its older `4c6` source, so its
+terminal runtime status; `bdcb182` separates admission/evidence timing;
+`e68be85` fixes assignment-only scope and assembly provenance; `ddac6a2` finishes
+executor draining, token-cache reuse and plot publication isolation. Live paid
+work used `5c15bbc`; latest-code native revision/audit resumes used `ddac6a2`.
+Active PaperBench 10397534 used its older `4c6` source, so its
 running requests did not acquire the new timeout implementation merely because
 the fix existed on origin.
 
@@ -252,7 +303,9 @@ Changed code is in:
 - `cli.py`, `scripts/babel/{experiment.py,experiment.sbatch,launch.py,dev3.sbatch,monitor.py}`, `scripts/diagnostics/check_audit_coverage.py`, the historical consumer assembler's shared call, relevant tests, README, Babel setup and architecture.
 
 Exact tested commands are the normal resource-profile launcher and missing-only
-resume, from the pinned W checkout, inside allocation 10398213 with
+resume, inside allocation 10398213. Normal launch was tested from the pinned W
+checkout at `5c15bbc`; the resume command was tested there and from the final
+checkout at `ddac6a2`, with
 `PYTHONPATH=$PWD/src:$PWD/scripts/babel` and
 `RUBRIC_GEN_PROJECT_ROOT=$PWD`:
 
@@ -261,8 +314,10 @@ resume, from the pinned W checkout, inside allocation 10398213 with
 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python scripts/babel/experiment.py --profile dev3-8 detect --experiment /home/aydanh/repos/rubric_gen/runs/babel-code/runtime-throughput-cleanup/runs/runtime-throughput-validation-20260911/biomnibench.yaml --resume
 ```
 
+W is `/home/aydanh/repos/rubric_gen/runs/babel-code/runtime-throughput-cleanup`;
+the final checkout is `/home/aydanh/repos/rubric_gen/runs/babel-code/runtime-throughput-final`.
 The first command owns this fixed output already; subsequent use is the second
-command. Future independently approved runs submit the same profile through
+command from the final checkout. Future independently approved runs submit the same profile through
 `scripts/babel/experiment.sbatch` from a fresh pinned checkout of the published
 branch. Use `run` for the complete authorized seed/paraphrase/revise/detect DAG or
 `revise` for revision-only work, with the approved YAML. Do not launch a formerly
@@ -274,6 +329,9 @@ Small invocation receipts, status and logs are in the W checkout's
 `runs/runtime-10398213-*`; full runtime-only outputs and the preselected source
 receipt are under
 `/data/user_data/aydanh/rubric_gen/runs/runtime-throughput-validation-20260911/`.
+The completed coverage receipt is `biomnibench/runtime-validation-coverage.json`;
+live launch/resume directories end in `6vzxjm2m`/`3c7hst7a`; final-source
+revision/audit resume directories end in `oy2nnt00`/`hpugg1o6` in the final checkout.
 The original completed consumer remains at its existing trace-v2.1 result20
 location. `EXPERIMENT_RUNS.md` records exact owners and paths. No secrets, model
 session files or large evidence are committed.
