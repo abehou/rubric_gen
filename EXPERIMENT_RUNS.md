@@ -1231,4 +1231,6 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 
 - 21:26 EDT: Phase-A dev1 source8124dd8 pushed; job10392341 completed the fixed48-request microbench, with reports under trace-attack-defense-v2/phase-a/dev1-001. Dev2 preparation10392474 preserves its separate cohort/config receipts; no full dev3 iteration has launched yet.
 
-- 21:48 EDT: Dev3 iteration1 job10392635 uses 32CPU/18 assignment workers/fan-out4/shared60 at `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/`; native task-study configs are `experiments/trace-attack-defense-v2/dev2/*.yaml`. Phase-A dev2 receipts are under `phase-a/dev2-001/`; no production cohort has launched.
+- 21:48 EDT: Dev3 iteration1 job 10392635 uses 32CPU/18 assignment workers/fan-out4/shared60 at `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/`; native task-study configs are `experiments/trace-attack-defense-v2/dev2/*.yaml`. Phase-A dev2 receipts are under `phase-a/dev2-001/`; no production cohort has launched.
+
+- 22:45 EDT: Provider-free completion report 10393324 is queued after dev3 job 10392635; it replaces unstarted report 10392914 to retain full application payload tables on NFS. Reporting source is 587a7b3; the running scientific snapshot remains fb8f4da.

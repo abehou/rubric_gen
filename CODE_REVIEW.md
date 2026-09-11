@@ -571,3 +571,5 @@
 ## 2026-09-10 — v2 saved-evidence reporting
 
 - 21:48 EDT: Provider-free reporting now revalidates cached contracts, native host metadata and active-generation prompt exposure, including JSON-escaped requirements. The authoritative readiness adapter applies whole-cohort funnel percentages and separate per-arm exposure minima as written in the authorization; no running recipe/source fingerprint changes.
+
+- 22:45 EDT: Saved-contract reporting successfully reconstructed/revalidated all 148 cached requests and five submission bindings in one completed dev3 case; a ten-request structural fixture also verifies the blind-stage field boundaries. Full-cohort reporting separately checks prospective replacement reservations, host metadata, actual exposure, and complete native-decision matrices without provider calls.

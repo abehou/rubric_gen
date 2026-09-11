@@ -191,14 +191,9 @@ def audit(subversion):
             if not binding['feedback_opportunity']:
                 continue
             turn = binding['solver_turn']
-            prompt_path = root/'turns'/f'turn-{turn:04d}'/'prompt.txt'
-            # Native turn directories use the same four-digit naming as the controller.
-            if not prompt_path.exists():
-                matches = [p for p in (root/'turns').glob('turn-*/prompt.txt')
-                           if int(p.parent.name.split('-')[-1]) == turn]
-                if len(matches) != 1:
-                    raise RuntimeError('binding lacks exactly one subsequent solver prompt')
-                prompt_path = matches[0]
+            prompt_path = root/'turns'/f'turn-{turn:03d}'/'prompt.txt'
+            if not prompt_path.is_file():
+                raise RuntimeError('binding lacks its native subsequent solver prompt')
             reminder = read(root/'trace-defense-reminders'/f'{path.stem}.json')
             if sha256_file(prompt_path) != reminder['final_prompt_sha256']:
                 raise RuntimeError('delivery receipt differs from the actual solver prompt')
