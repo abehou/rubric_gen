@@ -30,6 +30,8 @@ RUN=Path('/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-2026091
 VERSION='attack_defense_v2.dev1'
 PHASE=RUN/'phase-a/dev1-001'
 REPORT=ROOT/'docs/reports/2026-09-10/trace-attack-defense-v2/phase-a/dev1-001'
+COHORT_FILE=BUNDLE/'phase-a-cohort.json'
+FREEZE_FILE=BUNDLE/'dev1-freeze.json'
 
 
 def select():
@@ -110,7 +112,7 @@ def prepare():
     cohort.update(method=VERSION,rows=inputs,logical_requests=len(inputs),provider_calls=0,
                   selection='first four unique request hashes per arm/stage/failure stratum sorted by task, replicate, request hash',
                   source_v1_snapshot='106863b2ca1bfb543be3d6660aaeca56baec15af')
-    destination=BUNDLE/'phase-a-cohort.json'
+    destination=COHORT_FILE
     if destination.exists() and json.loads(destination.read_text())!=cohort:raise RuntimeError('fixed Phase-A cohort changed')
     write_json_atomic(destination,cohort)
     print(json.dumps({'phase':'A-inputs','logical_requests':len(inputs),'strata':cohort['strata'],'provider_calls':0}),flush=True)
@@ -119,7 +121,7 @@ def prepare():
 
 def execute():
     if int(os.environ.get('SLURM_CPUS_PER_TASK','0'))!=32:raise RuntimeError('Phase A requires 32 allocated CPUs')
-    frozen=json.loads((BUNDLE/'dev1-freeze.json').read_text())
+    frozen=json.loads((FREEZE_FILE).read_text())
     for name,digest in frozen['files'].items():
         if sha256_file(ROOT/name)!=digest:raise RuntimeError('execution snapshot changed: '+name)
     if subprocess.check_output(['git','status','--porcelain','--',*frozen['files']],cwd=ROOT,text=True).strip():
@@ -132,8 +134,8 @@ def execute():
     os.environ['OPENAI_API_KEY']=key
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     PHASE.mkdir(parents=True,exist_ok=True);REPORT.mkdir(parents=True,exist_ok=True)
-    write_json_atomic(PHASE/'launch.json',{'commit':commit,'job':os.environ['SLURM_JOB_ID'],'cohort_sha256':sha256_file(BUNDLE/'phase-a-cohort.json'),
-        'freeze_sha256':sha256_file(BUNDLE/'dev1-freeze.json'),'runtime':runtime,'cpus':32,'workers':32,'method':VERSION})
+    write_json_atomic(PHASE/'launch.json',{'commit':commit,'job':os.environ['SLURM_JOB_ID'],'cohort_sha256':sha256_file(COHORT_FILE),
+        'freeze_sha256':sha256_file(FREEZE_FILE),'runtime':runtime,'cpus':32,'workers':32,'method':VERSION})
     p=RubricProposer(benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,model='gpt-5.6-luna',max_retries=5,red_team_trace_version=VERSION)
     stages=TraceStagesV2(p,PHASE/'requests');start=time.monotonic()
     def run(row):
@@ -167,5 +169,13 @@ def execute():
 
 if __name__=='__main__':
     if not os.environ.get('SLURM_JOB_ID'):raise RuntimeError('compute-storage access requires Slurm')
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['prepare','execute']);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['prepare','execute'])
+    parser.add_argument('--recipe',choices=['attack_defense_v2.dev1','attack_defense_v2.dev2'],default='attack_defense_v2.dev1')
+    args=parser.parse_args()
+    VERSION=args.recipe
+    suffix=VERSION.rsplit('.',1)[-1]
+    PHASE=RUN/'phase-a'/f'{suffix}-001'
+    REPORT=ROOT/'docs/reports/2026-09-10/trace-attack-defense-v2/phase-a'/f'{suffix}-001'
+    COHORT_FILE=BUNDLE/('phase-a-cohort.json' if suffix=='dev1' else f'phase-a-cohort-{suffix}.json')
+    FREEZE_FILE=BUNDLE/f'{suffix}-freeze.json'
     prepare() if args.mode=='prepare' else execute()

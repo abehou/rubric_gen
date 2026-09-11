@@ -27,7 +27,7 @@ class TraceRecipe:
 
 _V1 = TraceRecipe('v1', 'trace_defense_prompts', 'trace_defense', 'trace_defense_attack', 'attack-record.json')
 _V2 = TraceRecipe('v2', 'trace_defense_v2_prompts', 'trace_defense_v2', 'trace_defense_v2_attack', 'attack-record-v2.json')
-RECIPES = {'attack_defense_v1': _V1, 'attack_defense_v2.dev1': _V2, 'attack_defense_v2': _V2}
+RECIPES = {'attack_defense_v1': _V1, 'attack_defense_v2.dev1': _V2, 'attack_defense_v2.dev2': _V2, 'attack_defense_v2': _V2}
 
 
 def validate_version(value):

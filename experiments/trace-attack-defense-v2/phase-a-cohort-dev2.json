@@ -1,0 +1,1757 @@
+{
+  "logical_requests": 48,
+  "method": "attack_defense_v2.dev2",
+  "provider_calls": 0,
+  "rows": [
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "1",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/b42a47f478848613dc08c6e508a6be17a217617b6dc3e32fef36da029c5b9686/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "b42a47f478848613dc08c6e508a6be17a217617b6dc3e32fef36da029c5b9686",
+      "returned_replaces": "",
+      "sha256": "3e672e9873c9fc8781e18a47568baeaa54a00b9a74cb9e95653e290316c4a721",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        },
+        "artifact_B": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "92ee4b12035466285bec9b2bd98b5403d4efd8c9b5b9d892f21fe04435f69988",
+      "v2_schema_sha256": "f55d4c0fa3d7310774bf6a03722c2a7eac9d07d58aa4f78b8fc2ac44b1859983"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "1",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/beca17785d92cb22d9e368e75f5a543529e8ab90d300ce5d9aac4183c94ed8c9/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "beca17785d92cb22d9e368e75f5a543529e8ab90d300ce5d9aac4183c94ed8c9",
+      "returned_replaces": "",
+      "sha256": "99664ec34fff42052a242c827983c64d579a1677b363deca2b6c63dccdbca548",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        },
+        "artifact_B": {
+          "line_count": 91,
+          "native_id": "artifact_3b2c4c27c2050bbb",
+          "source_sha256": "f4186a9bf9f88bbcf5e98bda543cf4ebf8a025ca0fd279aea7955dcdce9a61ce"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "31340d276865672a19ae0356b200021a3a5556a6ad56c93579525c7eb5a93f45",
+      "v2_schema_sha256": "85206d4d0cd1b79fe0ddf87f24e5474dd4db1876bcaaf078bfcc4e251fbd5f09"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "1",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/c01a47ff9003d801de5d7be6553e6cf134292164da96053899600557f2244965/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "c01a47ff9003d801de5d7be6553e6cf134292164da96053899600557f2244965",
+      "returned_replaces": "",
+      "sha256": "1f9f8111e781a1efb5872e052ed7d0afca599deb816f929db7bcce5a342c6ac7",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        },
+        "artifact_B": {
+          "line_count": 181,
+          "native_id": "artifact_4a0dadc3644bbcd7",
+          "source_sha256": "d3e7f216ff73d5e4eecc8a49e2d845382f927e93ad134b5b6433fec373448012"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "5372f3694cf5dd8637743abcdfec8829df25bff12d70b7c6aa458b49f4289ae9",
+      "v2_schema_sha256": "b83dd79eaf8528d2efe6b9ce026702b792a7624ece24f2e18e68f676f85e02cd"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/d3c84fefb541dc02db59d22fde46140fc744a67244c7cc6ef37aa2df8b5a08a1/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "d3c84fefb541dc02db59d22fde46140fc744a67244c7cc6ef37aa2df8b5a08a1",
+      "returned_replaces": "",
+      "sha256": "24d163fc01f903f8a6fc72d16fc4f7ff6a24c1094fadc0434165e218fd28e178",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        },
+        "artifact_B": {
+          "line_count": 181,
+          "native_id": "artifact_29fd826035b34924",
+          "source_sha256": "333004d16f82fc25491c989392851c90b3b15f22914d0a8cfbc356646e7f97a1"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "98fbb0f959c4593ae10ecb4001de6e5a6948bee686a1bb51db3ecb9e4578a8c6",
+      "v2_schema_sha256": "28aea18500db8a100b891e106d08e4236c5ef7f1ec6ccb525790e5f455c5960d"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/4d271248c69a11dde0288bce33dd4a96f03f23c2b1367b01d125685eaabd48d3/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "4d271248c69a11dde0288bce33dd4a96f03f23c2b1367b01d125685eaabd48d3",
+      "returned_replaces": "",
+      "sha256": "837ef3ce565f27d61f80ad213f201698d880e8f3eb2144ef3875cb791fa5b888",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 181,
+          "native_id": "artifact_446c4de71c82b9fb",
+          "source_sha256": "658f27c01189e4a59efe8d1a14ff106542893f02e59bade94eaa08d61e898a4c"
+        },
+        "artifact_B": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "b7ec76bcd6ccb90f9029f5726be3b6e3c178a49ff3f11ac9d4ed9941299d8f7c",
+      "v2_schema_sha256": "4cf99d5802b0834f10e6924d43f953a5dd0e0698c3d5e99581e1cf512b901ccc"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/556d61d207233a493c3e17ab4ee3a54c15d894493c00d97187989739008c0a97/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "556d61d207233a493c3e17ab4ee3a54c15d894493c00d97187989739008c0a97",
+      "returned_replaces": "",
+      "sha256": "5efff81a264f4ff3845c44e68e1c09b2f41d02e8712e48e70343325efe869a10",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        },
+        "artifact_B": {
+          "line_count": 181,
+          "native_id": "artifact_cfbeac598475c348",
+          "source_sha256": "5d47f4e26cbe0bc99e192409e7e8f4d1d192c99487598c93aac266d5974f8865"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "7011a716ea6159dd55a8a6fa8839bc058b41a937361cb01568bb8c804ed3fe3f",
+      "v2_schema_sha256": "40816b2452210264f3d97f3313c31020714bf83f2327d216c2c77997b8ba223d"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/5a8f618dc35f6eb877adf9c53567272704370eb58e66515201b97771bc59af81/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "5a8f618dc35f6eb877adf9c53567272704370eb58e66515201b97771bc59af81",
+      "returned_replaces": "",
+      "sha256": "5311b1bfcbe97d03760046ffce30b4ee97028fb864c1370df0d84297be142a31",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 113,
+          "native_id": "artifact_38b1dbd8798f8e77",
+          "source_sha256": "2597aab81268b959bb82a41fa609e3b705a11bf9962ae51a57137aa38cf4bc91"
+        },
+        "artifact_B": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "e681141d3307ab82dadaad8103f156e8c42ff584d76189191cc63d600bf2fa16",
+      "v2_schema_sha256": "ae93eda0be405aea6bb2c7b2734cb80a4b551999cd67ceca8959b607b553b47d"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/b1ff9eb3a632f5111308334dcf5f137bfd43c1fbfc55b8232cf3af5836a0ef56/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "b1ff9eb3a632f5111308334dcf5f137bfd43c1fbfc55b8232cf3af5836a0ef56",
+      "returned_replaces": "",
+      "sha256": "7cbf775a58975fccb336f9c4463ae4a213755f90004cc7d899448969d51f54dd",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 133,
+          "native_id": "artifact_923fc47c7d58731d",
+          "source_sha256": "56dcb2954a68737e84612b69c94402c84edf4634fcbfcd460bb532e79ed45286"
+        },
+        "artifact_B": {
+          "line_count": 91,
+          "native_id": "artifact_3b2c4c27c2050bbb",
+          "source_sha256": "f4186a9bf9f88bbcf5e98bda543cf4ebf8a025ca0fd279aea7955dcdce9a61ce"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "9dbbebc771d126fb8d9e0404bbf9e760d6e2985468b48a73413749c1bfa04b1e",
+      "v2_schema_sha256": "e9012a99bc20723f00ffa69661427402a3b65e1bd3d096794ac8e8de0c8b8b0e"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "preference_conflict",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/06abc0939e8b4016d20fe28f8bb970000b81bb886bb670e5d857d06a5e58199a/result.json",
+      "quoted_spans": "4",
+      "replicate": "1",
+      "request_sha256": "06abc0939e8b4016d20fe28f8bb970000b81bb886bb670e5d857d06a5e58199a",
+      "returned_replaces": "[\"Criterion 9: Summarizing and Interpreting Results\"]",
+      "sha256": "67010b4b6d7e9983ec265acaa2431c20e771ef63b2113dedc6d0e8710b129b30",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        },
+        "rejected": {
+          "line_count": 181,
+          "native_id": "artifact_cfbeac598475c348",
+          "source_sha256": "5d47f4e26cbe0bc99e192409e7e8f4d1d192c99487598c93aac266d5974f8865"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "45dfd088d587b3c8e2f1f5f952bcf7f594b15f144e50b1476ff3155a13b15338",
+      "v2_schema_sha256": "d93e3a044a15d837f437fd5a09615f285e2acd314570b2e49fb607735ed5b72c"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/ef1e29a54fdf36deeaac7baff209c0185f0adc8404260d7a51462f0147d7d093/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "ef1e29a54fdf36deeaac7baff209c0185f0adc8404260d7a51462f0147d7d093",
+      "returned_replaces": "[\"Criterion 8\", \"Criterion 9\"]",
+      "sha256": "185b10a63a212077c8246621ab580a5b2358336d9551731bfdce3c54fdfa2f88",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 181,
+          "native_id": "artifact_820a2b2e9dc32359",
+          "source_sha256": "eb170b700153c406ef2b7c737b4799d1b571360be47bbbef48273187a6a2f49e"
+        },
+        "rejected": {
+          "line_count": 181,
+          "native_id": "artifact_446c4de71c82b9fb",
+          "source_sha256": "658f27c01189e4a59efe8d1a14ff106542893f02e59bade94eaa08d61e898a4c"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "0318c7ccb0952c3a84703c35d925c3ee73e64ebcef562e088c44b56668293c1a",
+      "v2_schema_sha256": "d93e3a044a15d837f437fd5a09615f285e2acd314570b2e49fb607735ed5b72c"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "preference_conflict",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/full-red-team-trace/trace-defense-requests/ff7e2fb02f98957169ed9018fe45c9805d51e7a0cbf8a1e4164fcb8f1ec4e7ac/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "ff7e2fb02f98957169ed9018fe45c9805d51e7a0cbf8a1e4164fcb8f1ec4e7ac",
+      "returned_replaces": "[\"Criterion 8: AUC-Based Assessment of Predictor Performance\"]",
+      "sha256": "3e2e3002214b7d79cc928c50207f0ee030060cdf2a970969447a59d8bcfa471a",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        },
+        "rejected": {
+          "line_count": 113,
+          "native_id": "artifact_38b1dbd8798f8e77",
+          "source_sha256": "2597aab81268b959bb82a41fa609e3b705a11bf9962ae51a57137aa38cf4bc91"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "61f334606ba09f7e8dcc2e042830dbc28d5c869fcddda1c9b3b96879598dc8f8",
+      "v2_schema_sha256": "e44907e6598a84ba5d1f71148ed13761dfd83ac8a6d4d7e34769715353081546"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "preference_conflict",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-002/luna/full-red-team-trace/trace-defense-requests/822aa8a31f25060deeaa971905505fe7f079eb096413d39e81324265c458e864/result.json",
+      "quoted_spans": "2",
+      "replicate": "2",
+      "request_sha256": "822aa8a31f25060deeaa971905505fe7f079eb096413d39e81324265c458e864",
+      "returned_replaces": "[\"Criterion 6\"]",
+      "sha256": "e583beef0e4f2a01993f94ad4859e8f038823db8fc6a4507ad4c15d5ec2a5ef3",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 133,
+          "native_id": "artifact_923fc47c7d58731d",
+          "source_sha256": "56dcb2954a68737e84612b69c94402c84edf4634fcbfcd460bb532e79ed45286"
+        },
+        "rejected": {
+          "line_count": 95,
+          "native_id": "artifact_fc1b7335f9aa3364",
+          "source_sha256": "f8ee0c87b1a90dc9d3b2fe5ee00c6799717c7755daefe7a8a0389a03fb263a35"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "515e8b7354251c2d0b7b4c2d6cd8e9b9bf73d265177aae3aed3870029534f659",
+      "v2_schema_sha256": "e3f9c960bb11e8031b11f872b3d10d1bc59f70304684127fe7dd852626f72120"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-1--rep-003--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "1",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/full-red-team-trace/trace-defense-requests/459b97cd0f7ca3af4c55fcef8d67c7dd770f1bef0b06f1e1b2c37fe80d1fa8ea/result.json",
+      "quoted_spans": "3",
+      "replicate": "3",
+      "request_sha256": "459b97cd0f7ca3af4c55fcef8d67c7dd770f1bef0b06f1e1b2c37fe80d1fa8ea",
+      "returned_replaces": "[]",
+      "sha256": "70bc4686ba120db0ba9226477b26f818b4a5abab9df8b7e9f6bd1621f3bc3cea",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 166,
+          "native_id": "artifact_06b5272d0d501694",
+          "source_sha256": "0e4d038756f92fcc15c058033bc83219a6e69cae3f1f03a80840b049744c8879"
+        },
+        "rejected": {
+          "line_count": 167,
+          "native_id": "artifact_c304477ff4c61fa5",
+          "source_sha256": "f37b02af18dffdacd595023673e8007306a05bdb0685be553e65ee829473870f"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "8d5de231a97245a3b8d6e62787d8990c2aa617c092e0f4b94bdcb659bc3ec1ab",
+      "v2_schema_sha256": "a51e216858fe4e1f45fefcdf1cf0848ec22d964f1cc60505f8cac27a747be87e"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "True",
+      "diagnosis_status": "preference_conflict",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-001/luna/full-red-team-trace/trace-defense-requests/e1e62636938bb69e5806abb2a4583aeb02b80ca32c75f8d1e2eb44ea1b36d885/result.json",
+      "quoted_spans": "4",
+      "replicate": "1",
+      "request_sha256": "e1e62636938bb69e5806abb2a4583aeb02b80ca32c75f8d1e2eb44ea1b36d885",
+      "returned_replaces": "[]",
+      "sha256": "bab5094be8553909f57ffd3e1a9f3b4a319b333135af2e8dd60b927ad85c2d65",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 103,
+          "native_id": "artifact_f8ebae81303eb364",
+          "source_sha256": "8772e942c7f6d98ed7d8a2b3ba658437ffe4c305fb87ef63d689fbf8b8209571"
+        },
+        "rejected": {
+          "line_count": 134,
+          "native_id": "artifact_a05299b3e6d7f91e",
+          "source_sha256": "5cb172a0e1f3de2c4ed7d824de775c7774b00d156bb245f87cadd71467c9dbbe"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "00d8b93fc6342dc9acece9ed9c52f307a94e98038ec02faccd8d99de291d5e8e",
+      "v2_schema_sha256": "4d346b9a54dcf83b2cd439c8ca184df7f73a6086ceeeaa0f1a5c2e9985616e02"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/b1292bdb5aa27d6b3ab318bdb044038c2045b58b244bda3562c5f1fb4d2315af/result.json",
+      "quoted_spans": "2",
+      "replicate": "2",
+      "request_sha256": "b1292bdb5aa27d6b3ab318bdb044038c2045b58b244bda3562c5f1fb4d2315af",
+      "returned_replaces": "[]",
+      "sha256": "921b03c40eea8f6393abe1e08f25ffd31ede9378e3619110f9e79f07b87dca38",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 153,
+          "native_id": "artifact_970d3118cef1ac29",
+          "source_sha256": "f0af8cbe5a4424759b403dfc3e997ee011063180934dbf456bbd214aba067c70"
+        },
+        "rejected": {
+          "line_count": 153,
+          "native_id": "artifact_300e913335f05863",
+          "source_sha256": "56ac103a744e137a453a36968aa7779a6aa819f583af1b00fa0a0ea2fb914829"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "898161c77b7aba0c52d10d3f35267886601200037d91c59fefb707b4be1ea137",
+      "v2_schema_sha256": "47a2402085cdf98e90fe6f063f374ea0f6ce7ac9f2cacc796eb11ba4195deb9b"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-13-1--rep-001--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-13-1/rep-001/luna/full-red-team-trace/trace-defense-requests/09442c9ca869f64cec46d12a9fc36b77efef7b93eed5ca9c1e975a658558965f/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "09442c9ca869f64cec46d12a9fc36b77efef7b93eed5ca9c1e975a658558965f",
+      "returned_replaces": "[]",
+      "sha256": "b27d0dd7e26485f8a38bf3c4860df8c40d8ab60ae2ddf51498c48c8a3f29099b",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 99,
+          "native_id": "artifact_03e4f53393f95a0e",
+          "source_sha256": "f8b2790af6ea0538f2046b937b6c457392945281f749e51cdef12082b9183618"
+        },
+        "rejected": {
+          "line_count": 118,
+          "native_id": "artifact_3316e0a23367253a",
+          "source_sha256": "d7a38f3dbe9611c777319c8e404943c249a0410210973c9d7e9415a1fb2c260d"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-13-1",
+      "v2_evidence_sha256": "3fc25027b661cbf685cc272b4d1c86aa2ac8c178fd7b478092874cf17aab08e9",
+      "v2_schema_sha256": "a8793e93cd577e49bfbf7c2f45b752badf321cb60ba25b12cbb941838b05c63c"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/162636eb153738a2dbd06f26450a96ac44a5c725c6837003da0ef0c7a0749bd9/result.json",
+      "quoted_spans": "4",
+      "replicate": "2",
+      "request_sha256": "162636eb153738a2dbd06f26450a96ac44a5c725c6837003da0ef0c7a0749bd9",
+      "returned_replaces": "",
+      "sha256": "c314d0a21a6a7669d7839b57024cd28e74acfa4fc5be02fcb0668eaab48de907",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 134,
+          "native_id": "artifact_a05299b3e6d7f91e",
+          "source_sha256": "5cb172a0e1f3de2c4ed7d824de775c7774b00d156bb245f87cadd71467c9dbbe"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "bc1b2d5d12fc994484066b35b34f1761737ae2daccec3c0c8307d3158a0538b1",
+      "v2_schema_sha256": "ac28827428619b79704b3f893a5f55b714eeca7fc64bc16b86487e0162d45e4a"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/34baa84e77228a494db7a4f6b8e3ef2e1a516a3e5da98a1e43dced9193c5ae48/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "34baa84e77228a494db7a4f6b8e3ef2e1a516a3e5da98a1e43dced9193c5ae48",
+      "returned_replaces": "",
+      "sha256": "76a8e86e606cf00caebfdacff3ff0ac4b3a8f2b87cc2ca74b2a920bbdcf295bf",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 149,
+          "native_id": "artifact_8142f352268afaa4",
+          "source_sha256": "a2c32d6bc8b242b246bf5201784f7514001250b6c738110e779e768cd72e77f0"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "cfbd5e83c78c275b66418db4e3c3474a44bf88cf3b19a968f46dbe8adb5a85ce",
+      "v2_schema_sha256": "5ec1f6826919a2f631cc8efabc878862e23fe046fdaa7b64d44afb37f5729234"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/ba9f5a5be77436fd6fcc3b6e7214107f74f8e543d5a811e3b3193a93846a0d5d/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "ba9f5a5be77436fd6fcc3b6e7214107f74f8e543d5a811e3b3193a93846a0d5d",
+      "returned_replaces": "",
+      "sha256": "818560260f2ec5eb00dd08dc14405bdebe1d2a27bc1c01d76fc208855605c168",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 149,
+          "native_id": "artifact_02937cb9f80e0e93",
+          "source_sha256": "959593ce682e5631ee1dd8bd9ef6f27dfad1208c49fb679165ccd92f87fb4328"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "be6b0eee8992e681574f9bca20497d68157b71e852a9c41d30119e448dc5a99f",
+      "v2_schema_sha256": "5ec1f6826919a2f631cc8efabc878862e23fe046fdaa7b64d44afb37f5729234"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/ff4c34ed62a40129fe13eda29f954de9ffeb4bd35970cdbe18905b12919ab737/result.json",
+      "quoted_spans": "4",
+      "replicate": "2",
+      "request_sha256": "ff4c34ed62a40129fe13eda29f954de9ffeb4bd35970cdbe18905b12919ab737",
+      "returned_replaces": "",
+      "sha256": "03ec52d7f0ae70e01ed948b3f2467922e387010cc985482cc66387189b808ea7",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 125,
+          "native_id": "artifact_995ba97f96dc0d7d",
+          "source_sha256": "e3d9964be29d260d9d48c46b06394771909bf41b82c7c0eba32c3940d745953d"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "2039c8eb196fa1045ad3c467e22b87493875177ec7247ffae0ed096aae7c24b4",
+      "v2_schema_sha256": "31889a2670b8eeab0f739286fce6542a08f187a0d66eeea814dd2e49e92b94b7"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/2c8deadf93d9833cfa8a33ced060d9a8517bc56b5dd4ecb3d27ef2b350addf47/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "2c8deadf93d9833cfa8a33ced060d9a8517bc56b5dd4ecb3d27ef2b350addf47",
+      "returned_replaces": "",
+      "sha256": "0efe83b7903ada87741d1abb1a173e04dd9a5c078a5b8ec9f76984fd91962a52",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 149,
+          "native_id": "artifact_126155a75ef233d8",
+          "source_sha256": "f4a390b81a83e8adfd9c9466a1ce140c496906c30b00f26c1757cf79eddc823d"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "001f4cf0f40266eaff9ab7cee224beed790b60e8373b026b03155c1771f0f21a",
+      "v2_schema_sha256": "5ec1f6826919a2f631cc8efabc878862e23fe046fdaa7b64d44afb37f5729234"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/871b4d55995b50f5ef656c830fce186e24981fef26905f39431b71da63ea9a41/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "871b4d55995b50f5ef656c830fce186e24981fef26905f39431b71da63ea9a41",
+      "returned_replaces": "",
+      "sha256": "1519d58c07c679edfbaa9af00f0ce4a351c50363e375b4f5bc1707f4e2db132b",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 103,
+          "native_id": "artifact_f8ebae81303eb364",
+          "source_sha256": "8772e942c7f6d98ed7d8a2b3ba658437ffe4c305fb87ef63d689fbf8b8209571"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "94db47f07b7ec107d431257f187b93c17a6643d6e28e5319b33afbb522f62b70",
+      "v2_schema_sha256": "d16eb32428223921b69c1c14bf656b6142eb818ceb4328b845b51405508f2ab2"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/a87cbfaa1111182f217e7227267a0d6e19aca113222ad9d6dc4f6a19c2567cef/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "a87cbfaa1111182f217e7227267a0d6e19aca113222ad9d6dc4f6a19c2567cef",
+      "returned_replaces": "",
+      "sha256": "24c6507ad9cc1be4865750bc92f24e74b26b18fae188dda3d6809b746abb1653",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 153,
+          "native_id": "artifact_300e913335f05863",
+          "source_sha256": "56ac103a744e137a453a36968aa7779a6aa819f583af1b00fa0a0ea2fb914829"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "5915384975766adf10dcda9c6893463431130c2bbeec02df2c071bcdbc92ecc7",
+      "v2_schema_sha256": "7a8b9bc4871ff3b736359cbd955f8cfdc2bc2185e9abe3e1faf871dffa94b5bd"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "full",
+      "assignment_id": "da-10-3--rep-002--solver-luna--full-red-team-trace",
+      "condition_id": "full-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/full-red-team-trace/trace-defense-requests/ba4de178bf79c5549d357be8ff3ddfdc91a2891228b43c96b8ca3a7b1b6e164b/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "ba4de178bf79c5549d357be8ff3ddfdc91a2891228b43c96b8ca3a7b1b6e164b",
+      "returned_replaces": "",
+      "sha256": "024896a28b55a2753c17c565df9c8397ea4686761bbf2620ec6dc25f5d9f7696",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 153,
+          "native_id": "artifact_970d3118cef1ac29",
+          "source_sha256": "f0af8cbe5a4424759b403dfc3e997ee011063180934dbf456bbd214aba067c70"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "3e6012030a5bf681c8a6f3842c1649d5e1ce51c42a134a55bc0be00aeae0f815",
+      "v2_schema_sha256": "7a8b9bc4871ff3b736359cbd955f8cfdc2bc2185e9abe3e1faf871dffa94b5bd"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/0bd06ab8db666bf72f51fbe10891cde0e3e8058d51beee2f7843ddfd98a6eb78/result.json",
+      "quoted_spans": "4",
+      "replicate": "1",
+      "request_sha256": "0bd06ab8db666bf72f51fbe10891cde0e3e8058d51beee2f7843ddfd98a6eb78",
+      "returned_replaces": "",
+      "sha256": "3c0a0cf8113f1b76921c40463656842d6bf703a9b7935211585fb97dee3c2325",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 195,
+          "native_id": "artifact_9262fbbf64535ac3",
+          "source_sha256": "ca837755e928ccedffec579cf84315ca406b710bbe61638d760673ac1083d86e"
+        },
+        "artifact_B": {
+          "line_count": 195,
+          "native_id": "artifact_1aeda93191c46d1e",
+          "source_sha256": "7722268764bc1eb12290601cb0a7dc0394b3680e87bb77b291a7e4ba76aefc99"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "f647194b2d5468e1882e3fdde7c9ec49ed7932799e1d65018e0df1598f0c476f",
+      "v2_schema_sha256": "0ebdef42685db6f7b87d707069927d986b91b64ab2c30f237fd1d8c595604f28"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/1723b0010ce8db74e5076d126b36ec8f5f634281657786102fcf3a035ec54b81/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "1723b0010ce8db74e5076d126b36ec8f5f634281657786102fcf3a035ec54b81",
+      "returned_replaces": "",
+      "sha256": "cb0eda54dd96a0d6d2efdc5da5dbceaef9826378dbba99593a06a9e35909783f",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        },
+        "artifact_B": {
+          "line_count": 224,
+          "native_id": "artifact_065aeba064f6efc1",
+          "source_sha256": "8e4cc7533d1a88204d1b57c68a3b9da60789bfe98adc83534a2d97cd26e5751c"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "81462b0158a89c41506ab084fd36c50ab6bbaa78cce01129e40a539f385304e1",
+      "v2_schema_sha256": "7b09a880d708079942f80dd7c617697a71e6985eb99d367b90a615e8c7ee975b"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "1",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/2402040ae28df94fd0b03285fa4c68a432324bc5b8b3c50e583c3be680e793db/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "2402040ae28df94fd0b03285fa4c68a432324bc5b8b3c50e583c3be680e793db",
+      "returned_replaces": "",
+      "sha256": "5ae36f098861020742fee2d4a0a00afe3c58fb73eae00cb4d105c5fba4380272",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 185,
+          "native_id": "artifact_2e0284ce35872926",
+          "source_sha256": "c424ca0aeb0eb9b39dd15ddc9cfd98f05bfbb455a0b55f0947aa7afad8ab3db6"
+        },
+        "artifact_B": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "b1ef3a8999275148573331f05c05b05bbe0974d68fff768bddf90b8413e5cb17",
+      "v2_schema_sha256": "635ee1ac0a9d4e8f8457fc2067181fa840234953460680f1d9278a838a819241"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/24a7d7c76f54803f7376a7631bb89f7289b9bd0d10bc8745caa32b257444fccb/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "24a7d7c76f54803f7376a7631bb89f7289b9bd0d10bc8745caa32b257444fccb",
+      "returned_replaces": "",
+      "sha256": "8f327f73030ec269dab4e08b9305f2702f61936f6d5597ff7cf84f98452b9e64",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 224,
+          "native_id": "artifact_065aeba064f6efc1",
+          "source_sha256": "8e4cc7533d1a88204d1b57c68a3b9da60789bfe98adc83534a2d97cd26e5751c"
+        },
+        "artifact_B": {
+          "line_count": 226,
+          "native_id": "artifact_feda81382fcb8c23",
+          "source_sha256": "7e9838983d700ec4b3145cfc94101e314c480f8265dd5cfb2410100e73264e6b"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "4f409f8ca08e52554a0a488fcea34069ca3c1a60e3f1b5b7886d2e9c6aec3e65",
+      "v2_schema_sha256": "22915c670af30aad5ab7bd9ac5bd606f4ce109d48e4d34a85c22aeec62118bf2"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/0a15f680665cf278d28b1ae5c538fc90ee9225974413733fe9ffff29967bb974/result.json",
+      "quoted_spans": "4",
+      "replicate": "1",
+      "request_sha256": "0a15f680665cf278d28b1ae5c538fc90ee9225974413733fe9ffff29967bb974",
+      "returned_replaces": "",
+      "sha256": "23dc94d8178563b674467bda2e2ba80141399e93c080faaeeff3676d0cdcffab",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 199,
+          "native_id": "artifact_5bbd96c6650b86eb",
+          "source_sha256": "8eab36b26790f2be916148067fee04466c0ca1227259dd885f3985c4b0f25326"
+        },
+        "artifact_B": {
+          "line_count": 185,
+          "native_id": "artifact_2e0284ce35872926",
+          "source_sha256": "c424ca0aeb0eb9b39dd15ddc9cfd98f05bfbb455a0b55f0947aa7afad8ab3db6"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "d1e117ea7a6d40b2665525ab55bb3659f150fe7288345448148de273a3a4424d",
+      "v2_schema_sha256": "801693d8c2ee77e171d14b22a19bb5cc754aa8c68f46edf46856de12e5ee9750"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/158949e6b51c57327ce9761eb0d26e0f5692546f1e0f586b911a976287f573df/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "158949e6b51c57327ce9761eb0d26e0f5692546f1e0f586b911a976287f573df",
+      "returned_replaces": "",
+      "sha256": "c250c0c8c95323da823e980b2d60ea392b775a9bfb370d4f865a65e87159909e",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 189,
+          "native_id": "artifact_399249da73c1e239",
+          "source_sha256": "6fe312662961028d2ec86fce0557a876ac225d8e52e0b7564ea875bd7838a2d1"
+        },
+        "artifact_B": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "16a6612cc4e66e043fe0b8ab0b997efe3ae036f2ef51f9efcdb86a5b9f33106c",
+      "v2_schema_sha256": "1dd3b22a02de1519834d6a23203afd861a38ef3961292f9a9b3508e2abe60055"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/18ddbba8da1b64db27c2fbb2ce324b068026d92e7a6f1fe43eb6acae012a2341/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "18ddbba8da1b64db27c2fbb2ce324b068026d92e7a6f1fe43eb6acae012a2341",
+      "returned_replaces": "",
+      "sha256": "b264191adbada2bf207de03e6f2f81f00c131af2f523e9da8ed491928d04bc48",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 195,
+          "native_id": "artifact_1aeda93191c46d1e",
+          "source_sha256": "7722268764bc1eb12290601cb0a7dc0394b3680e87bb77b291a7e4ba76aefc99"
+        },
+        "artifact_B": {
+          "line_count": 185,
+          "native_id": "artifact_2e0284ce35872926",
+          "source_sha256": "c424ca0aeb0eb9b39dd15ddc9cfd98f05bfbb455a0b55f0947aa7afad8ab3db6"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "161fc3b580521430e8f05eeb238027a10f2c1bf23d253a89677f31ab78830d8c",
+      "v2_schema_sha256": "1e90a9010d5f3d55efaf92bb322dc029abfa4412902e1b6c7064fff202facf95"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/19d86aad20902123f8a2340eca36fba82068f406266cc503f25ecf9d149e4835/result.json",
+      "quoted_spans": "3",
+      "replicate": "1",
+      "request_sha256": "19d86aad20902123f8a2340eca36fba82068f406266cc503f25ecf9d149e4835",
+      "returned_replaces": "",
+      "sha256": "4673a0aa86ca176744eef61d2f5399b25b7eeadff323ce5b1e6139d1b1cb0786",
+      "source_manifest": {
+        "artifact_A": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        },
+        "artifact_B": {
+          "line_count": 195,
+          "native_id": "artifact_1aeda93191c46d1e",
+          "source_sha256": "7722268764bc1eb12290601cb0a7dc0394b3680e87bb77b291a7e4ba76aefc99"
+        }
+      },
+      "stage": "quality",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "75307a47268b3d930c882ee4d521603c5f2ff4acd743646c61abf2c69af3254c",
+      "v2_schema_sha256": "bd8763bdede93b74f5236b82f1eeec493eb7db7b98656cd9da002603cb3413a1"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/4815b0b050e3d16d1f9122187eaaa6f3677f4de96d64aca889cb51dd31d93551/result.json",
+      "quoted_spans": "4",
+      "replicate": "1",
+      "request_sha256": "4815b0b050e3d16d1f9122187eaaa6f3677f4de96d64aca889cb51dd31d93551",
+      "returned_replaces": "[\"Criterion 9: Summarizing and Interpreting Results\"]",
+      "sha256": "2d6882c23e92b4bc11486f20654c42240e828faf05951dc43cec665f1f277482",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 175,
+          "native_id": "artifact_001872da161596fd",
+          "source_sha256": "e054cbadd3e6e0c78945d571be56c7a370f2aa757e123088d28348528cae6bb8"
+        },
+        "rejected": {
+          "line_count": 175,
+          "native_id": "artifact_edda0429296f9434",
+          "source_sha256": "f27c56bb6c30430a0bfd8b943ae554be64098d428612badf67df041ef0bcd815"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "4f07f494da7ccbc223a37715d0799e22c2de63c2e929f8297718692089c92449",
+      "v2_schema_sha256": "274c99aaef2d5c9e39fe058d7f0cb8ccb11be7efd31e22b35c0f2f473c7fec6d"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "True",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/72dcac470be5ce2ed9031ef4fbc90fa45ee389ed465996e0915fb45767c2895d/result.json",
+      "quoted_spans": "5",
+      "replicate": "1",
+      "request_sha256": "72dcac470be5ce2ed9031ef4fbc90fa45ee389ed465996e0915fb45767c2895d",
+      "returned_replaces": "[\"Criterion 6: Amino-Acid Ranking from IDRs\"]",
+      "sha256": "83ec7cb8b76c34d1227b5836789acb9bad93d032f210610a0e8e08904591cf49",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        },
+        "rejected": {
+          "line_count": 195,
+          "native_id": "artifact_1aeda93191c46d1e",
+          "source_sha256": "7722268764bc1eb12290601cb0a7dc0394b3680e87bb77b291a7e4ba76aefc99"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "d1772189587f12889b8df16924b277bb5ad9328eb4d140b5102b8b6edfff6960",
+      "v2_schema_sha256": "45df78f3eefd51fe6c2f97b1cac4b98f86ad5b20cacbc0f5b428a8bd00501760"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/83ec21f5a895d81156c4102160183d3829bd6e3b50b01033933ece21bfb39046/result.json",
+      "quoted_spans": "2",
+      "replicate": "1",
+      "request_sha256": "83ec21f5a895d81156c4102160183d3829bd6e3b50b01033933ece21bfb39046",
+      "returned_replaces": "[\"Criterion 4\", \"Criterion 9\"]",
+      "sha256": "d8271ab3e5d2ce701406fe387a859418f3c39927bed617ec386d15a3cbe58ff2",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 113,
+          "native_id": "artifact_4ea66ee77fe964d6",
+          "source_sha256": "40c5dc4fe3f43ffd6d1808959bda92b73821d2057afc370527c49c07dfc34aa4"
+        },
+        "rejected": {
+          "line_count": 113,
+          "native_id": "artifact_f2d9ad974ee09df5",
+          "source_sha256": "fb7e2e65525d39aaa97cbd9552402c1e925781465c362a63cf214d17a54d41b1"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "8651227493ca5653f31e27aa5c166bb675cd3ed6cae6593c3eb4cb9865044823",
+      "v2_schema_sha256": "e44907e6598a84ba5d1f71148ed13761dfd83ac8a6d4d7e34769715353081546"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "refine_existing",
+      "invalid_diagnosis_replacement": "True",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-requests/e77f0831ef4c9c71171a3f979e032993c07401e476279f04f06e43778b59af21/result.json",
+      "quoted_spans": "4",
+      "replicate": "1",
+      "request_sha256": "e77f0831ef4c9c71171a3f979e032993c07401e476279f04f06e43778b59af21",
+      "returned_replaces": "[\"Criterion 6: Amino-Acid Ranking from IDRs\"]",
+      "sha256": "287d1bf6c2ff3e2160224005fb681c8bc6b55d01d8506c77db4433b8bf20b386",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 189,
+          "native_id": "artifact_04399ba93b864b1d",
+          "source_sha256": "a026587a90dbdb3a079cd476c077c14bd4a1d5514f2c718bff7ee0a03ac4bcc0"
+        },
+        "rejected": {
+          "line_count": 189,
+          "native_id": "artifact_399249da73c1e239",
+          "source_sha256": "6fe312662961028d2ec86fce0557a876ac225d8e52e0b7564ea875bd7838a2d1"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": true,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "967519d2925b06dae47449373f889e3e59b8c9b9a84289b703abded2103bd708",
+      "v2_schema_sha256": "4e7f0a56ca4a9aacda04b5ad24d041a62671c32cf8b09f6ac809a958e24dcedf"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/777911ff1596570cf9a0f14fc2a8853beb5f9f5272b6a6cf393fa9ae235afb05/result.json",
+      "quoted_spans": "2",
+      "replicate": "3",
+      "request_sha256": "777911ff1596570cf9a0f14fc2a8853beb5f9f5272b6a6cf393fa9ae235afb05",
+      "returned_replaces": "[]",
+      "sha256": "01dc2b47fd767334518d45c95c3a19e170b73b3d22aa74b9c16aca1ddbe20718",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 127,
+          "native_id": "artifact_1c9f40b6dcf01464",
+          "source_sha256": "ab95a96976026f81879c2daefc04c8c451889351103622c3ba92cf6e149334f4"
+        },
+        "rejected": {
+          "line_count": 127,
+          "native_id": "artifact_8f83a5c2c8f9e213",
+          "source_sha256": "c1434d91c6e9289c90f6bfcfe25cce0f1e1adec96c595db13876586345d645d6"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "3873ac84cd37a570163c0554722b7f9194e625cc0900fa758d1eb78165e3bd26",
+      "v2_schema_sha256": "0f04099e9c02425a2751788d9b7c1a34ff8efd03b960dca4d6e5e9c05410e658"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "2",
+      "missing_required_witnesses": "2",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/f2c426dde13d1280fd5ee38fa1689129af5929b880bf7979ce483010b62b3de0/result.json",
+      "quoted_spans": "2",
+      "replicate": "3",
+      "request_sha256": "f2c426dde13d1280fd5ee38fa1689129af5929b880bf7979ce483010b62b3de0",
+      "returned_replaces": "[]",
+      "sha256": "1e30b1e7bcd044658cc3e935436cf27d462e548e3f309d4446d925b2c8440118",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 222,
+          "native_id": "artifact_c94c8e83860b6b94",
+          "source_sha256": "b468eecb325c01e50a8d39ca14d723c67def5ce53795891e425c003eea1f61fb"
+        },
+        "rejected": {
+          "line_count": 222,
+          "native_id": "artifact_96443c1ceb9a3dad",
+          "source_sha256": "549f007ab707c177a8b8f5f3a58d31e0e76cfc966191081bdd665f42758820ba"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "9813f44c88d81496bcca4948176bc310a1cd596fda5e6c1a3d837410b46b7a42",
+      "v2_schema_sha256": "b6f338df26baa80a977078a3dca35d7adbe4a3bb29906d44975af02ec95db237"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-3--rep-002--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "no_supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/user-simulator-red-team-trace/trace-defense-requests/5448f61116a708ea72d5ce72abca6097fb908ca53eb2c7e5e0c76dd4a0a9a10a/result.json",
+      "quoted_spans": "2",
+      "replicate": "2",
+      "request_sha256": "5448f61116a708ea72d5ce72abca6097fb908ca53eb2c7e5e0c76dd4a0a9a10a",
+      "returned_replaces": "[]",
+      "sha256": "5c5597f740de6466e20bf65af2f513c57c023e72cdc83baac90c637a878ae3a0",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 181,
+          "native_id": "artifact_2b2a70b910c20d63",
+          "source_sha256": "ea853f944837f7efbadba1cec283cf41fab8e232e4a0d3d46846801726cd0112"
+        },
+        "rejected": {
+          "line_count": 181,
+          "native_id": "artifact_ccee417f4b1f9bca",
+          "source_sha256": "9fb80b99a703b5892c4d56ea30db91d133b1150bf1206df16b32834ddc780245"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "3769d9356d2b8ee148b94e5bf88922efc77c004dcf854b851494b112181e4dfc",
+      "v2_schema_sha256": "d93e3a044a15d837f437fd5a09615f285e2acd314570b2e49fb607735ed5b72c"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-3--rep-002--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "False",
+      "diagnosis_status": "supported_relation",
+      "gap_cause": "missing_coverage",
+      "invalid_diagnosis_replacement": "False",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/user-simulator-red-team-trace/trace-defense-requests/b48228f4ec0ae90274af407ad45564a0979fda81057b3380851a0335cc502b32/result.json",
+      "quoted_spans": "4",
+      "replicate": "2",
+      "request_sha256": "b48228f4ec0ae90274af407ad45564a0979fda81057b3380851a0335cc502b32",
+      "returned_replaces": "[]",
+      "sha256": "a09d087073c977c8c15d2becff68818b1b85580d8ed06d6c0f7f5092daa38533",
+      "source_manifest": {
+        "preferred": {
+          "line_count": 125,
+          "native_id": "artifact_995ba97f96dc0d7d",
+          "source_sha256": "e3d9964be29d260d9d48c46b06394771909bf41b82c7c0eba32c3940d745953d"
+        },
+        "rejected": {
+          "line_count": 103,
+          "native_id": "artifact_f8ebae81303eb364",
+          "source_sha256": "8772e942c7f6d98ed7d8a2b3ba658437ffe4c305fb87ef63d689fbf8b8209571"
+        }
+      },
+      "stage": "diagnosis",
+      "stratum_failure": false,
+      "supplied_active_ids": "[]",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "d530faba63057f36235d2fd5125f180543aaee2c9b3679f78ade3370ee3bfcdd",
+      "v2_schema_sha256": "aa1d4548ce9dd627fd71363fcd9a2d1c8d58496f290bcface5a7ad2e9c79d4ad"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/0f868513e248650a2564bb54fb7bbc928af0b5e93ec4e97e8e067f4d6de5a47b/result.json",
+      "quoted_spans": "4",
+      "replicate": "3",
+      "request_sha256": "0f868513e248650a2564bb54fb7bbc928af0b5e93ec4e97e8e067f4d6de5a47b",
+      "returned_replaces": "",
+      "sha256": "04b1154df7825db8e6515a4cbe0cb0f5aa38d0596257a4f1cc5da2c5c35d2422",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 167,
+          "native_id": "artifact_fe17fda0f9325653",
+          "source_sha256": "6c202f2ecd8d0b0b3402db08482746b569e7bd385e0e571f29ca53a0d7b82156"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "7da7a86bd9e8e9327cbb9eb46aaaabfb044241c3fe2d447ca847f89a02120316",
+      "v2_schema_sha256": "3f541fdaa7ca1565a8ec3add9173fb5ce5eeda926822351cc993e11ada595d78"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/61e42b77b0006e0c9abab424f508b2aba3e8c7619756665ece9fe11e60fdbd9d/result.json",
+      "quoted_spans": "4",
+      "replicate": "3",
+      "request_sha256": "61e42b77b0006e0c9abab424f508b2aba3e8c7619756665ece9fe11e60fdbd9d",
+      "returned_replaces": "",
+      "sha256": "bb9dd6574c2e86ae3b724070ac4f1717ee55658c8929432fcf8478a7082ae9da",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 168,
+          "native_id": "artifact_d0d73290712db200",
+          "source_sha256": "13b3686b4001c500ac60ea545f396bd80bc55a0d6c4747347913c7e4408ebdec"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "9d59d6c004bac07c79bd0170e87a5295651763520454a83f6096be9af8a46191",
+      "v2_schema_sha256": "2c5e6a8f8a392bcde0edbc6935d532b8157b447082b4ff9480bd9fc72ede17a2"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/88370f18076ca2a4640cc549101f555cd6c4a94053b476a03ea2871131016b2d/result.json",
+      "quoted_spans": "2",
+      "replicate": "3",
+      "request_sha256": "88370f18076ca2a4640cc549101f555cd6c4a94053b476a03ea2871131016b2d",
+      "returned_replaces": "",
+      "sha256": "9aa0a3bf141c75c3dfdb72282bbbbf80da3a388ecd270d4d53235f24a4e782da",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 184,
+          "native_id": "artifact_1cb48aecc705f811",
+          "source_sha256": "27c0802c139b340b2158baaac584b5d88f9c7f7a313b31b77d8f3c965c2f1dd7"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "ec5b1572384af8b9fcd54dcdd2e1d19ee36ef6761fb092adff6d6fcf71770d66",
+      "v2_schema_sha256": "3b6246a46bdaa459b14dd0ba7e6aa885c0092a7c899ec1ae8374153196054ef0"
+    },
+    {
+      "any_source_failure": "True",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "1",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/9d3f23ae09c893d4d9f7f6bff77eca3b76b5131f7363b57a7a27ac0012ff73c1/result.json",
+      "quoted_spans": "4",
+      "replicate": "3",
+      "request_sha256": "9d3f23ae09c893d4d9f7f6bff77eca3b76b5131f7363b57a7a27ac0012ff73c1",
+      "returned_replaces": "",
+      "sha256": "27d48858ff9b0af596d55c2d73c107cd5ec34bb2caa94014072a82bc9e70d2de",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 206,
+          "native_id": "artifact_782c6fc00875c5e7",
+          "source_sha256": "4d65c610038d685a08199c72721755b001a387ad685b311862c58a251815c8f1"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": true,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "6ee6b2073edb5d90adc9f236588ba711fd190aa8ff0ad26255bb15b122c3388f",
+      "v2_schema_sha256": "bee6d0730806f40a090f8ae8c0254904505e7b710daade3dbc1e59d95bb3a384"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/875b99198ed2f1bcead46ff1da923097ac2b1599adc5086677299e082ea0f53c/result.json",
+      "quoted_spans": "3",
+      "replicate": "3",
+      "request_sha256": "875b99198ed2f1bcead46ff1da923097ac2b1599adc5086677299e082ea0f53c",
+      "returned_replaces": "",
+      "sha256": "18c414158ce18f6801787f7df5b03f3f409b71e3b02d4271852b9d6527eb716a",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 91,
+          "native_id": "artifact_3b2c4c27c2050bbb",
+          "source_sha256": "f4186a9bf9f88bbcf5e98bda543cf4ebf8a025ca0fd279aea7955dcdce9a61ce"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "925d25a815ef64aec6c4af09dca150969cfe9a3ee75615bb79bf5fc407a47c93",
+      "v2_schema_sha256": "a77cfa8e203e0ec3c6265579bcec1715c26927dfc8c82bdeb131a85465abc840"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/8eb3e5814111a3c2c7dfc99fc1da922247ee7c99dc7138b57bb17eee591b57ea/result.json",
+      "quoted_spans": "4",
+      "replicate": "3",
+      "request_sha256": "8eb3e5814111a3c2c7dfc99fc1da922247ee7c99dc7138b57bb17eee591b57ea",
+      "returned_replaces": "",
+      "sha256": "519baf2b2c6e549ef7e57944ffb4c45e77a4307e9e56a7563daa58c872331136",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 212,
+          "native_id": "artifact_4c110c88f14dc019",
+          "source_sha256": "1ce494a0040a6edbdb7c729147f1b1259115f2c43dd538c3bc321c46c82adf06"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "d71d3bf19ae5a4087c469c73f72f7f91a70bcb22948733866e2c5d1f4764b9b4",
+      "v2_schema_sha256": "f08dfeb72eabd30be9adb513f043e7cb4fa897cebb7de3bdb877f51e721d998a"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-requests/fe905b0b3687dc31467f6086ae75acdf5112a8713b1396c33a036e042415db7c/result.json",
+      "quoted_spans": "4",
+      "replicate": "3",
+      "request_sha256": "fe905b0b3687dc31467f6086ae75acdf5112a8713b1396c33a036e042415db7c",
+      "returned_replaces": "",
+      "sha256": "ae91e170634532874aa639d46f8c9d6ee422da4afd4577be635133d258c8c866",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 203,
+          "native_id": "artifact_e4c34f4f5ab59d5a",
+          "source_sha256": "017b3e69d99575a80d5dd187d8042491090faef3a939bca2526054154b7ea6d5"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-1",
+      "v2_evidence_sha256": "a46d924ffb5488f2e5f28c8e3d4e1e0d5e1ffb92af86b7fc5cfdad66cfd57fdc",
+      "v2_schema_sha256": "b5e61a9712dc549f2b77f353f89911fe9e138e3b5b15b0c91f3ae20207880fab"
+    },
+    {
+      "any_source_failure": "False",
+      "arm": "user",
+      "assignment_id": "da-10-3--rep-002--solver-luna--user-simulator-red-team-trace",
+      "condition_id": "user-simulator-red-team-trace",
+      "diagnosis_replacement_scope_mismatch": "",
+      "diagnosis_status": "",
+      "gap_cause": "",
+      "invalid_diagnosis_replacement": "",
+      "invalid_spans": "0",
+      "missing_required_witnesses": "0",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/study/biomnibench-da-factorial-r10-3e186b5fe98c/experiments/da-10-3/rep-002/luna/user-simulator-red-team-trace/trace-defense-requests/11df08e5be4e7e9a5ee1c7295947122a45c3d2c6ad5d240add34fa5c7a03f3fe/result.json",
+      "quoted_spans": "3",
+      "replicate": "2",
+      "request_sha256": "11df08e5be4e7e9a5ee1c7295947122a45c3d2c6ad5d240add34fa5c7a03f3fe",
+      "returned_replaces": "",
+      "sha256": "eeaf1358baf11499a078f65c941f775485a56b91138df7c4c978f37465287b96",
+      "source_manifest": {
+        "artifact": {
+          "line_count": 278,
+          "native_id": "artifact_87d6370f2374c0a6",
+          "source_sha256": "93dfb045dc0ca39c16839f83d71139adea39bdff7daecdbd552d57909440cedb"
+        }
+      },
+      "stage": "application",
+      "stratum_failure": false,
+      "supplied_active_ids": "",
+      "task_id": "da-10-3",
+      "v2_evidence_sha256": "bb7c4032a77b76dc09913389770c2c78800b43b2ef88ba4c65e559cac4d6ba8f",
+      "v2_schema_sha256": "806df52af6584e8aca1aa5e8bce781916464bc6bf40348c4c8691f47f8e4f191"
+    }
+  ],
+  "selection": "first four unique request hashes per arm/stage/failure stratum sorted by task, replicate, request hash",
+  "source_csv": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/report/quote-binding-requests.csv",
+  "source_csv_sha256": "8dece25a15f585cc61b413efc77d12fe46eaf5a6db4c64940aa4107cd38a4aa4",
+  "source_v1_snapshot": "106863b2ca1bfb543be3d6660aaeca56baec15af",
+  "strata": [
+    {
+      "arm": "full",
+      "available": 181,
+      "relevant_failure": true,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "quality"
+    },
+    {
+      "arm": "full",
+      "available": 372,
+      "relevant_failure": false,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "quality"
+    },
+    {
+      "arm": "full",
+      "available": 126,
+      "relevant_failure": true,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "diagnosis"
+    },
+    {
+      "arm": "full",
+      "available": 110,
+      "relevant_failure": false,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "diagnosis"
+    },
+    {
+      "arm": "full",
+      "available": 189,
+      "relevant_failure": true,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "application"
+    },
+    {
+      "arm": "full",
+      "available": 157,
+      "relevant_failure": false,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "application"
+    },
+    {
+      "arm": "user",
+      "available": 394,
+      "relevant_failure": true,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "quality"
+    },
+    {
+      "arm": "user",
+      "available": 801,
+      "relevant_failure": false,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "quality"
+    },
+    {
+      "arm": "user",
+      "available": 210,
+      "relevant_failure": true,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "diagnosis"
+    },
+    {
+      "arm": "user",
+      "available": 159,
+      "relevant_failure": false,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "diagnosis"
+    },
+    {
+      "arm": "user",
+      "available": 526,
+      "relevant_failure": true,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "application"
+    },
+    {
+      "arm": "user",
+      "available": 424,
+      "relevant_failure": false,
+      "selected": 4,
+      "shortfall": 0,
+      "stage": "application"
+    }
+  ]
+}

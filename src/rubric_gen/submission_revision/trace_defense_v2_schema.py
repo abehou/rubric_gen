@@ -9,7 +9,7 @@ from .trace_defense_evidence_v2 import (
 from .trace_defense_schema import obj, array, TEXT, BOOL, criterion_public, view_schema, semantic_schema
 
 SCHEMA_VERSION = 'trace-defense-v2-schema-1'
-VALIDATION_VERSION = 'trace-defense-v2-validation-1'
+VALIDATION_VERSION = 'trace-defense-v2-validation-2'
 
 
 def enum(values):
@@ -71,6 +71,9 @@ class ResponseContract:
         if errors:
             raise EvidenceContractError(errors)
         resolved = {}
+        reason_field = 'explanation' if self.stage == 'diagnosis' else 'reason'
+        if not value[reason_field].strip():
+            errors.append({'field': reason_field, 'reason': 'nonempty_explanation_required'})
         def refs(name, required=(), excluded=()):
             docs = {k: v for k, v in self.documents.items() if k not in excluded}
             try:
@@ -117,23 +120,34 @@ class ResponseContract:
                 or (value.get('applicability') == 'undecidable' and value.get('level') is None))
 
     def repair_locks(self, value):
-        """Only locator/illegal-action repairs with an otherwise valid scientific payload."""
-        if not isinstance(value, dict) or set(value) != set(self.schema['properties']):
+        """Lock every already-valid scientific field, including partial schema responses.
+
+        An incoherent applicability/level pair is repairable encoding. Its valid
+        check/reason text is still evidence of the assessment and cannot be redrawn.
+        """
+        if not isinstance(value, dict):
             return None
-        editable = {'quality': ['decisive_refs'], 'diagnosis': ['preferred_refs', 'rejected_refs'],
-                    'application': ['public_refs']}.get(self.stage)
-        if editable is None:
+        properties = self.schema['properties']
+        refs = {'quality': ['decisive_refs'], 'diagnosis': ['preferred_refs', 'rejected_refs'],
+                'application': ['public_refs']}.get(self.stage)
+        if refs is None:
             return None
-        editable = list(editable)
-        if self.stage == 'diagnosis' and value['action'] not in allowed_actions(self.active_ids):
-            editable.append('action')
-        if self.stage == 'application' and not self.application_combination_valid(value):
-            return None
+        valid = {}
         for key, item in value.items():
-            if key not in editable:
-                if list(jsonschema.Draft202012Validator(self.schema['properties'][key]).iter_errors(item)):
-                    return None
-                if isinstance(item, str) and not item.strip():
-                    return None
-        return {'allowed_edit_fields': editable,
-                'locked_fields': {k: v for k, v in value.items() if k not in editable}}
+            if key in properties and not list(jsonschema.Draft202012Validator(properties[key]).iter_errors(item)):
+                if not isinstance(item, str) or item.strip():
+                    valid[key] = item
+        locked = {k: v for k, v in valid.items() if k not in refs}
+        if self.stage == 'application' and not self.application_combination_valid(value):
+            locked.pop('applicability', None)
+            locked.pop('level', None)
+        # A malformed action has no legal prior operation to freeze; the diagnosis
+        # relation/check/explanation remain locked independently of that encoding.
+        if self.stage == 'diagnosis' and value.get('action') not in allowed_actions(self.active_ids):
+            locked.pop('action', None)
+        if not locked:
+            return None
+        editable = [k for k in properties if k not in locked]
+        only_locator = set(editable) <= set(refs + (['action'] if self.stage == 'diagnosis' else []))
+        return {'allowed_edit_fields': editable, 'locked_fields': locked,
+                'repair_kind': 'locator_repair' if only_locator and set(value) == set(properties) else 'schema_repair'}

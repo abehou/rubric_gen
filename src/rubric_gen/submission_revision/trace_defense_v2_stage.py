@@ -13,7 +13,7 @@ from .trace_defense_evidence_v2 import EvidenceContractError
 from .trace_defense_v2_schema import ResponseContract
 from . import trace_defense_v2_prompts as prompts
 
-STAGE_CONTRACT_VERSION = 'trace-defense-v2-stage-1'
+STAGE_CONTRACT_VERSION = 'trace-defense-v2-stage-2'
 
 
 def contract_source_hashes():
@@ -30,6 +30,8 @@ class TraceStagesV2:
         from .trace_defense_registry import recipe
         if recipe(self.version).family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
+        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2'}:
+            raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
 
     def request(self, stage, evidence, validator):
@@ -101,19 +103,25 @@ class TraceStagesV2:
                 if failures > PROVIDER_FAILURE_MAX_RETRIES:
                     raise RubricProposerProviderError(f'{stage}: provider allowance exhausted at {directory}')
                 if (len(attempts) >= request['maximum_stage_attempts'] or invalid >= self.proposer.max_retries+1
-                        or (state is not None and locator_calls >= 2)):
+                        or (state is not None and state['repair_kind'] == 'locator_repair' and locator_calls >= 2)):
                     # Transport exhaustion remains an infrastructure failure, never a scientific empty result.
                     if attempts and attempts[-1]['status'] == 'provider_failure':
                         raise RubricProposerProviderError(f'{stage}: attempt allowance exhausted by transport at {directory}')
                     outcome = {'status': 'contract_exhausted', 'value': None, 'resolved_evidence': {},
                                'source_binding_status': 'not_valid', 'validation_errors': last_errors}
                     break
-                kind = 'locator_repair' if state is not None else 'schema_repair' if invalid else 'initial'
-                instructions = prompts.LOCATOR_REPAIR_V2 if state is not None else prompts.STAGES[stage]
+                kind = state['repair_kind'] if state is not None else 'schema_repair' if invalid else 'initial'
+                instructions = prompts.LOCATOR_REPAIR_V2 if kind == 'locator_repair' else prompts.STAGES[stage]
                 if state is not None:
                     payload = {'original_public_inputs': load_json_object(request['evidence'], 'request evidence'),
                                'previous_response': state['previous_response'], 'validation_errors': last_errors,
                                'allowed_edit_fields': state['allowed_edit_fields'], 'locked_fields': state['locked_fields']}
+                    if kind == 'schema_repair':
+                        payload['contract_repair_instruction'] = (
+                            'Correct only invalid or missing output-contract fields. Keep every locked field exactly equal '
+                            'to its supplied value. Do not perform a new scientific assessment. Resolve an incoherent '
+                            'applicability/level encoding faithfully to the unchanged check and reason; no desired '
+                            'applicability or grade is supplied. Return a complete object under the original schema.')
                     attempt_evidence = canonical_json(payload)
                 else:
                     attempt_evidence = request['evidence']
@@ -170,6 +178,7 @@ class TraceStagesV2:
                             state['locked_fields'].update(deepcopy(candidate_locks['locked_fields']))
                             state['allowed_edit_fields'] = [k for k in state['allowed_edit_fields'] if k not in state['locked_fields']]
                             state['previous_response'] = deepcopy(value)
+                            state['repair_kind'] = candidate_locks['repair_kind']
                     attempt.update(status='contract_invalid', validation_errors=last_errors, parsed_response=value)
                 else:
                     outcome = self._valid(value, bindings)

@@ -19,7 +19,7 @@ from rubric_gen.submission_revision.rubric_generation import RubricGeneration, R
 from test_trace_attack_defense import history, current
 from test_rubric_evolution import _rubric, _development_rubric, _proposer_output
 
-VERSION = 'attack_defense_v2.dev1'
+VERSION = 'attack_defense_v2.dev2'
 
 
 def ref(source='artifact', start=1, end=1):
@@ -297,6 +297,7 @@ def test_cache_identity_all_contract_dimensions(tmp_path,monkeypatch):
     from rubric_gen.submission_revision import trace_defense_v2_prompts as prompts
     monkeypatch.setattr(prompts,'PROMPT_VERSION','new pinned prompt contract')
     assert stages.request('application',{'task':'x'},c)!=original
+    monkeypatch.setattr(prompts,'PROMPT_VERSION',VERSION)
     stages2=TraceStagesV2(proposer(lambda **kwargs:None),tmp_path)
     stages2.proposer.proposer_contract=replace(stages2.proposer.proposer_contract,model='other-model')
     assert stages2.request('application',{'task':'x'},c)['provider']!=original['provider']
@@ -439,3 +440,32 @@ def test_v2_controller_timing_terminal_and_recovery(tmp_path,monkeypatch,no_chan
     fixture.validate_completed_revision(config.experiment_dir,fixture._validation_assignment(config,task),design,
                                          config.seed_run_dir,config.experiment_dir/'paraphrases')
 
+
+
+def test_incoherent_combination_cannot_rewrite_valid_check_reason(tmp_path):
+    bad=application();bad['level']=None
+    calls=[]
+    def operation(**kwargs):
+        calls.append(kwargs)
+        if len(calls)==1:value=bad
+        elif len(calls)==2:value={**bad,'applicability':'undecidable','reason':'A new scientific assessment.'}
+        else:value={**bad,'applicability':'undecidable'}
+        return _proposer_output(value,'application')
+    stages=TraceStagesV2(proposer(operation),tmp_path)
+    got=stages.call('application',{},application_contract())
+    assert got['applicability']=='undecidable' and got['level'] is None
+    assert got['check']==bad['check'] and got['reason']==bad['reason'] and len(calls)==3
+    for call in calls[1:]:
+        request=json.loads(call['evidence'])
+        assert request['locked_fields']['reason']==bad['reason']
+        assert 'level' not in request['locked_fields']
+        assert 'contract_repair_instruction' in request
+    attempt=json.loads(next(tmp_path.glob('*/attempt-002.json')).read_text())
+    assert attempt['validation_errors']==[{'field':'reason','reason':'locked_field_changed'}]
+
+
+def test_partial_schema_failure_still_locks_valid_application_grade():
+    c=application_contract();value=application('C');value['check']=''
+    locks=c.repair_locks(value)
+    assert locks['locked_fields']['level']=='C' and locks['locked_fields']['applicability']=='applicable'
+    assert 'check' in locks['allowed_edit_fields'] and locks['repair_kind']=='schema_repair'

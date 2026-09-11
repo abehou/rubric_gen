@@ -1228,3 +1228,5 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 
 - 21:05 EDT: Isolated checkout `runs/babel-code/attack-defense-v2` starts at report commit `10efb8886d19163975c137f2f058eb4c415657d5`; the shared dirty checkout and historical v1 worktree remain intact. New compute root `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/`; Phase A uses `phase-a/dev1-001/`, physically separate from future dev3/Result20 outputs and caches.
 - 21:05 EDT: Provider-free input jobs 10392208/10392306; compact cohort receipt `experiments/trace-attack-defense-v2/phase-a-cohort.json`. Model work will use 32 allocated CPUs, at most 32 workers, intra-assignment fan-out four, shared aggregate limit 60 and audit-study limit one; no outcome auditor is invoked during development.
+
+- 21:26 EDT: Phase-A dev1 source8124dd8 pushed; job10392341 completed the fixed48-request microbench, with reports under trace-attack-defense-v2/phase-a/dev1-001. Dev2 preparation10392474 preserves its separate cohort/config receipts; no full dev3 iteration has launched yet.
