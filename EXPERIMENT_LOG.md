@@ -2187,3 +2187,6 @@
 - 21:26 EDT: Canonical dev3 inputs relocated and validated with zero provider calls in10392386/10392474; the first job's pre-execution Slurm launch failure was released onto the known working node. Nine seed replicates and separate paraphrase pools are reused; old g1 producer identities fail native checks for da-3-4/da-11-1 and no da-18-1 g1 exists, so only new dev3 g1 derivation is required.
 
 - 21:48 EDT: Phase-A dev2 10392565 passed all48 contracts (47 first response); the sole repaired application retained its scientific text and ended undecidable. Dev3 iteration1 job10392635 now runs all18 assignments from three newly frozen dev3-only g1 inputs under fb8f4da, with no outcome audits.
+## 2026-09-10 — attack_defense_v2 production freeze preparation
+
+- 23:22 EDT: Provider-free Result20 readiness job10394078 passed on babel-s5-24 with NFS4 server locking, 60 matched frozen seeds, 20 producer-verified g1 rubrics, exact V2 paraphrase provenance and Sol/Opus reuse sources; no provider calls were made. The copied production launcher had a double `/data/user_data` prefix, which was corrected before any production owner existed; the scientific recipe and v2 source code were unchanged.

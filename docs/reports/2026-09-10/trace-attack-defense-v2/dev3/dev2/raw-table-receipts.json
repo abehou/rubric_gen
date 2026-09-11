@@ -1,0 +1,72 @@
+{
+  "README.md": {
+    "bytes": 1560,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/README.md",
+    "sha256": "063ce5c6674d588279e009a828317648364440737304ad67a128d2b49a39efaf"
+  },
+  "assignments.csv": {
+    "bytes": 5069,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/assignments.csv",
+    "sha256": "f79db996fc7b624971269ad136ba321a5ab7319ceeecf48762bab9aad61389df"
+  },
+  "assignments.json": {
+    "bytes": 8787,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/assignments.json",
+    "sha256": "3167e320cb21cbafae08b183b246e308a29fbcf0f1dfbb400977cb05ca0c8e3e"
+  },
+  "attempts.csv": {
+    "bytes": 6677752,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/attempts.csv",
+    "sha256": "aee3d224c0628f36c6c93d1226a4bb538f2cff95981b2283b22f3edfb2591763"
+  },
+  "attempts.json": {
+    "bytes": 12726875,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/attempts.json",
+    "sha256": "cb8774e4978145fbe5cdbda882a5186d4bb9332f79f376b1409c69e1fc28d053"
+  },
+  "candidates.csv": {
+    "bytes": 9578852,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/candidates.csv",
+    "sha256": "5464876ef99771058b7ea974cd7cf1e102c1dd49d7b6467bfda48d2b6e26f51b"
+  },
+  "candidates.json": {
+    "bytes": 10759368,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/candidates.json",
+    "sha256": "95e4e5d4db0dc2b0fedf2a5ad5d60d2f0cce6ceac5a48e02f8a1c70bc8d6ca36"
+  },
+  "deliveries.csv": {
+    "bytes": 40502,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/deliveries.csv",
+    "sha256": "f785fb8d8b5d22f2727c26581f2b32c3fd130c6efe13f6bf22052ed25f78cea4"
+  },
+  "deliveries.json": {
+    "bytes": 69929,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/deliveries.json",
+    "sha256": "9860ba2fbfe40200cd73cc0b8d8dd4b8d4eb1c054aae9499e78551b01ddbcf3a"
+  },
+  "mechanism.json": {
+    "bytes": 10605,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/mechanism.json",
+    "sha256": "b28f10c1e2d0d424e137bb523b4b94132904610acbf6029576a9a8bd747b6db5"
+  },
+  "request-appearances.csv": {
+    "bytes": 1109994,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/request-appearances.csv",
+    "sha256": "5c1c9187b23cb64b85e4760906f695cc63044ab54a8093f0d7d20632c4a600ed"
+  },
+  "request-appearances.json": {
+    "bytes": 2380548,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/request-appearances.json",
+    "sha256": "e785e4e9dbc97bf262f69683d96b87dbaffd34792a98690e6ae9f4feff72507d"
+  },
+  "requests.csv": {
+    "bytes": 2565693,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/requests.csv",
+    "sha256": "8b9b9c6d50582cb6a28fa527976eb761b58dc8e996dc76ee4398de2788668032"
+  },
+  "requests.json": {
+    "bytes": 3760593,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/collector/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/requests.json",
+    "sha256": "f9336e62f563e4e089e4c83a38c7d55819c2e796b10dc27608309dfbfde78a99"
+  }
+}

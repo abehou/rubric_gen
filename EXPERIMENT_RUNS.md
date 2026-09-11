@@ -1234,3 +1234,6 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 21:48 EDT: Dev3 iteration1 job 10392635 uses 32CPU/18 assignment workers/fan-out4/shared60 at `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/`; native task-study configs are `experiments/trace-attack-defense-v2/dev2/*.yaml`. Phase-A dev2 receipts are under `phase-a/dev2-001/`; no production cohort has launched.
 
 - 22:45 EDT: Provider-free completion report 10393324 is queued after dev3 job 10392635; it replaces unstarted report 10392914 to retain full application payload tables on NFS. Reporting source is 587a7b3; the running scientific snapshot remains fb8f4da.
+## 2026-09-10 — attack_defense_v2 Result20 readiness
+
+- 23:22 EDT: Provider-free readiness job10394078 completed exit0 on babel-s5-24 for the pending Result20 bundle; it validated experiment `biomnibench-da-factorial-r10-d2237f051bbf`, 120 scoped assignments, NFS4 server locking, 60 preserved seed matches, 20 g1 inputs and exact native audit reuse sources. No Result20 execution or audit job had been submitted; a copied launcher double-prefix path was fixed before freeze.

@@ -1,6 +1,6 @@
 # attack_defense_v2 — bounded development, then conditional Result20
 
-Status: Phase-A dev2 passed 48/48 final contracts (47/48 first response), with zero illegal cached actions or host metadata mismatches. Full dev3 iteration 1 is running as job **10392635**, execution snapshot **fb8f4da44719eee23c89a89c986ac4099cee4057**, under `attack_defense_v2.dev2`; no Result20 or outcome audit has launched.
+Status: Phase-A dev2 passed 48/48 final contracts (47/48 first response), and the first full dev3 iteration completed as job **10392635** under `attack_defense_v2.dev2`. The authoritative readiness receipt reports every gate passed (contract integrity, complete candidate funnel, strict witness separation, and online admission/exposure in both arms). Provider-free Result20 readiness job **10394078** also passed on Babel (`biomnibench-da-factorial-r10-d2237f051bbf`); no Result20 provider or outcome-audit job has launched yet.
 
 The first recipe is `attack_defense_v2.dev1`. It replaces copied quotation strings with deterministic source ranges, encodes only legal learned-rule operations, binds witness/replacement metadata in the host, validates contracts before caching, removes the compiler self-rating veto, and reserves replacement targets only after native acceptance. The attack-first objective, early update schedule, two-pair budget, blind applications, native support/margin mathematics, fixed penalties and v1 one-rule reminder policy are retained.
 

@@ -1,0 +1,286 @@
+{
+  "agent_summary": {
+    "sidecar": {
+      "estimated_usd_lower_bound": 1.687899,
+      "events": {
+        "codex.item.agentMessage.delta": 45189,
+        "codex.item.commandExecution.outputDelta": 634,
+        "codex.turn.diff.updated": 698,
+        "item.completed": 2159,
+        "item.started": 2159,
+        "thread.started": 129,
+        "turn.completed": 129,
+        "turn.started": 129
+      },
+      "threads_with_usage": 129,
+      "tokens": {
+        "cached_input_tokens": 18648064,
+        "input_tokens": 22727671,
+        "output_tokens": 415849,
+        "reasoning_output_tokens": 99871,
+        "total_tokens": 23143520
+      }
+    },
+    "solver": {
+      "estimated_usd_lower_bound": 1.073872,
+      "events": {
+        "codex.item.agentMessage.delta": 18116,
+        "codex.item.commandExecution.outputDelta": 482,
+        "codex.item.commandExecution.terminalInteraction": 1,
+        "codex.turn.diff.updated": 525,
+        "item.completed": 1250,
+        "item.started": 1250,
+        "thread.started": 129,
+        "turn.completed": 129,
+        "turn.started": 129
+      },
+      "threads_with_usage": 18,
+      "tokens": {
+        "cached_input_tokens": 23823360,
+        "input_tokens": 25216332,
+        "output_tokens": 265675,
+        "reasoning_output_tokens": 23089,
+        "total_tokens": 25482007
+      }
+    }
+  },
+  "auditor_calls": 0,
+  "capacity": {
+    "audit_wait_seconds": 0,
+    "jobs": [
+      "10392635"
+    ],
+    "maximum_owned_provider_leases": 47,
+    "note": "Native operations may be nested; summed operation durations are not independent API-call counts.",
+    "operations": {
+      "evolution-generation": {
+        "elapsed_seconds": 22950.363000429003,
+        "event_counts": {
+          "operation_completed": 3612,
+          "operation_failed": 1
+        }
+      },
+      "hosted-generation": {
+        "elapsed_seconds": 277.0008876277134,
+        "event_counts": {
+          "operation_completed": 80
+        }
+      },
+      "optimizer-judge": {
+        "elapsed_seconds": 2480.7263279741164,
+        "event_counts": {
+          "operation_completed": 291
+        }
+      },
+      "solver-resume": {
+        "elapsed_seconds": 5062.761742544826,
+        "event_counts": {
+          "operation_completed": 111
+        }
+      },
+      "solver-turn": {
+        "elapsed_seconds": 13206.672658476047,
+        "event_counts": {
+          "operation_completed": 147
+        }
+      }
+    },
+    "provider_leases_acquired": 4242,
+    "provider_wait_seconds": 25.359904984710738
+  },
+  "completed": 18,
+  "direct_returned_responses": 3983,
+  "elapsed_seconds": 4357.777231216431,
+  "learning_provider_failures": 1,
+  "limitations": [
+    "Usage estimates use the frozen repository pricing registry, not provider invoices.",
+    "Calls failing without returned usage have unknown token cost.",
+    "Agent thread usage is cumulative: maximum totals per thread are used across resumed turns.",
+    "Internal agent model-request counts are unavailable; agent invocations and structured requests are distinct.",
+    "Summed request wall times include waiting and concurrency; they are not cohort elapsed time.",
+    "Frozen dev3 seed/paraphrase production costs are excluded and their reuse is disclosed."
+  ],
+  "method": "attack_defense_v2.dev2",
+  "owner_jobs": [
+    "10392635"
+  ],
+  "pricing_registry_date": "2026-08-18",
+  "raw_records": {
+    "bytes": 7403764,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/cost-records.json",
+    "sha256": "a75103ed2fba326d9582747b3c309dd08fbfa744762e93415fe58cf42c6210e1"
+  },
+  "scope": "full_dev3_iteration",
+  "stage_summary": {
+    "application": {
+      "attempt_wall_seconds": 7653.888559240615,
+      "estimated_usd": 3.2710271,
+      "fresh_responses": 1437,
+      "returned_responses": 1437,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 10464602,
+        "input_tokens": 10468913,
+        "output_tokens": 545012
+      },
+      "usage_available": 1437
+    },
+    "common_simulator": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.3281008,
+      "fresh_responses": 80,
+      "returned_responses": 80,
+      "reused_frozen": 0,
+      "tokens": {
+        "input_tokens": 1549496,
+        "output_tokens": 15168
+      },
+      "usage_available": 80
+    },
+    "compilation": {
+      "attempt_wall_seconds": 752.8035749092232,
+      "estimated_usd": 0.60799985,
+      "fresh_responses": 131,
+      "returned_responses": 131,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 2204141,
+        "input_tokens": 2204534,
+        "output_tokens": 47405
+      },
+      "usage_available": 131
+    },
+    "dev3_offline_g1_assessment_active_rubric": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.02340685,
+      "fresh_responses": 3,
+      "returned_responses": 3,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 74545,
+        "input_tokens": 74554,
+        "output_tokens": 3974
+      },
+      "usage_available": 3
+    },
+    "dev3_offline_g1_assessment_development_rubric": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.0230443,
+      "fresh_responses": 3,
+      "returned_responses": 3,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 74578,
+        "input_tokens": 74587,
+        "output_tokens": 3665
+      },
+      "usage_available": 3
+    },
+    "dev3_offline_g1_assessment_rubric_free": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.02063695,
+      "fresh_responses": 3,
+      "returned_responses": 3,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 68827,
+        "input_tokens": 68836,
+        "output_tokens": 2857
+      },
+      "usage_available": 3
+    },
+    "dev3_offline_g1_induction": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.0129562,
+      "fresh_responses": 3,
+      "returned_responses": 3,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 39544,
+        "input_tokens": 39553,
+        "output_tokens": 2557
+      },
+      "usage_available": 3
+    },
+    "dev3_offline_g1_validation": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.01787025,
+      "fresh_responses": 8,
+      "returned_responses": 8,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 60705,
+        "input_tokens": 60729,
+        "output_tokens": 2241
+      },
+      "usage_available": 8
+    },
+    "diagnosis": {
+      "attempt_wall_seconds": 1743.3143091276288,
+      "estimated_usd": 1.43569145,
+      "fresh_responses": 204,
+      "returned_responses": 204,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 5127089,
+        "input_tokens": 5127701,
+        "output_tokens": 128164
+      },
+      "usage_available": 204
+    },
+    "optimizer_judge": {
+      "attempt_wall_seconds": 0,
+      "estimated_usd": 0.6768905,
+      "fresh_responses": 291,
+      "returned_responses": 291,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 2174654,
+        "input_tokens": 2175527,
+        "output_tokens": 110877
+      },
+      "usage_available": 291
+    },
+    "quality": {
+      "attempt_wall_seconds": 2487.463760487037,
+      "estimated_usd": 1.2592971,
+      "fresh_responses": 331,
+      "returned_responses": 331,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 4119600,
+        "cached_input_tokens": 540885,
+        "input_tokens": 4661478,
+        "output_tokens": 181984
+      },
+      "usage_available": 331
+    },
+    "rubric_view": {
+      "attempt_wall_seconds": 9384.230741233565,
+      "estimated_usd": 3.50585165,
+      "fresh_responses": 1358,
+      "returned_responses": 1358,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 10590077,
+        "cached_input_tokens": 831360,
+        "input_tokens": 11425511,
+        "output_tokens": 700742
+      },
+      "usage_available": 1358
+    },
+    "semantic": {
+      "attempt_wall_seconds": 436.92211815644987,
+      "estimated_usd": 0.19328104999999998,
+      "fresh_responses": 131,
+      "returned_responses": 131,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 634157,
+        "input_tokens": 634550,
+        "output_tokens": 28886
+      },
+      "usage_available": 131
+    }
+  }
+}

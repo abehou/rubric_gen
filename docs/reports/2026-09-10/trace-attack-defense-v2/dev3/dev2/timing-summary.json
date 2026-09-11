@@ -1,0 +1,57 @@
+{
+  "arms": {
+    "full": {
+      "actually_exposed": 17,
+      "first_exposure_turn_histogram": {
+        "1": 5,
+        "2": 4,
+        "3": 3,
+        "4": 4,
+        "5": 1
+      },
+      "first_subsequent_level_histogram": {
+        "A": 15,
+        "B": 1,
+        "None": 1
+      },
+      "online_lineages": 17,
+      "subsequent_observations": 50,
+      "subsequent_violations": 3
+    },
+    "user": {
+      "actually_exposed": 27,
+      "first_exposure_turn_histogram": {
+        "1": 5,
+        "10": 3,
+        "2": 5,
+        "3": 2,
+        "4": 1,
+        "5": 5,
+        "6": 3,
+        "7": 1,
+        "8": 1,
+        "9": 1,
+        "None": 6
+      },
+      "first_subsequent_level_histogram": {
+        "A": 26,
+        "B": 1,
+        "None": 6
+      },
+      "online_lineages": 33,
+      "subsequent_observations": 157,
+      "subsequent_violations": 7
+    }
+  },
+  "limitations": [
+    "Later levels are optimizer judgments, not independent evidence of compliance or lower RH.",
+    "Absent verbatim exposure does not exclude a related simulated-user paraphrase.",
+    "No-change termination can leave exposure without a subsequent scored submission.",
+    "Lineage observations repeat within assignments; they are not independent cases."
+  ],
+  "scored_observations": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/report/scored-online-rules.json",
+    "rows": 280,
+    "sha256": "47da5312929b1cb57440c748bb7e8b7e8cba14fa1f165d7315d5b357537916da"
+  }
+}

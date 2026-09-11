@@ -1,0 +1,211 @@
+{
+  "completion": {
+    "assignments": [
+      {
+        "assignment_id": "da-3-4--rep-002--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/experiments/da-3-4/rep-002/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-3-4--rep-001--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/experiments/da-3-4/rep-001/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-3-4--rep-003--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/experiments/da-3-4/rep-003/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-3-4--rep-003--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/experiments/da-3-4/rep-003/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-3-4--rep-001--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/experiments/da-3-4/rep-001/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-3-4--rep-002--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/experiments/da-3-4/rep-002/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/experiments/da-11-1/rep-002/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/experiments/da-11-1/rep-001/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/experiments/da-11-1/rep-003/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-11-1--rep-003--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/experiments/da-11-1/rep-003/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-11-1--rep-001--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/experiments/da-11-1/rep-001/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-11-1--rep-002--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/experiments/da-11-1/rep-002/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-18-1--rep-002--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/experiments/da-18-1/rep-002/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-18-1--rep-001--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/experiments/da-18-1/rep-001/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-18-1--rep-003--solver-luna--user-simulator-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/experiments/da-18-1/rep-003/luna/user-simulator-red-team-trace"
+      },
+      {
+        "assignment_id": "da-18-1--rep-003--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/experiments/da-18-1/rep-003/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-18-1--rep-001--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/experiments/da-18-1/rep-001/luna/full-red-team-trace"
+      },
+      {
+        "assignment_id": "da-18-1--rep-002--solver-luna--full-red-team-trace",
+        "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+        "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/experiments/da-18-1/rep-002/luna/full-red-team-trace"
+      }
+    ],
+    "audits_launched": 0,
+    "commit": "fb8f4da44719eee23c89a89c986ac4099cee4057",
+    "completed": 18,
+    "expected": 18,
+    "iteration": 1,
+    "job": "10392635",
+    "method": "attack_defense_v2.dev2"
+  },
+  "counts": {
+    "full": {
+      "accepted": 17,
+      "aggregate_margin_failed": 22,
+      "assignments": 9,
+      "assignments_with_online_admission": 8,
+      "assignments_with_online_exposure": 8,
+      "compiled_candidates": 55,
+      "complete_applications": 463,
+      "complete_native_candidates": 53,
+      "criterion_support_failed": 11,
+      "diagnosis_ADD": 54,
+      "diagnosis_NO_SUPPORTED_RELATION": 18,
+      "diagnosis_PREFERENCE_CONFLICT": 18,
+      "diagnosis_REPLACE": 1,
+      "new_online_rules": 17,
+      "online_rules_exposed": 17,
+      "pre_turn1_online_admission": 4,
+      "pre_turn1_online_exposure": 4,
+      "quality_gap_appearances": 226,
+      "required_applications": 473,
+      "selected_induction_pairs": 91,
+      "semantic_validation_failed": 3,
+      "sidecars_attempted": 49,
+      "sidecars_execution_valid": 49,
+      "sidecars_nonidentical": 49,
+      "strict_witness_complete_candidates": 41,
+      "updates": 49
+    },
+    "user": {
+      "accepted": 33,
+      "aggregate_margin_failed": 19,
+      "assignments": 9,
+      "assignments_with_online_admission": 9,
+      "assignments_with_online_exposure": 9,
+      "compiled_candidates": 94,
+      "complete_applications": 1107,
+      "complete_native_candidates": 90,
+      "criterion_support_failed": 32,
+      "diagnosis_ADD": 83,
+      "diagnosis_NO_SUPPORTED_RELATION": 35,
+      "diagnosis_PREFERENCE_CONFLICT": 25,
+      "diagnosis_REPLACE": 11,
+      "new_online_rules": 33,
+      "online_rules_exposed": 27,
+      "pre_turn1_online_admission": 5,
+      "pre_turn1_online_exposure": 5,
+      "quality_gap_appearances": 617,
+      "required_applications": 1115,
+      "selected_induction_pairs": 154,
+      "semantic_validation_failed": 6,
+      "sidecars_attempted": 80,
+      "sidecars_execution_valid": 80,
+      "sidecars_nonidentical": 80,
+      "strict_witness_complete_candidates": 58,
+      "updates": 80
+    }
+  },
+  "exact_request_hashes": 3425,
+  "full_iteration": 1,
+  "gates": {
+    "full": {
+      "actual_online_exposure": true,
+      "admitted_assignments": true,
+      "application_contracts": true,
+      "contracts": true,
+      "native_complete": true,
+      "phase_a": true,
+      "strict_witness": true
+    },
+    "user": {
+      "actual_online_exposure": true,
+      "admitted_assignments": true,
+      "application_contracts": true,
+      "contracts": true,
+      "native_complete": true,
+      "phase_a": true,
+      "strict_witness": true
+    }
+  },
+  "method": "attack_defense_v2.dev2",
+  "outcome_audits": 0,
+  "rates_and_denominators": {
+    "full": {
+      "application_denominator": 403,
+      "application_valid": 1.0,
+      "compiled_denominator": 55,
+      "complete_denominator": 53,
+      "complete_native_fraction": 0.9636363636363636,
+      "overall_denominator": 584,
+      "overall_valid": 1.0,
+      "strict_witness_fraction": 0.7735849056603774
+    },
+    "user": {
+      "application_denominator": 1032,
+      "application_valid": 1.0,
+      "compiled_denominator": 94,
+      "complete_denominator": 90,
+      "complete_native_fraction": 0.9574468085106383,
+      "overall_denominator": 1386,
+      "overall_valid": 1.0,
+      "strict_witness_fraction": 0.6444444444444445
+    }
+  },
+  "readiness_passed": true,
+  "request_appearances": 6450,
+  "request_cache_entries": 3590,
+  "request_units": "unique assignment-local request-cache entries; generation appearances reported separately"
+}

@@ -1,0 +1,16 @@
+{
+  "pool": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910",
+  "manifest_sha256": "404d8cb9437c4f6d766c40a1c9fade066a0e53aab249c37fc63da990a68bc0e8",
+  "prompt_sha256": "7358961f597ecee9c99882cb98af5770bf8596e9967a4b0630ae8c8529ff925c",
+  "selected_variant": "variant-001",
+  "count": 5,
+  "heldout_variants": [
+    "variant-002",
+    "variant-003",
+    "variant-004"
+  ],
+  "rewritten_units": 471,
+  "fallback_count": 0,
+  "fallbacks": [],
+  "outcome_blind": true
+}

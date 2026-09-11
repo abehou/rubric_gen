@@ -1,0 +1,34 @@
+{
+  "definition": "v1 frozen versus rigorous-v2 heldout rubric scores; W/S/A/RH reused",
+  "v2_prompt_sha256": "7358961f597ecee9c99882cb98af5770bf8596e9967a4b0630ae8c8529ff925c",
+  "arms": {
+    "full-static": {
+      "v1": {
+        "S_minus_H": 1.4972222222222216,
+        "H_minus_A": 20.061111111111114,
+        "H": 87.51944444444445
+      },
+      "v2": {
+        "S_minus_H": 1.4722222222222217,
+        "H_minus_A": 20.086111111111112,
+        "H": 87.54444444444445
+      },
+      "assignments": 60,
+      "heldout_rubric_calls": 360
+    },
+    "user-simulator-static": {
+      "v1": {
+        "S_minus_H": 0.11666666666666649,
+        "H_minus_A": 11.65,
+        "H": 82.125
+      },
+      "v2": {
+        "S_minus_H": 1.3638888888888885,
+        "H_minus_A": 10.402777777777779,
+        "H": 80.87777777777778
+      },
+      "assignments": 60,
+      "heldout_rubric_calls": 360
+    }
+  }
+}

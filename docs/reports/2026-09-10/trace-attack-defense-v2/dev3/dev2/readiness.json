@@ -1,0 +1,59 @@
+{
+  "aggregation": "Contract/candidate-funnel percentages across the complete 18-assignment cohort; admission and exposure minima separately in each 9-assignment arm.",
+  "full_iteration": 1,
+  "gates": {
+    "application_contract_valid_at_least_98pct": true,
+    "compiled_reaching_native_at_least_80pct": true,
+    "complete_with_strict_witness_at_least_60pct": true,
+    "contract_valid_at_least_98pct": true,
+    "full_at_least_one_subsequent_turn_online_exposure": true,
+    "full_at_least_two_online_admitted_assignments": true,
+    "phase_a_final_recipe": true,
+    "saved_contract_and_metadata_integrity": true,
+    "user_at_least_one_subsequent_turn_online_exposure": true,
+    "user_at_least_two_online_admitted_assignments": true
+  },
+  "method": "attack_defense_v2.dev2",
+  "outcome_scores_used": false,
+  "rates": {
+    "application_contract_valid": {
+      "denominator": 1435,
+      "numerator": 1435,
+      "rate": 1.0
+    },
+    "compiled_reaching_native": {
+      "denominator": 149,
+      "numerator": 143,
+      "rate": 0.959731543624161
+    },
+    "complete_with_strict_witness": {
+      "denominator": 143,
+      "numerator": 99,
+      "rate": 0.6923076923076923
+    },
+    "contract_valid": {
+      "denominator": 1970,
+      "numerator": 1970,
+      "rate": 1.0
+    }
+  },
+  "readiness_passed": true,
+  "source_receipts": {
+    "integrity": {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/integrity.json",
+      "sha256": "b75dcdb255ba839cfb25dd26a6dcc3df7f064672ea9cb23ca9e91686f56d37a8"
+    },
+    "mechanism": {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/mechanism.json",
+      "sha256": "b28f10c1e2d0d424e137bb523b4b94132904610acbf6029576a9a8bd747b6db5"
+    },
+    "phase_a": {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/docs/reports/2026-09-10/trace-attack-defense-v2/phase-a/dev2-001/result.json",
+      "sha256": "7c43e73d7e8d6895eeed7817f7024b79b508ab644a77a1bc2aeb15fa8a088201"
+    },
+    "requests": {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/docs/reports/2026-09-10/trace-attack-defense-v2/dev3/dev2/requests.json",
+      "sha256": "f9336e62f563e4e089e4c83a38c7d55819c2e796b10dc27608309dfbfde78a99"
+    }
+  }
+}
