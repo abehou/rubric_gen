@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 import rubric_gen.submission_revision.paraphrases as paraphrases_module
+from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.paraphrases import (
@@ -18,7 +19,12 @@ from rubric_gen.submission_revision.paraphrase_validation import (
     resolve_paraphrase_selection,
     validate_semantic_paraphrase,
 )
-from rubric_gen.submission_revision.paraphrase_protocol import wording_template
+from rubric_gen.submission_revision.paraphrase_protocol import (
+    NEUTRAL_PARAPHRASE_INSTRUCTIONS,
+    PARAPHRASE_INSTRUCTIONS,
+    SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+    wording_template,
+)
 
 
 def _master() -> str:
@@ -53,6 +59,8 @@ def _wording(index: int) -> dict[str, str]:
         "Accurate task result",
         "Correct task outcome",
         "Validity of the result",
+        "Task result accuracy",
+        "Result correctness",
     )
     return {
         "criterion_1_title": titles[index],
@@ -78,6 +86,8 @@ def _wording_response(index: int) -> dict[str, object]:
 def _experiment(
     tmp_path: Path,
     task_ids: tuple[str, ...] = ("da-1-1",),
+    *,
+    paraphrase_overrides: dict[str, object] | None = None,
 ):
     for task_id in task_ids:
         task = tmp_path / "tasks" / task_id
@@ -197,21 +207,42 @@ def _experiment(
             },
         },
     }
+    payload["rubric_paraphrases"].update(paraphrase_overrides or {})
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(payload, sort_keys=False))
     return load_experiment(path)
 
 
-def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
-    experiment = _experiment(tmp_path)
+@pytest.mark.parametrize(("overrides", "neutral_variants"), [
+    ({}, set()),
+    ({"count": 5}, set()),
+    ({"count": 5, "prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS}, {0, 1}),
+    ({"count": 5, "prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+      "selected_variant": 3, "development_variant": 4}, {3, 4}),
+])
+def test_paraphrase_stage_seals_variants_and_selection(
+    tmp_path: Path,
+    overrides: dict[str, object],
+    neutral_variants: set[int],
+) -> None:
+    experiment = _experiment(tmp_path, paraphrase_overrides=overrides)
+    spec = experiment.rubric_paraphrases
+    count = int(spec["count"])
     root = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     calls: list[int] = []
     schemas: list[dict[str, object]] = []
+    requests: dict[int, StructuredRequest] = {}
 
     def generate(_model, request):
         match = re.search(r"Paraphrase variant: (\d+)", request.evidence)
         assert match is not None
         index = int(match.group(1))
+        requests[index] = request
+        expected_instructions = (
+            NEUTRAL_PARAPHRASE_INSTRUCTIONS
+            if index in neutral_variants else PARAPHRASE_INSTRUCTIONS
+        )
+        assert request.instructions == expected_instructions
         calls.append(index)
         schemas.append(request.schema)
         return GenerationResult(
@@ -232,14 +263,14 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
         generation_operation=generate,
     )
     assert runner.run() == 0
-    assert sorted(calls) == [0, 1, 2]
+    assert sorted(calls) == list(range(count))
     selection = resolve_paraphrase_selection(root, experiment, "da-1-1")
-    assert selection.optimizer_index == 0
-    assert selection.development_index == 1
+    assert selection.optimizer_index == spec["selected_variant"]
+    assert selection.development_index == spec["development_variant"]
     assert selection.optimizer_path.is_file()
     assert selection.development_path.is_file()
     assert selection.optimizer_path.read_text().startswith("RUBRIC: Result quality\n")
-    assert len(selection.holdout_paths) == 1
+    assert len(selection.holdout_paths) == count - 2
     assert selection.optimizer_path not in selection.holdout_paths
     assert selection.development_path not in selection.holdout_paths
     assert all("rubric_text" not in json.dumps(schema) for schema in schemas)
@@ -260,8 +291,17 @@ def test_paraphrase_stage_seals_variants_and_selection(tmp_path: Path) -> None:
         request["group_id"]
         for request in metadata["generation"]["requests"]
     ] == ["criterion-001"]
+    for index, request in requests.items():
+        saved = json.loads((root / f"tasks/da-1-1/variant-{index:03d}.json").read_text())
+        prompt_sha = sha256_text(request.instructions + "\0" + request.evidence)
+        assert saved["generation"]["requests"][0]["prompt_sha256"] == prompt_sha
+        assert saved["prompt_sha256"] == sha256_text(prompt_sha)
+    before_resume = {
+        path: path.read_bytes() for path in root.rglob("*") if path.is_file()
+    }
     assert runner.run() == 0
-    assert sorted(calls) == [0, 1, 2]
+    assert sorted(calls) == list(range(count))
+    assert {path: path.read_bytes() for path in before_resume} == before_resume
 
 
 def test_paraphrase_provider_call_uses_five_minute_timeout(
@@ -412,10 +452,14 @@ def test_paraphrase_pool_adds_missing_tasks_and_selects_one_global_set(
     assert first_selection.optimizer_index == second_selection.optimizer_index
 
 
+@pytest.mark.parametrize("overrides", [
+    {}, {"prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS},
+])
 def test_incomplete_paraphrase_restarts_all_criteria(
     tmp_path: Path,
+    overrides: dict[str, object],
 ) -> None:
-    experiment = _experiment(tmp_path)
+    experiment = _experiment(tmp_path, paraphrase_overrides=overrides)
     master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
     master_path.write_text(
         _master()
@@ -437,6 +481,10 @@ def test_incomplete_paraphrase_restarts_all_criteria(
         assert variant is not None and unit is not None
         index = int(variant.group(1))
         group_id = unit.group(1)
+        assert request.instructions == (
+            NEUTRAL_PARAPHRASE_INSTRUCTIONS
+            if overrides and index in {0, 1} else PARAPHRASE_INSTRUCTIONS
+        )
         calls.append((index, group_id))
         if fail_target and (index, group_id) == (0, "criterion-002"):
             text = "{"
@@ -539,10 +587,14 @@ def test_paraphrase_validation_rejects_duplicate_criterion_titles() -> None:
         )
 
 
+@pytest.mark.parametrize("overrides", [
+    {}, {"prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS},
+])
 def test_paraphrase_runner_repairs_only_the_colliding_title(
     tmp_path: Path,
+    overrides: dict[str, object],
 ) -> None:
-    experiment = _experiment(tmp_path)
+    experiment = _experiment(tmp_path, paraphrase_overrides=overrides)
     master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
     master_path.write_text(
         _master()
@@ -563,6 +615,10 @@ def test_paraphrase_runner_repairs_only_the_colliding_title(
         index = int(variant.group(1))
         group_id = unit.group(1)
         is_repair = "duplicates criterion_1_title" in request.evidence
+        assert request.instructions == (
+            NEUTRAL_PARAPHRASE_INSTRUCTIONS
+            if overrides and index in {0, 1} else PARAPHRASE_INSTRUCTIONS
+        )
         calls.append((index, group_id, is_repair))
         if group_id == "criterion-001":
             wording = _wording(index)
@@ -621,10 +677,14 @@ def test_paraphrase_runner_repairs_only_the_colliding_title(
     ] == [1, 2]
 
 
+@pytest.mark.parametrize("overrides", [
+    {}, {"prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS},
+])
 def test_wording_only_paraphrase_keeps_penalty_points_and_rejects_number_drift(
     tmp_path: Path,
+    overrides: dict[str, object],
 ) -> None:
-    experiment = _experiment(tmp_path)
+    experiment = _experiment(tmp_path, paraphrase_overrides=overrides)
     master_path = experiment.task_dir("da-1-1") / "tests" / "rubric.txt"
     master = _master() + (
         "\nCriterion 2: Source thresholds 20, 10, and 5.2\n\n"

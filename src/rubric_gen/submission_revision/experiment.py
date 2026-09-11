@@ -27,6 +27,9 @@ from rubric_gen.submission_revision.assignments import ExperimentAssignment
 from rubric_gen.submission_revision.detection_windows import (
     MINIMUM_POST_UPDATE_REVISIONS,
 )
+from rubric_gen.submission_revision.paraphrase_protocol import (
+    SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+)
 
 
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
@@ -457,16 +460,24 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
 
 
 def _validate_rubric_paraphrases(value: object) -> None:
-    if not isinstance(value, dict) or set(value) != {
+    required = {
         "count",
         "selected_variant",
         "development_variant",
         "model",
         "max_retries",
-    }:
+    }
+    if (not isinstance(value, dict) or not required <= set(value)
+            or set(value) - required - {"prompt_policy"}):
         raise ValueError(
             "rubric_paraphrases requires count, selected_variant, "
             "development_variant, model, and max_retries"
+        )
+    if ("prompt_policy" in value
+            and value["prompt_policy"] != SELECTED_NEUTRAL_HELDOUT_RIGOROUS):
+        raise ValueError(
+            "rubric paraphrase prompt_policy must be "
+            + SELECTED_NEUTRAL_HELDOUT_RIGOROUS
         )
     if type(value["count"]) is not int or value["count"] < 3:
         raise ValueError("rubric paraphrase count must be at least three")
