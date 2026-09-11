@@ -1,0 +1,14 @@
+{
+  "kind": "attack_defense_v2.1_compatibility_scope",
+  "source_receipt": "compatibility-118.json",
+  "source_sha256": "1b5145884c8fbc580894067205e8370ef0a49702a9a69d266382748dcaf3195c",
+  "trace_scope_total": 120,
+  "trace_scope_completed_input": 118,
+  "trace_scope_failed_input": 2,
+  "compatible_assignments": 118,
+  "required_unchanged_assignments": 118,
+  "errors": [],
+  "collisions": 0,
+  "passed": true,
+  "scope_note": "The source scanner enumerated all 240 execution ledger records, including 120 pending static records; its failed_input_assignments=122 is not a trace-failure count. This wrapper reports the 120 trace assignments explicitly."
+}
