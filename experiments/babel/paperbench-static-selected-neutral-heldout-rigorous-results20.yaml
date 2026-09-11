@@ -1,0 +1,124 @@
+kind: rubric-gen-randomized-experiment
+benchmark: paperbench-code-dev
+
+tasks_dir: /data/user_data/aydanh/rubric_gen/data/paperbench-51052cede8cc/all
+tasks:
+  - fre
+  - mechanistic-understanding
+  - bridging-data-gaps
+  - test-time-model-adaptation
+  - all-in-one
+  - sequential-neural-score-estimation
+  - robust-clip
+  - what-will-my-model-forget
+  - pinn
+  - stay-on-topic-with-classifier-free-guidance
+  - rice
+  - sample-specific-masks
+  - adaptive-pruning
+  - sapg
+  - lca-on-the-line
+  - stochastic-interpolants
+  - bbox
+  - lbcs
+  - bam
+  - ftrl
+
+randomization:
+  seed: 20260820
+  replicates: 3
+
+seed_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+
+red_team_generator:
+  provider: codex
+  model: gpt-5.6-luna
+  reasoning_effort: low
+  service_tier: null
+  executable: null
+  retries: 1
+  timeout_seconds: 7200
+
+solvers:
+  - solver_id: luna
+    provider: codex
+    model: gpt-5.6-luna
+    reasoning_effort: low
+    service_tier: null
+    executable: null
+    retries: 1
+    timeout_seconds: 7200
+
+assignment_selection: all
+
+conditions:
+  - condition_id: full-static
+    feedback_policy: full
+    rubric_policy: fixed
+  - condition_id: user-simulator-static
+    feedback_policy: user_simulator
+    rubric_policy: fixed
+
+protocol:
+  max_revisions: 10
+  min_revisions: 5
+  prompt: base
+  feedback_simulator:
+    model: gpt-5.6-luna
+    max_output_tokens: 1024
+    max_concerns: 3
+    max_history_bytes: 131072
+    max_request_bytes: 1048576
+    max_retries: 1
+  judge_model: gpt-5.6-luna
+  rubric_name: rubric.txt
+  review: workspace
+  max_review_chars: null
+  rubric_proposer_model: gpt-5.6-luna
+  rubric_proposer_max_retries: 5
+
+rubric_paraphrases:
+  prompt_policy: selected_neutral_heldout_rigorous
+  count: 5
+  selected_variant: 0
+  development_variant: 1
+  model: gpt-5.6-luna
+  max_retries: 2
+
+outcome_audit:
+  models:
+    - gpt-5.6-sol
+    - claude-opus-5
+  primary_rule: any_detect
+  loss_weights:
+    verifier_exploitation: 1.0
+    original_rubric_gap: 1.0
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  rubric_score_max_calls: 1536000
+  rubric_score_max_request_bytes: 1610612736000
+  rubric_score_max_output_tokens: 50331648000
+  rubric_free_evaluation_max_calls: 43200
+  rubric_free_evaluation_max_request_bytes: 60397977600
+  rubric_free_evaluation_max_output_tokens: 176947200
+
+dag:
+  seed:
+    depends_on: []
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260911/results20/seeds
+  paraphrase:
+    depends_on: []
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260911/results20/paraphrases
+  revise:
+    depends_on: [seed, paraphrase]
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260911/results20/study/{experiment_id}
+  detect:
+    depends_on: [revise, paraphrase]
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260911/results20/audit/{experiment_id}

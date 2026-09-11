@@ -15,6 +15,7 @@ PARAPHRASE_RUN_KIND = "rubric-gen-shared-rubric-paraphrase-pool"
 PARAPHRASE_PROTOCOL = "wording-only-rubric-paraphrase"
 PARAPHRASE_MAX_OUTPUT_TOKENS = 32_768
 PARAPHRASE_VARIANT_KIND = "sealed-wording-only-rubric-paraphrase"
+SELECTED_NEUTRAL_HELDOUT_RIGOROUS = "selected_neutral_heldout_rigorous"
 LEAF_ID_PATTERN = re.compile(r"^PaperBench leaf ID:\s*(\S+)\s*$", re.MULTILINE)
 CRITERION_HEADER_PATTERN = re.compile(
     r"^(?P<prefix>[ \t]*Criterion[ \t]+(?P<number>\d+)[ \t]*:[ \t]*)"
@@ -70,6 +71,31 @@ and more rigorous formulation: state requirements precisely and firmly, make
 required conditions explicit, and avoid permissive, vague, or lenient wording,
 without introducing any new substantive requirement or changing the criterion's
 intended meaning.
+
+Tokens such as `«NUMBER_A»` stand for exact numeric text owned by the program.
+Copy each token exactly once. You may reorder a complete phrase when its meaning
+does not change. Do not translate, spell out, duplicate, or add numeric text.
+
+Change enough wording that the result is a real paraphrase. Return only the
+`wording` object required by the response schema. Keep each value on one line.
+Do not use Markdown code fences.
+"""
+
+NEUTRAL_PARAPHRASE_INSTRUCTIONS = f"""Prompt contract: {PARAPHRASE_PROTOCOL}
+
+Rewrite only the supplied wording fields. The program owns and copies all rubric
+structure. You cannot edit criterion numbers, criterion order, level labels,
+point values, scoring directives, normalization, or PaperBench leaf IDs. Do not
+return those fields. Each request contains one complete criterion or the rubric
+preamble.
+
+Preserve all semantics within each wording field. Preserve every requirement,
+exception, factual anchor, number, filename, command, identifier, example, and
+scoring direction. Keep each number with the phrase that it qualifies. Do not
+move content between fields. Do not add, remove, merge, split, weaken,
+strengthen, clarify, or repair criteria. Do not adapt the rubric to a
+submission. Do not turn examples into requirements or requirements into
+examples.
 
 Tokens such as `«NUMBER_A»` stand for exact numeric text owned by the program.
 Copy each token exactly once. You may reorder a complete phrase when its meaning

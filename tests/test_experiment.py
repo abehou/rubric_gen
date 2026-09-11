@@ -695,6 +695,39 @@ def test_experiment_rejects_invalid_selected_paraphrase_variant(
         load_experiment(path)
 
 
+def test_paraphrase_prompt_policy_is_optional_and_changes_experiment_identity(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload))
+    default = load_experiment(path)
+    assert default.rubric_paraphrases == payload["rubric_paraphrases"]
+    assert "prompt_policy" not in default.rubric_paraphrases
+
+    payload["rubric_paraphrases"]["prompt_policy"] = "selected_neutral_heldout_rigorous"
+    path.write_text(yaml.safe_dump(payload))
+    opted_in = load_experiment(path)
+    assert opted_in.experiment_id != default.experiment_id
+    assert opted_in.rubric_paraphrases == payload["rubric_paraphrases"]
+
+
+@pytest.mark.parametrize("policy", [None, "neutral", "uniform", "", True, [], {}])
+def test_experiment_rejects_invalid_paraphrase_prompt_policy(
+    tmp_path: Path, policy: object,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["rubric_paraphrases"]["prompt_policy"] = policy
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload))
+    with pytest.raises(ValueError, match="rubric paraphrase prompt_policy must be"):
+        load_experiment(path)
+
+
 def test_experiment_id_changes_with_behavior_but_not_output_routing(
     tmp_path: Path,
 ) -> None:
@@ -789,6 +822,87 @@ def test_paperbench_experiment_rejects_a_partial_official_split(
 
     with pytest.raises(ValueError, match="official 3-paper dev split"):
         load_experiment(path)
+
+
+@pytest.mark.parametrize("cohort", ["dev3", "results20"])
+@pytest.mark.parametrize("use_policy", [True, False], ids=["role-policy", "default"])
+def test_paperbench_prompt_policy_requests(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cohort: str, use_policy: bool,
+) -> None:
+    from rubric_gen.runtime.llm import GenerationResult
+    from rubric_gen.runtime.yaml import load_yaml_strict
+    from rubric_gen.submission_revision.paraphrase_protocol import (
+        NEUTRAL_PARAPHRASE_INSTRUCTIONS, PARAPHRASE_INSTRUCTIONS, wording_template,
+    )
+    from rubric_gen.submission_revision.paraphrases import (
+        ParaphraseRunConfig, ParaphraseRunner,
+    )
+
+    config = Path(__file__).resolve().parents[1] / "experiments/babel" / (
+        f"paperbench-static-selected-neutral-heldout-rigorous-{cohort}.yaml"
+    )
+    payload = load_yaml_strict(config.read_text())
+    assert payload["rubric_paraphrases"]["prompt_policy"] == "selected_neutral_heldout_rigorous"
+    assert payload["rubric_paraphrases"]["count"] == 5
+    assert [c["condition_id"] for c in payload["conditions"]] == [
+        "full-static", "user-simulator-static",
+    ]
+    for stage in payload["dag"].values():
+        assert stage["output_dir"].startswith("/data/user_data/aydanh/rubric_gen/")
+        assert "selected-neutral-heldout-rigorous-20260911" in stage["output_dir"]
+    # Substitute only dataset access with tiny fixtures; never access scientific pools.
+    for task_id in payload["tasks"]:
+        _task(tmp_path, task_id)
+        task = tmp_path / "tasks" / task_id
+        (task / "environment/data/paper.md").write_text("# Test paper\n")
+        (task / "tests/paperbench.json").write_text("{}\n")
+    payload["tasks_dir"] = str(tmp_path / "tasks")
+    if not use_policy:
+        del payload["rubric_paraphrases"]["prompt_policy"]
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload))
+    monkeypatch.setattr(
+        paperbench_contract_module, "validate_paperbench_code_dataset",
+        lambda _path, *, source_split: None,
+    )
+    experiment = load_experiment(path)
+    task_id = experiment.task_ids[0]
+    master = (experiment.task_dir(task_id) / "tests/rubric.txt").read_text()
+    group = wording_template(master).groups[0]
+    requests = []
+
+    def capture(model, request):
+        assert model == "gpt-5.6-luna"
+        requests.append(request)
+        wording = dict(group.fields)
+        wording["criterion_1_title"] = "Quality of the result"
+        return GenerationResult(
+            text=json.dumps({"wording": wording}), provider="test",
+            requested_model=model, effective_model=model, response_id="no-provider",
+            request_parameters={},
+        )
+
+    root = tmp_path / "unused-pool"
+    runner = ParaphraseRunner(
+        ParaphraseRunConfig(experiment, root, max_concurrency=1), generation_operation=capture,
+    )
+    print(f"\n{cohort}: {'role-policy' if use_policy else 'default'}")
+    print("variant | role        | prompt policy")
+    roles = ["selected", "development", "heldout", "heldout", "heldout"]
+    for index, role in enumerate(roles):
+        runner._generate_group(root, task_id, index, group)
+        expected = (
+            NEUTRAL_PARAPHRASE_INSTRUCTIONS
+            if use_policy and index < 2 else PARAPHRASE_INSTRUCTIONS
+        )
+        assert requests[-1].instructions == expected
+        policy = (
+            "neutral" if requests[-1].instructions == NEUTRAL_PARAPHRASE_INSTRUCTIONS
+            else "rigorous-v2"
+        )
+        print(f"{index}       | {role:11} | {policy}")
+    assert len(requests) == 5
+    assert not root.exists()
 
 
 def test_seed_stage_uses_one_shared_directory_without_an_owner_id(

@@ -25,11 +25,13 @@ from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision import paraphrase_validation
 from rubric_gen.submission_revision.paraphrase_protocol import (
+    NEUTRAL_PARAPHRASE_INSTRUCTIONS,
     PARAPHRASE_INSTRUCTIONS,
     PARAPHRASE_MAX_OUTPUT_TOKENS,
     PARAPHRASE_PROTOCOL,
     PARAPHRASE_RUN_KIND,
     PARAPHRASE_VARIANT_KIND,
+    SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
     WordingRequestGroup,
     duplicate_title_collisions,
     wording_template,
@@ -512,6 +514,14 @@ class ParaphraseRunner:
         initial_repair_error: str | None = None,
         attempt_offset: int = 0,
     ) -> _GroupGeneration:
+        instructions = PARAPHRASE_INSTRUCTIONS
+        if (
+            self.spec.get("prompt_policy") == SELECTED_NEUTRAL_HELDOUT_RIGOROUS
+            and variant_index in {
+                self.spec["selected_variant"], self.spec["development_variant"],
+            }
+        ):
+            instructions = NEUTRAL_PARAPHRASE_INSTRUCTIONS
         last_error: Exception | None = (
             ValueError(initial_repair_error)
             if initial_repair_error is not None
@@ -523,6 +533,7 @@ class ParaphraseRunner:
                 variant_index=variant_index,
                 group=group,
                 repair_error=str(last_error) if last_error is not None else None,
+                instructions=instructions,
             )
             generation: GenerationResult | None = None
             try:
@@ -615,6 +626,7 @@ def _paraphrase_request(
     variant_index: int,
     group: WordingRequestGroup,
     repair_error: str | None,
+    instructions: str = PARAPHRASE_INSTRUCTIONS,
 ) -> StructuredRequest:
     repair = ""
     if repair_error is not None:
@@ -637,7 +649,7 @@ Use a distinct but semantically equivalent wording for this variant.{repair}
 </wording_fields_json>
 """
     return StructuredRequest(
-        instructions=PARAPHRASE_INSTRUCTIONS,
+        instructions=instructions,
         evidence=evidence,
         schema_name="wording_only_rubric_paraphrase",
         schema=group.response_schema(),
