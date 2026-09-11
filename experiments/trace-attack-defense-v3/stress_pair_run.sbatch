@@ -1,9 +1,12 @@
 #!/bin/bash
+#SBATCH --account=dfried
+#SBATCH --partition=preempt
+#SBATCH --qos=preempt_cpu_qos
 #SBATCH --job-name=trace-v3-stress
-#SBATCH --partition=general
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
+#SBATCH --mem=256G
 #SBATCH --time=2-00:00:00
 #SBATCH --output=experiments/trace-attack-defense-v3/stress-%j.log
 #SBATCH --error=experiments/trace-attack-defense-v3/stress-%j.err
