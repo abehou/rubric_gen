@@ -32,6 +32,33 @@ from rubric_gen.submission_revision.study_layout import resolve_study_experiment
 from rubric_gen.submission_revision.seeds import seed_generator_identity
 from rubric_gen.submission_revision.assignments import ExperimentAssignment
 from rubric_gen.submission_revision.execution_scope import terminal_records
+from rubric_gen.submission_revision.trace_defense_registry import validate_version
+
+
+def _consumer_import_identity(experiment_dir: Path, default_experiment_id: str,
+                              default_version: str | None) -> tuple[str, str | None]:
+    """Use producer identity only when an explicit validated import receipt exists."""
+    receipt_path = experiment_dir / "consumer-import.json"
+    if not receipt_path.is_file():
+        return default_experiment_id, default_version
+    receipt = read_json_object(receipt_path, "consumer import receipt")
+    required = {
+        "kind", "producer_experiment_id", "producer_trace_version",
+        "consumer_experiment_id", "consumer_trace_version", "producer_manifest_sha256",
+    }
+    if set(receipt) != required or receipt.get("kind") != "v2_to_v21_assignment_import":
+        raise RuntimeError(f"invalid consumer import receipt: {receipt_path}")
+    if receipt["consumer_experiment_id"] != default_experiment_id or receipt["consumer_trace_version"] != default_version:
+        raise RuntimeError(f"consumer import receipt targets another snapshot: {receipt_path}")
+    producer_version = receipt["producer_trace_version"]
+    validate_version(producer_version)
+    if not isinstance(receipt["producer_experiment_id"], str) or not receipt["producer_experiment_id"]:
+        raise RuntimeError(f"invalid producer experiment identity: {receipt_path}")
+    if not isinstance(receipt["producer_manifest_sha256"], str) or len(receipt["producer_manifest_sha256"]) != 64:
+        raise RuntimeError(f"invalid producer manifest binding: {receipt_path}")
+    if sha256_file(experiment_dir / "manifest.json") != receipt["producer_manifest_sha256"]:
+        raise RuntimeError(f"producer manifest changed after import: {receipt_path}")
+    return receipt["producer_experiment_id"], producer_version
 
 def load_evaluation_targets(
     config: EvaluationConfig,
@@ -140,13 +167,19 @@ def _load_evaluation_target(
         record,
         assignment,
     )
-    state = _load_terminal_revision_state(
-        experiment_dir,
-        assignment,
-        config,
-        selection,
-        study_experiment_id,
+    protocol = getattr(config.experiment, "protocol", {})
+    default_version = protocol.get("red_team_trace_version") if isinstance(protocol, dict) else None
+    effective_id, effective_version = _consumer_import_identity(
+        experiment_dir, study_experiment_id, default_version
     )
+    if effective_id == study_experiment_id and effective_version == default_version:
+        state = _load_terminal_revision_state(
+            experiment_dir, assignment, config, selection, effective_id
+        )
+    else:
+        state = _load_terminal_revision_state(
+            experiment_dir, assignment, config, selection, effective_id, effective_version
+        )
     submission_ids = state["submission_ids"]
     scores = state["scores"]
     fixed_original_scores = state["fixed_original_scores"]
@@ -232,6 +265,7 @@ def _load_terminal_revision_state(
     config: EvaluationConfig,
     selection: ParaphraseSelection,
     study_experiment_id: str,
+    trace_version: str | None = None,
 ) -> dict[str, object]:
     """Load terminal revision metadata without scanning submission contents."""
 
@@ -246,6 +280,8 @@ def _load_terminal_revision_state(
     state = read_json_object(experiment_dir / "state.json", "revision state")
     experiment = config.experiment
     protocol = experiment.protocol
+    if trace_version is None:
+        trace_version = protocol.get("red_team_trace_version")
     condition = experiment.condition(assignment.condition_id)
     agent = experiment.solver_config(
         assignment.solver_id,
@@ -290,9 +326,9 @@ def _load_terminal_revision_state(
         "live_workspace_removed": True,
     }
     from ..trace_defense_binding import method_identity
-    manifest_identity.update(method_identity(condition["rubric_policy"], protocol.get("red_team_trace_version")))
+    manifest_identity.update(method_identity(condition["rubric_policy"], trace_version))
     if (
-        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), protocol.get("red_team_trace_version") if condition["rubric_policy"] == "red_team_trace" else None)
+        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), trace_version if condition["rubric_policy"] == "red_team_trace" else None)
         or any(
         manifest.get(key) != value
         for key, value in manifest_identity.items()
