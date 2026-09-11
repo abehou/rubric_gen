@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 
+from rubric_gen.runtime import provider_streams
 from rubric_gen.submission_revision.judging import full_rubric_protocol as protocol
 from rubric_gen.submission_revision.judging.scoring import parse_rubric_levels_strict
 
@@ -56,16 +57,12 @@ def _generate_response(
         )
 
     if spec.provider == "anthropic":
-        from anthropic import Anthropic
-
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY must be set")
-        response = Anthropic(
+        response = provider_streams.anthropic_response(
             api_key=api_key,
             timeout=protocol.FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
-            max_retries=0,
-        ).messages.create(
             model=spec.requested_model,
             max_tokens=spec.max_output_tokens_per_call,
             system=protocol.FULL_RUBRIC_SYSTEM_PROMPT,
@@ -92,8 +89,6 @@ def _generate_response(
             usage=getattr(response, "usage", None),
         )
 
-    from openai import OpenAI
-
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY must be set")
@@ -118,11 +113,11 @@ def _generate_response(
     }
     if spec.requested_model.startswith("gpt-5.6"):
         request["reasoning"] = {"effort": "none"}
-    response = OpenAI(
+    response = provider_streams.openai_response(
         api_key=api_key,
         timeout=protocol.FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
-        max_retries=0,
-    ).responses.create(**request)
+        **request,
+    )
     status = getattr(response, "status", None)
     if status == "incomplete":
         raise RuntimeError("OpenAI returned an incomplete FullRubric response")

@@ -34,7 +34,6 @@ from .models import (
 )
 from .full_rubric_protocol import (
     FULL_RUBRIC_ENGINE_IDENTITY,
-    FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
     FullRubricJudgeError,
     FullRubricRunSpec,
     build_full_rubric_run_spec,
@@ -50,9 +49,9 @@ from .scoring import (
 )
 
 
-JUDGE_SUBPROCESS_TIMEOUT_SECONDS = int(
-    FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS + 60
-)
+# Provider transport bounds network inactivity. This absolute ceiling is only
+# for a wedged child; healthy full-rubric streams can take more than 20 minutes.
+JUDGE_SUBPROCESS_TIMEOUT_SECONDS = 60 * 60
 
 
 def _judge_subprocess_environment() -> dict[str, str]:
@@ -512,6 +511,10 @@ class JudgeExecutor:
                 module_dir.parent / "autorubric.py",
             )
         )
+        sources.append((
+            "runtime/provider_streams.py",
+            package_dir / "runtime" / "provider_streams.py",
+        ))
         sources.extend(
             (
                 ("benchmarks/__init__.py", package_dir / "benchmarks" / "__init__.py"),

@@ -2194,3 +2194,7 @@
 ## 2026-09-11 — attack_defense_v2 Result20
 
 - 02:02 EDT: Frozen production job 10394194 finished its single 120-assignment scope with 118 completed and 2 structural failures (`ValueError: elicited criteria contain duplicate criterion titles`), one Full and one User; the counted smoke assignments passed. No provider/transport failures or outcome audits occurred, and no recovery or duplicate behavioral job was launched because the failures are non-retryable under the frozen snapshot.
+
+## 2026-09-11 — Result20 runtime reliability
+
+- 07:23 EDT: No-provider Result20 census verified 18 failed 300-second PaperBench v5 requests and six successful 318–1,223-second recovery streams; BioMNIBench evidence separates startup, overload and preemption costs. Read-only Slurm collectors10397916/10397928 touched no scientific outputs; no new experiment or provider call was launched.

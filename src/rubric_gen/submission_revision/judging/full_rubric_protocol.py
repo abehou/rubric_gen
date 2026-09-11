@@ -181,6 +181,8 @@ class FullRubricRunSpec:
             "calls": 1,
             "max_output_tokens_per_call": self.max_output_tokens_per_call,
             "request_timeout_seconds": FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
+            **({"stream": True, "timeout_semantics": "network-inactivity"}
+               if self.provider in {"anthropic", "openai"} else {}),
             "provider_retries": 0,
             "provider_storage": False if self.provider == "openai" else None,
             "repository_result_cache": False,
@@ -702,4 +704,6 @@ def request_parameters(spec: FullRubricRunSpec) -> dict[str, object]:
             "timeout_seconds": FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
             "provider_retries": 0,
             "structured_output": "json_schema",
+            **({"stream": True, "timeout_semantics": "network-inactivity"}
+               if spec.provider in {"anthropic", "openai"} else {}),
         }

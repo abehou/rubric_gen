@@ -580,3 +580,7 @@
 ## 2026-09-11 — attack_defense_v2 Result20
 
 - 02:02 EDT: Frozen production replay exposed a correctness gap: `validated_induction_response` lets duplicate criterion titles raise `ValueError` across the assignment boundary instead of recording a candidate-local structural/native rejection. Preserve the failed records; any future separately authorized mechanical fix must catch this before rubric rendering and add a provider-free regression test without changing admission mathematics.
+
+## 2026-09-11 — Result20 runtime reliability
+
+- 07:23 EDT: Resolved full-rubric long-call false timeouts, Anthropic audit schema/cardinality compatibility, and failed-attempt overwrite on resume in an isolated review worktree using the validated v5 encoding, SDK streaming and existing atomic persistence. Existing provenance covers the factored modules; scoring/settings and solver timeouts remain unchanged, with focused no-provider verification documented in docs/reports/2026-09-11/runtime-reliability/result20-runtime-reliability-implementation.md.
