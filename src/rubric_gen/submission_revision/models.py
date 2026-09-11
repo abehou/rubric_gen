@@ -153,7 +153,7 @@ class SubmissionRevisionConfig:
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)
         RubricPolicy(self.rubric_policy)
-        from .trace_defense_prompts import validate_version
+        from .trace_defense_registry import validate_version
         validate_version(self.red_team_trace_version)
         if (
             type(self.rubric_proposer_model) is not str

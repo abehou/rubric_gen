@@ -5,7 +5,7 @@ from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
 from .artifacts import read_json_object
 from .feedback import _validate_score_record
-from .trace_defense_prompts import VERSION, CORRECTIVE, ANTICIPATORY
+from .trace_defense_prompts import CORRECTIVE, ANTICIPATORY
 
 _NUMERIC = re.compile(r'(?<![\w.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?%?')
 
@@ -46,7 +46,7 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
                    'points':points,'previously_reminded':identity in reminded,'corrective':corrective,
                    'requirement':c.requirement}
     prompt=projected.prompt+('\n\n'+block if block else '')
-    record={'red_team_trace_version':VERSION,'submission_id':submission_id,'solver_turn':checkpoint+1,
+    record={'red_team_trace_version':generation.red_team_trace_version,'submission_id':submission_id,'solver_turn':checkpoint+1,
             'generation_sha256':generation.generation_sha256,'selection':selection,'skipped':skipped,
             'message_component':block,'ordinary_prompt_sha256':sha256_text(projected.prompt),
             'final_prompt_sha256':sha256_text(prompt)}

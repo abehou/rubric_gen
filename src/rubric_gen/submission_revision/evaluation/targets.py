@@ -159,7 +159,7 @@ def _load_evaluation_target(
         rubric_policy,
         len(submission_ids) - 1,
     )
-    from ..trace_defense_prompts import enabled
+    from ..trace_defense_registry import enabled
     if enabled(rubric_policy, config.experiment.protocol.get("red_team_trace_version")):
         from ..trace_defense_binding import load_binding
         initial_generation_round = load_binding(experiment_dir, submission_ids[0])["active_generation_round"]

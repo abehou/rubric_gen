@@ -118,7 +118,7 @@ class RedTeamGenerator:
     ) -> None:
         if type(agent.model) is not str or not agent.model.strip():
             raise ValueError("red-team generator requires an explicit model")
-        from .trace_defense_prompts import validate_version
+        from .trace_defense_registry import validate_version
         validate_version(red_team_trace_version)
         self.red_team_trace_version = red_team_trace_version
         self.agent = agent
@@ -143,8 +143,11 @@ class RedTeamGenerator:
         destination = red_team_directory(experiment_dir, checkpoint, red_team_trace_version=self.red_team_trace_version)
         source_tree_hash = tree_sha256(source_workspace)
         source_public = self.benchmark.render_user_review(source_workspace)
-        from .trace_defense_prompts import ATTACK
-        prompt = (ATTACK.format(active_rubric=active_generation.rubric.content,
+        from .trace_defense_registry import recipe
+        selected_recipe = recipe(self.red_team_trace_version) if self.red_team_trace_version else None
+        attack_prompt = (selected_recipe.prompts.ATTACK if selected_recipe.family == 'v1'
+                         else selected_recipe.prompts.ATTACK_V2) if selected_recipe else None
+        prompt = (attack_prompt.format(active_rubric=active_generation.rubric.content,
                                source_public_artifact=source_public)
                   if self.red_team_trace_version else red_team_prompt(active_generation.rubric.content))
         if os.path.lexists(destination):
@@ -225,13 +228,12 @@ class RedTeamGenerator:
             )
             file_names = _FILES
             if self.red_team_trace_version:
-                from .trace_defense_attack import attack_record
-                record = attack_record(trajectory, source_public,
+                record = selected_recipe.attack_record(trajectory, source_public,
                     self.benchmark.render_user_review(stage / "workspace"),
-                    source_workspace, stage / "workspace")
+                    source_workspace, stage / "workspace", version=self.red_team_trace_version)
                 record["transport_error"] = transport_error
-                write_json_atomic(stage / "attack-record.json", record)
-                file_names = _FILES | {"attack-record.json"}
+                write_json_atomic(stage / selected_recipe.attack_record_name, record)
+                file_names = _FILES | {selected_recipe.attack_record_name}
             workspace_sha256 = tree_sha256(stage / "workspace")
             payload_hashes = {
                 name: (
@@ -299,7 +301,7 @@ class RedTeamGenerator:
 
 
 def red_team_directory(experiment_dir: Path, checkpoint: int, *, red_team_trace_version: str | None = None) -> Path:
-    from .trace_defense_prompts import validate_version
+    from .trace_defense_registry import validate_version
     validate_version(red_team_trace_version)
     if type(checkpoint) is not int or checkpoint < (0 if red_team_trace_version else 1):
         raise ValueError("red-team checkpoint must be positive")
@@ -335,7 +337,8 @@ def load_red_team_artifact(
     expected_generation_sha256: str | None = None,
 ) -> RedTeamArtifact:
     root = red_team_directory(experiment_dir, checkpoint, red_team_trace_version=expected_trace_version)
-    file_names = _FILES | ({"attack-record.json"} if expected_trace_version else set())
+    from .trace_defense_registry import recipe
+    file_names = _FILES | ({recipe(expected_trace_version).attack_record_name} if expected_trace_version else set())
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError("red-team artifact directory is invalid")
     if {path.name for path in root.iterdir()} != file_names:

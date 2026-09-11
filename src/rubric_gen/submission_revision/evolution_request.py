@@ -67,14 +67,15 @@ def validate_evolution_request(
         raise ValueError("generation_round must be an integer")
     if generation_round != current_generation.generation_round + 1:
         raise ValueError("rubric generations must be consecutive")
-    from .trace_defense_prompts import SOURCE_SCHEDULE, enabled
+    from .trace_defense_registry import SOURCE_SCHEDULE, enabled
     if source_schedule is not None:
         if source_schedule != SOURCE_SCHEDULE or not enabled(policy, red_team_trace_version):
             raise ValueError("invalid evolution schedule/version/policy")
         if generation_round < 2 or type(source_checkpoint) is not int or source_checkpoint != generation_round - 2:
             raise ValueError("pre-revision evolution requires checkpoint g-2")
-        if current_generation.generation_round >= 2 and current_generation.source_schedule != source_schedule:
-            raise ValueError("cannot mix evolution schedules")
+        if current_generation.generation_round >= 2 and (current_generation.source_schedule != source_schedule
+                or current_generation.red_team_trace_version != red_team_trace_version):
+            raise ValueError("cannot mix evolution schedules or recipe versions")
         return
     if red_team_trace_version is not None or current_generation.source_schedule is not None:
         raise ValueError("versioned live evolution requires its explicit schedule")

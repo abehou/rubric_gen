@@ -85,7 +85,7 @@ def load_revision_evidence_snapshot(
     submission_ids = _validated_submission_ids(revision_dir, manifest, state)
     if manifest.get("red_team_trace_version") is not None:
         from ..trace_defense_binding import load_binding
-        from ..trace_defense_prompts import enabled
+        from ..trace_defense_registry import enabled
         if not enabled(manifest.get("rubric_policy"), manifest["red_team_trace_version"]):
             raise ValueError("versioned audit source is not a trace assignment")
         for submission_id in submission_ids:
@@ -480,9 +480,9 @@ def _load_feedback(
         if reminder.is_file():
             from ..artifacts import read_json_object
             from rubric_gen.artifacts.hashing import sha256_file
-            from ..trace_defense_prompts import VERSION
+            from ..trace_defense_registry import enabled
             manifest = read_json_object(revision_dir / "manifest.json", "audit source manifest")
-            if manifest.get("red_team_trace_version") != VERSION or manifest.get("rubric_policy") != "red_team_trace":
+            if not enabled(manifest.get("rubric_policy"), manifest.get("red_team_trace_version")):
                 raise ValueError("unexpected trace reminder in outcome evidence")
             record = read_json_object(reminder, "outcome reminder evidence")
             prompt = revision_dir / "turns" / f"turn-{int(submission_id[1:])+1:03d}" / "prompt.txt"

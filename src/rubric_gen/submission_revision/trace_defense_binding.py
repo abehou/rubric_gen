@@ -6,14 +6,14 @@ from .artifacts import read_json_object
 from .evolution_serialization import canonical_sha256
 from .rubric_generation import RubricPolicy
 from .rubric_generation_store import load_rubric_generation, rubric_generation_directory
-from .trace_defense_prompts import VERSION, SOURCE_SCHEDULE, enabled, prompt_hashes
+from .trace_defense_registry import SOURCE_SCHEDULE, enabled, prompt_hashes, validate_version
 
 
 def method_identity(policy,version):
     if not enabled(policy,version):
         return {}
-    return {'red_team_trace_version':VERSION,'source_schedule':SOURCE_SCHEDULE,
-            'trace_defense_prompt_hashes':prompt_hashes()}
+    return {'red_team_trace_version':version,'source_schedule':SOURCE_SCHEDULE,
+            'trace_defense_prompt_hashes':prompt_hashes(version)}
 
 
 def _public_sha(root,submission_id,benchmark):
@@ -22,7 +22,8 @@ def _public_sha(root,submission_id,benchmark):
 
 def persist_binding(root,submission_id,generation,*,feedback_opportunity,benchmark):
     checkpoint=int(submission_id[1:])
-    if generation.source_schedule!=SOURCE_SCHEDULE or generation.red_team_trace_version!=VERSION:
+    validate_version(generation.red_team_trace_version)
+    if generation.source_schedule!=SOURCE_SCHEDULE or generation.red_team_trace_version is None:
         raise RuntimeError('new trace scoring requires a versioned generation')
     if feedback_opportunity:
         if generation.source_checkpoint!=checkpoint:
@@ -31,7 +32,7 @@ def persist_binding(root,submission_id,generation,*,feedback_opportunity,benchma
         previous=load_binding(root,f's{checkpoint-1:03d}',benchmark=benchmark)
         if previous['active_generation_sha256']!=generation.generation_sha256:
             raise RuntimeError('terminal scoring must retain the last active generation')
-    body={'red_team_trace_version':VERSION,'source_schedule':SOURCE_SCHEDULE,
+    body={'red_team_trace_version':generation.red_team_trace_version,'source_schedule':SOURCE_SCHEDULE,
           'submission_id':submission_id,'submission_public_sha256':_public_sha(root,submission_id,benchmark),
           'active_generation_round':generation.generation_round,
           'active_generation_sha256':generation.generation_sha256,
@@ -54,10 +55,12 @@ def load_binding(root,submission_id,*,benchmark=None):
     body={k:v for k,v in record.items() if k!='binding_sha256'}
     if record.get('binding_sha256')!=canonical_sha256(body) or record.get('submission_id')!=submission_id:
         raise RuntimeError('invalid submission/rubric binding hash or ID')
-    if record.get('red_team_trace_version')!=VERSION or record.get('source_schedule')!=SOURCE_SCHEDULE:
+    validate_version(record.get('red_team_trace_version'))
+    if record.get('red_team_trace_version') is None or record.get('source_schedule')!=SOURCE_SCHEDULE:
         raise RuntimeError('invalid submission/rubric binding recipe')
     generation=load_rubric_generation(root,record['active_generation_round'],expected_policy=RubricPolicy.RED_TEAM_TRACE)
-    if generation.source_schedule!=SOURCE_SCHEDULE or generation.generation_sha256!=record['active_generation_sha256']:
+    if (generation.source_schedule!=SOURCE_SCHEDULE or generation.generation_sha256!=record['active_generation_sha256']
+            or generation.red_team_trace_version != record['red_team_trace_version']):
         raise RuntimeError('binding identifies an incompatible active generation')
     if _public_sha(root,submission_id,benchmark)!=record['submission_public_sha256']:
         raise RuntimeError('bound public submission changed')

@@ -1223,3 +1223,8 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 15:49 EDT: Production10387275 acquired the global audit slot at19:44:00UTC after6307.066seconds (105.12minutes) waiting behind the separate PaperBench recovery; the complete120-assignment Sol+Opus panel is now executing.
 
 - 16:32 EDT: Production 10387275 completed at 20:13:46 UTC (snapshot 106863b2ca1bfb543be3d6660aaeca56baec15af); native completion and all raw evidence remain under /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/. Read-only reporting 10389933 completed the paired tables/case review after report-only 10387731 stopped on the declared reminder-history hash difference; the published report is docs/reports/2026-09-10/trace-attack-defense-v1/README.md.
+
+## 2026-09-10 — attack_defense_v2 development
+
+- 21:05 EDT: Isolated checkout `runs/babel-code/attack-defense-v2` starts at report commit `10efb8886d19163975c137f2f058eb4c415657d5`; the shared dirty checkout and historical v1 worktree remain intact. New compute root `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/`; Phase A uses `phase-a/dev1-001/`, physically separate from future dev3/Result20 outputs and caches.
+- 21:05 EDT: Provider-free input jobs 10392208/10392306; compact cohort receipt `experiments/trace-attack-defense-v2/phase-a-cohort.json`. Model work will use 32 allocated CPUs, at most 32 workers, intra-assignment fan-out four, shared aggregate limit 60 and audit-study limit one; no outcome auditor is invoked during development.

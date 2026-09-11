@@ -508,10 +508,10 @@ class RubricGeneration:
             "generation_round",
         )
         require_nonnegative_int(self.proposer_call_budget, "proposer_call_budget")
-        from .trace_defense_prompts import SOURCE_SCHEDULE, VERSION
-        if (self.source_schedule, self.red_team_trace_version) not in {
-            (None, None), (SOURCE_SCHEDULE, VERSION)
-        }:
+        from .trace_defense_registry import SOURCE_SCHEDULE, validate_version
+        validate_version(self.red_team_trace_version)
+        if not ((self.source_schedule is None and self.red_team_trace_version is None)
+                or (self.source_schedule == SOURCE_SCHEDULE and self.red_team_trace_version is not None)):
             raise ValueError("invalid rubric source schedule/method version")
         if self.source_schedule is not None and (generation_round < 2 or self.source_checkpoint is None):
             raise ValueError("pre-revision schedule requires a live generation")
@@ -595,8 +595,9 @@ class RubricGeneration:
             raise ValueError("prior must be a RubricGeneration")
         if self.generation_round != prior.generation_round + 1:
             raise ValueError("rubric generations must be consecutive")
-        if prior.generation_round >= 2 and self.source_schedule != prior.source_schedule:
-            raise ValueError("cannot mix rubric source schedules")
+        if prior.generation_round >= 2 and (self.source_schedule != prior.source_schedule
+                                           or self.red_team_trace_version != prior.red_team_trace_version):
+            raise ValueError("cannot mix rubric source schedules or recipe versions")
         if self.scoring_protocol != prior.scoring_protocol:
             raise ValueError("a rubric generation cannot change scoring protocol")
         if self.normalization_maximum != prior.normalization_maximum:

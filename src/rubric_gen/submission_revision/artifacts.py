@@ -104,7 +104,7 @@ REVISION_MANIFEST_KEYS = frozenset(
 def revision_manifest_keys(feedback_policy: str, red_team_trace_version: str | None = None) -> frozenset[str]:
     """Return the strict manifest shape for one feedback protocol."""
 
-    from .trace_defense_prompts import validate_version
+    from .trace_defense_registry import validate_version
     validate_version(red_team_trace_version)
     keys = REVISION_MANIFEST_KEYS
     if red_team_trace_version:

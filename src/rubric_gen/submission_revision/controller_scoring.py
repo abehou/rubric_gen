@@ -117,7 +117,7 @@ class RevisionScorer:
         self.instruction_sha256 = instruction_sha256
         self.data_sha256 = data_sha256
         self.store = store
-        from .trace_defense_prompts import enabled
+        from .trace_defense_registry import enabled
         self.trace_defense_enabled = enabled(rubric_policy, config.red_team_trace_version)
 
     def verify_canonical_task_inputs(self) -> None:

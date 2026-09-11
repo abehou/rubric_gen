@@ -535,7 +535,7 @@ def _validate_protocol(protocol: object) -> None:
     }
     if not isinstance(protocol, dict):
         raise ValueError("protocol must be a mapping")
-    from .trace_defense_prompts import validate_version
+    from .trace_defense_registry import validate_version
     validate_version(protocol.get("red_team_trace_version"))
     if set(protocol) - {"red_team_trace_version"} != base_keys:
         raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")

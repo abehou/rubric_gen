@@ -117,10 +117,12 @@ def rubric_generation_implementation_sha256(red_team_trace_version: str | None =
         package_root.parent / "artifacts" / "hashing.py",
         package_root.parent / "runtime" / "llm.py",
     )
-    from .trace_defense_prompts import validate_version
+    from .trace_defense_registry import validate_version
     validate_version(red_team_trace_version)
     if red_team_trace_version is not None:
-        paths += tuple(sorted(package_root.glob("trace_defense*.py")))
+        from .trace_defense_registry import recipe
+        paths += tuple(p for p in sorted(package_root.glob("trace_defense*.py"))
+                       if recipe(red_team_trace_version).family == 'v2' or 'v2' not in p.stem)
     digest = hashlib.sha256()
     for path in paths:
         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))
@@ -164,7 +166,7 @@ class RubricProposer:
             raise ValueError("rubric proposer benchmark is invalid")
         if type(max_retries) is not int or max_retries < 0:
             raise ValueError("rubric proposer retries must be non-negative")
-        from .trace_defense_prompts import validate_version
+        from .trace_defense_registry import validate_version
         validate_version(red_team_trace_version)
         self.red_team_trace_version = red_team_trace_version
         self.benchmark = benchmark
@@ -195,10 +197,10 @@ class RubricProposer:
     ) -> RubricGeneration:
         """Return the next rubric after pairwise criterion induction."""
 
-        from .trace_defense_prompts import enabled
+        from .trace_defense_registry import enabled
         if enabled(policy, self.red_team_trace_version) and generation_round >= 2:
-            from .trace_defense import elicit_trace_defense
-            return elicit_trace_defense(
+            from .trace_defense_registry import recipe
+            return recipe(self.red_team_trace_version).elicit(
                 proposer=self, instruction=instruction, original_rubric=original_rubric,
                 development_rubric=development_rubric, current_generation=current_generation,
                 policy=policy, generation_round=generation_round, output_dir=output_dir,

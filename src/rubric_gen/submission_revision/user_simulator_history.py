@@ -34,9 +34,9 @@ def build_simulated_user_history(
         component = {}
         reminder_path = experiment_dir / "trace-defense-reminders" / f"{before_id}.json"
         if reminder_path.is_file():
-            from .trace_defense_prompts import VERSION
+            from .trace_defense_registry import enabled
             manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
-            if manifest.get("red_team_trace_version") != VERSION or manifest.get("rubric_policy") != "red_team_trace":
+            if not enabled(manifest.get("rubric_policy"), manifest.get("red_team_trace_version")):
                 raise RuntimeError("trace reminder in an incompatible public history")
             reminder = read_json_object(reminder_path, "trace reminder history")
             if reminder["message_component"]:

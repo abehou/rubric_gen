@@ -559,3 +559,8 @@
 - 14:50 EDT: The combined revision/audit driver retains its 32-CPU allocation while waiting for the global one-audit-study reservation; the current owner is a separate PaperBench recovery. This scheduling overhead is distinct from provider latency and revision reliability, and is recorded for operational follow-up without changing the frozen run or another session.
 
 - 16:32 EDT: Reporting validation now preserves the authorized reminder-history identity difference while requiring exact common simulator settings; native event source metadata no longer overwrites forensic stream-path anchors. Seven provider-free reporting tests and all 186 immutable execution-file hashes pass; no scientific source, saved revision or auditor verdict changed during these report fixes.
+
+## 2026-09-10 — v2 response-contract boundary
+
+- 21:05 EDT: V2 validates schema, source bounds, legal operation and applicability/level combinations before cache success; exact cached responses revalidate their bindings, and exhausted contracts cannot silently obtain another generation's repair budget. Tests cover locked-field violations, interrupted-success recovery, false semantic/scientific outcomes, and replacement reservation only after native acceptance.
+- 21:05 EDT: Shared dispatch adapters have truthful new consumer implementation fingerprints; historical generation serialization and scientific request payloads are retained, and no old producer hash is rewritten to match the new source tree. V1 prompt/schema/stage/orchestration literals remain byte-identical to the pinned execution files.

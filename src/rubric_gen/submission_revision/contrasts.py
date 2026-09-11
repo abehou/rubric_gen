@@ -212,7 +212,7 @@ def build_online_artifact_history(
 ) -> ArtifactHistory:
     """Return matched seed, revision, and optional sidecar pairs."""
 
-    from .trace_defense_prompts import enabled
+    from .trace_defense_registry import enabled, recipe
     early = red_team_policy is not None and enabled(red_team_policy, red_team_trace_version)
     if type(source_checkpoint) is not int or source_checkpoint < (0 if early else 1):
         raise ValueError("source_checkpoint must be a positive integer")
@@ -319,7 +319,7 @@ def build_online_artifact_history(
             trajectory_excerpt=excerpt,
             trajectory_truncated=truncated,
             **({"source_checkpoint": int(trajectory_path.parent.name.split("-")[-1]),
-                "attack_record": json.loads((trajectory_path.parent / "attack-record.json").read_text())}
+                "attack_record": json.loads((trajectory_path.parent / recipe(red_team_trace_version).attack_record_name).read_text())}
                if early else {}),
         ))
     pair_checkpoints = {}

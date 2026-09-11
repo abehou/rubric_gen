@@ -53,8 +53,9 @@ def source_pool(experiment: Experiment) -> Path | None:
                     name = Path('tasks') / task / f'rep-{rep:03d}' / 'manifest.json'
                     _same_file(old / name, new / name)
         else:
-            from .trace_defense_prompts import VERSION
-            if experiment.protocol.get('red_team_trace_version') == VERSION:
+            from .trace_defense_registry import validate_version
+            validate_version(experiment.protocol.get('red_team_trace_version'))
+            if experiment.protocol.get('red_team_trace_version') is not None:
                 from .paraphrase_validation import validate_paraphrase_run
                 validate_paraphrase_run(old, original)
                 validate_paraphrase_run(new, experiment)

@@ -1360,3 +1360,9 @@ While package-context10353356 remains the primary baseline experiment,run six da
 ## 2026-09-10 — attack_defense_v1
 
 - 10:29 EDT: User authorized one attack_defense_v1 bundled Result20 cohort, 120 fresh trace assignments with counted da-10-1/rep-001 smoke, frozen static reuse and V2 heldouts; endpoint/resource rules are preregistered in docs/reports/2026-09-10/trace-attack-defense-v1/preregistration.md. No scientific variant search or automatic scale-up.
+
+## 2026-09-10 — attack_defense_v2 bounded development authorization
+
+- 21:05 EDT: Implement the user-specified source-reference/operation/contract corrections as `attack_defense_v2.dev1`; preserve v1 scientific literals, native gates, early schedule, solver/simulator, reminder policy and outcome definitions. Phase A selects 48 saved v1 requests prospectively by arm/stage/contract-failure strata; no revisions or outcome audits occur in that microbench.
+- 21:05 EDT: After Phase A passes, run complete canonical dev3 iterations (da-3-4, da-11-1, da-18-1; three replicates; seed 20260806; Full/User trace only), at most four. Advance immediately on the first full mechanism-readiness pass, otherwise publish the four-iteration failure and stop; never select using dev3 outcome RH/gaps or Result20 evidence.
+- 21:05 EDT: Only a passing dev3 recipe authorizes one frozen 120-assignment Result20, using v1 verified inputs/static comparisons/V2 heldouts and the unchanged Sol+Opus panel. Preserve v1 endpoint thresholds and 10,000 task-cluster bootstrap draws, seed 20260910; no post-freeze scientific tuning or scale-up.

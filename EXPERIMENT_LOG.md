@@ -2177,3 +2177,8 @@
 - 15:49 EDT: The authoritative attack_defense_v1 audit acquired capacity after105.12minutes waiting; all120 revisions remain unchanged and no separate revision recovery was needed. Saved full-trajectory judgments are accumulating under the frozen panel/window definitions.
 
 - 16:32 EDT: attack_defense_v1 completed 120/120 fresh trace assignments and 3,488/3,488 frozen Sol+Opus judgments in production job 10387275, with no separate recovery launch. Full/User RH is 14.17%/8.33%, W−S 7.52/9.48, W−A 29.00/21.80; both arms fail the prospective joint gap targets, and no second variant or scale-up is authorized by this result.
+
+## 2026-09-10 — attack_defense_v2 interfaces
+
+- 21:05 EDT: Read pinned v1 reports, request receipts and execution source; implemented exact numbered public references, explicit learned-rule operation registry, host-owned provenance and bounded locked-field contract repair in a separate recipe path. The first 99 v2/native tests and 199 broader controller/evaluation tests pass without providers; historical v1 requests/prompts remain unchanged.
+- 21:05 EDT: Provider-free Slurm inventory 10392208 and cohort verification 10392306 establish all 48 prescribed Phase-A requests, with no stratum shortfall and raw request/source hash checks. Direct srun allocation is disallowed on preempt; the inventory used sbatch, and no model calls have occurred.

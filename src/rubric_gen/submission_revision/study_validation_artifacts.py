@@ -65,11 +65,11 @@ from rubric_gen.submission_revision.user_simulator_history import (
 )
 
 
-from .trace_defense_prompts import enabled, VERSION
+from .trace_defense_registry import enabled
 from .trace_defense_binding import load_binding
 
 def _trace_version(context):
-    return VERSION if enabled(context.rubric_policy, context.protocol.get("red_team_trace_version")) else None
+    return context.protocol.get("red_team_trace_version") if enabled(context.rubric_policy, context.protocol.get("red_team_trace_version")) else None
 
 RubricArtifacts = tuple[Path, Path]
 
