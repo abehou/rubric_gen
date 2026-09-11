@@ -48,6 +48,20 @@ def restore_contract(request):
     evidence = json.loads(request['evidence'])
     stage = request['stage']
     identity = request['response_contract']
+    blind_keys = {
+        'quality': {'task', 'pair_id', 'artifact_A', 'artifact_B', 'source_manifest', 'visible_difference'},
+        'application': {'task', 'criterion', 'artifact', 'source_manifest'},
+        'rubric_view': {'task', 'artifact', 'base_rubric', 'active_penalty_criteria', 'score_minimum', 'score_maximum'},
+        'semantic': {'task', 'immutable_base_rubric', 'active_learned_rules', 'replaceable_learned_rules',
+                     'rules_already_accepted_this_update', 'allowed_actions', 'proposed_criterion',
+                     'replaces', 'public_representation_contract'},
+    }
+    if stage in blind_keys and set(evidence) != blind_keys[stage]:
+        raise RuntimeError('saved blind-stage input shape includes an unapproved evidence channel')
+    if stage == 'application' and set(evidence['criterion']) != {'title', 'requirement', 'levels'}:
+        raise RuntimeError('application criterion includes unapproved provenance or comparison metadata')
+    if stage == 'rubric_view' and set(evidence['artifact']) != {'artifact_id', 'content'}:
+        raise RuntimeError('raw rubric view includes a new source-address or private-evidence layer')
     if stage == 'quality':
         records = {x: evidence[x] for x in ('artifact_A', 'artifact_B')}
     elif stage == 'diagnosis':
@@ -57,6 +71,8 @@ def restore_contract(request):
     else:
         records = {}
     documents = {k: restore_document(v) for k, v in records.items()}
+    if any(set(records[k]) != set(document.model_record()) | {'artifact_id'} for k, document in documents.items()):
+        raise RuntimeError('numbered public source has additional unapproved metadata')
     native = {k: v['artifact_id'] for k, v in records.items()}
     active = tuple(x.removeprefix('REPLACE:') for x in identity['allowed_actions'] if x.startswith('REPLACE:'))
     generation = None
