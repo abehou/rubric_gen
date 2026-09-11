@@ -1,0 +1,32 @@
+{
+  "commit": "f7f284e265165ee1609bd26951e3a18a34f3663c",
+  "job": "10402706",
+  "kind": "canonical_v3_config_identity_binding",
+  "tasks": [
+    {
+      "consumer_config_sha256": "592727c9e6222888284c2e9c94c0f526fceae82a7bd2b5abb7105d5f717b83bd",
+      "consumer_id": "biomnibench-da-factorial-r10-ff98ae958e5e",
+      "producer_config_sha256": "a14ee832f3e814aee376c2dec659a50fbc1d7c381de3f2fbf96adcd792ad81a8",
+      "producer_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939",
+      "task": "da-3-4"
+    },
+    {
+      "consumer_config_sha256": "80a3a22b7567a44ce1eb7d4a9207b5822205ac7fcfcae9bbba0f4ec33a1f3b84",
+      "consumer_id": "biomnibench-da-factorial-r10-894aa417e37a",
+      "producer_config_sha256": "1df18362c10cf8b9a27cc34e253b34d97d11fe026860226107d4e18806abfed3",
+      "producer_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878",
+      "task": "da-11-1"
+    },
+    {
+      "consumer_config_sha256": "62c81febe8c5fa069e0e3732089faff5384dd22b42cfe3755f59686245e5cc38",
+      "consumer_id": "biomnibench-da-factorial-r10-fd51ee7f6798",
+      "producer_config_sha256": "7c33c5fea2fd8563f8103802e98ef630cf790edc08b60edb0f40810740bd2c57",
+      "producer_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6",
+      "task": "da-18-1"
+    }
+  ],
+  "time": "2026-09-11T18:32:21.869592+00:00"
+}
