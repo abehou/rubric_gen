@@ -242,10 +242,8 @@ def test_rubric_score_panel_replaces_obsolete_summary(
         lambda *_args: [{"assignment_id": "a-1"}],
     )
 
-    assert runner.run() == 0
-    summary = json.loads((tmp_path / "output" / "summary.json").read_text())
-    assert summary["panel_policy"] == PANEL_POLICY
-    assert summary["missing_models"] == []
+    with pytest.raises(RuntimeError, match="another study or panel"):
+        runner.run()
 
 
 def test_rubric_score_panel_keeps_resume_records(

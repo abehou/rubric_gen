@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -94,6 +95,8 @@ class RubricScoreStage:
         self.output = EvaluationStore(config.output_dir)
         self.root = self.output.root
         self._prepared: PreparedRubricScoreEvaluation | None = None
+        self._review_cache = {}
+        self._review_lock = threading.Lock()
 
     def preflight(self) -> None:
         """Prepare and cap all requests without output or provider calls."""
@@ -102,6 +105,8 @@ class RubricScoreStage:
             return
         targets = self.targets
         jobs = self._jobs(targets)
+        from .resume import adopt_saved_rubric_jobs
+        jobs = adopt_saved_rubric_jobs(self, jobs)
         for job in jobs:
             _validate_rubric_score_job_bindings(job)
         unique_jobs_by_key: dict[str, RubricScoreJob] = {}
@@ -134,7 +139,7 @@ class RubricScoreStage:
                 for job in jobs:
                     progress.set_status(job.target.assignment_id)
                     judge = self._judge_for_job(job)
-                    if judge.scoring_identity() != job.grading_identity:
+                    if job.key not in getattr(self, "_reused_records", {}) and judge.scoring_identity() != job.grading_identity:
                         raise RuntimeError(
                             "revision rubric score grading identity changed before "
                             "dispatch"
@@ -335,6 +340,8 @@ class RubricScoreStage:
 
     def _run_job(self, job: RubricScoreJob) -> dict[str, object]:
         _validate_rubric_score_job_bindings(job)
+        if job.key in getattr(self, "_reused_records", {}):
+            return self._reused_records[job.key]
         record_name = f"{job.key}.json"
         self.output.ensure_directory("records")
         record_path = self.output.regular_file(
@@ -468,7 +475,8 @@ class RubricScoreStage:
             max_review_chars=target.max_review_chars,
         )
         rubric = resolve_optimizer_rubric(judge_config)
-        return RubricScoreJudge(judge_config, rubric)
+        return RubricScoreJudge(judge_config, rubric, review_cache=self._review_cache,
+                                review_lock=self._review_lock)
 def _rubric_score_job_identity(job: RubricScoreJob) -> dict[str, object]:
     return {
         "assignment_id": job.target.assignment_id,

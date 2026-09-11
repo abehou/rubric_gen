@@ -1,4 +1,29 @@
-# Babel dev3 execution — 2026-09-07
+# Babel runtime profiles — 2026-09-11
+
+Use `scripts/babel/experiment.py` around the normal `run`, `revise`, or `detect`
+entrypoint, from the pinned patched checkout. `experiment.sbatch` supplies the
+locked Python 3.12 compute environment and persistent NFS caches/workspaces without
+loading optional login-shell configuration. The profiles are `dev3-4` (4 CPUs / 4
+workers), `dev3-8` (8 / 8), `results20` (32 / 32), and `inspection` (1 CPU / 4 HTTP
+workers, detection only). Override sbatch CPUs to match the chosen profile; retain
+256G for experiments. Aggregate provider reservations remain 60 and audit studies
+remain one. Never replace the source of an active owner.
+
+Normal `detect --resume` resolves documented producers for every selected source,
+prepares all four direct windows and scoring families before generation, and
+reuses compatible successful semantic judgments. Runtime source changes preserve
+original response provenance; scientific input/model/role mismatches still fail.
+A per-output lock and the shared audit lease belong to one suite coordinator.
+The launch directory contains `launch.json`, `status.json`, `metrics.jsonl`,
+`execution.log`, and terminal `result.json`. See the
+[implementation and measured results](reports/2026-09-11/runtime-reliability/runtime-throughput-cleanup.md)
+for the exact tested commands and limits.
+
+The remaining sections preserve the September 7–8 execution record and its
+historical dispatcher. Their four-CPU/60-worker settings and source-freeze recovery
+instructions are superseded by the profiles above for future runtime invocations.
+
+## Archived Babel dev3 execution — 2026-09-07
 
 Current execution status is owned by [EXPERIMENT_RUNS.md](../EXPERIMENT_RUNS.md) and the
 [checkpoint report](../investigation/babel-overnight-20260907/MORNING_REPORT.md).

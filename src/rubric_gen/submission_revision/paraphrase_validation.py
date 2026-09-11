@@ -223,6 +223,8 @@ def validate_task_record(
             variant_index,
             model,
         )
+        if experiment.rubric_paraphrases.get("prompt_policy") == "selected_neutral_heldout_rigorous":
+            validate_request_policy(metadata_path, master, experiment.rubric_paraphrases)
         digest = sha256_file(rubric_path)
         if digest in seen:
             raise RuntimeError(f"duplicate rubric paraphrase for {task_id}")
@@ -300,3 +302,45 @@ def _valid_variant_metadata(
         and isinstance(metadata.get("generation"), dict)
         and type(metadata.get("prompt_sha256")) is str
     )
+
+
+def validate_request_policy(metadata_path: Path, master: str, spec: dict) -> None:
+    """Replay the exact saved criterion attempt envelope under its declared role."""
+    from rubric_gen.submission_revision.paraphrases import _paraphrase_request
+    from rubric_gen.submission_revision.paraphrase_protocol import (
+        NEUTRAL_PARAPHRASE_INSTRUCTIONS, PARAPHRASE_INSTRUCTIONS,
+        SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+    )
+    metadata = read_json_object(metadata_path, 'paraphrase request provenance')
+    index, task = metadata['variant_index'], metadata['task_id']
+    instructions = PARAPHRASE_INSTRUCTIONS
+    if (spec.get('prompt_policy') == SELECTED_NEUTRAL_HELDOUT_RIGOROUS
+            and index in {spec['selected_variant'], spec['development_variant']}):
+        instructions = NEUTRAL_PARAPHRASE_INSTRUCTIONS
+    requests = metadata['generation'].get('requests')
+    groups = wording_template(master).groups
+    if not isinstance(requests, list) or len(requests) != len(groups):
+        raise RuntimeError(f'missing criterion request provenance: {metadata_path}')
+    observed = []
+    for group, record in zip(groups, requests, strict=True):
+        if (record.get('group_id') != group.group_id
+                or record.get('generation', {}).get('requested_model') != spec['model']):
+            raise RuntimeError(f'paraphrase request group/model mismatch: {metadata_path}')
+        attempt = record['attempt_count']
+        if type(attempt) is not int or attempt < 1:
+            raise RuntimeError(f'invalid paraphrase attempt: {metadata_path}')
+        error = None
+        if attempt > 1:
+            failure = metadata_path.with_suffix('.failures') / f'{group.group_id}.attempt-{attempt-1:03d}.json'
+            previous = read_json_object(failure, 'criterion-specific paraphrase repair')
+            if previous.get('group_id') != group.group_id or not isinstance(previous.get('error'), str):
+                raise RuntimeError(f'paraphrase repair belongs to another criterion: {failure}')
+            error = previous['error']
+        request = _paraphrase_request(task_id=task, variant_index=index, group=group,
+                                      repair_error=error, instructions=instructions)
+        expected = sha256_text(request.instructions + '\0' + request.evidence)
+        if record.get('prompt_sha256') != expected:
+            raise RuntimeError(f'paraphrase role/request mismatch: {metadata_path}, {group.group_id}, attempt {attempt}')
+        observed.append(expected)
+    if metadata['prompt_sha256'] != sha256_text('\0'.join(observed)):
+        raise RuntimeError(f'paraphrase request aggregate mismatch: {metadata_path}')

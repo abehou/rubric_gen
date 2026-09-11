@@ -22,11 +22,11 @@ def main():
  exp=load_experiment(BUNDLE/'result20.yaml')
  consumer=Path(str(exp.dag['revise']['output_dir']))
  recovery_ledger=json.loads((consumer/'study.json').read_bytes())
- recovery_rows={r['assignment_id']:r for r in recovery_ledger['records']}
+ recovery_rows={r['assignment_id']:r for r in recovery_ledger['records'] if r.get('status')=='completed'}
  if set(recovery_rows)!=TARGETS or any(r.get('status')!='completed' for r in recovery_rows.values()):
   raise RuntimeError('recovery ledger is not exactly the two completed targets')
  source_ledger=json.loads((SOURCE/'study.json').read_bytes())
- source_rows={r['assignment_id']:r for r in source_ledger['records']}
+ source_rows={r['assignment_id']:r for r in source_ledger['records'] if r['condition_id'] in exp.execution_conditions}
  if len(source_rows)!=120: raise RuntimeError('producer ledger is not Result20 scope')
  failed={a for a,r in source_rows.items() if r.get('status')!='completed'}
  if failed!=TARGETS or sum(r.get('status')=='completed' for r in source_rows.values())!=118:
@@ -41,7 +41,9 @@ def main():
   src=SOURCE/row['experiment_dir']; dst=consumer/row['experiment_dir']
   if dst.exists(): raise RuntimeError(f'consumer destination already exists: {dst}')
   dst.parent.mkdir(parents=True,exist_ok=True)
-  shutil.copytree(src,dst,copy_function=os.link,symlinks=False)
+  # Mutable bookkeeping must never share a producer inode. Preserve
+  # immutable scientific files as copies too; no producer chmod side effects.
+  shutil.copytree(src,dst,copy_function=shutil.copy2,symlinks=False)
   manifest=dst/'manifest.json'
   receipt={'kind':'v2_to_v21_assignment_import',
       'producer_experiment_id':source_ledger['experiment_id'], 'producer_trace_version':'attack_defense_v2',
@@ -49,25 +51,16 @@ def main():
       'producer_manifest_sha256':sha(manifest)}
   write_json_atomic(dst/'consumer-import.json',receipt)
   imported.append({'assignment_id':aid,'experiment_dir':row['experiment_dir'],'producer_manifest_sha256':receipt['producer_manifest_sha256']})
- records=[]
- for assignment in exp.execution_assignments:
-  aid=assignment.assignment_id
-  records.append(recovery_rows[aid] if aid in TARGETS else source_rows[aid])
- if len(records)!=120 or any(r.get('status')!='completed' for r in records): raise RuntimeError('merged ledger is not complete')
- # Keep only the consumer ledger at this path; producer study.json remains untouched.
- ledger={'kind':source_ledger['kind'],'status':'completed_scope','experiment_path':str((BUNDLE/'result20.yaml').resolve()),
-     'experiment_id':exp.experiment_id,'seed_run_dir':str(Path(str(exp.dag['seed']['output_dir'])).resolve()),
-     'paraphrase_run_dir':str(Path(str(exp.dag['paraphrase']['output_dir'])).resolve()),
-     'pretreatment_rubric_root':str((consumer/'pretreatment-rubrics').resolve()),
-     'started_at':recovery_ledger.get('started_at'),'finished_at':recovery_ledger.get('finished_at'),'max_concurrency_last_invocation':32,
-     'records':records}
+ from rubric_gen.submission_revision.source_resolution import assemble_consumer_ledger
+ ledger=assemble_consumer_ledger(exp,recovery_ledger,source_ledger)
+ records=[r for r in ledger['records'] if r['condition_id'] in exp.execution_conditions]
  (consumer/'pretreatment-rubrics').mkdir(parents=True,exist_ok=True)
  write_json_atomic(consumer/'study.json',ledger)
  receipt={'kind':'attack_defense_v2.1_consumer_cohort','consumer_experiment_id':exp.experiment_id,
    'consumer_version':'attack_defense_v2.1','producer_experiment_id':source_ledger['experiment_id'],'producer_version':'attack_defense_v2',
    'producer_study_root':str(SOURCE),'consumer_study_root':str(consumer),'source_ledger_sha256':sha(SOURCE/'study.json'),
    'recovery_ledger_sha256':sha(consumer/'study.json'),'imported_completed_assignments':len(imported),'recovered_assignments':sorted(TARGETS),
-   'total_completed_assignments':len(records),'hardlinked_producer_outputs':True,'provider_calls':0,'imports':imported,
+   'total_completed_assignments':len(records),'hardlinked_producer_outputs':False,'provider_calls':0,'imports':imported,
    'consumer_code_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
    'mechanical_patch':'candidate-local duplicate_criterion_title guard only'}
  write_json_atomic(RUN/'consumer-cohort.json',receipt)

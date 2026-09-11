@@ -146,6 +146,8 @@ def _add_submission_command(
     parser = subparsers.add_parser(name, help=f"{name.title()} submission work.")
     parser.add_argument("--experiment", required=True)
     parser.add_argument("--max-concurrency", type=int, default=60)
+    if name == "revise":
+        parser.add_argument("--assignment-workers", type=int)
     if resumable:
         parser.add_argument("--resume", action="store_true")
     parser.set_defaults(handler=_require_submission_experiment, submission_handler=handler)
@@ -177,6 +179,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--experiment", required=True)
     run.add_argument("--max-concurrency", type=int, default=60)
     run.add_argument("--max-retries", type=int)
+    run.add_argument("--assignment-workers", type=int,
+                     help="Independent revision assignments; request workers use --max-concurrency.")
     continuation = run.add_mutually_exclusive_group()
     continuation.add_argument("--resume", action="store_true")
     continuation.add_argument("--restart", action="store_true")

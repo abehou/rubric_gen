@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import errno
+from contextlib import contextmanager
+from rubric_gen.runtime.capacity import reservation, emit
 import json
 import os
 import subprocess
@@ -65,6 +68,21 @@ def _judge_subprocess_environment() -> dict[str, str]:
     )
     environment["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
     return environment
+
+
+@contextmanager
+def _temporary_judge_directory():
+    from rubric_gen.submission_revision.artifacts import _force_remove_directory
+    root = Path(tempfile.mkdtemp(prefix="submission-judge-"))
+    try:
+        yield str(root)
+    finally:
+        try:
+            _force_remove_directory(root)
+        except OSError as exc:
+            if exc.errno not in {errno.ENOTEMPTY, errno.EBUSY}:
+                raise
+            emit('cleanup_deferred', operation='optimizer-judge', path=str(root), errno=exc.errno)
 
 
 class JudgeExecutor:
@@ -149,7 +167,7 @@ class JudgeExecutor:
             self.artifacts.unlink_output_file(output, stale_name)
 
         artifact_snapshots: dict[str, bytes] = {}
-        with tempfile.TemporaryDirectory(prefix="submission-judge-") as tmp:
+        with _temporary_judge_directory() as tmp:
             tmp_dir = Path(tmp)
             inputs_dir = tmp_dir / "inputs"
             logs_dir = tmp_dir / "logs"
@@ -180,16 +198,17 @@ class JudgeExecutor:
                 str(execution["engine_seed"]),
             ]
             try:
-                proc = subprocess.run(
-                    command,
-                    cwd=tmp_dir,
-                    env=env,
-                    text=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    check=False,
-                    timeout=JUDGE_SUBPROCESS_TIMEOUT_SECONDS,
-                )
+                with reservation():
+                    proc = subprocess.run(
+                        command,
+                        cwd=tmp_dir,
+                        env=env,
+                        text=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        check=False,
+                        timeout=JUDGE_SUBPROCESS_TIMEOUT_SECONDS,
+                    )
             except subprocess.TimeoutExpired as exc:
                 captured = exc.stdout or ""
                 if isinstance(captured, bytes):

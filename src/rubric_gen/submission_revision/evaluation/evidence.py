@@ -20,10 +20,13 @@ from rubric_gen.submission_revision.detection_windows import (
 )
 from rubric_gen.submission_revision.evaluation.evidence_ledger import (
     EvidenceBlinder,
+    EvidenceReadCache,
     EvidenceLedgerEntry,
     load_final_revision_evidence_ledger,
     load_revision_evidence_ledger,
     load_revision_evidence_snapshot,
+    _trajectory_segments,
+    _no_change_turn,
     render_evidence_ledger,
 )
 
@@ -34,6 +37,8 @@ def revision_detection_source(
     tasks_dir: Path,
     experiment_ids: tuple[str, ...],
     window: RevisionDetectionWindow,
+    resolved_sources: tuple | None = None,
+    shared_inputs: dict | None = None,
 ) -> AuditSource:
     """Build a validated source for completed revision experiments."""
 
@@ -45,16 +50,41 @@ def revision_detection_source(
         raise ValueError("submission revisions require unique experiment IDs")
     allowed_experiments = set(experiment_ids)
     resolved_window = RevisionDetectionWindow(window)
+    inputs = shared_inputs if shared_inputs is not None else {}
     cases: list[AuditCase] = []
+    resolved = {source.directory: source for source in resolved_sources or ()}
+    if resolved_sources is not None and set(revision_dirs) != set(resolved):
+        raise ValueError("direct source differs from resolved consumer membership")
     for revision_dir in revision_dirs:
-        manifest = _revision_manifest(revision_dir)
-        if manifest.get("experiment_id") not in allowed_experiments:
+        source = resolved.get(revision_dir)
+        manifest = source.manifest if source is not None else _revision_manifest(revision_dir)
+        expected = {source.producer.experiment_id} if source is not None else allowed_experiments
+        if source is None and (revision_dir / "consumer-import.json").exists():
+            raise ValueError("imported direct source requires per-assignment producer resolution")
+        if manifest.get("experiment_id") not in expected:
             raise ValueError(
                 f"submission revision is outside the experiment: {revision_dir}"
             )
+        # All windows exercise their lightweight source boundary before any
+        # generation in the suite; expensive evidence rendering stays lazy.
+        if revision_dir not in inputs:
+            inputs[revision_dir] = (load_revision_evidence_snapshot(revision_dir, manifest, source.state if source else None), EvidenceReadCache(), Lock(), manifest)
+        snapshot = inputs[revision_dir][0]
+        if resolved_window is RevisionDetectionWindow.FULL_TRAJECTORY:
+            _trajectory_segments(revision_dir, revision_dir / 'submissions', snapshot.submission_ids)
+            _no_change_turn(revision_dir, snapshot.state, len(snapshot.submission_ids))
+            cumulative = snapshot.latest_submission / 'trajectory.stream.jsonl'
+            if cumulative.is_symlink() or not cumulative.is_file():
+                raise ValueError(f'revision has no cumulative trajectory: {cumulative}')
+        if resolved_window is RevisionDetectionWindow.POST_UPDATE and len(snapshot.submission_ids) <= POST_UPDATE_BASELINE_INDEX:
+            raise ValueError(f"revision does not reach post-update window: {revision_dir}")
+        if resolved_window is RevisionDetectionWindow.FINAL_REVISION and len(snapshot.submission_ids) < 2:
+            raise ValueError(f"revision does not reach final-revision window: {revision_dir}")
         task_id = manifest.get("task_id")
         if not isinstance(task_id, str) or not task_id:
             raise ValueError(f"revision has no task_id: {revision_dir}")
+        if not (tasks_dir / task_id / "instruction.md").is_file():
+            raise ValueError(f"task instruction unavailable: {tasks_dir / task_id}")
         cases.append(
             AuditCase(
                 case_id=_revision_case_id(revision_dir, manifest),
@@ -79,12 +109,12 @@ def revision_detection_source(
         with prompt_lock:
             prompt = prompt_cache.get(key)
             if prompt is None:
-                prompt = _revision_prompt(
-                    case.path,
-                    resolved_tasks,
-                    detection,
-                    resolved_window,
-                )
+                snapshot, reader, source_lock, manifest = inputs[case.path]
+                with source_lock:
+                    prompt = _revision_prompt(
+                        case.path, resolved_tasks, detection, resolved_window,
+                        snapshot=snapshot, reader=reader, manifest=manifest,
+                    )
                 prompt_cache[key] = prompt
             return prompt
 
@@ -141,10 +171,11 @@ def _revision_prompt(
     tasks_dir: Path,
     detection: str,
     window: RevisionDetectionWindow,
+    *, snapshot=None, reader=None, manifest=None,
 ) -> EvidencePrompt:
     target = detection_target(detection)
     resolved_window = RevisionDetectionWindow(window)
-    manifest = _revision_manifest(revision_dir)
+    manifest = manifest or _revision_manifest(revision_dir)
     try:
         benchmark = SubmissionBenchmarkId(str(manifest.get("benchmark")))
     except ValueError as exc:
@@ -162,7 +193,7 @@ def _revision_prompt(
         task_id=task_id,
         condition_id=condition_id if isinstance(condition_id, str) else None,
     )
-    snapshot = load_revision_evidence_snapshot(revision_dir, manifest)
+    snapshot = snapshot or load_revision_evidence_snapshot(revision_dir, manifest)
     artifact_only = resolved_window is RevisionDetectionWindow.FINAL_ARTIFACT
     if (
         resolved_window is RevisionDetectionWindow.POST_UPDATE
@@ -185,6 +216,7 @@ def _revision_prompt(
             revision_dir,
             snapshot,
             blind,
+            reader,
         )
     else:
         ledger = load_revision_evidence_ledger(
@@ -192,6 +224,7 @@ def _revision_prompt(
             snapshot,
             resolved_window,
             blind,
+            reader,
         )
     instruction = str(blind(instruction_path.read_text(encoding="utf-8")))
     submission_benchmark = get_submission_benchmark(benchmark)

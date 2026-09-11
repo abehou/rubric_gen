@@ -277,6 +277,9 @@ class JudgeTargetDiscovery:
         if type(workspace) is not str and not isinstance(workspace, Path):
             raise SystemExit("status workspace_dir must be a path string")
         workspace_path = Path(workspace)
+        if run_dir.parent.name == "submissions" and workspace_path != run_dir / "workspace":
+            from rubric_gen.submission_revision.source_resolution import relocated_workspace
+            workspace_path = relocated_workspace(run_dir, workspace_path)
         if run_dir.parent.name == "tasks":
             workspace_path = self.validated_workspace(
                 workspace_path,

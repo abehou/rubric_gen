@@ -8,6 +8,10 @@ bounds a wedged process. SDK clients and streams are closed on every exit.
 import httpx
 
 
+class IncompleteProviderResponse(RuntimeError):
+    """A stream ended without a usable terminal provider response."""
+
+
 def anthropic_response(*, api_key, timeout, **request):
     from anthropic import Anthropic, APIConnectionError, APITimeoutError
 
@@ -19,7 +23,7 @@ def anthropic_response(*, api_key, timeout, **request):
                     if event.type == "message_stop":
                         complete = True
                 if not complete:
-                    raise RuntimeError("Anthropic stream ended without message_stop")
+                    raise IncompleteProviderResponse("Anthropic stream ended without message_stop")
                 return stream.get_final_message()
     # SDKs wrap initial request failures, but iteration exposes HTTPX errors.
     # Keep the existing retry/error classification for failures during a stream.
@@ -38,11 +42,11 @@ def openai_response(*, api_key, timeout, **request):
                 response = None
                 for event in stream:
                     if event.type in {"response.failed", "response.incomplete", "error"}:
-                        raise RuntimeError(f"OpenAI stream failed: {event}")
+                        raise IncompleteProviderResponse(f"OpenAI stream failed: {event}")
                     if event.type == "response.completed":
                         response = event.response
                 if response is None or response.status != "completed":
-                    raise RuntimeError("OpenAI stream ended without a completed response")
+                    raise IncompleteProviderResponse("OpenAI stream ended without a completed response")
                 return response
     except httpx.TimeoutException as exc:
         raise APITimeoutError(request=exc.request) from exc

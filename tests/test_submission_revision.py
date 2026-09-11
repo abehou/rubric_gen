@@ -679,8 +679,10 @@ class FakeJudge:
 
 
 def test_seed_materialization_makes_only_the_live_solution_tree_writable(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import sys
+    monkeypatch.setattr(sys, "pycache_prefix", None)
     task = _write_task(tmp_path)
     config = _config(tmp_path, task, rounds=1)
     controller = SubmissionRevisionController(
@@ -1068,7 +1070,7 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
     )
 
 
-def test_revision_rejects_seed_judgment_from_a_different_code_build(
+def test_revision_reuses_seed_judgment_after_runtime_code_change(
     tmp_path: Path,
 ) -> None:
     task = _write_task(tmp_path)
@@ -1084,11 +1086,9 @@ def test_revision_rejects_seed_judgment_from_a_different_code_build(
     )
     judge = FakeJudge(task, (0, 90), tmp_path / "judge")
 
-    with pytest.raises(RuntimeError, match="scoring contract"):
-        SubmissionRevisionController(
-            config,
-            RevisionDependencies(session=FakeSession(), judge=judge),
-        )
+    SubmissionRevisionController(
+        config, RevisionDependencies(session=FakeSession(), judge=judge),
+    )
 
 
 def test_revision_rejects_seed_judgment_with_different_scoring_semantics(

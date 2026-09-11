@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
@@ -14,6 +14,34 @@ from rubric_gen.submission_revision.detection_windows import (
     POST_UPDATE_FIRST_AFFECTED_INDEX,
     RevisionDetectionWindow,
 )
+
+
+@dataclass
+class EvidenceReadCache:
+    """Invocation-local bytes and parsed lines from one validated sealed source."""
+    contents: dict = field(default_factory=dict)
+    parsed: dict = field(default_factory=dict)
+    lines: dict = field(default_factory=dict)
+    reads: int = 0
+    bytes_read: int = 0
+
+    def read(self, path):
+        if path not in self.contents:
+            raw = path.read_bytes()
+            self.contents[path] = raw
+            self.reads += 1
+            self.bytes_read += len(raw)
+        return self.contents[path]
+
+    def decode(self, raw):
+        if raw not in self.lines:
+            self.lines[raw] = _decode_lines(raw)
+        return self.lines[raw]
+
+    def parse(self, line):
+        if line not in self.parsed:
+            self.parsed[line] = _parse_line(line)
+        return self.parsed[line]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,10 +106,11 @@ class EvidenceBlinder:
 def load_revision_evidence_snapshot(
     revision_dir: Path,
     manifest: dict[str, object],
+    state: dict | None = None,
 ) -> RevisionEvidenceSnapshot:
     """Load the canonical completed revision identity once."""
 
-    state = _load_state(revision_dir)
+    state = _load_state(revision_dir) if state is None else state
     submission_ids = _validated_submission_ids(revision_dir, manifest, state)
     if manifest.get("red_team_trace_version") is not None:
         from ..trace_defense_binding import load_binding
@@ -108,9 +137,11 @@ def load_revision_evidence_ledger(
     snapshot: RevisionEvidenceSnapshot,
     window: RevisionDetectionWindow,
     blind: Callable[[object], object],
+    reader: EvidenceReadCache | None = None,
 ) -> RevisionEvidenceLedger:
     """Read each trajectory segment once and preserve its source order."""
 
+    reader = reader or EvidenceReadCache()
     resolved_window = RevisionDetectionWindow(window)
     if resolved_window not in {
         RevisionDetectionWindow.FULL_TRAJECTORY,
@@ -125,24 +156,24 @@ def load_revision_evidence_ledger(
         raise ValueError(f"revision has no cumulative trajectory: {latest_submission}")
 
     segments = _trajectory_segments(revision_dir, submissions_root, submission_ids)
-    segment_bytes = tuple(path.read_bytes() for path in segments)
-    segment_lines = tuple(_decode_lines(raw) for raw in segment_bytes)
+    segment_bytes = tuple(reader.read(path) for path in segments)
+    segment_lines = tuple(reader.decode(raw) for raw in segment_bytes)
     latest_bytes = (
         segment_bytes[0]
         if latest_path == segments[0]
-        else latest_path.read_bytes()
+        else reader.read(latest_path)
     )
     if _canonical_cumulative_bytes(segment_bytes) != latest_bytes:
         raise ValueError(
             f"latest trajectory differs from its turn ledger: {revision_dir}"
         )
     no_change = _no_change_turn(revision_dir, snapshot.state, len(submission_ids))
-    no_change_bytes = no_change[0].read_bytes() if no_change is not None else None
+    no_change_bytes = reader.read(no_change[0]) if no_change is not None else None
     no_change_lines = (
-        _decode_lines(no_change_bytes) if no_change_bytes is not None else ()
+        reader.decode(no_change_bytes) if no_change_bytes is not None else ()
     )
     completed_item_ids = _completed_item_ids(
-        line for lines in (*segment_lines, no_change_lines) for line in lines
+        (line for lines in (*segment_lines, no_change_lines) for line in lines), reader.parse
     )
 
     entries: list[EvidenceLedgerEntry] = []
@@ -170,7 +201,7 @@ def load_revision_evidence_ledger(
                 continue
             source_records += 1
             normalized = _normalize_event(
-                blind(_parse_line(line)),
+                blind(reader.parse(line)),
                 completed_item_ids=completed_item_ids,
                 stats=normalization_stats,
             )
@@ -213,7 +244,7 @@ def load_revision_evidence_ledger(
             for line_number, line in enumerate(no_change_lines, start=1):
                 source_records += 1
                 normalized = _normalize_event(
-                    blind(_parse_line(line)),
+                    blind(reader.parse(line)),
                     completed_item_ids=completed_item_ids,
                     stats=normalization_stats,
                 )
@@ -244,9 +275,11 @@ def load_final_revision_evidence_ledger(
     revision_dir: Path,
     snapshot: RevisionEvidenceSnapshot,
     blind: Callable[[object], object],
+    reader: EvidenceReadCache | None = None,
 ) -> RevisionEvidenceLedger:
     """Read only the last artifact-producing revision and its input feedback."""
 
+    reader = reader or EvidenceReadCache()
     submission_ids = snapshot.submission_ids
     if len(submission_ids) < 2:
         raise ValueError(
@@ -261,14 +294,14 @@ def load_final_revision_evidence_ledger(
     )
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"revision final trajectory segment is missing: {path}")
-    raw = path.read_bytes()
-    lines = _decode_lines(raw)
-    completed_item_ids = _completed_item_ids(lines)
+    raw = reader.read(path)
+    lines = reader.decode(raw)
+    completed_item_ids = _completed_item_ids(lines, reader.parse)
     normalization_stats = {"superseded_started_events": 0}
     entries: list[EvidenceLedgerEntry] = []
     for line_number, line in enumerate(lines, start=1):
         normalized = _normalize_event(
-            blind(_parse_line(line)),
+            blind(reader.parse(line)),
             completed_item_ids=completed_item_ids,
             stats=normalization_stats,
         )
@@ -420,10 +453,10 @@ def _no_change_turn(
     return path, {"reason": "no_change", "submission_changed": False}
 
 
-def _completed_item_ids(lines: Iterable[str]) -> set[str]:
+def _completed_item_ids(lines: Iterable[str], parse=None) -> set[str]:
     completed: set[str] = set()
     for line in lines:
-        value = _parse_line(line)
+        value = (parse or _parse_line)(line)
         if isinstance(value, dict) and value.get("type") == "item.completed":
             item = value.get("item")
             if isinstance(item, dict) and isinstance(item.get("id"), str):

@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from openai import APIConnectionError, APIStatusError
@@ -23,6 +23,8 @@ from pathlib import Path
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.runtime.agents.codex_sessions import CodexProviderHealthError
 from rubric_gen.runtime.progress import TerminalProgress
+from rubric_gen.runtime.failures import failure_category, retry_after
+from rubric_gen.runtime.capacity import emit
 from rubric_gen.submission_revision.artifacts import read_json_object
 from rubric_gen.submission_revision.controller import run_submission_revision
 from rubric_gen.submission_revision.contrasts import ELICITATION_SEED_REPLICATES
@@ -68,8 +70,12 @@ def _permanent_provider_failure(error: BaseException) -> bool:
 def _retryable_assignment_failure(error: BaseException) -> bool:
     if _permanent_provider_failure(error):
         return False
-    return isinstance(error, (CodexProviderHealthError, RubricProposerProviderError, APIConnectionError)) or (
-        isinstance(error, APIStatusError) and error.status_code in {408, 409, 429, 500, 502, 503, 504}
+    # These errors have already exhausted their operation owner's configured
+    # budget. Re-running the assignment would multiply that budget.
+    if isinstance(error, (CodexProviderHealthError, RubricProposerProviderError)):
+        return False
+    return isinstance(error, APIConnectionError) or (
+        isinstance(error, APIStatusError) and error.status_code in {408, 409, 429, 500, 502, 503, 504, 529}
     )
 
 
@@ -120,7 +126,7 @@ class _ProviderCircuit:
                 and str(error).startswith("Codex app-server start failed after ")):
             return  # Local process startup is not evidence of a provider outage.
         permanent = _permanent_provider_failure(error)
-        if not permanent and not _retryable_assignment_failure(error):
+        if not permanent and not (_retryable_assignment_failure(error) or isinstance(error, (CodexProviderHealthError, RubricProposerProviderError))):
             return
         with self._lock:
             if self._permanent:
@@ -219,7 +225,12 @@ class StudyRunner:
         manifest = self._start_manifest(assignments, existed)
         pending = self._pending_assignments(manifest, assignments)
         if pending:
+            manifest['runtime_phase'] = 'pretreatment'
+            manifest['assignment_worker_limit_source'] = 'explicit invocation/profile setting'
+            self._write_manifest(manifest)
             self._prepare_pretreatment_rubrics(pending)
+        manifest['runtime_phase'] = 'revision'
+
         self._mark_study_running(manifest)
         if not pending:
             return self._finish_study(manifest)
@@ -234,13 +245,22 @@ class StudyRunner:
             for _ in range(len(self.invocation_assignments) - len(pending)):
                 progress.update()
             with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
-                futures = [
-                    pool.submit(self._execute_assignment, assignment, positions)
-                    for assignment in pending
-                ]
-                for future in as_completed(futures):
-                    future.result()
-                    progress.update()
+                waiting = iter(pending)
+                active = {}
+                def refill():
+                    while len(active) < self.config.max_concurrency:
+                        assignment = next(waiting, None)
+                        if assignment is None:
+                            break
+                        active[pool.submit(self._execute_assignment, assignment, positions)] = assignment.assignment_id
+                refill()
+                while active:
+                    done, _ = wait(active, return_when=FIRST_COMPLETED)
+                    for future in done:
+                        active.pop(future)
+                        future.result()
+                        progress.update()
+                    refill()
         return self._finish_study(self._load_manifest())
 
     def _start_manifest(
@@ -254,13 +274,12 @@ class StudyRunner:
             return manifest
         manifest = self._load_manifest()
         self._validate_manifest_identity(manifest, assignments)
-        if self.experiment.execution_conditions is not None:
-            for assignment in self.experiment.execution_assignments:
-                if _record_for(manifest, assignment.assignment_id).get("status") == "completed":
-                    study_validation.validate_completed_revision(
-                        self._experiment_dir(assignment), assignment, self.experiment,
-                        self.seed_root, self.paraphrase_root,
-                    )
+        completed = [r for r in manifest['records'] if r.get('status') == 'completed'
+                     and (self.experiment.execution_conditions is None or r['condition_id'] in self.experiment.execution_conditions)]
+        if completed:
+            from .source_resolution import resolve_study_sources
+            # The full ledger remains authoritative even for a partial resume.
+            resolve_study_sources(self.root, self.experiment, require_terminal=False)
         _reclaim_interrupted_records(manifest)
         return manifest
 
@@ -302,6 +321,7 @@ class StudyRunner:
         successful = statuses == {"completed"}
         manifest["status"] = ("completed" if successful else "failed") + ("_scope" if scope or self.config.assignment_ids else "")
         manifest["finished_at"] = _now()
+        manifest["runtime_phase"] = "complete" if successful else "incomplete"
         self._write_manifest(manifest)
         _report_noncompleted_records({"records": selected})
         return int(not successful)
@@ -319,6 +339,9 @@ class StudyRunner:
             for attempt in range(_ASSIGNMENT_TRANSIENT_ATTEMPTS):
                 try:
                     circuit.wait()
+                    saved = _record_for(self._load_manifest(), assignment_id)
+                    if saved.get('automatic_recovery_exhausted'):
+                        return
                     self._mark_assignment_running(assignment_id)
                     experiment_dir = self._experiment_dir(assignment)
                     revision = self._revision_config(
@@ -341,7 +364,10 @@ class StudyRunner:
                     self._mark_assignment_failed(assignment_id, exc)
                     if not _retryable_assignment_failure(exc) or attempt + 1 == _ASSIGNMENT_TRANSIENT_ATTEMPTS:
                         break
-                    time.sleep(min(2 ** attempt, 8))
+                    delay = retry_after(exc, attempt + 1)
+                    emit('retry_wait', operation='assignment', assignment_id=assignment_id,
+                         category=failure_category(exc), wait_seconds=delay)
+                    time.sleep(delay)
         finally:
             positions.release(position)
 
@@ -359,6 +385,7 @@ class StudyRunner:
                     "hostname": socket.gethostname(),
                     "pid": os.getpid(),
                     "attempt_count": int(record.get("attempt_count", 0)) + 1,
+                    "automatic_attempt_count": int(record.get("automatic_attempt_count", 0)) + 1,
                 }
             )
             for key in ("error_type", "error", "traceback"):
@@ -372,6 +399,7 @@ class StudyRunner:
                 {"status": "completed", "finished_at": _now()}
             )
             self._write_manifest(manifest)
+        emit('assignment_completed', assignment_id=assignment_id)
 
     def _mark_assignment_failed(
         self,
@@ -381,6 +409,9 @@ class StudyRunner:
         with self._manifest_lock:
             manifest = self._load_manifest()
             record = _record_for(manifest, assignment_id)
+            exhausted = (isinstance(error, (CodexProviderHealthError, RubricProposerProviderError))
+                         or (_retryable_assignment_failure(error) and
+                             int(record.get('automatic_attempt_count', 0)) >= _ASSIGNMENT_TRANSIENT_ATTEMPTS))
             record.update(
                 {
                     "status": "failed",
@@ -388,6 +419,9 @@ class StudyRunner:
                     "error_type": type(error).__name__,
                     "error": str(error),
                     "traceback": traceback.format_exc(),
+                    "failure_category": failure_category(error),
+                    "automatic_recovery_exhausted": exhausted,
+                    "next_automatic_action": 'none: operation budget exhausted' if exhausted else 'bounded retry if transient; otherwise repair source/config',
                 }
             )
             self._archive_assignment_failure(record)

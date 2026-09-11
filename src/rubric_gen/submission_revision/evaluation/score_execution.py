@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+import time
+from dataclasses import asdict
+from rubric_gen.runtime.failures import failure_category, retry_after
 from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_text
@@ -91,6 +94,11 @@ class RubricFreeScoreStage:
             if not target.initial_and_final_match()
             for model in models
         )
+        from .resume import adopt_saved_free_jobs
+        absolute_jobs = adopt_saved_free_jobs(self, absolute_jobs, self.absolute_output,
+            _absolute_judgment_identity, _rubric_free_absolute_score_request, absolute_score.validate_verdict)
+        pairwise_jobs = adopt_saved_free_jobs(self, pairwise_jobs, self.pairwise_output,
+            _pairwise_judgment_identity, _pairwise_preference_request, pairwise_preference.validate_verdict)
         unique_absolute_jobs = tuple({
             job.key: job for job in reversed(absolute_jobs)
         }.values())
@@ -253,22 +261,44 @@ class RubricFreeScoreStage:
         value: dict[str, object] | None = None
         generation: GenerationResult | None = None
         last_error: Exception | None = None
+        self._assert_current_dispatch(key=key, instrument=instrument, model=model, request=request)
+        attempt_root = output.ensure_directory('attempts', key)
         for attempt in range(1, max_attempts + 1):
+            attempt_path = attempt_root / f'attempt-{attempt:03d}.json'
+            saved = None
+            if attempt_path.exists():
+                saved = read_json_object(attempt_path, 'rubric-free attempt')
+                if saved['identity'] != identity:
+                    raise RuntimeError('saved rubric-free attempt identity changed')
+                if saved.get('generation') is None:
+                    last_error = RuntimeError(f"recorded {saved.get('category', 'unknown remote completion')}: {attempt_path}")
+                    if saved.get('category') in {'authentication', 'billing', 'configuration', 'structural'}:
+                        raise last_error
+                    continue
+            else:
+                saved = {'identity': identity, 'attempt': attempt, 'remote_completion': 'unknown'}
+                output.write_json(('attempts', key, attempt_path.name), saved)
             try:
-                self._assert_current_dispatch(
-                    key=key,
-                    instrument=instrument,
-                    model=model,
-                    request=request,
-                )
-                generation = self._generate(model, request)
+                if saved.get('generation') is not None:
+                    generation = GenerationResult(**saved['generation'])
+                else:
+                    generation = self._generate(model, request)
+                    saved.update(generation=asdict(generation), remote_completion='confirmed')
+                    output.write_json(('attempts', key, attempt_path.name), saved)
                 parsed = load_json_strict(generation.text)
                 validator(parsed)
                 assert isinstance(parsed, dict)
                 value = parsed
                 break
-            except (RuntimeError, ValueError) as exc:
+            except Exception as exc:
                 last_error = exc
+                category = 'response_validation' if isinstance(exc, ValueError) and saved.get('generation') else failure_category(exc)
+                saved.update(category=category, error_type=type(exc).__name__, error=str(exc))
+                output.write_json(('attempts', key, attempt_path.name), saved)
+                if category not in {'response_validation', 'transient_provider', 'transient_connection'}:
+                    raise
+                if attempt < max_attempts:
+                    time.sleep(retry_after(exc, attempt))
         if generation is None or value is None:
             raise RuntimeError(
                 f"rubric-free score judge failed after {max_attempts} attempts: "

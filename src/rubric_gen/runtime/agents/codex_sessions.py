@@ -131,7 +131,6 @@ class CodexSdkSessionDriver:
         self._model: str | None = None
         self._closed = False
 
-    @limited("solver-turn")
     def start(
         self,
         workspace: Path,
@@ -155,7 +154,6 @@ class CodexSdkSessionDriver:
             on_session_id(session_id)
         return self._run_turn_attempts(paths, prompt, resumed=False)
 
-    @limited("solver-resume")
     def resume(
         self,
         workspace: Path,
@@ -292,7 +290,11 @@ class CodexSdkSessionDriver:
         failures: list[str] = []
         for retry_index in range(self.config.retries + 1):
             try:
-                return operation()
+                # Startup/session-control consumes one active reservation, but
+                # its backoff and source preparation do not hold that capacity.
+                from rubric_gen.runtime.capacity import reservation
+                with reservation():
+                    return operation()
             except Exception as exc:
                 if not is_codex_transport_error(exc):
                     raise
@@ -329,6 +331,7 @@ class CodexSdkSessionDriver:
             raise RuntimeError("Codex SDK did not report a thread ID")
         return value
 
+    @limited("solver-turn")
     def _run_turn_attempts(
         self,
         paths: RunPaths,

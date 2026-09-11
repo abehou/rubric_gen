@@ -171,7 +171,7 @@ def emit(event: str, **fields):
     """Append operational facts only, never prompts, keys or exception messages."""
     root = Path(policy()["coordination_dir"])
     record = dict(event=event, time=time.time(), pid=os.getpid(), host=socket.gethostname(),
-                  job_id=os.environ.get("SLURM_JOB_ID"), **fields)
+                  job_id=os.environ.get("SLURM_JOB_ID"), invocation_id=os.environ.get("RUBRIC_GEN_INVOCATION_ID"), **fields)
     path = root / f"events-{socket.gethostname()}-{os.getpid()}.jsonl"
     # Host/PID filenames have a single process owner. Retaining its descriptor
     # avoids an NFS OPEN/CLOSE and distributed lock cycle for every event.
@@ -191,9 +191,10 @@ def reservation(kind="provider", count=1):
     capacity = settings["aggregate_concurrency"] if kind == "provider" else settings["audit_studies"]
     root = Path(settings["coordination_dir"]) / kind
     started = time.monotonic()
+    lease_id = uuid.uuid4().hex
+    emit('waiting', kind=kind, slots=count, lease_id=lease_id)
     with Slots(root, capacity).lease(count):
         depths[key] = 1; _LOCAL.depths = depths
-        lease_id = uuid.uuid4().hex
         try:
             emit("acquired", kind=kind, slots=count, lease_id=lease_id,
                  wait_seconds=time.monotonic() - started)
@@ -299,6 +300,7 @@ def limited(operation, *, kind="provider", slots=None, returns_exit_code=False):
                     if delay <= 0:
                         started = time.monotonic()
                         request_key = hashlib.sha256(repr((operation, args, kwargs)).encode()).hexdigest()
+                        emit("operation_started", operation=operation, request_key=request_key)
                         try:
                             result = function(*args, **kwargs)
                         except BaseException as exc:
@@ -318,6 +320,7 @@ def limited(operation, *, kind="provider", slots=None, returns_exit_code=False):
                              elapsed_seconds=time.monotonic() - started)
                         return result
                 # Do not occupy any global provider slots during rate waits.
+                emit("token_wait", operation=operation, wait_seconds=min(delay, 5.0))
                 time.sleep(min(delay, 5.0))
         return wrapped
     return decorate

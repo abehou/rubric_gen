@@ -300,11 +300,10 @@ def test_resume_preserves_failed_attempts_and_retry_budget(tmp_path, monkeypatch
     parent = judge._evaluation_root(submission, attempt_id).parent
     before = {p.name: p.read_bytes() for p in parent.glob('failed-attempt-*')}
     assert len(before) == 3
-    result = judge.evaluate(submission, attempt_id)
-    assert len(calls) == 5
+    with pytest.raises(RuntimeError, match='failed after 3 attempts'):
+        judge.evaluate(submission, attempt_id)
+    assert len(calls) == 3  # Resume cannot reset the exhausted logical budget.
     assert {name: (parent / name).read_bytes() for name in before} == before
-    assert len(list(parent.glob('failed-attempt-*'))) == 4
-    assert judge.evaluate(submission, attempt_id) == result and len(calls) == 5
 
 
 def test_resume_3333_completed_schedules_only_27_missing(tmp_path, monkeypatch):

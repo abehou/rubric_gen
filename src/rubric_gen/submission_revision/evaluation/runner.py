@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from rubric_gen.runtime.capacity import limited
 
+from contextlib import nullcontext
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
@@ -296,15 +297,22 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
 
     @limited("audit-stage", kind="audit", returns_exit_code=True)
     def run(self) -> int:
+        self.__dict__.pop("_completed_reused", None)
         self.preflight()
+        return self.run_prepared()
+
+    def run_prepared(self, executor=None) -> int:
         prepared = self._prepared
         if prepared is None:
             raise RuntimeError("revision rubric score preflight did not produce a plan")
         models = tuple(
             str(model) for model in self.config.experiment.outcome_audit["models"]
         )
+        if self.prepare_resume():
+            return 0
         manifest = self._manifest(prepared, models)
-        self.output.prepare(manifest, self.config.resume)
+        from .resume import prepare_stage_output
+        prepare_stage_output(self.output, manifest, self.config.resume, prepared.jobs)
         unique_jobs = prepared.unique_jobs
         failures: dict[str, dict[str, object]] = {}
         judgments: dict[str, dict[str, object]] = {}
@@ -314,9 +322,9 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
             description="revision rubric score evaluation",
             unit="judgment",
         ) as progress:
-            with ThreadPoolExecutor(
+            with (nullcontext(executor) if executor is not None else ThreadPoolExecutor(
                 max_workers=self.config.max_concurrency
-            ) as pool:
+            )) as pool:
                 futures = {
                     pool.submit(self._run_job, job): job
                     for job in unique_jobs
@@ -397,6 +405,12 @@ class RubricScoreRunner(rubric_score.RubricScoreStage):
         self._write_summary(summary)
         return 1 if missing_models else 0
 
+    def prepare_resume(self) -> bool:
+        if not hasattr(self, '_completed_reused'):
+            from rubric_gen.submission_revision.evaluation.resume import reuse_completed_rubric
+            self._completed_reused = reuse_completed_rubric(self)
+        return self._completed_reused
+
     def _write_summary(self, summary: dict[str, object]) -> None:
         self.output.write_json(("summary.json",), summary)
 
@@ -443,13 +457,20 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
 
     @limited("audit-stage", kind="audit", returns_exit_code=True)
     def run(self) -> int:
+        self.__dict__.pop("_completed_reused", None)
         self.preflight()
+        return self.run_prepared()
+
+    def run_prepared(self, executor=None) -> int:
         prepared = self._prepared
         if prepared is None:
             raise RuntimeError("rubric-free score preflight did not produce a plan")
+        if self.prepare_resume():
+            return 0
         manifests = self._manifests(prepared)
-        self.absolute_output.prepare(manifests["absolute"], self.config.resume)
-        self.pairwise_output.prepare(manifests["pairwise"], self.config.resume)
+        from .resume import prepare_stage_output
+        prepare_stage_output(self.absolute_output, manifests['absolute'], self.config.resume)
+        prepare_stage_output(self.pairwise_output, manifests['pairwise'], self.config.resume)
         absolute_failures: dict[str, dict[str, object]] = {}
         pairwise_failures: dict[str, dict[str, object]] = {}
         unique_absolute = {
@@ -473,9 +494,9 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
             description="absolute and pairwise scoring",
             unit="judgment",
         ) as progress:
-            with ThreadPoolExecutor(
+            with (nullcontext(executor) if executor is not None else ThreadPoolExecutor(
                 max_workers=self.config.max_concurrency
-            ) as pool:
+            )) as pool:
                 futures = {
                     pool.submit(
                         self._run_absolute_job
@@ -625,6 +646,12 @@ class RubricFreeScoreRunner(score_execution.RubricFreeScoreStage):
         self.absolute_output.write_json(("summary.json",), absolute_summary)
         self.pairwise_output.write_json(("summary.json",), pairwise_summary)
         return 1 if missing_models else 0
+
+    def prepare_resume(self) -> bool:
+        if not hasattr(self, '_completed_reused'):
+            from rubric_gen.submission_revision.evaluation.resume import reuse_completed_free
+            self._completed_reused = reuse_completed_free(self)
+        return self._completed_reused
 
     def _manifests(
         self,

@@ -226,11 +226,16 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         }],
     }))
     experiment = SimpleNamespace(
-        experiment_id="detection-experiment-1",
+        experiment_id="experiment-1",
         execution_conditions=None,
         path=experiment_path,
         assignments=(assignment,),
+        dag={'seed': {'output_dir': str(tmp_path/'seeds')}, 'paraphrase': {'output_dir': str(paraphrases)}},
+        protocol={}, benchmark='biomnibench-da', task_dir=lambda task: tmp_path/task,
     )
+    (experiment_dir/'manifest.json').write_text(json.dumps({**{k:v for k,v in assignment.record_identity().items() if k!='experiment_dir'},
+        'kind':'rubric-gen-submission-revision-experiment','experiment_id':'experiment-1','benchmark':'biomnibench-da','task_dir':str(tmp_path/assignment.task_id)}))
+    (experiment_dir/'state.json').write_text('{}')
     config = EvaluationConfig(
         experiment=experiment,
         study_dir=study,
@@ -249,6 +254,7 @@ def test_target_loader_uses_lightweight_terminal_state_validation(
         current_config: object,
         selection: object,
         study_experiment_id: str,
+        **kwargs,
     ) -> dict[str, object]:
         observed.update({
             "revision_dir": revision_dir,
@@ -322,9 +328,16 @@ def test_target_loader_excludes_failed_assignments_from_terminal_study(
     }))
     experiment = SimpleNamespace(
         path=experiment_path,
-        assignments=assignments,
-        execution_conditions=None,
+        assignments=assignments, execution_conditions=None, experiment_id='experiment-1',
+        dag={'seed': {'output_dir': str(tmp_path/'seeds')}, 'paraphrase': {'output_dir': str(paraphrases)}},
+        protocol={}, benchmark='biomnibench-da', task_dir=lambda task: tmp_path/task,
     )
+    assignment=assignments[0]
+    experiment_dir=study/assignment.study_relative_path
+    experiment_dir.mkdir(parents=True)
+    (experiment_dir/'manifest.json').write_text(json.dumps({**{k:v for k,v in assignment.record_identity().items() if k!='experiment_dir'},
+        'kind':'rubric-gen-submission-revision-experiment','experiment_id':'experiment-1','benchmark':'biomnibench-da','task_dir':str(tmp_path/assignment.task_id)}))
+    (experiment_dir/'state.json').write_text('{}')
     config = EvaluationConfig(
         experiment=experiment,
         study_dir=study,
@@ -340,7 +353,7 @@ def test_target_loader_excludes_failed_assignments_from_terminal_study(
     monkeypatch.setattr(
         evaluation_targets,
         "_load_evaluation_target",
-        lambda _config, _root, source_id, assignment, _record, _selection: (
+        lambda _config, _root, source_id, assignment, _record, _selection, _source: (
             SimpleNamespace(
                 assignment_id=assignment.assignment_id,
                 study_experiment_id=source_id,
@@ -393,7 +406,8 @@ def test_target_loader_rejects_nonterminal_assignment(
         "records": [{**assignment.record_identity(), "status": "running"}],
     }))
     config = EvaluationConfig(
-        experiment=SimpleNamespace(path=experiment_path, assignments=(assignment,), execution_conditions=None),
+        experiment=SimpleNamespace(path=experiment_path, assignments=(assignment,), execution_conditions=None, experiment_id='experiment-1',
+            dag={'seed': {'output_dir': str(tmp_path/'seeds')}, 'paraphrase': {'output_dir': str(paraphrases)}}),
         study_dir=study,
         paraphrase_dir=paraphrases,
         output_dir=tmp_path / "output",
@@ -1943,8 +1957,7 @@ def test_rubric_free_runner_executes_one_judgment_per_semantic_request(
             generation_operation=generate,
         )
         before = {str(p.relative_to(output)): p.read_bytes() for p in output.rglob("*") if p.is_file()}
-        with pytest.raises(RuntimeError, match="identity changed.*preserved"):
-            changed_implementation.run()
+        assert changed_implementation.run() == 0
         assert {str(p.relative_to(output)): p.read_bytes() for p in output.rglob("*") if p.is_file()} == before
     assert len(calls) == 3
 

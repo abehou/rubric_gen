@@ -492,6 +492,10 @@ class ParaphraseRunner:
     ) -> None:
         futures: dict[Future[_GroupGeneration], str] = {}
         for group_id, (group, repair_error) in repairs.items():
+            # The prior response was rejected by cross-criterion validation.
+            # Preserve the exact repair envelope before issuing its replacement.
+            self._archive_failure(task_root, variant_index, group_id,
+                                  results[group_id].attempt_count, ValueError(repair_error), None)
             futures[request_pool.submit(
                 self._generate_group,
                 task_root,

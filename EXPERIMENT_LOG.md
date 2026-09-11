@@ -2198,3 +2198,7 @@
 ## 2026-09-11 — Result20 runtime reliability
 
 - 07:23 EDT: No-provider Result20 census verified 18 failed 300-second PaperBench v5 requests and six successful 318–1,223-second recovery streams; BioMNIBench evidence separates startup, overload and preemption costs. Read-only Slurm collectors10397916/10397928 touched no scientific outputs; no new experiment or provider call was launched.
+
+## 2026-09-11 — Runtime validation ownership
+
+- 08:28 EDT: Reserved reusable diagnostic allocation 10398213; active owners 10397534 and 10398066 were inspected without mutation. All 758 repaired consumer status files are inode-independent and their producer counterparts match the recorded original bytes; exact criterion-specific replay resolves the reported neutral-policy mismatch.

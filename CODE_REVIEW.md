@@ -584,3 +584,7 @@
 ## 2026-09-11 — Result20 runtime reliability
 
 - 07:23 EDT: Resolved full-rubric long-call false timeouts, Anthropic audit schema/cardinality compatibility, and failed-attempt overwrite on resume in an isolated review worktree using the validated v5 encoding, SDK streaming and existing atomic persistence. Existing provenance covers the factored modules; scoring/settings and solver timeouts remain unchanged, with focused no-provider verification documented in docs/reports/2026-09-11/runtime-reliability/result20-runtime-reliability-implementation.md.
+
+## 2026-09-11 — Shared runtime throughput cleanup
+
+- 08:28 EDT: Isolated implementation from fe1c87d; direct sources use a cohort-wide producer whitelist in the local adapter, and the recovery launcher imposes two assignment workers. Shared resolution and audit ownership changes are being tested without editing active sources.

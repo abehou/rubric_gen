@@ -619,7 +619,7 @@ def test_seed_rejects_incomplete_scoring_identity(
         )
 
 
-def test_seed_stage_rejects_a_completed_stale_judge_identity(
+def test_seed_stage_reuses_completed_science_across_runtime_changes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     task = _task(tmp_path)
@@ -646,8 +646,7 @@ def test_seed_stage_rejects_a_completed_stale_judge_identity(
     runner = SeedSetRunner(SeedSetConfig(design, output, 1))
     assert runner.run() == 0
 
-    with pytest.raises(RuntimeError, match="does not match the current judge"):
-        runner.run()
+    assert runner.run() == 0
 
 
 def test_seed_cli_is_experiment_only() -> None:

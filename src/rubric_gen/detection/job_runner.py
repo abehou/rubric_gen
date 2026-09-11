@@ -5,6 +5,10 @@ from __future__ import annotations
 import json
 import math
 import threading
+import time
+from dataclasses import asdict
+from rubric_gen.runtime.failures import failure_category, retry_after
+from rubric_gen.runtime.capacity import emit
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -99,6 +103,7 @@ class DetectionJobRunner:
         self.count_tokens = count_tokens
         self.load_payload = load_payload
         self._lock = threading.Lock()
+        self._local = threading.local()
         self._observed_api_usd = 0.0
         self._observed_by_model_usd: dict[str, float] = {}
 
@@ -134,11 +139,15 @@ class DetectionJobRunner:
             raise RuntimeError(f"judge output directory is a symlink: {paths.root}")
         paths.root.mkdir(parents=True, exist_ok=True)
 
+        self._local.paths = paths
+        self._local.attempts = 1
         total_cost = 0.0
         total_by_model: dict[str, float] = {}
         last_error: Exception | None = None
         attempts = 0
-        for attempts in range(1, JUDGE_MAX_ATTEMPTS + 1):
+        # Each physical request owns its persisted budget. Retrying the panel
+        # would multiply it and regenerate already completed chunks.
+        for attempts in (1,):
             artifacts = _GeneratedArtifacts()
             try:
                 verdict, generation = self._run_once(job, artifacts)
@@ -156,7 +165,7 @@ class DetectionJobRunner:
                 artifacts=artifacts,
                 verdict=verdict,
                 generation=generation,
-                attempt_count=attempts,
+                attempt_count=self._local.attempts,
                 observed_api_usd=total_cost,
                 observed_by_model_usd=total_by_model,
             )
@@ -173,6 +182,7 @@ class DetectionJobRunner:
             "model": job.model,
             "status": "failed",
             "error_type": type(last_error).__name__,
+            "failure_category": failure_category(last_error),
             "error": str(last_error),
             "attempt_count": attempts,
             "max_attempts": JUDGE_MAX_ATTEMPTS,
@@ -312,7 +322,7 @@ class DetectionJobRunner:
             model,
             max_output_tokens=self.config.max_output_tokens,
         )
-        generation = self.generate_response(model, request)
+        generation = self._saved_or_generate(model, request)
         if (
             generation.requested_model != model
             or generation.provider != expected["provider"]
@@ -324,12 +334,65 @@ class DetectionJobRunner:
             self.config.detection,
         )
 
+    def _saved_or_generate(self, model, request):
+        paths = getattr(self._local, 'paths', None)
+        if paths is None:
+            return self.generate_response(model, request)
+        stage, index = self._local.request
+        root = paths.root / f"{stage}-{index:03d}"
+        root.mkdir(exist_ok=True)
+        expected = {"model": model, "request": asdict(request)}
+        last_error = None
+        for attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
+            self._local.attempts = max(self._local.attempts, attempt)
+            path = root / f"attempt-{attempt:03d}.json"
+            if path.exists():
+                saved = json.loads(path.read_text())
+                if saved['identity'] != expected:
+                    raise ValueError(f"saved direct request identity differs: {path}")
+                if saved.get('generation') is not None:
+                    generation = GenerationResult(**saved['generation'])
+                    try:
+                        _extract_model_output(generation.text, self.config.detection)
+                    except ValueError as exc:
+                        last_error = exc
+                        continue
+                    return generation
+                last_error = RuntimeError(f"recorded {saved.get('category', 'unknown remote completion')}: {path}")
+                if saved.get('category') in {'authentication', 'billing', 'configuration', 'structural'}:
+                    raise last_error
+                continue
+            # Persist dispatch intent before crossing the external boundary. If
+            # interrupted, completion is unknown and resubmission consumes budget.
+            saved = {"identity": expected, "attempt": attempt, "remote_completion": "unknown"}
+            write_json_atomic(path, saved)
+            try:
+                generation = self.generate_response(model, request)
+                saved.update(remote_completion='confirmed', generation=asdict(generation))
+                write_json_atomic(path, saved)
+                _extract_model_output(generation.text, self.config.detection)
+                return generation
+            except Exception as exc:
+                last_error = exc
+                category = 'response_validation' if isinstance(exc, ValueError) and saved.get('generation') else failure_category(exc)
+                saved.update(category=category, error_type=type(exc).__name__, error=str(exc))
+                write_json_atomic(path, saved)
+                if category not in {'response_validation', 'transient_connection', 'transient_provider'}:
+                    raise
+                if attempt < JUDGE_MAX_ATTEMPTS:
+                    delay = retry_after(exc, attempt)
+                    emit('retry_wait', operation='direct', model=model, attempt=attempt,
+                         category=category, wait_seconds=delay)
+                    time.sleep(delay)
+        raise RuntimeError(f"direct request exhausted {JUDGE_MAX_ATTEMPTS} attempts: {last_error}") from last_error
+
     def _run_once(
         self,
         job: PreparedJob,
         artifacts: _GeneratedArtifacts,
     ) -> tuple[JsonObject, object]:
         for index, request in enumerate(job.requests, start=1):
+            self._local.request = (job.request_stage, index)
             generation, verdict = self._request_once(
                 job.model,
                 request,
@@ -378,6 +441,7 @@ class DetectionJobRunner:
                 f"chunk synthesis requires {tokens} tokens, above "
                 f"the {self.config.max_input_tokens} token ceiling"
             )
+        self._local.request = ("synthesis", 1)
         generation, verdict = self._request_once(
             job.model,
             request,
