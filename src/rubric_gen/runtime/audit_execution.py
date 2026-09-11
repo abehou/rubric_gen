@@ -57,6 +57,7 @@ class AuditExecutor:
         self.queues = {}
         self.active = {p: 0 for p in self.providers}
         self.lock = threading.RLock()
+        self.drained = threading.Condition(self.lock)
         self.closed = False
         self.blocked = {}
         self.cursor = 0
@@ -119,6 +120,7 @@ class AuditExecutor:
                                 waiting, _, _ = queue.popleft()
                                 waiting.set_exception(RuntimeError(f"{provider} dispatch stopped: {category}"))
                 self._refill()
+                self.drained.notify_all()
 
     def __enter__(self):
         return self
@@ -132,7 +134,10 @@ class AuditExecutor:
                     'stopped_providers': dict(self.blocked)}
 
     def __exit__(self, *error):
-        # Coordinators must have drained their futures before closing the pool.
-        with self.lock:
+        # A failed coordinator can leave already accepted work in our queues.
+        # Drain those queues while completion callbacks can still refill them.
+        with self.drained:
             self.closed = True
+            while any(self.active.values()) or any(self.queues.values()):
+                self.drained.wait()
         self.pool.shutdown(wait=True)

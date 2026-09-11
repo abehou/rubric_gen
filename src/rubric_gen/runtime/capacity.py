@@ -268,6 +268,19 @@ def _reset_token_counts_after_fork():
 os.register_at_fork(after_in_child=_reset_token_counts_after_fork)
 
 
+def cached_input_tokens(model, request):
+    """Reuse the existing exact request key between preparation and admission."""
+    from rubric_gen.runtime.llm import count_input_tokens
+    key = hashlib.sha256(repr((model, request)).encode()).hexdigest()
+    with _TOKEN_COUNTS_LOCK:
+        tokens = _TOKEN_COUNTS.get(key)
+    if tokens is None:
+        tokens = count_input_tokens(model, request)
+        with _TOKEN_COUNTS_LOCK:
+            _TOKEN_COUNTS[key] = tokens
+    return tokens
+
+
 def _anthropic_admission(operation, args, kwargs):
     if operation != 'hosted-generation':
         return None, None
@@ -275,15 +288,7 @@ def _anthropic_admission(operation, args, kwargs):
     request = args[1] if len(args) > 1 else kwargs.get('request_value')
     if not isinstance(model, str) or not model.startswith('claude-'):
         return None, None
-    from rubric_gen.runtime.llm import count_input_tokens
-    key = hashlib.sha256(repr((model, request)).encode()).hexdigest()
-    with _TOKEN_COUNTS_LOCK:
-        tokens = _TOKEN_COUNTS.get(key)
-    if tokens is None:
-        with reservation():
-            tokens = count_input_tokens(model, request)
-        with _TOKEN_COUNTS_LOCK:
-            _TOKEN_COUNTS[key] = tokens
+    tokens = cached_input_tokens(model, request)
     root = Path(policy()['coordination_dir']) / 'anthropic-input-tokens'
     return SharedTokenWindow(root), tokens
 

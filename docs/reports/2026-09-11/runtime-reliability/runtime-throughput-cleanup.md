@@ -94,6 +94,12 @@ dispatch; unrelated providers can finish. Standalone stages still acquire their
 normal ownership. The one-study policy is retained: older participating
 worktrees remain active, so there has been no compatible, quiescent boundary for
 a two-study policy change.
+Final executor shutdown also drains accepted queued work after an early stage
+exit: the reproduced two-worker/18-task case previously completed only two tasks
+and then raised `cannot schedule new futures after shutdown`; all 18 now finish.
+The four direct windows serialize pyplot publication only. Preparation and
+Anthropic admission reuse the existing exact-request token cache; changed model
+or evidence still requires a separate count.
 
 Existing configured attempt budgets persist across resume. SDK retry
 multiplication is disabled on owned paths. 429/529, connection/inactivity failures
@@ -166,6 +172,10 @@ Final scope/status/launcher/experiment checks passed **120 tests in 23.97s**;
 the capacity tests passed **12 in 5.65s**.
 The phase checks passed six tests; evidence/monitor checks passed 55 in 16.41s.
 Condition-filtered and assignment-only subset/ledger/detect checks passed ten tests.
+The final runtime/capacity/detection run passed **72 in 95.78s**, followed by four
+queue/fairness/preparation/concurrent-publication checks in 5.67s. These final
+shutdown/cache/publication refinements were tested in the final checkout, while
+the live validation source remained frozen at `5c15bbc`.
 
 ## Real compute measurements and validation
 

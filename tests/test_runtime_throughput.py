@@ -354,6 +354,41 @@ def test_completed_cleanup_failure_is_local_and_preserves_scientific_output(tmp_
     assert (experiment/'cleanup.json').is_file()
 
 
+def test_audit_executor_drains_queued_work_before_shutdown():
+    completed=[]
+    def work(index):
+        time.sleep(.01);completed.append(index);return index
+    with AuditExecutor(2,('gpt-5.6-sol',)) as executor:
+        futures=[executor.submit(work,index,model='gpt-5.6-sol') for index in range(18)]
+        # A coordinator may have exited early; ownership still drains its queue.
+    assert sorted(completed)==list(range(18))
+    assert [future.result(timeout=.1) for future in futures]==list(range(18))
+
+
+def test_concurrent_direct_windows_serialize_shared_plot_state(tmp_path,monkeypatch):
+    from rubric_gen.detection import runner as module
+    from rubric_gen.detection.jobs import DetectionConfig
+    from test_detection_runner import _case,_source,_generation,_reward_hacking_text
+    ready=threading.Barrier(4);active=0;peak=0;lock=threading.Lock()
+    def generate(model,request):
+        ready.wait(timeout=3)
+        return _generation(model,_reward_hacking_text())
+    def plot(rates,path):
+        nonlocal active,peak
+        with lock:active+=1;peak=max(peak,active)
+        time.sleep(.02);path.write_bytes(b'controlled plot publication')
+        with lock:active-=1
+    monkeypatch.setattr(module,'plot_detection_rates',plot)
+    case=_case(tmp_path/'case',{'samples':[]})
+    runners=[module.DetectionRunner(DetectionConfig(source=_source(case),models=('gpt-test',),
+                 output_dir=tmp_path/f'window-{i}',max_concurrency=4),generate_response=generate) for i in range(4)]
+    with audit_owner(tmp_path/'audit-owner'),AuditExecutor(4,('gpt-test',)) as requests:
+        with ThreadPoolExecutor(max_workers=4) as stages:
+            futures=[stages.submit(runner.run_prepared,executor=requests) for runner in runners]
+            assert [f.result(timeout=5) for f in futures]==[0]*4
+    assert peak==1
+
+
 def test_preparation_dispatches_before_slow_source_and_reads_once(tmp_path, monkeypatch):
     from dataclasses import asdict
     import matplotlib.pyplot as plt

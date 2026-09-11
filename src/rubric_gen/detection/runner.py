@@ -45,11 +45,11 @@ from rubric_gen.detection.targets import detection_target
 from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
-    count_input_tokens,
     estimate_input_tokens,
     generate_structured,
     request_parameters_for_model,
 )
+from rubric_gen.runtime.capacity import cached_input_tokens
 from rubric_gen.runtime.pricing import (
     HOSTED_PRICES_PER_MILLION,
     OPENAI_LONG_CONTEXT_THRESHOLD,
@@ -59,6 +59,10 @@ from rubric_gen.runtime.pricing import (
     PRICING_SOURCES,
 )
 from rubric_gen.runtime.progress import TerminalProgress
+
+
+# Independent windows share pyplot's process-global figure/font state.
+_PLOT_LOCK = Lock()
 
 
 def scoring_implementation_sha256(source_root: Path | None = None) -> str:
@@ -104,7 +108,7 @@ class DetectionRunner:
             count_tokens
             if count_tokens is not None
             else (
-                count_input_tokens
+                cached_input_tokens
                 if generate_response is generate_structured
                 else estimate_input_tokens
             )
@@ -523,5 +527,6 @@ class DetectionRunner:
         rates["completed_results"] = successful
         rates["missing_results"] = len(records) - successful
         write_json_atomic(self.config.output_dir / "detection-rates.json", rates)
-        plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
+        with _PLOT_LOCK:
+            plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
         return int(successful != len(records))
