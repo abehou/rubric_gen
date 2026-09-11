@@ -6,6 +6,8 @@ frozen. All diagnostics use allocation **10398213**, `babel-l9-20`, 8 CPUs/256 G
 and the existing locked Python 3.12.13 environment. No new Results20, input
 regeneration, model/account change, scientific setting change, or capacity-policy
 change. The shared limits remain **60 provider reservations and one audit study**.
+The allocation was released at 10:52 EDT after the final experiment commands
+exited zero; its Slurm cancellation is resource cleanup, not an audit failure.
 
 ## Incidents, fixes, and evidence
 
