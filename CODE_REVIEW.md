@@ -573,6 +573,11 @@
 - 21:48 EDT: Provider-free reporting now revalidates cached contracts, native host metadata and active-generation prompt exposure, including JSON-escaped requirements. The authoritative readiness adapter applies whole-cohort funnel percentages and separate per-arm exposure minima as written in the authorization; no running recipe/source fingerprint changes.
 
 - 22:45 EDT: Saved-contract reporting successfully reconstructed/revalidated all 148 cached requests and five submission bindings in one completed dev3 case; a ten-request structural fixture also verifies the blind-stage field boundaries. Full-cohort reporting separately checks prospective replacement reservations, host metadata, actual exposure, and complete native-decision matrices without provider calls.
+
+## 2026-09-11 — v2.1 direct-audit boundary
+
+- 09:11 EDT: Direct-RH recovery required an identity-only adapter because imported manifests carried the producer experiment ID while the consumer study advertised the v2.1 ID; this is outside the provider streaming/timeout failure modes in `fe1c87d3b245f80c745fd2b94452ed287b5aab21`. The adapter is limited to the four direct windows, preserves successful records and failed-attempt evidence, and does not add a new recovery framework.
+- 09:11 EDT: The local Codex CLI allocator failure was a control-plane resource incident, not a scientific pipeline defect. The independent Slurm owner completed successfully; no source, prompt, model, window or aggregation change followed.
 ## 2026-09-10 — Result20 launcher path review
 
 - 23:22 EDT: Pre-launch inspection found the copied v2 production `RUN` and live `TMPDIR` paths duplicated `/data/user_data`; readiness had not yet reached provider work. Both paths were corrected to the validated NFS root, and syntax checks plus provider-free readiness passed without changing scientific code or identities.

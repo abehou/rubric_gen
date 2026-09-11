@@ -1,0 +1,349 @@
+{
+  "pricing_registry_date": "2026-08-18",
+  "stages": [
+    {
+      "stage": "audit_absolute_score",
+      "model": "claude-opus-5",
+      "saved_response_records": 180,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 180,
+      "usage_available": 180,
+      "input_tokens": 1555899,
+      "output_tokens": 147274,
+      "cached_input_tokens": 106738,
+      "cache_write_input_tokens": 9002,
+      "usage_based_usd": 10.9922765,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_absolute_score",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 180,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 180,
+      "usage_available": 180,
+      "input_tokens": 979646,
+      "output_tokens": 34569,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 5.9353,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "claude-opus-5",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1116372,
+      "output_tokens": 16792,
+      "cached_input_tokens": 344298,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 4.452319,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 704464,
+      "output_tokens": 10405,
+      "cached_input_tokens": 205362,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 2.910341,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "claude-opus-5",
+      "saved_response_records": 123,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 123,
+      "usage_available": 123,
+      "input_tokens": 5408955,
+      "output_tokens": 15181,
+      "cached_input_tokens": 352181,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 25.8394855,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 123,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 123,
+      "usage_available": 123,
+      "input_tokens": 3598628,
+      "output_tokens": 9143,
+      "cached_input_tokens": 210069,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 17.3221195,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "claude-opus-5",
+      "saved_response_records": 452,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 452,
+      "usage_available": 452,
+      "input_tokens": 53791192,
+      "output_tokens": 64383,
+      "cached_input_tokens": 1321854,
+      "cache_write_input_tokens": 57383,
+      "usage_based_usd": 264.68892075,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 430,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 430,
+      "usage_available": 430,
+      "input_tokens": 36520245,
+      "output_tokens": 35077,
+      "cached_input_tokens": 743280,
+      "cache_write_input_tokens": 34227,
+      "usage_based_usd": 180.35155875,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "claude-opus-5",
+      "saved_response_records": 211,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 211,
+      "usage_available": 211,
+      "input_tokens": 20703772,
+      "output_tokens": 29445,
+      "cached_input_tokens": 563958,
+      "cache_write_input_tokens": 53704,
+      "usage_based_usd": 101.784304,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 206,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 206,
+      "usage_available": 206,
+      "input_tokens": 14192468,
+      "output_tokens": 16611,
+      "cached_input_tokens": 359070,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 69.844855,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "claude-opus-5",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1639256,
+      "output_tokens": 69502,
+      "cached_input_tokens": 71876,
+      "cache_write_input_tokens": 604,
+      "usage_based_usd": 9.611143,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 120,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1036792,
+      "output_tokens": 12362,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 5.55482,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "claude-opus-5",
+      "saved_response_records": 1054,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 1054,
+      "usage_available": 1054,
+      "input_tokens": 10976452,
+      "output_tokens": 954236,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 78.73816,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "gpt-5.6-sol",
+      "saved_response_records": 1054,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 1054,
+      "usage_available": 1054,
+      "input_tokens": 6702725,
+      "output_tokens": 348268,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 6699563,
+      "usage_based_usd": 52.33611875,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "common_simulator",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 441,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 441,
+      "usage_available": 441,
+      "input_tokens": 8744640,
+      "output_tokens": 74605,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 1.838454,
+      "attempt_wall_seconds": 0
+    },
+    {
+      "stage": "optimizer_judge",
+      "model": "gpt-5.6-luna",
+      "saved_response_records": 1531,
+      "reused_frozen": 0,
+      "fresh_saved_responses": 1531,
+      "usage_available": 1531,
+      "input_tokens": 10307510,
+      "output_tokens": 525183,
+      "cached_input_tokens": 6475,
+      "cache_write_input_tokens": 10296442,
+      "usage_based_usd": 3.2053781999999997,
+      "attempt_wall_seconds": 0
+    }
+  ],
+  "agents": [
+    {
+      "stage": "sidecar",
+      "streams": 755,
+      "events": {
+        "thread.started": 755,
+        "turn.started": 755,
+        "item.started": 12108,
+        "item.completed": 12108,
+        "codex.item.agentMessage.delta": 264714,
+        "codex.item.commandExecution.outputDelta": 2451,
+        "codex.turn.diff.updated": 4009,
+        "turn.completed": 755
+      },
+      "threads_with_usage": 755,
+      "estimated_lower_bound_usd": 8.603675,
+      "usage_totals": {
+        "cached_input_tokens": 97298944,
+        "input_tokens": 116778839,
+        "output_tokens": 2301435,
+        "reasoning_output_tokens": 611023,
+        "total_tokens": 119080274
+      },
+      "internal_model_request_count": "not exposed by saved agent protocol; agent turns and tool events reported separately"
+    },
+    {
+      "stage": "solver",
+      "streams": 755,
+      "events": {
+        "thread.started": 755,
+        "turn.started": 755,
+        "item.started": 7491,
+        "item.completed": 7491,
+        "codex.item.agentMessage.delta": 114741,
+        "codex.item.commandExecution.outputDelta": 23171,
+        "codex.turn.diff.updated": 3237,
+        "turn.completed": 755,
+        "codex.item.commandExecution.terminalInteraction": 4
+      },
+      "threads_with_usage": 120,
+      "estimated_lower_bound_usd": 6.391767,
+      "usage_totals": {
+        "cached_input_tokens": 128175872,
+        "input_tokens": 137137616,
+        "output_tokens": 1696583,
+        "reasoning_output_tokens": 154913,
+        "total_tokens": 138834199
+      },
+      "internal_model_request_count": "not exposed by saved agent protocol; agent turns and tool events reported separately"
+    }
+  ],
+  "failed_learning_attempts": 0,
+  "elapsed": {
+    "first_launch_utc": "2026-09-11T11:16:09+00:00",
+    "completion_file_mtime_utc": "2026-09-11T12:15:34.110997+00:00",
+    "cohort_and_audit_seconds": 3565.110996723175,
+    "revision_stage_seconds": null,
+    "audit_stage_seconds": null,
+    "stage_events": []
+  },
+  "capacity": {
+    "operations": {
+      "rubric-audit": {
+        "records": 2108,
+        "status": {
+          "operation_completed": 2108
+        },
+        "elapsed_seconds": 23316.687219101936
+      },
+      "audit-stage": {
+        "records": 6,
+        "status": {
+          "operation_completed": 6
+        },
+        "elapsed_seconds": 2434.2400536767673
+      },
+      "token-count": {
+        "records": 3378,
+        "status": {
+          "operation_completed": 3378
+        },
+        "elapsed_seconds": 548.1365590263158
+      },
+      "hosted-generation": {
+        "records": 2387,
+        "status": {
+          "operation_completed": 2386,
+          "operation_failed": 1
+        },
+        "elapsed_seconds": 13755.30579469516
+      },
+      "audit-study": {
+        "records": 2,
+        "status": {
+          "operation_failed": 2
+        },
+        "elapsed_seconds": 1062.518924138043
+      }
+    },
+    "maximum_owned_provider_leases": 32,
+    "provider_wait_seconds": 99.4428496316541,
+    "audit_slot_wait_seconds": 0.10987184708938003,
+    "acquired_leases": 8873,
+    "jobs": [
+      "10397947",
+      "10397968",
+      "10397985",
+      "10398066"
+    ]
+  },
+  "limitations": [
+    "Usage-based estimates are not provider invoices.",
+    "Failed calls without returned usage are counted but have unknown token cost.",
+    "Persistent agent usage is cumulative: each thread contributes its maximum total, not a sum of turn totals.",
+    "Native operation durations include nested operations; do not sum them as independent API calls.",
+    "Stage request wall time includes capacity wait; concurrent durations are not elapsed cohort time.",
+    "Internal agent model-call counts are not exposed; agent invocations/terminal events are separate from direct structured calls.",
+    "Driver start wall time combines sidecars and initial solver turns; saved usage separates these channels, but their exact wall-time split is not instrumented. Resume durations are separately available in native capacity operations."
+  ],
+  "source_sha256": "88c218cd601c9b962291331e32604ddd6cfeca5b7a979191ae9f17641f48d950"
+}

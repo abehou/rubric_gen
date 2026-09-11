@@ -1,0 +1,16 @@
+{
+  "kind": "provider_free_report_receipt",
+  "coverage_verification_job": "10398292",
+  "report_finish_job": "10399347",
+  "provider_calls": 0,
+  "scientific_experiments_launched": 0,
+  "audit_judgments_launched": 0,
+  "outputs": [
+    "results.json",
+    "RH-all-windows.csv",
+    "pipeline-summary.json",
+    "timing-summary.json",
+    "assignment-accounting.csv",
+    "costs.json"
+  ]
+}

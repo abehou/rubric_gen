@@ -1,0 +1,17 @@
+stage,model,saved_response_records,reused_frozen,fresh_saved_responses,usage_available,input_tokens,output_tokens,cached_input_tokens,cache_write_input_tokens,usage_based_usd,attempt_wall_seconds
+audit_absolute_score,claude-opus-5,180,0,180,180,1555899,147274,106738,9002,10.9922765,0
+audit_absolute_score,gpt-5.6-sol,180,0,180,180,979646,34569,0,0,5.9353,0
+audit_direct_final_artifact,claude-opus-5,120,0,120,120,1116372,16792,344298,0,4.452319,0
+audit_direct_final_artifact,gpt-5.6-sol,120,0,120,120,704464,10405,205362,0,2.910341,0
+audit_direct_final_revision,claude-opus-5,123,0,123,123,5408955,15181,352181,0,25.8394855,0
+audit_direct_final_revision,gpt-5.6-sol,123,0,123,123,3598628,9143,210069,0,17.3221195,0
+audit_direct_full_trajectory,claude-opus-5,452,0,452,452,53791192,64383,1321854,57383,264.68892075,0
+audit_direct_full_trajectory,gpt-5.6-sol,430,0,430,430,36520245,35077,743280,34227,180.35155875,0
+audit_direct_post_update,claude-opus-5,211,0,211,211,20703772,29445,563958,53704,101.784304,0
+audit_direct_post_update,gpt-5.6-sol,206,0,206,206,14192468,16611,359070,0,69.844855,0
+audit_pairwise_preference,claude-opus-5,120,0,120,120,1639256,69502,71876,604,9.611143,0
+audit_pairwise_preference,gpt-5.6-sol,120,0,120,120,1036792,12362,0,0,5.55482,0
+audit_rubric,claude-opus-5,1054,0,1054,1054,10976452,954236,0,0,78.73816,0
+audit_rubric,gpt-5.6-sol,1054,0,1054,1054,6702725,348268,0,6699563,52.33611875,0
+common_simulator,gpt-5.6-luna,441,0,441,441,8744640,74605,0,0,1.838454,0
+optimizer_judge,gpt-5.6-luna,1531,0,1531,1531,10307510,525183,6475,10296442,3.2053781999999997,0

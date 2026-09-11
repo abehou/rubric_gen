@@ -1,0 +1,239 @@
+{
+  "full": {
+    "assignments": 60,
+    "any_online_proposal": 58,
+    "any_online_admission": 38,
+    "online_proposed": 236,
+    "online_admitted": 76,
+    "attacks_attempted": 314,
+    "attacks_valid_execution": 314,
+    "attacks_nonidentical": 314,
+    "attacks_narrated_created": 314,
+    "attack_narration_or_quote_failures": 0,
+    "attack_literal_quote_failures": 0,
+    "quality_source_failure_update_pairs": 0,
+    "quality_no_order_update_pairs": 128,
+    "quality_unavailable_update_pairs": 0,
+    "empty_compilations": 0,
+    "unavailable_compilations": 0,
+    "diagnosis_source_failures": 0,
+    "quality_order_gap_update_pairs": 1496,
+    "supported_diagnoses": 236,
+    "preference_conflicts": 0,
+    "independent_witness_relations": {
+      "A/C": 88,
+      "B/B": 9,
+      "C/C": 34,
+      "B/C": 40,
+      "None/B": 2,
+      "C/B": 9,
+      "A/B": 28,
+      "A/A": 22,
+      "B/None": 3,
+      "B/A": 1
+    },
+    "semantic_reviews": 236,
+    "semantic_unobservable": 7,
+    "semantic_redundant": 10,
+    "required_candidate_applications": 1947,
+    "native_decisions": {
+      "accepted": 76,
+      "criterion_support_failed": 79,
+      "semantic_validation_failed": 17,
+      "aggregate_margin_failed": 57
+    },
+    "structural_failure_records": {
+      "diagnosis:NO_SUPPORTED_RELATION": 169,
+      "diagnosis:PREFERENCE_CONFLICT": 192,
+      "validation:candidate_ineligible": 7
+    },
+    "validation_ineligibility_details": {
+      "application_undecidable": 19
+    },
+    "first_online_admission": {
+      "n": 38,
+      "mean": 2.710526315789474,
+      "median": 2.0,
+      "histogram": {
+        "2": 21,
+        "3": 11,
+        "4": 3,
+        "5": 2,
+        "6": 1
+      }
+    },
+    "first_reminder_turn": {
+      "n": 46,
+      "mean": 1.4782608695652173,
+      "median": 1.0,
+      "histogram": {
+        "1": 34,
+        "2": 7,
+        "3": 2,
+        "4": 1,
+        "5": 2
+      }
+    },
+    "pre_turn1_online_admission": 21,
+    "pre_turn1_reminder": 34,
+    "reminder_component_bytes": 56013,
+    "reminder_component_chars": 55993,
+    "proactive_reminders": 63,
+    "corrective_reminders": 27,
+    "reminder_skips": {
+      "numeric_literal_absent_from_public_task": 1
+    },
+    "solver_turns": 314,
+    "learning_actual_attempts": 0,
+    "learning_provider_failures": 0,
+    "early_update_actual_calls": 1228,
+    "early_update_cache_hits": 0,
+    "all_update_cache_hits": 5435,
+    "logical_call_ceiling_total": 14772,
+    "bounded_attempt_ceiling_total": 132948,
+    "offline_proposed_assignment_copies": 60,
+    "offline_admitted_assignment_copies": 24,
+    "offline_unique_generation_hashes": [
+      "09724c352873c48fe3515b72dd99ab8eaa22db155b368d2ac5cd1c16bf00a1c1",
+      "0b591d6a887586fcfb1b6cf3a9c2e117c31ddbe2666cd6a0ebc1f7aad4f69ac1",
+      "240822d25a13ee8ab44b8c97970ce504feb321b79947e1fa216390476a8d3a60",
+      "3b327987df1b285cb705f8a1768cd769377b4e96c3fa35154f6018e76f70ee9f",
+      "4a1518eb7d3ee385c1e80d56fc1f57623d93add3bdc234fda28b8c548277e317",
+      "4b07a8ad37ab26fc123017699844537c92c845ad342d0960b797de2dcd4910e8",
+      "4c8f7b4a8a9dff2bf28b1a0595804b5467da6331d73c10762fe65d3fe1895756",
+      "5902ac8043f4a37db3b019bf2aad7f61aa989357a723b635edf4f1f3843272b6",
+      "6093c41ec11d51fe2deb7cad44a4944d79e5bfbbbf9f9a16bd243375360c05d0",
+      "715ae309b8ff60a3433c3d48dff736a2c88873fb8740e20ab8e73bbf94d1d049",
+      "78eab06646d89247fa582caacf91009c26cb6923ed99f69eb881dff1abeb3e84",
+      "9b6da9a083616c360f91120b3fd8ff76b7fc963ea39cd9fbbb5fb6f7622955e2",
+      "a9281bed4d2b41b044f3aa511caa2313c22f44ff3aea721a006dbe187ef1f3b8",
+      "b57c95b18b86b14834e39e8b0b97eafd6c80f9250ded589fd4e1fa3e9d617322",
+      "b9d7938630edf0e1a6120c81a6e390b307247fc6a03565c39b5b6c96502ed39f",
+      "bd3ed154c62dc9824b98283618ff2d7feba44683a5795661e2aabe39cb516751",
+      "ddb893d08572fa2247cccf410ebe38cf2d0430c0a45ef1010068af8a7d57eb11",
+      "ea4175839d0331be0a4369019999889dfe64a1cae0499834d40c8b82c4539d58",
+      "ecb81c7011e5740fe7b443a836a8daa47ff6a5b2e2f7178f0412d2425c2b7f64",
+      "fadb02664986ba5318722abc1256c8421be8afb80d7b22c4d4fe7238f875b050"
+    ]
+  },
+  "user": {
+    "assignments": 60,
+    "any_online_proposal": 59,
+    "any_online_admission": 48,
+    "online_proposed": 395,
+    "online_admitted": 95,
+    "attacks_attempted": 441,
+    "attacks_valid_execution": 441,
+    "attacks_nonidentical": 441,
+    "attacks_narrated_created": 441,
+    "attack_narration_or_quote_failures": 0,
+    "attack_literal_quote_failures": 0,
+    "quality_source_failure_update_pairs": 0,
+    "quality_no_order_update_pairs": 292,
+    "quality_unavailable_update_pairs": 0,
+    "empty_compilations": 7,
+    "unavailable_compilations": 0,
+    "diagnosis_source_failures": 0,
+    "quality_order_gap_update_pairs": 3097,
+    "supported_diagnoses": 402,
+    "preference_conflicts": 0,
+    "independent_witness_relations": {
+      "A/C": 158,
+      "A/B": 57,
+      "A/A": 41,
+      "B/C": 51,
+      "B/B": 25,
+      "None/A": 1,
+      "C/C": 31,
+      "B/A": 9,
+      "C/B": 10,
+      "C/A": 6,
+      "A/None": 4,
+      "None/C": 2
+    },
+    "semantic_reviews": 395,
+    "semantic_unobservable": 3,
+    "semantic_redundant": 8,
+    "required_candidate_applications": 4633,
+    "native_decisions": {
+      "accepted": 95,
+      "criterion_support_failed": 129,
+      "aggregate_margin_failed": 136,
+      "semantic_validation_failed": 10
+    },
+    "structural_failure_records": {
+      "diagnosis:PREFERENCE_CONFLICT": 275,
+      "diagnosis:NO_SUPPORTED_RELATION": 166,
+      "validation:candidate_ineligible": 25
+    },
+    "validation_ineligibility_details": {
+      "application_undecidable": 79
+    },
+    "first_online_admission": {
+      "n": 48,
+      "mean": 3.4166666666666665,
+      "median": 3.0,
+      "histogram": {
+        "2": 16,
+        "3": 14,
+        "4": 8,
+        "5": 4,
+        "6": 4,
+        "7": 2
+      }
+    },
+    "first_reminder_turn": {
+      "n": 50,
+      "mean": 1.54,
+      "median": 1.0,
+      "histogram": {
+        "1": 34,
+        "2": 10,
+        "3": 2,
+        "4": 3,
+        "5": 1
+      }
+    },
+    "pre_turn1_online_admission": 16,
+    "pre_turn1_reminder": 34,
+    "reminder_component_bytes": 75738,
+    "reminder_component_chars": 75720,
+    "proactive_reminders": 85,
+    "corrective_reminders": 38,
+    "reminder_skips": {
+      "numeric_literal_absent_from_public_task": 1
+    },
+    "solver_turns": 441,
+    "learning_actual_attempts": 0,
+    "learning_provider_failures": 0,
+    "early_update_actual_calls": 1220,
+    "early_update_cache_hits": 0,
+    "all_update_cache_hits": 12327,
+    "logical_call_ceiling_total": 28370,
+    "bounded_attempt_ceiling_total": 255330,
+    "offline_proposed_assignment_copies": 60,
+    "offline_admitted_assignment_copies": 24,
+    "offline_unique_generation_hashes": [
+      "09724c352873c48fe3515b72dd99ab8eaa22db155b368d2ac5cd1c16bf00a1c1",
+      "0b591d6a887586fcfb1b6cf3a9c2e117c31ddbe2666cd6a0ebc1f7aad4f69ac1",
+      "240822d25a13ee8ab44b8c97970ce504feb321b79947e1fa216390476a8d3a60",
+      "3b327987df1b285cb705f8a1768cd769377b4e96c3fa35154f6018e76f70ee9f",
+      "4a1518eb7d3ee385c1e80d56fc1f57623d93add3bdc234fda28b8c548277e317",
+      "4b07a8ad37ab26fc123017699844537c92c845ad342d0960b797de2dcd4910e8",
+      "4c8f7b4a8a9dff2bf28b1a0595804b5467da6331d73c10762fe65d3fe1895756",
+      "5902ac8043f4a37db3b019bf2aad7f61aa989357a723b635edf4f1f3843272b6",
+      "6093c41ec11d51fe2deb7cad44a4944d79e5bfbbbf9f9a16bd243375360c05d0",
+      "715ae309b8ff60a3433c3d48dff736a2c88873fb8740e20ab8e73bbf94d1d049",
+      "78eab06646d89247fa582caacf91009c26cb6923ed99f69eb881dff1abeb3e84",
+      "9b6da9a083616c360f91120b3fd8ff76b7fc963ea39cd9fbbb5fb6f7622955e2",
+      "a9281bed4d2b41b044f3aa511caa2313c22f44ff3aea721a006dbe187ef1f3b8",
+      "b57c95b18b86b14834e39e8b0b97eafd6c80f9250ded589fd4e1fa3e9d617322",
+      "b9d7938630edf0e1a6120c81a6e390b307247fc6a03565c39b5b6c96502ed39f",
+      "bd3ed154c62dc9824b98283618ff2d7feba44683a5795661e2aabe39cb516751",
+      "ddb893d08572fa2247cccf410ebe38cf2d0430c0a45ef1010068af8a7d57eb11",
+      "ea4175839d0331be0a4369019999889dfe64a1cae0499834d40c8b82c4539d58",
+      "ecb81c7011e5740fe7b443a836a8daa47ff6a5b2e2f7178f0412d2425c2b7f64",
+      "fadb02664986ba5318722abc1256c8421be8afb80d7b22c4d4fe7238f875b050"
+    ]
+  }
+}

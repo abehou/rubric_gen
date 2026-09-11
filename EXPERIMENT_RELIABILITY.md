@@ -92,6 +92,16 @@ work, and detect incomplete results before analysis.
   raw bytes and have a separately verified read/relocation strategy; do not blindly
   replace paths inside JSON or pretend relocated records were generated elsewhere.
 
+## 2026-09-11 control-plane retrospective
+
+The local Codex CLI/controller aborted with the allocator message
+`memory allocation of 8292352 bytes failed` while finishing the v2.1 report. This
+was a control-plane resource failure, distinct from provider transport and from
+the scientific Slurm owner. Independent Slurm job 10398066 completed with exit
+code 0:0 in 00:26:22, and provider-free verification established complete direct
+RH coverage. No new recovery framework or scientific retry was added; future
+reports should keep this incident separate from assignment/judgment failures.
+
 ## Evidence and priorities
 
 See [experiment log](EXPERIMENT_LOG.md), [code review log](CODE_REVIEW.md), and
