@@ -85,6 +85,48 @@ def agent_usage(paths, stage):
         'estimated_usd_lower_bound': sum(t['estimated_usd_lower_bound'] for t in threads.values())}
 
 
+def capacity_receipts(owners):
+    """Account only this cohort's jobs in the shared coordinator journal."""
+    jobs = {str(o['job']) for o in owners}
+    hosts = {o['host'] for o in owners}
+    earliest = min(datetime.fromisoformat(o['time']).timestamp() for o in owners)
+    events = []
+    coordinator = Path('/home/aydanh/repos/rubric_gen/runs/.runtime-babel')
+    for host in hosts:
+        for path in coordinator.glob(f'events-{host}-*.jsonl'):
+            if path.stat().st_mtime < earliest:
+                continue
+            for line in path.open():
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if str(event.get('job_id')) in jobs:
+                    events.append(event)
+    operations = defaultdict(list)
+    leases = {}
+    active = maximum = 0
+    for event in sorted(events, key=lambda e: e['time']):
+        if event['event'].startswith('operation_'):
+            operations[event['operation']].append(event)
+        if event.get('kind') != 'provider':
+            continue
+        if event['event'] == 'acquired':
+            leases[event['lease_id']] = event
+            active += event['slots']
+            maximum = max(maximum, active)
+        elif event['event'] == 'released':
+            active -= event['slots']
+    summary = {'jobs': sorted(jobs), 'maximum_owned_provider_leases': maximum,
+        'provider_leases_acquired': len(leases), 'provider_wait_seconds': sum(e['wait_seconds'] for e in leases.values()),
+        'audit_wait_seconds': sum(e.get('wait_seconds', 0) for e in events if e.get('kind') == 'audit' and e['event'] == 'acquired'),
+        'operations': {k: {'event_counts': dict(Counter(e['event'] for e in values)),
+                           'elapsed_seconds': sum(e.get('elapsed_seconds', 0) for e in values)}
+                       for k, values in operations.items()},
+        'note': 'Native operations may be nested; summed operation durations are not independent API-call counts.'}
+    return events, summary
+
+
 def save(public, raw_root, summary, raw):
     public.mkdir(parents=True, exist_ok=True)
     raw_root.mkdir(parents=True, exist_ok=True)
@@ -157,12 +199,14 @@ def dev3(subversion):
         summaries[stage] = summary
     owners = [read(p) for p in (cohort/'owners').glob('*/launch.json')]
     first = min(datetime.fromisoformat(o['time']).timestamp() for o in owners)
+    capacity_events, capacity = capacity_receipts(owners)
     save(REPORT/'dev3'/subversion, cohort/'report',
          {'scope': 'full_dev3_iteration', 'method': completion['method'], 'completed': completion['completed'],
           'direct_returned_responses': len(rows), 'learning_provider_failures': len(failures),
           'stage_summary': stage_summary(rows), 'agent_summary': summaries,
           'owner_jobs': [o['job'] for o in owners], 'elapsed_seconds': (cohort/'completion.json').stat().st_mtime-first,
-          'auditor_calls': 0}, {'responses': rows, 'failures': failures, 'agent_threads': agents})
+          'auditor_calls': 0, 'capacity': capacity},
+         {'responses': rows, 'failures': failures, 'agent_threads': agents, 'capacity_events': capacity_events})
 
 
 if __name__ == '__main__':

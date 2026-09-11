@@ -18,7 +18,7 @@ from rubric_gen.submission_revision.trace_defense_evidence_v2 import PublicDocum
 from rubric_gen.submission_revision.trace_defense_v2_schema import ResponseContract
 from rubric_gen.submission_revision.trace_defense_v2_stage import TraceStagesV2, contract_source_hashes
 from rubric_gen.submission_revision.trace_defense_binding import load_binding
-from rubric_gen.submission_revision.rubric_generation import RubricPolicy
+from rubric_gen.submission_revision.rubric_generation import RubricPolicy, ElicitedCriterion
 from rubric_gen.submission_revision.rubric_generation_store import load_rubric_generation
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -127,6 +127,34 @@ def audit(subversion):
                 continue
             proposal = read(path)
             diagnoses = {x['pair_id']: x for x in proposal['diagnoses']}
+            prior = load_rubric_generation(root, generation-1, expected_policy=RubricPolicy.RED_TEAM_TRACE)
+            native = read(path.parent/'aggregate-margins.json')
+            decisions = {r['criterion_id']: r for r in native['decisions']}
+            compilations = {r['pair_id']: r['response'] for r in proposal['compilations']}
+            accepted, reserved = [], set()
+            seen_content = {r.criterion_id for r in prior.elicited_criteria}
+            for diagnostic in proposal['diagnoses']:
+                available = [r.criterion_id for r in prior.elicited_criteria if r.criterion_id not in reserved]
+                if diagnostic['available_ids'] != available or diagnostic['accepted_this_update'] != accepted:
+                    raise RuntimeError('diagnosis replacement registry differs from real active/admitted lineage')
+                compiled = compilations.get(diagnostic['pair_id'])
+                if not compiled or not compiled['criteria']:
+                    continue
+                raw = native_criterion_payload(compiled['criteria'][0], witness_pair_id=diagnostic['pair_id'],
+                    action=diagnostic['response']['action'], active_learned_ids=available)
+                criterion = ElicitedCriterion.create(title=raw['title'], requirement=raw['requirement'],
+                    levels=tuple((x['label'], {'A': 0, 'B': -5, 'C': -10}[x['label']], x['description']) for x in raw['levels']),
+                    provenance_pair_ids=tuple(raw['provenance_pair_ids']), source_generation=generation)
+                cid = criterion.criterion_id
+                if cid in seen_content:
+                    continue
+                seen_content.add(cid)
+                if decisions.get(cid, {}).get('accepted'):
+                    accepted.append(cid)
+                    reserved.update(raw['replaces'])
+            if accepted != native['accepted_candidate_ids']:
+                raise RuntimeError('accepted-rule order differs from prospective diagnosis/compilation order')
+            counts['operation_registries_revalidated'] += len(proposal['diagnoses'])
             expected = []
             for compiled in proposal['compilations']:
                 response = compiled['response']
