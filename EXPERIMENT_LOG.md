@@ -2185,3 +2185,5 @@
 
 - 21:26 EDT: Phase-A dev1 job10392341 completed 48/48 contract-valid (45/48 first response) in219.96s. Receipt review found schema correction could rewrite valid check/reason text for incoherent applicable/null applications; dev2 locks those fields independently, with new regression tests and a fresh fixed-cohort microbench required before any dev3 trajectory.
 - 21:26 EDT: Canonical dev3 inputs relocated and validated with zero provider calls in10392386/10392474; the first job's pre-execution Slurm launch failure was released onto the known working node. Nine seed replicates and separate paraphrase pools are reused; old g1 producer identities fail native checks for da-3-4/da-11-1 and no da-18-1 g1 exists, so only new dev3 g1 derivation is required.
+
+- 21:48 EDT: Phase-A dev2 10392565 passed all48 contracts (47 first response); the sole repaired application retained its scientific text and ended undecidable. Dev3 iteration1 job10392635 now runs all18 assignments from three newly frozen dev3-only g1 inputs under fb8f4da, with no outcome audits.

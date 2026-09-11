@@ -566,3 +566,8 @@
 - 21:05 EDT: Shared dispatch adapters have truthful new consumer implementation fingerprints; historical generation serialization and scientific request payloads are retained, and no old producer hash is rewritten to match the new source tree. V1 prompt/schema/stage/orchestration literals remain byte-identical to the pinned execution files.
 
 - 21:26 EDT: Resolved partial-response locking: an incoherent applicability/level combination can receive bounded schema correction while valid scientific check/reason fields remain immutable; a repair changing a locked field consumes an attempt and is rejected. The new tests include the observed incoherent combination, forbidden text changes, partial missing-field responses and archived-development execution rejection.
+
+
+## 2026-09-10 — v2 saved-evidence reporting
+
+- 21:48 EDT: Provider-free reporting now revalidates cached contracts, native host metadata and active-generation prompt exposure, including JSON-escaped requirements. The authoritative readiness adapter applies whole-cohort funnel percentages and separate per-arm exposure minima as written in the authorization; no running recipe/source fingerprint changes.

@@ -1,0 +1,64 @@
+{
+  "direct_attempts": 49,
+  "elapsed_seconds": 30.339386234991252,
+  "limitations": [
+    "Usage estimates use the frozen repository pricing registry, not provider invoices.",
+    "Calls failing without returned usage have unknown token cost.",
+    "Agent thread usage is cumulative: maximum totals per thread are used across resumed turns.",
+    "Internal agent model-request counts are unavailable; agent invocations and structured requests are distinct.",
+    "Summed request wall times include waiting and concurrency; they are not cohort elapsed time.",
+    "Frozen dev3 seed/paraphrase production costs are excluded and their reuse is disclosed."
+  ],
+  "logical_requests": 48,
+  "method": "attack_defense_v2.dev2",
+  "pricing_registry_date": "2026-08-18",
+  "provider_failure_attempts": 0,
+  "raw_records": {
+    "bytes": 39671,
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/phase-a/dev2-001/report/cost-records.json",
+    "sha256": "a3f67fd1c93bb4380d4b9cae07fc41843ec6a54443cc8f667c55de38dd35c6ef"
+  },
+  "scope": "phase_a",
+  "stage_summary": {
+    "application": {
+      "attempt_wall_seconds": 193.79385291947983,
+      "estimated_usd": 0.013894179999999999,
+      "fresh_responses": 17,
+      "returned_responses": 17,
+      "reused_frozen": 0,
+      "tokens": {
+        "cache_write_input_tokens": 7390,
+        "cached_input_tokens": 116244,
+        "input_tokens": 123685,
+        "output_tokens": 8093
+      },
+      "usage_available": 17
+    },
+    "diagnosis": {
+      "attempt_wall_seconds": 220.69305153540336,
+      "estimated_usd": 0.01896198,
+      "fresh_responses": 16,
+      "returned_responses": 16,
+      "reused_frozen": 0,
+      "tokens": {
+        "cached_input_tokens": 358059,
+        "input_tokens": 358107,
+        "output_tokens": 9826
+      },
+      "usage_available": 16
+    },
+    "quality": {
+      "attempt_wall_seconds": 303.59901343658566,
+      "estimated_usd": 0.015694339999999998,
+      "fresh_responses": 16,
+      "returned_responses": 16,
+      "reused_frozen": 0,
+      "tokens": {
+        "cached_input_tokens": 204637,
+        "input_tokens": 204685,
+        "output_tokens": 9660
+      },
+      "usage_available": 16
+    }
+  }
+}

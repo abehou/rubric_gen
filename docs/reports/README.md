@@ -6,4 +6,6 @@ Dated reports outside that checkpoint are internal historical development/proven
 
 ## 2026-09-10
 
+- [attack_defense_v2 development](2026-09-10/trace-attack-defense-v2/README.md): Phase A passed; complete dev3 mechanism development is running before any conditional Result20 execution.
+
 - [attack_defense_v1 Result20](2026-09-10/trace-attack-defense-v1/README.md): complete 120-assignment developmental bundle and 3,488 judgments; RH improves, both arms fail the gap targets, with paired uncertainty and source-verified case tables.

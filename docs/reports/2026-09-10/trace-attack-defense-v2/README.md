@@ -1,6 +1,6 @@
 # attack_defense_v2 — bounded development, then conditional Result20
 
-Status: Phase-A dev1 completed 48/48 contract-valid, but receipt review exposed incomplete locking during schema correction. Dev2 corrects that interface and repeats the fixed microbench before any full dev3 trajectory. No Result20 is authorized to begin until all prescribed development gates pass.
+Status: Phase-A dev2 passed 48/48 final contracts (47/48 first response), with zero illegal cached actions or host metadata mismatches. Full dev3 iteration 1 is running as job **10392635**, execution snapshot **fb8f4da44719eee23c89a89c986ac4099cee4057**, under `attack_defense_v2.dev2`; no Result20 or outcome audit has launched.
 
 The first recipe is `attack_defense_v2.dev1`. It replaces copied quotation strings with deterministic source ranges, encodes only legal learned-rule operations, binds witness/replacement metadata in the host, validates contracts before caching, removes the compiler self-rating veto, and reserves replacement targets only after native acceptance. The attack-first objective, early update schedule, two-pair budget, blind applications, native support/margin mathematics, fixed penalties and v1 one-rule reminder policy are retained.
 
@@ -17,3 +17,9 @@ This is an interface-corrected developmental bundle, not an isolated component a
 The [dev1 Phase-A report](phase-a/dev1-001/README.md) retains every original result. Dev2 leaves all scientific prompt literal hashes unchanged and locks valid check/reason fields even when applicability/level encoding is incoherent. The exact new source/contract hashes and prospective gates are in [dev2-freeze.json](../../../../experiments/trace-attack-defense-v2/dev2-freeze.json).
 
 Canonical dev3 has three separately sealed producer input pools. Following the repository's canonical input-pool procedure, the complete cohort uses three native task-specific configurations (six assignments each), each with seed 20260806 and the same two Full/User trace conditions; all 18 enter the mechanism report. No combined historical pool manifest is fabricated. Nine seed replicates and existing rubric bytes passed native validation after exact relocation. Historical g1 source-study identities are incompatible for da-3-4 and da-11-1, and the da-18-1 input run contains no g1; dev3-only g1 will therefore be created and frozen before solver revisions. Result20's frozen g1 inputs are unaffected.
+
+The [dev2 Phase-A report](phase-a/dev2-001/README.md) records 48/48 valid outcomes and the one bounded schema correction. Inspection verifies its original check/reason stayed locked and its final result remained scientific uncertainty.
+
+The complete dev3 cohort has 18 assignments and three freshly derived dev3-only g1 inputs, frozen before any solver revision. Thirty-two CPUs are allocated, with 18 assignment workers, internal fan-out four, and shared provider capacity 60; concurrent PaperBench work is preserved.
+
+Reporting applies the authorization’s contract and candidate-funnel percentages over the complete 18-assignment cohort, and the explicitly arm-specific admission/exposure minima separately over nine assignments per arm. Per-arm percentages are also reported descriptively. The initial report collector contains stricter per-arm percentage flags; `readiness.json`, which also requires independent saved-contract/host-metadata integrity checks, is the authoritative development decision. This aggregation clarification was recorded before inspecting complete dev3 mechanism outcomes.
