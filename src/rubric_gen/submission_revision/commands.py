@@ -82,8 +82,8 @@ def run_detect(args: argparse.Namespace) -> int:
     )
     paraphrase_dir = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
-    from rubric_gen.runtime.audit_execution import audit_owner
-    with audit_owner(output_dir):
+    from rubric_gen.runtime.audit_execution import audit_output_owner
+    with audit_output_owner(output_dir):
         return _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir)
 
 
@@ -142,8 +142,9 @@ def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -
     rubric_score_runner.preflight()
     rubric_free_score_runner.preflight()
     emit('audit_phase', phase='saved_response_validation')
-    rubric_score_runner.prepare_resume()
-    rubric_free_score_runner.prepare_resume()
+    reused = [rubric_score_runner.prepare_resume(), rubric_free_score_runner.prepare_resume()]
+    with ThreadPoolExecutor(max_workers=min(args.max_concurrency, len(direct_runners))) as preparation:
+        reused.extend(preparation.map(lambda runner: runner.prepare_resume(), direct_runners.values()))
 
     statuses: dict[str, int] = {}
     errors: list[tuple[str, Exception]] = []
@@ -163,7 +164,12 @@ def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -
         emit('audit_stage_completed', stage=name, exit_code=int(result),
              elapsed_seconds=time.monotonic()-stage_started)
         return result
-    with AuditExecutor(args.max_concurrency, tuple(experiment.outcome_audit['models'])) as requests:
+    from contextlib import nullcontext
+    from rubric_gen.runtime.capacity import reservation
+    # A fully validated completed audit needs no provider or token-count calls.
+    # Its output remains exclusively owned while local publication is completed.
+    admission = nullcontext() if all(reused) else reservation('audit')
+    with admission, AuditExecutor(args.max_concurrency, tuple(experiment.outcome_audit['models'])) as requests:
         with ThreadPoolExecutor(max_workers=len(stages)) as coordinators:
             futures = {coordinators.submit(execute_stage, name, runner, requests): name
                        for name, runner in stages.items()}

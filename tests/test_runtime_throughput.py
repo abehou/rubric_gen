@@ -445,3 +445,52 @@ def test_imported_state_must_match_its_documented_producer(tmp_path,monkeypatch)
     write_json_atomic(path,state)
     with pytest.raises(ValueError,match='scientific state differs'):
         resolve_study_sources(root,exp)
+
+
+def test_completed_direct_preparation_uses_saved_counts_and_republishes_without_http(tmp_path):
+    from rubric_gen.detection.runner import DetectionRunner
+    from rubric_gen.detection.jobs import DetectionConfig
+    from test_detection_runner import _case, _source, _generation, _reward_hacking_text
+    case=_case(tmp_path/'case',{'samples':[]});calls=[];counts=[]
+    def provider(model,request):
+        calls.append(request);return _generation(model,_reward_hacking_text())
+    def counter(*args):counts.append(1);return 100
+    config=DetectionConfig(source=_source(case),models=('gpt-test',),output_dir=tmp_path/'audit')
+    assert DetectionRunner(config,generate_response=provider,count_tokens=counter).run()==0
+    summary=(config.output_dir/'summary.json').read_bytes()
+    runner=DetectionRunner(replace(config,resume=True),generate_response=provider,count_tokens=counter)
+    runner._write_or_validate_run_settings()
+    assert runner.prepare_resume()
+    assert runner.run_prepared()==0
+    assert (config.output_dir/'summary.json').read_bytes()==summary
+    (config.output_dir/'summary.json').unlink()
+    assert runner.run_prepared()==0
+    assert len(calls)==len(counts)==1
+
+
+def test_completed_suite_does_not_wait_for_an_active_generation_study(tmp_path,monkeypatch):
+    import argparse
+    from rubric_gen.submission_revision import commands, source_resolution
+    from rubric_gen.submission_revision.evaluation import targets, runner, direct
+    exp=SimpleNamespace(dag={'revise':{'output_dir':str(tmp_path/'study')},
+        'paraphrase':{'output_dir':str(tmp_path/'pool')},'detect':{'output_dir':str(tmp_path/'audit')}},
+        outcome_audit={'models':['gpt-test','claude-test']})
+    monkeypatch.setattr(commands,'load_experiment',lambda _:exp)
+    monkeypatch.setattr(source_resolution,'resolve_study_sources',lambda *a:object())
+    monkeypatch.setattr(targets,'load_evaluation_targets',lambda *a:())
+    completed=[]
+    class Finished:
+        def __init__(self,*a):pass
+        def preflight(self):pass
+        def prepare_resume(self):return True
+        def run_prepared(self,executor=None):
+            assert Slots(Path(capacity.policy()['coordination_dir'])/'audit',1).active_count()==1
+            completed.append(1);return 0
+    monkeypatch.setattr(runner,'RubricScoreRunner',Finished)
+    monkeypatch.setattr(runner,'RubricFreeScoreRunner',Finished)
+    monkeypatch.setattr(direct,'prepare_direct_detection',lambda *a:Finished())
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with reservation('audit'):
+            future=pool.submit(commands.run_detect,argparse.Namespace(experiment='fixture.yaml',max_concurrency=8,resume=True))
+            assert future.result(timeout=3)==0
+    assert len(completed)==6

@@ -22,8 +22,8 @@ def provider_for(model: str) -> str:
 
 
 @contextmanager
-def audit_owner(root: Path):
-    """Global admission plus persistent output exclusion, held by the coordinator."""
+def audit_output_owner(root: Path):
+    """Persistent exclusion also covers read-only preparation and publication."""
     root.mkdir(parents=True, exist_ok=True)
     fd = os.open(root / '.audit.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
     try:
@@ -31,10 +31,16 @@ def audit_owner(root: Path):
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
             raise RuntimeError(f'an audit already owns this output: {root}') from exc
-        with reservation('audit'):
-            yield
+        yield
     finally:
         os.close(fd)
+
+
+@contextmanager
+def audit_owner(root: Path):
+    """Standalone audit ownership includes normal global admission."""
+    with audit_output_owner(root), reservation('audit'):
+        yield
 
 
 class AuditExecutor:

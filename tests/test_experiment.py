@@ -1280,7 +1280,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "load_evaluation_targets",
         lambda _config, *_sources: calls.append("target-loading") or targets,
     )
-    monkeypatch.setattr(direct_audit_module, "prepare_direct_detection", lambda config, *_: SimpleNamespace(run_prepared=lambda **kw: direct(config)))
+    monkeypatch.setattr(direct_audit_module, "prepare_direct_detection", lambda config, *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: direct(config)))
     monkeypatch.setattr(
         outcome_panel_module,
         "RubricScoreRunner",
@@ -1360,7 +1360,7 @@ def test_detect_returns_failure_for_an_incomplete_score_panel(
         "load_evaluation_targets",
         lambda _config, *_sources: (object(),),
     )
-    monkeypatch.setattr(direct_audit_module, "prepare_direct_detection", lambda *_: SimpleNamespace(run_prepared=lambda **kw: 0))
+    monkeypatch.setattr(direct_audit_module, "prepare_direct_detection", lambda *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: 0))
     monkeypatch.setattr(outcome_panel_module, "RubricScoreRunner", RunnerStub)
     monkeypatch.setattr(outcome_panel_module, "RubricFreeScoreRunner", RunnerStub)
 
@@ -1437,7 +1437,7 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     monkeypatch.setattr(
         direct_audit_module,
         "prepare_direct_detection",
-        lambda *_: SimpleNamespace(run_prepared=lambda **kw: 0),
+        lambda *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: 0),
     )
     monkeypatch.setattr(
         outcome_panel_module,
@@ -1533,7 +1533,7 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     monkeypatch.setattr(
         direct_audit_module,
         "prepare_direct_detection",
-        lambda *_: SimpleNamespace(run_prepared=lambda **kw: calls.append("direct-provider") or 0),
+        lambda *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: calls.append("direct-provider") or 0),
     )
     monkeypatch.setattr(
         outcome_panel_module,

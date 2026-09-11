@@ -245,6 +245,9 @@ class DetectionRunner:
 
     def _prepare_source_job(self, case, model):
         from rubric_gen.runtime.capacity import emit
+        cached = getattr(self, '_resume_jobs', {}).get((case.case_id, model))
+        if cached is not None:
+            return cached
         started = time.monotonic()
         with self._payload_lock:
             lock = self._payload_locks.setdefault(case.path, Lock())
@@ -257,6 +260,54 @@ class DetectionRunner:
         emit("audit_prepared", case_id=case.case_id, model=model,
              source_seconds=loaded-started, plan_seconds=time.monotonic()-loaded)
         return job
+
+    def prepare_resume(self) -> bool:
+        """Replay saved RH plans against prepared immutable sources, without HTTP.
+
+        Original measured token counts and the recorded chunk limit belong to
+        that exact saved plan. Reuse requires the same run, producer, source
+        statistics, request cardinality and validated raw verdict. Missing jobs
+        still use normal preparation and provider admission.
+        """
+        self._resume_jobs = {}
+        self._completed_records = None
+        if not self.config.resume or self.config.detection != 'rh':
+            return False
+        from rubric_gen.detection.prompts import _reward_hacking_requests
+        standard = self._standard_runner()
+        records = []
+        for case in self.config.source.cases:
+            for model in self.config.models:
+                path = self.config.output_dir / 'cases' / case.case_id / model.replace('/', '_') / 'score.json'
+                if not path.is_file() or path.is_symlink():
+                    continue
+                try:
+                    saved = json.loads(path.read_text())
+                    stats = saved['compact_evidence']
+                    tokens = tuple(saved['identity']['input_tokens'])
+                    limit = stats['chunk_character_limit']
+                    if type(limit) is not int or limit < 1 or any(type(t) is not int or not 0 < t <= min(self.config.max_input_tokens, MALT_REWARD_HACKING_MAX_INPUT_TOKENS) for t in tokens):
+                        raise ValueError('invalid saved token-count plan')
+                except (KeyError, TypeError, ValueError) as error:
+                    raise ValueError(f'invalid saved direct preparation: {path}') from error
+                with self._payload_lock:
+                    if case.path not in self._payloads:
+                        self._payloads[case.path] = self._payload(case)
+                    payload = self._payloads[case.path]
+                if any(stats.get(k) != v for k,v in payload.stats.items()):
+                    raise ValueError(f'saved direct input evidence differs from its prepared producer: {path}')
+                requests = _reward_hacking_requests(payload, evidence_chars=limit,
+                                                     max_output_tokens=self.config.max_output_tokens)
+                if len(requests) != len(tokens) or len(requests) != stats['planned_calls']:
+                    raise ValueError(f'saved direct chunk plan differs: {path}')
+                job = PreparedJob(case, model, requests, tokens, stats, 'max_score')
+                if not standard._valid_score(saved, standard._identity(job)):
+                    raise ValueError(f'saved direct judgment requires local repair: {path}')
+                self._resume_jobs[case.case_id, model] = job
+                records.append(saved)
+        if len(records) == len(self.config.source.cases)*len(self.config.models):
+            self._completed_records = records
+        return self._completed_records is not None
 
     def _prepare_jobs(self) -> PreparedPanel:
         # Keep the standalone planning interface bounded as well as the pipeline.
@@ -344,6 +395,22 @@ class DetectionRunner:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self._write_or_validate_run_settings()
         standard = self._standard_runner()
+        completed = getattr(self, '_completed_records', None)
+        if completed is not None:
+            path = self.config.output_dir / 'summary.json'
+            if path.is_file():
+                summary = json.loads(path.read_text())
+                normalize = lambda rows: sorted(json.dumps({**r, 'status': 'completed'}, sort_keys=True) for r in rows)
+                if (summary.get('run_settings') == self.run_settings
+                        and normalize(summary.get('records', [])) == normalize(completed)
+                        and (self.config.output_dir / 'detection-rates.json').is_file()
+                        and (self.config.output_dir / 'detection-rates.png').is_file()):
+                    print(f'Reused {len(completed)} direct judgments; no token-count or generation calls', flush=True)
+                    return 0
+            for record in completed:
+                standard._record_cost(record)
+            self._set_costs(standard.outcome)
+            return self._finish(completed)
         if prepared is None:
             from rubric_gen.runtime.audit_execution import AuditExecutor
             with (nullcontext(executor) if executor is not None else
