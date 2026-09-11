@@ -2,6 +2,12 @@
 
 ## Working context
 
+### Default global working rule
+
+- By default, do not add new hashes, frozen contracts, baselines, or gates. Add one only when a concrete failure scenario is named and ordinary mechanisms such as Git, version numbers, primary keys, transactions, uniqueness constraints, types, and standard tests are insufficient to prevent or detect it.
+- Do not remove existing safeguards merely for simplification. Place gates only at irreversible, cross-system, security-sensitive, or formal release boundaries.
+- Keep preflight and validation from crowding out the code execution, simulation, experimentation, or measurement the project is meant to perform. Prefer the simplest ordinary control that makes a failure observable and recoverable.
+
 - Use `README.md` for setup and CLI usage, `docs/architecture.md` for code
   ownership, and `docs/rubric_elicitation_workflow.md` for the induction protocol.
   Read the relevant sections, not every historical document.
