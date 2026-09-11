@@ -24,7 +24,10 @@ def anthropic_response(*, api_key, timeout, **request):
                         complete = True
                 if not complete:
                     raise IncompleteProviderResponse("Anthropic stream ended without message_stop")
-                return stream.get_final_message()
+                response = stream.get_final_message()
+                if response.stop_reason != 'end_turn':
+                    raise IncompleteProviderResponse(f'Anthropic response stopped before a complete answer: {response.stop_reason}')
+                return response
     # SDKs wrap initial request failures, but iteration exposes HTTPX errors.
     # Keep the existing retry/error classification for failures during a stream.
     except httpx.TimeoutException as exc:

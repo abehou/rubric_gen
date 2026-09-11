@@ -418,3 +418,15 @@ def test_sparse_criterion_ids_follow_contract_order():
     assert list(report['criteria']) == ['criterion_88', 'criterion_3']
     assert report['criteria'] == {'criterion_88': {'level': 'D', 'reason': 'first'},
                                   'criterion_3': {'level': 'A', 'reason': 'second'}}
+
+
+def test_terminal_anthropic_token_truncation_is_not_a_completed_answer(monkeypatch):
+    original = _events
+    def truncated(provider, text, **kwargs):
+        return [(delay, chunk.replace(b'end_turn', b'max_tokens'))
+                for delay, chunk in original(provider, text, **kwargs)]
+    monkeypatch.setattr(__import__(__name__), '_events', truncated)
+    _install_network(monkeypatch, 'anthropic', '{}')
+    with pytest.raises(provider_streams.IncompleteProviderResponse, match='max_tokens'):
+        provider_streams.anthropic_response(api_key='fake', timeout=300, model='fixture',
+                                           max_tokens=10, messages=[])

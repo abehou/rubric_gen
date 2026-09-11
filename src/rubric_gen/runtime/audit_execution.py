@@ -117,6 +117,14 @@ class AuditExecutor:
     def __enter__(self):
         return self
 
+    def status(self):
+        with self.lock:
+            return {'request_worker_limit': self.workers,
+                    'active_by_provider': dict(self.active),
+                    'ready_by_provider': {p: sum(len(q) for g,q in self.queues.items() if g[0] == p)
+                                          for p in self.active},
+                    'stopped_providers': dict(self.blocked)}
+
     def __exit__(self, *error):
         # Coordinators must have drained their futures before closing the pool.
         with self.lock:

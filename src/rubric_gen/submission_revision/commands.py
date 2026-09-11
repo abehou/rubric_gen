@@ -90,7 +90,7 @@ def run_detect(args: argparse.Namespace) -> int:
 def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -> int:
     import time
     from rubric_gen.runtime.capacity import emit
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
     from rubric_gen.runtime.audit_execution import AuditExecutor
     from rubric_gen.submission_revision.source_resolution import resolve_study_sources
     from rubric_gen.submission_revision.evaluation.direct import DirectDetectionConfig, prepare_direct_detection
@@ -167,13 +167,16 @@ def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -
         with ThreadPoolExecutor(max_workers=len(stages)) as coordinators:
             futures = {coordinators.submit(execute_stage, name, runner, requests): name
                        for name, runner in stages.items()}
-            for future in as_completed(futures):
-                name = futures[future]
-                try:
-                    statuses[name] = int(future.result())
-                except Exception as exc:
-                    errors.append((name, exc))
-                    print(f"{name}: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+            while futures:
+                done, _ = wait(futures, timeout=30, return_when=FIRST_COMPLETED)
+                emit('audit_queue', **requests.status())
+                for future in done:
+                    name = futures.pop(future)
+                    try:
+                        statuses[name] = int(future.result())
+                    except Exception as exc:
+                        errors.append((name, exc))
+                        print(f"{name}: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
     if errors:
         raise ExceptionGroup("evaluation suite stage failures", [
             RuntimeError(f"{name}: {type(error).__name__}: {error}").with_traceback(error.__traceback__)

@@ -102,6 +102,8 @@ def resolve_study_sources(study_dir: Path, experiment: Experiment, *, require_te
             producer_directory = resolve_study_experiment(producer_root, rows[0], producer_assignment).resolve()
             if sha256_file(producer_directory / 'manifest.json') != receipt['producer_manifest_sha256']:
                 raise ValueError(f'import differs from documented source tree: {receipt_path}')
+            if state != read_json_object(producer_directory / 'state.json', 'producer revision state'):
+                raise ValueError(f'imported scientific state differs from documented producer: {directory}')
         identity = {k: v for k, v in assignment.record_identity().items() if k != 'experiment_dir'}
         identity.update(kind='rubric-gen-submission-revision-experiment', experiment_id=producer.experiment_id,
                         benchmark=str(producer.benchmark), task_dir=str(producer.task_dir(assignment.task_id)))

@@ -2207,3 +2207,8 @@
 ## 2026-09-11 — Runtime validation ownership
 
 - 08:28 EDT: Reserved reusable diagnostic allocation 10398213; active owners 10397534 and 10398066 were inspected without mutation. All 758 repaired consumer status files are inode-independent and their producer counterparts match the recorded original bytes; exact criterion-specific replay resolves the reported neutral-policy mismatch.
+
+## 2026-09-11 — Runtime cleanup measurements
+
+- 09:43 EDT: Fixed 18-assignment/54-turn native scheduling measured 2.83s/1.55s/0.93s at 2/4/8 workers; fixed 18-source/36-request preparation measured first dispatch 1.456s versus 0.085s and total 2.416s versus 0.597s for former serial loading versus the bounded pipeline. These use controlled providers, not live service timings.
+- 09:43 EDT: Real 120-source preparation took 1.16s scope resolution, 64.95s all-window boundaries and 18.82s rendering (480 inputs, 995 trajectory reads/220,339,988 bytes); warm in-invocation replay took 0.0077s with no extra reads. Eight real app servers started in 6.31s, no startup errors or model turns, peak sampled owned-tree RSS 1,207,324 KiB.

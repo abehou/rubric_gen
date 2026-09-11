@@ -593,3 +593,8 @@
 ## 2026-09-11 — Shared runtime throughput cleanup
 
 - 08:28 EDT: Isolated implementation from fe1c87d; direct sources use a cohort-wide producer whitelist in the local adapter, and the recovery launcher imposes two assignment workers. Shared resolution and audit ownership changes are being tested without editing active sources.
+
+## 2026-09-11 — Runtime cleanup implementation
+
+- 09:43 EDT: Resolved shared consumer/source ambiguity with per-assignment producer binding and full-ledger execution-scope selection; all audit families use the prepared resolution. Direct resume replays its raw verdict and refuses a fresh generation when an existing completed score needs provenance/publication repair.
+- 09:43 EDT: One audit coordinator owns the output/global lease and a bounded provider-fair request executor; standalone stages retain normal admission. Single-study serialization remains intentional while older active owners use the original thread-local lease implementation.

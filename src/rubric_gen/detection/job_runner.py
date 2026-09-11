@@ -141,6 +141,7 @@ class DetectionJobRunner:
 
         self._local.paths = paths
         self._local.attempts = 1
+        self._local.publication_only = self.config.resume and paths.score.exists()
         total_cost = 0.0
         total_by_model: dict[str, float] = {}
         last_error: Exception | None = None
@@ -282,9 +283,14 @@ class DetectionJobRunner:
         try:
             if self.config.detection == "rh":
                 _validate_reward_hacking_verdict(value.get("verdict"))
+                replay = [_extract_model_output(row['text'], 'rh') for row in value['raw_responses']]
+                expected = (_aggregate_reward_hacking_scores(replay)
+                            if identity['aggregation'] == 'max_score' else replay[-1])
+                if value['verdict'] != expected:
+                    return False
             else:
                 _extract(json.dumps(value.get("verdict")), self.config.detection)
-        except (TypeError, ValueError):
+        except (KeyError, TypeError, ValueError):
             return False
         return self._valid_cost(value.get("cost"))
 
@@ -362,6 +368,8 @@ class DetectionJobRunner:
                 if saved.get('category') in {'authentication', 'billing', 'configuration', 'structural'}:
                     raise last_error
                 continue
+            if getattr(self._local, 'publication_only', False):
+                raise RuntimeError(f'existing direct judgment requires local provenance/publication repair; refusing duplicate generation: {paths.score}')
             # Persist dispatch intent before crossing the external boundary. If
             # interrupted, completion is unknown and resubmission consumes budget.
             saved = {"identity": expected, "attempt": attempt, "remote_completion": "unknown"}

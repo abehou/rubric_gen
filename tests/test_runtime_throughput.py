@@ -413,3 +413,35 @@ def test_token_preparation_retries_only_transients_without_active_reservations(t
     runner=DetectionRunner.__new__(DetectionRunner);runner.count_tokens=count
     with pytest.raises(APIStatusError):runner._count_preparation_tokens('gpt-5.6-sol',None)
     assert len(calls)==(3 if status in (429,529) else 1)
+
+
+def test_resume_never_rebuys_a_known_direct_score_with_incompatible_metadata(tmp_path):
+    from rubric_gen.detection.runner import DetectionRunner
+    from rubric_gen.detection.jobs import DetectionConfig
+    from test_detection_runner import _case, _source, _generation, _reward_hacking_text
+    import shutil
+    case=_case(tmp_path/'case',{'samples':[]});calls=[]
+    def provider(model,request):
+        calls.append(request);return _generation(model,_reward_hacking_text())
+    config=DetectionConfig(source=_source(case),models=('gpt-test',),output_dir=tmp_path/'audit')
+    assert DetectionRunner(config,generate_response=provider).run()==0
+    path=next(config.output_dir.glob('cases/*/*/score.json'))
+    data=json.loads(path.read_text());data['identity']['input_tokens']=[999]
+    path.write_text(json.dumps(data));preserved=path.read_bytes()
+    for root in path.parent.glob('chunk-*'):shutil.rmtree(root)
+    assert DetectionRunner(replace(config,resume=True),generate_response=provider).run()==1
+    assert len(calls)==1 and path.read_bytes()==preserved
+    result=json.loads((config.output_dir/'summary.json').read_text())
+    assert 'refusing duplicate generation' in result['records'][0]['error']
+
+
+def test_imported_state_must_match_its_documented_producer(tmp_path,monkeypatch):
+    exp,root,producer_root=_imported_scope(tmp_path,monkeypatch)
+    sources=resolve_study_sources(root,exp)
+    source=sources.revisions[0]
+    path=source.directory/'state.json'
+    state=json.loads(path.read_text());state['scores']=[99]*len(state['scores'])
+    from rubric_gen.artifacts.serialization import write_json_atomic
+    write_json_atomic(path,state)
+    with pytest.raises(ValueError,match='scientific state differs'):
+        resolve_study_sources(root,exp)

@@ -21,6 +21,7 @@ class Monitor:
         self.excluded_events=set(); self.invocation_id=os.environ.get("RUBRIC_GEN_INVOCATION_ID")
         self.last_success=None; self.last_failure=None
         self.audit_phase=None; self.audit_stages={}; self.preparation=collections.Counter()
+        self.audit_queue={}
 
     def _assignments(self):
         counts=collections.Counter()
@@ -82,6 +83,8 @@ class Monitor:
                     self.counts[f'{name}:{op}']+=1
                     if name == 'audit_phase':
                         self.audit_phase=event
+                    elif name == 'audit_queue':
+                        self.audit_queue=event
                     elif name.startswith('audit_stage_'):
                         self.audit_stages[event['stage']]=event
                     elif name == 'audit_prepared':
@@ -138,6 +141,7 @@ class Monitor:
         rate = max(0, assignments['completed'] - self.baseline_completed) / max(elapsed, 1)
         result=dict(job_active_provider_reservations=sum(n for kind,n in self.leases.values() if kind == 'provider'),
             audit_phase=self.audit_phase, audit_stages=self.audit_stages,
+            audit_request_queue=self.audit_queue,
             aggregate_preparation_seconds=dict(self.preparation),
             waiting_on=dict(waiting), dependency_blocked_assignments=blocked, orchestration_wait_seconds=dict(self.wait_seconds), live_operations=dict(collections.Counter(self.active_operations.values())),
             last_successful_unit=self.last_success, current_failure=self.last_failure,
