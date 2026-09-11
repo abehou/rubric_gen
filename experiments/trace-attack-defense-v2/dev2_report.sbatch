@@ -11,7 +11,7 @@ set -euo pipefail
 cd /home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2
 export PYTHONPATH="$PWD/src" PYTHONDONTWRITEBYTECODE=1
 REPORT_PYTHON=/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python
-"$REPORT_PYTHON" experiments/trace-attack-defense-v2/dev_report.py dev2
+"$REPORT_PYTHON" experiments/trace-attack-defense-v2/dev_collect.py dev2
 "$REPORT_PYTHON" experiments/trace-attack-defense-v2/dev_integrity.py dev2
 "$REPORT_PYTHON" experiments/trace-attack-defense-v2/dev_timing.py dev2
 "$REPORT_PYTHON" experiments/trace-attack-defense-v2/dev_costs.py dev3 dev2
