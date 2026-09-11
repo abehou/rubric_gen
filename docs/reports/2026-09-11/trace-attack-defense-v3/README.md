@@ -46,11 +46,25 @@ complete and the snapshot is committed.
 |---|---|
 | provider-free forensic | complete |
 | v3 structural tests | 9/9 pass on Slurm compute environment |
-| canonical v2.1 User dev3 control | seed preparation running; no outcome audit yet |
-| matched stress dev3 | pending control inputs |
+| canonical v2.1 User dev3 control | complete; Sol+Opus audit complete (job 10402123) |
+| matched stress dev3 | producer job 10402416 failed at one solver turn; missing-only recovery 10405463 running |
+| canonical v3 input binding | complete; current producer identities recorded |
 | canonical v3 confirmation | pending |
 | single Result20 | not launched |
 
 Result20 will be launched at most once, only after the stress and canonical dev3
 evidence supports this narrow delivery change. If it fails, the report will retain
 the failure and stop rather than tune on Result20.
+
+## Stress execution incident
+
+The first matched stress launcher (10402416) completed eight of the nine selected
+v2.1 producer assignments. Its only selected failure was
+`da-15-1/rep-001--solver-luna--user-simulator-red-team-trace`, recorded as
+`_SolverTurnFailure: provider exited with code 124`; the launcher stopped at its
+producer completeness check before any v3 consumer assignment began. The compact
+inventory is [stress-failure-inventory-10402416.json](../../../../experiments/trace-attack-defense-v3/stress-failure-inventory-10402416.json).
+Completed producer outputs are retained. The native missing-only recovery (job
+10405463) selects that one failed assignment, then the nine never-started v3
+consumer assignments, and normalizes the ledgers before validation; no completed
+assignment is resubmitted and no scientific prompt/configuration is changed.
