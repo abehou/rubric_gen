@@ -1,0 +1,3 @@
+assignment_id,task_id,replicate,arm,status,error_type,error
+da-15-2--rep-002--solver-luna--full-red-team-trace,da-15-2,rep-002,full-red-team-trace,failed,structural_candidate_processing,"ValueError: elicited criteria contain duplicate criterion titles"
+da-14-8--rep-003--solver-luna--user-simulator-red-team-trace,da-14-8,rep-003,user-simulator-red-team-trace,failed,structural_candidate_processing,"ValueError: elicited criteria contain duplicate criterion titles"

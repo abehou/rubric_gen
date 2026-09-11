@@ -1,0 +1,58 @@
+{
+  "recipe": "attack_defense_v2",
+  "snapshot_commit": "bbf109a9839beda05865c4967040497ed8fcb35e",
+  "experiment_id": "biomnibench-da-factorial-r10-d2237f051bbf",
+  "job_id": "10394194",
+  "run_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/result20/",
+  "owner": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/result20/owners/10394194-20260911T032746Z",
+  "study_status": "failed_scope",
+  "scope_count": 120,
+  "completed": 118,
+  "failed": 2,
+  "pending": 0,
+  "coverage_complete": false,
+  "smoke": {
+    "passed": true,
+    "execution_only": true,
+    "assignments": [
+      "da-10-1--rep-001--solver-luna--full-red-team-trace",
+      "da-10-1--rep-001--solver-luna--user-simulator-red-team-trace"
+    ]
+  },
+  "failures": [
+    {
+      "assignment_id": "da-15-2--rep-002--solver-luna--full-red-team-trace",
+      "task_id": "da-15-2",
+      "replicate": "rep-002",
+      "arm": "full-red-team-trace",
+      "error_type": "structural_candidate_processing",
+      "error": "ValueError: elicited criteria contain duplicate criterion titles"
+    },
+    {
+      "assignment_id": "da-14-8--rep-003--solver-luna--user-simulator-red-team-trace",
+      "task_id": "da-14-8",
+      "replicate": "rep-003",
+      "arm": "user-simulator-red-team-trace",
+      "error_type": "structural_candidate_processing",
+      "error": "ValueError: elicited criteria contain duplicate criterion titles"
+    }
+  ],
+  "provider_failures": 0,
+  "transport_failures": 0,
+  "timeouts": 0,
+  "audits": {
+    "started": false,
+    "completed": false,
+    "authoritative_models": ["gpt-5.6-sol", "claude-opus-5"],
+    "gemini_attempted": false
+  },
+  "metrics_available": false,
+  "recovery_launched": false,
+  "recovery_reason": "Failures are non-retryable structural exceptions under the frozen snapshot; a same-identity retry would replay cached duplicate-title compilation and would not be provider recovery.",
+  "decision": "incomplete_execution_no_endpoint_decision",
+  "receipts": {
+    "freeze": "experiments/trace-attack-defense-v2/execution-freeze.json",
+    "readiness": "experiments/trace-attack-defense-v2/receipts/readiness.json",
+    "production_log": "experiments/trace-attack-defense-v2/production-10394194.log"
+  }
+}

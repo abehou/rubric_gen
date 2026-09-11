@@ -2190,3 +2190,7 @@
 ## 2026-09-10 — attack_defense_v2 production freeze preparation
 
 - 23:22 EDT: Provider-free Result20 readiness job10394078 passed on babel-s5-24 with NFS4 server locking, 60 matched frozen seeds, 20 producer-verified g1 rubrics, exact V2 paraphrase provenance and Sol/Opus reuse sources; no provider calls were made. The copied production launcher had a double `/data/user_data` prefix, which was corrected before any production owner existed; the scientific recipe and v2 source code were unchanged.
+
+## 2026-09-11 — attack_defense_v2 Result20
+
+- 02:02 EDT: Frozen production job 10394194 finished its single 120-assignment scope with 118 completed and 2 structural failures (`ValueError: elicited criteria contain duplicate criterion titles`), one Full and one User; the counted smoke assignments passed. No provider/transport failures or outcome audits occurred, and no recovery or duplicate behavioral job was launched because the failures are non-retryable under the frozen snapshot.

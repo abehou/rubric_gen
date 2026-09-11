@@ -1237,3 +1237,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-10 — attack_defense_v2 Result20 readiness
 
 - 23:22 EDT: Provider-free readiness job10394078 completed exit0 on babel-s5-24 for the pending Result20 bundle; it validated experiment `biomnibench-da-factorial-r10-d2237f051bbf`, 120 scoped assignments, NFS4 server locking, 60 preserved seed matches, 20 g1 inputs and exact native audit reuse sources. No Result20 execution or audit job had been submitted; a copied launcher double-prefix path was fixed before freeze.
+
+## 2026-09-11 — attack_defense_v2 Result20
+
+- 02:02 EDT: Production job 10394194 used snapshot `bbf109a9839beda05865c4967040497ed8fcb35e` at `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/result20/`; final coverage is 118/120 completed and 2 failed, with no pending assignments. The complete-cohort audit gate therefore did not open, so v2 metrics are unavailable; exact failure accounting is in `docs/reports/2026-09-10/trace-attack-defense-v2/result20/`.

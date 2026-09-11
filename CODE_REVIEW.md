@@ -576,3 +576,7 @@
 ## 2026-09-10 — Result20 launcher path review
 
 - 23:22 EDT: Pre-launch inspection found the copied v2 production `RUN` and live `TMPDIR` paths duplicated `/data/user_data`; readiness had not yet reached provider work. Both paths were corrected to the validated NFS root, and syntax checks plus provider-free readiness passed without changing scientific code or identities.
+
+## 2026-09-11 — attack_defense_v2 Result20
+
+- 02:02 EDT: Frozen production replay exposed a correctness gap: `validated_induction_response` lets duplicate criterion titles raise `ValueError` across the assignment boundary instead of recording a candidate-local structural/native rejection. Preserve the failed records; any future separately authorized mechanical fix must catch this before rubric rendering and add a provider-free regression test without changing admission mathematics.

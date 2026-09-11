@@ -1,0 +1,12 @@
+{
+  "job_id": "10394194",
+  "recovery_launched": false,
+  "reason": "The two retained failures are ValueError exceptions at candidate-processing/rubric rendering, not provider, transport, timeout, or audit-only failures. The production snapshot is frozen and the same request identity has a cached duplicate-title compilation, so retrying would not be a compatible operational recovery. No code or scientific setting was changed after freeze.",
+  "preserved": [
+    "118 successful assignment outputs",
+    "2 failed assignment records and their partial saved state",
+    "counted Full/User smoke outputs",
+    "all frozen input, seed, offline-g1, prompt, schema, and source receipts"
+  ],
+  "future_mechanical_fix": "At a separately authorized snapshot, detect duplicate criterion titles before rubric rendering, record a candidate-level structural/native rejection, continue the assignment, and add a provider-free regression test. Do not rewrite this cohort or relabel its failures."
+}
