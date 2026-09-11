@@ -589,3 +589,7 @@
 ## 2026-09-11 — Result20 runtime reliability
 
 - 07:23 EDT: Resolved full-rubric long-call false timeouts, Anthropic audit schema/cardinality compatibility, and failed-attempt overwrite on resume in an isolated review worktree using the validated v5 encoding, SDK streaming and existing atomic persistence. Existing provenance covers the factored modules; scoring/settings and solver timeouts remain unchanged, with focused no-provider verification documented in docs/reports/2026-09-11/runtime-reliability/result20-runtime-reliability-implementation.md.
+
+## 2026-09-11 — attack_defense_v3 User delivery
+
+- 11:12 EDT: The v3 adapter keeps the v2.1 deterministic criterion selector and moves its selected rule into the existing three-concern User-simulator request. Private origin labels and base-requirement status are persisted for mechanism analysis and stripped from the solver payload; the v2.1 Full and legacy User branches retain their existing rendering path.

@@ -23,6 +23,7 @@ from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
     render_augmented_rubric,
 )
+from rubric_gen.submission_revision.autorubric import parse_autorubric_rubric
 
 
 class FeedbackPolicy(str, Enum):
@@ -55,6 +56,42 @@ class ComposedRubricScore:
     reference_score: float
     elicited_penalty: float
     score: float
+
+
+def derive_base_requirement_status(
+    full_feedback: dict[str, object],
+    base_rubric_text: str,
+) -> list[dict[str, object]]:
+    """Summarize currently non-maximal frozen/base criteria for v3 User delivery.
+
+    This is a deterministic projection of already persisted evaluator feedback;
+    it performs no new judgment and contains no learned-rule metadata.
+    """
+    criteria = full_feedback.get("criteria")
+    if type(criteria) is not dict:
+        raise ValueError("full feedback criteria are required for base status")
+    base = parse_autorubric_rubric(base_rubric_text).criteria
+    statuses: list[dict[str, object]] = []
+    for index, criterion in enumerate(base, 1):
+        item = criteria.get(f"criterion_{index}")
+        if type(item) is not dict:
+            raise ValueError(f"full feedback lacks base criterion_{index}")
+        level = item.get("level")
+        points = item.get("points")
+        if type(level) is not str or isinstance(points, bool) or not isinstance(points, Real):
+            raise ValueError(f"full feedback base criterion_{index} is malformed")
+        maximum = criterion.levels[0].points
+        loss = float(maximum - float(points))
+        if loss > 1e-12:
+            statuses.append({
+                "rubric_order": index,
+                "title": criterion.title,
+                "level": level,
+                "point_loss": loss,
+                "judge_reason": item.get("judge_reason", ""),
+            })
+    statuses.sort(key=lambda item: (-float(item["point_loss"]), int(item["rubric_order"])))
+    return statuses
 
 
 @dataclass(frozen=True)
@@ -290,9 +327,18 @@ def project_rubric_simulated_user_feedback(
         score_validation_path,
         reference_score,
     )
+    raw_concerns = user_feedback.get("concerns")
+    if type(raw_concerns) is not list:
+        raise ValueError("simulated-user feedback concerns must be a list")
+    # v3 keeps private concern-origin bookkeeping in the simulator receipt but
+    # strips it before constructing the solver-visible payload.
+    concerns = [
+        {"category": concern["category"], "feedback": concern["feedback"]}
+        for concern in raw_concerns
+    ]
     payload: dict[str, object] = {
         "decision": user_feedback.get("decision"),
-        "concerns": user_feedback.get("concerns"),
+        "concerns": concerns,
     }
     return ProjectedFeedback(
         score=composition.score,

@@ -28,6 +28,7 @@ from rubric_gen.submission_revision.feedback import (
     FEEDBACK_REFERENCE_PROTOCOL,
     ProjectedFeedback,
     compose_rubric_score,
+    derive_base_requirement_status,
     project_rubric_feedback,
     project_rubric_simulated_user_feedback,
 )
@@ -367,9 +368,10 @@ def _validate_submission(
             reference_score,
         )
         if _trace_version(context):
-            from .trace_defense_delivery import append_reminder
-            projected = append_reminder(projected, generation=generation, score_validation_path=rubric_artifacts[0],
-                root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False)
+            if _trace_version(context) != "attack_defense_v3":
+                from .trace_defense_delivery import append_reminder
+                projected = append_reminder(projected, generation=generation, score_validation_path=rubric_artifacts[0],
+                    root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False)
         if (
             read_json_object(feedback_path, "revision feedback")
             != projected.payload
@@ -746,6 +748,31 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
+    v3_trace = _trace_version(context) == "attack_defense_v3"
+    v3_delivery = None
+    v3_base_status = None
+    if v3_trace:
+        from .user_delivery_v3 import select_private_delivery
+        delivery_record = read_json_object(
+            context.experiment_dir / "trace-defense-reminders" / f"{submission_id}.json",
+            "v3 private delivery receipt",
+        )
+        if delivery_record.get("delivery_mode") != "user_simulator_private" or delivery_record.get("message_component") != "":
+            raise RuntimeError("v3 delivery receipt exposes a solver-visible reminder")
+        selected, skipped = select_private_delivery(
+            generation=generation,
+            score_validation_path=rubric_artifacts[0],
+            root=context.experiment_dir,
+            submission_id=submission_id,
+            instruction=task_instruction,
+        )
+        if selected != delivery_record.get("selection") or skipped != delivery_record.get("skipped"):
+            raise RuntimeError("v3 delivery selection changed")
+        v3_delivery = (selected, skipped)
+        v3_base_status = derive_base_requirement_status(
+            full_projection.payload,
+            context.selection.optimizer_path.read_text(encoding="utf-8"),
+        )
     generation_path = roots.feedback_generations / f"{submission_id}.json"
     if generation_path.is_symlink() or not generation_path.is_file():
         raise RuntimeError(f"missing simulated-user generation for {submission_id}")
@@ -790,8 +817,11 @@ def _project_feedback(
         current_artifact=current_artifact,
         history=history,
         history_summary=history_summary,
+        trace_version=("attack_defense_v3" if v3_trace else None),
+        focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery and v3_delivery[0] else None),
+        base_requirement_status=(v3_base_status if v3_trace else None),
     )
-    return project_rubric_simulated_user_feedback(
+    projected = project_rubric_simulated_user_feedback(
         generation,
         rubric_artifacts[0],
         user_feedback,
@@ -801,6 +831,20 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
+    if v3_trace:
+        from .user_delivery_v3 import persist_private_delivery
+        assert v3_delivery is not None
+        persist_private_delivery(
+            root=context.experiment_dir,
+            submission_id=submission_id,
+            generation=generation,
+            selection=v3_delivery[0],
+            skipped=v3_delivery[1],
+            ordinary_prompt=projected.prompt,
+            allow_generation=False,
+            user_feedback=user_feedback,
+        )
+    return projected
 
 
 def _expected_rubric_evaluation(

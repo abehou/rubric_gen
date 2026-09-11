@@ -2203,3 +2203,8 @@
 ## 2026-09-11 — Result20 runtime reliability
 
 - 07:23 EDT: No-provider Result20 census verified 18 failed 300-second PaperBench v5 requests and six successful 318–1,223-second recovery streams; BioMNIBench evidence separates startup, overload and preemption costs. Read-only Slurm collectors10397916/10397928 touched no scientific outputs; no new experiment or provider call was launched.
+
+## 2026-09-11 — attack_defense_v3 User calibration
+
+- 11:12 EDT: Provider-free v2.1 User forensic extraction covers 285 saved turn records; the largest documented mechanisms are valid-work removal (54), dynamic oversteer (25), and method/scope drift (7), while positive controls show the selector is not uniformly harmful. The narrow v3 change is budgeted User delivery with a private base-requirement summary; attacker, learner, admission, Full feedback, and solver settings remain unchanged.
+- 11:12 EDT: v3 structural tests pass on the compute environment, and canonical seed-preparation job 10400205 is still completing the last dev3 seed judge. Stress configs are prepared to reuse sealed v2.1 Result20 seeds/offline rubrics without using Result20 outcome cases for tuning.

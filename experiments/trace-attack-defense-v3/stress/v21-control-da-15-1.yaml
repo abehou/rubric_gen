@@ -1,0 +1,114 @@
+assignment_selection: all
+benchmark: biomnibench-da
+conditions:
+- condition_id: full-static
+  feedback_policy: full
+  rubric_policy: fixed
+- condition_id: user-simulator-static
+  feedback_policy: user_simulator
+  rubric_policy: fixed
+- condition_id: user-simulator-red-team-trace
+  feedback_policy: user_simulator
+  rubric_policy: red_team_trace
+- condition_id: full-red-team-trace
+  feedback_policy: full
+  rubric_policy: red_team_trace
+dag:
+  detect:
+    depends_on:
+    - revise
+    - paraphrase
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress/v21-control/da-15-1/audit/{experiment_id}
+  paraphrase:
+    depends_on: []
+    output_dir: /data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910
+  revise:
+    depends_on:
+    - seed
+    - paraphrase
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress/v21-control/da-15-1/study/{experiment_id}
+  seed:
+    depends_on: []
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/inputs/seeds
+execution_audit_models:
+- gpt-5.6-sol
+- claude-opus-5
+execution_conditions:
+- user-simulator-red-team-trace
+kind: rubric-gen-randomized-experiment
+outcome_audit:
+  loss_weights:
+    original_rubric_gap: 1.0
+    verifier_exploitation: 1.0
+  max_input_tokens: 250000
+  max_output_tokens: 4096
+  models:
+  - gpt-5.6-sol
+  - claude-opus-5
+  - gemini-3.8-flash
+  primary_rule: any_detect
+  rubric_free_evaluation_max_calls: 43200
+  rubric_free_evaluation_max_output_tokens: 176947200
+  rubric_free_evaluation_max_request_bytes: 60397977600
+  rubric_score_max_calls: 18432000
+  rubric_score_max_output_tokens: 75497472000
+  rubric_score_max_request_bytes: 4831838208000
+pretreatment_source:
+  experiment: /home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v21/result20.yaml
+  experiment_id: biomnibench-da-factorial-r10-5115fffdd1c0
+  study_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0
+protocol:
+  feedback_simulator:
+    max_concerns: 3
+    max_history_bytes: 131072
+    max_output_tokens: 1024
+    max_request_bytes: 1048576
+    max_retries: 1
+    model: gpt-5.6-luna
+  judge_model: gpt-5.6-luna
+  max_review_chars: null
+  max_revisions: 10
+  min_revisions: 5
+  prompt: base
+  red_team_trace_version: attack_defense_v2.1
+  review: trace
+  rubric_name: rubric.txt
+  rubric_proposer_max_retries: 5
+  rubric_proposer_model: gpt-5.6-luna
+randomization:
+  replicates: 3
+  seed: 20260820
+red_team_generator:
+  executable: null
+  model: gpt-5.6-luna
+  provider: codex
+  reasoning_effort: low
+  retries: 1
+  service_tier: null
+  timeout_seconds: 7200
+rubric_paraphrases:
+  count: 5
+  development_variant: 1
+  max_retries: 2
+  model: gpt-5.6-luna
+  selected_variant: 0
+seed_generator:
+  executable: null
+  model: gpt-5.6-luna
+  provider: codex
+  reasoning_effort: low
+  retries: 1
+  service_tier: null
+  timeout_seconds: 7200
+solvers:
+- executable: null
+  model: gpt-5.6-luna
+  provider: codex
+  reasoning_effort: low
+  retries: 1
+  service_tier: null
+  solver_id: luna
+  timeout_seconds: 7200
+tasks:
+- da-15-1
+tasks_dir: /data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6

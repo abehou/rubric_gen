@@ -26,6 +26,7 @@ from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
     FEEDBACK_REFERENCE_PROTOCOL,
     compose_rubric_score,
+    derive_base_requirement_status,
     project_rubric_feedback,
     project_rubric_simulated_user_feedback,
 )
@@ -491,6 +492,13 @@ class RevisionScorer:
         projected = self._ordinary_checkpoint_feedback(**kwargs)
         if not self.trace_defense_enabled:
             return projected
+        if (
+            FeedbackPolicy(self.config.feedback_policy) is FeedbackPolicy.USER_SIMULATOR
+            and self.config.red_team_trace_version == "attack_defense_v3"
+        ):
+            # v3 delivers the selected rule privately through the simulator;
+            # there is deliberately no fourth solver-visible message.
+            return projected
         from .trace_defense_delivery import append_reminder
         return append_reminder(projected, generation=kwargs["generation"],
             score_validation_path=kwargs["artifacts"].score_validation_path, root=self.experiment_dir,
@@ -554,6 +562,25 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
+        v3_delivery = None
+        v3_base_status = None
+        v3_trace = (
+            self.config.red_team_trace_version == "attack_defense_v3"
+            and policy is FeedbackPolicy.USER_SIMULATOR
+        )
+        if v3_trace:
+            from .user_delivery_v3 import select_private_delivery
+
+            v3_delivery = select_private_delivery(
+                generation=generation,
+                score_validation_path=artifacts.score_validation_path,
+                root=self.experiment_dir,
+                submission_id=submission_id,
+                instruction=task_instruction,
+            )
+            v3_base_status = derive_base_requirement_status(
+                full_projection.payload, self.initial_rubric.text
+            )
         checkpoint = int(submission_id[1:])
         history = build_simulated_user_history(
             self.experiment_dir,
@@ -649,6 +676,9 @@ class RevisionScorer:
                     / "feedback-generation-failures"
                     / submission_id
                 ),
+                trace_version=("attack_defense_v3" if v3_trace else None),
+                focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else None),
+                base_requirement_status=(v3_base_status if v3_trace else None),
             )
             _write_json_atomic(generation_path, simulated_record)
         user_feedback = simulator.validate(
@@ -662,8 +692,11 @@ class RevisionScorer:
             current_artifact=current_artifact,
             history=history,
             history_summary=history_summary,
+            trace_version=("attack_defense_v3" if v3_trace else None),
+            focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else None),
+            base_requirement_status=(v3_base_status if v3_trace else None),
         )
-        return project_rubric_simulated_user_feedback(
+        projected = project_rubric_simulated_user_feedback(
             generation,
             artifacts.score_validation_path,
             user_feedback,
@@ -673,6 +706,21 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
+        if v3_trace:
+            from .user_delivery_v3 import persist_private_delivery
+
+            assert v3_delivery is not None
+            persist_private_delivery(
+                root=self.experiment_dir,
+                submission_id=submission_id,
+                generation=generation,
+                selection=v3_delivery[0],
+                skipped=v3_delivery[1],
+                ordinary_prompt=projected.prompt,
+                allow_generation=allow_generation,
+                user_feedback=user_feedback,
+            )
+        return projected
 
     def publish_final_plot(
         self,

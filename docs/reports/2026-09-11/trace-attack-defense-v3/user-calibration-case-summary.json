@@ -1,0 +1,1537 @@
+[
+  {
+    "task_id": "da-15-1",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 23.0,
+    "delta_S": -2.5,
+    "delta_H": 2.6666666666666643,
+    "delta_A": 12.0,
+    "delta_W_minus_S": 25.5,
+    "delta_W_minus_A": 11.0,
+    "turn_count": 11,
+    "concern_count": 17,
+    "dynamic_selected_turn_count": 1,
+    "proactive_dynamic_turns": [
+      "s003"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_5ec6f28c19bcfb61"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-1",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 10.0,
+    "delta_S": 26.0,
+    "delta_H": 22.833333333333332,
+    "delta_A": 40.0,
+    "delta_W_minus_S": -16.0,
+    "delta_W_minus_A": -30.0,
+    "turn_count": 11,
+    "concern_count": 18,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s001",
+      "s005"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_bf69295ace6a824b",
+      "elicited_9fce0022fda67d96"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-1",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -60.0,
+    "delta_H": -43.66666666666667,
+    "delta_A": -35.0,
+    "delta_W_minus_S": 60.0,
+    "delta_W_minus_A": 35.0,
+    "turn_count": 11,
+    "concern_count": 20,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s001",
+      "s004"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_44b95deb48c1443b",
+      "elicited_084620096adfb6ec",
+      "elicited_c8988bd73d35ad35"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-13-6",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -5.0,
+    "delta_H": 5.0,
+    "delta_A": 4.5,
+    "delta_W_minus_S": 5.0,
+    "delta_W_minus_A": -4.5,
+    "turn_count": 11,
+    "concern_count": 17,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s002",
+      "s003"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_fd1b148d5bf4b379",
+      "elicited_b0ebad19dbb439fe",
+      "elicited_9ec648ade0a9386e"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-13-6",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -2.5,
+    "delta_H": -21.666666666666668,
+    "delta_A": -8.0,
+    "delta_W_minus_S": 2.5,
+    "delta_W_minus_A": 8.0,
+    "turn_count": 5,
+    "concern_count": 5,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s002",
+      "s003"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_fd1b148d5bf4b379",
+      "elicited_6b61f38e66f9da7f",
+      "elicited_5135f4d4175e3cfd"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-13-6",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": -20.0,
+    "delta_S": -40.0,
+    "delta_H": -33.33333333333333,
+    "delta_A": -19.0,
+    "delta_W_minus_S": 20.0,
+    "delta_W_minus_A": -1.0,
+    "turn_count": 9,
+    "concern_count": 17,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s004",
+      "s007"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_fd1b148d5bf4b379",
+      "elicited_1ed2c4ceef488ee2",
+      "elicited_c10f7ba166a4758a"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s007.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-18-5",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -8.0,
+    "delta_H": -2.5,
+    "delta_A": 4.5,
+    "delta_W_minus_S": 8.0,
+    "delta_W_minus_A": -4.5,
+    "turn_count": 5,
+    "concern_count": 5,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s003",
+      "s004"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_d30cd84acc24d52c",
+      "elicited_63b34dc4ae3fe0cc",
+      "elicited_593f85e2b5a60a99"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-18-5",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": 0.0,
+    "delta_H": 0.3333333333333357,
+    "delta_A": -25.5,
+    "delta_W_minus_S": 0.0,
+    "delta_W_minus_A": 25.5,
+    "turn_count": 5,
+    "concern_count": 3,
+    "dynamic_selected_turn_count": 0,
+    "proactive_dynamic_turns": [],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [],
+    "prompt_paths": []
+  },
+  {
+    "task_id": "da-18-5",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -13.0,
+    "delta_H": -9.666666666666664,
+    "delta_A": 14.0,
+    "delta_W_minus_S": 13.0,
+    "delta_W_minus_A": -14.0,
+    "turn_count": 11,
+    "concern_count": 12,
+    "dynamic_selected_turn_count": 4,
+    "proactive_dynamic_turns": [
+      "s002",
+      "s004",
+      "s006"
+    ],
+    "corrective_dynamic_turns": [
+      "s000"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_14e2be6bbbc1afff",
+      "elicited_d1a0eda35d22e76b",
+      "elicited_91f66b062e1a0e54",
+      "elicited_8a9174344bae88da"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s006.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-19-1",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -10.0,
+    "delta_H": -8.0,
+    "delta_A": -2.5,
+    "delta_W_minus_S": 10.0,
+    "delta_W_minus_A": 2.5,
+    "turn_count": 5,
+    "concern_count": 4,
+    "dynamic_selected_turn_count": 1,
+    "proactive_dynamic_turns": [
+      "s001"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_e4ec806b0f1c4618"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": false,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-19-1",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -2.0,
+    "delta_H": -5.833333333333336,
+    "delta_A": -3.5,
+    "delta_W_minus_S": 2.0,
+    "delta_W_minus_A": 3.5,
+    "turn_count": 6,
+    "concern_count": 10,
+    "dynamic_selected_turn_count": 1,
+    "proactive_dynamic_turns": [
+      "s001"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_4e6bb9461a5366ff"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": false,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-19-1",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -4.5,
+    "delta_H": -4.5,
+    "delta_A": -1.5,
+    "delta_W_minus_S": 4.5,
+    "delta_W_minus_A": 1.5,
+    "turn_count": 5,
+    "concern_count": 4,
+    "dynamic_selected_turn_count": 0,
+    "proactive_dynamic_turns": [],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": false,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-1/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [],
+    "prompt_paths": []
+  },
+  {
+    "task_id": "da-15-2",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 10.0,
+    "delta_S": 5.0,
+    "delta_H": 14.833333333333329,
+    "delta_A": 4.5,
+    "delta_W_minus_S": 5.0,
+    "delta_W_minus_A": 5.5,
+    "turn_count": 11,
+    "concern_count": 29,
+    "dynamic_selected_turn_count": 7,
+    "proactive_dynamic_turns": [
+      "s008"
+    ],
+    "corrective_dynamic_turns": [
+      "s000",
+      "s001",
+      "s002",
+      "s003",
+      "s004",
+      "s005"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_be0430806c44cf77"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s008.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-009/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-2",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": -10.0,
+    "delta_S": 0.0,
+    "delta_H": -1.6666666666666643,
+    "delta_A": -4.0,
+    "delta_W_minus_S": -10.0,
+    "delta_W_minus_A": -6.0,
+    "turn_count": 11,
+    "concern_count": 30,
+    "dynamic_selected_turn_count": 7,
+    "proactive_dynamic_turns": [
+      "s006"
+    ],
+    "corrective_dynamic_turns": [
+      "s000",
+      "s001",
+      "s002",
+      "s003",
+      "s004",
+      "s007"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_accc1ceaf159d0d1",
+      "elicited_406557f9534b18c7",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_0c03b4cb4134b176",
+      "elicited_cefd1ecb9d7b6460"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s007.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-2",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": -10.0,
+    "delta_S": -31.0,
+    "delta_H": -15.333333333333336,
+    "delta_A": 15.5,
+    "delta_W_minus_S": 21.0,
+    "delta_W_minus_A": -25.5,
+    "turn_count": 7,
+    "concern_count": 17,
+    "dynamic_selected_turn_count": 7,
+    "proactive_dynamic_turns": [],
+    "corrective_dynamic_turns": [
+      "s000",
+      "s001",
+      "s002",
+      "s003",
+      "s004",
+      "s005",
+      "s006"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_accc1ceaf159d0d1",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460",
+      "elicited_cefd1ecb9d7b6460"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s006.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-12-4",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 5.0,
+    "delta_S": 0.0,
+    "delta_H": 0.0,
+    "delta_A": 4.5,
+    "delta_W_minus_S": 5.0,
+    "delta_W_minus_A": 0.5,
+    "turn_count": 11,
+    "concern_count": 18,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s001",
+      "s005"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_09ff3f410fe2941b",
+      "elicited_b7d1619193c59014"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-12-4",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 5.0,
+    "delta_S": 0.0,
+    "delta_H": 0.0,
+    "delta_A": 5.0,
+    "delta_W_minus_S": 5.0,
+    "delta_W_minus_A": 0.0,
+    "turn_count": 11,
+    "concern_count": 20,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s000"
+    ],
+    "corrective_dynamic_turns": [
+      "s007"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_3536f56206ade4fb",
+      "elicited_3536f56206ade4fb"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s007.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-12-4",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 19.0,
+    "delta_S": 14.0,
+    "delta_H": 15.5,
+    "delta_A": -2.5,
+    "delta_W_minus_S": 5.0,
+    "delta_W_minus_A": 21.5,
+    "turn_count": 11,
+    "concern_count": 19,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s002"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_d3aca196768d3733",
+      "elicited_944b55b8c5800d98"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-4/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-14-8",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": 5.5,
+    "delta_H": -0.8333333333333357,
+    "delta_A": 25.5,
+    "delta_W_minus_S": -5.5,
+    "delta_W_minus_A": -25.5,
+    "turn_count": 5,
+    "concern_count": 2,
+    "dynamic_selected_turn_count": 1,
+    "proactive_dynamic_turns": [
+      "s000"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_42633414a38f749a"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-14-8",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 10.0,
+    "delta_S": 2.5,
+    "delta_H": -9.166666666666664,
+    "delta_A": -6.0,
+    "delta_W_minus_S": 7.5,
+    "delta_W_minus_A": 16.0,
+    "turn_count": 11,
+    "concern_count": 12,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s005",
+      "s006"
+    ],
+    "corrective_dynamic_turns": [
+      "s000"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_42633414a38f749a",
+      "elicited_38dfb3f66b403a9a",
+      "elicited_66a57f37e73f22ec"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s006.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-14-8",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": -24.0,
+    "delta_S": -36.5,
+    "delta_H": -20.833333333333332,
+    "delta_A": -31.0,
+    "delta_W_minus_S": 12.5,
+    "delta_W_minus_A": 7.0,
+    "turn_count": 11,
+    "concern_count": 19,
+    "dynamic_selected_turn_count": 1,
+    "proactive_dynamic_turns": [
+      "s000"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_42633414a38f749a"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-8/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-14-1",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": 17.0,
+    "delta_H": 10.833333333333336,
+    "delta_A": -2.0,
+    "delta_W_minus_S": -17.0,
+    "delta_W_minus_A": 2.0,
+    "turn_count": 7,
+    "concern_count": 5,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s005"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_17bac549dc540429",
+      "elicited_931edae77a743252"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-14-1",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -7.5,
+    "delta_H": -9.333333333333336,
+    "delta_A": -2.5,
+    "delta_W_minus_S": 7.5,
+    "delta_W_minus_A": 2.5,
+    "turn_count": 5,
+    "concern_count": 1,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s002"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_17bac549dc540429",
+      "elicited_7737db36bef1f2ff"
+    ],
+    "max_concerns_seen": 1,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": false,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-14-1",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": 17.5,
+    "delta_H": 15.5,
+    "delta_A": 0.5,
+    "delta_W_minus_S": -17.5,
+    "delta_W_minus_A": -0.5,
+    "turn_count": 5,
+    "concern_count": 5,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s003"
+    ],
+    "corrective_dynamic_turns": [
+      "s000"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_17bac549dc540429",
+      "elicited_8e8a48c8a94b58bc"
+    ],
+    "max_concerns_seen": 2,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-14-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-12-2",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": 25.0,
+    "delta_S": 61.0,
+    "delta_H": 52.66666666666667,
+    "delta_A": 25.5,
+    "delta_W_minus_S": -36.0,
+    "delta_W_minus_A": -0.5,
+    "turn_count": 11,
+    "concern_count": 16,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s001"
+    ],
+    "corrective_dynamic_turns": [
+      "s005",
+      "s009"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_9de2e989979048c1",
+      "elicited_ada5e7199bf0e11a",
+      "elicited_ada5e7199bf0e11a"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s009.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-001/luna/user-simulator-red-team-trace/turns/turn-010/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-12-2",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 30.0,
+    "delta_S": 15.0,
+    "delta_H": 3.6666666666666643,
+    "delta_A": -16.0,
+    "delta_W_minus_S": 15.0,
+    "delta_W_minus_A": 46.0,
+    "turn_count": 11,
+    "concern_count": 18,
+    "dynamic_selected_turn_count": 0,
+    "proactive_dynamic_turns": [],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": false,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-002/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [],
+    "prompt_paths": []
+  },
+  {
+    "task_id": "da-12-2",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": 2.5,
+    "delta_H": -0.8333333333333286,
+    "delta_A": -11.5,
+    "delta_W_minus_S": -2.5,
+    "delta_W_minus_A": 11.5,
+    "turn_count": 5,
+    "concern_count": 7,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s001",
+      "s002"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_5a31532567407c7a",
+      "elicited_78c4a60913aeeb31"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": false,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-12-2/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-7",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": -10.0,
+    "delta_S": 5.0,
+    "delta_H": 0.0,
+    "delta_A": 33.5,
+    "delta_W_minus_S": -15.0,
+    "delta_W_minus_A": -43.5,
+    "turn_count": 11,
+    "concern_count": 21,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s006"
+    ],
+    "corrective_dynamic_turns": [
+      "s001",
+      "s003"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_830d9ee58afcc4e6",
+      "elicited_ed639164b71d1d3d",
+      "elicited_333f806b710ce9fb"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s006.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-7",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": -11.0,
+    "delta_H": -17.666666666666668,
+    "delta_A": 9.5,
+    "delta_W_minus_S": 11.0,
+    "delta_W_minus_A": -9.5,
+    "turn_count": 11,
+    "concern_count": 20,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s001",
+      "s005"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_672e9b2ec7535d4b",
+      "elicited_e84768996bad553c"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-15-7",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": 0.0,
+    "delta_S": 8.5,
+    "delta_H": 8.5,
+    "delta_A": 18.0,
+    "delta_W_minus_S": -8.5,
+    "delta_W_minus_A": -18.0,
+    "turn_count": 11,
+    "concern_count": 24,
+    "dynamic_selected_turn_count": 1,
+    "proactive_dynamic_turns": [
+      "s004"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_aff2a3189726fbd5"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-15-7/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-19-6",
+    "replicate": 1,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace",
+    "delta_W": -28.0,
+    "delta_S": -27.0,
+    "delta_H": -21.5,
+    "delta_A": -3.0,
+    "delta_W_minus_S": -1.0,
+    "delta_W_minus_A": -25.0,
+    "turn_count": 5,
+    "concern_count": 6,
+    "dynamic_selected_turn_count": 3,
+    "proactive_dynamic_turns": [
+      "s002"
+    ],
+    "corrective_dynamic_turns": [
+      "s000",
+      "s001"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_de6ec5aea485fff6",
+      "elicited_de6ec5aea485fff6",
+      "elicited_30ce25c0a9fc9119"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": false,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/feedback/s004.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-19-6",
+    "replicate": 2,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace",
+    "delta_W": 4.0,
+    "delta_S": 20.5,
+    "delta_H": 15.666666666666668,
+    "delta_A": 6.0,
+    "delta_W_minus_S": -16.5,
+    "delta_W_minus_A": -2.0,
+    "turn_count": 8,
+    "concern_count": 18,
+    "dynamic_selected_turn_count": 2,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s002"
+    ],
+    "corrective_dynamic_turns": [],
+    "dynamic_criterion_ids": [
+      "elicited_de6ec5aea485fff6",
+      "elicited_d9845336e07c41c7"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/feedback/s007.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt"
+    ]
+  },
+  {
+    "task_id": "da-19-6",
+    "replicate": 3,
+    "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace",
+    "delta_W": -5.0,
+    "delta_S": -12.5,
+    "delta_H": -10.166666666666668,
+    "delta_A": 6.0,
+    "delta_W_minus_S": 7.5,
+    "delta_W_minus_A": -11.0,
+    "turn_count": 11,
+    "concern_count": 28,
+    "dynamic_selected_turn_count": 4,
+    "proactive_dynamic_turns": [
+      "s000",
+      "s002"
+    ],
+    "corrective_dynamic_turns": [
+      "s004",
+      "s005"
+    ],
+    "dynamic_criterion_ids": [
+      "elicited_de6ec5aea485fff6",
+      "elicited_2a04434b42762cd1",
+      "elicited_de6ec5aea485fff6",
+      "elicited_de6ec5aea485fff6"
+    ],
+    "max_concerns_seen": 3,
+    "removal_signal_in_saved_diff": true,
+    "method_scope_signal_in_saved_diff": true,
+    "feedback_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s001.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s003.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s005.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s006.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s007.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s008.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s009.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/feedback/s010.json"
+    ],
+    "reminder_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s002.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s004.json",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-reminders/s005.json"
+    ],
+    "prompt_paths": [
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0/experiments/da-19-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt"
+    ]
+  }
+]
