@@ -58,3 +58,14 @@ The following table reports the saved paired case deltas for the requested targe
 | da-14-8 | 3 | −36.5 | −31.0 | +12.5 | s000 | — |
 
 No-admission rows remain valid scientific outcomes. The v2.1 pipeline receipts distinguish `NO_SUPPORTED_RELATION`, `PREFERENCE_CONFLICT`, support/margin failure, semantic failure, and application undecidable; the companion pipeline tables are the authoritative decomposition. This forensic does not turn any of those outcomes into a defect merely because an admission was absent.
+
+The complete User pipeline has 59/60 assignments with a proposal and 48/60
+with an admission, leaving 12 assignments with no online admission. Across
+395 generation-level candidate reviews, the saved reasons are 166
+`NO_SUPPORTED_RELATION` diagnoses, 275 `PREFERENCE_CONFLICT` diagnoses, 129
+criterion-support failures, 136 aggregate-margin failures, 10 semantic failures,
+and 79 application-undecidable ineligibilities (some categories occur at
+different stages and are not additive assignment counts). There are also seven
+empty compilations. These are the documented scientific funnel outcomes, not a
+coverage target; the full receipt is
+`docs/reports/2026-09-11/trace-attack-defense-v2.1/pipeline-summary.json`.
