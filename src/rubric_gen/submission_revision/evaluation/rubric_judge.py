@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from rubric_gen.runtime.capacity import limited
+from rubric_gen.runtime import provider_streams
+from rubric_gen.submission_revision.evaluation import indexed_rubric
 
 import hashlib
 import json
@@ -87,9 +89,19 @@ Return only the provider-enforced JSON schema. Do not calculate numerical points
 """
 
 
+def _system_prompt(provider: str | None) -> str:
+    if provider == "anthropic":
+        return RUBRIC_SCORE_SYSTEM_PROMPT.replace(
+            indexed_rubric.ARRAY_FORMAT, indexed_rubric.INDEXED_FORMAT
+        )
+    return RUBRIC_SCORE_SYSTEM_PROMPT
+
+
 def rubric_score_output_schema(
     criterion_count: int,
     maximum_level_count: int,
+    *,
+    provider: str | None = None,
 ) -> dict[str, object]:
     """Build a small fixed-count schema without repeated rubric text."""
 
@@ -103,6 +115,8 @@ def rubric_score_output_schema(
         or not 1 <= maximum_level_count <= 26
     ):
         raise FullRubricJudgeError("rubric-score level count is out of range")
+    if provider == "anthropic":
+        return indexed_rubric.output_schema(criterion_count)
     return {
         "type": "object",
         "properties": {
@@ -250,6 +264,7 @@ def rubric_score_cost_shape(
     *,
     review_text: str,
     answer_text: str,
+    provider: str | None = None,
 ) -> FullRubricCostShape:
     """Measure the actual rubric-score request contract without provider access."""
 
@@ -265,9 +280,10 @@ def rubric_score_cost_shape(
     schema_bytes = _canonical_json_bytes(rubric_score_output_schema(
         base.criterion_count,
         max(len(levels) for levels in rubric_levels.values()),
+        provider=provider,
     ))
     request_bytes = (
-        len(RUBRIC_SCORE_SYSTEM_PROMPT.encode("utf-8"))
+        len(_system_prompt(provider).encode("utf-8"))
         + payload_bytes
         + schema_bytes
     )
@@ -305,9 +321,10 @@ class RubricScoreRunSpec(FullRubricRunSpec):
         if self.provider == "anthropic":
             value["temperature"] = None
         value["structured_output_contract"] = (
-            RUBRIC_SCORE_ENGINE_IDENTITY["structured_output"]
+            indexed_rubric.STRUCTURED_OUTPUT if self.provider == "anthropic"
+            else RUBRIC_SCORE_ENGINE_IDENTITY["structured_output"]
         )
-        value["system_prompt_sha256"] = sha256_text(RUBRIC_SCORE_SYSTEM_PROMPT)
+        value["system_prompt_sha256"] = sha256_text(_system_prompt(self.provider))
         return value
 
 
@@ -330,6 +347,7 @@ def build_rubric_score_run_spec(
         rubric_text,
         review_text=review_text,
         answer_text=answer_text,
+        provider=base.provider,
     )
     values = {
         field.name: getattr(base, field.name)
@@ -357,6 +375,8 @@ def _request_parameters(
         "timeout_seconds": FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
         "provider_retries": 0,
         "structured_output": "json_schema",
+        **({"stream": True, "timeout_semantics": "network-inactivity"}
+           if spec.provider in {"anthropic", "openai"} else {}),
     }
 
 
@@ -408,19 +428,15 @@ def _generate_response(
         )
 
     if spec.provider == "anthropic":
-        from anthropic import Anthropic
-
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY must be set")
-        response = Anthropic(
+        response = provider_streams.anthropic_response(
             api_key=api_key,
             timeout=FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
-            max_retries=0,
-        ).messages.create(
             model=spec.requested_model,
             max_tokens=spec.max_output_tokens_per_call,
-            system=RUBRIC_SCORE_SYSTEM_PROMPT,
+            system=_system_prompt(spec.provider),
             messages=[{"role": "user", "content": payload}],
             output_config={
                 "effort": "low",
@@ -447,8 +463,6 @@ def _generate_response(
             usage=getattr(response, "usage", None),
         )
 
-    from openai import OpenAI
-
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY must be set")
@@ -473,11 +487,11 @@ def _generate_response(
     }
     if spec.requested_model.startswith("gpt-5.6"):
         request["reasoning"] = {"effort": "none"}
-    response = OpenAI(
+    response = provider_streams.openai_response(
         api_key=api_key,
         timeout=FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
-        max_retries=0,
-    ).responses.create(**request)
+        **request,
+    )
     status = getattr(response, "status", None)
     if status == "incomplete":
         raise RuntimeError("OpenAI returned an incomplete rubric-score response")
@@ -515,10 +529,14 @@ def grade_rubric_score(
     schema = rubric_score_output_schema(
         len(rubric_levels),
         max(len(levels) for levels in rubric_levels.values()),
+        provider=spec.provider,
     )
     payload = rubric_score_payload(rubric_text, review_text, answer_text)
     generation = _generate_response(spec, payload=payload, schema=schema)
-    report = parse_rubric_score_output(generation.text, rubric_levels)
+    text = generation.text
+    if spec.provider == "anthropic":
+        text = indexed_rubric.decode_output(text, len(rubric_levels))
+    report = parse_rubric_score_output(text, rubric_levels)
     usage = generation.usage_record()
     if usage.get("request_parameters") != _request_parameters(spec):
         raise RuntimeError("evaluation full-rubric provider request contract changed")
@@ -529,14 +547,18 @@ def grade_rubric_score(
         call_usage=usage,
     )
     structured = dict(records.evaluation["full_rubric_structured"])
-    structured["code_identity"] = dict(RUBRIC_SCORE_ENGINE_IDENTITY)
+    engine_identity = {
+        **RUBRIC_SCORE_ENGINE_IDENTITY,
+        "structured_output": spec.as_json()["structured_output_contract"],
+    }
+    structured["code_identity"] = engine_identity
     evaluation = {
         **records.evaluation,
         "full_rubric_structured": structured,
     }
     usage_record = {
         **records.usage,
-        "code_identity": dict(RUBRIC_SCORE_ENGINE_IDENTITY),
+        "code_identity": engine_identity,
     }
     return replace(records, evaluation=evaluation, usage=usage_record)
 
@@ -571,6 +593,8 @@ class RubricScoreJudge:
         return {
             "scoring_implementation_sha256": _composite_sha256((
                 source,
+                Path(indexed_rubric.__file__),
+                Path(provider_streams.__file__),
                 revision / "judge.py",
                 judging / "executor.py",
                 judging / "full_rubric_judge.py",
@@ -800,9 +824,14 @@ class RubricScoreJudge:
     @staticmethod
     def _write_failure(parent: Path, attempt: int, error: Exception) -> None:
         parent.mkdir(parents=True, exist_ok=True)
-        write_json_atomic(parent / f"failed-attempt-{attempt:03d}.json", {
-            "kind": "rubric-gen-revision-rubric-failure",
-            "attempt": attempt,
-            "error_type": type(error).__name__,
-            "error": str(error),
-        })
+        # Resume grants the same bounded attempt budget, but must retain earlier
+        # failures. Reuse the evaluation lock and atomic publication mechanism.
+        with _evaluation_lock(parent):
+            while os.path.lexists(parent / f"failed-attempt-{attempt:03d}.json"):
+                attempt += 1
+            write_json_atomic(parent / f"failed-attempt-{attempt:03d}.json", {
+                "kind": "rubric-gen-revision-rubric-failure",
+                "attempt": attempt,
+                "error_type": type(error).__name__,
+                "error": str(error),
+            })

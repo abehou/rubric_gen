@@ -191,26 +191,19 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
 ) -> None:
     captured: dict[str, object] = {}
 
-    class FakeMessages:
-        def create(self, **kwargs):
-            captured["request"] = kwargs
-            return SimpleNamespace(
-                content=[SimpleNamespace(
-                    type="text",
-                    text=json.dumps(_wire_report()),
-                )],
-                model="claude-opus-5",
-                id="response-1",
-                usage={"input_tokens": 1, "output_tokens": 1},
-            )
-
-    class FakeAnthropic:
-        def __init__(self, **kwargs):
-            captured["client"] = kwargs
-            self.messages = FakeMessages()
+    def generate(**kwargs):
+        captured["request"] = kwargs
+        return SimpleNamespace(
+            content=[SimpleNamespace(type="text", text=json.dumps({
+                "criteria": {"tail": "0|The artifact is complete."},
+                "overall_reasoning": "The evidence satisfies the criterion.",
+            }))],
+            model="claude-opus-5", id="response-1",
+            usage={"input_tokens": 1, "output_tokens": 1},
+        )
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
-    monkeypatch.setattr("anthropic.Anthropic", FakeAnthropic)
+    monkeypatch.setattr(audit_module.provider_streams, "anthropic_response", generate)
     spec = build_rubric_score_run_spec(
         rubric_text=RUBRIC,
         review_text="workspace",
@@ -221,14 +214,14 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     generation = audit_module._generate_response(
         spec,
         payload=rubric_score_payload(RUBRIC, "workspace", ""),
-        schema=rubric_score_output_schema(1, 2),
+        schema=rubric_score_output_schema(1, 2, provider="anthropic"),
     )
 
     request = captured["request"]
     assert isinstance(request, dict)
     assert "temperature" not in request
     assert request["output_config"]["effort"] == "low"
-    assert request["system"] == RUBRIC_SCORE_SYSTEM_PROMPT
+    assert request["system"] == audit_module._system_prompt("anthropic")
     rendered_schema = request["output_config"]["format"]["schema"]
     assert "minItems" not in rendered_schema[
         "properties"
@@ -236,12 +229,10 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
     assert "maxItems" not in rendered_schema[
         "properties"
     ]["criteria"]
-    assert rendered_schema["properties"]["criteria"]["items"] == (
-        rubric_score_output_schema(1, 2)["properties"]["criteria"]["items"]
-    )
+    assert rendered_schema == audit_module.indexed_rubric.output_schema(1)
     assert spec.as_json()["temperature"] is None
     assert spec.as_json()["structured_output_contract"] == (
-        RUBRIC_SCORE_ENGINE_IDENTITY["structured_output"]
+        audit_module.indexed_rubric.STRUCTURED_OUTPUT
     )
     assert spec.schema_bytes < 1_000
     assert generation.request_parameters["temperature"] is None
@@ -255,7 +246,8 @@ def test_rh_grading_normalizes_wire_reports_and_attests_engine(
     def generate(spec, *, payload, schema):
         calls.append((payload, schema))
         return FullRubricGeneration(
-            text=json.dumps(_wire_report()),
+            text=json.dumps({"criteria": {"tail": "0|The artifact is complete."},
+                             "overall_reasoning": "The evidence satisfies the criterion."}),
             provider=spec.provider,
             requested_model=spec.requested_model,
             effective_model=spec.requested_model,
@@ -284,8 +276,10 @@ def test_rh_grading_normalizes_wire_reports_and_attests_engine(
     assert records.score == 100
     structured = records.evaluation["full_rubric_structured"]
     assert structured["raw_report"] == _report()
-    assert structured["code_identity"] == RUBRIC_SCORE_ENGINE_IDENTITY
-    assert records.usage["code_identity"] == RUBRIC_SCORE_ENGINE_IDENTITY
+    expected_identity = {**RUBRIC_SCORE_ENGINE_IDENTITY,
+        "structured_output": audit_module.indexed_rubric.STRUCTURED_OUTPUT}
+    assert structured["code_identity"] == expected_identity
+    assert records.usage["code_identity"] == expected_identity
 
 
 def test_audit_judge_publishes_and_resumes_sealed_artifacts(

@@ -255,23 +255,16 @@ def test_grade_dispatches_once(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_openai_request_has_no_seed(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
 
-    class FakeResponses:
-        def create(self, **kwargs):
-            captured["request"] = kwargs
-            return SimpleNamespace(
-                status="completed",
-                output_text=json.dumps(_report()),
-                model="gpt-5.6-luna",
-                id="response-1",
-                usage={"input_tokens": 1, "output_tokens": 1},
-            )
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs):
-            self.responses = FakeResponses()
+    def generate(**kwargs):
+        captured["request"] = kwargs
+        return SimpleNamespace(
+            status="completed", output_text=json.dumps(_report()),
+            model="gpt-5.6-luna", id="response-1",
+            usage={"input_tokens": 1, "output_tokens": 1},
+        )
 
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setattr(openai, "OpenAI", FakeOpenAI)
+    monkeypatch.setattr(judge_module.provider_streams, "openai_response", generate)
     spec = _spec()
     generation = judge_module._generate_response(
         spec,
@@ -287,22 +280,16 @@ def test_anthropic_request_omits_temperature(monkeypatch: pytest.MonkeyPatch) ->
 
     captured: dict[str, object] = {}
 
-    class FakeMessages:
-        def create(self, **kwargs):
-            captured.update(kwargs)
-            return SimpleNamespace(
-                content=[SimpleNamespace(type="text", text=json.dumps(_report()))],
-                model="claude-opus-5",
-                id="response-1",
-                usage={"input_tokens": 1, "output_tokens": 1},
-            )
-
-    class FakeAnthropic:
-        def __init__(self, **kwargs):
-            self.messages = FakeMessages()
+    def generate(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            content=[SimpleNamespace(type="text", text=json.dumps(_report()))],
+            model="claude-opus-5", id="response-1",
+            usage={"input_tokens": 1, "output_tokens": 1},
+        )
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
-    monkeypatch.setattr(anthropic, "Anthropic", FakeAnthropic)
+    monkeypatch.setattr(judge_module.provider_streams, "anthropic_response", generate)
     records = grade_full_rubric(
         rubric_text=RUBRIC,
         review_text="workspace",

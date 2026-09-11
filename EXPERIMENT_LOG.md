@@ -2199,3 +2199,7 @@
 
 - 09:11 EDT: Slurm direct-RH recovery job 10398066 completed successfully (00:26:22) after the first audit owner rejected imported producer manifests on an explicit experiment-ID boundary. It reused the identity-only repair path, preserved completed rubric/absolute/pairwise and direct judgments, and made no scientific or provider-setting change.
 - 09:11 EDT: Provider-free verification job 10398292 confirms 120/120 assignments and 240/240 Sol+Opus rows in each of full_trajectory, post_update, final_artifact and final_revision; rubric/absolute/pairwise counts are 2,108/360/240 and missing/failed cells are zero. Report assembly 10399347 completed without provider calls. The local Codex allocator error (`memory allocation of 8292352 bytes failed`) is recorded separately as a control-plane incident.
+
+## 2026-09-11 — Result20 runtime reliability
+
+- 07:23 EDT: No-provider Result20 census verified 18 failed 300-second PaperBench v5 requests and six successful 318–1,223-second recovery streams; BioMNIBench evidence separates startup, overload and preemption costs. Read-only Slurm collectors10397916/10397928 touched no scientific outputs; no new experiment or provider call was launched.
