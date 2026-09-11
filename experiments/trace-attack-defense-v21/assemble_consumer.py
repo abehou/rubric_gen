@@ -21,6 +21,7 @@ def main():
  if not os.environ.get('SLURM_JOB_ID'): raise RuntimeError('consumer assembly requires Slurm')
  exp=load_experiment(BUNDLE/'result20.yaml')
  consumer=Path(str(exp.dag['revise']['output_dir']))
+ recovery_ledger_sha256=sha(consumer/'study.json')
  recovery_ledger=json.loads((consumer/'study.json').read_bytes())
  recovery_rows={r['assignment_id']:r for r in recovery_ledger['records'] if r.get('status')=='completed'}
  if set(recovery_rows)!=TARGETS or any(r.get('status')!='completed' for r in recovery_rows.values()):
@@ -59,7 +60,7 @@ def main():
  receipt={'kind':'attack_defense_v2.1_consumer_cohort','consumer_experiment_id':exp.experiment_id,
    'consumer_version':'attack_defense_v2.1','producer_experiment_id':source_ledger['experiment_id'],'producer_version':'attack_defense_v2',
    'producer_study_root':str(SOURCE),'consumer_study_root':str(consumer),'source_ledger_sha256':sha(SOURCE/'study.json'),
-   'recovery_ledger_sha256':sha(consumer/'study.json'),'imported_completed_assignments':len(imported),'recovered_assignments':sorted(TARGETS),
+   'recovery_ledger_sha256':recovery_ledger_sha256,'imported_completed_assignments':len(imported),'recovered_assignments':sorted(TARGETS),
    'total_completed_assignments':len(records),'hardlinked_producer_outputs':False,'provider_calls':0,'imports':imported,
    'consumer_code_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
    'mechanical_patch':'candidate-local duplicate_criterion_title guard only'}

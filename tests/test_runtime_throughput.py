@@ -516,11 +516,13 @@ def test_completed_suite_does_not_wait_for_an_active_generation_study(tmp_path,m
     assert len(completed)==6
 
 
-def test_native_revision_resume_retains_declared_assignment_subset(tmp_path,monkeypatch):
+@pytest.mark.parametrize('condition_scope',[True,False])
+def test_native_revision_resume_retains_declared_assignment_subset(tmp_path,monkeypatch,condition_scope):
     from rubric_gen.submission_revision import study as module
     for task in ('da-1-1','da-2-1','da-3-1'):_task(tmp_path,task)
     payload=_payload(tmp_path);payload['tasks']=['da-1-1','da-2-1','da-3-1']
     payload['conditions']=[c for c in payload['conditions'] if c['condition_id'] in ('full-static','user-simulator-static')]
+    if not condition_scope: payload.pop('execution_conditions',None)
     path=tmp_path/'experiment.yaml';path.write_text(yaml.safe_dump(payload));exp=load_experiment(path)
     root=Path(exp.dag['revise']['output_dir'])
     selected=tuple(a.assignment_id for a in exp.execution_assignments[:2])
@@ -544,3 +546,5 @@ def test_native_revision_resume_retains_declared_assignment_subset(tmp_path,monk
     assert set(calls)==set(selected) and len(calls)==2
     assert len(ledger['records'])==18
     assert sum(r['status']=='pending' for r in ledger['records'])==16
+    from rubric_gen.submission_revision.execution_scope import terminal_records
+    assert {row['assignment_id'] for row in terminal_records(exp,ledger)}==set(selected)

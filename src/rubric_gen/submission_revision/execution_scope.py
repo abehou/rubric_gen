@@ -17,15 +17,16 @@ def selected_records(experiment: Experiment, study: dict, *, require_terminal: b
         raise ValueError("study scope condition identity mismatch")
     scope = experiment.execution_conditions
     declared = study.get("execution_conditions")
+    assignment_scope = study.get("execution_assignment_ids")
     if scope is None:
-        if declared is not None or (require_terminal and study.get("status") not in {"completed", "failed"}):
+        terminal_statuses = {"completed_scope", "failed_scope"} if assignment_scope is not None else {"completed", "failed"}
+        if declared is not None or (require_terminal and study.get("status") not in terminal_statuses):
             raise ValueError("unscoped audit requires an unscoped terminal study")
         selected = records
     else:
         if declared != list(scope) or (require_terminal and study.get("status") not in {"completed_scope", "failed_scope"}):
             raise ValueError("audit scope differs from the terminal study invocation")
         selected = [r for r in records if r["condition_id"] in scope]
-    assignment_scope = study.get("execution_assignment_ids")
     if assignment_scope is not None:
         if (not isinstance(assignment_scope, list) or not assignment_scope
             or len(set(assignment_scope)) != len(assignment_scope)

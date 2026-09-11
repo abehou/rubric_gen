@@ -51,6 +51,9 @@ different inodes from their producer counterparts, and all 758 producer contents
 matched the repair receipt's original digests. The repair used atomic
 replacement. **No producer mutation was found in this inspected set**; this is
 not a claim about uninspected history.
+The historical assembler also computed its field named `recovery_ledger_sha256`
+after replacing that ledger. The future thin assembler captures the pre-write
+digest; historical receipts are preserved rather than reconstructed.
 
 Compatible saved judgments retain their actual original implementation identity.
 Resume checks scientific inputs, role bindings, model/settings, request/evidence,
@@ -162,6 +165,7 @@ focused changed-path runs: 52 direct tests passed, 27 ownership/scope tests pass
 Final scope/status/launcher/experiment checks passed **120 tests in 23.97s**;
 the capacity tests passed **12 in 5.65s**.
 The phase checks passed six tests; evidence/monitor checks passed 55 in 16.41s.
+Condition-filtered and assignment-only subset/ledger/detect checks passed ten tests.
 
 ## Real compute measurements and validation
 
@@ -193,6 +197,14 @@ clean. That original receipt is preserved.
 These measurements meet the under-five-minute warm preparation target for this
 cohort. They do not establish a two-hour Results20 completion bound or eight
 simultaneously working solver sessions' maximum memory.
+
+An optional fourth read-only verification was stopped after 209.19s while its
+main thread was in `rpc_wait_bit_killable` (NFS), with zero provider operations.
+A final scope edit had begun before that optional checker exited; its receipt
+and partial counters are preserved, and it is excluded from performance claims.
+The paid validation W source was never changed. New trace-seed owner 10400092
+subsequently ran from the separate attack-defense-v2 worktree; neither its code
+nor shared capacity policy was changed here.
 
 The separately pinned runtime-only Bio cohort contains the first task/replicate's
 two trace conditions, reusing their completed revisions. Its full ledger remains
