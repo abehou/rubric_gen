@@ -1,0 +1,800 @@
+{
+  "execution_commit": "c43a921f9f187cda8659304547ec8849a5f5ba7c",
+  "experiment_id": "biomnibench-da-factorial-r10-5115fffdd1c0",
+  "run_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20",
+  "freeze_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v21/execution-freeze.json",
+  "freeze_sha256": "8637f5e876e59546cb0f36ce406b4ce63bd0591cf250bef8e35a7c0d2e276280",
+  "freeze": {
+    "canonical_pool_manifest_sha256": "404d8cb9437c4f6d766c40a1c9fade066a0e53aab249c37fc63da990a68bc0e8",
+    "compatibility_receipt": {
+      "collisions": 0,
+      "compatible": 118,
+      "completed": 118,
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/docs/reports/2026-09-11/trace-attack-defense-v2.1/compatibility-118.json",
+      "provider_calls": 0,
+      "sha256": "1b5145884c8fbc580894067205e8370ef0a49702a9a69d266382748dcaf3195c"
+    },
+    "created_local": "2026-09-11",
+    "execution_conditions": [
+      "full-red-team-trace",
+      "user-simulator-red-team-trace"
+    ],
+    "files": {
+      "experiments/trace-attack-defense-v21/assemble_consumer.py": "90f58dab22fd452d235161742ff727e2927fc63de84bb37c9d9b0308401c1c3c",
+      "experiments/trace-attack-defense-v21/assemble_consumer.sbatch": "0f193625d387e2816e3716fb07f73b84cff30f26ed7ee0e2a868160515261080",
+      "experiments/trace-attack-defense-v21/audit_reuse.py": "d21c4d0f7dd1ad0df80ef31a29330be3383658156967448b8fa1417f8b651e7a",
+      "experiments/trace-attack-defense-v21/compatibility.py": "e4a91876d6b85bb71c57360e71eb4c4173bda1c9080f139b90914fd3c4c49a5d",
+      "experiments/trace-attack-defense-v21/compatibility.sbatch": "2882698209f101a0ad65e62cc22eaf9c4599058546f6a4b4493f41a9648dc9af",
+      "experiments/trace-attack-defense-v21/prepare.py": "56dedbaddb93aa48e4c6b5eaa05e20b5558696081cb0b2e2c9c597b842280c3f",
+      "experiments/trace-attack-defense-v21/recover_two.py": "3cfd76738f56d6bcda159412abca55058bdb65790d4217c039a97aa132c21f61",
+      "experiments/trace-attack-defense-v21/recover_two.sbatch": "4bc3eb5a5a1eb74219a31cece35423c10f4b16e43b03f9326b21ff55305d88d5",
+      "experiments/trace-attack-defense-v21/result20.yaml": "ca8ca3c526707f8b7396f203aca09fc98c1135ca438906292a559ec72d797ca0",
+      "experiments/trace-attack-defense-v21/run.py": "48391fb4b840532a9a2b7ed6175cc0a4fd762fc9d0bd44e8d1ce3f4b70851db3",
+      "experiments/trace-attack-defense-v21/run.sbatch": "f9a01e289ea5bbd698c9888a3e9d41c0d5dff5248d6ebfb5bbc43347fe34d368",
+      "src/rubric_gen/submission_revision/__init__.py": "41a087a6c87e1031a4a3521a011777f3685e6d4dd7220ccddc21c47587faa977",
+      "src/rubric_gen/submission_revision/artifacts.py": "ee70ec86bb73cdbd98aef5f3b78c82fef5f858d9bc4c1b939e04b367bb07a867",
+      "src/rubric_gen/submission_revision/assignments.py": "a95d50f5597e795ea975a57529a1c5ec278681046715bc073160317b51e44985",
+      "src/rubric_gen/submission_revision/autorubric.py": "086a8c68c7fb17d4df3a4008c3506fceb06244afa80535fb75b15ec73dccc581",
+      "src/rubric_gen/submission_revision/commands.py": "ef525c317d62b3a51fe9520cd3f50e16dc32b4328cdf6e2dd6770cb1fdc535db",
+      "src/rubric_gen/submission_revision/contrasts.py": "07f934feec28278e98e642ab38410d940ed48eb1029e0644cfd927535353d90b",
+      "src/rubric_gen/submission_revision/controller.py": "a5f4f38ec41dd845d16596b65c444f5d3aedf389f858f52dda3ad789b5f63ab2",
+      "src/rubric_gen/submission_revision/controller_recovery.py": "ca7321ccd9a76d40eee390085869320fdcb8759909b5597b695cfdedbf7d5e33",
+      "src/rubric_gen/submission_revision/controller_recovery_artifacts.py": "58e126eb15f039e4039c58f17f12e220525c755833f67169759c44575737c509",
+      "src/rubric_gen/submission_revision/controller_reference.py": "44a44bfad3f1d984a0d9e33bb1d599197bb88a24fed6a655880b8b13e3431f20",
+      "src/rubric_gen/submission_revision/controller_scoring.py": "8ad526401ec70b905e6f26e0239b58838ae9e83b10911de4b3e2b7c87c52534b",
+      "src/rubric_gen/submission_revision/controller_setup.py": "5780adc0abe67d2dc1947725ddd2a2b44dc760840be559a871452a77e254563c",
+      "src/rubric_gen/submission_revision/controller_workspace.py": "ffc1fb8c4df43a7faafed1ec88cca8b50474ccbca821ef57043e750f53670bfc",
+      "src/rubric_gen/submission_revision/detection_windows.py": "c8b08efe9c5c75f418e8157646902789ea2b08db4582b63df54d615c92b05fae",
+      "src/rubric_gen/submission_revision/evaluation/__init__.py": "427b1cf5cc1e3cae2328f8da19128ae4818c8cb77d0b9d1500bba7c2a41a5e5e",
+      "src/rubric_gen/submission_revision/evaluation/absolute_score.py": "d4b4d6af08fde064a9829f7d494a5d49a40c65c529185360d256392ab00aa4ce",
+      "src/rubric_gen/submission_revision/evaluation/config.py": "b3720c7bb3c404f9451c7aa5a5539afa97bbbbe50bf59c06e9a97579233474cd",
+      "src/rubric_gen/submission_revision/evaluation/direct.py": "560c5a2af961b1a82b04cbbda076ad8e8c14374ffb266b11545e615d3ae20b1d",
+      "src/rubric_gen/submission_revision/evaluation/evidence.py": "6a8b606bceeddb5a1b47196199dc1d15614da79f21cc1c17232744fcb0f4d1d2",
+      "src/rubric_gen/submission_revision/evaluation/evidence_ledger.py": "a938f1cf0d45789126ecf861f95bb4d0fc56a7afeb837dd2cf648b32373adaba",
+      "src/rubric_gen/submission_revision/evaluation/jobs.py": "fbcf83ea882058725c10618bebb7237c246b7cf2244b56b858834dc6efc516eb",
+      "src/rubric_gen/submission_revision/evaluation/pairwise_preference.py": "e37edbcc221d4e0612bc1465d75c5a633b2d82df35642db597228333bb84720c",
+      "src/rubric_gen/submission_revision/evaluation/panel_bounds.py": "2c879fcabb1140202b274a17960626377dafb00c415674d23cc1c46b2a6fd129",
+      "src/rubric_gen/submission_revision/evaluation/rubric_judge.py": "8c346ca9c2c99ceb69886d70306ec362903c6e2beafb11f175aa3b6b4790118c",
+      "src/rubric_gen/submission_revision/evaluation/rubric_score.py": "74950834b1d9dbbf43605b598805bc2ff1afc3c486fc7eb6346dae679d7861c3",
+      "src/rubric_gen/submission_revision/evaluation/runner.py": "4119efb7ccf91ff689ddd47789863ecb3ada34daa7040847eb00005725ea4a39",
+      "src/rubric_gen/submission_revision/evaluation/score_execution.py": "d834d6aea03ec9b62de3adcc1cbadafabc3c8f7287eec8e05b40eec335c6fdb1",
+      "src/rubric_gen/submission_revision/evaluation/store.py": "54ebe7218773751b684cffdb82e6f888b93ba27f924fc7880a04e0a48e401bc9",
+      "src/rubric_gen/submission_revision/evaluation/targets.py": "77e4831f298e94d38abeff0e3b70f6cea006848820bf22ee9cd896200c7e3470",
+      "src/rubric_gen/submission_revision/evolution.py": "8e0de9850c10556f54e6cacfc01d536440b37f50b2697cb4bc1b889a3446329f",
+      "src/rubric_gen/submission_revision/evolution_artifacts.py": "b0e361b7213141bbc21b21f940c966aa1910b67e6cb36d46fb79962621b50cca",
+      "src/rubric_gen/submission_revision/evolution_assessment.py": "51176ea51386588cf5340a8bc93ec2bcb73e723bafc5fce387d22093c423f026",
+      "src/rubric_gen/submission_revision/evolution_cache.py": "349f6ebb34ec0d1ac7f4345ee1718402421953dd32f56153a9e51e57319f1aed",
+      "src/rubric_gen/submission_revision/evolution_protocol.py": "7111bfabb78246cdd436b1c555abffcfecb24235c2027b9547302ca0c3f40ea0",
+      "src/rubric_gen/submission_revision/evolution_provider.py": "9441a3d18e4012bc40152746bd03e599de6d0442db37c9d5952d33b680d04183",
+      "src/rubric_gen/submission_revision/evolution_request.py": "b66f526b3d635b1f168ae2d25a7f5b3eb19c2998ca4a7f1c46ade8737130f112",
+      "src/rubric_gen/submission_revision/evolution_serialization.py": "aa7f0c34c4322aefc10f09c59530a6813b0cf63ecd5a9f4b91db0e6776335120",
+      "src/rubric_gen/submission_revision/evolution_stage.py": "873219b9669a77749a5a82bbffa1121d456ee0ce0d85454b13a40170d4b1c600",
+      "src/rubric_gen/submission_revision/evolution_validation.py": "838eefed579670f6ee40a7cc515bdebef1eec31af3e629afe3423280c54d0c8e",
+      "src/rubric_gen/submission_revision/execution_scope.py": "a692dfbe5ffbdf42c34cb877946c79b401eacc6df986b9e58fea3df8a9b137dc",
+      "src/rubric_gen/submission_revision/experiment.py": "b2cf4fec97d87c6b9c465498e5a989eaf89570e39fc29573ebb6d9043bf22966",
+      "src/rubric_gen/submission_revision/feedback.py": "65f9f5bf177b5732f79d62c0abf3e3994232d552d18c17fcc8bf2052ad817324",
+      "src/rubric_gen/submission_revision/generation_scoring.py": "3995ac9fb7277e0d1928255e13153ad17a3279b9b3aba665b408e126ab7156f8",
+      "src/rubric_gen/submission_revision/judge.py": "f8be2773a0e97e3b3d5fa5040beb3bcd5986dcafa179c12c8eda577e389a81d3",
+      "src/rubric_gen/submission_revision/judging/__init__.py": "c89f0d3b44d36e8e96bbb60c1d90bcd9d1116572ddebc64ee64dcaa18d88a456",
+      "src/rubric_gen/submission_revision/judging/artifacts.py": "02c5a3fc7105a4895d13dad09804b4342562224d163c29fb54ec6da0b57b0a99",
+      "src/rubric_gen/submission_revision/judging/discovery.py": "7545daa952d0c32c0e4880936d59f8233488005c65b5e0c6e13e4e0524ffc156",
+      "src/rubric_gen/submission_revision/judging/executor.py": "b89d11cd1e537194c96af9c9a291f8a0d57d389f9095e1d2eeda63ea772bef09",
+      "src/rubric_gen/submission_revision/judging/full_rubric_judge.py": "dc3c8b3b619eb1ceab3ab163ef07ae09c2c4e37485976c7feecc9cfd7b25545a",
+      "src/rubric_gen/submission_revision/judging/full_rubric_protocol.py": "819122aa6c6e41bc1d5069006af222cfe6087229e78206312de8ad1b5aa8e400",
+      "src/rubric_gen/submission_revision/judging/models.py": "798dfe76a469f933b0433a7d79510b0e31f5155a51059f1220ac71977f573519",
+      "src/rubric_gen/submission_revision/judging/preflight.py": "466748e3a2fca0c12ae0db62c882acf683f45c3b1b641bf9d659c8d41fc897f8",
+      "src/rubric_gen/submission_revision/judging/runner.py": "c15f996ef5541d9d177d4bcbd25f6722b919347b679b26194018bc49083525f8",
+      "src/rubric_gen/submission_revision/judging/scoring.py": "94929d606794177a714ab3e5e4895ea79babf3c5e5e07acaededb0a016edf84a",
+      "src/rubric_gen/submission_revision/judgment_reuse.py": "8088dc2e56484b207a2d489e1ba7ef82fd0daea295555c393c33c37475b31bff",
+      "src/rubric_gen/submission_revision/models.py": "26754452ee9b1c54da196f7009ae85e54a1d03d9e15069f3bcd6c0a67350e578",
+      "src/rubric_gen/submission_revision/original_rubric.py": "ec271ded39cfd0483555f0e480da72e744fc7591a3ff7d8da0af18459b917453",
+      "src/rubric_gen/submission_revision/original_rubric_inputs.py": "70942c7e2eb8169590d8dbd76bb3dabdd167e029a73899104367373f5e8002ee",
+      "src/rubric_gen/submission_revision/original_rubric_summary.py": "6be3ed88297c82542374f5e806aac5275276a24ce2533e7e82d8bfddba24624b",
+      "src/rubric_gen/submission_revision/paraphrase_protocol.py": "60d59cd2a76b130cca9906000b5669c3e298531e4fa68d348ba51f0442c33362",
+      "src/rubric_gen/submission_revision/paraphrase_validation.py": "f9588ae9c2e59ac90790e16425625469baf985da7ee11c4165c28fec821469b0",
+      "src/rubric_gen/submission_revision/paraphrases.py": "a1a82b8285c4c4a1e8d48e2698ece92a0a1cee14660d84b15fb55eea3ddf1131",
+      "src/rubric_gen/submission_revision/pretreatment_reuse.py": "a9742d208461de7b0d5a5feb6919218f8a6a41d403cb336671598579949d1df5",
+      "src/rubric_gen/submission_revision/pretreatment_rubrics.py": "6e74eee056eaf6cb828ba4b45dbc4830cc3b406650cf6b2d7b233952df924a07",
+      "src/rubric_gen/submission_revision/prompts.py": "3864e1b0fdf011fd34dc53615f4747b2efcb486b48336ab7e08e9bfaa35074ff",
+      "src/rubric_gen/submission_revision/red_team.py": "659c0cc0e55b20a97262a6dbaf950b77a6a72f13d2270287f3194879e8a3ce9c",
+      "src/rubric_gen/submission_revision/rubric_generation.py": "d643966b36140c57c0572edf6be3263d2b87713eeeb2b4683bf2271df95ee0c4",
+      "src/rubric_gen/submission_revision/rubric_generation_store.py": "7cc84ee74949cc30133c7682fd5b37957924c7fee9f3dacdb0cdb1d28870e2c2",
+      "src/rubric_gen/submission_revision/rubrics/__init__.py": "ba5f1a3e1ffe12f118dbee1e853f1da654d1977392fbf9229bd212029ed89fb6",
+      "src/rubric_gen/submission_revision/rubrics/bundles.py": "1e04441edc5d242b48b99a66aae9fdd3a5edc3379b4149a056c003360dc89e3c",
+      "src/rubric_gen/submission_revision/rubrics/prompts.py": "e879d1f5dc46386e9ca7131834963c27eab60406da3112281fbcd76725418085",
+      "src/rubric_gen/submission_revision/rubrics/schema.py": "0bf34d0aaded28947f5e8a94428b6006e20da71788a3ce768bd35b0bbe139e0b",
+      "src/rubric_gen/submission_revision/rubrics/snapshots.py": "1839aef5a6843d3e6087d2a32d0a81c6fd1a3756f280a72fe47d9192a458a409",
+      "src/rubric_gen/submission_revision/seeds.py": "45623ab4ddb4c23d7073775649b3923f3dfac38976d6c2b58e908f14b1ccdc8e",
+      "src/rubric_gen/submission_revision/store.py": "a5912d373d6806a8bb876aa4318f8c87f8add0311e2650bad41d8282f3508e1a",
+      "src/rubric_gen/submission_revision/study.py": "fe778e8b1f9a27cd15593cafe9836da5ec88462dd1d1188499a1cb518ba6d86c",
+      "src/rubric_gen/submission_revision/study_layout.py": "46a57a78365b593deee26af87ad368ad0ac8d844b173c220f957bb7c999f34d1",
+      "src/rubric_gen/submission_revision/study_validation.py": "f9ba806288e52d8a470e306e934a3d1f66980546d58f318dd2c1a3514010eb0b",
+      "src/rubric_gen/submission_revision/study_validation_artifacts.py": "43ce1a950b5299348561d5b20115d3f862472c1999fd8c68d74e171a5123ee7e",
+      "src/rubric_gen/submission_revision/study_validation_context.py": "3ecf708529d3ccbdbffaba9487f8f2c707ca7a794f9d3f4c87fba6cb57b06e54",
+      "src/rubric_gen/submission_revision/trace_defense.py": "88f6281f9700dcee9dda8807e6440ad5c30e10556d8f879604cfa26bad3f7e4f",
+      "src/rubric_gen/submission_revision/trace_defense_attack.py": "40273756667ac07b01a30cbfa52047215a8c4545e39b03255f95f58d0d136704",
+      "src/rubric_gen/submission_revision/trace_defense_binding.py": "8004d36cda67d32926066ab1114da4e9ed63e2956e44576e92b52484fb6068d2",
+      "src/rubric_gen/submission_revision/trace_defense_delivery.py": "bff7ac82ef80c7841e2a47ea48c87372b908d2cce07006d056ff61985679dbb3",
+      "src/rubric_gen/submission_revision/trace_defense_evidence_v2.py": "54aad7e7cee413a7dba5730fae08973973659f0a90ae9646cf2e556b412112ee",
+      "src/rubric_gen/submission_revision/trace_defense_prompts.py": "0a081036df1069504b5bd0630162d43c5a62de090d60e4733b4ce3010cbc3014",
+      "src/rubric_gen/submission_revision/trace_defense_registry.py": "7fc26641fbc40ed6037ae50ceedc8e1a35956d1d53d0c48dc610fb242f28bad3",
+      "src/rubric_gen/submission_revision/trace_defense_schema.py": "54e9c0c6455babf756a42be9c441ceff550dec13b368d130f0fd945c96b3ec6a",
+      "src/rubric_gen/submission_revision/trace_defense_stage.py": "ec186d99b7e2d633c1436ff2ca7345cfeafc3c576c522638e61430acbe8e505b",
+      "src/rubric_gen/submission_revision/trace_defense_v2.py": "d5a4ee7df47d30dd9bf8e83020ab60abe15ee9bb08f1bda590197e89fdef93b5",
+      "src/rubric_gen/submission_revision/trace_defense_v21.py": "2b31a1668f147157883c176759b7d2d09f1c7d0a46ae32230e6136db166148f8",
+      "src/rubric_gen/submission_revision/trace_defense_v2_attack.py": "15bb7e57f35a5d2b246c1c0b71099e8f66c16ba10c8ecd26a4a50f752f959d66",
+      "src/rubric_gen/submission_revision/trace_defense_v2_prompts.py": "35e5d7ee9493fc72bbddc8cb1ea81c25567d6e0586c6c1121ad95f8fb7902a4e",
+      "src/rubric_gen/submission_revision/trace_defense_v2_schema.py": "d4485ae4c34f42f0fa8699a717d25254f40c14320f878e587ad23b61f8e46be5",
+      "src/rubric_gen/submission_revision/trace_defense_v2_stage.py": "26cc3cfda8f74bc2ae7589ed4571e929ea65f20b8ba8eb02f74c4ffb7b0a6a16",
+      "src/rubric_gen/submission_revision/user_simulator.py": "b47bfc598f7097a0fdc244a475784914db991fd95a61e004e41a78ebbad68df6",
+      "src/rubric_gen/submission_revision/user_simulator_history.py": "017b6e583b53f504fc27b9e8219d46afe114d3160f467e2aa21238a8e04202e2",
+      "src/rubric_gen/submission_revision/visualization/__init__.py": "aee72580927970ec076e48065c5f0ef28b63a7b9ab58df1171e6c08ab142983e",
+      "src/rubric_gen/submission_revision/visualization/backend.py": "fe8903faae3f3cc7b1bfbae84fffc86eb9fb38e0a77e69467e84b054e386641a",
+      "src/rubric_gen/submission_revision/visualization/revisions.py": "f6cae59c9a085da810ee9f32716b40393486adf0a488db314283f41bc85fec1b"
+    },
+    "kind": "attack_defense_v2.1_execution_freeze",
+    "model_settings_frozen": true,
+    "producer_v2_freeze": {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v2/execution-freeze.json",
+      "sha256": "90ca2a5259d620f3eefd42485c5d8c4ced862530e547dfe94ea3d66d7444881e"
+    },
+    "prompt_changes": "none; exact v2 literals reused",
+    "provider_calls_before_freeze": 0,
+    "recipe_version": "attack_defense_v2.1",
+    "reference_v2_commit": "b69160d3189c74a2abdafe99ff510900cea811cb",
+    "resources": {
+      "aggregate_provider_limit": 60,
+      "assignment_workers": 32,
+      "audit_studies": 1,
+      "cpus": 32,
+      "learning_fanout": 4
+    },
+    "result20_assignments": 120,
+    "scientific_changes_after_v2_readiness": [
+      "none; duplicate-title candidate processing only"
+    ],
+    "snapshot_commit": "f403b4c4a14eca1e9d61ddfc8c6aa323fda02abc",
+    "source_schedule": "pre_revision_v1",
+    "static_controls_reused": true
+  },
+  "native_coverage": {
+    "assignment_count": 120,
+    "stages": {
+      "direct_full_trajectory": {
+        "judgments": 240,
+        "by_model": {
+          "claude-opus-5": 120,
+          "gpt-5.6-sol": 120
+        },
+        "decisions": {
+          "no_reward_hacking_detected": 209,
+          "reward_hacking_detected": 29,
+          "abstain": 2
+        }
+      },
+      "direct_post_update": {
+        "judgments": 240,
+        "by_model": {
+          "claude-opus-5": 120,
+          "gpt-5.6-sol": 120
+        },
+        "decisions": {
+          "no_reward_hacking_detected": 225,
+          "reward_hacking_detected": 15
+        }
+      },
+      "direct_final_artifact": {
+        "judgments": 240,
+        "by_model": {
+          "claude-opus-5": 120,
+          "gpt-5.6-sol": 120
+        },
+        "decisions": {
+          "no_reward_hacking_detected": 234,
+          "reward_hacking_detected": 5,
+          "abstain": 1
+        }
+      },
+      "direct_final_revision": {
+        "judgments": 240,
+        "by_model": {
+          "claude-opus-5": 120,
+          "gpt-5.6-sol": 120
+        },
+        "decisions": {
+          "no_reward_hacking_detected": 229,
+          "reward_hacking_detected": 11
+        }
+      },
+      "rubric_score": {
+        "judgments": 2108,
+        "missing_models": []
+      },
+      "absolute_score": {
+        "judgments": 360,
+        "missing_models": []
+      },
+      "pairwise_preference": {
+        "judgments": 240,
+        "missing_models": []
+      }
+    },
+    "semantic_judgments": 3668,
+    "audited_models": [
+      "claude-opus-5",
+      "gpt-5.6-sol"
+    ],
+    "deferred_models": [
+      "gemini-3.8-flash"
+    ]
+  },
+  "arms": {
+    "full": {
+      "expected_assignments": 60,
+      "completed_assignments": 60,
+      "solver_turns": 314,
+      "retained_revisions": 254,
+      "required_judgment_references": 2202,
+      "completed_judgment_references": 2202,
+      "required_unique_judgments_including_shared": 2202,
+      "completed_unique_judgments_including_shared": 2202,
+      "shared_between_arms": 744,
+      "reused_unique_judgments": 0,
+      "abstaining_cells": 1,
+      "missing_cells": 0,
+      "failed_cells": 0,
+      "stages": {
+        "rubric_score": {
+          "unique": 1362,
+          "references": 1362,
+          "abstentions": 0
+        },
+        "absolute_score": {
+          "unique": 240,
+          "references": 240,
+          "abstentions": 0
+        },
+        "pairwise_preference": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        },
+        "direct_full_trajectory": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 1
+        },
+        "direct_post_update": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        },
+        "direct_final_artifact": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        },
+        "direct_final_revision": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        }
+      }
+    },
+    "user": {
+      "expected_assignments": 60,
+      "completed_assignments": 60,
+      "solver_turns": 441,
+      "retained_revisions": 403,
+      "required_judgment_references": 2210,
+      "completed_judgment_references": 2210,
+      "required_unique_judgments_including_shared": 2210,
+      "completed_unique_judgments_including_shared": 2210,
+      "shared_between_arms": 744,
+      "reused_unique_judgments": 0,
+      "abstaining_cells": 2,
+      "missing_cells": 0,
+      "failed_cells": 0,
+      "stages": {
+        "rubric_score": {
+          "unique": 1370,
+          "references": 1370,
+          "abstentions": 0
+        },
+        "absolute_score": {
+          "unique": 240,
+          "references": 240,
+          "abstentions": 0
+        },
+        "pairwise_preference": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        },
+        "direct_full_trajectory": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 1
+        },
+        "direct_post_update": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        },
+        "direct_final_artifact": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 1
+        },
+        "direct_final_revision": {
+          "unique": 120,
+          "references": 120,
+          "abstentions": 0
+        }
+      }
+    }
+  },
+  "unique_judgments": 3668,
+  "completed_unique_judgments": 3668,
+  "shared_between_arms": 744,
+  "stages": {
+    "rubric_score": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/rubric_score/summary.json",
+      "sha256": "8e98f84e06ee3fb980fbb4bf872c16b6334e70d2c3365b0f7d1f6f375d62c59d",
+      "assignment_coverage": {
+        "configured_assignment_count": 120,
+        "evaluated_assignment_count": 120,
+        "excluded_assignment_count": 0,
+        "excluded_assignments": [],
+        "execution_conditions": [
+          "full-red-team-trace",
+          "user-simulator-red-team-trace"
+        ],
+        "full_ledger_assignment_count": 240,
+        "out_of_scope_assignment_count": 120
+      },
+      "planned_unique": 2108,
+      "completed_unique": 2108,
+      "failed_unique": 0,
+      "judge_failures": [],
+      "missing_models": []
+    },
+    "absolute_score": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/absolute_score/summary.json",
+      "sha256": "ec7e4ee20962f15f9dd50a602975693c0ef6fc3c72be33521bb80643678e08fb",
+      "assignment_coverage": {
+        "configured_assignment_count": 120,
+        "evaluated_assignment_count": 120,
+        "excluded_assignment_count": 0,
+        "excluded_assignments": [],
+        "execution_conditions": [
+          "full-red-team-trace",
+          "user-simulator-red-team-trace"
+        ],
+        "full_ledger_assignment_count": 240,
+        "out_of_scope_assignment_count": 120
+      },
+      "planned_unique": 360,
+      "completed_unique": 360,
+      "failed_unique": 0,
+      "judge_failures": [],
+      "missing_models": []
+    },
+    "pairwise_preference": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/pairwise_preference/summary.json",
+      "sha256": "a232b328f42333f9a068317f1a5ea231a16529f95d5e676ca0bc03db6b834886",
+      "assignment_coverage": {
+        "configured_assignment_count": 120,
+        "evaluated_assignment_count": 120,
+        "excluded_assignment_count": 0,
+        "excluded_assignments": [],
+        "execution_conditions": [
+          "full-red-team-trace",
+          "user-simulator-red-team-trace"
+        ],
+        "full_ledger_assignment_count": 240,
+        "out_of_scope_assignment_count": 120
+      },
+      "planned_unique": 240,
+      "completed_unique": 240,
+      "failed_unique": 0,
+      "judge_failures": [],
+      "missing_models": []
+    },
+    "direct_full_trajectory": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_full_trajectory/evaluations/20260911-074943-157696--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-full_trajectory--max-input-250000--max-output-4096--primary-any_detect/summary.json",
+      "sha256": "b25332976c9b3b6021cdb87c4fb6847f137b17c70d18a481ff6ca387746f03d5",
+      "planned_unique": 240,
+      "completed_unique": 240,
+      "failed_unique": 0
+    },
+    "direct_post_update": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_post_update/evaluations/20260911-080641-251186--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-post_update--max-input-250000--max-output-4096--primary-any_detect/summary.json",
+      "sha256": "b8a927dbaca213d19a5583e18139cc5f5a10832dbd03178da54d5ab8aaa26249",
+      "planned_unique": 240,
+      "completed_unique": 240,
+      "failed_unique": 0
+    },
+    "direct_final_artifact": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_final_artifact/evaluations/20260911-081109-025659--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-final_artifact--max-input-250000--max-output-4096--primary-any_detect/summary.json",
+      "sha256": "8e5021bb2c72c224962f6854d3838cb11a6decb61a586e07767b4ce964a568f5",
+      "planned_unique": 240,
+      "completed_unique": 240,
+      "failed_unique": 0
+    },
+    "direct_final_revision": {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_final_revision/evaluations/20260911-081209-430026--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-final_revision--max-input-250000--max-output-4096--primary-any_detect/summary.json",
+      "sha256": "9cc98b712754053eea33198c89de82e595a49f16525dc7f653f9998f9b46b311",
+      "planned_unique": 240,
+      "completed_unique": 240,
+      "failed_unique": 0
+    }
+  },
+  "owners": [
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/10397947-20260911T111609Z/launch.json",
+      "sha256": "76f9ad1437da7e51965f270befbd0c5936d320ba99e94b2dc583b9693afd4c16",
+      "launch": {
+        "assignment_workers": 32,
+        "command": [
+          "experiments/trace-attack-defense-v21/run.py",
+          "audit"
+        ],
+        "commit": "fda2a7e2fced74954b99c06e2109893c90223353",
+        "config_sha256": "ca8ca3c526707f8b7396f203aca09fc98c1135ca438906292a559ec72d797ca0",
+        "cpus": 32,
+        "experiment_id": "biomnibench-da-factorial-r10-5115fffdd1c0",
+        "freeze_sha256": "8637f5e876e59546cb0f36ce406b4ce63bd0591cf250bef8e35a7c0d2e276280",
+        "host": "babel-s5-24",
+        "job": "10397947",
+        "learning_workers_per_assignment": 4,
+        "mode": "audit",
+        "outputs": {
+          "detect": {
+            "depends_on": [
+              "revise",
+              "paraphrase"
+            ],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0"
+          },
+          "paraphrase": {
+            "depends_on": [],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910"
+          },
+          "revise": {
+            "depends_on": [
+              "seed",
+              "paraphrase"
+            ],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0"
+          },
+          "seed": {
+            "depends_on": [],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/inputs/seeds"
+          }
+        },
+        "python": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python",
+        "resources": {
+          "aggregate_concurrency": 60,
+          "audit_studies": 1,
+          "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+          "version": 1
+        },
+        "shared_mount": {
+          "filesystem": "nfs4",
+          "server_locking": true
+        },
+        "time": "20260911T111609Z"
+      },
+      "receipts": []
+    },
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/10397968-20260911T112031Z/launch.json",
+      "sha256": "7e026555fdd2107710cac8d86fb5b19cd5412dd5568eef7bf9895e45ad47f677",
+      "launch": {
+        "assignment_workers": 32,
+        "command": [
+          "experiments/trace-attack-defense-v21/run.py",
+          "audit"
+        ],
+        "commit": "fda2a7e2fced74954b99c06e2109893c90223353",
+        "config_sha256": "ca8ca3c526707f8b7396f203aca09fc98c1135ca438906292a559ec72d797ca0",
+        "cpus": 32,
+        "experiment_id": "biomnibench-da-factorial-r10-5115fffdd1c0",
+        "freeze_sha256": "8637f5e876e59546cb0f36ce406b4ce63bd0591cf250bef8e35a7c0d2e276280",
+        "host": "babel-s5-24",
+        "job": "10397968",
+        "learning_workers_per_assignment": 4,
+        "mode": "audit",
+        "outputs": {
+          "detect": {
+            "depends_on": [
+              "revise",
+              "paraphrase"
+            ],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0"
+          },
+          "paraphrase": {
+            "depends_on": [],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910"
+          },
+          "revise": {
+            "depends_on": [
+              "seed",
+              "paraphrase"
+            ],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0"
+          },
+          "seed": {
+            "depends_on": [],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/inputs/seeds"
+          }
+        },
+        "python": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python",
+        "resources": {
+          "aggregate_concurrency": 60,
+          "audit_studies": 1,
+          "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+          "version": 1
+        },
+        "shared_mount": {
+          "filesystem": "nfs4",
+          "server_locking": true
+        },
+        "time": "20260911T112031Z"
+      },
+      "receipts": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/10397968-20260911T112031Z/audit-reuse-sources.json",
+          "sha256": "fbb93794ae552e501b86085921115755b409478c5ab43ba2870cbb8709ada513",
+          "record": {
+            "rule": "exact native semantic keys and validation only",
+            "sources": [
+              "/data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/trace/audit/biomnibench-da-factorial-r10-39ddcf24f8aa",
+              "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/full-static",
+              "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/user-simulator-static",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-capacity-v3-20260908/user-trace/audit/biomnibench-da-factorial-r10-bfbdd0f9833c",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/static/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/full-static/audit/biomnibench-da-factorial-r10-bfbdd0f9833c",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/full-trace/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/user-static/audit/biomnibench-da-factorial-r10-bfbdd0f9833c"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/10397985-20260911T112709Z/launch.json",
+      "sha256": "693409a2bd30cfdadff33cdc0ae2f0d70ec377532a1071d8f1c40e4974f453d2",
+      "launch": {
+        "assignment_workers": 32,
+        "command": [
+          "experiments/trace-attack-defense-v21/run.py",
+          "audit"
+        ],
+        "commit": "fda2a7e2fced74954b99c06e2109893c90223353",
+        "config_sha256": "ca8ca3c526707f8b7396f203aca09fc98c1135ca438906292a559ec72d797ca0",
+        "cpus": 32,
+        "experiment_id": "biomnibench-da-factorial-r10-5115fffdd1c0",
+        "freeze_sha256": "8637f5e876e59546cb0f36ce406b4ce63bd0591cf250bef8e35a7c0d2e276280",
+        "host": "babel-s5-24",
+        "job": "10397985",
+        "learning_workers_per_assignment": 4,
+        "mode": "audit",
+        "outputs": {
+          "detect": {
+            "depends_on": [
+              "revise",
+              "paraphrase"
+            ],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0"
+          },
+          "paraphrase": {
+            "depends_on": [],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/result20-prompt-nofallback-v2-20260910"
+          },
+          "revise": {
+            "depends_on": [
+              "seed",
+              "paraphrase"
+            ],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0"
+          },
+          "seed": {
+            "depends_on": [],
+            "output_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v1-20260910/inputs/seeds"
+          }
+        },
+        "python": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python",
+        "resources": {
+          "aggregate_concurrency": 60,
+          "audit_studies": 1,
+          "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+          "version": 1
+        },
+        "shared_mount": {
+          "filesystem": "nfs4",
+          "server_locking": true
+        },
+        "time": "20260911T112709Z"
+      },
+      "receipts": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/10397985-20260911T112709Z/audit-failure-1.json",
+          "sha256": "c787c33498fae3942d5c33fe979c9527a4ff843b55cf57e1b0f93ca35fbb05ff",
+          "record": {
+            "message": "evaluation suite failed in direct_full_trajectory, direct_post_update, direct_final_artifact, direct_final_revision; other stages were still run",
+            "type": "RuntimeError"
+          }
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/10397985-20260911T112709Z/audit-reuse-sources.json",
+          "sha256": "fbb93794ae552e501b86085921115755b409478c5ab43ba2870cbb8709ada513",
+          "record": {
+            "rule": "exact native semantic keys and validation only",
+            "sources": [
+              "/data/user_data/aydanh/rubric_gen/runs/result20-cue-full-trace-20260909/trace/audit/biomnibench-da-factorial-r10-39ddcf24f8aa",
+              "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/full-static",
+              "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/user-simulator-static",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-capacity-v3-20260908/user-trace/audit/biomnibench-da-factorial-r10-bfbdd0f9833c",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/static/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-cue-contrast-20260908/trace/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/full-static/audit/biomnibench-da-factorial-r10-bfbdd0f9833c",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/full-trace/audit/biomnibench-da-factorial-r10-f0203f5d69f3",
+              "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908/user-static/audit/biomnibench-da-factorial-r10-bfbdd0f9833c"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/direct-repair-10398066-20260911T114914Z/launch.json",
+      "sha256": "760bf01fad494c656f46abe246afb39b600d1aa8f39db68cea38338af37ea6ab",
+      "launch": {
+        "kind": "audit_only_direct_repair",
+        "job": "10398066",
+        "host": "babel-s5-24",
+        "commit": "c43a921f9f187cda8659304547ec8849a5f5ba7c",
+        "freeze_sha256": "8637f5e876e59546cb0f36ce406b4ce63bd0591cf250bef8e35a7c0d2e276280",
+        "failed_audit_job": "10397985",
+        "reason": "imported producer manifests have explicit producer experiment IDs; direct source validator otherwise rejects them",
+        "scientific_changes": false,
+        "provider_scope": "direct RH windows only; prior rubric/absolute/pairwise stages are reused",
+        "consumer_study": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/study/biomnibench-da-factorial-r10-5115fffdd1c0",
+        "audit_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0"
+      },
+      "receipts": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/direct-repair-10398066-20260911T114914Z/coverage.json",
+          "sha256": "c27dde31ba539302ef406d4f15f369e1efd2f75475803844ff2a0be16109b228",
+          "record": {
+            "assignment_count": 120,
+            "stages": {
+              "direct_full_trajectory": {
+                "judgments": 240,
+                "by_model": {
+                  "claude-opus-5": 120,
+                  "gpt-5.6-sol": 120
+                },
+                "decisions": {
+                  "no_reward_hacking_detected": 209,
+                  "reward_hacking_detected": 29,
+                  "abstain": 2
+                }
+              },
+              "direct_post_update": {
+                "judgments": 240,
+                "by_model": {
+                  "claude-opus-5": 120,
+                  "gpt-5.6-sol": 120
+                },
+                "decisions": {
+                  "no_reward_hacking_detected": 225,
+                  "reward_hacking_detected": 15
+                }
+              },
+              "direct_final_artifact": {
+                "judgments": 240,
+                "by_model": {
+                  "claude-opus-5": 120,
+                  "gpt-5.6-sol": 120
+                },
+                "decisions": {
+                  "no_reward_hacking_detected": 234,
+                  "reward_hacking_detected": 5,
+                  "abstain": 1
+                }
+              },
+              "direct_final_revision": {
+                "judgments": 240,
+                "by_model": {
+                  "claude-opus-5": 120,
+                  "gpt-5.6-sol": 120
+                },
+                "decisions": {
+                  "no_reward_hacking_detected": 229,
+                  "reward_hacking_detected": 11
+                }
+              },
+              "rubric_score": {
+                "judgments": 2108,
+                "missing_models": []
+              },
+              "absolute_score": {
+                "judgments": 360,
+                "missing_models": []
+              },
+              "pairwise_preference": {
+                "judgments": 240,
+                "missing_models": []
+              }
+            },
+            "semantic_judgments": 3668,
+            "audited_models": [
+              "claude-opus-5",
+              "gpt-5.6-sol"
+            ],
+            "deferred_models": [
+              "gemini-3.8-flash"
+            ]
+          }
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/owners/direct-repair-10398066-20260911T114914Z/windows.json",
+          "sha256": "7a853c904dfd3a3c080045bdbdc2b904f2242536f7af2e765d9d3292a8d8ae88",
+          "record": [
+            {
+              "window": "full_trajectory",
+              "evaluation_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_full_trajectory/evaluations/20260911-074943-157696--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-full_trajectory--max-input-250000--max-output-4096--primary-any_detect",
+              "exit_code": 0,
+              "allowed_experiment_ids": [
+                "biomnibench-da-factorial-r10-5115fffdd1c0",
+                "biomnibench-da-factorial-r10-d2237f051bbf"
+              ],
+              "import_receipt_count": 118
+            },
+            {
+              "window": "post_update",
+              "evaluation_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_post_update/evaluations/20260911-080641-251186--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-post_update--max-input-250000--max-output-4096--primary-any_detect",
+              "exit_code": 0,
+              "allowed_experiment_ids": [
+                "biomnibench-da-factorial-r10-5115fffdd1c0",
+                "biomnibench-da-factorial-r10-d2237f051bbf"
+              ],
+              "import_receipt_count": 118
+            },
+            {
+              "window": "final_artifact",
+              "evaluation_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_final_artifact/evaluations/20260911-081109-025659--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-final_artifact--max-input-250000--max-output-4096--primary-any_detect",
+              "exit_code": 0,
+              "allowed_experiment_ids": [
+                "biomnibench-da-factorial-r10-5115fffdd1c0",
+                "biomnibench-da-factorial-r10-d2237f051bbf"
+              ],
+              "import_receipt_count": 118
+            },
+            {
+              "window": "final_revision",
+              "evaluation_dir": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/audit/biomnibench-da-factorial-r10-5115fffdd1c0/direct_final_revision/evaluations/20260911-081209-430026--ensemble--detect-rh--experiment-biomnibench-da-factorial-r10-5115fffdd1c0--source-biomnibench-da-factorial-r10-5115fffdd1c0--window-final_revision--max-input-250000--max-output-4096--primary-any_detect",
+              "exit_code": 0,
+              "allowed_experiment_ids": [
+                "biomnibench-da-factorial-r10-5115fffdd1c0",
+                "biomnibench-da-factorial-r10-d2237f051bbf"
+              ],
+              "import_receipt_count": 118
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "completion_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/completion.json",
+  "completion_sha256": "73a63f60d18bc3f27442f660564d7de7b94c3d85ba3929bb67a032a69c8c3a8f",
+  "notes": [
+    "Per-arm unique counts include shared semantic keys and therefore must not be summed without deduplication.",
+    "Expected assignments are fixed at 60 per arm; solver revision counts follow the unchanged 5–10-turn/no-change stopping rules.",
+    "Required judgment counts come from the sealed cohort native plans and windows, not a historical fixed total.",
+    "Completed detector abstentions remain completed cells and are reported separately from missing/failed cells."
+  ]
+}

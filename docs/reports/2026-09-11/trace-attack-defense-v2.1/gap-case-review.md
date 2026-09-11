@@ -1,0 +1,10 @@
+# Gap contributor and quality-loss packet accounting
+
+Packets are selected deterministically from the complete paired table. This report preserves post-treatment score differences and public-artifact receipts; it does not claim mediation or rewrite any outcome judgment.
+
+{
+  "provider_calls": 0,
+  "inspection_packets": 39,
+  "substantial_A_loss_cases": 12,
+  "selection": "top task contributors plus every flagged case; no endpoint exclusions"
+}

@@ -1,0 +1,72 @@
+{
+  "arms": {
+    "full": {
+      "active_rule_lineages": 100,
+      "reminded_lineages": 84,
+      "lineages_with_verbatim_requirement_exposure": 100,
+      "online_lineages_with_verbatim_requirement_exposure": 76,
+      "availability_to_reminder_lag": {
+        "n": 84,
+        "mean": 0.047619047619047616,
+        "median": 0.0,
+        "histogram": {
+          "0": 81,
+          "1": 2,
+          "2": 1
+        }
+      },
+      "scored_violations": 28,
+      "post_reminder_scored_observations": 254,
+      "post_reminder_scored_violations": 6,
+      "post_reminder_violation_response_opportunities": 6,
+      "first_post_reminder_points": {
+        "n": 77,
+        "mean": -0.3246753246753247,
+        "median": 0.0,
+        "histogram": {
+          "-10.0": 2,
+          "-5.0": 1,
+          "0.0": 74
+        }
+      }
+    },
+    "user": {
+      "active_rule_lineages": 119,
+      "reminded_lineages": 105,
+      "lineages_with_verbatim_requirement_exposure": 105,
+      "online_lineages_with_verbatim_requirement_exposure": 83,
+      "availability_to_reminder_lag": {
+        "n": 105,
+        "mean": 0.06666666666666667,
+        "median": 0,
+        "histogram": {
+          "0": 102,
+          "1": 1,
+          "2": 1,
+          "4": 1
+        }
+      },
+      "scored_violations": 40,
+      "post_reminder_scored_observations": 538,
+      "post_reminder_scored_violations": 18,
+      "post_reminder_violation_response_opportunities": 18,
+      "first_post_reminder_points": {
+        "n": 100,
+        "mean": -0.2,
+        "median": 0.0,
+        "histogram": {
+          "-5.0": 4,
+          "0.0": 96
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Availability/exposure is observed from persisted generation bindings and actual solver prompts; it is not compliance.",
+    "Subsequent levels are weak optimizer judgments, not independent RH verification.",
+    "A no-change solver turn may end without a new sealed submission or subsequent score observation.",
+    "Focused reminders are exact exposures; ordinary Full/User feedback can also convey overlapping checks.",
+    "Verbatim requirements include exact literal or JSON-escaped matches in real prompts; absence does not rule out a paraphrased check in ordinary feedback.",
+    "Rule-observation counts repeat a lineage across submissions and are not independent assignments."
+  ]
+}

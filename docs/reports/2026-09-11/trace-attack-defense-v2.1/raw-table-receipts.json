@@ -1,0 +1,38 @@
+{
+  "pipeline-requests.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/pipeline-requests.csv",
+    "rows": 0,
+    "bytes": 1,
+    "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  "timing-scored-rules.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/timing-scored-rules.csv",
+    "rows": 1146,
+    "bytes": 646791,
+    "sha256": "23fc9e2af453c55137c0cb1cf8d9f16dad7834d1b4c8b74c90d3be5b89565153"
+  },
+  "cost-responses.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/cost-responses.csv",
+    "rows": 6465,
+    "bytes": 2887130,
+    "sha256": "521dd3382ea85f9272de7f49b9655c605012c8d666910e791540a2eae4d8fba3"
+  },
+  "cost-agent-threads.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/cost-agent-threads.csv",
+    "rows": 875,
+    "bytes": 422734,
+    "sha256": "8a3fc39b9b88e8ced27a2da0f9791cfddc3b4944cad7cf7bb903c3263df36973"
+  },
+  "judgment-cells.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/judgment-cells.csv",
+    "rows": 4412,
+    "bytes": 3124839,
+    "sha256": "95eb09ebf17232195ecf252bd36c9398fdca41220d81ec4c08ee521cfbe6860d"
+  },
+  "judgment-receipts.csv": {
+    "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/judgment-receipts.csv",
+    "rows": 3668,
+    "bytes": 3063219,
+    "sha256": "87be406da09baeafc8cbf6d9d16f46d8eb1a9e7cb228b7dbfe01265bac33c78e"
+  }
+}

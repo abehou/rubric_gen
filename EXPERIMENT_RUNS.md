@@ -1241,3 +1241,8 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-11 — attack_defense_v2 Result20
 
 - 02:02 EDT: Production job 10394194 used snapshot `bbf109a9839beda05865c4967040497ed8fcb35e` at `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/result20/`; final coverage is 118/120 completed and 2 failed, with no pending assignments. The complete-cohort audit gate therefore did not open, so v2 metrics are unavailable; exact failure accounting is in `docs/reports/2026-09-10/trace-attack-defense-v2/result20/`.
+
+## 2026-09-11 — attack_defense_v2.1 completion
+
+- 09:11 EDT: Consumer assembly/validation jobs 10397871 and 10397939 confirmed 118 compatible imported assignments plus the two v2.1 recoveries. Audit owner 10397985 completed the non-direct stages; direct-RH recovery 10398066 completed only the missing/failed direct-window work and was not duplicated. Coverage verification 10398292 and provider-free report assembly 10399347 completed; final report is `docs/reports/2026-09-11/trace-attack-defense-v2.1/README.md`.
+- 09:11 EDT: A local Codex controller ended with `memory allocation of 8292352 bytes failed` while the Slurm scientific owner remained independent. The event is logged as a control-plane incident and did not trigger a new recovery layer or alter the frozen cohort.

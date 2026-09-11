@@ -1,0 +1,8 @@
+{
+  "kind": "report_only_capacity_receipt",
+  "source": "costs.json",
+  "audit_slot_wait_seconds": 0.10987184708938003,
+  "provider_wait_seconds": 99.4428496316541,
+  "maximum_owned_provider_leases": 32,
+  "note": "No direct-RH judgment was launched by the reporting jobs; the final coverage was already complete."
+}

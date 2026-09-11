@@ -1,0 +1,21 @@
+{
+  "kind": "provider_free_final_audit_coverage",
+  "verification_job": "10398292",
+  "direct_recovery_job": "10398066",
+  "provider_calls": 0,
+  "assignment_count": 120,
+  "auditors": ["gpt-5.6-sol", "claude-opus-5"],
+  "deferred_auditors": ["gemini-3.8-flash"],
+  "stages": {
+    "direct_full_trajectory": {"rows": 240, "per_auditor": 120, "abstain": 2},
+    "direct_post_update": {"rows": 240, "per_auditor": 120, "abstain": 0},
+    "direct_final_artifact": {"rows": 240, "per_auditor": 120, "abstain": 1},
+    "direct_final_revision": {"rows": 240, "per_auditor": 120, "abstain": 0},
+    "rubric_score": {"rows": 2108},
+    "absolute_score": {"rows": 360},
+    "pairwise_preference": {"rows": 240}
+  },
+  "complete": true,
+  "missing_or_failed": 0,
+  "duplicate_successful_judgments": 0
+}
