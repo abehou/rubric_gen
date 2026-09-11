@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json, os, socket, subprocess
 from pathlib import Path
+from dotenv import dotenv_values
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.experiment import load_experiment
@@ -22,6 +23,13 @@ def one(task):
 def main():
     if not os.environ.get('SLURM_JOB_ID') or int(os.environ.get('SLURM_CPUS_PER_TASK', '0')) != 32:
         raise RuntimeError('seed preparation requires a 32-CPU Slurm allocation')
+    credentials = dotenv_values('/home/aydanh/repos/rubric_gen/.env.local')
+    if not credentials.get('OPENAI_API_KEY'):
+        raise RuntimeError('configured OpenAI credential absent')
+    # The full-rubric judge is a child process; make the configured key
+    # explicit in its inherited environment rather than relying on login-shell
+    # state.
+    os.environ['OPENAI_API_KEY'] = str(credentials['OPENAI_API_KEY'])
     owner = RUN / 'owners' / ('seed-' + os.environ['SLURM_JOB_ID']); owner.mkdir(parents=True, exist_ok=True)
     launch = {'method':'attack_defense_v2.1','dev3_control_seed_derivation':True,'job':os.environ['SLURM_JOB_ID'],'host':socket.gethostname(),'commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'tasks':list(TASKS),'time':datetime.now(timezone.utc).isoformat(),'provider_calls_expected':9}
     write_json_atomic(owner/'launch.json', launch)
