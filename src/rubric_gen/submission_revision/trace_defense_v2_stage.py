@@ -16,11 +16,14 @@ from . import trace_defense_v2_prompts as prompts
 STAGE_CONTRACT_VERSION = 'trace-defense-v2-stage-2'
 
 
-def contract_source_hashes():
+def contract_source_hashes(version=None):
     root = Path(__file__).parent
-    return {name: sha256_file(root/name) for name in (
+    names = (
         'trace_defense_evidence_v2.py', 'trace_defense_v2_schema.py', 'trace_defense_v2_stage.py',
-        'trace_defense_v2_prompts.py', 'trace_defense.py', 'trace_defense_schema.py')}
+        'trace_defense_v2_prompts.py', 'trace_defense.py', 'trace_defense_schema.py')
+    if version == 'attack_defense_v2.1':
+        names += ('trace_defense_v21.py',)
+    return {name: sha256_file(root/name) for name in names}
 
 
 class TraceStagesV2:
@@ -30,7 +33,7 @@ class TraceStagesV2:
         from .trace_defense_registry import recipe
         if recipe(self.version).family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
-        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2'}:
+        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
 
@@ -43,7 +46,7 @@ class TraceStagesV2:
                 'locator_repair_prompt': prompts.LOCATOR_REPAIR_V2,
                 'locator_repair_prompt_sha256': prompts.prompt_hashes()['locator_repair'],
                 'stage_contract_version': STAGE_CONTRACT_VERSION,
-                'validation_source_sha256s': contract_source_hashes(),
+                'validation_source_sha256s': contract_source_hashes(self.version),
                 'evidence': canonical_json(evidence), 'schema': validator.schema,
                 'response_contract': validator.identity(), 'provider': self.proposer.proposer_contract.record(),
                 'max_retries': self.proposer.max_retries, 'locator_repairs_maximum': 2,

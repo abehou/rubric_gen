@@ -462,6 +462,8 @@ def validated_induction_response(
     generation_round: int,
     level_labels: tuple[str, ...],
     induction_gaps: tuple[assessment.PairComparison, ...],
+    render: bool = True,
+    allow_active_id_duplicate: bool = False,
 ) -> tuple[CriterionCandidate, ...]:
     value = load_json_object(text, "criterion proposal")
     if set(value) != {"criteria"} or not isinstance(value["criteria"], list):
@@ -533,26 +535,28 @@ def validated_induction_response(
             provenance_pair_ids=ordered_provenance,
             source_generation=generation_round,
         )
-        if criterion.criterion_id in active_id_set:
+        if criterion.criterion_id in active_id_set and not allow_active_id_duplicate:
             raise ValueError("candidate duplicates an active criterion")
         candidate = CriterionCandidate(
             criterion=criterion,
             replaces=tuple(item for item in active_ids if item in replaces),
         )
-        individual_criteria = tuple(
-            item for item in current_generation.elicited_criteria
-            if item.criterion_id not in candidate.replaces
-        ) + (criterion,)
-        render_augmented_rubric(original_rubric, individual_criteria)
+        if render:
+            individual_criteria = tuple(
+                item for item in current_generation.elicited_criteria
+                if item.criterion_id not in candidate.replaces
+            ) + (criterion,)
+            render_augmented_rubric(original_rubric, individual_criteria)
         candidates.append(candidate)
     candidate_ids = [item.criterion.criterion_id for item in candidates]
     if len(set(candidate_ids)) != len(candidate_ids):
         raise ValueError("criterion proposal contains duplicate candidates")
-    prospective = tuple(
-        item for item in current_generation.elicited_criteria
-        if item.criterion_id not in replaced_ids
-    ) + tuple(item.criterion for item in candidates)
-    render_augmented_rubric(original_rubric, prospective)
+    if render:
+        prospective = tuple(
+            item for item in current_generation.elicited_criteria
+            if item.criterion_id not in replaced_ids
+        ) + tuple(item.criterion for item in candidates)
+        render_augmented_rubric(original_rubric, prospective)
     return tuple(candidates)
 
 
