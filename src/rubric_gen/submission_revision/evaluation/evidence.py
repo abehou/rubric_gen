@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from threading import Lock
 
@@ -111,10 +112,17 @@ def revision_detection_source(
             if prompt is None:
                 snapshot, reader, source_lock, manifest = inputs[case.path]
                 with source_lock:
+                    fields = ('reads', 'bytes_read', 'read_seconds', 'decode_seconds', 'parse_seconds')
+                    before = {field: getattr(reader, field) for field in fields}
+                    started = time.monotonic()
                     prompt = _revision_prompt(
                         case.path, resolved_tasks, detection, resolved_window,
                         snapshot=snapshot, reader=reader, manifest=manifest,
                     )
+                    measured = {field: getattr(reader, field)-before[field] for field in fields}
+                    from rubric_gen.runtime.capacity import emit
+                    emit('evidence_prepared', case_id=case.case_id, window=resolved_window.value,
+                         elapsed_seconds=time.monotonic()-started, **measured)
                 prompt_cache[key] = prompt
             return prompt
 

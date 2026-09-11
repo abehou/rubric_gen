@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,10 +25,15 @@ class EvidenceReadCache:
     lines: dict = field(default_factory=dict)
     reads: int = 0
     bytes_read: int = 0
+    read_seconds: float = 0.0
+    decode_seconds: float = 0.0
+    parse_seconds: float = 0.0
 
     def read(self, path):
         if path not in self.contents:
+            started = time.monotonic()
             raw = path.read_bytes()
+            self.read_seconds += time.monotonic()-started
             self.contents[path] = raw
             self.reads += 1
             self.bytes_read += len(raw)
@@ -35,12 +41,16 @@ class EvidenceReadCache:
 
     def decode(self, raw):
         if raw not in self.lines:
+            started = time.monotonic()
             self.lines[raw] = _decode_lines(raw)
+            self.decode_seconds += time.monotonic()-started
         return self.lines[raw]
 
     def parse(self, line):
         if line not in self.parsed:
+            started = time.monotonic()
             self.parsed[line] = _parse_line(line)
+            self.parse_seconds += time.monotonic()-started
         return self.parsed[line]
 
 

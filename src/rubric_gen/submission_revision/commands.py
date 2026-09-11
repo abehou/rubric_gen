@@ -157,7 +157,7 @@ def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -
     errors: list[tuple[str, Exception]] = []
     stages = {**direct_runners, "rubric_score": rubric_score_runner,
               "rubric_free_score": rubric_free_score_runner}
-    emit('audit_phase', phase='execution', preparation_seconds=time.monotonic()-started)
+    prepared_seconds = time.monotonic()-started
     def execute_stage(name, runner, requests):
         stage_started = time.monotonic()
         emit('audit_stage_started', stage=name)
@@ -176,7 +176,13 @@ def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -
     # A fully validated completed audit needs no provider or token-count calls.
     # Its output remains exclusively owned while local publication is completed.
     admission = nullcontext() if all(reused) else reservation('audit')
+    admission_started = time.monotonic()
+    emit('audit_phase', phase='audit_admission', preparation_seconds=prepared_seconds,
+         generation_required=not all(reused))
     with admission, AuditExecutor(args.max_concurrency, tuple(experiment.outcome_audit['models'])) as requests:
+        execution_started = time.monotonic()
+        emit('audit_phase', phase='execution', preparation_seconds=prepared_seconds,
+             admission_wait_seconds=execution_started-admission_started)
         with ThreadPoolExecutor(max_workers=len(stages)) as coordinators:
             futures = {coordinators.submit(execute_stage, name, runner, requests): name
                        for name, runner in stages.items()}
@@ -190,6 +196,9 @@ def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -
                     except Exception as exc:
                         errors.append((name, exc))
                         print(f"{name}: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+    emit('audit_phase', phase='incomplete' if errors or any(statuses.values()) else 'complete',
+         preparation_seconds=prepared_seconds, execution_seconds=time.monotonic()-execution_started,
+         stage_exit_codes=statuses, failed_stages=[name for name, _ in errors])
     if errors:
         raise ExceptionGroup("evaluation suite stage failures", [
             RuntimeError(f"{name}: {type(error).__name__}: {error}").with_traceback(error.__traceback__)

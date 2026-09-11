@@ -117,6 +117,9 @@ failure category/action and uncertain remaining estimate. A final sample marks
 completion even when the child exits between intervals. One owning launcher
 orchestrates native dependencies/resume/reporting; child completion does not
 wait for the reporting interval, and no logcheck Slurm jobs are needed.
+Audit admission has its own phase, followed by execution and complete/incomplete;
+cached evidence records separately measure file reads, decoding and parsing
+without changing request metadata or scientific cache identities.
 
 ## Controlled comparisons and regressions
 
@@ -158,6 +161,7 @@ focused changed-path runs: 52 direct tests passed, 27 ownership/scope tests pass
 39 streaming tests passed, and 110 completed-admission/experiment tests passed.
 Final scope/status/launcher/experiment checks passed **120 tests in 23.97s**;
 the capacity tests passed **12 in 5.65s**.
+The phase checks passed six tests; evidence/monitor checks passed 55 in 16.41s.
 
 ## Real compute measurements and validation
 

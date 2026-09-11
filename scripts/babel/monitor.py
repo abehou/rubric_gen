@@ -96,6 +96,9 @@ class Monitor:
                     elif name == 'audit_prepared':
                         for field in ('source_seconds','plan_seconds'):
                             self.preparation[field] += event[field]
+                    elif name == 'evidence_prepared':
+                        for field in ('reads','bytes_read','read_seconds','decode_seconds','parse_seconds','elapsed_seconds'):
+                            self.preparation['evidence_'+field] += event[field]
                     if name == 'waiting':
                         self.pending_leases[event['lease_id']] = (event['kind'], event['time'])
                     elif name == 'acquired':
