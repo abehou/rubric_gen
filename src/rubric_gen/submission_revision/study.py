@@ -274,6 +274,10 @@ class StudyRunner:
             return manifest
         manifest = self._load_manifest()
         self._validate_manifest_identity(manifest, assignments)
+        if self.config.assignment_ids is None and manifest.get('execution_assignment_ids') is not None:
+            # Ordinary resume retains the last explicitly declared membership;
+            # omitting a new selection must never expand pending scientific work.
+            self.config = replace(self.config, assignment_ids=tuple(manifest['execution_assignment_ids']))
         completed = [r for r in manifest['records'] if r.get('status') == 'completed'
                      and (self.experiment.execution_conditions is None or r['condition_id'] in self.experiment.execution_conditions)]
         if completed:

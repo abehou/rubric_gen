@@ -78,13 +78,22 @@ def main():
                               profile=args.profile, source=str(Path.cwd()))
                 write_json_atomic(report / 'status.json', sample)
                 print(json.dumps({k: sample[k] for k in (
-                    'assignments','completed_assignments_per_hour','sampled_cpu_cores','rss_kib',
-                    'active_provider_slots','active_audit_studies','elapsed_seconds')}), flush=True)
+                    'assignments','selected_assignments','ready_assignments','dependency_blocked_assignments',
+                    'active_assignment_workers','configured_assignment_workers','assignment_worker_limit_sources',
+                    'job_active_provider_reservations','active_provider_slots','waiting_on','waiting_elapsed_seconds',
+                    'live_operations','audit_phase','audit_phase_elapsed_seconds','audit_request_queue',
+                    'last_successful_unit','current_failure','assignment_failures','completed_operations_per_minute',
+                    'underfilled_ready_backlog','underfill_blocker','remaining_seconds_estimate','estimate_uncertainty',
+                    'sampled_cpu_cores','rss_kib','elapsed_seconds')}), flush=True)
                 try:
                     code = finished.result(timeout=30)
                     break
                 except TimeoutError:
                     continue
+    sample = monitor.sample()
+    sample.update(configured_assignment_workers=workers, configured_request_workers=workers,
+                  profile=args.profile, source=str(Path.cwd()), exit_code=code, finished=True)
+    write_json_atomic(report / 'status.json', sample)
     write_json_atomic(report / 'result.json', {'exit_code': code, 'completed_at': time.time(), **receipt})
     return code
 

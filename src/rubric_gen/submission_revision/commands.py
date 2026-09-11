@@ -84,7 +84,14 @@ def run_detect(args: argparse.Namespace) -> int:
     output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
     from rubric_gen.runtime.audit_execution import audit_output_owner
     with audit_output_owner(output_dir):
-        return _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir)
+        try:
+            return _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir)
+        except Exception as error:
+            from rubric_gen.runtime.capacity import emit
+            from rubric_gen.runtime.failures import failure_category
+            emit('audit_failed', error_type=type(error).__name__, category=failure_category(error),
+                 next_automatic_action='none: inspect preserved failure and missing work')
+            raise
 
 
 def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -> int:

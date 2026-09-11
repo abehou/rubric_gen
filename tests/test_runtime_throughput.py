@@ -494,3 +494,33 @@ def test_completed_suite_does_not_wait_for_an_active_generation_study(tmp_path,m
             future=pool.submit(commands.run_detect,argparse.Namespace(experiment='fixture.yaml',max_concurrency=8,resume=True))
             assert future.result(timeout=3)==0
     assert len(completed)==6
+
+
+def test_native_revision_resume_retains_declared_assignment_subset(tmp_path,monkeypatch):
+    from rubric_gen.submission_revision import study as module
+    for task in ('da-1-1','da-2-1','da-3-1'):_task(tmp_path,task)
+    payload=_payload(tmp_path);payload['tasks']=['da-1-1','da-2-1','da-3-1']
+    payload['conditions']=[c for c in payload['conditions'] if c['condition_id'] in ('full-static','user-simulator-static')]
+    path=tmp_path/'experiment.yaml';path.write_text(yaml.safe_dump(payload));exp=load_experiment(path)
+    root=Path(exp.dag['revise']['output_dir'])
+    selected=tuple(a.assignment_id for a in exp.execution_assignments[:2])
+    monkeypatch.setattr(module.paraphrase_validation,'validate_paraphrase_run',lambda *a:None)
+    monkeypatch.setattr(module.study_validation,'validate_completed_revision',lambda *a:None)
+    monkeypatch.setattr(StudyRunner,'_prepare_pretreatment_rubrics',lambda *a:None)
+    monkeypatch.setattr(StudyRunner,'_revision_config',lambda self,a,resume:SimpleRevision(a.assignment_id,0))
+    calls=[]
+    monkeypatch.setattr(module,'run_submission_revision',lambda cfg,**kw:calls.append(cfg.assignment_id))
+    config=StudyRunConfig(exp,Path(exp.dag['seed']['output_dir']),Path(exp.dag['paraphrase']['output_dir']),root,8,assignment_ids=selected)
+    assert StudyRunner(config).run()==0
+    for assignment in exp.execution_assignments[:2]:
+        d=root/assignment.study_relative_path;d.mkdir(parents=True)
+        (d/'manifest.json').write_text(json.dumps({**{k:v for k,v in assignment.record_identity().items() if k!='experiment_dir'},
+            'kind':'rubric-gen-submission-revision-experiment','experiment_id':exp.experiment_id,
+            'benchmark':exp.benchmark.value,'task_dir':str(exp.task_dir(assignment.task_id))}))
+        (d/'state.json').write_text('{}')
+    assert StudyRunner(replace(config,resume=True,assignment_ids=None)).run()==0
+    ledger=json.loads((root/'study.json').read_text())
+    assert ledger['execution_assignment_ids']==list(selected)
+    assert set(calls)==set(selected) and len(calls)==2
+    assert len(ledger['records'])==18
+    assert sum(r['status']=='pending' for r in ledger['records'])==16

@@ -87,6 +87,12 @@ class Monitor:
                         self.audit_queue=event
                     elif name.startswith('audit_stage_'):
                         self.audit_stages[event['stage']]=event
+                        if name == 'audit_stage_completed' and event.get('exit_code') == 0:
+                            self.last_success = {'stage': event['stage'], 'time': event.get('time')}
+                    if name in ('audit_failed', 'audit_stage_failed'):
+                        self.last_failure = event
+                    elif name == 'assignment_completed':
+                        self.last_success = {'assignment_id': event['assignment_id'], 'time': event.get('time')}
                     elif name == 'audit_prepared':
                         for field in ('source_seconds','plan_seconds'):
                             self.preparation[field] += event[field]
@@ -107,7 +113,9 @@ class Monitor:
                     if name in ('operation_completed','operation_failed','operation_returned_failure'):
                         self.active_operations.pop(event['request_key'], None)
                         if name == 'operation_completed': self.last_success = {'operation': op, 'time': event.get('time')}
-                        else: self.last_failure = {'operation': op, 'time': event.get('time'), 'error_type': event.get('error_type')}
+                        else: self.last_failure = {'operation': op, 'time': event.get('time'),
+                            'error_type': event.get('error_type'), 'category': event.get('category'),
+                            'next_automatic_action': 'bounded operation owner decides retry; inspect attempt record'}
                         self.requests[event['request_key']]+=1
                         self.durations[op].append(event['elapsed_seconds'])
                     if name=='acquired' and event.get('kind')=='provider':self.waits.append(event['wait_seconds'])
@@ -126,12 +134,24 @@ class Monitor:
         active=Slots(self.root/"provider",policy()["aggregate_concurrency"]).active_count()
         elapsed=time.monotonic()-self.started
         def p95(values):return sorted(values)[min(len(values)-1,int(.95*len(values)))] if values else None
-        limits = []
+        limits = []; limit_sources = []; record_failures = []
         for study in self.studies:
             path = Path(study) / 'study.json'
-            if path.exists(): limits.append(json.loads(path.read_text()).get('max_concurrency_last_invocation', 0))
+            if path.exists():
+                manifest = json.loads(path.read_text())
+                limits.append(manifest.get('max_concurrency_last_invocation', 0))
+                limit_sources.append(manifest.get('assignment_worker_limit_source', 'recorded prior invocation; inspect launch.json'))
+                selected = manifest.get('execution_assignment_ids')
+                scope = manifest.get('execution_conditions')
+                record_failures.extend({k: row.get(k) for k in ('assignment_id', 'failure_category', 'next_automatic_action')}
+                    for row in manifest['records'] if row.get('status') == 'failed'
+                    and (scope is None or row['condition_id'] in scope)
+                    and (selected is None or row['assignment_id'] in selected))
         limit = sum(limits)
         waiting=collections.Counter(kind for kind,_ in self.pending_leases.values())
+        waiting_elapsed=collections.Counter()
+        for kind, began in self.pending_leases.values():
+            waiting_elapsed[kind] += max(0, time.time()-began)
         blocked=0
         for study in self.studies:
             path=Path(study)/'study.json'
@@ -141,10 +161,12 @@ class Monitor:
         rate = max(0, assignments['completed'] - self.baseline_completed) / max(elapsed, 1)
         result=dict(job_active_provider_reservations=sum(n for kind,n in self.leases.values() if kind == 'provider'),
             audit_phase=self.audit_phase, audit_stages=self.audit_stages,
+            audit_phase_elapsed_seconds=max(0, time.time()-self.audit_phase['time']) if self.audit_phase else None,
             audit_request_queue=self.audit_queue,
             aggregate_preparation_seconds=dict(self.preparation),
-            waiting_on=dict(waiting), dependency_blocked_assignments=blocked, orchestration_wait_seconds=dict(self.wait_seconds), live_operations=dict(collections.Counter(self.active_operations.values())),
+            waiting_on=dict(waiting), waiting_elapsed_seconds=dict(waiting_elapsed), dependency_blocked_assignments=blocked, orchestration_wait_seconds=dict(self.wait_seconds), live_operations=dict(collections.Counter(self.active_operations.values())),
             last_successful_unit=self.last_success, current_failure=self.last_failure,
+            assignment_failures=record_failures, assignment_worker_limit_sources=limit_sources,
             selected_assignments=sum(assignments.values()), ready_assignments=ready,
             active_assignment_workers=assignments['running'], configured_assignment_workers=limit,
             underfilled_ready_backlog=bool(ready and assignments['running'] < limit and active < policy()['aggregate_concurrency']),

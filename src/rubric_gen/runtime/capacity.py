@@ -311,8 +311,10 @@ def limited(operation, *, kind="provider", slots=None, returns_exit_code=False):
                                 except (TypeError, ValueError):
                                     retry_after = 60
                                 token_window.cool_down(retry_after)
+                            from rubric_gen.runtime.failures import failure_category
                             emit("operation_failed", operation=operation, request_key=request_key,
                                  error_type=type(exc).__name__, status_code=getattr(exc, "status_code", None),
+                                 category=failure_category(exc),
                                  elapsed_seconds=time.monotonic() - started)
                             raise
                         failed = (returns_exit_code and type(result) is int and result != 0) or getattr(result, "exit_code", 0) != 0
