@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T15:04:10-04:00",
+  "updated_at": "2026-09-12T15:18:30-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1970,7 +1970,36 @@
       "remaining_input_decision": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
       "audit_issue": "Permanent HTTP400 schema complexity in R1/R2 da-3-4; Semi/Score fixed six/eight Opus requests remain at native attempt limit; preserve all complete judgments"
     },
-    "seed_jobs_note": "Initial missing-only lanes 10415531/10415532 remain RUNNING; inventory 10415675 is afterany-held."
+    "seed_jobs_note": "Initial lane1 producer 10415531 failed after preserving task-local results because seed solver exited 1 for da-17-3 reps002/003, da-8-3 rep003, da-17-1 rep003, and da-20-1 reps001/002; lane0 10415532 remains active. Corrected lane resumes 10416317 (arg1 after 10415531) and 10416318 (arg0 after 10415532) replace cancelled mismatched retries 10416081/10416082. Manifest-only inventory 10416170 is retained; per-replicate inventory 10416323 is authoritative.",
+    "retry_correction": {
+      "identified_at": "2026-09-12T15:16:00-04:00",
+      "issue": "previous retries 10416081/10416082 had lane arguments crossed with their dependencies; 10416081 ran lane0 after lane1 producer 10415531 and 10416082 would have run lane1 after lane0 producer 10415532",
+      "cancelled_jobs": [
+        "10416081",
+        "10416082"
+      ],
+      "preserved_logs": [
+        "experiments/biomnibench-v21-to45/queue7/seeds-10416081.log",
+        "experiments/biomnibench-v21-to45/queue7/seeds-10416082.log"
+      ],
+      "corrected_jobs": {
+        "lane1": {
+          "job_id": "10416317",
+          "dependency": "afterany:10415531",
+          "argument": "1",
+          "scope": "native missing-only resume for the lane-1 task set"
+        },
+        "lane0": {
+          "job_id": "10416318",
+          "dependency": "afterany:10415532",
+          "argument": "0",
+          "scope": "native missing-only resume for the lane-0 task set"
+        }
+      },
+      "inventory_job": "10416323",
+      "inventory_scope": "provider-free per-replicate seed-state check after corrected retries"
+    },
+    "inventory_after_retries": "10416323"
   },
   "heldout_decision": {
     "status": "authorized",
@@ -2200,6 +2229,7 @@
     },
     "queue3_missing_audit_collector": "10415949",
     "results30_provider_free_inventory_after_retry": "10416169",
-    "results45_provider_free_inventory_after_retries": "10416170"
+    "results45_provider_free_inventory_after_retries": "10416170",
+    "results45_seed_state_check": "10416323"
   }
 }
