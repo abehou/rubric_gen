@@ -492,9 +492,10 @@ class RevisionScorer:
         projected = self._ordinary_checkpoint_feedback(**kwargs)
         if not self.trace_defense_enabled:
             return projected
+        from .user_delivery_v3 import V3_TRACE_VERSIONS
         if (
             FeedbackPolicy(self.config.feedback_policy) is FeedbackPolicy.USER_SIMULATOR
-            and self.config.red_team_trace_version == "attack_defense_v3"
+            and self.config.red_team_trace_version in V3_TRACE_VERSIONS
         ):
             # v3 delivers the selected rule privately through the simulator;
             # there is deliberately no fourth solver-visible message.
@@ -564,8 +565,9 @@ class RevisionScorer:
         )
         v3_delivery = None
         v3_base_status = None
+        from .user_delivery_v3 import V3_TRACE_VERSIONS
         v3_trace = (
-            self.config.red_team_trace_version == "attack_defense_v3"
+            self.config.red_team_trace_version in V3_TRACE_VERSIONS
             and policy is FeedbackPolicy.USER_SIMULATOR
         )
         if v3_trace:
@@ -676,7 +678,7 @@ class RevisionScorer:
                     / "feedback-generation-failures"
                     / submission_id
                 ),
-                trace_version=("attack_defense_v3" if v3_trace else None),
+                trace_version=(self.config.red_team_trace_version if v3_trace else None),
                 focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else None),
                 base_requirement_status=(v3_base_status if v3_trace else None),
             )
@@ -692,14 +694,21 @@ class RevisionScorer:
             current_artifact=current_artifact,
             history=history,
             history_summary=history_summary,
-            trace_version=("attack_defense_v3" if v3_trace else None),
+            trace_version=(self.config.red_team_trace_version if v3_trace else None),
             focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else None),
             base_requirement_status=(v3_base_status if v3_trace else None),
         )
+        effective_user_feedback = user_feedback
+        if v3_trace:
+            from .user_delivery_v3 import suppress_proactive_only_revision
+            effective_user_feedback = suppress_proactive_only_revision(
+                v3_delivery[0] if v3_delivery else None,
+                user_feedback,
+            )
         projected = project_rubric_simulated_user_feedback(
             generation,
             artifacts.score_validation_path,
-            user_feedback,
+            effective_user_feedback,
             task_instruction=task_instruction,
             first_revision=first_revision,
             reference_score=reference_score,
@@ -718,7 +727,7 @@ class RevisionScorer:
                 skipped=v3_delivery[1],
                 ordinary_prompt=projected.prompt,
                 allow_generation=allow_generation,
-                user_feedback=user_feedback,
+                user_feedback=effective_user_feedback,
             )
         return projected
 

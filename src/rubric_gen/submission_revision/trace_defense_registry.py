@@ -39,6 +39,10 @@ RECIPES = {
     'attack_defense_v2': _V2,
     'attack_defense_v2.1': _V21,
     'attack_defense_v3': _V3,
+    # v3.1 is the same v2.1 learner and attack recipe.  Its only additional
+    # behavior is the deterministic User-delivery guard documented in the v3
+    # dev iteration report; the version keeps request/replay identities apart.
+    'attack_defense_v3.1': _V3,
 }
 
 

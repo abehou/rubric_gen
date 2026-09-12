@@ -15,6 +15,7 @@ from rubric_gen.submission_revision.rubric_generation import ElicitedCriterion
 from rubric_gen.submission_revision.user_delivery_v3 import (
     persist_private_delivery,
     select_private_delivery,
+    suppress_proactive_only_revision,
 )
 from rubric_gen.submission_revision.user_simulator import (
     _feedback_request_v3,
@@ -132,6 +133,25 @@ class UserDeliveryV3Tests(unittest.TestCase):
         self.assertFalse(record["emitted"])
         self.assertEqual(record["omission_reason"], "proactive check not currently actionable")
 
+    def test_proactive_only_revision_is_projected_to_accept(self):
+        selection = {"corrective": False}
+        raw = {"decision": "revise", "concerns": [{
+            "category": "interpretation", "feedback": "Keep this check in mind.",
+            "origin": "dynamic_proactive",
+        }]}
+        self.assertEqual(
+            suppress_proactive_only_revision(selection, raw),
+            {"decision": "accept", "concerns": []},
+        )
+
+    def test_proactive_check_does_not_erase_base_concern(self):
+        selection = {"corrective": False}
+        raw = {"decision": "revise", "concerns": [
+            {"category": "interpretation", "feedback": "Keep this check in mind.", "origin": "dynamic_proactive"},
+            {"category": "task_fulfillment", "feedback": "Complete the requested output.", "origin": "base_requirement"},
+        ]}
+        self.assertEqual(suppress_proactive_only_revision(selection, raw), raw)
+
     def test_legacy_solver_prompt_has_no_v3_origin_or_fourth_message(self):
         payload = {"decision": "revise", "concerns": [{"category": "task_fulfillment", "feedback": "Finish the table."}]}
         prompt = render_revision_prompt("user_simulator", payload, task_instruction="Do task", first_revision=True)
@@ -155,9 +175,11 @@ class UserDeliveryV3Tests(unittest.TestCase):
     def test_v3_registry_reuses_v21_learning_path(self):
         from rubric_gen.submission_revision.trace_defense_registry import recipe
         v3 = recipe("attack_defense_v3")
+        v31 = recipe("attack_defense_v3.1")
         v21 = recipe("attack_defense_v2.1")
         self.assertEqual(v3.learning_module, v21.learning_module)
         self.assertEqual(v3.attack_module, v21.attack_module)
+        self.assertEqual(v31.learning_module, v21.learning_module)
 
     def test_v3_prompt_protects_satisfied_work_and_no_hidden_targets(self):
         request = _feedback_request_v3(

@@ -19,6 +19,7 @@ from .feedback import _validate_score_record
 
 _NUMERIC = re.compile(r"(?<![\w.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)%?")
 V3_VERSION = "attack_defense_v3"
+V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1"))
 
 USER_SIMULATOR_V3_INSTRUCTIONS = """Act as the same realistic user throughout the revision.
 
@@ -214,7 +215,7 @@ def persist_private_delivery(
         else:
             omission_reason = "simulator found the check unsupported by public evidence"
     record = {
-        "red_team_trace_version": V3_VERSION,
+        "red_team_trace_version": getattr(generation, "red_team_trace_version", None) or V3_VERSION,
         "delivery_mode": "user_simulator_private",
         "submission_id": submission_id,
         "solver_turn": int(submission_id[1:]) + 1,
@@ -241,6 +242,30 @@ def persist_private_delivery(
     else:
         raise RuntimeError("v3 private delivery receipt is missing")
     return record
+
+
+def suppress_proactive_only_revision(
+    selection: dict[str, Any] | None,
+    user_feedback: dict[str, Any],
+) -> dict[str, Any]:
+    """Enforce the declared rule that a nonviolated proactive check alone
+    cannot create another solver revision.
+
+    The simulator response remains retained verbatim in its generation record;
+    this deterministic delivery projection only prevents one proactive-only
+    concern from becoming a revise turn.  Base, general and corrective
+    concerns keep their original order and compete for the same three slots.
+    """
+    if not selection or selection.get("corrective"):
+        return user_feedback
+    if user_feedback.get("decision") != "revise":
+        return user_feedback
+    concerns = user_feedback.get("concerns")
+    if not isinstance(concerns, list) or not concerns:
+        return user_feedback
+    if all(isinstance(item, dict) and item.get("origin") == "dynamic_proactive" for item in concerns):
+        return {"decision": "accept", "concerns": []}
+    return user_feedback
 
 
 def os_path_exists(path: Path) -> bool:

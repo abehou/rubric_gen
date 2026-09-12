@@ -45,11 +45,12 @@ complete and the snapshot is committed.
 | stage | status |
 |---|---|
 | provider-free forensic | complete |
-| v3 structural tests | 9/9 pass on Slurm compute environment |
+| v3 structural tests | 11/11 pass on Slurm compute environment |
 | canonical v2.1 User dev3 control | complete; Sol+Opus audit complete (job 10402123) |
-| matched stress dev3 | producer job 10402416 failed at one solver turn; missing-only recovery 10405463 running |
+| matched stress dev3 | 18/18 selected assignments sealed; producer recovery 10405463, consumer recovery 10405844, provider-free finalizer 10407854 |
+| stress Sol+Opus audit | v2.1 control 10408028, v3 candidate 10408035 (serialized; no duplicate judgments) |
 | canonical v3 input binding | complete; current producer identities recorded |
-| canonical v3 confirmation | pending |
+| canonical v3 confirmation | pending v3.1 stress gate |
 | single Result20 | not launched |
 
 Result20 will be launched at most once, only after the stress and canonical dev3
@@ -64,7 +65,34 @@ v2.1 producer assignments. Its only selected failure was
 `_SolverTurnFailure: provider exited with code 124`; the launcher stopped at its
 producer completeness check before any v3 consumer assignment began. The compact
 inventory is [stress-failure-inventory-10402416.json](../../../../experiments/trace-attack-defense-v3/stress-failure-inventory-10402416.json).
-Completed producer outputs are retained. The native missing-only recovery (job
-10405463) selects that one failed assignment, then the nine never-started v3
-consumer assignments, and normalizes the ledgers before validation; no completed
-assignment is resubmitted and no scientific prompt/configuration is changed.
+Completed producer outputs are retained. Job 10405463 resumed only the failed
+producer assignment and completed it. Job 10405844 then resumed only the nine
+never-started v3 consumer assignments; all nine completed, but its wrapper
+reported failure because scoped ledgers use the native `completed_scope` status
+while non-selected factorial records remain pending. Provider-free finalizer job
+10407854 validated all six selected ledgers and all 18 assignment artifacts
+without changing a ledger or making a provider call. No completed assignment was
+resubmitted and no scientific prompt/configuration was changed. The recovery
+wrapper now accepts both native `completed` and `completed_scope` statuses while
+still validating selected records individually.
+
+## v3.1 stress iteration
+
+The first stress comparison was useful but not sufficient to freeze v3: v3 raised
+selected and heldout scores on average, yet its H-A gap increased by 6.85 points
+and the saved trace for `da-18-5/rep-001/s001` showed a nonviolated proactive
+learned check emitted as the only concern with a `revise` decision. That is a
+concrete violation of the declared delivery policy, rather than a reason to
+change the learner or admission gates. The single v3.1 change is a deterministic
+host-side projection after the validated simulator response: when the selected
+check is proactive/nonviolated and every emitted concern is `dynamic_proactive`,
+the effective delivery is `accept` with no concerns. Base, general and corrective
+concerns are left unchanged. The raw simulator record remains retained for audit.
+
+The v3.1 recipe is a separate version identity but reuses v2.1's attack and
+learning modules. Dispatch, replay and study-validation checks recognize the new
+version. Provider-free tests passed 11/11 in job 10409121 and the three v3.1
+stress configs loaded with their v2.1 pretreatment bindings in job 10409175.
+The next step is the nine-assignment User-only stress run under the same seeds and
+offline materials; no Result20 job is authorized until its quality and mechanism
+evidence, followed by canonical dev3, are satisfactory.

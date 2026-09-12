@@ -23,6 +23,7 @@ SIMULATED_USER_GENERATION_KIND = "submission-simulated-user-feedback"
 SIMULATED_USER_FAILURE_KIND = "submission-simulated-user-feedback-failure"
 SIMULATED_USER_HISTORY_SUMMARY_KIND = "submission-simulated-user-history-summary"
 MAX_SIMULATED_USER_SUMMARY_CHARS = 12_000
+V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1"))
 
 CONCERN_CATEGORIES = (
     "task_fulfillment",
@@ -289,7 +290,7 @@ class SimulatedUserFeedback:
             history=history,
             history_summary=history_summary,
         )
-        if trace_version == "attack_defense_v3":
+        if trace_version in V3_TRACE_VERSIONS:
             request = _feedback_request_v3(
                 instruction=instruction,
                 full_feedback_text=full_feedback_text,
@@ -333,7 +334,7 @@ class SimulatedUserFeedback:
                 output = _parse_feedback(
                     generated.text,
                     max_concerns=self.config.max_concerns,
-                    allow_origin=trace_version == "attack_defense_v3",
+                    allow_origin=trace_version in V3_TRACE_VERSIONS,
                 )
                 record: dict[str, object] = {
                     "kind": SIMULATED_USER_GENERATION_KIND,
@@ -355,7 +356,7 @@ class SimulatedUserFeedback:
                     "output": output,
                     "feedback_generation": generated.provenance(),
                 }
-                if trace_version == "attack_defense_v3":
+                if trace_version in V3_TRACE_VERSIONS:
                     record["trace_v3_context"] = {
                         "focused_dynamic_check": focused_dynamic_check,
                         "base_requirement_status": base_requirement_status or [],
@@ -472,7 +473,7 @@ class SimulatedUserFeedback:
             "base_requirement_status": base_requirement_status or [],
         }
         expected_keys = set(expected_keys)
-        if trace_version == "attack_defense_v3":
+        if trace_version in V3_TRACE_VERSIONS:
             expected_keys.add("trace_v3_context")
         elif trace_version is not None:
             raise ValueError("unsupported simulated-user trace context")
@@ -494,7 +495,7 @@ class SimulatedUserFeedback:
             or record.get("simulator") != self.identity()
             or type(attempt_count) is not int
             or not 1 <= attempt_count <= self.config.max_retries + 1
-            or (trace_version == "attack_defense_v3" and record.get("trace_v3_context") != expected_trace_context)
+            or (trace_version in V3_TRACE_VERSIONS and record.get("trace_v3_context") != expected_trace_context)
         ):
             raise ValueError("simulated-user generation has invalid identity")
         self._validate_generation_provenance(record.get("feedback_generation"))
@@ -504,7 +505,7 @@ class SimulatedUserFeedback:
         return _validate_feedback_output(
             output,
             max_concerns=self.config.max_concerns,
-            allow_origin=trace_version == "attack_defense_v3",
+            allow_origin=trace_version in V3_TRACE_VERSIONS,
         )
 
     def _history_context(

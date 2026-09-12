@@ -104,5 +104,5 @@ execution_audit_models:
 - claude-opus-5
 pretreatment_source:
   experiment: /home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-18-1.yaml
-  experiment_id: biomnibench-da-factorial-r10-b47ff80a8453
-  study_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-b47ff80a8453
+  experiment_id: biomnibench-da-factorial-r10-e44e429b51a6
+  study_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6

@@ -14,7 +14,20 @@ def main():
     for task in TASKS:
         for rep in range(1,4):
             root=RUN/task/f'rep-{rep:03d}'/'luna'/'user-simulator-red-team-trace'
-            files=[p for p in root.rglob('*') if p.is_file()]
-            out.append({'task':task,'replicate':rep,'root_exists':root.is_dir(),'file_count':len(files),'top_dirs':sorted({p.relative_to(root).parts[0] for p in files}) if root.is_dir() else [],'examples':[shape(p) for p in sorted(files)[:30]]})
+            files=[]
+            if root.is_dir():
+                for top in sorted(root.iterdir()):
+                    if not top.is_dir():
+                        if top.is_file(): files.append(top)
+                        continue
+                    for child in sorted(top.iterdir()):
+                        if child.is_file(): files.append(child)
+                        elif child.is_dir():
+                            for grandchild in sorted(child.iterdir()):
+                                if grandchild.is_file(): files.append(grandchild)
+                                if len(files) >= 50: break
+                        if len(files) >= 50: break
+                    if len(files) >= 50: break
+            out.append({'task':task,'replicate':rep,'root_exists':root.is_dir(),'bounded_file_count':len(files),'top_entries':sorted(p.name for p in root.iterdir()) if root.is_dir() else [],'examples':[shape(p) for p in files[:30]]})
     print(json.dumps(out,indent=2,ensure_ascii=False))
 if __name__=='__main__':main()

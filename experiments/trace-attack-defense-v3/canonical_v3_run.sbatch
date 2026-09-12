@@ -3,7 +3,10 @@
 #SBATCH --partition=preempt
 #SBATCH --qos=preempt_cpu_qos
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=256G
+# The v2.1 canonical control reached the 256G cgroup ceiling during otherwise
+# healthy provider work; keep the same 32 CPUs and serialized runner on 512G.
+# This changes resource headroom only, not scientific inputs or assignment scope.
+#SBATCH --mem=512G
 #SBATCH --time=2-00:00:00
 #SBATCH --job-name=trace-v3-canonical
 #SBATCH --output=/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/canonical-v3-%j.log

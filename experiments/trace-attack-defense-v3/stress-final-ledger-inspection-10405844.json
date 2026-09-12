@@ -1,0 +1,191 @@
+{
+  "job": "10407787",
+  "rows": [
+    {
+      "flavor": "v21-control",
+      "task": "da-15-1",
+      "study_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v21-control/da-15-1/study/biomnibench-da-factorial-r10-9a077f8c8346",
+      "ledger_status": "completed_scope",
+      "execution_conditions": [
+        "user-simulator-red-team-trace"
+      ],
+      "record_statuses": {
+        "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-002--solver-luna--user-simulator-red-team-trace": "completed"
+      },
+      "all_record_statuses": {
+        "da-15-1--rep-002--solver-luna--user-simulator-static": "pending",
+        "da-15-1--rep-001--solver-luna--user-simulator-static": "pending",
+        "da-15-1--rep-003--solver-luna--full-red-team-trace": "pending",
+        "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-002--solver-luna--full-static": "pending",
+        "da-15-1--rep-002--solver-luna--full-red-team-trace": "pending",
+        "da-15-1--rep-001--solver-luna--full-red-team-trace": "pending",
+        "da-15-1--rep-002--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-001--solver-luna--full-static": "pending",
+        "da-15-1--rep-003--solver-luna--full-static": "pending",
+        "da-15-1--rep-003--solver-luna--user-simulator-static": "pending"
+      },
+      "selected_count": 3,
+      "selected_completed": 3,
+      "all_count": 12
+    },
+    {
+      "flavor": "v21-control",
+      "task": "da-13-6",
+      "study_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v21-control/da-13-6/study/biomnibench-da-factorial-r10-0cc10d3cda04",
+      "ledger_status": "completed_scope",
+      "execution_conditions": [
+        "user-simulator-red-team-trace"
+      ],
+      "record_statuses": {
+        "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-002--solver-luna--user-simulator-red-team-trace": "completed"
+      },
+      "all_record_statuses": {
+        "da-13-6--rep-002--solver-luna--user-simulator-static": "pending",
+        "da-13-6--rep-001--solver-luna--user-simulator-static": "pending",
+        "da-13-6--rep-003--solver-luna--full-red-team-trace": "pending",
+        "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-002--solver-luna--full-static": "pending",
+        "da-13-6--rep-002--solver-luna--full-red-team-trace": "pending",
+        "da-13-6--rep-001--solver-luna--full-red-team-trace": "pending",
+        "da-13-6--rep-002--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-001--solver-luna--full-static": "pending",
+        "da-13-6--rep-003--solver-luna--full-static": "pending",
+        "da-13-6--rep-003--solver-luna--user-simulator-static": "pending"
+      },
+      "selected_count": 3,
+      "selected_completed": 3,
+      "all_count": 12
+    },
+    {
+      "flavor": "v21-control",
+      "task": "da-18-5",
+      "study_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v21-control/da-18-5/study/biomnibench-da-factorial-r10-a53feb36c969",
+      "ledger_status": "completed_scope",
+      "execution_conditions": [
+        "user-simulator-red-team-trace"
+      ],
+      "record_statuses": {
+        "da-18-5--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace": "completed"
+      },
+      "all_record_statuses": {
+        "da-18-5--rep-002--solver-luna--user-simulator-static": "pending",
+        "da-18-5--rep-001--solver-luna--user-simulator-static": "pending",
+        "da-18-5--rep-003--solver-luna--full-red-team-trace": "pending",
+        "da-18-5--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-002--solver-luna--full-static": "pending",
+        "da-18-5--rep-002--solver-luna--full-red-team-trace": "pending",
+        "da-18-5--rep-001--solver-luna--full-red-team-trace": "pending",
+        "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-001--solver-luna--full-static": "pending",
+        "da-18-5--rep-003--solver-luna--full-static": "pending",
+        "da-18-5--rep-003--solver-luna--user-simulator-static": "pending"
+      },
+      "selected_count": 3,
+      "selected_completed": 3,
+      "all_count": 12
+    },
+    {
+      "flavor": "v3-candidate",
+      "task": "da-15-1",
+      "study_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-15-1/study/biomnibench-da-factorial-r10-6acf315677b9",
+      "ledger_status": "completed_scope",
+      "execution_conditions": [
+        "user-simulator-red-team-trace"
+      ],
+      "record_statuses": {
+        "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-002--solver-luna--user-simulator-red-team-trace": "completed"
+      },
+      "all_record_statuses": {
+        "da-15-1--rep-002--solver-luna--user-simulator-static": "pending",
+        "da-15-1--rep-001--solver-luna--user-simulator-static": "pending",
+        "da-15-1--rep-003--solver-luna--full-red-team-trace": "pending",
+        "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-002--solver-luna--full-static": "pending",
+        "da-15-1--rep-002--solver-luna--full-red-team-trace": "pending",
+        "da-15-1--rep-001--solver-luna--full-red-team-trace": "pending",
+        "da-15-1--rep-002--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-15-1--rep-001--solver-luna--full-static": "pending",
+        "da-15-1--rep-003--solver-luna--full-static": "pending",
+        "da-15-1--rep-003--solver-luna--user-simulator-static": "pending"
+      },
+      "selected_count": 3,
+      "selected_completed": 3,
+      "all_count": 12
+    },
+    {
+      "flavor": "v3-candidate",
+      "task": "da-13-6",
+      "study_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-13-6/study/biomnibench-da-factorial-r10-e357985e24f9",
+      "ledger_status": "completed_scope",
+      "execution_conditions": [
+        "user-simulator-red-team-trace"
+      ],
+      "record_statuses": {
+        "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-002--solver-luna--user-simulator-red-team-trace": "completed"
+      },
+      "all_record_statuses": {
+        "da-13-6--rep-002--solver-luna--user-simulator-static": "pending",
+        "da-13-6--rep-001--solver-luna--user-simulator-static": "pending",
+        "da-13-6--rep-003--solver-luna--full-red-team-trace": "pending",
+        "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-002--solver-luna--full-static": "pending",
+        "da-13-6--rep-002--solver-luna--full-red-team-trace": "pending",
+        "da-13-6--rep-001--solver-luna--full-red-team-trace": "pending",
+        "da-13-6--rep-002--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-13-6--rep-001--solver-luna--full-static": "pending",
+        "da-13-6--rep-003--solver-luna--full-static": "pending",
+        "da-13-6--rep-003--solver-luna--user-simulator-static": "pending"
+      },
+      "selected_count": 3,
+      "selected_completed": 3,
+      "all_count": 12
+    },
+    {
+      "flavor": "v3-candidate",
+      "task": "da-18-5",
+      "study_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-18-5/study/biomnibench-da-factorial-r10-e26d8b302f18",
+      "ledger_status": "completed_scope",
+      "execution_conditions": [
+        "user-simulator-red-team-trace"
+      ],
+      "record_statuses": {
+        "da-18-5--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace": "completed"
+      },
+      "all_record_statuses": {
+        "da-18-5--rep-002--solver-luna--user-simulator-static": "pending",
+        "da-18-5--rep-001--solver-luna--user-simulator-static": "pending",
+        "da-18-5--rep-003--solver-luna--full-red-team-trace": "pending",
+        "da-18-5--rep-003--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-001--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-002--solver-luna--full-static": "pending",
+        "da-18-5--rep-002--solver-luna--full-red-team-trace": "pending",
+        "da-18-5--rep-001--solver-luna--full-red-team-trace": "pending",
+        "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace": "completed",
+        "da-18-5--rep-001--solver-luna--full-static": "pending",
+        "da-18-5--rep-003--solver-luna--full-static": "pending",
+        "da-18-5--rep-003--solver-luna--user-simulator-static": "pending"
+      },
+      "selected_count": 3,
+      "selected_completed": 3,
+      "all_count": 12
+    }
+  ]
+}

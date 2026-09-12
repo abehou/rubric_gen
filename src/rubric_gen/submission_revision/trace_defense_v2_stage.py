@@ -21,7 +21,7 @@ def contract_source_hashes(version=None):
     names = (
         'trace_defense_evidence_v2.py', 'trace_defense_v2_schema.py', 'trace_defense_v2_stage.py',
         'trace_defense_v2_prompts.py', 'trace_defense.py', 'trace_defense_schema.py')
-    if version in {'attack_defense_v2.1', 'attack_defense_v3'}:
+    if version in {'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1'}:
         names += ('trace_defense_v21.py',)
     return {name: sha256_file(root/name) for name in names}
 
@@ -33,7 +33,7 @@ class TraceStagesV2:
         from .trace_defense_registry import recipe
         if recipe(self.version).family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
-        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1', 'attack_defense_v3'}:
+        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
 

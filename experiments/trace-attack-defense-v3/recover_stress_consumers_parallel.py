@@ -81,7 +81,12 @@ def main() -> None:
     for item in producer + consumer:
         flavor, task, _, exp, runner = item
         ledger = json.loads((runner.root / "study.json").read_text())
-        if ledger.get("status") != "completed":
+        # Scoped studies intentionally retain non-selected factorial records as
+        # pending.  StudyRunner therefore seals their ledger as
+        # ``completed_scope``; treating that native terminal status as a
+        # failure caused a false-negative after all consumer assignments had
+        # completed.  Keep the selected-record validation below authoritative.
+        if ledger.get("status") not in {"completed", "completed_scope"}:
             raise RuntimeError(f"final stress ledger is not complete: {flavor}/{task}")
         selected_records = [r for r in ledger["records"] if r["condition_id"] in exp.execution_conditions]
         if len(selected_records) != 3 or any(r["status"] != "completed" for r in selected_records):

@@ -593,3 +593,7 @@
 ## 2026-09-11 — attack_defense_v3 User delivery
 
 - 11:12 EDT: The v3 adapter keeps the v2.1 deterministic criterion selector and moves its selected rule into the existing three-concern User-simulator request. Private origin labels and base-requirement status are persisted for mechanism analysis and stripped from the solver payload; the v2.1 Full and legacy User branches retain their existing rendering path.
+
+## 2026-09-11 — attack_defense_v3.1 User delivery
+
+- 23:00 EDT: Review found that prompt text alone did not enforce the declared “proactive-only does not force revise” rule in the saved stress trace. The patch is limited to an ordinary deterministic response projection after validation: it changes only a User trace response whose selected rule is proactive/nonviolated and whose every emitted concern is `dynamic_proactive`; base, general and corrective concerns remain byte-for-byte untouched. Dispatch/validation paths explicitly recognize the new recipe version so replay cannot fall back to v3 behavior.

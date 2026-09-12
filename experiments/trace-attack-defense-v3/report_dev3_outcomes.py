@@ -105,7 +105,13 @@ def reconstruct(config_path: Path):
         assert digest(weak_validation) == reference["score_validation_sha256"]
         assert digest(weak_evaluation) == reference["evaluation_sha256"]
         weak_score = read(weak_validation)["score"]
-        assert weak_score == read(weak_evaluation)["total_score"] == reference["score"]
+        # The score binding is stored on the native rubric-evaluation object;
+        # feedback_reference itself contains only hashes and rubric identity.
+        # Keep this adapter read-only across v2.1/v3 records.
+        reference_score = evaluation.get("reference_score")
+        if not isinstance(reference_score, (int, float)):
+            raise ValueError("rubric evaluation lacks its native reference score")
+        assert weak_score == read(weak_evaluation)["total_score"] == reference_score
         assert evaluation["score"] == max(0, weak_score + evaluation["elicited_penalty"])
 
         for model in PANEL:
@@ -123,7 +129,7 @@ def reconstruct(config_path: Path):
             quality_ref, quality, quality_path = quality_refs[assignment_id, model, "final"]
             assert quality_ref["submission_id"] == submission_id
             assert quality["submission_content_sha256"] in submission_hashes
-            W = reference["score"]
+            W = reference_score
             W_train = evaluation["score"]
             S = selected[1]["score"]
             H = mean(item[1]["score"] for item in heldout)

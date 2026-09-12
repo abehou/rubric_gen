@@ -1,0 +1,38 @@
+{
+  "cohort": "canonical",
+  "flavor": "control-v21-compatible",
+  "gemini": "not configured for this authoritative development audit",
+  "job": "10402123",
+  "kind": "dev3_sol_opus_audit",
+  "panel": [
+    "gpt-5.6-sol",
+    "claude-opus-5"
+  ],
+  "reuse_adapter": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v21/audit_reuse.py",
+  "tasks": [
+    {
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/audit/biomnibench-da-factorial-r10-62e39def3939",
+      "config_sha256": "a14ee832f3e814aee376c2dec659a50fbc1d7c381de3f2fbf96adcd792ad81a8",
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939",
+      "task": "da-3-4"
+    },
+    {
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/audit/biomnibench-da-factorial-r10-dddf5e1c5878",
+      "config_sha256": "1df18362c10cf8b9a27cc34e253b34d97d11fe026860226107d4e18806abfed3",
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878",
+      "task": "da-11-1"
+    },
+    {
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/audit/biomnibench-da-factorial-r10-e44e429b51a6",
+      "config_sha256": "7c33c5fea2fd8563f8103802e98ef630cf790edc08b60edb0f40810740bd2c57",
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6",
+      "task": "da-18-1"
+    }
+  ]
+}
