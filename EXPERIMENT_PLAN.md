@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 4 Results20 promotion
+
+- 11:15 EDT: The user authorizes all eight Semi/Score-only non-trace Results20 cells after corrected dev3 validation, preserving canonical20tasks/3replicates, exact existing inputs, settings and Sol+Opus panel. Ready cells may run independently while the remaining learned wave waits for successful dev3 validation and native shared-pretreatment reuse; no CPU patch or trace condition is included.
+
 ## 2026-09-12 — v3 development closed without advancement
 
 - 05:55 EDT: The third stress candidate completes 9/9 and all 330 required judgments but loses 6.33 A points and increases S−H/H−A versus its matched v2.1 control. The authorized three-iteration loop is exhausted; no canonical v3, four-policy comparison, Result20, or further variant is launched.

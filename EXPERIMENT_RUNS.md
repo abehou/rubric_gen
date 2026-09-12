@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 4 Results20 promotion
+
+- 11:15 EDT: Pinned executionfdd5403 owns Results20 scopes semi-score-fixed(10414738;120),score-only-offline(10414739;60),semi-score-learned-rest(10414740;300,afterok10414739:10414505), with audit owners10414746/47/48; new dev3 audits10414751/52 use the same repaired source and original configs. Absolute outputs and exact commands are in the [Queue4 receipt](docs/reports/2026-09-12/paperbench-nontrace-results20/queue4-status.json); existing static recovery10414690 and other-session jobs remain untouched.
+
 ## 2026-09-12 — PaperBench Queue 3 v8 recovery
 
 - 10:51 EDT: Static Results20 audit owner10414690 resumes the existing results20-seed-reuse-fixed namespace from pinnedc6ec87b in runs/babel-code/paperbench-opus-cardinality-20260912, using the original producer overlay. After two zero-call replays and two published smokes, only136 Opus rubric judgments remain; retain this checkout while the pending/running owner depends on it.

@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 4 Results20 promotion
+
+- 11:15 EDT: Native dev3 validation now confirms70/72 Semi/Score-only assignments, with only two healthy Score-only-artifact trajectories remaining; submitted Results20 owners10414738/39/40 for480 assignments and native audit dependencies, preserving all prior work. Actual349 score-only delivered turns contain only numeric feedback plus standard instructions across all four rubric policies; [Queue4 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
+
 ## 2026-09-12 — PaperBench Queue 3 v8 recovery
 
 - 10:51 EDT: Published two proven v5 Opus replays with zero calls, then both single-call v8 production smokes passed exact306/872 coverage and native reuse; static audit is now900 Sol/764 Opus, with all prior files preserved. Submitted native recovery10414690 for only136 missing Opus judgments while dev3 revisions continue; [Queue3 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).

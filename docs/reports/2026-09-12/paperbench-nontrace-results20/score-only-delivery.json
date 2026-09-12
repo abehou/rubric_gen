@@ -1,0 +1,96 @@
+{
+  "source_commit": "4f67a3b8daca4a545d9c0a67578b283296e63823",
+  "provider_calls": 0,
+  "scientific_writes": 0,
+  "assignments": 36,
+  "totals": {
+    "assignments": 36,
+    "feedback_records": 349,
+    "matching_started_attempts": 349,
+    "matching_turn_prompts": 349
+  },
+  "by_rubric_policy": {
+    "fixed": {
+      "assignments": 9,
+      "feedback_records": 87,
+      "matching_started_attempts": 87,
+      "matching_turn_prompts": 87,
+      "feedback_keys": [
+        "score"
+      ],
+      "generation_rounds": [
+        0
+      ],
+      "nonzero_penalty_turns": 0,
+      "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-fixed/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/semantic-self-consistency/rep-001/luna/score-only-static/turns/turn-001/prompt.txt",
+      "example_score_line": "Rubric score: 22.705/100"
+    },
+    "offline_elicitation": {
+      "assignments": 9,
+      "feedback_records": 87,
+      "matching_started_attempts": 87,
+      "matching_turn_prompts": 87,
+      "feedback_keys": [
+        "score"
+      ],
+      "generation_rounds": [
+        0,
+        1
+      ],
+      "nonzero_penalty_turns": 18,
+      "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-learned/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/semantic-self-consistency/rep-001/luna/score-only-offline-rubric/turns/turn-001/prompt.txt",
+      "example_score_line": "Rubric score: 22.705/100"
+    },
+    "online_elicitation": {
+      "assignments": 9,
+      "feedback_records": 90,
+      "matching_started_attempts": 90,
+      "matching_turn_prompts": 90,
+      "feedback_keys": [
+        "score"
+      ],
+      "generation_rounds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "nonzero_penalty_turns": 20,
+      "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-learned/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/self-expansion/rep-001/luna/score-only-online-rubric/turns/turn-001/prompt.txt",
+      "example_score_line": "Rubric score: 10.4249/100"
+    },
+    "red_team_artifact": {
+      "assignments": 9,
+      "feedback_records": 85,
+      "matching_started_attempts": 85,
+      "matching_turn_prompts": 85,
+      "feedback_keys": [
+        "score"
+      ],
+      "generation_rounds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "nonzero_penalty_turns": 16,
+      "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-learned/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/self-composing-policies/rep-002/luna/score-only-red-team-artifact/turns/turn-001/prompt.txt",
+      "example_score_line": "Rubric score: 32.682/100"
+    }
+  },
+  "errors": [],
+  "policy_reminders_enabled": 0,
+  "interpretation": "Numeric score feedback plus standard task/revision instructions; no rubric-policy criterion or reminder text in the inspected delivered messages. Learned penalties can alter the scalar score."
+}

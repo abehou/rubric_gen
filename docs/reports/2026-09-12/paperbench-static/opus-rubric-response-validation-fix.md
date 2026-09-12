@@ -17,7 +17,7 @@ Each record's `usage.local_response_replay` retains the exact original attempt/r
 
 ## Current staged validation
 
-**792 focused tests passed in 94.38s**, Slurm step `10414497.3`. Tests cover cardinalities 1, 63, 64, 67, 86, 92, 120, 145, 178, 255, 306, 403 and 872, historical/current canonical score equivalence, malformed and absent rows, the observed v7 omission, 760-valid/140-missing resume fixtures, no imputation, Sol behavior, and streaming/inactivity/capacity regression. One existing Python multiprocessing fork deprecation warning was emitted; no failure.
+**792 focused tests passed in 94.38s**, Slurm step `10414497.5`. Tests cover cardinalities 1, 63, 64, 67, 86, 92, 120, 145, 178, 255, 306, 403 and 872, historical/current canonical score equivalence, malformed and absent rows, the observed v7 omission, 760-valid/140-missing resume fixtures, no imputation, Sol behavior, and streaming/inactivity/capacity regression. One existing Python multiprocessing fork deprecation warning was emitted; no failure.
 
 **Real native read-only validation passed**, Slurm step `10414497.4`, 234.615s. It revalidated all 120 completed revision targets, reused 900 Sol and 762 Opus judgments, and schedules exactly **138 missing Opus / zero Sol / zero valid Opus / zero detector / zero holistic** provider jobs. All 4572 files belonging to the 762 valid Opus records compare byte-identical. Scientific writes and network access were prohibited. Four detector windows retain 240 records each, absolute retains 360 and pairwise 240.
 
