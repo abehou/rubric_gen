@@ -2275,3 +2275,7 @@
 ## 2026-09-12 — Queue 2 parallel appendix comparison dispatched
 
 - 10:09 EDT: R1/R2 began from tested execution `534e797` with unchanged v2.1 learner/simulator and exact canonical pretreatment reuse; all 18 new assignments are active without recorded failures, while the completed 9/336 control is retained. Native audit/report dependencies are submitted; [diagnosis and job record](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) distinguish observed appendix opportunities from unproven causes.
+
+## 2026-09-12 — PaperBench missing dev3 cells submitted
+
+- 10:10 EDT: Native read-only job10414492 revalidated all18 corrected Full/User fixed revisions, nine common seeds and15 variants; all126 missing assignments are submitted, with40 active at the latest snapshot and no recorded failures. Three native shared pretreatment rubrics are complete, Full/User non-static waits on their source scope, and no Opus work or CPU-profile patch was mixed into this queue.

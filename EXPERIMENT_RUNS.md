@@ -1290,3 +1290,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 09:59 EDT: Read-only control exports10414381/10414389, tests10414430(86passed), and completed native seed/g1/paraphrase validation10414436 support R1/R2 configs under experiments/biomnibench-v21-to45/queue2; no scientific calls yet. New outputs use /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/{R1,R2}, with the existing9/336control reused; source/job dispatch will be recorded in the shared mission status.
 
 - 10:09 EDT: Queue 2 execution `534e797` submitted producers 10414481–10414486 (R1/R2, 18 new canonical User assignments, 4 CPUs/job), audits 10414487/10414488 (8 CPUs, all four RH windows, shared lease), and dependent report 10414489 (1 CPU). The existing 9/336 control remains reused; exact commands, paths and healthy startup appear in experiments/biomnibench-v21-to45/status.json.
+
+## 2026-09-12 — PaperBench non-trace dev3 execution
+
+- 10:10 EDT: Pinned source 4f67a3b owns A=10414496 (18 Semi/Score fixed, 8 CPUs/workers), B=10414497 (54 Semi/Score non-static, 32 CPUs/workers), and C=10414499 (54 Full/User non-static, afterok B, 32 CPUs/workers), with native collectors 10414504/10414505/10414506. Exact paths, commands, IDs, shared inputs, and dependencies are in [the current dev3 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md); audits remain pending and the old static scientific namespaces are unchanged.
