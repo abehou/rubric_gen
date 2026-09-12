@@ -98,7 +98,13 @@ def rows_for_result20(adapter: Any) -> list[dict[str, Any]]:
     if not completion["success"]:
         raise ValueError("Result20 completion receipt is not successful")
     identity = completion["experiment_id"]
-    _, rows = adapter.reconstruct(run / "study" / identity, run / "audit" / identity, PANEL)
+    # Reuse the rows already reconstructed and validated by the completed v2.1
+    # reporting snapshot. Re-evaluating its historical YAML under today's code
+    # changes its derived identity and is not a valid historical validation.
+    source = run / "report" / "candidate-rows.json"
+    rows = json.loads(source.read_text())
+    if len(rows) != 240 or len({(r["condition_id"], r["task_id"], r["replicate"], r["model"]) for r in rows}) != 240:
+        raise ValueError("saved v2.1 report does not contain its complete 120-assignment panel")
     for row in rows:
         for native, name in (("WS", "W_minus_S"), ("WA", "W_minus_A"),
                              ("SH", "S_minus_H"), ("HA", "H_minus_A")):

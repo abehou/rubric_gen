@@ -206,6 +206,7 @@ def paired(left, right):
     for key in sorted(lhs):
         a, b = lhs[key], rhs[key]
         assert a["initial_submission_sha256"] == b["initial_submission_sha256"]
+        assert a["selected_rubric_sha256"] == b["selected_rubric_sha256"]
         delta = {metric: add_values(a)[metric] - add_values(b)[metric] for metric in add_values(a)}
         rows.append({"task_id": key[0], "replicate": key[1], "model": key[2],
                      "selected_rubric_same": a["selected_rubric_sha256"] == b["selected_rubric_sha256"],
