@@ -1,0 +1,32 @@
+{
+  "mission_started_at": "2026-09-12T09:27:31-04:00",
+  "timezone": "America/New_York",
+  "queue_item": 1,
+  "state": "queue_1_complete",
+  "reference_recipe": "attack_defense_v2.1",
+  "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
+  "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
+  "inventory_job": "10414358",
+  "scientific_jobs_dispatched": [],
+  "provider_calls": 0,
+  "checkpoint_window": [
+    "2026-09-12T18:27:31-04:00",
+    "2026-09-12T19:27:31-04:00"
+  ],
+  "next_action": "Queue item 2: declare and execute its v2.1-based treatment package; do not duplicate completed work.",
+  "updated_at": "2026-09-12T09:38:00.587193-04:00",
+  "inventory_job_state": "COMPLETED",
+  "inventory_job_exit": "0:0",
+  "inventory_job_elapsed_seconds": 5,
+  "reference_coverage": {
+    "result20_trace_assignments": 120,
+    "result20_trace_judgments": 3668,
+    "canonical_user_control_assignments": 9,
+    "canonical_user_control_judgments": 336
+  },
+  "remaining_preparation": [
+    "Results30 membership and new mission condition scope",
+    "Additional25 canonical V2-compatible heldouts",
+    "Additional25 compatible seed/g1/static and judgments unless native compatible evidence is found"
+  ]
+}

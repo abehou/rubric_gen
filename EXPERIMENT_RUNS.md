@@ -1280,3 +1280,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 08:20 EDT: New P1/P2 feedback-only root: /data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks; source inputs remain the twelve sealed trace-user-parallel-diagnostics checkpoints. Code/config/report bundle is experiments/trace-user-public-evidence-firewall and docs/reports/2026-09-12/trace-user-public-evidence-firewall; no historical calls or trajectories repeated.
 
 - 08:40 EDT: P1/P2 feedback-checks now contains 24 complete result packets and an archive of the collected 108-stage results; scientific job 10414101 completed 0:0 in 2m25s, final replay 10414123 used no provider calls. Both variants stopped at feedback review, so prepared canonical configs remain unexecuted and the existing 9/9 v2.1 control/336 judgments are unchanged.
+
+## 2026-09-12 — v2.1 to Results45 inventory
+
+- 09:38 EDT: Read-only job10414358 completed 0:0 in5s,1CPU,0provider calls; [inventory](docs/reports/2026-09-12/biomnibench-v21-to45/inventory.json) found45data tasks/646size-matching files, existing120/3668 Result20 and9/336 canonical-control records, only20canonicalV2 tasks, and no planned45seed directory. One [mission status](experiments/biomnibench-v21-to45/status.json) records the09:27EDT start and18:27–19:27EDT checkpoint window; no scientific jobs launched.

@@ -2259,3 +2259,7 @@
 - 08:23 EDT: P1/P2 replace raw private-to-User prose with a structural locator and public-only review; P2 adds independent public verification. The exact prior twelve checkpoints are fixed, separate v2.1 reminders/learner are unchanged, and only candidates passing substantive feedback review may advance to canonical dev3.
 
 - 08:40 EDT: Frozen e0b996a job 10414101 completed all 24 P1/P2 checks (108 first-attempt-valid calls); no known private-name leak survived, but repeated public-code errors block P1 and suppression of real executable defects blocks P2. No canonical trajectories/audits launched; final provider-free replay 10414123 validated all 24/108 unchanged and the complete no-winner report is published under trace-user-public-evidence-firewall.
+
+## 2026-09-12 — Mission scope and scale-input inventory
+
+- 09:38 EDT: Restarted planning from v2.1, preserving closed D×G/P1/P2 failures and the shared runtime; confirmed the historical45-task membership is preparation rather than45executed tasks, and no30-task membership was located. Published [reuse/missing-input inventory](docs/reports/2026-09-12/biomnibench-v21-to45/README.md); further packages come from the new queue, not the superseded simulator redesign.
