@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 5 Full/User Results20
+
+- 11:34 EDT: Queue5 authorizes the six Full/User non-static Results20 conditions only after corrected dev3 native validation, preserving120 completed static revisions and the existing shared starting-rubric producer. Keep each native offline/online/artifact policy distinct; no trace or CPU-profile change.
+
 ## 2026-09-12 — PaperBench Queue 4 Results20 promotion
 
 - 11:15 EDT: The user authorizes all eight Semi/Score-only non-trace Results20 cells after corrected dev3 validation, preserving canonical20tasks/3replicates, exact existing inputs, settings and Sol+Opus panel. Ready cells may run independently while the remaining learned wave waits for successful dev3 validation and native shared-pretreatment reuse; no CPU patch or trace condition is included.
