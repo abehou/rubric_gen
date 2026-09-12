@@ -15,6 +15,7 @@ import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
+from statistics import mean
 from typing import Any
 
 BUNDLE = Path(__file__).resolve().parent
@@ -60,14 +61,15 @@ def assignment_root(flavor: str, task: str, replicate: int) -> Path:
     # StudyRunner places assignment directories below the sealed
     # ``study/<experiment_id>/experiments`` root, not directly below the
     # task directory.  Resolve that native layout deterministically.
-    matches = sorted((RUN / flavor / task / "study").glob(f"*/experiments/{task}/rep-{replicate:03d}/luna/user-simulator-red-team-trace"))
+    flavor_run = RUN.parent / "stress-iter1" if flavor == "v21-control" else RUN
+    matches = sorted((flavor_run / flavor / task / "study").glob(f"*/experiments/{task}/rep-{replicate:03d}/luna/user-simulator-red-team-trace"))
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
         raise RuntimeError(f"ambiguous stress assignment roots for {flavor}/{task}/rep-{replicate}: {matches}")
     # Keep the missing-root path explicit for an incomplete/malformed cohort;
     # callers will preserve that fact instead of inventing evidence.
-    return RUN / flavor / task / f"rep-{replicate:03d}" / "luna" / "user-simulator-red-team-trace"
+    raise FileNotFoundError(f"missing sealed assignment: {flavor}/{task}/{replicate}")
 
 
 def load_outcome_rows(cohort: str) -> dict[tuple[str, str, int], dict[str, Any]]:
@@ -95,10 +97,11 @@ def load_outcome_rows(cohort: str) -> dict[tuple[str, str, int], dict[str, Any]]
             for row in rows:
                 grouped[(row["task_id"], int(row["replicate"]))].append(row)
             for key, values in grouped.items():
-                # Same score values are present for both auditors; RH retains
-                # individual decisions for the paired audit evidence.
+                # Strong/heldout/holistic scores differ by auditor. Preserve
+                # the complete panel and average at assignment level.
                 first = values[0]
-                row = {"values": dict(first["values"]), "direct": {}}
+                assert len(values) == 2 and {v["model"] for v in values} == set(module.PANEL)
+                row = {"values": {metric: mean(v["values"][metric] for v in values) for metric in first["values"]}, "direct": {}}
                 for window in first["direct"]:
                     row["direct"][window] = {
                         "decisions": [v["direct"][window]["decision"] for v in values],
@@ -153,7 +156,7 @@ def classify_case(delta: dict[str, Any], turns: list[dict[str, Any]]) -> tuple[s
 
 def collect_case(flavor: str, task: str, replicate: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     root = assignment_root(flavor, task, replicate)
-    state = read_optional(root / "state.json")
+    state = load_json(root / "state.json")
     turns: list[dict[str, Any]] = []
     submissions = sorted((root / "submissions").glob("s[0-9][0-9][0-9]"))
     for submission in submissions:
@@ -169,12 +172,20 @@ def collect_case(flavor: str, task: str, replicate: int) -> tuple[dict[str, Any]
         generation = read_optional(generation_path)
         reminder = read_optional(reminder_path)
         output = generation.get("output") if isinstance(generation.get("output"), dict) else {}
+        raw_concerns = output.get("concerns", [])
+        effective_concerns = feedback.get("concerns", [])
+        prompt_path = root / "turns" / f"turn-{int(sid[1:]) + 1:03d}" / "prompt.txt"
         turns.append({
             "submission_id": sid,
             "feedback_path": str(feedback_path),
             "feedback_sha256": digest(feedback_path),
             "feedback_decision": feedback.get("decision"),
-            "concerns": output.get("concerns", []) if isinstance(output, dict) else [],
+            "concerns": raw_concerns,
+            "effective_concerns": effective_concerns,
+            "raw_decision": output.get("decision"),
+            "raw_proactive_only_revise": bool(output.get("decision") == "revise" and raw_concerns and all(c.get("origin") == "dynamic_proactive" for c in raw_concerns)),
+            "effective_proactive_only_revise": bool(feedback.get("decision") == "revise" and raw_concerns and all(c.get("origin") == "dynamic_proactive" for c in raw_concerns)),
+            "has_solver_prompt": prompt_path.is_file(),
             "generation_path": str(generation_path),
             "generation_sha256": digest(generation_path),
             "trace_v3_context": generation.get("trace_v3_context"),
@@ -202,6 +213,7 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     mechanisms: Counter[str] = Counter()
     origins: Counter[str] = Counter()
+    raw_origins: Counter[str] = Counter()
     omission: Counter[str] = Counter()
     for task in TASKS:
         for replicate in range(1, 4):
@@ -212,6 +224,8 @@ def main() -> None:
                 collected[flavor] = case
                 turn_data[flavor] = turns
                 for turn in turns:
+                    for concern in turn.get("concerns", []):
+                        raw_origins[f"{flavor}:{concern.get('origin', 'legacy_unlabeled')}"] += 1
                     if turn.get("concern_origin"):
                         origins[str(turn["concern_origin"])] += 1
                     if turn.get("omission_reason"):
@@ -221,9 +235,9 @@ def main() -> None:
             delta = {key: (v3.get(key) - v21.get(key)) if key in v3 and key in v21 else None for key in ("W", "W_train", "S", "H", "A", "W_minus_S", "W_minus_A", "S_minus_H", "H_minus_A")}
             label, basis = classify_case(delta, turn_data["v31-candidate"])
             mechanisms[label] += 1
-            rows.append({"task_id": task, "replicate": replicate, **delta, "primary_mechanism": label, "mechanism_basis": basis, "v3_selected_turns": sum(bool(t.get("selection")) for t in turn_data["v31-candidate"]), "v3_emitted_turns": sum(bool(t.get("emitted")) for t in turn_data["v31-candidate"]), "v3_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v31-candidate"]), "v21_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v21-control"]), "v3_application_states": collected["v31-candidate"]["application_state_counts"]})
+            rows.append({"task_id": task, "replicate": replicate, **delta, "primary_mechanism": label, "mechanism_basis": basis, "v3_selected_turns": sum(bool(t.get("selection")) for t in turn_data["v31-candidate"]), "v3_emitted_turns": sum(bool(t.get("emitted")) for t in turn_data["v31-candidate"]), "v3_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v31-candidate"]), "v3_raw_proactive_only_revisions": sum(t["raw_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v3_effective_proactive_only_revisions": sum(t["effective_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v21_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v21-control"]), "v3_application_states": collected["v31-candidate"]["application_state_counts"]})
             cases.append({"task_id": task, "replicate": replicate, "delta": delta, "primary_mechanism": label, "mechanism_basis": basis, "v21": {"case": collected["v21-control"], "turns": turn_data["v21-control"]}, "v3": {"case": collected["v31-candidate"], "turns": turn_data["v31-candidate"]}})
-    payload = {"provider_calls": 0, "run_root": str(RUN), "tasks": list(TASKS), "outcome_rows_available": len(outcome_rows), "mechanism_counts": dict(mechanisms), "concern_origins": dict(origins), "omission_reasons": dict(omission), "rows": rows, "cases": cases}
+    payload = {"provider_calls": 0, "run_root": str(RUN), "tasks": list(TASKS), "outcome_rows_available": len(outcome_rows), "mechanism_counts": dict(mechanisms), "concern_origins": dict(origins), "raw_concern_origins": dict(raw_origins), "classification_status": "automated triage only; primary mechanisms require manual public-evidence review", "omission_reasons": dict(omission), "rows": rows, "cases": cases}
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

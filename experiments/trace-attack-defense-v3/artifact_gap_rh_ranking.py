@@ -90,12 +90,19 @@ def load_reconstructors():
     return load_module("trace_v3_outcome_adapter", BUNDLE / "report_dev3_outcomes.py"), load_module("trace_v21_report_adapter", ROOT / "experiments/trace-attack-defense-v21/report/report_reconstruct.py")
 
 
-def rows_for_result20(adapter: Any, config: Path) -> list[dict[str, Any]]:
-    from rubric_gen.submission_revision.experiment import load_experiment
-    exp = load_experiment(config)
-    study = Path(exp.dag["revise"]["output_dir"])
-    audit = Path(exp.dag["detect"]["output_dir"])
-    _, rows = adapter.reconstruct(study, audit, PANEL)
+def rows_for_result20(adapter: Any) -> list[dict[str, Any]]:
+    # The repaired cohort's sealed completion receipt owns its actual identity;
+    # loading today's YAML computes a different, never-executed experiment ID.
+    run = Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20")
+    completion = json.loads((run / "completion.json").read_text())
+    if not completion["success"]:
+        raise ValueError("Result20 completion receipt is not successful")
+    identity = completion["experiment_id"]
+    _, rows = adapter.reconstruct(run / "study" / identity, run / "audit" / identity, PANEL)
+    for row in rows:
+        for native, name in (("WS", "W_minus_S"), ("WA", "W_minus_A"),
+                             ("SH", "S_minus_H"), ("HA", "H_minus_A")):
+            row["values"][name] = row["values"][native]
     return rows
 
 
@@ -111,54 +118,90 @@ def aggregate(rows: list[dict[str, Any]], *, label: str) -> list[dict[str, Any]]
     grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         grouped[(row["task_id"], int(row["replicate"]))].append(row)
-    out: list[dict[str, Any]] = []
+    out = []
     for (task, rep), values in sorted(grouped.items()):
-        first = values[0]
-        item: dict[str, Any] = {"condition": label, "task_id": task, "replicate": rep, "key": f"{task}/rep-{rep:03d}"}
+        if len(values) != len(PANEL) or {r["model"] for r in values} != set(PANEL):
+            raise ValueError(f"incomplete/duplicate auditor panel: {label}/{task}/{rep}")
+        item = {"condition": label, "task_id": task, "replicate": rep,
+                "key": f"{task}/rep-{rep:03d}"}
         for metric in ("W", "W_train", "S", "H", "A", "W_minus_S", "W_minus_A", "S_minus_H", "H_minus_A"):
             item[metric] = mean(float(row["values"][metric]) for row in values)
         for window in WINDOWS:
             verdicts = [row["direct"][window] for row in values]
-            scores = [float(v.get("score")) for v in verdicts if isinstance(v.get("score"), (int, float))]
-            item[f"RH_{window}_monitor"] = mean(scores) if scores else None
-            item[f"RH_{window}_positive"] = any(v.get("decision") == "reward_hacking_detected" for v in verdicts)
-            item[f"RH_{window}_abstain"] = any(v.get("decision") == "abstain" for v in verdicts)
+            scores = [v.get("score") for v in verdicts]
+            item[f"RH_{window}_monitor"] = mean(scores) if all(type(v) in (int, float) for v in scores) else None
+            decisions = [v["decision"] for v in verdicts]
+            positive = "reward_hacking_detected" in decisions
+            abstain = "abstain" in decisions
+            item[f"RH_{window}_positive"] = positive
+            item[f"RH_{window}_abstain"] = abstain
+            item[f"RH_{window}_status"] = "positive" if positive else "ambiguous" if abstain else "negative"
+            for r in values:
+                model = r["model"]
+                item[f"RH_{window}_{model}_score"] = r["direct"][window].get("score")
+                item[f"RH_{window}_{model}_decision"] = r["direct"][window]["decision"]
         out.append(item)
     return out
 
 
+def worst_membership(values: dict[str, float], count: int) -> dict[str, float]:
+    """Fractional top-k membership at the boundary; no task-ID tie breaking."""
+    boundary = sorted(values.values(), reverse=True)[count - 1]
+    above = sum(v > boundary for v in values.values())
+    tied = sum(v == boundary for v in values.values())
+    fraction = (count - above) / tied
+    return {k: 1.0 if v > boundary else fraction if v == boundary else 0.0 for k, v in values.items()}
+
+
+def overlap(gaps: dict[str, float], rh: dict[str, float], fraction: float) -> dict[str, Any]:
+    count = max(1, math.ceil(fraction * len(gaps)))
+    a, b = worst_membership(gaps, count), worst_membership(rh, count)
+    expected = sum(a[k] * b[k] for k in a)
+    return {"k": count, "expected_overlap_count": expected,
+            "expected_overlap_fraction": expected / count,
+            "gap_boundary_members": {k: v for k, v in a.items() if v},
+            "RH_boundary_members": {k: v for k, v in b.items() if v}}
+
+
 def analyze(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    for metric in ("W_minus_S", "S_minus_H", "H_minus_A"):
+    metrics = ("W_minus_S", "S_minus_H", "H_minus_A")
+    for metric in metrics:
         ranks = tie_rank({row["key"]: float(row[metric]) for row in rows})
         for row in rows:
             row[f"rank_{metric}"] = ranks[row["key"]]
     for row in rows:
-        row["combined_gap_rank"] = mean(row[f"rank_{metric}"] for metric in ("W_minus_S", "S_minus_H", "H_minus_A"))
-    summaries: dict[str, Any] = {}
-    for rh_kind in ("RH_final_artifact_monitor", "RH_full_trajectory_monitor"):
-        gaps = [(float(row["combined_gap_rank"]), float(row[rh_kind])) for row in rows if row[rh_kind] is not None]
-        summaries[rh_kind] = {
-            "spearman": spearman([x for x, _ in gaps], [y for _, y in gaps]),
-            "kendall_tau_b": kendall_tau_b([x for x, _ in gaps], [y for _, y in gaps]),
-            "n": len(gaps),
+        row["combined_gap_rank"] = mean(row[f"rank_{metric}"] for metric in metrics)
+        # Rank 1 is worst. A high score is worst, matching high RH monitor scores.
+        row["combined_gap_score"] = -row["combined_gap_rank"]
+        row["combined_gap_percentile"] = ((len(rows) - row["combined_gap_rank"]) / (len(rows) - 1)
+                                          if len(rows) > 1 else 0.5)
+    summaries = {}
+    for window in ("final_artifact", "full_trajectory"):
+        key = f"RH_{window}_monitor"
+        available = [r for r in rows if r[key] is not None]
+        rh = {r["key"]: float(r[key]) for r in available}
+        rh_ranks = tie_rank(rh)
+        for r in rows:
+            r[f"rank_RH_{window}"] = rh_ranks.get(r["key"])
+        result = {"n": len(available), "missing_panel_scores": len(rows) - len(available),
+                  "metrics": {}}
+        for metric in (*metrics, "combined_gap_score"):
+            gaps = {r["key"]: float(r[metric]) for r in available}
+            xs, ys = list(gaps.values()), list(rh.values())
+            result["metrics"][metric] = {
+                "spearman": spearman(xs, ys), "kendall_tau_b": kendall_tau_b(xs, ys),
+                "worst_overlap": {str(int(100*f)): overlap(gaps, rh, f) for f in (.10, .20, .25)} if gaps else {},
+            }
+        # Literal mean-rank vs score association is retained with its reverse sign.
+        result["combined_gap_rank_vs_monitor"] = {
+            "spearman": spearman([r["combined_gap_rank"] for r in available], list(rh.values())),
+            "kendall_tau_b": kendall_tau_b([r["combined_gap_rank"] for r in available], list(rh.values())),
         }
-        for metric in ("W_minus_S", "S_minus_H", "H_minus_A"):
-            pairs = [(float(row[f"rank_{metric}"]), float(row[rh_kind])) for row in rows if row[rh_kind] is not None]
-            summaries[rh_kind][f"{metric}_spearman"] = spearman([x for x, _ in pairs], [y for _, y in pairs])
-            summaries[rh_kind][f"{metric}_kendall_tau_b"] = kendall_tau_b([x for x, _ in pairs], [y for _, y in pairs])
-        order = sorted(rows, key=lambda row: (-float(row["combined_gap_rank"]), row["key"]))
-        positive = {row["key"] for row in rows if row[rh_kind] is not None and row[f"RH_{rh_kind.removeprefix('RH_').removesuffix('_monitor')}_positive"]}
-        for fraction in (0.10, 0.20, 0.25):
-            n = max(1, math.ceil(fraction * len(order)))
-            top = {row["key"] for row in order[:n]}
-            summaries[rh_kind][f"worst_{int(fraction*100)}_overlap"] = {"n": n, "positive_in_top": len(top & positive), "positive_total": len(positive), "keys": sorted(top & positive)}
-        positive_key = f"RH_{rh_kind.removeprefix('RH_').removesuffix('_monitor')}_positive"
-        summaries[rh_kind]["mean_combined_gap_rank_positive"] = mean(
-            [row["combined_gap_rank"] for row in rows if row[rh_kind] is not None and row[positive_key]]
-        ) if positive else None
-        summaries[rh_kind]["mean_combined_gap_rank_negative"] = mean(
-            [row["combined_gap_rank"] for row in rows if row[rh_kind] is not None and not row[positive_key]]
-        ) if len(positive) < len(rows) else None
+        for status in ("positive", "negative", "ambiguous"):
+            selected = [r for r in rows if r[f"RH_{window}_status"] == status]
+            result[status] = {"count": len(selected), "mean_combined_gap_rank":
+                             mean(r["combined_gap_rank"] for r in selected) if selected else None}
+        summaries[window] = result
     return summaries
 
 
@@ -168,9 +211,9 @@ def main() -> None:
     args = parser.parse_args()
     v3_adapter, v21_adapter = load_reconstructors()
     sets: list[tuple[str, list[dict[str, Any]]]] = []
+    unavailable = {}
     if args.cohort in {"all", "result20"}:
-        cfg = ROOT / "experiments/trace-attack-defense-v21/result20.yaml"
-        all_rows = rows_for_result20(v21_adapter, cfg)
+        all_rows = rows_for_result20(v21_adapter)
         sets.extend((label, aggregate([row for row in all_rows if row["condition_id"] == condition], label=label)) for condition, label in (("full-red-team-trace", "v2.1-full"), ("user-simulator-red-team-trace", "v2.1-user")))
     if args.cohort in {"all", "dev3"}:
         stress = [BUNDLE / "stress" / f"v3-candidate-{task}.yaml" for task in ("da-15-1", "da-13-6", "da-18-5")]
@@ -183,10 +226,13 @@ def main() -> None:
             for label, configs in (("canonical-v2.1-user", canonical_control), ("canonical-v3-user", canonical_v3)):
                 try:
                     sets.append((label, aggregate(rows_for_dev3(v3_adapter, configs), label=label)))
-                except Exception:
-                    pass
+                except (FileNotFoundError, RuntimeError, ValueError) as exc:
+                    unavailable[label] = f"{type(exc).__name__}: {exc}"
     all_rows: list[dict[str, Any]] = []
-    summary: dict[str, Any] = {"provider_calls": 0, "cohort": args.cohort, "conditions": {}}
+    summary: dict[str, Any] = {"provider_calls": 0, "cohort": args.cohort, "conditions": {}, "unavailable": unavailable,
+        "rank_convention": "rank 1 = worst; combined score = negative mean rank; positive score/RH correlation = shared failure ordering",
+        "ties": "average ranks; fractional top-k boundary membership; expected overlap under independent tie resolution",
+        "abstentions": "preserved; no-positive with any abstention is ambiguous, never negative"}
     for label, rows in sets:
         summary["conditions"][label] = {"n": len(rows), "ranking": analyze(rows)}
         all_rows.extend(rows)
@@ -200,11 +246,23 @@ def main() -> None:
     json_path = OUT / "artifact-gap-rh-ranking-summary.json"
     json_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     md_path = OUT / "artifact-gap-rh-ranking.md"
-    lines = ["# Artifact gap-rank versus RH-rank", "", "Provider-free descriptive analysis using signed W-S, S-H and H-A. Higher signed gaps are worse; equal-weight Sol+Opus values and direct RH monitor scores are aggregated within task × replicate. Abstentions remain explicit in the JSON/CSV. No provider calls or endpoint changes were made.", ""]
-    for label, content in summary["conditions"].items():
-        lines += [f"## {label}", "", f"Assignments: {content['n']}", "", "```json", json.dumps(content["ranking"], indent=2), "```", ""]
-    md_path.write_text("\n".join(lines), encoding="utf-8")
-    print(json.dumps({"provider_calls": 0, "cohort": args.cohort, "conditions": {key: value["n"] for key, value in summary["conditions"].items()}, "csv": str(csv_path), "json": str(json_path), "markdown": str(md_path)}, indent=2), flush=True)
+    lines = ["# Artifact gap-rank versus RH-rank", "",
+        "Provider-free descriptive analysis of signed gaps, using the complete equal-weight Sol+Opus panel. Each condition is ranked separately; rank 1 is worst. Combined rank is the mean of the three component ranks. Combined score is its negative, so a positive score/RH correlation means overlapping failure orderings.", "",
+        "Worst-tail overlap compares the gap and continuous-RH rankings at 10%, 20%, and 25%. Boundary ties have fractional membership; overlap is the expectation under independent tie resolution. Constant scores produce undefined correlations, not evidence of no association. Abstentions remain ambiguous unless the other auditor confirms a positive.", "",
+        "| Condition | n | RH window | Gap | Spearman | Kendall tau-b | Worst 20% overlap |",
+        "|---|---:|---|---|---:|---:|---:|"]
+    fmt = lambda value: "undefined" if value is None else f"{value:.3f}"
+    for label, result in summary["conditions"].items():
+        for window, stats in result["ranking"].items():
+            for metric, association in stats["metrics"].items():
+                tail = association["worst_overlap"].get("20", {}).get("expected_overlap_fraction")
+                lines.append(f"| {label} | {stats['n']} | {window} | {metric} | {fmt(association['spearman'])} | {fmt(association['kendall_tau_b'])} | {fmt(tail)} |")
+    lines += ["", "Result20 is descriptive only and is not used to choose v3 wording. The CSV retains signed gaps, component/combined ranks, both auditor scores/verdicts, and ambiguous cases. The JSON includes each tail size, tie membership, literal rank-vs-score correlations and RH-positive/negative/ambiguous mean ranks.", ""]
+    if unavailable:
+        lines += ["Unavailable cohorts (no replacement provider calls):", ""] + [f"- {label}: {error}" for label, error in unavailable.items()]
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json.dumps({"provider_calls": 0, "rows": len(all_rows), "conditions": list(summary["conditions"]), "unavailable": unavailable}), flush=True)
+
 
 
 if __name__ == "__main__":

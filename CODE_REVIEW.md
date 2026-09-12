@@ -597,3 +597,7 @@
 ## 2026-09-11 — attack_defense_v3.1 User delivery
 
 - 23:00 EDT: Review found that prompt text alone did not enforce the declared “proactive-only does not force revise” rule in the saved stress trace. The patch is limited to an ordinary deterministic response projection after validation: it changes only a User trace response whose selected rule is proactive/nonviolated and whose every emitted concern is `dynamic_proactive`; base, general and corrective concerns remain byte-for-byte untouched. Dispatch/validation paths explicitly recognize the new recipe version so replay cannot fall back to v3 behavior.
+
+## 2026-09-12 — Development reporting corrections
+
+- 01:25 EDT: Ranking job 10409385 used a current-YAML Result20 ID rather than the completed consumer receipt; corrected the report to follow that receipt, align worst-gap rank direction, use tie-aware continuous-RH tail overlap, and retain ambiguous verdicts. Fixed the pending v3.1 forensic extractor's control-root path and one-auditor score averaging; four provider-free statistical tests pass, with no scientific request changes.

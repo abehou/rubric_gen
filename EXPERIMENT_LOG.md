@@ -2212,3 +2212,7 @@
 ## 2026-09-11 — attack_defense_v3.1 User delivery
 
 - 23:00 EDT: The completed stress comparison showed one concrete policy-interface defect: a nonviolated proactive learned check could be the only simulated-user concern and still produce a revise turn. v3.1 adds a host-owned delivery projection that converts only that proactive-only response to accept; all learner, admission, Full-feedback, solver, simulator-prompt and scoring behavior remains unchanged. Provider-free unit tests (11/11) and v3.1 config loading passed; the nine-assignment stress candidate is the next authorized provider run.
+
+## 2026-09-12 — v3.1 stress continuation
+
+- 01:25 EDT: Slurm automatically requeued producer 10409332 after PREEMPTED at 01:17:18 (2h12m23s on babel-t9-24); the same job resumed on babel-m9-20. A read-only inspection through its allocation found all nine selected assignments already completed and revision exits [0,0,0]; validation/postprocessing remain outstanding, with no manually resubmitted revisions.
