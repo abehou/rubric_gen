@@ -1,0 +1,587 @@
+{
+  "status": "smokes_passed_native_recovery_submitted",
+  "contract": "single-string-global-index-level-reason-v8",
+  "tests": {
+    "passed": 792,
+    "seconds": 94.38,
+    "slurm_step": "10414497.3"
+  },
+  "native_dry": {
+    "status": "passed",
+    "provider_calls": 0,
+    "scientific_writes": 0,
+    "base_commit": "7178f1968594027c7c27960940029363f58f07b3",
+    "experiment_id": "paperbench-code-dev-factorial-r10-08ba4d2c0d00",
+    "revisions_valid": 120,
+    "valid_opus_records_byte_identical": 762,
+    "opus_record_and_artifact_files_compared": 4572,
+    "reused_rubric_by_model": {
+      "claude-opus-5": 762,
+      "gpt-5.6-sol": 900
+    },
+    "pending_publication_by_model": {
+      "claude-opus-5": 138
+    },
+    "local_replay_by_model": {
+      "claude-opus-5": 0
+    },
+    "provider_scheduled_by_stage": {
+      "rubric_score": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 138
+      },
+      "direct_full_trajectory": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_post_update": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_final_artifact": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_final_revision": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "absolute_score": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "pairwise_preference": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      }
+    },
+    "direct_reused_by_model": {
+      "direct_full_trajectory": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      },
+      "direct_post_update": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      },
+      "direct_final_artifact": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      },
+      "direct_final_revision": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      }
+    },
+    "rubric_free_reused": {
+      "absolute_score": 360,
+      "pairwise_preference": 240
+    },
+    "elapsed_seconds": 234.61527490004664
+  },
+  "schema_measurements": {
+    "306": {
+      "v5": {
+        "contract": "indexed-64-leaf-blocks-fixed-tail-index-pipe-reason-v5",
+        "serialized_bytes": 2801,
+        "object_schema_nodes": 16,
+        "string_schema_nodes": 2,
+        "array_schema_nodes": 1,
+        "definitions": 14,
+        "references": 28,
+        "patterns": 0,
+        "enum_nodes": 1,
+        "max_serialized_dictionary_depth": 7,
+        "required_criteria_keys": [
+          "full_blocks",
+          "tail"
+        ]
+      },
+      "v6": {
+        "contract": "keyed-64-leaf-blocks-fixed-tail-index-pipe-reason-v6",
+        "serialized_bytes": 2915,
+        "object_schema_nodes": 16,
+        "string_schema_nodes": 2,
+        "array_schema_nodes": 0,
+        "definitions": 14,
+        "references": 31,
+        "patterns": 1,
+        "enum_nodes": 0,
+        "max_serialized_dictionary_depth": 6,
+        "required_criteria_keys": [
+          "full_blocks",
+          "tail"
+        ]
+      },
+      "v7": {
+        "contract": "required-block-strings-global-index-level-reason-v7",
+        "serialized_bytes": 413,
+        "object_schema_nodes": 2,
+        "string_schema_nodes": 6,
+        "array_schema_nodes": 0,
+        "definitions": 0,
+        "references": 0,
+        "patterns": 0,
+        "enum_nodes": 0,
+        "max_serialized_dictionary_depth": 4,
+        "required_criteria_keys": [
+          "block_0",
+          "block_1",
+          "block_2",
+          "block_3",
+          "tail"
+        ]
+      },
+      "v8": {
+        "contract": "single-string-global-index-level-reason-v8",
+        "serialized_bytes": 182,
+        "object_schema_nodes": 1,
+        "string_schema_nodes": 2,
+        "array_schema_nodes": 0,
+        "definitions": 0,
+        "references": 0,
+        "patterns": 0,
+        "enum_nodes": 0,
+        "max_serialized_dictionary_depth": 2,
+        "required_criteria_keys": []
+      }
+    },
+    "872": {
+      "v5": {
+        "contract": "indexed-64-leaf-blocks-fixed-tail-index-pipe-reason-v5",
+        "serialized_bytes": 2477,
+        "object_schema_nodes": 14,
+        "string_schema_nodes": 2,
+        "array_schema_nodes": 1,
+        "definitions": 12,
+        "references": 24,
+        "patterns": 0,
+        "enum_nodes": 1,
+        "max_serialized_dictionary_depth": 7,
+        "required_criteria_keys": [
+          "full_blocks",
+          "tail"
+        ]
+      },
+      "v6": {
+        "contract": "keyed-64-leaf-blocks-fixed-tail-index-pipe-reason-v6",
+        "serialized_bytes": 3017,
+        "object_schema_nodes": 14,
+        "string_schema_nodes": 2,
+        "array_schema_nodes": 0,
+        "definitions": 12,
+        "references": 36,
+        "patterns": 1,
+        "enum_nodes": 0,
+        "max_serialized_dictionary_depth": 6,
+        "required_criteria_keys": [
+          "full_blocks",
+          "tail"
+        ]
+      },
+      "v7": {
+        "contract": "required-block-strings-global-index-level-reason-v7",
+        "serialized_bytes": 761,
+        "object_schema_nodes": 2,
+        "string_schema_nodes": 15,
+        "array_schema_nodes": 0,
+        "definitions": 0,
+        "references": 0,
+        "patterns": 0,
+        "enum_nodes": 0,
+        "max_serialized_dictionary_depth": 4,
+        "required_criteria_keys": [
+          "block_0",
+          "block_1",
+          "block_2",
+          "block_3",
+          "block_4",
+          "block_5",
+          "block_6",
+          "block_7",
+          "block_8",
+          "block_9",
+          "block_10",
+          "block_11",
+          "block_12",
+          "tail"
+        ]
+      },
+      "v8": {
+        "contract": "single-string-global-index-level-reason-v8",
+        "serialized_bytes": 182,
+        "object_schema_nodes": 1,
+        "string_schema_nodes": 2,
+        "array_schema_nodes": 0,
+        "definitions": 0,
+        "references": 0,
+        "patterns": 0,
+        "enum_nodes": 0,
+        "max_serialized_dictionary_depth": 2,
+        "required_criteria_keys": []
+      }
+    }
+  },
+  "zero_call_replays": {
+    "status": "passed",
+    "source_commit": "8bff72545f78f58cd93101043842a134fa04ad38",
+    "allocation_job": "10414497",
+    "slurm_step": "2",
+    "provider_calls": 0,
+    "provider_attempts_blocked": 0,
+    "replays": [
+      {
+        "judgment_key": "5383cbb4b60ef4a2a9a32979f2376db0",
+        "original_judgment_key": "b60365181808e6d81da0d4cc23bc4e61",
+        "task": "bam",
+        "replicate": 3,
+        "condition": "user-simulator-static",
+        "artifact": "final",
+        "rubric_roles": [
+          {
+            "name": "holdout",
+            "variant_index": 4
+          }
+        ],
+        "criteria": 255,
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5383cbb4b60ef4a2a9a32979f2376db0/evaluations/s010/072d9921f4246ddec96e12bf554c052aa75838ab5993627921e7cbc32659b7ac/eb7649c8cc0c7fb09a55be21c74694f1/evaluation.json",
+        "validation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5383cbb4b60ef4a2a9a32979f2376db0/evaluations/s010/072d9921f4246ddec96e12bf554c052aa75838ab5993627921e7cbc32659b7ac/eb7649c8cc0c7fb09a55be21c74694f1/score_validation.json",
+        "provenance": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/b60365181808e6d81da0d4cc23bc4e61/evaluations/s010/072d9921f4246ddec96e12bf554c052aa75838ab5993627921e7cbc32659b7ac/e2694c42f5dccd96f6f76a82abccca3f.attempts/attempt-002.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "7bea333b33df66592cd2a5256dacfa224571a0cc3525593d9236a25464fb19b3",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "072d9921f4246ddec96e12bf554c052aa75838ab5993627921e7cbc32659b7ac",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "b5137f7d3b3b247bb9d2a23df51ef6730af17da3aec28e984f0510b60f156e16",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/b60365181808e6d81da0d4cc23bc4e61/evaluations/s010/072d9921f4246ddec96e12bf554c052aa75838ab5993627921e7cbc32659b7ac/e2694c42f5dccd96f6f76a82abccca3f.attempts/attempt-002.response.json"
+        },
+        "provider_calls": 0
+      },
+      {
+        "judgment_key": "2dd7b7d2af6bc08df161808a0b1558ac",
+        "original_judgment_key": "6daba9ad156ed63490ba3ad8651800ea",
+        "task": "all-in-one",
+        "replicate": 2,
+        "condition": "full-static",
+        "artifact": "final",
+        "rubric_roles": [
+          {
+            "name": "holdout",
+            "variant_index": 2
+          }
+        ],
+        "criteria": 92,
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/2dd7b7d2af6bc08df161808a0b1558ac/evaluations/s007/adc745cea20e5e42211384e6d8a63853ca20b1775d5109b018c8a6e1d687fc5f/e51d9224f8aa1ee1c3b7156f247eca04/evaluation.json",
+        "validation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/2dd7b7d2af6bc08df161808a0b1558ac/evaluations/s007/adc745cea20e5e42211384e6d8a63853ca20b1775d5109b018c8a6e1d687fc5f/e51d9224f8aa1ee1c3b7156f247eca04/score_validation.json",
+        "provenance": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/6daba9ad156ed63490ba3ad8651800ea/evaluations/s007/adc745cea20e5e42211384e6d8a63853ca20b1775d5109b018c8a6e1d687fc5f/8b0001b36d83643dbbe60d7ee005c094.attempts/attempt-003.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "f6f1f1a996f349fd0ddd4282ef823151285eb676f2ac6de957f9334523f32759",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "adc745cea20e5e42211384e6d8a63853ca20b1775d5109b018c8a6e1d687fc5f",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "b5137f7d3b3b247bb9d2a23df51ef6730af17da3aec28e984f0510b60f156e16",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/6daba9ad156ed63490ba3ad8651800ea/evaluations/s007/adc745cea20e5e42211384e6d8a63853ca20b1775d5109b018c8a6e1d687fc5f/8b0001b36d83643dbbe60d7ee005c094.attempts/attempt-003.response.json"
+        },
+        "provider_calls": 0
+      }
+    ],
+    "started_at": 1789222724.742203,
+    "admission_seconds": 0.0018932080129161477,
+    "valid_after": {
+      "gpt-5.6-sol": 900,
+      "claude-opus-5": 762
+    },
+    "native_missing_opus": 138,
+    "native_resume_recognizes_both": true,
+    "existing_files_compared": 5460,
+    "existing_files_changed": [],
+    "elapsed_seconds": 603.5863647460938
+  },
+  "repair_commit": "c6ec87b2fbcc3349d32625d2a8cfe78254d557fb",
+  "production_smokes": {
+    "allocated_cpus": 1,
+    "audit_admission_seconds": 0.001311398926191032,
+    "audit_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00",
+    "capacity": {
+      "aggregate_concurrency": 60,
+      "audit_studies": 1,
+      "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+      "version": 1
+    },
+    "completed_at": 1789224466.5769963,
+    "elapsed_seconds": 435.83653807640076,
+    "existing_files_changed": [],
+    "existing_files_compared": 5472,
+    "experiment_id": "paperbench-code-dev-factorial-r10-08ba4d2c0d00",
+    "experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-results20-seed-reuse-fixed-20260912-clone/experiments/babel/paperbench-static-selected-neutral-heldout-rigorous-results20-seed-reuse-fixed.yaml",
+    "locally_salvaged_before_smokes": 2,
+    "normal_native_attempt_limit": 3,
+    "per_smoke_attempt_limit": 1,
+    "preparation_seconds": 60.98782458167989,
+    "provider_calls": 2,
+    "remaining_opus_provider_judgments": 136,
+    "repair_commit": "c6ec87b2fbcc3349d32625d2a8cfe78254d557fb",
+    "revisions_valid": 120,
+    "salvages": [],
+    "slurm_job_id": "10414497",
+    "slurm_step": "7",
+    "smoke_request_workers": 1,
+    "smokes": {
+      "306": {
+        "artifact": "final",
+        "artifact_directory": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/c488d5154510aba53f51241a1ecee6aa",
+        "attempt_id": "5fdbf2300d659f45996a1019876d57bd",
+        "condition": "user-simulator-static",
+        "criteria": 306,
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/c488d5154510aba53f51241a1ecee6aa/evaluations/s010/c5ce196753c83460890e874043d325de3783e22f2c50326962ace391397b994f/5fdbf2300d659f45996a1019876d57bd/evaluation.json",
+        "exact_cardinality_validated": 306,
+        "judgment_key": "c488d5154510aba53f51241a1ecee6aa",
+        "native_fresh_resume_recognized": true,
+        "native_record_reuse": true,
+        "provider_calls": 1,
+        "provider_finished_at": 1789224188.746964,
+        "provider_started_at": 1789224091.928596,
+        "replicate": 3,
+        "request_spec": {
+          "artifact_bytes": 114345,
+          "authoritative_score": "single-judgment-signed-points",
+          "calls": 1,
+          "criterion_count": 306,
+          "engine_seed": 452535059,
+          "limits": {
+            "max_calls": 1,
+            "max_criteria": 1000,
+            "max_output_tokens_per_call": 32768,
+            "max_request_content_bytes_per_call": 1000000,
+            "max_total_request_content_bytes": 5000000
+          },
+          "max_output_tokens_per_call": 32768,
+          "payload_bytes": 280252,
+          "prompt_cache_control": "default",
+          "provider": "anthropic",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": null,
+          "reasoning_effort": "low",
+          "repository_result_cache": false,
+          "request_content_bytes_per_call": 282110,
+          "request_timeout_seconds": 300.0,
+          "requested_model": "claude-opus-5",
+          "rubric_bytes": 126746,
+          "schema_bytes": 182,
+          "stream": true,
+          "structured_output_contract": "single-string-global-index-level-reason-v8",
+          "system_prompt_sha256": "b797b528fc9a94b3318a76ad409c53e098e32e593f01d962b35dfa919d95af4c",
+          "temperature": null,
+          "timeout_semantics": "network-inactivity",
+          "total_request_content_bytes": 282110
+        },
+        "response_id": "msg_011Ceyijqf22HWAvmeokiBnF",
+        "rubric_roles": [
+          {
+            "name": "holdout",
+            "variant_index": 2
+          }
+        ],
+        "status": "published",
+        "stop_reason": "end_turn",
+        "stream_completed": true,
+        "task": "fre",
+        "usage": {
+          "effective_model": "claude-opus-5",
+          "provider": "anthropic",
+          "raw_usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "global",
+            "input_tokens": 122359,
+            "output_tokens": 8388,
+            "output_tokens_details": null,
+            "server_tool_use": null,
+            "service_tier": "standard"
+          },
+          "request_parameters": {
+            "max_output_tokens": 32768,
+            "prompt_cache_control": "default",
+            "provider_retries": 0,
+            "provider_seed": null,
+            "provider_storage": null,
+            "reasoning_effort": "low",
+            "stream": true,
+            "structured_output": "json_schema",
+            "temperature": null,
+            "timeout_seconds": 300.0,
+            "timeout_semantics": "network-inactivity"
+          },
+          "requested_model": "claude-opus-5",
+          "response_id": "msg_011Ceyijqf22HWAvmeokiBnF"
+        },
+        "validation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/c488d5154510aba53f51241a1ecee6aa/evaluations/s010/c5ce196753c83460890e874043d325de3783e22f2c50326962ace391397b994f/5fdbf2300d659f45996a1019876d57bd/score_validation.json"
+      },
+      "872": {
+        "artifact": "final",
+        "artifact_directory": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/ac8dafe5eaf6ed08e322069936149f1b",
+        "attempt_id": "2d0f82be8f607826fafd775830ec6194",
+        "condition": "full-static",
+        "criteria": 872,
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/ac8dafe5eaf6ed08e322069936149f1b/evaluations/s008/1c2af2a5ef6a3a86e40d2e8ee02bf30a958e8c76cdfb2566a098f27ec5c4cdb2/2d0f82be8f607826fafd775830ec6194/evaluation.json",
+        "exact_cardinality_validated": 872,
+        "judgment_key": "ac8dafe5eaf6ed08e322069936149f1b",
+        "native_fresh_resume_recognized": true,
+        "native_record_reuse": true,
+        "provider_calls": 1,
+        "provider_finished_at": 1789224413.930194,
+        "provider_started_at": 1789224243.1005092,
+        "replicate": 1,
+        "request_spec": {
+          "artifact_bytes": 140067,
+          "authoritative_score": "single-judgment-signed-points",
+          "calls": 1,
+          "criterion_count": 872,
+          "engine_seed": 2089806244,
+          "limits": {
+            "max_calls": 1,
+            "max_criteria": 1000,
+            "max_output_tokens_per_call": 32768,
+            "max_request_content_bytes_per_call": 1000000,
+            "max_total_request_content_bytes": 5000000
+          },
+          "max_output_tokens_per_call": 32768,
+          "payload_bytes": 827277,
+          "prompt_cache_control": "default",
+          "provider": "anthropic",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": null,
+          "reasoning_effort": "low",
+          "repository_result_cache": false,
+          "request_content_bytes_per_call": 829135,
+          "request_timeout_seconds": 300.0,
+          "requested_model": "claude-opus-5",
+          "rubric_bytes": 574473,
+          "schema_bytes": 182,
+          "stream": true,
+          "structured_output_contract": "single-string-global-index-level-reason-v8",
+          "system_prompt_sha256": "b797b528fc9a94b3318a76ad409c53e098e32e593f01d962b35dfa919d95af4c",
+          "temperature": null,
+          "timeout_semantics": "network-inactivity",
+          "total_request_content_bytes": 829135
+        },
+        "response_id": "msg_011CeyivnQrUAvjs6XGzsLeP",
+        "rubric_roles": [
+          {
+            "name": "holdout",
+            "variant_index": 2
+          }
+        ],
+        "status": "published",
+        "stop_reason": "end_turn",
+        "stream_completed": true,
+        "task": "what-will-my-model-forget",
+        "usage": {
+          "effective_model": "claude-opus-5",
+          "provider": "anthropic",
+          "raw_usage": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "global",
+            "input_tokens": 358235,
+            "output_tokens": 18472,
+            "output_tokens_details": null,
+            "server_tool_use": null,
+            "service_tier": "standard"
+          },
+          "request_parameters": {
+            "max_output_tokens": 32768,
+            "prompt_cache_control": "default",
+            "provider_retries": 0,
+            "provider_seed": null,
+            "provider_storage": null,
+            "reasoning_effort": "low",
+            "stream": true,
+            "structured_output": "json_schema",
+            "temperature": null,
+            "timeout_seconds": 300.0,
+            "timeout_semantics": "network-inactivity"
+          },
+          "requested_model": "claude-opus-5",
+          "response_id": "msg_011CeyivnQrUAvjs6XGzsLeP"
+        },
+        "validation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/ac8dafe5eaf6ed08e322069936149f1b/evaluations/s008/1c2af2a5ef6a3a86e40d2e8ee02bf30a958e8c76cdfb2566a098f27ec5c4cdb2/2d0f82be8f607826fafd775830ec6194/score_validation.json"
+      }
+    },
+    "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912",
+    "source_status": " M CODE_REVIEW.md\n M EXPERIMENT_LOG.md\n M EXPERIMENT_RUNS.md\n",
+    "started_at": 1789224030.7404592,
+    "status": "passed",
+    "valid_after": {
+      "claude-opus-5": 764,
+      "gpt-5.6-sol": 900
+    },
+    "valid_before": {
+      "claude-opus-5": 762,
+      "gpt-5.6-sol": 900
+    }
+  },
+  "native_recovery": {
+    "job_id": "10414690",
+    "source_commit": "c6ec87b2fbcc3349d32625d2a8cfe78254d557fb",
+    "source_checkout": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912",
+    "stage": "detect",
+    "profile": "results20",
+    "resume": true,
+    "expected_missing_opus": 136,
+    "expected_sol": 0,
+    "expected_valid_opus": 0,
+    "expected_detector_holistic": 0,
+    "cpus": 32,
+    "memory_gib": 256,
+    "request_workers": 32,
+    "provider_capacity": 60,
+    "global_audit_owners": 1,
+    "state_at_handoff": "PENDING",
+    "reason_at_handoff": "QOSMaxCpuPerUserLimit",
+    "provider_execution_started": false
+  },
+  "integration_validation": {
+    "base_commit": "96e4ad0",
+    "tests_passed": 792,
+    "elapsed_seconds": 70.33,
+    "slurm_step": "10414497.8",
+    "method": "Cumulative path-scoped v7/v8 code and tests only; no stale branch merge."
+  }
+}

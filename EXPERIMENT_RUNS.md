@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 3 v8 recovery
+
+- 10:51 EDT: Static Results20 audit owner10414690 resumes the existing results20-seed-reuse-fixed namespace from pinnedc6ec87b in runs/babel-code/paperbench-opus-cardinality-20260912, using the original producer overlay. After two zero-call replays and two published smokes, only136 Opus rubric judgments remain; retain this checkout while the pending/running owner depends on it.
+
 ## 2026-09-12 — Final trace v3.2 stress result
 
 - 05:55 EDT: Source d164a9a; producer10411526, finalizer10411527, audit10411528, report10411530 and forensic10411532 all completed 0:0. Exact roots, 9/9 and 330/330 coverage, all-case evidence and the no-advancement decision are in [the v3 report](docs/reports/2026-09-11/trace-attack-defense-v3/README.md); raw v3.2 outputs remain under `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/`.

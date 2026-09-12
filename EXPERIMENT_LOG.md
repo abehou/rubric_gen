@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 3 v8 recovery
+
+- 10:51 EDT: Published two proven v5 Opus replays with zero calls, then both single-call v8 production smokes passed exact306/872 coverage and native reuse; static audit is now900 Sol/764 Opus, with all prior files preserved. Submitted native recovery10414690 for only136 missing Opus judgments while dev3 revisions continue; [Queue3 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
+
 ## 2026-09-12 — Final v3 stress evaluation
 
 - 05:55 EDT: v3.2 finishes 9/9 and 330/330: RH stays 0% in all windows, W−S narrows 5.11, but A falls 6.33 and S−H/H−A grow 3.13/5.98 versus the fixed stress control. Saved-code review finds retained statistical/diagnostic errors and questionable repeated feedback; stop after three candidates without canonical/Result20 advancement.

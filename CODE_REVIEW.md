@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 3 v8 recovery
+
+- 10:51 EDT: Resolved the staged Anthropic cardinality blocker using a182-byte two-string schema with strict local coverage/level/reason validation; both real306/872 smokes and792 tests pass on the execution pin and current core integration. Historical v5/v6/v7 canonical provenance remains reusable; scientific identity changes from unrelated upstream prompts stay outside the pinned recovery.
+
 ## 2026-09-12 — Trace v3 reporting and realized feedback review
 
 - 05:55 EDT: Structural delivery tests do not establish model compliance: saved v3.2 User feedback emits target-like numerical guidance, and origin tags can name dynamic concerns without a selected rule. Record these limitations without modifying the completed candidate or official judgments.
