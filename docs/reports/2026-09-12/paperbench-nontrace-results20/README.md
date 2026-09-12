@@ -1,6 +1,96 @@
-# PaperBench non-trace Results20 — Queue 1 inventory
+# PaperBench non-trace Results20 — current Queue 2 handoff
 
-As of **2026-09-12 09:53 EDT**, the 16-condition mission has **120/960 reusable Results20 revision assignments**, with **840 missing**. Full-fixed and User-simulator-fixed already passed corrected-role dev3: **18/18 assignments and 504/504 unique audit judgments** across those two conditions. The other 14 conditions have no execution evidence in the inspected canonical namespaces and require **126 dev3 assignments** before their Results20 production runs.
+**Queue 2 has submitted all 126 missing dev3 assignments.** Existing Full-static and User-simulator-static remain **18/18 native-valid and fully audited**, with no rerun. As of the compute snapshot at **2026-09-12 10:09:36 EDT**, **40 new assignments are running, 32 are pending in active dispatchers, and 54 are queued behind the shared pretreatment producer**. No new assignment has yet completed; no failed/invalid row is recorded. This is active dev3 validation, not completed Results20 science.
+
+The static Results20 scientific state is unchanged: 120/120 valid revisions, Sol 900/900, Opus 760/900, detector/holistic complete, two unpublished lossless replays and 138 genuinely missing provider judgments. The Opus completeness blocker is handed to Queue 3. No Opus probe, static recovery, Results20 revision, trace condition, or audit has been launched by this queue.
+
+## Current dev3 matrix
+
+Each cell requires three canonical tasks × three replicates. Runtime below is shared wave elapsed time at the snapshot, not summed per-condition CPU time or a completion estimate. `D` is the existing corrected-role dev3 producer documented in the historical inventory below; `Q2` is the new pinned execution source. Promotion readiness here means **revision wiring validated**; audit remains separately pending wherever indicated, as the user directed.
+
+| Condition | 9/9 revision status | Audit status | Source | Runtime | Failure | Promotion to Results20 |
+|---|---|---|---|---|---|---|
+| full-static | **9/9 native-valid, reused** | Complete | D: `4c6f321` | Prior run; revalidated in 10414492 | None | Ready; retain original outputs |
+| full-offline-rubric | 0/9; queued after B | Pending Opus repair | Q2: `4f67a3b` | Not started | None observed | Pending 9/9 native validation |
+| full-online-rubric | 0/9; queued after B | Pending Opus repair | Q2: `4f67a3b` | Not started | None observed | Pending 9/9 native validation |
+| full-red-team-artifact | 0/9; queued after B | Pending Opus repair | Q2: `4f67a3b` | Not started | None observed | Pending 9/9 native validation |
+| semi-static | 0/9 complete; 5 running, 4 pending | Pending Opus repair | Q2: `4f67a3b` | A: 2m32s elapsed | None observed | Pending 9/9 native validation |
+| semi-offline-rubric | 0/9 complete; 5 running, 4 pending | Pending Opus repair | Q2: `4f67a3b` | B: 3m33s elapsed | None observed | Pending 9/9 native validation |
+| semi-online-rubric | 0/9 complete; 4 running, 5 pending | Pending Opus repair | Q2: `4f67a3b` | B: 3m33s elapsed | None observed | Pending 9/9 native validation |
+| semi-red-team-artifact | 0/9 complete; 7 running, 2 pending | Pending Opus repair | Q2: `4f67a3b` | B: 3m33s elapsed | None observed | Pending 9/9 native validation |
+| score-only-static | 0/9 complete; 3 running, 6 pending | Pending Opus repair | Q2: `4f67a3b` | A: 2m32s elapsed | None observed | Pending 9/9 native validation |
+| score-only-offline-rubric | 0/9 complete; 6 running, 3 pending | Pending Opus repair | Q2: `4f67a3b` | B: 3m33s elapsed | None observed | Pending 9/9 native validation |
+| score-only-online-rubric | 0/9 complete; 5 running, 4 pending | Pending Opus repair | Q2: `4f67a3b` | B: 3m33s elapsed | None observed | Pending 9/9 native validation |
+| score-only-red-team-artifact | 0/9 complete; 5 running, 4 pending | Pending Opus repair | Q2: `4f67a3b` | B: 3m33s elapsed | None observed | Pending 9/9 native validation |
+| user-simulator-static | **9/9 native-valid, reused** | Complete | D: `4c6f321` | Prior run; revalidated in 10414492 | None | Ready; retain original outputs |
+| user-simulator-offline-rubric | 0/9; queued after B | Pending Opus repair | Q2: `4f67a3b` | Not started | None observed | Pending 9/9 native validation |
+| user-simulator-online-rubric | 0/9; queued after B | Pending Opus repair | Q2: `4f67a3b` | Not started | None observed | Pending 9/9 native validation |
+| user-simulator-red-team-artifact | 0/9; queued after B | Pending Opus repair | Q2: `4f67a3b` | Not started | None observed | Pending 9/9 native validation |
+
+## Execution ownership and native reuse
+
+Exact execution commit: **`4f67a3b8daca4a545d9c0a67578b283296e63823`**, three configuration files added to reviewed **`7178f1968594027c7c27960940029363f58f07b3`**. Checkout: `/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912`. Its tracked source was clean at both launches. The same configs were selectively ported and pushed to `origin/aydan-red-team` at **`0d560ab6841a1f134774cf3c9b1b78824611cc1c`**, preserving concurrent upstream commit `534e797998c3059c1582034e07b1c2d664d2ce10` without force. Moving integration code is not the execution pin: unrelated prompt implementation changes derive a different native scientific identity.
+
+All three files declare the same canonical **16-condition** non-trace factorial and the unchanged randomization. Native `execution_conditions` selects disjoint missing cells; the two already completed fixed controls are not scheduled. Generic 20-condition YAML is not executed. Relative config links below resolve to the published files; live jobs use those files in the pinned checkout.
+
+| Wave | Native config | Conditions / assignments | Producer | CPU / workers | Dependency | Provider-free final validator |
+|---|---|---:|---|---:|---|---|
+| A | [Semi/Score fixed](../../../../experiments/babel/paperbench-nontrace-dev3-semi-score-fixed.yaml) | 2 / 18 | `10414496` running | 8 / 8 | None | `10414504`, afterany:10414496 |
+| B | [Semi/Score non-static](../../../../experiments/babel/paperbench-nontrace-dev3-semi-score-learned.yaml) | 6 / 54 | `10414497` running | 32 / 32 | None | `10414505`, afterany:10414497 |
+| C | [Full/User non-static](../../../../experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml) | 6 / 54 | `10414499` pending | 32 / 32 | afterok:10414497 | `10414506`, afterany:10414499 |
+
+A and B have experiment ID `paperbench-code-dev-factorial-r10-c297aebb88ed`, with distinct output roots and disjoint execution scopes. C has `paperbench-code-dev-factorial-r10-f1fb62662d3a`; its explicit native `pretreatment_source` binds B's experiment, study, and blinding identity. Native reuse requires a completed source scope, which explains C's dependency. This shares B's exact learned starting rubrics across all twelve non-static cells instead of regenerating them for Full/User. At the snapshot, all three B pretreatment manifests exist and the study has entered `revision`.
+
+For each wave `<scope>` is `semi-score-fixed`, `semi-score-learned`, or `full-user-learned`:
+
+- Study: `/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/<scope>/study/<experiment_id>`.
+- Reserved audit path: `/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/<scope>/audit/<experiment_id>`; no audit owner has been submitted for these paths.
+- Shared existing seeds: `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260911/dev3/seeds`.
+- Shared corrected paraphrases: `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260911/dev3/paraphrases`.
+
+Exact submission commands, from the pinned checkout:
+
+```bash
+sbatch --parsable --cpus-per-task=8 --mem=256G --job-name=pb-dev3-semi-score-fixed   scripts/babel/experiment.sbatch --profile dev3-8 revise   --experiment experiments/babel/paperbench-nontrace-dev3-semi-score-fixed.yaml
+
+sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-semi-score-learned   scripts/babel/experiment.sbatch --profile results20 revise   --experiment experiments/babel/paperbench-nontrace-dev3-semi-score-learned.yaml
+
+sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10414497   --job-name=pb-dev3-full-user-learned   scripts/babel/experiment.sbatch --profile results20 revise   --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml
+```
+
+These are historical launch commands, **not instructions to resubmit running work**. The `results20` profile in B/C supplies the reviewed 32-CPU/32-worker allocation; their scientific population is still the canonical three-task dev3 set. The 8/32-CPU profiles, 256 GiB memory, native retries/timeouts, and global provider cap 60 remain unchanged. No separate CPU-audit patch was adopted.
+
+## Verification and live telemetry
+
+Provider-free job **10414492** completed in **3m22s Slurm wall time** (199.924s measured work), with zero providers/scientific writes. Normal native machinery loaded all **nine exact seed blocks and 15 corrected variants**, validated role selection 0/1/2–4, and confirmed **9/9 Full-static plus 9/9 User-static** completed revisions against their original producer configuration. There were zero native validation errors. Their rubric/absolute/pairwise summaries remain 270/270, 54/54, and 36/36; the four completed detector windows make the full 504/504 panel documented in Queue 1. No historical uniform-rigorous revision was counted as corrected-role validation.
+
+Configuration checks proved three tasks, three replicates, 144 canonical ledger entries per full definition, selected scope counts 18/54/54, 14 unique nonoverlapping execution conditions, no trace membership, unchanged common scientific fields, common input paths, and unoccupied new study/audit namespaces before submission. Queue 1's other study inventory remains applicable; the only newly discovered PaperBench root is this queue's owned namespace.
+
+The live snapshot confirms matching feedback/rubric policies in all **40 created assignment manifests**, selected study counts 18 and 54, no failed/invalid assignment, and one or two persisted submissions per active assignment so far. These partial trajectories do not establish expected terminal turns/stops; native completion checks will validate those before promotion. The corrected pool passed native no-fallback validation; no paraphrase generation was invoked.
+
+At startup, A reported eight active workers/eight owned provider reservations; B reported 32 active workers/nine owned reservations. Aggregate capacity samples were 43–44 reservations, below 60; workers are not provider reservations. A briefly queued behind the CPU quota while the read-only preparation allocation finished, then started normally. Six independent other-session jobs had appeared using 24 CPUs; our active A+B use 40, totaling 64. Those jobs and their audit/report dependencies were left untouched. No healthy job was interrupted or resized.
+
+Durable local handoff receipts:
+
+- `/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-dev3-20260912/{prepare.json,launches.json,snapshot.json}`.
+- A telemetry: `/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912/runs/runtime-10414496-mxyyu_uy/`.
+- B telemetry: `/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912/runs/runtime-10414497-b3hyicr8/`.
+- Each producer also has `runs/slurm-pb-dev3-<scope>-<job>.out` in the pinned checkout; C will create its runtime receipt on admission.
+- Queued one-CPU, provider-free collectors call `resolve_study_sources` and `validate_completed_revision` and write `validation-<scope>-<job>.json` plus `validate-<scope>-<job>.out` in the local handoff directory. They record per-condition native-valid counts, actual stop reasons/submission counts, failures, and revision-promotion readiness. They do not publish scientific judgments.
+
+## Queue 3 handoff
+
+Continue with the shared Opus omission blocker while A/B compute and C's dependency remain intact. Audits for new cells are pending; no audit dependency is safe to dispatch blindly through the known incomplete Opus path. All valid old audits and trajectories stay frozen. Do not rerun an assignment that completes during the handoff.
+
+Use the owned jobs and native validator receipts to refresh this matrix. If a producer fails, diagnose its concrete failure and use the same scoped native `revise --resume` once appropriate; never launch a second dispatcher while its owner is healthy. A failed B leaves C's afterok dependency unsatisfied: preserve B's completed cells and shared pretreatment, repair/resume B natively, then update only the pending C dependency after B is valid. No automatic unlimited resubmission loop was created. Any newly exposed wiring bug should be isolated and tested without redefining a condition; independent work continues.
+
+Queue 2 hands control back with all missing dev3 work submitted and no claim of completed dev3/Results20 science for the new cells. No long audit wait is part of this item.
+
+---
+
+# Queue 1 historical inventory — 09:53 EDT
+
+This historical snapshot is superseded by the current dev3 status above. As of **2026-09-12 09:53 EDT**, the 16-condition mission has **120/960 reusable Results20 revision assignments**, with **840 missing**. Full-fixed and User-simulator-fixed already passed corrected-role dev3: **18/18 assignments and 504/504 unique audit judgments** across those two conditions. The other 14 conditions have no execution evidence in the inspected canonical namespaces and require **126 dev3 assignments** before their Results20 production runs.
 
 The existing corrected static Results20 audit remains incomplete: **Sol 900/900, Opus 760/900**, with all detector and holistic stages complete. Of the 140 missing Opus judgments, two have losslessly replayable saved responses that remain unpublished; 138 require new responses. Final static metrics remain withheld. There are **no active or pending user Slurm jobs** at handoff, including no audit, repair dependency, or final-report owner.
 

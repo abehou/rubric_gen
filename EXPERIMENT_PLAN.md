@@ -1401,6 +1401,10 @@ Private locator may select public references but cannot transmit evaluator prose
 
 - 09:59 EDT: Authorized R0 saved User v2.1 control versus R1 corrective-only appended reminders and R2 no appendix on canonical3tasks×3replicates; preserve legacy selector/history, all learned scoring, simulator and Full behavior. [Focused diagnosis and plan](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) supports keeping both ablations, with R1 potentially inert in one saved case; at most18fresh assignments and native Sol+Opus/four-window evaluation.
 
+## 2026-09-12 — PaperBench non-trace dev3 queue
+
+- 10:10 EDT: The user authorizes all fourteen missing non-trace PaperBench dev3 cells, prioritizing Semi/Score-only and reusing the two complete corrected fixed controls; Opus incompleteness must not block revision validation. The 16-condition scope, unchanged scientific settings, and promotion requirements are recorded in the shared PaperBench non-trace report.
+
 ## 2026-09-12 — Queue 3 canonical feedback matrix
 
 - 10:24 EDT: User authorizes the explicit eight-cell fixed/trace-v2.1 matrix plus one native Score-only appendix-off supplement; reuse the matching User trace 9/336, generate only 63 missing matrix assignments and nine supplemental assignments, prioritizing Semi/Score-only. This queue supersedes historical no-launch restrictions on these policy comparisons; no learner, simulator, or evaluation change.

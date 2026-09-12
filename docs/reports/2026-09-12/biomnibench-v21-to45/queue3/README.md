@@ -29,7 +29,10 @@ User v2.1 control is compatible with this matrix. The older completed Full/User
 `v2.dev2` cohort used a different scientific version and **all nine seed
 identities differ** from the present control. Earlier `control-v21` attempts
 failed; their pending Full rows are not completed assignments. No completed
-matching fixed/semi/score-only cell was located. Historical results are retained,
+matching fixed/semi/score-only cell was located. The current native outcome
+reconstruction also revalidated the reused control at **9/9 and 336/336**;
+[per-auditor outcomes and actual deliveries](user_simulator-trace.json) retain
+its four RH windows and complete source paths. Historical results are retained,
 not relabeled or rerun for cosmetic symmetry.
 
 [Native input checks](inputs.json) validate all 24 scoped consumer configs against

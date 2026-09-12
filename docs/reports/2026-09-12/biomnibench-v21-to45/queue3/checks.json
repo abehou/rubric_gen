@@ -7,5 +7,11 @@
   "log": "experiments/biomnibench-v21-to45/queue3/check.log",
   "older_seeds_compatible": 0,
   "older_seeds_checked": 9,
-  "report_startup_note": "The first read-only report step exited 13 before Python: PATH resolved env to nonexecutable /home/aydanh/tools/uv/env. Corrected invocation uses /usr/bin/env; no provider calls or scientific outputs were repeated."
+  "report_startup_note": "The first read-only report step exited 13 before Python: PATH resolved env to nonexecutable /home/aydanh/tools/uv/env. Corrected invocation uses /usr/bin/env; no provider calls or scientific outputs were repeated.",
+  "native_control_reconstruction": {
+    "assignments": 9,
+    "judgments": 336,
+    "complete": true,
+    "provider_calls": 0
+  }
 }
