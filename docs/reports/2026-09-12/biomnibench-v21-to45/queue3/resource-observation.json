@@ -1,0 +1,85 @@
+{
+  "observed_at": "2026-09-12T10:21:03.357000-04:00",
+  "producer_cpus_each": 4,
+  "note": "Snapshot CPU use is not a whole-run CPU efficiency estimate. Processes/threads are not equivalent to provider or assignment concurrency. No active job resized.",
+  "jobs": [
+    {
+      "job": 10414481,
+      "status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414481-gy8zabdp/status.json",
+      "configured_assignment_workers": 4,
+      "active_assignment_workers": 1,
+      "processes": 8,
+      "threads": 76,
+      "peak_processes": 20,
+      "peak_sampled_rss_kib": 1696816,
+      "sampled_cpu_cores": 0.015183608426499321,
+      "active_provider_slots": 50,
+      "assignment_failures": []
+    },
+    {
+      "job": 10414482,
+      "status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414482-r6zq8tir/status.json",
+      "configured_assignment_workers": 4,
+      "active_assignment_workers": 3,
+      "processes": 18,
+      "threads": 128,
+      "peak_processes": 27,
+      "peak_sampled_rss_kib": 2593688,
+      "sampled_cpu_cores": 1.0348077574963266,
+      "active_provider_slots": 50,
+      "assignment_failures": []
+    },
+    {
+      "job": 10414483,
+      "status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414483-5rc81con/status.json",
+      "configured_assignment_workers": 4,
+      "active_assignment_workers": 3,
+      "processes": 14,
+      "threads": 139,
+      "peak_processes": 17,
+      "peak_sampled_rss_kib": 1425352,
+      "sampled_cpu_cores": 0.06415141948583858,
+      "active_provider_slots": 53,
+      "assignment_failures": []
+    },
+    {
+      "job": 10414484,
+      "status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414484-1tbrdow5/status.json",
+      "configured_assignment_workers": 4,
+      "active_assignment_workers": 1,
+      "processes": 5,
+      "threads": 37,
+      "peak_processes": 25,
+      "peak_sampled_rss_kib": 1827848,
+      "sampled_cpu_cores": 0.020309160955499173,
+      "active_provider_slots": 48,
+      "assignment_failures": []
+    },
+    {
+      "job": 10414485,
+      "status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414485-78jkoc4v/status.json",
+      "configured_assignment_workers": 4,
+      "active_assignment_workers": 3,
+      "processes": 16,
+      "threads": 98,
+      "peak_processes": 29,
+      "peak_sampled_rss_kib": 1828816,
+      "sampled_cpu_cores": 0.021920516353522792,
+      "active_provider_slots": 53,
+      "assignment_failures": []
+    },
+    {
+      "job": 10414486,
+      "status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414486-o23mvpo4/status.json",
+      "configured_assignment_workers": 4,
+      "active_assignment_workers": 3,
+      "processes": 14,
+      "threads": 130,
+      "peak_processes": 18,
+      "peak_sampled_rss_kib": 1446212,
+      "sampled_cpu_cores": 0.036104367958566204,
+      "active_provider_slots": 53,
+      "assignment_failures": []
+    }
+  ]
+}

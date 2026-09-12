@@ -1,0 +1,776 @@
+{
+  "provider_calls": 0,
+  "roots": {
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/autonomous-dev3-20260907/exposure-da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-dev-exposure-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/autonomous-dev3-20260907/exposure-da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-dev-exposure-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/static-neutral-20260907/control-da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-control-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/static-neutral-20260907/control-da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-control-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/studies": {
+      "configs": [
+        "experiments/biomnibench-dev3.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/studies": {
+      "configs": [
+        "experiments/biomnibench-dev3.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/static-neutral-20260907/neutral-da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-neutral-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/static-neutral-20260907/neutral-da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-neutral-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/autonomous-dev3-20260907/isolation-readers-smoke/study": {
+      "configs": [
+        "experiments/biomnibench-dev3-isolation-readers-smoke.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/autonomous-dev3-20260907/isolation-readers-smoke/study": {
+      "configs": [
+        "experiments/biomnibench-dev3-isolation-readers-smoke.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/autonomous-dev3-20260907/exposure-da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-dev-exposure-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/autonomous-dev3-20260907/exposure-da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-dev-exposure-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/autonomous-dev3-20260907/isolation-smoke/study": {
+      "configs": [
+        "experiments/biomnibench-dev3-isolation-smoke.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/autonomous-dev3-20260907/isolation-smoke/study": {
+      "configs": [
+        "experiments/biomnibench-dev3-isolation-smoke.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/autonomous-dev3-20260907/isolation-cachefix-smoke/study": {
+      "configs": [
+        "experiments/biomnibench-dev3-isolation-cachefix-smoke.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/autonomous-dev3-20260907/isolation-cachefix-smoke/study": {
+      "configs": [
+        "experiments/biomnibench-dev3-isolation-cachefix-smoke.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/static-neutral-20260907/neutral-da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-neutral-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/static-neutral-20260907/neutral-da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-neutral-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/autonomous-dev3-20260907/baseline-da11/study": {
+      "configs": [
+        "experiments/biomnibench-dev-baseline-da11.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/autonomous-dev3-20260907/baseline-da11/study": {
+      "configs": [
+        "experiments/biomnibench-dev-baseline-da11.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../runs/static-neutral-20260907/control-da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-control-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../runs/static-neutral-20260907/control-da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-static-neutral-control-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../../runs/babel-dev3-concern1-20260907/da-3-4/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-concern1-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../../runs/babel-dev3-concern1-20260907/da-3-4/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-concern1-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../../runs/babel-dev3-concern1-20260907/da-11-1/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-concern1-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../../runs/babel-dev3-concern1-20260907/da-11-1/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-concern1-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../../runs/babel-dev3-20260907/da-3-4/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-control-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../../runs/babel-dev3-20260907/da-3-4/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-control-da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../../runs/babel-dev3-20260907/da-11-1/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-control-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../../runs/babel-dev3-20260907/da-11-1/study": {
+      "configs": [
+        "experiments/babel/biomnibench-dev3-control-da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/../../runs/biomnibench-redteam-acceptance/study": {
+      "configs": [
+        "experiments/preflights/biomnibench-elicitation-10.yaml"
+      ],
+      "studies": []
+    },
+    "/home/aydanh/repos/rubric_gen/../../runs/biomnibench-redteam-acceptance/study": {
+      "configs": [
+        "experiments/preflights/biomnibench-elicitation-10.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v2/dev2/da-11-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-11-1/study/biomnibench-da-factorial-r10-f40745c90cec/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-f40745c90cec",
+          "status": "completed",
+          "counts": [
+            {
+              "task": "da-11-1",
+              "condition": "full-red-team-trace",
+              "status": "completed",
+              "count": 3
+            },
+            {
+              "task": "da-11-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "completed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v2/dev2/da-11-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v2/dev2/da-3-4.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-3-4/study/biomnibench-da-factorial-r10-74544aac853c/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-74544aac853c",
+          "status": "completed",
+          "counts": [
+            {
+              "task": "da-3-4",
+              "condition": "full-red-team-trace",
+              "status": "completed",
+              "count": 3
+            },
+            {
+              "task": "da-3-4",
+              "condition": "user-simulator-red-team-trace",
+              "status": "completed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v2/dev2/da-3-4.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v2/dev2/da-18-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev2/da-18-1/study/biomnibench-da-factorial-r10-6ed1de5b0905/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-6ed1de5b0905",
+          "status": "completed",
+          "counts": [
+            {
+              "task": "da-18-1",
+              "condition": "full-red-team-trace",
+              "status": "completed",
+              "count": 3
+            },
+            {
+              "task": "da-18-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "completed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v2/dev2/da-18-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev1/da-3-4/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v2/dev1/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev1/da-18-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v2/dev1/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/dev1/da-11-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v2/dev1/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21/da-18-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/control-v21/da-18-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21/da-18-1/study/biomnibench-da-factorial-r10-ba5bb96c033a/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-ba5bb96c033a",
+          "status": "failed_scope",
+          "counts": [
+            {
+              "task": "da-18-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-18-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "failed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21/da-18-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21/da-11-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/control-v21/da-11-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21/da-11-1/study/biomnibench-da-factorial-r10-f37f6f601058/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-f37f6f601058",
+          "status": "failed_scope",
+          "counts": [
+            {
+              "task": "da-11-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-11-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "failed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21/da-11-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21/da-3-4/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/control-v21/da-3-4.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21/da-3-4/study/biomnibench-da-factorial-r10-1d06e97a88fe/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-1d06e97a88fe",
+          "status": "failed_scope",
+          "counts": [
+            {
+              "task": "da-3-4",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-3-4",
+              "condition": "user-simulator-red-team-trace",
+              "status": "failed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21/da-3-4.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/canonical-v3/da-18-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/canonical-v3/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/canonical-v3/da-11-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/canonical-v3/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/canonical-v3/da-3-4/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/canonical-v3/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/control-v21-compatible/da-18-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+          "status": "completed_scope",
+          "counts": [
+            {
+              "task": "da-18-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-18-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "completed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-18-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/control-v21-compatible/da-11-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+          "status": "completed_scope",
+          "counts": [
+            {
+              "task": "da-11-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-11-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "completed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-11-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/control-v21-compatible/da-3-4.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+          "status": "completed_scope",
+          "counts": [
+            {
+              "task": "da-3-4",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-3-4",
+              "condition": "user-simulator-red-team-trace",
+              "status": "completed",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/control-v21-compatible/da-3-4.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/canonical-v31/da-11-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/canonical-v31/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/canonical-v31/da-18-1/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/canonical-v31/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/canonical-v31/da-3-4/study": {
+      "configs": [
+        "experiments/trace-attack-defense-v3/canonical-v31/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/P2/da-18-1/study": {
+      "configs": [
+        "experiments/trace-user-public-evidence-firewall/configs/P2/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/P2/da-11-1/study": {
+      "configs": [
+        "experiments/trace-user-public-evidence-firewall/configs/P2/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/P2/da-3-4/study": {
+      "configs": [
+        "experiments/trace-user-public-evidence-firewall/configs/P2/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/P1/da-11-1/study": {
+      "configs": [
+        "experiments/trace-user-public-evidence-firewall/configs/P1/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/P1/da-3-4/study": {
+      "configs": [
+        "experiments/trace-user-public-evidence-firewall/configs/P1/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/P1/da-18-1/study": {
+      "configs": [
+        "experiments/trace-user-public-evidence-firewall/configs/P1/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C10/da-18-1/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C10/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C10/da-3-4/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C10/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C10/da-11-1/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C10/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C01/da-3-4/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C01/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C01/da-18-1/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C01/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C01/da-11-1/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C01/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C11/da-11-1/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C11/da-11-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C11/da-18-1/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C11/da-18-1.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/C11/da-3-4/study": {
+      "configs": [
+        "experiments/trace-user-parallel-diagnostics/configs/C11/da-3-4.yaml"
+      ],
+      "studies": []
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-11-1/study/biomnibench-da-factorial-r10-f831941a2edd/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-f831941a2edd",
+          "status": "running",
+          "counts": [
+            {
+              "task": "da-11-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-11-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "running",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-18-1/study": {
+      "configs": [
+        "experiments/biomnibench-v21-to45/queue2/configs/R2/da-18-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-18-1/study/biomnibench-da-factorial-r10-d1be1c97e867/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-d1be1c97e867",
+          "status": "running",
+          "counts": [
+            {
+              "task": "da-18-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-18-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "running",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R2/da-18-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-v21-to45/queue2/configs/R2/da-3-4.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-3-4/study/biomnibench-da-factorial-r10-ce0089308f07/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-ce0089308f07",
+          "status": "running",
+          "counts": [
+            {
+              "task": "da-3-4",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-3-4",
+              "condition": "user-simulator-red-team-trace",
+              "status": "running",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R2/da-3-4.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-11-1/study": {
+      "configs": [
+        "experiments/biomnibench-v21-to45/queue2/configs/R1/da-11-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-11-1/study/biomnibench-da-factorial-r10-cccddfcd24be/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-cccddfcd24be",
+          "status": "running",
+          "counts": [
+            {
+              "task": "da-11-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-11-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "running",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R1/da-11-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-18-1/study": {
+      "configs": [
+        "experiments/biomnibench-v21-to45/queue2/configs/R1/da-18-1.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-18-1/study/biomnibench-da-factorial-r10-5b4ccd9dcc70/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-5b4ccd9dcc70",
+          "status": "running",
+          "counts": [
+            {
+              "task": "da-18-1",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-18-1",
+              "condition": "user-simulator-red-team-trace",
+              "status": "running",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R1/da-18-1.yaml"
+        }
+      ]
+    },
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-3-4/study": {
+      "configs": [
+        "experiments/biomnibench-v21-to45/queue2/configs/R1/da-3-4.yaml"
+      ],
+      "studies": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-3-4/study/biomnibench-da-factorial-r10-52b5b60c83d3/study.json",
+          "experiment_id": "biomnibench-da-factorial-r10-52b5b60c83d3",
+          "status": "running",
+          "counts": [
+            {
+              "task": "da-3-4",
+              "condition": "full-red-team-trace",
+              "status": "pending",
+              "count": 3
+            },
+            {
+              "task": "da-3-4",
+              "condition": "user-simulator-red-team-trace",
+              "status": "running",
+              "count": 3
+            }
+          ],
+          "seed_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed",
+          "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase",
+          "recorded_experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R1/da-3-4.yaml"
+        }
+      ]
+    }
+  }
+}

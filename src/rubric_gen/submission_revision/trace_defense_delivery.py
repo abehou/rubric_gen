@@ -48,7 +48,10 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
 
 
 def appendix_mode(version, feedback_policy):
-    """User-only v2.1 ablations; selection and all other feedback are unchanged."""
+    """Policy-scoped v2.1 ablations; selection and other feedback are unchanged."""
+    if (version == 'attack_defense_v2.1_score_only_no_appendix'
+            and FeedbackPolicy(feedback_policy) is FeedbackPolicy.SCORE_ONLY):
+        return 'none'
     if FeedbackPolicy(feedback_policy) is FeedbackPolicy.USER_SIMULATOR:
         return {
             'attack_defense_v2.1_corrective_appendix': 'corrective_only',

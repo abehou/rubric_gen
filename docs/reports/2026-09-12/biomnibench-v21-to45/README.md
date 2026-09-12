@@ -214,3 +214,11 @@ control. Sol+Opus audit jobs **10414487–10414488** and comparison report
 **10414489** wait on dependencies. Startup shows no assignment failures.
 The [queue 2 report](queue2/README.md) records the complete criterion-level
 diagnosis, tests, input reuse and exact scope. Item 3 can proceed independently.
+
+## Queue 3 milestone
+
+The [eight-cell feedback matrix](queue3/README.md) reuses nine compatible User
+trace assignments and prepares 63 missing fixed/trace assignments plus nine
+Score-only appendix-off assignments. Ninety-six tests and 24 native input checks
+passed. Full, Semi, Score-only and User comparisons are within-policy trace minus
+fixed; native Score-only trace includes a qualitative appendix when delivered.

@@ -1,8 +1,8 @@
 {
   "mission_started_at": "2026-09-12T09:27:31-04:00",
   "timezone": "America/New_York",
-  "queue_item": 2,
-  "state": "queue_2_submitted",
+  "queue_item": 3,
+  "state": "queue_3_ready",
   "reference_recipe": "attack_defense_v2.1",
   "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
@@ -22,8 +22,8 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Queue item 3 may proceed independently. Existing R1/R2 producers are healthy; audits/report have native dependencies. Do not resubmit these jobs.",
-  "updated_at": "2026-09-12T10:09:30.165158-04:00",
+  "next_action": "Commit/push queue-3 scope and tested score-only appendix-off switch, then dispatch missing cells in six lanes. Preserve all queue-2 jobs.",
+  "updated_at": "2026-09-12T10:24:00.852943-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -283,5 +283,27 @@
     "execution_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
     "startup_summary": "All six producers running, three active assignments each; no recorded assignment failure. Two audits and report pending dependencies."
   },
-  "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls."
+  "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls.",
+  "queue3": {
+    "main_expected": 72,
+    "main_reused": 9,
+    "main_new": 63,
+    "supplement_new": 9,
+    "tasks": [
+      "da-3-4",
+      "da-11-1",
+      "da-18-1"
+    ],
+    "replicates": 3,
+    "tests_passed": 96,
+    "native_input_checks": 24,
+    "reused_cell": "user_simulator trace v2.1",
+    "reused_judgments": 336,
+    "jobs": {},
+    "output_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/",
+    "producer_profile": "dev3-4",
+    "producer_cpu_max_in_package": 24,
+    "shared_provider_cap": 60,
+    "shared_audit_studies": 1
+  }
 }

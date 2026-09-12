@@ -1,0 +1,778 @@
+{
+  "provider_calls": 0,
+  "checks": [
+    {
+      "cell": "full-fixed",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/full-fixed/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "full-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "full-trace",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/full-trace/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "full-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "semi-fixed",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "semi-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "semi-trace",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "semi-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "score_only-fixed",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "score-only-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "score_only-trace",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-trace/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "score-only-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "user_simulator-fixed",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/user_simulator-fixed/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-a6b32df6717c",
+      "condition": "user-simulator-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "score_only-trace-no-appendix",
+      "task": "da-3-4",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-trace-no-appendix/da-3-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-b04b2bd32fc8",
+      "condition": "score-only-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-62e39def3939",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/pretreatment-rubrics/da-3-4/b316e9b93ab5c8a63e830ad0e42c9a9f0370c473b1076bd83fc4d683ae7ad223/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+          "seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+          "seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+          "seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/paraphrase"
+    },
+    {
+      "cell": "full-fixed",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/full-fixed/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "full-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "full-trace",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/full-trace/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "full-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "semi-fixed",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "semi-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "semi-trace",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "semi-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "score_only-fixed",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "score-only-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "score_only-trace",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-trace/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "score-only-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "user_simulator-fixed",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/user_simulator-fixed/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-c13f1d94cbbd",
+      "condition": "user-simulator-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "score_only-trace-no-appendix",
+      "task": "da-11-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-trace-no-appendix/da-11-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-3c93afc0e4fc",
+      "condition": "score-only-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-dddf5e1c5878",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-11-1/study/biomnibench-da-factorial-r10-dddf5e1c5878/pretreatment-rubrics/da-11-1/cfadeb34fac290a9540bd9eb8dbc62c17ad4ee2ca4f59543adc0b64d33ed6f26/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+          "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+          "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+          "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase"
+    },
+    {
+      "cell": "full-fixed",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/full-fixed/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "full-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "full-trace",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/full-trace/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "full-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "semi-fixed",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "semi-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "semi-trace",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "semi-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "score_only-fixed",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "score-only-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "score_only-trace",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-trace/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "score-only-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "user_simulator-fixed",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/user_simulator-fixed/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-f2bc6c66b703",
+      "condition": "user-simulator-static",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    },
+    {
+      "cell": "score_only-trace-no-appendix",
+      "task": "da-18-1",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue3/configs/score_only-trace-no-appendix/da-18-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-3af4c9431f9d",
+      "condition": "score-only-red-team-trace",
+      "selected_assignments": 3,
+      "source_experiment_id": "biomnibench-da-factorial-r10-e44e429b51a6",
+      "pool": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics",
+      "g1_manifests": [
+        "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-18-1/study/biomnibench-da-factorial-r10-e44e429b51a6/pretreatment-rubrics/da-18-1/c717588b05586663ccc2741c264829b5f85656825caf464305edc8e96378d6eb/rubric-generations/generation-0001/manifest.json"
+      ],
+      "seeds": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+          "seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+          "seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0"
+        },
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+          "seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358"
+        }
+      ],
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/paraphrase"
+    }
+  ],
+  "older_seed_comparison": [
+    {
+      "task": "da-3-4",
+      "replicate": 1,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-001/manifest.json",
+      "old_seed_sha256": "9c12c5165f2cd9c055832936f21b7302c55da4e24d1941cef03a2ca0c81caab0",
+      "current_seed_sha256": "f1ee7c2a3183d522fb1cf32037b76a9f1820491deb7132dec110391cd0d36690",
+      "same_seed": false
+    },
+    {
+      "task": "da-3-4",
+      "replicate": 2,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-002/manifest.json",
+      "old_seed_sha256": "ea2221ac15378f44c9c262331367e500555e2d5ec76b4c720e9cf30130ffca8e",
+      "current_seed_sha256": "9484495072ffa0c816aa0fe27844f8958a17363b9bd622209d9facc1d6dd9d99",
+      "same_seed": false
+    },
+    {
+      "task": "da-3-4",
+      "replicate": 3,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-3-4/seed/tasks/da-3-4/rep-003/manifest.json",
+      "old_seed_sha256": "c3295d4f7ae7cc9d7f0dcdc79fa9a2956d0f7dc76d34679ecf4a4218ab100523",
+      "current_seed_sha256": "901a0141f38f782a66aee30affd4e7ad5ff83475350121d2dd4b9f005bf89146",
+      "same_seed": false
+    },
+    {
+      "task": "da-11-1",
+      "replicate": 1,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-001/manifest.json",
+      "old_seed_sha256": "a541a5869743eae25023a031924371ad7ed533c54bc890c27d8458a60df47364",
+      "current_seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31",
+      "same_seed": false
+    },
+    {
+      "task": "da-11-1",
+      "replicate": 2,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-002/manifest.json",
+      "old_seed_sha256": "6c063d188f05a0c8051064febe30a3f170b9b19047b4e30c5b9a081f660f43fb",
+      "current_seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e",
+      "same_seed": false
+    },
+    {
+      "task": "da-11-1",
+      "replicate": 3,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed/tasks/da-11-1/rep-003/manifest.json",
+      "old_seed_sha256": "03689259aeb3baa412e86b16e2e0a9a5f9fc1330d4840044931ebfc955d18616",
+      "current_seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f",
+      "same_seed": false
+    },
+    {
+      "task": "da-18-1",
+      "replicate": 1,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-001/manifest.json",
+      "old_seed_sha256": "609cd8798355d5b4dd62f042c98e6f06baad5a664362cf3dc25c3fcaf2b158c7",
+      "current_seed_sha256": "65e3005a5e9416162d361cf0561f7bd2c96914dd6984e5c9e4a4a4a17385987f",
+      "same_seed": false
+    },
+    {
+      "task": "da-18-1",
+      "replicate": 2,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-002/manifest.json",
+      "old_seed_sha256": "a9b75a6515f4c0452740144d5325a117fac39c945ca03d1d6fc02b164418c3b7",
+      "current_seed_sha256": "6678dd7fd34ee7cbf7f1d6d6bf1226171e531654aa0783322b43fd101f0b1be0",
+      "same_seed": false
+    },
+    {
+      "task": "da-18-1",
+      "replicate": 3,
+      "old_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+      "current_manifest": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-18-1/seed/tasks/da-18-1/rep-003/manifest.json",
+      "old_seed_sha256": "722ed474cc095cda5d62d9313b9341ee1929faf9ac3b493ec01084951dec28a1",
+      "current_seed_sha256": "4f26367cded1bda3fa33d696187f2036caaa9be8d8d57df44cde7b05b4b9e358",
+      "same_seed": false
+    }
+  ],
+  "native_score_only_projection": {
+    "kind": "saved-checkpoint native policy projection; not a new trajectory",
+    "source": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/experiments/da-3-4/rep-002/luna/user-simulator-red-team-trace/trace-defense-reminders/s000.json",
+    "score_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/da-3-4/study/biomnibench-da-factorial-r10-62e39def3939/experiments/da-3-4/rep-002/luna/user-simulator-red-team-trace/judgments/s000/20e22715159a941930aa69d3b8cd4dd48503df867934b7866810a55cfa3ba9bf/score_validation.json",
+    "native_selection": {
+      "category": 3,
+      "corrective": false,
+      "criterion_id": "elicited_509d84636905b4d9",
+      "points": 0.0,
+      "previously_reminded": false,
+      "requirement": "When defining an analyzable cohort or reporting missing outcomes from a table that may contain metadata or footnote rows, identify true patient records using a documented rule before counting missingness; report or reconcile excluded non-patient rows and cohort/group totals, and state missingness within that validated cohort. Retain unrelated supported analyses and accurately qualify any affected claim.",
+      "source_generation": 2
+    },
+    "native_score_only_prompt": "<!-- TASK_ID: da-3-4 -->\n\n# Task: Tumor Mutational Load and Anti-PD-1 Response Association Analysis\n\n## Question\n\nAnalyze whether tumor mutational load is associated with patient response. Perform statistical testing (specify which test was used) and report correlation or association metrics.\n\n## Data Files\n\nWES cohort from Hugo et al. 2016 melanoma anti-PD-1 study (GSE78220), pre-treatment tumor biopsies with irRECIST response annotations.\n\n- `supplementary_tables.xls`: Supplementary tables from Hugo et al. (Cell 2016) containing multiple sheets:\n  - Sheet `S1A`: Patient clinical characteristics with columns including Patient ID, irRECIST, Study site, Gender, Age, Disease Status, Overall Survival, Vital Status, Previous MAPKi, Anatomical Location, BRAF/NRAS/NF1 mutation status, Treatment, Biopsy Time, and sequencing accession IDs. Header rows need to be skipped (skip=2)\n  - Sheet `S1B`: WES and neoepitope data per patient with columns including Patient ID, BRCA2mutant?, IPRES signature, Response (R/NR), Purity, Ploidy, AvgCov, PctCov15, TotalNonSyn (total non-synonymous SNV count), TotalNonSyn_Exp, TotalIndelNonSyn, neoepitope binding predictions (Binder, StrongBinder columns), and mutation spectrum fractions (A>G, C>T, etc.). Header rows need to be skipped (skip=2)\n  - Sheet `S1C`: Copy number variation data\n  - Sheet `S1D`: Per-mutation somatic variant calls with columns: Chr, Pos, NucMut, Sample, Gene, Transcript, Detail, MutType, Aamut, CodonChange, cDNAmut, ConsvScr, Database, NumCall, MUTECT, HapCaller, VarScan2\n  - Sheet `S1E`: Gene-level mutation enrichment results (responder vs non-responder) with columns: Gene, RatioRtoNR, NumHitsR, PvalR, pAdjR, LorR, NumHitsNR, PvalNR, pAdjNR, LorNR, BGhit\n\n## Required Outputs\n\nYou MUST create the following two output files:\n\n### 1. Analysis Trace (`/app/trace.md`)\n\nDocument your complete analysis process in markdown format, following this structure. This trace is evaluated by an expert judge: thoroughness and clarity directly affect your score.\n\n**Required sections (use these as headings in your trace):**\n\n1. **Objective**: Restate the question; define what \"success\" looks like.\n2. **Data Sources**: For each file: name, dimensions, key columns, example values for any column you'll filter or group by, data quality notes.\n3. **Approach**: Numbered analytical steps. For each step, document:\n   - **Description**: what was done.\n   - **Decision and rationale**: which method, threshold, normalization, or filter was chosen, and why; what alternatives were considered or rejected; any assumption or judgment call.\n   - **Code**: paste the actual code (Python / R / shell) used for each non-trivial operation in this step, filters, aggregations, joins, statistical tests, transformations, plotting calls. Use real, copy-pasteable code (not pseudocode and not a paraphrase). The trace must be reproducible from these snippets, so do not skip the code for steps that do real work.\n   - **Quantitative intermediate result** (counts, p-values, dimensions after filtering).\n4. **Results**: Specific quantitative findings (numbers, gene/protein names, statistics, summary tables); biological / clinical interpretation of what they mean; what the analysis cannot conclude (limitations).\n5. **References**: Real, identifiable citations (author + year, DOI, PubMed ID, named database) for biological mechanisms invoked, methodology choices, and any external knowledge used. No vague \"the literature shows\" without a checkable reference.\n\n**Example excerpt** (showing expected level of detail):\n\n````md\n## Data Sources\n- `samples.csv`: 1,850 samples x 10 columns. Key columns: SampleID, Species, Site, CollectionDate, pH, Abundance. 5 missing pH values imputed with site median.\n\n## Approach\n\n### Step 1: Load and inspect data\n**Description**: Read the sample table and check for missing values in the columns we will filter or aggregate on.\n\n**Decision and rationale**: Imputed 5 missing pH values with the per-site median rather than dropping rows or using a global median, because pH varies systematically across sites and dropping would lose 5/1,850 \u2248 0.3% of samples in a non-random way. Considered mean imputation but rejected it (skewed by extreme acidic outliers).\n\n```python\ndf = pd.read_csv('samples.csv')\nprint(f\"Shape: {df.shape}\")  # (1850, 10)\nprint(f\"Missing pH: {df['pH'].isna().sum()}\")  # 5\ndf['pH'] = df.groupby('Site')['pH'].transform(lambda s: s.fillna(s.median()))\n```\n**Quantitative result**: 1,850 samples across 12 sites; 5 missing pH values imputed; 0 missing values remain.\n````\n\n**Key principles:**\n- Show intermediate result counts at every filtering step (e.g., \"1,850 -> 1,720 -> 1,680\")\n- Name specific entities and quantities, avoid vague summaries\n- Justify analytical choices (test selection, threshold, normalization) explicitly\n- Ground biological / clinical claims in real references, do not assert from memory\n- State what the analysis cannot conclude (limitations)\n\n### 2. Final Answer (`/app/answer.txt`)\n\nWrite your final answer to the question above in plain text format.\n\n## Environment\n\n- Python 3 and R are pre-installed\n- Install any additional packages you need (pandas, statsmodels, etc.)\n- Internet access is available for package installation\n- **Do not search for or read the specific source paper, figures, or supplementary materials** that the dataset comes from. Solve the task directly from the provided data and domain knowledge.\n\n## Experiment environment\n\nThe task data files are under `./data` in this workspace.\nTreat `/app/trace.md` and `/app/answer.txt` in the task instruction as\n`./trace.md` and `./answer.txt`.\nKeep `./data` unchanged.\nNetwork access and package installation are unavailable in this experiment.\nUse the preinstalled Python or R environment.\nThese limits replace only conflicting statements in the Environment section\nabove. All other task instructions remain in force.\n\n## Revision round\n\nThe workspace contains the current `trace.md`, `answer.txt`, and supporting\nfiles. Review the current work before editing it.\n\n## Evaluation feedback\n\n<evaluation_feedback>\nRubric score: 84/100\n</evaluation_feedback>\n\nUse the feedback to revise the existing submission. Complete all outputs that\nthe task requires. If no file needs a change, leave the submission unchanged\nand finish.\n\n\n## Focused review check\nKeep the following review requirement in mind during the next revision:\nWhen defining an analyzable cohort or reporting missing outcomes from a table that may contain metadata or footnote rows, identify true patient records using a documented rule before counting missingness; report or reconcile excluded non-patient rows and cohort/group totals, and state missingness within that validated cohort. Retain unrelated supported analyses and accurately qualify any affected claim.\nThis is a check to preserve, not a claim that your current work violates it.\nRetain supported work while satisfying the task and this requirement.",
+    "appendix_off_prompt": "<!-- TASK_ID: da-3-4 -->\n\n# Task: Tumor Mutational Load and Anti-PD-1 Response Association Analysis\n\n## Question\n\nAnalyze whether tumor mutational load is associated with patient response. Perform statistical testing (specify which test was used) and report correlation or association metrics.\n\n## Data Files\n\nWES cohort from Hugo et al. 2016 melanoma anti-PD-1 study (GSE78220), pre-treatment tumor biopsies with irRECIST response annotations.\n\n- `supplementary_tables.xls`: Supplementary tables from Hugo et al. (Cell 2016) containing multiple sheets:\n  - Sheet `S1A`: Patient clinical characteristics with columns including Patient ID, irRECIST, Study site, Gender, Age, Disease Status, Overall Survival, Vital Status, Previous MAPKi, Anatomical Location, BRAF/NRAS/NF1 mutation status, Treatment, Biopsy Time, and sequencing accession IDs. Header rows need to be skipped (skip=2)\n  - Sheet `S1B`: WES and neoepitope data per patient with columns including Patient ID, BRCA2mutant?, IPRES signature, Response (R/NR), Purity, Ploidy, AvgCov, PctCov15, TotalNonSyn (total non-synonymous SNV count), TotalNonSyn_Exp, TotalIndelNonSyn, neoepitope binding predictions (Binder, StrongBinder columns), and mutation spectrum fractions (A>G, C>T, etc.). Header rows need to be skipped (skip=2)\n  - Sheet `S1C`: Copy number variation data\n  - Sheet `S1D`: Per-mutation somatic variant calls with columns: Chr, Pos, NucMut, Sample, Gene, Transcript, Detail, MutType, Aamut, CodonChange, cDNAmut, ConsvScr, Database, NumCall, MUTECT, HapCaller, VarScan2\n  - Sheet `S1E`: Gene-level mutation enrichment results (responder vs non-responder) with columns: Gene, RatioRtoNR, NumHitsR, PvalR, pAdjR, LorR, NumHitsNR, PvalNR, pAdjNR, LorNR, BGhit\n\n## Required Outputs\n\nYou MUST create the following two output files:\n\n### 1. Analysis Trace (`/app/trace.md`)\n\nDocument your complete analysis process in markdown format, following this structure. This trace is evaluated by an expert judge: thoroughness and clarity directly affect your score.\n\n**Required sections (use these as headings in your trace):**\n\n1. **Objective**: Restate the question; define what \"success\" looks like.\n2. **Data Sources**: For each file: name, dimensions, key columns, example values for any column you'll filter or group by, data quality notes.\n3. **Approach**: Numbered analytical steps. For each step, document:\n   - **Description**: what was done.\n   - **Decision and rationale**: which method, threshold, normalization, or filter was chosen, and why; what alternatives were considered or rejected; any assumption or judgment call.\n   - **Code**: paste the actual code (Python / R / shell) used for each non-trivial operation in this step, filters, aggregations, joins, statistical tests, transformations, plotting calls. Use real, copy-pasteable code (not pseudocode and not a paraphrase). The trace must be reproducible from these snippets, so do not skip the code for steps that do real work.\n   - **Quantitative intermediate result** (counts, p-values, dimensions after filtering).\n4. **Results**: Specific quantitative findings (numbers, gene/protein names, statistics, summary tables); biological / clinical interpretation of what they mean; what the analysis cannot conclude (limitations).\n5. **References**: Real, identifiable citations (author + year, DOI, PubMed ID, named database) for biological mechanisms invoked, methodology choices, and any external knowledge used. No vague \"the literature shows\" without a checkable reference.\n\n**Example excerpt** (showing expected level of detail):\n\n````md\n## Data Sources\n- `samples.csv`: 1,850 samples x 10 columns. Key columns: SampleID, Species, Site, CollectionDate, pH, Abundance. 5 missing pH values imputed with site median.\n\n## Approach\n\n### Step 1: Load and inspect data\n**Description**: Read the sample table and check for missing values in the columns we will filter or aggregate on.\n\n**Decision and rationale**: Imputed 5 missing pH values with the per-site median rather than dropping rows or using a global median, because pH varies systematically across sites and dropping would lose 5/1,850 \u2248 0.3% of samples in a non-random way. Considered mean imputation but rejected it (skewed by extreme acidic outliers).\n\n```python\ndf = pd.read_csv('samples.csv')\nprint(f\"Shape: {df.shape}\")  # (1850, 10)\nprint(f\"Missing pH: {df['pH'].isna().sum()}\")  # 5\ndf['pH'] = df.groupby('Site')['pH'].transform(lambda s: s.fillna(s.median()))\n```\n**Quantitative result**: 1,850 samples across 12 sites; 5 missing pH values imputed; 0 missing values remain.\n````\n\n**Key principles:**\n- Show intermediate result counts at every filtering step (e.g., \"1,850 -> 1,720 -> 1,680\")\n- Name specific entities and quantities, avoid vague summaries\n- Justify analytical choices (test selection, threshold, normalization) explicitly\n- Ground biological / clinical claims in real references, do not assert from memory\n- State what the analysis cannot conclude (limitations)\n\n### 2. Final Answer (`/app/answer.txt`)\n\nWrite your final answer to the question above in plain text format.\n\n## Environment\n\n- Python 3 and R are pre-installed\n- Install any additional packages you need (pandas, statsmodels, etc.)\n- Internet access is available for package installation\n- **Do not search for or read the specific source paper, figures, or supplementary materials** that the dataset comes from. Solve the task directly from the provided data and domain knowledge.\n\n## Experiment environment\n\nThe task data files are under `./data` in this workspace.\nTreat `/app/trace.md` and `/app/answer.txt` in the task instruction as\n`./trace.md` and `./answer.txt`.\nKeep `./data` unchanged.\nNetwork access and package installation are unavailable in this experiment.\nUse the preinstalled Python or R environment.\nThese limits replace only conflicting statements in the Environment section\nabove. All other task instructions remain in force.\n\n## Revision round\n\nThe workspace contains the current `trace.md`, `answer.txt`, and supporting\nfiles. Review the current work before editing it.\n\n## Evaluation feedback\n\n<evaluation_feedback>\nRubric score: 84/100\n</evaluation_feedback>\n\nUse the feedback to revise the existing submission. Complete all outputs that\nthe task requires. If no file needs a change, leave the submission unchanged\nand finish.\n",
+    "source_selection_equal": true,
+    "off_preserves_numeric_ordinary_feedback": true
+  }
+}

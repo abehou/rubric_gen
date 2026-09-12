@@ -107,7 +107,7 @@ def test_native_learning_scoring_simulator_unchanged():
         assert (ROOT/rel).read_bytes()==subprocess.check_output(['git','show','c866831:'+rel],cwd=ROOT)
 
     rel='src/rubric_gen/submission_revision/trace_defense_v2_stage.py'
-    stage=(ROOT/rel).read_text().replace("'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', ", '')
+    stage=(ROOT/rel).read_text().replace("'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', ", '')
     assert stage==subprocess.check_output(['git','show','c866831:'+rel],cwd=ROOT,text=True)
 
 

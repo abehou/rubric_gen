@@ -1,0 +1,11 @@
+{
+  "provider_calls": 0,
+  "pytest_passed": 96,
+  "pytest_seconds": 10.9,
+  "native_input_checks": 24,
+  "slurm_read_only_step_parent_job": 10414481,
+  "log": "experiments/biomnibench-v21-to45/queue3/check.log",
+  "older_seeds_compatible": 0,
+  "older_seeds_checked": 9,
+  "report_startup_note": "The first read-only report step exited 13 before Python: PATH resolved env to nonexecutable /home/aydanh/tools/uv/env. Corrected invocation uses /usr/bin/env; no provider calls or scientific outputs were repeated."
+}
