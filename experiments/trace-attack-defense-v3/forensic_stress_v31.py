@@ -43,13 +43,12 @@ def public_text(root: Path, sid: str) -> tuple[str, dict[str, str]]:
     workspace = root / "submissions" / sid / "workspace"
     pieces: list[str] = []
     hashes: dict[str, str] = {}
-    for path in sorted(workspace.rglob("*")) if workspace.is_dir() else ():
+    for rel in ("answer.txt", "trace.md"):
+        path = workspace / rel
         if path.is_file():
-            rel = str(path.relative_to(workspace))
             hashes[rel] = digest(path) or ""
-            if rel in {"answer.txt", "trace.md"}:
-                pieces.append(f"\n===== {rel} =====\n")
-                pieces.append(path.read_text(encoding="utf-8", errors="replace"))
+            pieces.append(f"\n===== {rel} =====\n")
+            pieces.append(path.read_text(encoding="utf-8", errors="replace"))
     return "".join(pieces), hashes
 
 
@@ -111,23 +110,55 @@ def load_outcome_rows(cohort: str) -> dict[tuple[str, str, int], dict[str, Any]]
     return out
 
 
-def scan_application_states(root: Path) -> Counter[str]:
-    counts: Counter[str] = Counter()
-    for path in root.rglob("*.json"):
-        try:
-            value = load_json(path)
-        except Exception:
+def collect_learning(root: Path) -> dict[str, Any]:
+    """Count native generation appearances and request-unique outcomes separately."""
+    counts = Counter()
+    reasons = Counter()
+    generation_rows = []
+    for path in sorted((root / "rubric-generations").glob("generation-*/manifest.json")):
+        manifest = load_json(path)
+        number = manifest["generation_round"]
+        if number < 2:
             continue
-        if isinstance(value, dict):
-            applicability = value.get("applicability")
-            if isinstance(applicability, str):
-                counts[applicability] += 1
-            # Preserve explicit native rejection reasons when present.
-            for key in ("rejection_reason", "reason", "status", "decision"):
-                item = value.get(key)
-                if isinstance(item, str) and any(token in item.casefold() for token in ("undecidable", "support", "margin", "semantic", "redundant", "duplicate")):
-                    counts[f"reason:{item}"] += 1
-    return counts
+        directory = path.parent
+        proposal = load_json(directory / "criterion-proposal.json")
+        validation = load_json(directory / "criterion-validation.json")
+        admission = load_json(directory / "aggregate-margins.json")
+        counts["online_updates"] += 1
+        counts["online_proposals"] += len(proposal["criteria"])
+        counts["online_admissions"] += len(admission["accepted_candidate_ids"])
+        decisions = Counter("accepted" if d["accepted"] else d["reason"] for d in admission["decisions"])
+        reasons.update(decisions)
+        for d in proposal.get("diagnoses", []):
+            response = d.get("response")
+            counts["diagnosis:" + (response["action"] if response else "unavailable")] += 1
+        for review in validation.get("reviews", []):
+            counts["candidate_reviews"] += 1
+            counts["required_applications_appearances"] += len(review["applications"])
+            for app in review["applications"]:
+                value = app.get("response")
+                counts["application_appearance:" + (value["applicability"] if value else "contract_unavailable")] += 1
+        for item in validation.get("ineligibility", []):
+            reasons[item["stage"] + ":" + item["reason"]] += 1
+        generation_rows.append({"generation": number, "path": str(directory),
+            "proposed": len(proposal["criteria"]), "admitted_ids": admission["accepted_candidate_ids"],
+            "native_decisions": admission["decisions"], "ineligibility": validation.get("ineligibility", [])})
+    for path in sorted((root / "red-team").glob("checkpoint-*/attack-record-v2.json")):
+        record = load_json(path)
+        counts["sidecars"] += 1
+        counts["nonidentical_sidecars"] += bool(record["public_nonidentical"])
+    request_counts = Counter()
+    for path in sorted((root / "trace-defense-v2-requests").glob("*/result.json")):
+        result = load_json(path)
+        stage, outcome = result["request"]["stage"], result["outcome"]
+        request_counts[stage + ":" + outcome["status"]] += 1
+        value = outcome.get("value")
+        if stage == "application" and value:
+            request_counts["application:" + value["applicability"]] += 1
+        for name, amount in result.get("accounting", {}).items():
+            request_counts["accounting:" + name] += amount
+    return {"counts": dict(counts), "native_and_ineligibility_reasons": dict(reasons),
+            "request_unique_counts": dict(request_counts), "generations": generation_rows}
 
 
 def classify_case(delta: dict[str, Any], turns: list[dict[str, Any]]) -> tuple[str, str]:
@@ -201,7 +232,7 @@ def collect_case(flavor: str, task: str, replicate: int) -> tuple[dict[str, Any]
             "diff_excerpt": diff[:6000],
             "diff_chars": len(diff),
         })
-    return {"task_id": task, "replicate": replicate, "flavor": flavor, "root": str(root), "state_path": str(root / "state.json"), "state_sha256": digest(root / "state.json"), "state": state, "application_state_counts": dict(scan_application_states(root))}, turns
+    return {"task_id": task, "replicate": replicate, "flavor": flavor, "root": str(root), "state_path": str(root / "state.json"), "state_sha256": digest(root / "state.json"), "state": state, "learning": collect_learning(root)}, turns
 
 
 def main() -> None:
@@ -235,7 +266,7 @@ def main() -> None:
             delta = {key: (v3.get(key) - v21.get(key)) if key in v3 and key in v21 else None for key in ("W", "W_train", "S", "H", "A", "W_minus_S", "W_minus_A", "S_minus_H", "H_minus_A")}
             label, basis = classify_case(delta, turn_data["v31-candidate"])
             mechanisms[label] += 1
-            rows.append({"task_id": task, "replicate": replicate, **delta, "primary_mechanism": label, "mechanism_basis": basis, "v3_selected_turns": sum(bool(t.get("selection")) for t in turn_data["v31-candidate"]), "v3_emitted_turns": sum(bool(t.get("emitted")) for t in turn_data["v31-candidate"]), "v3_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v31-candidate"]), "v3_raw_proactive_only_revisions": sum(t["raw_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v3_effective_proactive_only_revisions": sum(t["effective_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v21_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v21-control"]), "v3_application_states": collected["v31-candidate"]["application_state_counts"]})
+            rows.append({"task_id": task, "replicate": replicate, **delta, "primary_mechanism": label, "mechanism_basis": basis, "v3_selected_turns": sum(bool(t.get("selection")) for t in turn_data["v31-candidate"]), "v3_emitted_turns": sum(bool(t.get("emitted")) for t in turn_data["v31-candidate"]), "v3_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v31-candidate"]), "v3_raw_proactive_only_revisions": sum(t["raw_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v3_effective_proactive_only_revisions": sum(t["effective_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v21_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v21-control"]), "v3_application_states": collected["v31-candidate"]["learning"]["counts"]})
             cases.append({"task_id": task, "replicate": replicate, "delta": delta, "primary_mechanism": label, "mechanism_basis": basis, "v21": {"case": collected["v21-control"], "turns": turn_data["v21-control"]}, "v3": {"case": collected["v31-candidate"], "turns": turn_data["v31-candidate"]}})
     payload = {"provider_calls": 0, "run_root": str(RUN), "tasks": list(TASKS), "outcome_rows_available": len(outcome_rows), "mechanism_counts": dict(mechanisms), "concern_origins": dict(origins), "raw_concern_origins": dict(raw_origins), "classification_status": "automated triage only; primary mechanisms require manual public-evidence review", "omission_reasons": dict(omission), "rows": rows, "cases": cases}
     out = Path(args.out)

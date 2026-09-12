@@ -1246,3 +1246,8 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 
 - 09:11 EDT: Consumer assembly/validation jobs 10397871 and 10397939 confirmed 118 compatible imported assignments plus the two v2.1 recoveries. Audit owner 10397985 completed the non-direct stages; direct-RH recovery 10398066 completed only the missing/failed direct-window work and was not duplicated. Coverage verification 10398292 and provider-free report assembly 10399347 completed; final report is `docs/reports/2026-09-11/trace-attack-defense-v2.1/README.md`.
 - 09:11 EDT: A local Codex controller ended with `memory allocation of 8292352 bytes failed` while the Slurm scientific owner remained independent. The event is logged as a control-plane incident and did not trigger a new recovery layer or alter the frozen cohort.
+
+## 2026-09-12 — v3.1 stress and saved-output reporting
+
+- 01:26 EDT: Producer 10409332 uses `experiments/trace-attack-defense-v3/stress_v31_run.sbatch`, 32 CPUs/512 GiB with three task runners and one assignment worker per runner. All nine assignments are completed under `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/`; Slurm preempted/requeued the same job while completion validation was outstanding, preserving native assignments.
+- 01:26 EDT: Existing chain: finalizer10409423 → audit10409706 → report10409709 → forensic10409710. Ranking-only jobs10409385/10410276 failed on historical source addressing/identity; corrected job10410280 reuses validated v2.1 report rows and saved development audits, with zero provider calls.

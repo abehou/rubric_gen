@@ -1,3 +1,8 @@
+## 2026-09-12 — Current v3 development authorization
+
+- 01:26 EDT: Continue the already-launched v3.1 stress candidate and queued finalizer/audits; preserve all completed outputs and recover only missing work. At most three User-delivery iterations across stress dev3, then canonical dev3 and the descriptive Full/Semi/Score-only/User comparison; exactly one Result20 is conditional on satisfactory development evidence, with no Result20 prompt tuning.
+- 01:26 EDT: Interpret W−S as verifier disagreement (baseline-level or a modest reduction is acceptable), S−H as selected-to-heldout generalization, and H−A as heldout-to-holistic alignment. Preserve S/H/A and RH jointly; do not select by admissions or minimum W−S.
+
 ## 2026-09-09 — Accepted baseline checkpoint
 
 - 22:09 EDT: The user freezes the accepted static baseline and requests only checkpoint publication and conservative cleanup; no new trace optimization, recovery, or experiment is authorized. Formal names are Full feedback/User simulator; S−H≈0.12 is acceptable and final-artifact sensitivity remains separate.

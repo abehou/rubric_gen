@@ -1,0 +1,94 @@
+{
+  "assignments": [
+    {
+      "assignment_id": "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-15-1.yaml",
+      "config_sha256": "428792780431adc96b865c86fe4ca883204c7e263ac5577e0f71012bc18dc2eb",
+      "experiment_id": "biomnibench-da-factorial-r10-7c8044b7d736",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace",
+      "task": "da-15-1"
+    },
+    {
+      "assignment_id": "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-15-1.yaml",
+      "config_sha256": "428792780431adc96b865c86fe4ca883204c7e263ac5577e0f71012bc18dc2eb",
+      "experiment_id": "biomnibench-da-factorial-r10-7c8044b7d736",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace",
+      "task": "da-15-1"
+    },
+    {
+      "assignment_id": "da-15-1--rep-002--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-15-1.yaml",
+      "config_sha256": "428792780431adc96b865c86fe4ca883204c7e263ac5577e0f71012bc18dc2eb",
+      "experiment_id": "biomnibench-da-factorial-r10-7c8044b7d736",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace",
+      "task": "da-15-1"
+    },
+    {
+      "assignment_id": "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-13-6.yaml",
+      "config_sha256": "445bebd6ee60fed64582c65acafe6d245c13d35c63a3cdface1b035ef3f04e2d",
+      "experiment_id": "biomnibench-da-factorial-r10-863cd4a369a2",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-13-6/study/biomnibench-da-factorial-r10-863cd4a369a2/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+      "task": "da-13-6"
+    },
+    {
+      "assignment_id": "da-13-6--rep-001--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-13-6.yaml",
+      "config_sha256": "445bebd6ee60fed64582c65acafe6d245c13d35c63a3cdface1b035ef3f04e2d",
+      "experiment_id": "biomnibench-da-factorial-r10-863cd4a369a2",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-13-6/study/biomnibench-da-factorial-r10-863cd4a369a2/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace",
+      "task": "da-13-6"
+    },
+    {
+      "assignment_id": "da-13-6--rep-002--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-13-6.yaml",
+      "config_sha256": "445bebd6ee60fed64582c65acafe6d245c13d35c63a3cdface1b035ef3f04e2d",
+      "experiment_id": "biomnibench-da-factorial-r10-863cd4a369a2",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-13-6/study/biomnibench-da-factorial-r10-863cd4a369a2/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace",
+      "task": "da-13-6"
+    },
+    {
+      "assignment_id": "da-18-5--rep-003--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-18-5.yaml",
+      "config_sha256": "8a3b277a0b0c414814ec6c9df525b9b86fa0ba7f8cdd5f9253b4aae2108d4914",
+      "experiment_id": "biomnibench-da-factorial-r10-fc2d652b948f",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-18-5/study/biomnibench-da-factorial-r10-fc2d652b948f/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace",
+      "task": "da-18-5"
+    },
+    {
+      "assignment_id": "da-18-5--rep-001--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-18-5.yaml",
+      "config_sha256": "8a3b277a0b0c414814ec6c9df525b9b86fa0ba7f8cdd5f9253b4aae2108d4914",
+      "experiment_id": "biomnibench-da-factorial-r10-fc2d652b948f",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-18-5/study/biomnibench-da-factorial-r10-fc2d652b948f/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace",
+      "task": "da-18-5"
+    },
+    {
+      "assignment_id": "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace",
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/stress-v31/v31-candidate-da-18-5.yaml",
+      "config_sha256": "8a3b277a0b0c414814ec6c9df525b9b86fa0ba7f8cdd5f9253b4aae2108d4914",
+      "experiment_id": "biomnibench-da-factorial-r10-fc2d652b948f",
+      "ledger_status": "completed_scope",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-18-5/study/biomnibench-da-factorial-r10-fc2d652b948f/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace",
+      "task": "da-18-5"
+    }
+  ],
+  "audits_launched": 0,
+  "completed_assignments": 9,
+  "expected_assignments": 9,
+  "job": "10409423",
+  "kind": "trace_v3_1_stress_complete",
+  "provider_calls": 0,
+  "recipe": "attack_defense_v3.1",
+  "source_control": "stress-iter1/v21-control",
+  "time": "2026-09-12T05:25:35.906244+00:00"
+}

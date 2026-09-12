@@ -60,7 +60,7 @@ def main() -> None:
         config_dir = BUNDLE / "stress"
     rows = []
     for task in tasks:
-        if args.flavor == "control-v21-compatible":
+        if args.flavor == "control-v21-compatible" or args.cohort == "canonical":
             config_path = config_dir / f"{task}.yaml"
         else:
             config_path = config_dir / f"{args.flavor}-{task}.yaml"

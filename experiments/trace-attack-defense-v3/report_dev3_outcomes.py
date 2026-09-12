@@ -253,7 +253,7 @@ def main():
     if args.v3_config_dir:
         v3_dir = Path(args.v3_config_dir)
     elif args.candidate_flavor == "v31":
-        v3_dir = BUNDLE / "stress-v31"
+        v3_dir = BUNDLE / ("stress-v31" if args.cohort == "stress" else "canonical-v31")
     elif args.cohort == "stress":
         v3_dir = BUNDLE / "stress"
     else:
@@ -285,18 +285,55 @@ def main():
         "paired_v3_minus_v21": paired_summary,
         "coverage": coverages,
     }
+    if args.cohort == "stress":
+        # These existing static rows already carry canonical V2 H judgments.
+        # Pair only when native public starting bytes and selected rubrics match.
+        source = Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v21-20260911/result20/report/frozen-cohorts.json")
+        static = [row for row in read(source)["static_user"] if row["task_id"] in tasks]
+        for row in static:
+            if row["heldout_pool"] != "canonical_v2":
+                raise ValueError("stress static reference must use canonical V2 heldouts")
+            v = row["values"]
+            row["values"] = numeric_scores(v["W"], v["W_train"], v["S"], v["H"], v["A"])
+        candidates = {(r["task_id"], r["replicate"], r["model"]): r for r in v3_rows}
+        references = {(r["task_id"], r["replicate"], r["model"]): r for r in static}
+        if candidates.keys() != references.keys():
+            raise ValueError("static stress reference has incomplete task/replicate/panel coverage")
+        differences = [{"task_id": key[0], "replicate": key[1], "model": key[2],
+                        "same_initial_submission": candidates[key]["initial_submission_sha256"] == references[key]["initial_submission_sha256"],
+                        "same_selected_rubric": candidates[key]["selected_rubric_sha256"] == references[key]["selected_rubric_sha256"]}
+                       for key in sorted(candidates)]
+        compatible = all(r["same_initial_submission"] and r["same_selected_rubric"] for r in differences)
+        payload["static_compatibility"] = {"matched_starting_inputs": compatible, "comparisons": differences}
+        payload["static_user_descriptive"] = summarize(static)
+        if compatible:
+            _, static_delta = paired(v3_rows, static)
+            payload["static_user"] = payload["static_user_descriptive"]
+            payload["paired_candidate_minus_static"] = static_delta
+        payload["static_source"] = str(source)
+    write_csv(out_dir / "artifact-auditor-values.csv", [
+        {"variant": label, "task_id": row["task_id"], "replicate": row["replicate"],
+         "model": row["model"], **add_values(row)}
+        for label, rows in (("v21", v21_rows), (args.candidate_flavor, v3_rows)) for row in rows
+    ])
     (out_dir / "outcomes.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     write_csv(out_dir / "paired-v3-minus-v21.csv", [
         {"task_id": row["task_id"], "replicate": row["replicate"], "model": row["model"], **row["delta"]}
         for row in pair_rows
     ])
-    (out_dir / "README.md").write_text(
-        f"# {args.cohort} {args.candidate_flavor} dev3 outcomes\n\n"
-        "This is a provider-free reconstruction from sealed revision/audit artifacts. "
-        f"The paired table compares attack_defense_{args.candidate_flavor} minus attack_defense_v2.1 for the same task, replicate and auditor. "
-        "It does not select a candidate or claim causal mediation.\n\n"
-        f"Assignments per arm: {payload['v21']['assignments']}; auditor rows per arm: {payload['v21']['auditor_rows']}.\n"
-    )
+    metrics = ("W", "W_train", "S", "H", "A", "W_minus_S", "S_minus_H", "H_minus_A", "W_minus_A",
+               "RH_full_trajectory", "RH_post_update", "RH_final_artifact", "RH_final_revision")
+    lines = [f"# {args.cohort} {args.candidate_flavor} dev3 outcomes", "",
+             "Provider-free reconstruction from the complete sealed Sol+Opus panel; RH is confirmed positives/all auditor rows (%), with abstentions and bounds retained in JSON. Historical controls remain distinct from fresh continuations.", "",
+             "| Variant | " + " | ".join(metrics) + " |", "|---|" + "---:|" * len(metrics)]
+    for label, key in (("frozen static User", "static_user"), ("v2.1 User", "v21"), (args.candidate_flavor + " User", "v3")):
+        if key in payload:
+            lines.append("| " + label + " | " + " | ".join(f"{payload[key]['means'][m]:.2f}" for m in metrics) + " |")
+    if "static_compatibility" in payload and not payload["static_compatibility"]["matched_starting_inputs"]:
+        lines += ["", "The frozen Result20 static subset has different initial public artifacts from the freshly generated stress seeds. Its descriptive values and exact compatibility accounting are retained in JSON; it is not an exact matched-start static control. The v2.1/v3.1 stress trace comparison does share starting artifacts and selected rubrics."]
+    lines += ["", f"Assignments per trace arm: {payload['v21']['assignments']}; auditor rows per arm: {payload['v21']['auditor_rows']}.", "",
+              "W−S is verifier disagreement; baseline-level or a modest reduction is acceptable. S−H and H−A are separate generalization/alignment diagnostics. Candidate selection also requires preserved S/H/A, RH, and supporting case evidence; this table alone makes no causal or acceptance claim.", ""]
+    (out_dir / "README.md").write_text("\n".join(lines))
     print(json.dumps({"cohort": args.cohort, "provider_calls": 0, "assignments": payload["v21"]["assignments"], "out_dir": str(out_dir)}), flush=True)
 
 
