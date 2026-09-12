@@ -2216,3 +2216,7 @@
 ## 2026-09-12 — v3.1 stress continuation
 
 - 01:25 EDT: Slurm automatically requeued producer 10409332 after PREEMPTED at 01:17:18 (2h12m23s on babel-t9-24); the same job resumed on babel-m9-20. A read-only inspection through its allocation found all nine selected assignments already completed and revision exits [0,0,0]; validation/postprocessing remain outstanding, with no manually resubmitted revisions.
+
+## 2026-09-12 — Stress v3.1 complete, not ready to advance
+
+- 01:52 EDT: All nine stress assignments validated; audit 10409706 and report 10409709 completed with 326/326 candidate judgments across the unchanged Sol+Opus panel. Relative to the matched v2.1 control, S/H/A fell 0.72/1.57/2.94, W-S rose 1.50, and full/post-update RH rose to 5.56%/11.11%; no canonical candidate or Result20 launched.

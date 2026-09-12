@@ -601,3 +601,7 @@
 ## 2026-09-12 — Development reporting corrections
 
 - 01:25 EDT: Ranking job 10409385 used a current-YAML Result20 ID rather than the completed consumer receipt; corrected the report to follow that receipt, align worst-gap rank direction, use tie-aware continuous-RH tail overlap, and retain ambiguous verdicts. Fixed the pending v3.1 forensic extractor's control-root path and one-auditor score averaging; four provider-free statistical tests pass, with no scientific request changes.
+
+## 2026-09-12 — Delivery replay and evidence interpretation
+
+- 01:52 EDT: The v3.1 proactive-only projection is currently dispatched for both v3 and v3.1, which can change old v3 replay; restrict it to its introduced version at the next safe code boundary and test both paths. Saved package-absence results are valid, but the public task permits internet installation while the execution manifest disables command networking; preserve that distinction when interpreting the unchanged outcome judgments.

@@ -2,8 +2,9 @@
 
 This directory records the provider-free forensic and the bounded development
 work for the User-simulator calibration candidate. The scientific reference is
-attack_defense_v2.1 Result20; no Result20 case-level outcome is used to choose
-v3 wording or parameters.
+attack_defense_v2.1 Result20. The requested historical Result20 forensic informed
+the initial delivery hypothesis and stress-task selection. Subsequent delivery
+iteration uses the stress/canonical development traces, not another Result20 run.
 
 ## v2.1 diagnosis
 
@@ -11,10 +12,10 @@ The User arm reduced full-trajectory RH from 20.00% to 10.00% and improved A by
 2.01 points, but W-S increased 1.85 points and S declined 0.62 points. The
 saved v2.1 User traces show up to three ordinary simulated-user concerns followed
 by a separate focused learned-rule block. In the requested high-contribution
-cases, the forensic extraction finds 54 turn records with evidence of useful-work
-removal, 25 with dynamic-oversteer evidence, 7 with method/scope drift, 2 with
-limitation overuse, and 14 with weak/strong disagreement; these are evidence
-classes, not causal relabelings. Positive controls improve under the same
+cases, the automatic forensic extraction flags 54 turn records for possible work
+removal, 25 for possible dynamic oversteering, 7 for method/scope drift, 2 for
+limitation overuse, and 14 for weak/strong disagreement. These are heuristic
+triage labels, not verified mechanism counts or causal relabelings. Positive controls improve under the same
 selector, so this does not justify changing the learner or admission gates.
 
 See [user-calibration-forensics.md](user-calibration-forensics.md) and its
@@ -34,7 +35,7 @@ ranked by existing point loss and rubric order. Concern-origin labels are
 persisted for analysis and stripped before solver rendering. Proactive learned
 checks alone do not force revision, and local repair/preservation is required.
 
-The implementation and tests are in the isolated `attack-defense-v3` worktree.
+The implementation and tests are in the isolated `runs/babel-code/attack-defense-v2` worktree.
 Canonical User v2.1 control input preparation and the matched v2.1/v3 stress
 runner are recorded under `experiments/trace-attack-defense-v3/`. Provider work
 is not launched from this report until the saved seed/control receipts are
@@ -50,7 +51,9 @@ complete and the snapshot is committed.
 | matched stress dev3 | 18/18 selected assignments sealed; producer recovery 10405463, consumer recovery 10405844, provider-free finalizer 10407854 |
 | stress Sol+Opus audit | v2.1 control 10408028, v3 candidate 10408035 (serialized; no duplicate judgments) |
 | canonical v3 input binding | complete; current producer identities recorded |
-| canonical v3 confirmation | pending v3.1 stress gate |
+| v3.1 stress revisions | 9/9 valid; producer 10409332, finalizer 10409423 complete |
+| v3.1 stress outcomes | audit 10409706 running; report 10409709 and forensic 10409710 queued |
+| canonical v3 confirmation | not launched; pending satisfactory stress evidence |
 | single Result20 | not launched |
 
 Result20 will be launched at most once, only after the stress and canonical dev3
@@ -93,6 +96,36 @@ The v3.1 recipe is a separate version identity but reuses v2.1's attack and
 learning modules. Dispatch, replay and study-validation checks recognize the new
 version. Provider-free tests passed 11/11 in job 10409121 and the three v3.1
 stress configs loaded with their v2.1 pretreatment bindings in job 10409175.
-The next step is the nine-assignment User-only stress run under the same seeds and
-offline materials; no Result20 job is authorized until its quality and mechanism
-evidence, followed by canonical dev3, are satisfactory.
+The nine-assignment User-only run completed and provider-free finalization passed.
+Its Slurm allocation was preempted after the assignment subprocesses completed;
+Slurm automatically requeued the same job, which reused the completed outputs and
+finished validation. No manual revision resubmission was made. The launcher owner
+receipt and Slurm log were overwritten on restart, an operational recording
+limitation; the exit receipt and Slurm accounting retain the completion/preemption
+sequence. Scientific requests were unchanged across the restart.
+
+The complete Sol + Opus audit and downstream report are in progress. See
+[the manual saved-trace review](stress-v31-manual-review.md). The proactive-only
+guard fired zero times in this realization; any score movement cannot be
+attributed to an observed guard intervention. No canonical v3 or Result20 run has
+been launched.
+
+The stress control/candidate have matched starting submissions and selected
+rubrics. Their initial submissions were newly generated for stress by job
+10402280, however, and differ from historical Result20 static starts. The report
+labels that static subset descriptive and records the mismatch rather than
+presenting it as an exact matched-start baseline.
+
+## Gap interpretation and ranking
+
+W-S measures weak/strong verifier disagreement. Baseline-level or modestly lower
+W-S is acceptable; a large reduction is not an objective if S, H, A or RH worsen.
+S-H measures transfer to wording-only heldout rubrics and should remain low.
+H-A measures rubric/holistic disagreement and must be read alongside both H and A.
+
+[Artifact gap/RH ranking](artifact-gap-rh-ranking.md) reports equal-weight signed
+gap ranks, continuous final-artifact/full-trajectory monitor scores, correlations,
+and tie-aware worst-fraction overlap. It uses 147 existing artifacts with zero
+provider calls. Associations differ across conditions; the gap family and RH
+cannot be treated as interchangeable quality measures. Historical Result20 ranks
+are descriptive and are not used to choose the next development prompt.
