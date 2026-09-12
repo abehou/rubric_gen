@@ -1,6 +1,6 @@
 # BioMNIBench v2.1 to 45: development and expansion
 
-**Expectations are partially met.** Full v2.1 supports further characterization; User calibration remains unresolved. All18 R1/R2 development trajectories have completed, but incomplete audits prevent selection. No new User winner, confirmation block, or User Result20 is claimed. Results30/45 are input preparation, not completed expanded outcomes.
+**Expectations are partially met.** Full v2.1 supports further characterization; User calibration remains unresolved. All18 R1/R2 development trajectories have completed, and the corrected queue2 audit now has complete R0/R1/R2 outcomes; the queue3 policy audit is still running. No new User winner, confirmation block, or User Result20 is claimed. Results30/45 remain input preparation, not completed expanded outcomes.
 
 Mission start: **2026-09-12 09:27:31 EDT**. This is an interim checkpoint, not the requested9–10-hour morning checkpoint (18:27–19:27 EDT). Healthy Slurm jobs retain their owners. The [shared status](../../../../../experiments/biomnibench-v21-to45/status.json) and [observed jobs/commands](queue8/observed-status.json) provide continuation state.
 
@@ -56,11 +56,11 @@ The official nested task membership is fixed before new outcomes: [T20/T30/T45](
 
 ## Current decision and continuation
 
-- **Complete:** v2.1 Result20, canonical User control9/336, closed historical diagnostics, R1/R2 trajectories18/18, task-membership plan, stage-specific CPU audit.
-- **Running/incomplete:** missing R1/R2 and policy audits, remaining policy trajectories, Results30/45 new inputs. Preserve outputs and use native resume under the recorded owner/config.
+- **Complete:** v2.1 Result20, canonical User control9/336, closed historical diagnostics, R1/R2 trajectories18/18, queue2 R0/R1/R2 audited outcomes (provider-free reuse), task-membership plan, stage-specific CPU audit, rigorous-V2 heldouts for the added-ten and final-fifteen blocks.
+- **Running/incomplete:** queue3 corrected all-cell audit (job10415408, after queue2 R2), Results30 missing-only seed recovery (jobs10415501/10415502 with lane-0 retry10415538), and Results45 missing-only seed recovery (jobs10415531/10415532). No Results30/45 revision or outcome-audit stage has been dispatched.
 - **Scientifically unresolved:** a better User treatment, broad anti-RH claims across later windows, causal attribution to appendix delivery, generalization to new tasks.
 - **Deferred pending evidence:** independent User confirmation and new User Result20; Semi/Score-only scale extensions; dropout. No new speculative variant is dispatched.
 
-Expectations are **partially met**, supported by Full v2.1 rather than an overall successful bundle. Results30/45 outcomes are **incomplete**, with input preparation active and the prior heldout authority blocker now resolved. This checkpoint does not end the30/45 mission.
+Expectations are **partially met**, supported by Full v2.1 rather than an overall successful bundle. Queue2 is complete; queue3 and the Results30/45 input/revision/audit stages are **incomplete**. The heldout authority blocker is resolved, and all missing work is being resumed through the native owners without resubmitting completed cells. This checkpoint does not end the30/45 mission.
 
-Collaborator update draft:「目前Full v2.1在20题上的主要方向成立，但后期RH窗口和统计不确定性仍需保留；User校准问题尚未解决。R1/R2共18条轨迹已完成，正在补齐评审，不能提前选赢家。30/45题按已固定任务集推进，旧20题heldout不变，新题使用已批准的rigorous-V2提示并明确记录生成差异。现在是部分达标，不是全部预期已实现。」
+Collaborator update draft:「目前Full v2.1在20题上的主要方向成立，但后期RH窗口和统计不确定性仍需保留；User校准问题尚未解决。R1/R2共18条轨迹已完成，Queue2评审已补齐，Queue3正在按原计划恢复。30/45题按已固定任务集推进，旧20题heldout不变，新题使用已批准的rigorous-V2提示并明确记录生成差异。现在是部分达标，不是全部预期已实现。」
