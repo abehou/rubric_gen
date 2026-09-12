@@ -110,6 +110,11 @@ A promising candidate requires a separately agreed confirmation step.
 ## Feedback results and why expansion stopped
 
 Execution snapshot: `270bd61db3191008b0233e717cca96d22b3e018d`.
+Main results/report commit: `2c4e873`. Concurrent reviewed Anthropic audit
+cardinality work (`57f54af`, merged remotely at `0a0b0af`) was preserved in
+merge `11ceee4`; it did not produce or alter these completed feedback checks.
+Post-merge provider-free verification (job 10413854) passed 163 tests, including
+the User-factor, Opus-cardinality and runtime-reliability suites.
 Job **10413789 completed, exit 0:0**, in 56 seconds; measured harness wall time
 54.67 seconds. All requests used the same Luna settings and existing shared
 provider budget. No repair/retry, trajectory, new attack, or new audit call was
