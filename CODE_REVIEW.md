@@ -634,3 +634,7 @@
 - 06:40 EDT: New User-factor paths share the legacy selector and leave historical v3 code intact; private metadata cannot rewrite accept/revise or suppress substantive concerns. Host-inferred emission/omission is replaced with explicit unknown status pending semantic inspection, with the original saved receipts retained.
 
 - 06:59 EDT: Shared legacy numeric selector and tag-independent User-factor rendering pass the controller/integration tests; the added exact recorded numeric-selection fixture also passes (123 unique tests covered). No production code was changed after the feedback snapshot, and source-valid references are explicitly not reported as semantic validation.
+
+## 2026-09-12 — Public User-review boundary
+
+- 08:23 EDT: Closed locator output and explicit public request allowlists prevent evaluator prose/rubric/private IDs from crossing into P1/P2 public review. Exact-request stage receipts preserve completed calls across interruption; provider-free tests cover replay and source bounds, while public reasoning accuracy remains an empirical question.

@@ -47,6 +47,8 @@ RECIPES = {
     'attack_defense_user_d1g0': _V21,
     'attack_defense_user_d0g1': _V21,
     'attack_defense_user_d1g1': _V21,
+    'attack_defense_user_public_p1': _V21,
+    'attack_defense_user_public_p2': _V21,
 }
 
 

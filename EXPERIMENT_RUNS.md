@@ -1274,3 +1274,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 06:40 EDT: New bounded comparison root: /data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/; existing canonical control remains under trace-attack-defense-v3-20260911/control-v21-compatible. Feedback checks, C10/C01/C11 workspaces and audits have disjoint ownership and share the existing global provider budget.
 
 - 06:59 EDT: Bounded User-factor comparison stopped before canonical expansion; feedback-checks/C10, C01, C11 contain the 36 completed native responses under the new NFS root. Final decision and source-backed tables: docs/reports/2026-09-12/trace-user-parallel-diagnostics/README.md; all prepared canonical producer configs remain unexecuted.
+
+## 2026-09-12 — User public-evidence firewall
+
+- 08:20 EDT: New P1/P2 feedback-only root: /data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks; source inputs remain the twelve sealed trace-user-parallel-diagnostics checkpoints. Code/config/report bundle is experiments/trace-user-public-evidence-firewall and docs/reports/2026-09-12/trace-user-public-evidence-firewall; no historical calls or trajectories repeated.

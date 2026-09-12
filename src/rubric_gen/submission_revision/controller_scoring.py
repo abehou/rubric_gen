@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from . import user_feedback_factors as feedback_factors
+from . import user_public_firewall as public_firewall
 
 import math
 import os
@@ -568,6 +569,7 @@ class RevisionScorer:
             benchmark=self.config.benchmark,
         )
         factor_trace = self.trace_defense_enabled and self.config.red_team_trace_version in feedback_factors.VARIANTS
+        firewall_trace = self.trace_defense_enabled and self.config.red_team_trace_version in public_firewall.VARIANTS
         factor_delivery = None
         factor_check = None
         if factor_trace and feedback_factors.budgeted(self.config.red_team_trace_version):
@@ -690,7 +692,7 @@ class RevisionScorer:
                     / "feedback-generation-failures"
                     / submission_id
                 ),
-                trace_version=(self.config.red_team_trace_version if v3_trace or factor_trace else None),
+                trace_version=(self.config.red_team_trace_version if v3_trace or factor_trace or firewall_trace else None),
                 focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else factor_check),
                 base_requirement_status=(v3_base_status if v3_trace else None),
             )
@@ -707,7 +709,7 @@ class RevisionScorer:
             history=history,
             history_summary=history_summary,
             instruction=task_instruction,
-            trace_version=(self.config.red_team_trace_version if v3_trace or factor_trace else None),
+            trace_version=(self.config.red_team_trace_version if v3_trace or factor_trace or firewall_trace else None),
             focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else factor_check),
             base_requirement_status=(v3_base_status if v3_trace else None),
         )

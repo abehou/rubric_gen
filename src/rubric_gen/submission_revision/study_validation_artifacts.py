@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from . import user_feedback_factors as feedback_factors
+from . import user_public_firewall as public_firewall
 
 from .store import same_scoring_semantics
 
@@ -756,6 +757,7 @@ def _project_feedback(
         benchmark=context.experiment.benchmark,
     )
     factor_trace = _trace_version(context) in feedback_factors.VARIANTS
+    firewall_trace = _trace_version(context) in public_firewall.VARIANTS
     factor_delivery = None
     factor_check = None
     if factor_trace and feedback_factors.budgeted(_trace_version(context)):
@@ -833,7 +835,7 @@ def _project_feedback(
         history=history,
         history_summary=history_summary,
         instruction=task_instruction,
-        trace_version=(_trace_version(context) if v3_trace or factor_trace else None),
+        trace_version=(_trace_version(context) if v3_trace or factor_trace or firewall_trace else None),
         focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery and v3_delivery[0] else factor_check),
         base_requirement_status=(v3_base_status if v3_trace else None),
     )

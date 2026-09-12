@@ -1386,3 +1386,7 @@ While package-context10353356 remains the primary baseline experiment,run six da
 ## 2026-09-12 — Bounded User feedback factors
 
 - 06:40 EDT: User authorizes one common canonical v2.1 control and three fixed User challengers (separate/budgeted delivery × original/grounded simulator), at most 36 feedback-only logical checks then 27 canonical dev3 challenger assignments. Stop after comparison/report; no Result20, semi/score-only, extra tasks, or additional variants.
+
+## 2026-09-12 — Public-evidence firewall, bounded P1/P2
+
+Private locator may select public references but cannot transmit evaluator prose. Test P1 public renderer and P2 independent public verifier plus renderer on the exact prior twelve diagnostic checkpoints, then only passing candidates on canonical dev3 (nine each) against the saved v2.1 control. Preserve closed D×G and v3 histories; keep separate v2.1 reminder/learner, no Result20 or extra variants; stop after this comparison.

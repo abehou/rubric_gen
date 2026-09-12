@@ -24,6 +24,7 @@ SIMULATED_USER_FAILURE_KIND = "submission-simulated-user-feedback-failure"
 SIMULATED_USER_HISTORY_SUMMARY_KIND = "submission-simulated-user-history-summary"
 MAX_SIMULATED_USER_SUMMARY_CHARS = 12_000
 from . import user_feedback_factors as factors
+from . import user_public_firewall as firewall
 
 V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"))
 
@@ -292,6 +293,32 @@ class SimulatedUserFeedback:
             history=history,
             history_summary=history_summary,
         )
+        if trace_version in firewall.VARIANTS:
+            if focused_dynamic_check is not None or base_requirement_status is not None:
+                raise ValueError("firewall preserves separate legacy reminder delivery")
+            docs = firewall.documents(instruction=instruction, current_artifact=current_artifact,
+                                      history_context=history_context)
+            result = firewall.execute(self, version=trace_version, docs=docs,
+                full_feedback_text=full_feedback_text, directory=failure_dir / "firewall-stages")
+            record = {
+                "kind": SIMULATED_USER_GENERATION_KIND,
+                "experiment_id": experiment_id, "assignment_id": assignment_id,
+                "submission_id": submission_id, "generation_round": generation_round,
+                "generation_sha256": generation.generation_sha256,
+                "full_feedback_sha256": sha256_text(full_feedback_text),
+                "current_artifact_sha256": sha256_text(current_artifact),
+                "history_sha256": sha256_text(_history_text(history)),
+                "history_entry_count": len(history),
+                "history_context": {"mode": history_mode, "sha256": sha256_text(history_context)},
+                "simulator": self.identity(),
+                "attempt_count": max(len(stage["attempts"]) for stage in result["stages"]),
+                "output": result["output"], "firewall_generation": result,
+            }
+            self.validate(record, experiment_id=experiment_id, assignment_id=assignment_id,
+                submission_id=submission_id, generation_round=generation_round, generation=generation,
+                instruction=instruction, full_feedback=full_feedback, current_artifact=current_artifact,
+                history=history, history_summary=history_summary, trace_version=trace_version)
+            return record
         if trace_version in factors.VARIANTS:
             if base_requirement_status is not None:
                 raise ValueError("factor comparison does not use base-requirement ranking")
@@ -499,7 +526,10 @@ class SimulatedUserFeedback:
             "base_requirement_status": base_requirement_status or [],
         }
         expected_keys = set(expected_keys)
-        if trace_version in V3_TRACE_VERSIONS:
+        if trace_version in firewall.VARIANTS:
+            expected_keys.remove("feedback_generation")
+            expected_keys.add("firewall_generation")
+        elif trace_version in V3_TRACE_VERSIONS:
             expected_keys.add("trace_v3_context")
         elif trace_version in factors.VARIANTS:
             expected_keys.add("trace_factor_context")
@@ -526,6 +556,16 @@ class SimulatedUserFeedback:
             or (trace_version in V3_TRACE_VERSIONS and record.get("trace_v3_context") != expected_trace_context)
         ):
             raise ValueError("simulated-user generation has invalid identity")
+        if trace_version in firewall.VARIANTS:
+            if focused_dynamic_check is not None or base_requirement_status is not None:
+                raise ValueError("firewall preserves separate legacy reminder delivery")
+            output = firewall.replay(self, record["firewall_generation"], version=trace_version,
+                docs=firewall.documents(instruction=instruction, current_artifact=current_artifact,
+                                        history_context=history_context),
+                full_feedback_text=full_feedback_text)
+            if output != record["output"]:
+                raise ValueError("firewall outer output differs")
+            return output
         self._validate_generation_provenance(record.get("feedback_generation"))
         output = record.get("output")
         if type(output) is not dict:
