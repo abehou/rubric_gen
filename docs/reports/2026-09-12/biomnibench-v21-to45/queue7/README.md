@@ -59,3 +59,8 @@ The mission began09:27:31 EDT. This is an interim handoff, not the18:27–19:27 
 ## Heldout authority resolved — 12:39 EDT
 
 The user explicitly authorizes committed rigorous-V2 prompt47463ca for new tasks, with the historical/new generation difference documented. The earlier hold is resolved: selected/development producer bytes and all original20 heldouts remain unchanged; only missing variants2/3/4 are generated in new consumer pools through the native paraphraser. Report original20/additional10/final15 separately; cumulative H is not described as one identical historical generation process.
+
+## Final heldout generation authority
+
+The earlier preparation paragraphs that describe heldout authority as pending are historical checkpoints. On 2026-09-12 the user authorized committed rigorous-V2 prompt **47463ca** for new final-fifteen heldouts. The Results45 receipt `heldouts-queue7-10415269.json` records byte-preserved selected/development copies and newly generated variants 2/3/4. Historical twenty-task heldouts remain untouched under their original, unrecovered prompt. Any cumulative H report keeps the old/new generation difference visible.
+

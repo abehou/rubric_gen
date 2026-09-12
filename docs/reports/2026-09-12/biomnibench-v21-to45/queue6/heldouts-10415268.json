@@ -1,0 +1,286 @@
+{
+  "job": "10415268",
+  "scope": "queue6",
+  "tasks": [
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/paraphrases/tasks/da-8-1/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-1/variant-000.txt",
+          "task": "da-8-1",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/paraphrases/tasks/da-8-1/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-1/variant-001.txt",
+          "task": "da-8-1",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-8-1"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/paraphrases/tasks/da-26-4/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-4/variant-000.txt",
+          "task": "da-26-4",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/paraphrases/tasks/da-26-4/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-4/variant-001.txt",
+          "task": "da-26-4",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-26-4"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/paraphrases/tasks/da-20-4/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-20-4/variant-000.txt",
+          "task": "da-20-4",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/paraphrases/tasks/da-20-4/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-20-4/variant-001.txt",
+          "task": "da-20-4",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-20-4"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/paraphrases/tasks/da-19-3/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-19-3/variant-000.txt",
+          "task": "da-19-3",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/paraphrases/tasks/da-19-3/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-19-3/variant-001.txt",
+          "task": "da-19-3",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-19-3"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/paraphrases/tasks/da-4-1/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-1/variant-000.txt",
+          "task": "da-4-1",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/paraphrases/tasks/da-4-1/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-1/variant-001.txt",
+          "task": "da-4-1",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-4-1"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-1-3/variant-000.txt",
+          "task": "da-1-3",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-1-3/variant-001.txt",
+          "task": "da-1-3",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-1-3"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/paraphrases/tasks/da-3-5/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-3-5/variant-000.txt",
+          "task": "da-3-5",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/paraphrases/tasks/da-3-5/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-3-5/variant-001.txt",
+          "task": "da-3-5",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-3-5"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/paraphrases/tasks/da-4-6/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-6/variant-000.txt",
+          "task": "da-4-6",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/paraphrases/tasks/da-4-6/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-6/variant-001.txt",
+          "task": "da-4-6",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-4-6"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/paraphrases/tasks/da-5-1/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-5-1/variant-000.txt",
+          "task": "da-5-1",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/paraphrases/tasks/da-5-1/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-5-1/variant-001.txt",
+          "task": "da-5-1",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-5-1"
+    },
+    {
+      "copied_selected_development": [
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/paraphrases/tasks/da-26-2/variant-000.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-2/variant-000.txt",
+          "task": "da-26-2",
+          "variant": 0
+        },
+        {
+          "consumer": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/paraphrases/tasks/da-26-2/variant-001.txt",
+          "metadata_unchanged": true,
+          "source": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-2/variant-001.txt",
+          "task": "da-26-2",
+          "variant": 1
+        }
+      ],
+      "heldout_variants": [
+        2,
+        3,
+        4
+      ],
+      "old_twenty_heldouts_changed": false,
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/paraphrases",
+      "prompt_source_commit": "47463ca",
+      "status": "completed",
+      "task": "da-26-2"
+    }
+  ]
+}

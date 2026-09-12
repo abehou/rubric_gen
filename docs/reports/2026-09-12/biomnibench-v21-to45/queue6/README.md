@@ -46,3 +46,8 @@ The input-policy question remains pending. No thirty-task outcome or completion 
 ## Heldout authority resolved — 12:39 EDT
 
 The user explicitly authorizes committed rigorous-V2 prompt47463ca for new tasks, with the historical/new generation difference documented. The earlier hold is resolved: selected/development producer bytes and all original20 heldouts remain unchanged; only missing variants2/3/4 are generated in new consumer pools through the native paraphraser. Report original20/additional10/final15 separately; cumulative H is not described as one identical historical generation process.
+
+## Final heldout generation authority
+
+The earlier preparation paragraphs that describe heldout authority as pending are historical checkpoints. On 2026-09-12 the user authorized the committed rigorous-V2 prompt at **47463ca** for newly generated heldout variants. The Results30 receipt `heldouts-queue6-10415268.json` records that authority, with selected/development variants copied byte-for-byte and variants 2/3/4 generated in a new consumer pool. The historical twenty-task heldouts remain unchanged and use their original producer prompt/receipt; the exact old prompt text was not recoverable. Results30 H values must therefore be reported with this generation difference explicit, without relabeling old metadata.
+
