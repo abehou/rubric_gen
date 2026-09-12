@@ -660,3 +660,5 @@
 ## 2026-09-12
 
 - 12:04 EDT: R1/R2 native outcome rubric requests are rejected by Anthropic as Schema is too complex; shared schema/provider handling needs owner review, with exact receipts retained. A tested private task subset prevents that blocked task from suppressing independent audits; no scientific request/schema change or retry workaround was added.
+
+- 12:10 EDT: Cross-checkout audit task dispatch10415055/10415056 failed native source identity validation before provider work; the driver had derived config paths from its own file. Respect the existing project-root environment and run with the exact original library/config source; add a regression for path binding, with broader shared-schema descendants excluded from this recovery.

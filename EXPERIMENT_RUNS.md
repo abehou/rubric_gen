@@ -1322,3 +1322,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12
 
 - 11:47 EDT: The final15 use /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/<task>/, sharing native seed blocks within each fixed/trace task shard. Two four-CPU seed lanes are prepared behind Results30 input owners; large payloads stay on compute NFS.
+
+## 2026-09-12
+
+- 12:07 EDT: Final15 seed owners10415017/10415018 use aba77eb and wait behind Results30 recovery10415010/lane10414854; no new-task heldouts or revisions launched. R1/R2 untouched-task audits10415055/10415056 use b69a6a3,4CPUs/32request workers and native resume; permanent da-3-4 schema failures stay preserved and excluded only from dispatch, not reported cohort scope.

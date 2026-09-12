@@ -20,6 +20,7 @@ def dispatch(monkeypatch):
         dag={'detect': {'output_dir': str(path)}}))
     monkeypatch.setenv('OPENAI_API_KEY', 'test')
     monkeypatch.setenv('ANTHROPIC_API_KEY', 'test')
+    monkeypatch.setenv('RUBRIC_GEN_PROJECT_ROOT', str(ROOT))
     reuse = SimpleNamespace(install=lambda: None)
     monkeypatch.setattr(importlib.util, 'spec_from_file_location', lambda *a: SimpleNamespace(
         loader=SimpleNamespace(exec_module=lambda m: None)))
@@ -46,6 +47,13 @@ def test_remaining_tasks_keep_native_config_and_resume(dispatch):
     remaining = dispatch(source, 'da-11-1', 'da-18-1')
     assert remaining == all_calls[1:]
     assert all(c['resume'] and c['max_concurrency'] == 32 for c in remaining)
+
+
+def test_original_project_config_paths_are_preserved(dispatch, monkeypatch, tmp_path):
+    monkeypatch.setenv('RUBRIC_GEN_PROJECT_ROOT', str(tmp_path))
+    calls = dispatch(SCRIPT.read_text(), 'da-11-1')
+    assert calls[0]['experiment'] == str(
+        tmp_path / 'experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml')
 
 
 @pytest.mark.parametrize('tasks', [

@@ -243,3 +243,19 @@ the nine-case score-only appendix-off supplement separate. Three Semi-fixed
 producers have started; later waves await capacity/dependencies. Six unstarted
 report jobs were consolidated after Slurm’s submission-count limit, preserving
 all scientific jobs. See [the exact scope, jobs and progress](queue3/README.md).
+
+
+## Queue7 current checkpoint — 12:07 EDT
+
+The [Results45 extension record](queue7/README.md) fixes Full `attack_defense_v2.1` through the official nested45-task membership. Intended Full coverage is270 records:120 reused original20,60 for the added10 and90 for the final15. No new User winner or45-task outcome is claimed. The [saved coverage snapshot](queue7/checkpoint.json) records all18 completed R1/R2 trajectories and the remaining policy/audit work.
+
+Results30 seed job10414853 sealed12/15 blocks; three missing-output failures were archived before one native missing-only recovery10415010. Lane10414854 continues independently. At12:04 EDT,16/30 added-ten seed blocks were sealed. Final-fifteen preparation10415017/10415018 is queued behind those owners under sourceaba77eb, with45 new shared starts intended. Treatment revisions and new heldout generation remain unlaunched pending the unresolved original-V2 versus committed-prompt authority question; old selected/development contents and completed20-task outcomes are preserved.
+
+R1/R2 da-3-4 audits encountered permanent HTTP400 `Schema is too complex` requests; R1 also suffered Slurm preemption. Successful rubric/quality/RH records remain intact and permanent requests are not resampled. Eight tests verify a small private task-scoping change; independent remaining-task audits10415055/10415056 use native resume, then the existing Semi/Score-only/Full/User audit chain continues. The original report10414489 failed on incomplete coverage; there is no complete candidate decision yet.
+
+Semi-fixed and Score-only-fixed each completed9/9 trajectories. Their native recovery returned incomplete on the same6/8 Opus rubric requests with bounded-attempt histories unchanged; other tasks and both sets of quality/RH records remain preserved. This is an incomplete evaluation, not permission to substitute an auditor or change output budgets. Subsequent policy comparisons continue independently.
+
+[CPU accounting](queue6/resource-profile.md) supports4CPU producers,4CPU future audit recoveries with unchanged32 request workers, and1CPU serial collectors. Existing healthy jobs are not resized. No20-task Semi/Score-only expansion or dropout job is launched from incomplete evidence. The separate PaperBench session remains outside this session's ownership.
+
+
+12:10 EDT correction: remaining-task audit dispatch10415055/10415056 exited in2s/1s **before provider dispatch**, because the new script used its own checkout's config path and native source validation rejected it. The checkout also includes later shared schema changes, so it is not a substitute for the original scientific runtime. These failed operational attempts are retained. The corrected launch uses the original534e797 library and original config paths; the small task-scoped driver reads the existing `RUBRIC_GEN_PROJECT_ROOT` setting. No completed record is rewritten and no new-schema judgment is mixed into this comparison.

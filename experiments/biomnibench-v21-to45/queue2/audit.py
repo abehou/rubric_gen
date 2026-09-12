@@ -9,7 +9,7 @@ from dotenv import dotenv_values
 from rubric_gen.submission_revision.commands import run_detect
 from rubric_gen.submission_revision.experiment import load_experiment
 
-ROOT=Path(__file__).resolve().parents[3]
+ROOT=Path(os.environ.get('RUBRIC_GEN_PROJECT_ROOT', Path(__file__).resolve().parents[3]))
 cell=sys.argv[1]
 if cell not in {'R1','R2'}:
     raise ValueError('expected R1 or R2')

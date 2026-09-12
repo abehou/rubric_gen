@@ -38,3 +38,11 @@ All18 R1/R2 canonical solver trajectories are complete. R1 audit10414945 was pre
 A small private-driver change permits canonical-order task subsets, leaving default native calls identical. Eight provider-free tests passed, covering command equality, exact remaining-task scope, invalid/duplicate task rejection and unchanged seed dispatch. This lets the untouched da-11-1/da-18-1 audits proceed without buying another response for known invalid requests. The shared runtime/schema issue remains separate from treatment efficacy; no prompt, model, parser or admission rule is changed here.
 
 Future audit dispatch/recovery uses4CPUs with the same32 model-request workers, justified by [observed accounting](../queue6/resource-profile.md). Producers retain4CPUs and serial collectors1CPU. Healthy active jobs and PaperBench ownership remain untouched.
+
+
+Remaining-task audit jobs **10415055/10415056** now own da-11-1 and da-18-1 for R1/R2, using the tested private dispatch snapshot **b69a6a3** and the unchanged core scientific code. Existing Semi trace audit10414577 waits for these and its remaining producer10414859. No full-cell estimate is emitted with da-3-4 missing.
+
+The12:04 EDT [checkpoint](checkpoint.json) records16/30 Results30 seed blocks and zero final15 blocks before their dependency release. Semi-fixed/Score-only-fixed recoveries10414883/10414965 returned incomplete without extending their three-attempt histories:6/8 Opus rubric requests remain missing. Their complete absolute/pairwise/direct-RH records are preserved; no further identical retry or model substitution is scheduled.
+
+
+12:10 EDT correction: remaining-task audit dispatch10415055/10415056 exited in2s/1s **before provider dispatch**, because the new script used its own checkout's config path and native source validation rejected it. The checkout also includes later shared schema changes, so it is not a substitute for the original scientific runtime. These failed operational attempts are retained. The corrected launch uses the original534e797 library and original config paths; the small task-scoped driver reads the existing `RUBRIC_GEN_PROJECT_ROOT` setting. No completed record is rewritten and no new-schema judgment is mixed into this comparison.

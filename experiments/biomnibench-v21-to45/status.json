@@ -335,6 +335,63 @@
           "R1"
         ],
         "submitted_at": "2026-09-12T15:44:20.457901+00:00"
+      },
+      "R1-remaining-task-audits": {
+        "job_id": "10415055",
+        "stage": "audit_remaining_tasks",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R1-remaining-audits",
+          "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+          "R1",
+          "da-11-1",
+          "da-18-1"
+        ],
+        "tasks": [
+          "da-11-1",
+          "da-18-1"
+        ],
+        "excluded_blocked_task": "da-3-4",
+        "cpus": 4,
+        "request_workers": 32,
+        "execution_commit": "b69a6a3",
+        "execution_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-scope-20260912",
+        "submitted_at": "2026-09-12T16:06:46.685554+00:00",
+        "slurm_state": "FAILED",
+        "exit_code": "1:0",
+        "provider_calls": 0,
+        "failure": "Original config path/source identity not retained by cross-checkout operational driver; native predispatch rejected."
+      },
+      "R2-remaining-task-audits": {
+        "job_id": "10415056",
+        "stage": "audit_remaining_tasks",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R2-remaining-audits",
+          "--dependency=afterany:10415055",
+          "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+          "R2",
+          "da-11-1",
+          "da-18-1"
+        ],
+        "tasks": [
+          "da-11-1",
+          "da-18-1"
+        ],
+        "excluded_blocked_task": "da-3-4",
+        "cpus": 4,
+        "request_workers": 32,
+        "execution_commit": "b69a6a3",
+        "execution_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-scope-20260912",
+        "submitted_at": "2026-09-12T16:06:46.712014+00:00",
+        "slurm_state": "FAILED",
+        "exit_code": "1:0",
+        "provider_calls": 0,
+        "failure": "Original config path/source identity not retained by cross-checkout operational driver; native predispatch rejected."
       }
     },
     "tests_passed": 86,
@@ -345,7 +402,14 @@
     "report_recovery_dependencies": [
       "10414945",
       "10414488"
-    ]
+    ],
+    "report_status": "10414489 failed on missing audit summary; no complete comparison report until blocked da-3-4 coverage is resolved",
+    "audit_blockers": {
+      "da-3-4": {
+        "R1": "two HTTP400 schema-too-complex requests plus two max_tokens attempts; 66 saved rubric records; last job preempted",
+        "R2": "two HTTP400 schema-too-complex requests; 63 saved rubric records; permanent requests not retried"
+      }
+    }
   },
   "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls.",
   "queue3": {
@@ -1099,7 +1163,7 @@
         "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "recovery_dependency": "10414859",
         "recovery_dependencies": [
-          "10414965",
+          "10415056",
           "10414859"
         ]
       },
