@@ -1,0 +1,794 @@
+{
+  "observed_at": "2026-09-12T10:46:49.396249-04:00",
+  "provider_calls": 0,
+  "cells": [
+    {
+      "queue": "queue2",
+      "cell": "R1",
+      "counts": {
+        "completed": 6,
+        "running": 3
+      }
+    },
+    {
+      "queue": "queue2",
+      "cell": "R2",
+      "counts": {
+        "completed": 6,
+        "running": 3
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "semi-fixed",
+      "counts": {
+        "completed": 9
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "score_only-fixed",
+      "counts": {
+        "completed": 5,
+        "running": 4
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "semi-trace",
+      "counts": {
+        "running": 6,
+        "pending": 3
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "score_only-trace",
+      "counts": {
+        "pending": 9
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "full-fixed",
+      "counts": {
+        "pending": 9
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "user_simulator-fixed",
+      "counts": {
+        "pending": 9
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "full-trace",
+      "counts": {
+        "pending": 9
+      }
+    },
+    {
+      "queue": "queue3",
+      "cell": "score_only-trace-no-appendix",
+      "counts": {
+        "pending": 9
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "queue": "queue2",
+      "name": "R1-da-3-4",
+      "job_id": "10414481",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:40:56",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414481-gy8zabdp/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue2",
+      "name": "R1-da-11-1",
+      "job_id": "10414482",
+      "stage": "producer",
+      "slurm": {
+        "state": "RUNNING",
+        "reason": "babel-l5-32"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414482-r6zq8tir/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": null,
+      "runtime_exit_code": null
+    },
+    {
+      "queue": "queue2",
+      "name": "R1-da-18-1",
+      "job_id": "10414483",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:24:59",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414483-5rc81con/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue2",
+      "name": "R2-da-3-4",
+      "job_id": "10414484",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:21:31",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414484-1tbrdow5/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue2",
+      "name": "R2-da-11-1",
+      "job_id": "10414485",
+      "stage": "producer",
+      "slurm": {
+        "state": "RUNNING",
+        "reason": "babel-m9-20"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414485-78jkoc4v/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": {
+        "category": "transient_connection",
+        "error_type": "APITimeoutError",
+        "next_automatic_action": "bounded operation owner decides retry; inspect attempt record",
+        "operation": "evolution-generation",
+        "time": 1789222525.6981192
+      },
+      "finished": null,
+      "runtime_exit_code": null
+    },
+    {
+      "queue": "queue2",
+      "name": "R2-da-18-1",
+      "job_id": "10414486",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:28:36",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414486-o23mvpo4/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue2",
+      "name": "R1-audit",
+      "job_id": "10414487",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue2",
+      "name": "R2-audit",
+      "job_id": "10414488",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue2",
+      "name": "comparison-report",
+      "job_id": "10414489",
+      "stage": "report",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-fixed/da-3-4",
+      "job_id": "10414549",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:03:20",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414549-nr18wfk2/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-fixed/da-11-1",
+      "job_id": "10414550",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:12:09",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414550-sg3lbpp1/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-fixed/da-18-1",
+      "job_id": "10414551",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:08:02",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414551-wei8enpe/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-fixed/da-3-4",
+      "job_id": "10414552",
+      "stage": "producer",
+      "slurm": {
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "cpus": "4",
+        "elapsed": "00:05:38",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414552-oul7cjr6/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": true,
+      "runtime_exit_code": 0
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-fixed/da-11-1",
+      "job_id": "10414553",
+      "stage": "producer",
+      "slurm": {
+        "state": "RUNNING",
+        "reason": "babel-n9-24"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414553-sm7mzyih/status.json",
+      "assignments": {
+        "completed": 1,
+        "running": 2
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": null,
+      "runtime_exit_code": null
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-fixed/da-18-1",
+      "job_id": "10414554",
+      "stage": "producer",
+      "slurm": {
+        "state": "RUNNING",
+        "reason": "babel-l9-20"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414554-al2rekr2/status.json",
+      "assignments": {
+        "completed": 1,
+        "running": 2
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": null,
+      "runtime_exit_code": null
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-trace/da-3-4",
+      "job_id": "10414555",
+      "stage": "producer",
+      "slurm": {
+        "state": "RUNNING",
+        "reason": "babel-l9-20"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414555-3xyu1z2y/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": null,
+      "runtime_exit_code": null
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-trace/da-11-1",
+      "job_id": "10414556",
+      "stage": "producer",
+      "slurm": {
+        "state": "RUNNING",
+        "reason": "babel-l5-32"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414556-oie4iov8/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "finished": null,
+      "runtime_exit_code": null
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-trace/da-18-1",
+      "job_id": "10414557",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(QOSMaxCpuPerUserLimit)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace/da-3-4",
+      "job_id": "10414558",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(QOSMaxCpuPerUserLimit)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace/da-11-1",
+      "job_id": "10414559",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace/da-18-1",
+      "job_id": "10414560",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-fixed/da-3-4",
+      "job_id": "10414561",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-fixed/da-11-1",
+      "job_id": "10414562",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-fixed/da-18-1",
+      "job_id": "10414563",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "user_simulator-fixed/da-3-4",
+      "job_id": "10414564",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "user_simulator-fixed/da-11-1",
+      "job_id": "10414565",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "user_simulator-fixed/da-18-1",
+      "job_id": "10414566",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-trace/da-3-4",
+      "job_id": "10414567",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-trace/da-11-1",
+      "job_id": "10414568",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-trace/da-18-1",
+      "job_id": "10414569",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace-no-appendix/da-3-4",
+      "job_id": "10414570",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace-no-appendix/da-11-1",
+      "job_id": "10414571",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace-no-appendix/da-18-1",
+      "job_id": "10414572",
+      "stage": "producer",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-fixed/audit",
+      "job_id": "10414573",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(QOSMaxCpuPerUserLimit)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-fixed/report",
+      "job_id": "10414574",
+      "stage": "report",
+      "slurm": {
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "cpus": "0",
+        "elapsed": "00:00:00",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-fixed/audit",
+      "job_id": "10414575",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-fixed/report",
+      "job_id": "10414576",
+      "stage": "report",
+      "slurm": {
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "cpus": "0",
+        "elapsed": "00:00:00",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-trace/audit",
+      "job_id": "10414577",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "semi-trace/report",
+      "job_id": "10414578",
+      "stage": "report",
+      "slurm": {
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "cpus": "0",
+        "elapsed": "00:00:00",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace/audit",
+      "job_id": "10414579",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace/report",
+      "job_id": "10414580",
+      "stage": "report",
+      "slurm": {
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "cpus": "0",
+        "elapsed": "00:00:00",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-fixed/audit",
+      "job_id": "10414581",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-fixed/report",
+      "job_id": "10414582",
+      "stage": "report",
+      "slurm": {
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "cpus": "0",
+        "elapsed": "00:00:00",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "user_simulator-fixed/audit",
+      "job_id": "10414583",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "user_simulator-fixed/report",
+      "job_id": "10414584",
+      "stage": "report",
+      "slurm": {
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "cpus": "0",
+        "elapsed": "00:00:00",
+        "total_cpu": "00:00:00"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "full-trace/audit",
+      "job_id": "10414585",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only-trace-no-appendix/audit",
+      "job_id": "10414593",
+      "stage": "audit",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "semi/collector",
+      "job_id": "10414594",
+      "stage": "report",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "score_only/collector",
+      "job_id": "10414595",
+      "stage": "report",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    },
+    {
+      "queue": "queue3",
+      "name": "matrix/collector",
+      "job_id": "10414596",
+      "stage": "report",
+      "slurm": {
+        "state": "PENDING",
+        "reason": "(Dependency)"
+      },
+      "observed_at": "2026-09-12T10:46:49.396249-04:00"
+    }
+  ]
+}

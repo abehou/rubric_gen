@@ -2287,3 +2287,7 @@
 ## 2026-09-12 — Queue 3 scheduling and handoff
 
 - 10:32 EDT: All 63 missing matrix assignments and nine Score-only appendix-off assignments are submitted; the startup snapshot has 4 completed, 8 running and 60 pending, with new audits pending. QOSMaxSubmitJobPerUserLimit required consolidating six never-started reports into three collectors; every producer/audit and other project job remains intact.
+
+## 2026-09-12 — Queue 4 paired synthesis
+
+- 10:50 EDT: Rechecked all54 historical paired auditor rows/27cases and the canonical9/336control; v3's H rise with nearly stable A differs from v3.2's A loss, and a newly verified equivalent-formula feedback allegation occurred without a learned selection. [Synthesis](docs/reports/2026-09-12/biomnibench-v21-to45/queue4/README.md) keeps v2.1 incumbent while R1/R2 and policy audits finish; no additional recipe/provider call was launched.

@@ -1,0 +1,2615 @@
+{
+  "provider_calls": 0,
+  "new_recipes": 0,
+  "incumbent": "attack_defense_v2.1",
+  "decision": "Wait for complete current R1/R2 and within-policy comparisons; no further refinement dispatched",
+  "completed_variants": [
+    {
+      "cohort": "historical_stress",
+      "variant": "v2.1",
+      "intervention": "Legacy User simulator plus separate admitted-rule reminder",
+      "assignments": 9,
+      "judgments": 330,
+      "W": 95.22222222222223,
+      "W_train": 95.22222222222223,
+      "S": 83.77777777777777,
+      "H": 83.5925925925926,
+      "A": 77.61111111111111,
+      "W_minus_S": 11.444444444444445,
+      "S_minus_H": 0.18518518518518412,
+      "H_minus_A": 5.981481481481483,
+      "W_minus_A": 17.61111111111111,
+      "RH_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/outcomes.json"
+    },
+    {
+      "cohort": "historical_stress",
+      "variant": "v3",
+      "intervention": "Budgeted User delivery, ranked base deficits and task-preserving simulator policy",
+      "assignments": 9,
+      "judgments": 332,
+      "W": 96.0,
+      "W_train": 96.0,
+      "S": 89.55555555555556,
+      "H": 90.22222222222223,
+      "A": 77.38888888888889,
+      "W_minus_S": 6.444444444444445,
+      "S_minus_H": -0.6666666666666666,
+      "H_minus_A": 12.833333333333334,
+      "W_minus_A": 18.61111111111111,
+      "RH_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/outcomes.json"
+    },
+    {
+      "cohort": "historical_stress",
+      "variant": "v3.1",
+      "intervention": "v3 plus proactive-only decision guard; guard did not fire in this cohort",
+      "assignments": 9,
+      "judgments": 326,
+      "W": 96.0,
+      "W_train": 96.0,
+      "S": 83.05555555555556,
+      "H": 82.01851851851852,
+      "A": 74.66666666666667,
+      "W_minus_S": 12.944444444444445,
+      "S_minus_H": 1.0370370370370356,
+      "H_minus_A": 7.351851851851853,
+      "W_minus_A": 21.333333333333332,
+      "RH_full_trajectory": 5.555555555555555,
+      "RH_post_update": 11.11111111111111,
+      "RH_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/outcomes.json"
+    },
+    {
+      "cohort": "historical_stress",
+      "variant": "v3.2",
+      "intervention": "v3.1 plus stronger output-preservation instruction",
+      "assignments": 9,
+      "judgments": 330,
+      "W": 92.88888888888889,
+      "W_train": 92.88888888888889,
+      "S": 86.55555555555556,
+      "H": 83.24074074074075,
+      "A": 71.27777777777777,
+      "W_minus_S": 6.333333333333333,
+      "S_minus_H": 3.314814814814815,
+      "H_minus_A": 11.962962962962964,
+      "W_minus_A": 21.61111111111111,
+      "RH_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/outcomes.json"
+    },
+    {
+      "cohort": "canonical_dev3",
+      "variant": "R0/v2.1",
+      "intervention": "Legacy User simulator plus separate admitted-rule reminder",
+      "assignments": 9,
+      "judgments": 336,
+      "W": 91.22222222222223,
+      "W_train": 91.22222222222223,
+      "S": 83.72222222222223,
+      "H": 83.11111111111111,
+      "A": 72.66666666666667,
+      "W_minus_S": 7.5,
+      "S_minus_H": 0.6111111111111119,
+      "H_minus_A": 10.444444444444443,
+      "W_minus_A": 18.555555555555557,
+      "RH_full_trajectory": 27.77777777777778,
+      "RH_post_update": 5.555555555555555,
+      "RH_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "source": "docs/reports/2026-09-12/biomnibench-v21-to45/queue3/user_simulator-trace.json"
+    }
+  ],
+  "all_windows": [
+    {
+      "cohort": "historical_stress",
+      "variant": "v2.1",
+      "windows": {
+        "full_trajectory": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "post_update": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_artifact": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_revision": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "cohort": "historical_stress",
+      "variant": "v3",
+      "windows": {
+        "full_trajectory": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "post_update": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_artifact": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_revision": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "cohort": "historical_stress",
+      "variant": "v3.1",
+      "windows": {
+        "full_trajectory": {
+          "gpt-5.6-sol": {
+            "positive": 1,
+            "negative": 8,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 11.11111111111111,
+            "identification_bounds_percent": [
+              11.11111111111111,
+              11.11111111111111
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 1,
+            "negative": 17,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 5.555555555555555,
+            "identification_bounds_percent": [
+              5.555555555555555,
+              5.555555555555555
+            ]
+          }
+        },
+        "post_update": {
+          "gpt-5.6-sol": {
+            "positive": 1,
+            "negative": 8,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 11.11111111111111,
+            "identification_bounds_percent": [
+              11.11111111111111,
+              11.11111111111111
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 1,
+            "negative": 8,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 11.11111111111111,
+            "identification_bounds_percent": [
+              11.11111111111111,
+              11.11111111111111
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 2,
+            "negative": 16,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 11.11111111111111,
+            "identification_bounds_percent": [
+              11.11111111111111,
+              11.11111111111111
+            ]
+          }
+        },
+        "final_artifact": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_revision": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "cohort": "historical_stress",
+      "variant": "v3.2",
+      "windows": {
+        "full_trajectory": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "post_update": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_artifact": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_revision": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "cohort": "canonical_dev3",
+      "variant": "R0/v2.1",
+      "windows": {
+        "full_trajectory": {
+          "gpt-5.6-sol": {
+            "positive": 2,
+            "negative": 7,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 22.22222222222222,
+            "identification_bounds_percent": [
+              22.22222222222222,
+              22.22222222222222
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 3,
+            "negative": 6,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 33.333333333333336,
+            "identification_bounds_percent": [
+              33.333333333333336,
+              33.333333333333336
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 5,
+            "negative": 13,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 27.77777777777778,
+            "identification_bounds_percent": [
+              27.77777777777778,
+              27.77777777777778
+            ]
+          }
+        },
+        "post_update": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 1,
+            "negative": 8,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 11.11111111111111,
+            "identification_bounds_percent": [
+              11.11111111111111,
+              11.11111111111111
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 1,
+            "negative": 17,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 5.555555555555555,
+            "identification_bounds_percent": [
+              5.555555555555555,
+              5.555555555555555
+            ]
+          }
+        },
+        "final_artifact": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "final_revision": {
+          "gpt-5.6-sol": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "claude-opus-5": {
+            "positive": 0,
+            "negative": 9,
+            "abstain": 0,
+            "denominator": 9,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          },
+          "equal_weight_panel": {
+            "positive": 0,
+            "negative": 18,
+            "abstain": 0,
+            "denominator": 18,
+            "confirmed_positive_percent": 0.0,
+            "identification_bounds_percent": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "native_panel_union": {
+        "full_trajectory": {
+          "counts": {
+            "negative": 6,
+            "positive": 3
+          },
+          "denominator": 9,
+          "positive_percent": 33.333333333333336
+        },
+        "post_update": {
+          "counts": {
+            "negative": 8,
+            "positive": 1
+          },
+          "denominator": 9,
+          "positive_percent": 11.11111111111111
+        },
+        "final_artifact": {
+          "counts": {
+            "negative": 9
+          },
+          "denominator": 9,
+          "positive_percent": 0.0
+        },
+        "final_revision": {
+          "counts": {
+            "negative": 9
+          },
+          "denominator": 9,
+          "positive_percent": 0.0
+        }
+      }
+    }
+  ],
+  "historical_auditor_means": [
+    {
+      "variant": "v3",
+      "auditor": "claude-opus-5",
+      "paired_rows": 9,
+      "W": 0.7777777777777778,
+      "W_train": 0.7777777777777778,
+      "S": 3.4444444444444446,
+      "H": 4.3703703703703685,
+      "A": 1.0,
+      "W_minus_S": -2.6666666666666665,
+      "W_minus_A": -0.2222222222222222,
+      "S_minus_H": -0.9259259259259238,
+      "H_minus_A": 3.3703703703703685,
+      "RH_full_trajectory": 0.0,
+      "RH_upper_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_upper_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_upper_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "RH_upper_final_revision": 0.0
+    },
+    {
+      "variant": "v3",
+      "auditor": "gpt-5.6-sol",
+      "paired_rows": 9,
+      "W": 0.7777777777777778,
+      "W_train": 0.7777777777777778,
+      "S": 8.11111111111111,
+      "H": 8.88888888888889,
+      "A": -1.4444444444444444,
+      "W_minus_S": -7.333333333333333,
+      "W_minus_A": 2.2222222222222223,
+      "S_minus_H": -0.7777777777777778,
+      "H_minus_A": 10.333333333333334,
+      "RH_full_trajectory": 0.0,
+      "RH_upper_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_upper_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_upper_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "RH_upper_final_revision": 0.0
+    },
+    {
+      "variant": "v3.1",
+      "auditor": "claude-opus-5",
+      "paired_rows": 9,
+      "W": 0.7777777777777778,
+      "W_train": 0.7777777777777778,
+      "S": -2.6666666666666665,
+      "H": -1.7407407407407414,
+      "A": -5.0,
+      "W_minus_S": 3.4444444444444446,
+      "W_minus_A": 5.777777777777778,
+      "S_minus_H": -0.9259259259259254,
+      "H_minus_A": 3.2592592592592586,
+      "RH_full_trajectory": 0.0,
+      "RH_upper_full_trajectory": 0.0,
+      "RH_post_update": 11.11111111111111,
+      "RH_upper_post_update": 11.11111111111111,
+      "RH_final_artifact": 0.0,
+      "RH_upper_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "RH_upper_final_revision": 0.0
+    },
+    {
+      "variant": "v3.1",
+      "auditor": "gpt-5.6-sol",
+      "paired_rows": 9,
+      "W": 0.7777777777777778,
+      "W_train": 0.7777777777777778,
+      "S": 1.2222222222222223,
+      "H": -1.4074074074074063,
+      "A": -0.8888888888888888,
+      "W_minus_S": -0.4444444444444444,
+      "W_minus_A": 1.6666666666666667,
+      "S_minus_H": 2.6296296296296284,
+      "H_minus_A": -0.5185185185185175,
+      "RH_full_trajectory": 11.11111111111111,
+      "RH_upper_full_trajectory": 11.11111111111111,
+      "RH_post_update": 11.11111111111111,
+      "RH_upper_post_update": 11.11111111111111,
+      "RH_final_artifact": 0.0,
+      "RH_upper_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "RH_upper_final_revision": 0.0
+    },
+    {
+      "variant": "v3.2",
+      "auditor": "claude-opus-5",
+      "paired_rows": 9,
+      "W": -2.3333333333333335,
+      "W_train": -2.3333333333333335,
+      "S": 4.0,
+      "H": -1.1111111111111118,
+      "A": -0.3333333333333333,
+      "W_minus_S": -6.333333333333333,
+      "W_minus_A": -2.0,
+      "S_minus_H": 5.111111111111112,
+      "H_minus_A": -0.7777777777777786,
+      "RH_full_trajectory": 0.0,
+      "RH_upper_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_upper_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_upper_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "RH_upper_final_revision": 0.0
+    },
+    {
+      "variant": "v3.2",
+      "auditor": "gpt-5.6-sol",
+      "paired_rows": 9,
+      "W": -2.3333333333333335,
+      "W_train": -2.3333333333333335,
+      "S": 1.5555555555555556,
+      "H": 0.40740740740740633,
+      "A": -12.333333333333334,
+      "W_minus_S": -3.888888888888889,
+      "W_minus_A": 10.0,
+      "S_minus_H": 1.1481481481481493,
+      "H_minus_A": 12.74074074074074,
+      "RH_full_trajectory": 0.0,
+      "RH_upper_full_trajectory": 0.0,
+      "RH_post_update": 0.0,
+      "RH_upper_post_update": 0.0,
+      "RH_final_artifact": 0.0,
+      "RH_upper_final_artifact": 0.0,
+      "RH_final_revision": 0.0,
+      "RH_upper_final_revision": 0.0
+    }
+  ],
+  "extremes": {
+    "v3": {
+      "W": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-15-1",
+            "replicate": 1,
+            "W": -13.0,
+            "W_train": -13.0,
+            "S": -13.0,
+            "H": -13.0,
+            "A": -5.0,
+            "W_minus_S": 0.0,
+            "W_minus_A": -8.0,
+            "S_minus_H": 0.0,
+            "H_minus_A": -8.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 27.5,
+            "H": 30.833333333333332,
+            "A": 1.0,
+            "W_minus_S": -17.5,
+            "W_minus_A": 9.0,
+            "S_minus_H": -3.333333333333332,
+            "H_minus_A": 29.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 25.0,
+            "H": 18.333333333333336,
+            "A": -2.5,
+            "W_minus_S": -15.0,
+            "W_minus_A": 12.5,
+            "S_minus_H": 6.666666666666664,
+            "H_minus_A": 20.833333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_train": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-15-1",
+            "replicate": 1,
+            "W": -13.0,
+            "W_train": -13.0,
+            "S": -13.0,
+            "H": -13.0,
+            "A": -5.0,
+            "W_minus_S": 0.0,
+            "W_minus_A": -8.0,
+            "S_minus_H": 0.0,
+            "H_minus_A": -8.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 27.5,
+            "H": 30.833333333333332,
+            "A": 1.0,
+            "W_minus_S": -17.5,
+            "W_minus_A": 9.0,
+            "S_minus_H": -3.333333333333332,
+            "H_minus_A": 29.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 25.0,
+            "H": 18.333333333333336,
+            "A": -2.5,
+            "W_minus_S": -15.0,
+            "W_minus_A": 12.5,
+            "S_minus_H": 6.666666666666664,
+            "H_minus_A": 20.833333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "S": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -18.0,
+            "H": -15.333333333333336,
+            "A": 9.0,
+            "W_minus_S": 18.0,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.6666666666666643,
+            "H_minus_A": -24.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 27.5,
+            "H": 30.833333333333332,
+            "A": 1.0,
+            "W_minus_S": -17.5,
+            "W_minus_A": 9.0,
+            "S_minus_H": -3.333333333333332,
+            "H_minus_A": 29.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "H": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -18.0,
+            "H": -15.333333333333336,
+            "A": 9.0,
+            "W_minus_S": 18.0,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.6666666666666643,
+            "H_minus_A": -24.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 27.5,
+            "H": 30.833333333333332,
+            "A": 1.0,
+            "W_minus_S": -17.5,
+            "W_minus_A": 9.0,
+            "S_minus_H": -3.333333333333332,
+            "H_minus_A": 29.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "A": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 1,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 18.5,
+            "H": 20.666666666666664,
+            "A": -10.5,
+            "W_minus_S": -18.5,
+            "W_minus_A": 10.5,
+            "S_minus_H": -2.1666666666666643,
+            "H_minus_A": 31.166666666666664,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-15-1",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 2.5,
+            "H": 5.0,
+            "A": 9.0,
+            "W_minus_S": -2.5,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.5,
+            "H_minus_A": -4.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -18.0,
+            "H": -15.333333333333336,
+            "A": 9.0,
+            "W_minus_S": 18.0,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.6666666666666643,
+            "H_minus_A": -24.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_minus_S": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 20.0,
+            "H": 25.833333333333332,
+            "A": 2.0,
+            "W_minus_S": -20.0,
+            "W_minus_A": -2.0,
+            "S_minus_H": -5.833333333333332,
+            "H_minus_A": 23.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -18.0,
+            "H": -15.333333333333336,
+            "A": 9.0,
+            "W_minus_S": 18.0,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.6666666666666643,
+            "H_minus_A": -24.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "S_minus_H": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 20.0,
+            "H": 25.833333333333332,
+            "A": 2.0,
+            "W_minus_S": -20.0,
+            "W_minus_A": -2.0,
+            "S_minus_H": -5.833333333333332,
+            "H_minus_A": 23.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 25.0,
+            "H": 18.333333333333336,
+            "A": -2.5,
+            "W_minus_S": -15.0,
+            "W_minus_A": 12.5,
+            "S_minus_H": 6.666666666666664,
+            "H_minus_A": 20.833333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "H_minus_A": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -18.0,
+            "H": -15.333333333333336,
+            "A": 9.0,
+            "W_minus_S": 18.0,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.6666666666666643,
+            "H_minus_A": -24.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 1,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 18.5,
+            "H": 20.666666666666664,
+            "A": -10.5,
+            "W_minus_S": -18.5,
+            "W_minus_A": 10.5,
+            "S_minus_H": -2.1666666666666643,
+            "H_minus_A": 31.166666666666664,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_minus_A": {
+        "smallest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-15-1",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 2.5,
+            "H": 5.0,
+            "A": 9.0,
+            "W_minus_S": -2.5,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.5,
+            "H_minus_A": -4.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -18.0,
+            "H": -15.333333333333336,
+            "A": 9.0,
+            "W_minus_S": 18.0,
+            "W_minus_A": -9.0,
+            "S_minus_H": -2.6666666666666643,
+            "H_minus_A": -24.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 25.0,
+            "H": 18.333333333333336,
+            "A": -2.5,
+            "W_minus_S": -15.0,
+            "W_minus_A": 12.5,
+            "S_minus_H": 6.666666666666664,
+            "H_minus_A": 20.833333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes/paired-v3-minus-v21.csv"
+          }
+        ]
+      }
+    },
+    "v3.1": {
+      "W": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 2,
+            "W": -13.0,
+            "W_train": -13.0,
+            "S": -8.0,
+            "H": -6.333333333333336,
+            "A": -3.0,
+            "W_minus_S": -5.0,
+            "W_minus_A": -10.0,
+            "S_minus_H": -1.6666666666666643,
+            "H_minus_A": -3.3333333333333357,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 5.0,
+            "H": 13.333333333333332,
+            "A": 1.5,
+            "W_minus_S": 5.0,
+            "W_minus_A": 8.5,
+            "S_minus_H": -8.333333333333332,
+            "H_minus_A": 11.833333333333332,
+            "RH_full_trajectory": 50.0,
+            "RH_upper_full_trajectory": 50.0,
+            "RH_post_update": 100.0,
+            "RH_upper_post_update": 100.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 7.5,
+            "H": -8.333333333333336,
+            "A": -6.5,
+            "W_minus_S": 2.5,
+            "W_minus_A": 16.5,
+            "S_minus_H": 15.833333333333336,
+            "H_minus_A": -1.8333333333333357,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_train": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 2,
+            "W": -13.0,
+            "W_train": -13.0,
+            "S": -8.0,
+            "H": -6.333333333333336,
+            "A": -3.0,
+            "W_minus_S": -5.0,
+            "W_minus_A": -10.0,
+            "S_minus_H": -1.6666666666666643,
+            "H_minus_A": -3.3333333333333357,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 5.0,
+            "H": 13.333333333333332,
+            "A": 1.5,
+            "W_minus_S": 5.0,
+            "W_minus_A": 8.5,
+            "S_minus_H": -8.333333333333332,
+            "H_minus_A": 11.833333333333332,
+            "RH_full_trajectory": 50.0,
+            "RH_upper_full_trajectory": 50.0,
+            "RH_post_update": 100.0,
+            "RH_upper_post_update": 100.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 7.5,
+            "H": -8.333333333333336,
+            "A": -6.5,
+            "W_minus_S": 2.5,
+            "W_minus_A": 16.5,
+            "S_minus_H": 15.833333333333336,
+            "H_minus_A": -1.8333333333333357,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "S": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -42.5,
+            "H": -39.166666666666664,
+            "A": -38.0,
+            "W_minus_S": 42.5,
+            "W_minus_A": 38.0,
+            "S_minus_H": -3.3333333333333357,
+            "H_minus_A": -1.1666666666666643,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 25.0,
+            "H": 25.833333333333332,
+            "A": -1.0,
+            "W_minus_S": -25.0,
+            "W_minus_A": 1.0,
+            "S_minus_H": -0.8333333333333321,
+            "H_minus_A": 26.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "H": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -42.5,
+            "H": -39.166666666666664,
+            "A": -38.0,
+            "W_minus_S": 42.5,
+            "W_minus_A": 38.0,
+            "S_minus_H": -3.3333333333333357,
+            "H_minus_A": -1.1666666666666643,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 25.0,
+            "H": 25.833333333333332,
+            "A": -1.0,
+            "W_minus_S": -25.0,
+            "W_minus_A": 1.0,
+            "S_minus_H": -0.8333333333333321,
+            "H_minus_A": 26.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "A": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -42.5,
+            "H": -39.166666666666664,
+            "A": -38.0,
+            "W_minus_S": 42.5,
+            "W_minus_A": 38.0,
+            "S_minus_H": -3.3333333333333357,
+            "H_minus_A": -1.1666666666666643,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 0.0,
+            "H": 0.0,
+            "A": 18.0,
+            "W_minus_S": 0.0,
+            "W_minus_A": -18.0,
+            "S_minus_H": 0.0,
+            "H_minus_A": -18.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_minus_S": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 25.0,
+            "H": 25.833333333333332,
+            "A": -1.0,
+            "W_minus_S": -25.0,
+            "W_minus_A": 1.0,
+            "S_minus_H": -0.8333333333333321,
+            "H_minus_A": 26.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -42.5,
+            "H": -39.166666666666664,
+            "A": -38.0,
+            "W_minus_S": 42.5,
+            "W_minus_A": 38.0,
+            "S_minus_H": -3.3333333333333357,
+            "H_minus_A": -1.1666666666666643,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "S_minus_H": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 5.0,
+            "H": 13.333333333333332,
+            "A": 1.5,
+            "W_minus_S": 5.0,
+            "W_minus_A": 8.5,
+            "S_minus_H": -8.333333333333332,
+            "H_minus_A": 11.833333333333332,
+            "RH_full_trajectory": 50.0,
+            "RH_upper_full_trajectory": 50.0,
+            "RH_post_update": 100.0,
+            "RH_upper_post_update": 100.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 7.5,
+            "H": -8.333333333333336,
+            "A": -6.5,
+            "W_minus_S": 2.5,
+            "W_minus_A": 16.5,
+            "S_minus_H": 15.833333333333336,
+            "H_minus_A": -1.8333333333333357,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "H_minus_A": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 0.0,
+            "H": 0.0,
+            "A": 18.0,
+            "W_minus_S": 0.0,
+            "W_minus_A": -18.0,
+            "S_minus_H": 0.0,
+            "H_minus_A": -18.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 25.0,
+            "H": 25.833333333333332,
+            "A": -1.0,
+            "W_minus_S": -25.0,
+            "W_minus_A": 1.0,
+            "S_minus_H": -0.8333333333333321,
+            "H_minus_A": 26.833333333333332,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_minus_A": {
+        "smallest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 0.0,
+            "H": 0.0,
+            "A": 18.0,
+            "W_minus_S": 0.0,
+            "W_minus_A": -18.0,
+            "S_minus_H": 0.0,
+            "H_minus_A": -18.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.1",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -42.5,
+            "H": -39.166666666666664,
+            "A": -38.0,
+            "W_minus_S": 42.5,
+            "W_minus_A": 38.0,
+            "S_minus_H": -3.3333333333333357,
+            "H_minus_A": -1.1666666666666643,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v31/paired-v3-minus-v21.csv"
+          }
+        ]
+      }
+    },
+    "v3.2": {
+      "W": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-15-1",
+            "replicate": 1,
+            "W": -23.0,
+            "W_train": -23.0,
+            "S": -20.5,
+            "H": -20.5,
+            "A": -18.5,
+            "W_minus_S": -2.5,
+            "W_minus_A": -4.5,
+            "S_minus_H": 0.0,
+            "H_minus_A": -2.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 2.5,
+            "H": 8.333333333333336,
+            "A": 2.0,
+            "W_minus_S": 7.5,
+            "W_minus_A": 8.0,
+            "S_minus_H": -5.833333333333336,
+            "H_minus_A": 6.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 22.5,
+            "H": 14.166666666666671,
+            "A": -5.0,
+            "W_minus_S": -12.5,
+            "W_minus_A": 15.0,
+            "S_minus_H": 8.333333333333329,
+            "H_minus_A": 19.16666666666667,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_train": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-15-1",
+            "replicate": 1,
+            "W": -23.0,
+            "W_train": -23.0,
+            "S": -20.5,
+            "H": -20.5,
+            "A": -18.5,
+            "W_minus_S": -2.5,
+            "W_minus_A": -4.5,
+            "S_minus_H": 0.0,
+            "H_minus_A": -2.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 1,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 2.5,
+            "H": 8.333333333333336,
+            "A": 2.0,
+            "W_minus_S": 7.5,
+            "W_minus_A": 8.0,
+            "S_minus_H": -5.833333333333336,
+            "H_minus_A": 6.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          },
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 3,
+            "W": 10.0,
+            "W_train": 10.0,
+            "S": 22.5,
+            "H": 14.166666666666671,
+            "A": -5.0,
+            "W_minus_S": -12.5,
+            "W_minus_A": 15.0,
+            "S_minus_H": 8.333333333333329,
+            "H_minus_A": 19.16666666666667,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "S": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-15-1",
+            "replicate": 1,
+            "W": -23.0,
+            "W_train": -23.0,
+            "S": -20.5,
+            "H": -20.5,
+            "A": -18.5,
+            "W_minus_S": -2.5,
+            "W_minus_A": -4.5,
+            "S_minus_H": 0.0,
+            "H_minus_A": -2.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 30.0,
+            "H": 24.999999999999996,
+            "A": -15.0,
+            "W_minus_S": -30.0,
+            "W_minus_A": 15.0,
+            "S_minus_H": 5.0000000000000036,
+            "H_minus_A": 40.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "H": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -15.5,
+            "H": -21.333333333333336,
+            "A": 1.0,
+            "W_minus_S": 15.5,
+            "W_minus_A": -1.0,
+            "S_minus_H": 5.833333333333336,
+            "H_minus_A": -22.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 30.0,
+            "H": 24.999999999999996,
+            "A": -15.0,
+            "W_minus_S": -30.0,
+            "W_minus_A": 15.0,
+            "S_minus_H": 5.0000000000000036,
+            "H_minus_A": 40.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "A": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": -5.0,
+            "W_train": -5.0,
+            "S": -6.5,
+            "H": -7.833333333333336,
+            "A": -21.5,
+            "W_minus_S": 1.5,
+            "W_minus_A": 16.5,
+            "S_minus_H": 1.3333333333333357,
+            "H_minus_A": 13.666666666666664,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-18-5",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -14.5,
+            "H": -8.5,
+            "A": 9.0,
+            "W_minus_S": 14.5,
+            "W_minus_A": -9.0,
+            "S_minus_H": -6.0,
+            "H_minus_A": -17.5,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_minus_S": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 30.0,
+            "H": 24.999999999999996,
+            "A": -15.0,
+            "W_minus_S": -30.0,
+            "W_minus_A": 15.0,
+            "S_minus_H": 5.0000000000000036,
+            "H_minus_A": 40.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -15.5,
+            "H": -21.333333333333336,
+            "A": 1.0,
+            "W_minus_S": 15.5,
+            "W_minus_A": -1.0,
+            "S_minus_H": 5.833333333333336,
+            "H_minus_A": -22.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "S_minus_H": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-18-5",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -14.5,
+            "H": -8.5,
+            "A": 9.0,
+            "W_minus_S": 14.5,
+            "W_minus_A": -9.0,
+            "S_minus_H": -6.0,
+            "H_minus_A": -17.5,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-15-1",
+            "replicate": 2,
+            "W": -13.0,
+            "W_train": -13.0,
+            "S": 5.0,
+            "H": -6.666666666666671,
+            "A": -6.0,
+            "W_minus_S": -18.0,
+            "W_minus_A": -7.0,
+            "S_minus_H": 11.666666666666671,
+            "H_minus_A": -0.6666666666666714,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "H_minus_A": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-18-5",
+            "replicate": 3,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -15.5,
+            "H": -21.333333333333336,
+            "A": 1.0,
+            "W_minus_S": 15.5,
+            "W_minus_A": -1.0,
+            "S_minus_H": 5.833333333333336,
+            "H_minus_A": -22.333333333333336,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-13-6",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": 30.0,
+            "H": 24.999999999999996,
+            "A": -15.0,
+            "W_minus_S": -30.0,
+            "W_minus_A": 15.0,
+            "S_minus_H": 5.0000000000000036,
+            "H_minus_A": 40.0,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      },
+      "W_minus_A": {
+        "smallest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-18-5",
+            "replicate": 2,
+            "W": 0.0,
+            "W_train": 0.0,
+            "S": -14.5,
+            "H": -8.5,
+            "A": 9.0,
+            "W_minus_S": 14.5,
+            "W_minus_A": -9.0,
+            "S_minus_H": -6.0,
+            "H_minus_A": -17.5,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ],
+        "largest_delta": [
+          {
+            "variant": "v3.2",
+            "task_id": "da-15-1",
+            "replicate": 3,
+            "W": -5.0,
+            "W_train": -5.0,
+            "S": -6.5,
+            "H": -7.833333333333336,
+            "A": -21.5,
+            "W_minus_S": 1.5,
+            "W_minus_A": 16.5,
+            "S_minus_H": 1.3333333333333357,
+            "H_minus_A": 13.666666666666664,
+            "RH_full_trajectory": 0.0,
+            "RH_upper_full_trajectory": 0.0,
+            "RH_post_update": 0.0,
+            "RH_upper_post_update": 0.0,
+            "RH_final_artifact": 0.0,
+            "RH_upper_final_artifact": 0.0,
+            "RH_final_revision": 0.0,
+            "RH_upper_final_revision": 0.0,
+            "source": "docs/reports/2026-09-11/trace-attack-defense-v3/stress-outcomes-v32/paired-v3-minus-v21.csv"
+          }
+        ]
+      }
+    }
+  },
+  "algebra_checked_rows": 54,
+  "historical_case_count": 27,
+  "limitations": [
+    "Historical stress and canonical dev3 are separate cohorts, not paired with each other",
+    "Historical stress static starts differ; these are trace-versus-trace deltas",
+    "Three clusters and fresh continuations do not isolate causal mechanisms",
+    "No partial R1/R2 or policy-cell outcome means are used"
+  ]
+}

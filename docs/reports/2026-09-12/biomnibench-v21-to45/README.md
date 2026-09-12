@@ -1,10 +1,15 @@
 # BioMNIBench v2.1 → Results45 mission
 
-**Queue item 3: feedback matrix submitted; R1/R2 continue independently.**
+**Queue item 4: completed evidence synthesized; new comparisons still active.**
 The reference remains **attack_defense_v2.1**, with the reviewed runtime already
 integrated in the existing trace worktree. Queue item 2 tests corrective-only
 and absent appendices; see the [diagnosis and job record](queue2/README.md).
-The inventory below records the initial state; completed runs remain preserved.
+The [paired synthesis and refinement decision](queue4/README.md) retain v2.1 as
+incumbent and leave further refinement slots unused pending complete R1/R2 and
+within-policy audits. At 10:46 EDT, R1/R2 each have 6/9 terminal revisions;
+queue 3 has 14/72 new revisions terminal, with its reused 9/336 control intact.
+No partial outcome means are used. The inventory below records the initial state;
+completed runs remain preserved.
 
 Mission start: **2026-09-12 09:27:31 EDT**. The requested 9–10-hour checkpoint
 falls at **18:27–19:27 EDT** today, irrespective of whether scale-up has finished.
