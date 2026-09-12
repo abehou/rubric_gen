@@ -19,9 +19,21 @@ case "${1:?queue2 or queue3}" in
 esac
 scope=$1
 shift
+driver_root=${SLURM_SUBMIT_DIR:?}
 cd "$source_root"
 export RUBRIC_GEN_PROJECT_ROOT="$source_root" PYTHONPATH="$runtime_root/src" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 export TMPDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-${SLURM_JOB_ID}
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
 mkdir -p "$TMPDIR"
-exec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python "$source_root/experiments/biomnibench-v21-to45/$scope/audit.py" "$@"
+python_bin=/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python
+failed=0
+for cell in "$@"; do
+  if [ "$scope" = queue2 ]; then
+    for task in da-3-4 da-11-1 da-18-1; do
+      if ! "$python_bin" "$driver_root/experiments/biomnibench-v21-to45/queue2/audit.py" "$cell" "$task"; then failed=1; fi
+    done
+  else
+    if ! "$python_bin" "$source_root/experiments/biomnibench-v21-to45/queue3/audit.py" "$cell"; then failed=1; fi
+  fi
+done
+exit "$failed"
