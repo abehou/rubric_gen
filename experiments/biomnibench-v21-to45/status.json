@@ -2,7 +2,7 @@
   "mission_started_at": "2026-09-12T09:27:31-04:00",
   "timezone": "America/New_York",
   "queue_item": 6,
-  "state": "results30_results45_seed_and_revision_recovery",
+  "state": "results30_revisions_results45_seed_recovery",
   "reference_recipe": "attack_defense_v2.1",
   "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T15:01:25-04:00",
+  "updated_at": "2026-09-12T15:04:10-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1811,16 +1811,37 @@
         "dependency": "afterany:10415714",
         "scope": "native lane 0 resume; preserve completed blocks; retry documented da-8-1 missing block",
         "submitted_at": "2026-09-12T14:46:19-04:00",
-        "slurm_state": "PENDING"
+        "slurm_state": "COMPLETED",
+        "exit_code": "0:0"
+      },
+      "1-resume-1": {
+        "job_id": "10415714",
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "scope": "native lane 1 resume; all five task blocks",
+        "slurm_state": "COMPLETED",
+        "exit_code": "0:0"
       }
     },
     "heldout_authority": "authorized committed rigorous-V2 for new tasks; preserve historical20",
-    "revision_jobs": [],
+    "revision_jobs": [
+      10415692,
+      10415695,
+      10415696,
+      10415697,
+      10415698,
+      10415700,
+      10415705,
+      10415894,
+      10415716,
+      10415717
+    ],
     "audit_jobs": [],
     "progress": {
-      "observed_at": "2026-09-12T12:12:25-04:00",
+      "observed_at": "2026-09-12T15:04:10-04:00",
       "seed_blocks_expected": 30,
-      "sealed_seed_blocks": 20,
+      "sealed_seed_blocks": 30,
       "seed_jobs": [
         {
           "job": "10414853",
@@ -1849,7 +1870,8 @@
       ],
       "revision_records_expected": 60,
       "revision_records_completed": 0,
-      "audit_dispatched": false
+      "audit_dispatched": false,
+      "revision_dispatch_state": "10 task shards dispatched; 8 prior completions/recoveries and two dependency releases running"
     },
     "seed_failures": {
       "da-8-1": [
@@ -1860,7 +1882,8 @@
       "recovery": "10415010 sealed two of three missing starts; da-8-1/rep-002 still invalid, no additional identical invocation queued"
     },
     "revision_jobs_note": "Known recovery revisions 10415716/10415717 remain afterok:10415714; inspect seed lane exit before changing dependencies.",
-    "inventory_after_retry": "10416169"
+    "inventory_after_retry": "10416169",
+    "inventory_after_retry_state": "10416169 COMPLETED; provider_calls=0; 10 task configs verified"
   },
   "queue7": {
     "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md",
@@ -2119,7 +2142,7 @@
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T15:01:25-04:00",
+    "observed_at": "2026-09-12T15:04:10-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2131,7 +2154,11 @@
       "lane1": "10415714",
       "scope": "native seed --resume; complete blocks preserved; lane1 retries only missing da-1-3/rep-001 and da-4-6/rep-002",
       "lane0_retry_2": "10416038",
-      "lane0_retry_2_scope": "native lane 0 resume after 10415714; only missing da-8-1 block should require provider work"
+      "lane0_retry_2_scope": "native lane 0 resume after 10415714; only missing da-8-1 block should require provider work",
+      "lane1_retry": "10415714",
+      "lane1_retry_state": "COMPLETED 0:0; all five lane-1 task seed blocks returned exit 0",
+      "lane0_retry_2_state": "COMPLETED 0:0; da-8-1 missing block returned exit 0",
+      "final_inventory": "10416169 COMPLETED provider-free; 10/10 task manifests present"
     },
     "results30_revision_jobs": {
       "da-8-1": "10415692",

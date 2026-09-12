@@ -20,7 +20,7 @@
           "master_sha256": "3368ddd9b390cbc075b34590ba506251aa995b04c746c967fc8e2982006e0645"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-26-4",
@@ -41,7 +41,7 @@
           "master_sha256": "065255aace91ac7640f11837f8b8a3b269c900fffecf6988f22ba6ce3cdf409e"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-20-4",
@@ -62,7 +62,7 @@
           "master_sha256": "4d759e8c5cf738918029faedc4d217bc5f6aa196c886b1894a58d5ad43802a3d"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-19-3",
@@ -83,7 +83,7 @@
           "master_sha256": "66266b1226268e80b0685e7313ae3ab146950d651b4694501279e1c4a87b9e6e"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-4-1",
@@ -104,7 +104,7 @@
           "master_sha256": "1109767ef1aab10a36f1f54f05b0f0d9cff0fdefa22185e24a31fd611217f6b5"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-1-3",
@@ -125,7 +125,7 @@
           "master_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-3-5",
@@ -146,7 +146,7 @@
           "master_sha256": "44362cc5d3040aea092e149d776d8d5e0ea5825334614520a1270512e08e13c1"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-4-6",
@@ -167,7 +167,7 @@
           "master_sha256": "b94936604653bbeeb499730e815714f7a777d3bfc4abdc8dea94649f613bdb2c"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-5-1",
@@ -188,7 +188,7 @@
           "master_sha256": "ec7856235815b2bd5ae44bad847e1024f73ca51b24f061b4b6b0dfc95798e9ef"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     },
     {
       "task": "da-26-2",
@@ -209,7 +209,7 @@
           "master_sha256": "eae5f2872d9bf33d10e1d7aba39ceb4d1373b5d514c2842ea99ee510ae91d5eb"
         }
       ],
-      "existing_new_seed_manifest": false
+      "existing_new_seed_manifest": true
     }
   ],
   "new_assignments": 60
