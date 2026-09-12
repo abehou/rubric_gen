@@ -37,7 +37,7 @@ def install_reuse() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("flavor", choices=("control-v21-compatible", "v21-control", "v3-candidate"))
+    parser.add_argument("flavor", choices=("control-v21-compatible", "v21-control", "v3-candidate", "v31-candidate"))
     parser.add_argument("cohort", choices=("canonical", "stress"))
     args = parser.parse_args()
     if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != 32:
@@ -52,7 +52,12 @@ def main() -> None:
         os.environ[key] = str(credentials[key])
     install_reuse()
     tasks = TASKS if args.cohort == "canonical" else STRESS_TASKS
-    config_dir = BUNDLE / ("control-v21-compatible" if args.flavor == "control-v21-compatible" else "stress")
+    if args.flavor == "control-v21-compatible":
+        config_dir = BUNDLE / "control-v21-compatible"
+    elif args.flavor == "v31-candidate":
+        config_dir = BUNDLE / "stress-v31"
+    else:
+        config_dir = BUNDLE / "stress"
     rows = []
     for task in tasks:
         if args.flavor == "control-v21-compatible":
