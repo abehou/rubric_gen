@@ -2,7 +2,7 @@
   "mission_started_at": "2026-09-12T09:27:31-04:00",
   "timezone": "America/New_York",
   "queue_item": 6,
-  "state": "results30_missing_seed_preparation",
+  "state": "results30_results45_seed_and_revision_recovery",
   "reference_recipe": "attack_defense_v2.1",
   "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T14:31:56.133670-04:00",
+  "updated_at": "2026-09-12T14:46:19-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1801,6 +1801,17 @@
         "elapsed": "00:09:47",
         "recovered_blocks": 2,
         "remaining_missing_blocks": 1
+      },
+      "0-resume-2": {
+        "job_id": "10416038",
+        "source_job": "10415538",
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "dependency": "afterany:10415714",
+        "scope": "native lane 0 resume; preserve completed blocks; retry documented da-8-1 missing block",
+        "submitted_at": "2026-09-12T14:46:19-04:00",
+        "slurm_state": "PENDING"
       }
     },
     "heldout_authority": "authorized committed rigorous-V2 for new tasks; preserve historical20",
@@ -1847,7 +1858,8 @@
       ],
       "cause": "Solver process exited0, but both answer.txt and trace.md were absent/invalid; one attempt also logged malformed apply_patch operations. Not a network timeout.",
       "recovery": "10415010 sealed two of three missing starts; da-8-1/rep-002 still invalid, no additional identical invocation queued"
-    }
+    },
+    "revision_jobs_note": "Known recovery revisions 10415716/10415717 remain afterok:10415714; inspect seed lane exit before changing dependencies."
   },
   "queue7": {
     "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md",
@@ -1910,7 +1922,8 @@
       "optional_policy20_or_dropout_launched": false,
       "remaining_input_decision": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
       "audit_issue": "Permanent HTTP400 schema complexity in R1/R2 da-3-4; Semi/Score fixed six/eight Opus requests remain at native attempt limit; preserve all complete judgments"
-    }
+    },
+    "seed_jobs_note": "Initial missing-only lanes 10415531/10415532 remain RUNNING; inventory 10415675 is afterany-held."
   },
   "heldout_decision": {
     "status": "authorized",
@@ -2082,7 +2095,7 @@
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T14:31:56.133670-04:00",
+    "observed_at": "2026-09-12T14:46:19-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2092,7 +2105,9 @@
     "results30_seed_recovery": {
       "lane0": "10415538",
       "lane1": "10415714",
-      "scope": "native seed --resume; complete blocks preserved; lane1 retries only missing da-1-3/rep-001 and da-4-6/rep-002"
+      "scope": "native seed --resume; complete blocks preserved; lane1 retries only missing da-1-3/rep-001 and da-4-6/rep-002",
+      "lane0_retry_2": "10416038",
+      "lane0_retry_2_scope": "native lane 0 resume after 10415714; only missing da-8-1 block should require provider work"
     },
     "results30_revision_jobs": {
       "da-8-1": "10415692",
@@ -2116,7 +2131,7 @@
     "queue3_corrected_audit": "10415408",
     "queue3_corrected_collector": "10415525",
     "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check.",
-    "note": "Results30 revision shards use the unchanged v2.1 Full fixed/trace task configs and native dev3-4 resume. Original twenty records remain reused; no User scale is launched. Results45 seeds remain prerequisite-controlled.",
+    "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
     "heldout_prompt_source": "47463ca",
     "old_twenty_heldouts_changed": false,
     "queue3_missing_audit_recovery": {
