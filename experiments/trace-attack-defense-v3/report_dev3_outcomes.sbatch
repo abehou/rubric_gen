@@ -18,4 +18,4 @@ export XDG_CACHE_HOME=/data/user_data/aydanh/rubric_gen/cache/trace-attack-defen
 export TMPDIR=/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/report-tmp
 mkdir -p "$XDG_CACHE_HOME" "$TMPDIR"
 exec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python \
-  experiments/trace-attack-defense-v3/report_dev3_outcomes.py "${1:?cohort required}"
+  experiments/trace-attack-defense-v3/report_dev3_outcomes.py "$@"
