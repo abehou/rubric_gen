@@ -1,0 +1,93 @@
+{
+  "cell": "full-trace",
+  "complete": false,
+  "expected_assignments": 9,
+  "completed_audited_assignments": 0,
+  "coverage": [],
+  "errors": [
+    {
+      "task": "da-3-4",
+      "error_type": "AssertionError",
+      "error": "rubric_score"
+    },
+    {
+      "task": "da-11-1",
+      "error_type": "AssertionError",
+      "error": "rubric_score"
+    },
+    {
+      "task": "da-18-1",
+      "error_type": "AssertionError",
+      "error": "rubric_score"
+    }
+  ],
+  "rows": [],
+  "delivery": [],
+  "summary": null,
+  "native_panel_union": null,
+  "runtime": [
+    {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414567-ii97ppum/status.json",
+      "values": {
+        "active_provider_slots": 51,
+        "assignment_failures": [],
+        "assignments": {
+          "completed": 3
+        },
+        "completed_operations_per_minute": {
+          "evolution-generation": 18.734862807485122,
+          "solver-turn": 1.830768352522976
+        },
+        "configured_assignment_workers": 4,
+        "elapsed_seconds": 983.1937489630654,
+        "peak_processes": 20,
+        "peak_sampled_rss_kib": 1694096,
+        "processes": 1,
+        "sampled_cpu_cores": 0.02107121198723056,
+        "threads": 1
+      }
+    },
+    {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414568-jlm8soj9/status.json",
+      "values": {
+        "active_provider_slots": 36,
+        "assignment_failures": [],
+        "assignments": {
+          "completed": 3
+        },
+        "completed_operations_per_minute": {
+          "evolution-generation": 12.062116964794903,
+          "solver-turn": 0.9219452457168079
+        },
+        "configured_assignment_workers": 4,
+        "elapsed_seconds": 2342.8723235300276,
+        "peak_processes": 23,
+        "peak_sampled_rss_kib": 1816440,
+        "processes": 1,
+        "sampled_cpu_cores": 0.02101029617122545,
+        "threads": 1
+      }
+    },
+    {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414569-4feh4s46/status.json",
+      "values": {
+        "active_provider_slots": 38,
+        "assignment_failures": [],
+        "assignments": {
+          "completed": 3
+        },
+        "completed_operations_per_minute": {
+          "evolution-generation": 15.691009965743302,
+          "solver-turn": 1.5789695563012125
+        },
+        "configured_assignment_workers": 4,
+        "elapsed_seconds": 1215.9829126140103,
+        "peak_processes": 20,
+        "peak_sampled_rss_kib": 1678532,
+        "processes": 1,
+        "sampled_cpu_cores": 0.007419764803995976,
+        "threads": 1
+      }
+    }
+  ]
+}

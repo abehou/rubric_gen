@@ -1,0 +1,109 @@
+{
+  "cell": "score_only-trace-no-appendix",
+  "complete": false,
+  "expected_assignments": 9,
+  "completed_audited_assignments": 0,
+  "coverage": [],
+  "errors": [
+    {
+      "task": "da-3-4",
+      "error_type": "AssertionError",
+      "error": "rubric_score"
+    },
+    {
+      "task": "da-11-1",
+      "error_type": "ValueError",
+      "error": "source study has no completed assignments"
+    },
+    {
+      "task": "da-18-1",
+      "error_type": "AssertionError",
+      "error": "rubric_score"
+    }
+  ],
+  "rows": [],
+  "delivery": [],
+  "summary": null,
+  "native_panel_union": null,
+  "runtime": [
+    {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414570-yd2vsiam/status.json",
+      "values": {
+        "active_provider_slots": 60,
+        "assignment_failures": [],
+        "assignments": {
+          "completed": 3
+        },
+        "completed_operations_per_minute": {
+          "evolution-generation": 16.077134233428705,
+          "solver-turn": 0.9020174322385741
+        },
+        "configured_assignment_workers": 4,
+        "elapsed_seconds": 2261.597090133,
+        "peak_processes": 20,
+        "peak_sampled_rss_kib": 1784932,
+        "processes": 1,
+        "sampled_cpu_cores": 0.026334250426437222,
+        "threads": 1
+      }
+    },
+    {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414571-lislzd2t/status.json",
+      "values": {
+        "active_provider_slots": 56,
+        "assignment_failures": [
+          {
+            "assignment_id": "da-11-1--rep-003--solver-luna--score-only-red-team-trace",
+            "failure_category": "structural",
+            "next_automatic_action": "bounded retry if transient; otherwise repair source/config"
+          },
+          {
+            "assignment_id": "da-11-1--rep-001--solver-luna--score-only-red-team-trace",
+            "failure_category": "structural",
+            "next_automatic_action": "bounded retry if transient; otherwise repair source/config"
+          },
+          {
+            "assignment_id": "da-11-1--rep-002--solver-luna--score-only-red-team-trace",
+            "failure_category": "structural",
+            "next_automatic_action": "bounded retry if transient; otherwise repair source/config"
+          }
+        ],
+        "assignments": {
+          "failed": 3
+        },
+        "completed_operations_per_minute": {
+          "evolution-generation": 11.770494021735903,
+          "solver-turn": 0.9306902249744666
+        },
+        "configured_assignment_workers": 4,
+        "elapsed_seconds": 1095.960796223022,
+        "peak_processes": 22,
+        "peak_sampled_rss_kib": 1813952,
+        "processes": 1,
+        "sampled_cpu_cores": 0.04421597541730947,
+        "threads": 1
+      }
+    },
+    {
+      "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414572-gxbvvioj/status.json",
+      "values": {
+        "active_provider_slots": 43,
+        "assignment_failures": [],
+        "assignments": {
+          "completed": 3
+        },
+        "completed_operations_per_minute": {
+          "evolution-generation": 16.664297089010404,
+          "solver-turn": 1.3018982100789378
+        },
+        "configured_assignment_workers": 4,
+        "elapsed_seconds": 2304.3276169940364,
+        "peak_processes": 20,
+        "peak_sampled_rss_kib": 1624872,
+        "processes": 1,
+        "sampled_cpu_cores": 0.0126744549473861,
+        "threads": 1
+      }
+    }
+  ]
+}
