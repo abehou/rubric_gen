@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T11:36:58.247223-04:00",
+  "updated_at": "2026-09-12T14:17:08.114192-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -2045,20 +2045,44 @@
   },
   "resume_reconciliation": {
     "observed_at": "2026-09-12T13:34:00-04:00",
-    "completed_without_resubmission": ["10415268", "10415269", "10415406"],
-    "active_or_dependency_controlled": ["10415407", "10415408"],
-    "missing_only_recovery_submitted": ["10415501", "10415502"],
-    "provider_free_collectors_submitted": ["10415523", "10415525"],
-    "results45_seed_recovery_submitted": ["10415531", "10415532"],
+    "completed_without_resubmission": [
+      "10415268",
+      "10415269",
+      "10415406"
+    ],
+    "active_or_dependency_controlled": [
+      "10415407",
+      "10415408"
+    ],
+    "missing_only_recovery_submitted": [
+      "10415501",
+      "10415502"
+    ],
+    "provider_free_collectors_submitted": [
+      "10415523",
+      "10415525"
+    ],
+    "results45_seed_recovery_submitted": [
+      "10415531",
+      "10415532"
+    ],
     "results30_seed_followup_submitted": "10415538",
     "missing_only_recovery_scope": "Results30 seed lanes 0 and 1; native seed --resume preserves complete blocks and attempts only incomplete task-local blocks",
-    "historical_failed_jobs_preserved": ["10414487", "10414488", "10414489", "10415017", "10415018", "10415266", "10415267"],
+    "historical_failed_jobs_preserved": [
+      "10414487",
+      "10414488",
+      "10414489",
+      "10415017",
+      "10415018",
+      "10415266",
+      "10415267"
+    ],
     "heldout_prompt_source": "47463ca",
     "old_twenty_heldouts_changed": false,
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T14:06:00-04:00",
+    "observed_at": "2026-09-12T14:17:08.114192-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2084,12 +2108,28 @@
       "da-1-3_resume": "10415716",
       "da-4-6_resume": "10415717"
     },
-    "results45_seed_jobs": ["10415531", "10415532"],
+    "results45_seed_jobs": [
+      "10415531",
+      "10415532"
+    ],
     "queue3_corrected_audit": "10415408",
     "queue3_corrected_collector": "10415525",
     "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check.",
     "note": "Results30 revision shards use the unchanged v2.1 Full fixed/trace task configs and native dev3-4 resume. Original twenty records remain reused; no User scale is launched. Results45 seeds remain prerequisite-controlled.",
     "heldout_prompt_source": "47463ca",
-    "old_twenty_heldouts_changed": false
+    "old_twenty_heldouts_changed": false,
+    "queue3_missing_audit_recovery": {
+      "job_id": "10415796",
+      "cells": [
+        "full-fixed",
+        "full-trace",
+        "semi-trace",
+        "score_only-trace",
+        "user_simulator-fixed",
+        "score_only-trace-no-appendix"
+      ],
+      "dependency": "afterany:10415714,10415531,10415532,10415692,10415695,10415696,10415697,10415698,10415700,10415704,10415705,10415716,10415717",
+      "scope": "native queue3 audit resume; complete cells excluded; q3 collector to follow"
+    }
   }
 }
