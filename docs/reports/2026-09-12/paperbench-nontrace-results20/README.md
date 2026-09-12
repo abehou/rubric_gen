@@ -1,3 +1,81 @@
+# PaperBench non-trace Results20 — Queue 4 handoff
+
+**All 480 Semi/Score-only Results20 assignments now have queued native revision owners.** Before dispatch the exact inventory was **0 reusable, 0 running, 480 genuinely missing** (60 for each of eight conditions). At 2026-09-12 11:15 EDT, Results20 completion remains **0/480**, active Results20 assignments **0**, and queued assignments **480**. These are submitted jobs, not completed scientific results; CPU quota currently prevents admission.
+
+Corrected dev3 now has **seven conditions at9/9 native-valid**, with Score-only-red-team-artifact at **7/9 valid and two running**, no assignment failures. In total **70/72** target dev3 assignments are native-valid. The five-condition learned-policy Results20 wave retains its existing successful-dev3-validation dependency: it cannot execute the two unvalidated cases' condition before validation. Its shared starting-rubric producer is also still queued, so this dependency does not currently add admission delay.
+
+## Eight-condition promotion matrix
+
+All Results20 cells require20 canonical tasks×3 replicates. `Queued` means zero assignment execution so far. Native dev3 validation covered the actual feedback/rubric policy, selected/development/heldout mapping, saved trajectory/checkpoint integrity and expected turn/stop behavior. The latest partial learned-dev3 collector exits1 because two assignments are still running; its failure list is empty.
+
+| Condition | Dev3 revisions | Dev3 audit owner | Results20 revisions | Results20 audit owner | Blocking dependency / failure |
+|---|---|---|---|---|---|
+| semi-static | **9/9 valid** | 10414751 queued | 0/60; job **10414738** queued | 10414746 after revision | CPU quota; no assignment failure |
+| semi-offline-rubric | **9/9 valid** | 10414752 queued | 0/60; job **10414740** queued | 10414748 after revision | Shared producer10414739 + native dev3 validator10414505; no assignment failure |
+| semi-online-rubric | **9/9 valid** | 10414752 queued | 0/60; job **10414740** queued | 10414748 after revision | Shared producer10414739 + native dev3 validator10414505; no assignment failure |
+| semi-red-team-artifact | **9/9 valid** | 10414752 queued | 0/60; job **10414740** queued | 10414748 after revision | Shared producer10414739 + native dev3 validator10414505; no assignment failure |
+| score-only-static | **9/9 valid** | 10414751 queued | 0/60; job **10414738** queued | 10414746 after revision | CPU quota; no assignment failure |
+| score-only-offline-rubric | **9/9 valid** | 10414752 queued | 0/60; job **10414739** queued | 10414747 after revision | CPU quota; no assignment failure |
+| score-only-online-rubric | **9/9 valid** | 10414752 queued | 0/60; job **10414740** queued | 10414748 after revision | Shared producer10414739 + native dev3 validator10414505; no assignment failure |
+| score-only-red-team-artifact | **7/9 valid**; 2 running | 10414752 queued | 0/60; job **10414740** queued | 10414748 after revision | Shared producer10414739 + native dev3 validator10414505; no assignment failure |
+
+At initial dispatch, Semi-static, Score-only-static and Score-only-offline were already9/9 native-valid. Subsequent validation completed the other three Semi cells and Score-only-online while the queued waves remained unchanged. The one outstanding Score-only-artifact dev3 cell remains healthy. Opus transport does not block revision validation or these submissions.
+
+## Source, frozen inputs and wave ownership
+
+Execution checkout: `/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912`, exact clean pin **`fdd5403abb16e412c003aa7db79d3eaf8cd4b552`**. It adds only three configuration files to the reviewed, live-validated v8 source **`c6ec87b2fbcc3349d32625d2a8cfe78254d557fb`**. No runtime/scoring/scientific prompt or CPU-profile code changed. The moving integration branch remains distinct from this execution pin; its unrelated prompt implementation changes derive different experiment identities.
+
+The native input check loaded **60/60 exact existing seeds** and validated **20×5=100 existing corrected variants**, including role mapping0 selected neutral,1 development neutral,2/3/4 rigorous-V2 heldouts. It took80.342s in step10414497.12, with zero provider calls or scientific writes. A bounded scan of all PaperBench-named study roots found no already-executed Results20 assignments for these eight conditions. Dev3 uses a disjoint three-task set and contributes no reusable Results20 trajectories; the existing Full/User static120 remain preserved in their original namespace.
+
+- Seeds: `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-v2-20260910/results20/seeds`.
+- Corrected pool: `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-final-pool/paraphrases`.
+- Output base: `/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/<scope>/{study,audit}/<experiment_id>`.
+
+| Scope / native config | Assignments | Revision owner / dependency | Audit owner | Experiment ID suffix |
+|---|---:|---|---|---|
+| [semi-score-fixed](../../../../experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml) |120| **10414738**, ready dev3 cells; queued CPU quota |10414746 afterok10414738|`3d723e04c313`|
+| [score-only-offline](../../../../experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml) |60| **10414739**, ready dev3 cell; queued CPU quota |10414747 afterok10414739|`3d723e04c313`|
+| [semi-score-learned-rest](../../../../experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml) |300| **10414740**, afterok10414739:10414505 |10414748 afterok10414740|`61c2335984ea`|
+
+The full IDs are `paperbench-code-dev-factorial-r10-<suffix>`. Identical IDs in the first two scopes have disjoint selected conditions and distinct output roots, with one dispatcher each. Each config retains the same canonical16-condition non-trace definition and randomization; `execution_conditions` selects120/60/300 assignments, totaling480 without overlap. The generic20-condition YAML is not launched. No red_team_trace condition is selected.
+
+Score-only-offline's ordinary native pipeline creates the20 task-specific shared starting rubrics once. The remaining learned-policy wave references that exact producer through native `pretreatment_source`; it generates only its policy-specific downstream evolution, not seeds/paraphrases or a duplicate starting pool. Native reuse requires a completed source scope, which explains dependency10414739. Future Full/User learned Results20 scopes should reuse the same producer where their native identity permits it. No scientific definitions were altered to accelerate scheduling.
+
+All revision and audit jobs use the reviewed **Results20 profile:32 CPUs,256GiB,32 assignment/request workers where applicable**. Hosted provider reservations are separately bounded by the shared cap60; audit ownership remains one globally. The earlier unvalidated CPU-allocation patch is not included. Healthy PaperBench and other-session jobs remain intact. No duplicate dispatcher was submitted.
+
+## Score-only interpretation from actual delivered messages
+
+At frozen dev3 source4f67a3b, all four score-only policies deliver **numeric score feedback plus standard task/revision instructions**. Offline/online/red-team-artifact rubric machinery can change the numeric penalty, but does **not** append criterion text or qualitative reminders to these solver messages. This is a statement about delivered feedback, not a claim that tasks or revision instructions contain no text.
+
+A read-only census inspected all36 score-only assignments and **349 persisted feedback records,349 turn prompts and349 started-attempt messages**. Every feedback object had exactly the `score` key; every turn and started-attempt message matched native score-only rendering, with **zero differences/errors and no enabled trace reminder gate**. Actual rendered score lines include `Rubric score: 22.705/100`; no policy-generated qualitative component appeared.
+
+| Rubric policy | Inspected delivered turns | Turns with nonzero learned penalty | Observed generation rounds |
+|---|---:|---:|---|
+|fixed|87|0|0|
+|offline_elicitation|87|18|0–1|
+|online_elicitation|90|20|0–9|
+|red_team_artifact|85|16|0–9|
+
+`RevisionScorer._ordinary_checkpoint_feedback()` calls `project_rubric_feedback()`, whose score-only projection contains just the score. `render_revision_prompt()` embeds it into the standard revision message. `trace_defense_registry.enabled()` requires a versioned red_team_trace regime, which none of these four policies has. Saved rubric-generation/evaluation files were counted separately and are not evidence of solver delivery. Native completed-revision validation also reconstructs and checks the saved prompts. [Compact delivery evidence](score-only-delivery.json) retains exact sample message paths and counts; the full read-only operational census is `runs/paperbench-nontrace-results20-20260912/score-delivery.json`.
+
+## Audit ownership and Queue 5 priorities
+
+The v8 repair is validated and integrated (Queue3 core commitc451942); no known-broken bulk retry is launched. New native Sol+Opus owners are Results20 audits10414746/10414747/10414748 and dev3 audits10414751/10414752. Each uses `detect --resume` from the frozen execution source and the exact producer config. Dev3 identity was checked under v8 and remains `paperbench-code-dev-factorial-r10-c297aebb88ed`; both audit namespaces were unoccupied before submission.
+
+Fixed-dev3 producer10414496 completed in40m32s and passed18/18 native checks. Its controller job ID had aged out: an `afterok:10414496` audit submission was rejected with `Job dependency problem` and created no job. After confirming `Invalid job id` in the controller and the successful accounting/validation evidence, audit10414751 was submitted as ready work without that expired dependency. Learned-dev3 audit10414752 waits for native validator10414505. Existing pure validators10414504/10414505/10414506 remain owned, and Full/User dev3 revision10414499 retains its original afterok10414497 dependency.
+
+1. Inspect the existing jobs before action; do not resubmit queued/healthy owners. Collect validator10414505 and the two remaining Score-only-artifact dev3 assignments. If they fail, use native missing-only recovery, preserve the validated other cells and reconsider only the still-unstarted affected wave/dependency rather than blocking them on a failed condition indefinitely.
+2. Let ready Results20 jobs10414738/10414739 enter normally;10414740 starts only after its native dependencies succeed. If preemption occurs, resume that same scope missing-only and update affected pending dependencies to the successful replacement owner.
+3. Continue Full/User work in Queue5 using its existing dev3 owner10414499 and validator10414506. The Results20 shared starting-rubric producer is10414739; preserve its exact pool and producer scope.
+4. Monitor static corrected audit recovery10414690, currently queued CPU quota:900/900 Sol,764/900 Opus,136 missing Opus remain. No static revision/valid judgment was rerun. Final static metrics remain withheld until full intended coverage is complete.
+5. Audit scheduler wait, global lease admission and actual provider execution must remain separately measured. Preserve frozen execution pins while any pending/live job depends on them; do not switch to moving core prompts or mix the separate CPU patch into these runs.
+
+[Machine-readable Queue4 state](queue4-status.json) contains exact commands, job dependencies, output roots, source pins, per-condition counts and operational exceptions. Private preparation/launch/native-validation receipts are under `runs/paperbench-nontrace-results20-20260912/`. No score was imputed, and no completed scientific result is inferred from directory names or successful submission.
+
+---
+
+## Queue 3 and earlier historical handoffs
+
 # PaperBench non-trace Results20 — Queue 3 handoff
 
 **The v8 single-call Opus repair passed both production smokes. Static coverage is now Sol 900/900 and Opus 764/900**, with all 120 revisions valid and detector/holistic stages complete. Native missing-only recovery **10414690** is submitted for the remaining **136 Opus judgments**. At handoff it is **PENDING (`QOSMaxCpuPerUserLimit`)**; no bulk provider calls have started. Final static metrics remain withheld until complete coverage.
@@ -11,7 +89,7 @@ Before smokes, native dry preparation confirmed **Sol 0, valid Opus 0, missing O
 | Stage | Status / ownership | Runtime or remaining work |
 |---|---|---|
 | Two saved-v5 replays | Passed, step10414497.2, zero providers | 603.586s including native validation |
-| V8 tests and native read-only census | Passed, steps10414497.3/.4 | 94.38s tests; 234.615s native census |
+| V8 tests and native read-only census | Passed, steps10414497.5/.4 | 94.38s tests; 234.615s native census |
 | Staged 306 then872 live smokes | Passed, step10414497.7 | 435.837s total; 0.001311s lease admission; 96.818s +170.830s provider wrappers |
 | Core integration tests | Passed, step10414497.8 | 70.33s |
 | Static native audit recovery | **10414690 pending CPU quota** | 136 missing Opus; all other provider work0 |

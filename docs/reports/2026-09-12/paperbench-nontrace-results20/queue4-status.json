@@ -1,0 +1,432 @@
+{
+  "as_of": "2026-09-12T11:15:38.050640-04:00",
+  "status": "results20_waves_and_native_audits_submitted",
+  "execution_source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+  "base_source": "c6ec87b2fbcc3349d32625d2a8cfe78254d557fb",
+  "cpu_profile_patch_applied": false,
+  "pre_dispatch": {
+    "target_assignments": 480,
+    "already_reusable": 0,
+    "currently_running": 0,
+    "genuinely_missing": 480,
+    "seeds_loaded": 60,
+    "variants": 100,
+    "elapsed_seconds": 80.34199523925781
+  },
+  "current_results20": {
+    "expected": 480,
+    "reusable": 0,
+    "completed": 0,
+    "running": 0,
+    "queued": 480,
+    "revision_workers_per_job": 32,
+    "cpu_per_job": 32,
+    "memory_gib_per_job": 256,
+    "shared_provider_cap": 60,
+    "global_audit_owners": 1
+  },
+  "dev3_revision_ready_conditions": 7,
+  "dev3_native_valid_assignments": 70,
+  "conditions": [
+    {
+      "condition": "semi-static",
+      "feedback_policy": "semi",
+      "rubric_policy": "fixed",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414751",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414738",
+      "results20_revision_dependency": null,
+      "results20_audit_job": "10414746",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-3d723e04c313",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-fixed/study/paperbench-code-dev-factorial-r10-3d723e04c313",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-fixed/audit/paperbench-code-dev-factorial-r10-3d723e04c313",
+      "failure": null
+    },
+    {
+      "condition": "semi-offline-rubric",
+      "feedback_policy": "semi",
+      "rubric_policy": "offline_elicitation",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414752",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414740",
+      "results20_revision_dependency": "afterok:10414739:10414505",
+      "results20_audit_job": "10414748",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-61c2335984ea",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/audit/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "failure": null
+    },
+    {
+      "condition": "semi-online-rubric",
+      "feedback_policy": "semi",
+      "rubric_policy": "online_elicitation",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414752",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414740",
+      "results20_revision_dependency": "afterok:10414739:10414505",
+      "results20_audit_job": "10414748",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-61c2335984ea",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/audit/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "failure": null
+    },
+    {
+      "condition": "semi-red-team-artifact",
+      "feedback_policy": "semi",
+      "rubric_policy": "red_team_artifact",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414752",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414740",
+      "results20_revision_dependency": "afterok:10414739:10414505",
+      "results20_audit_job": "10414748",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-61c2335984ea",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/audit/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "failure": null
+    },
+    {
+      "condition": "score-only-static",
+      "feedback_policy": "score_only",
+      "rubric_policy": "fixed",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414751",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414738",
+      "results20_revision_dependency": null,
+      "results20_audit_job": "10414746",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-3d723e04c313",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-fixed/study/paperbench-code-dev-factorial-r10-3d723e04c313",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-fixed/audit/paperbench-code-dev-factorial-r10-3d723e04c313",
+      "failure": null
+    },
+    {
+      "condition": "score-only-offline-rubric",
+      "feedback_policy": "score_only",
+      "rubric_policy": "offline_elicitation",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414752",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414739",
+      "results20_revision_dependency": null,
+      "results20_audit_job": "10414747",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-3d723e04c313",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/score-only-offline/study/paperbench-code-dev-factorial-r10-3d723e04c313",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/score-only-offline/audit/paperbench-code-dev-factorial-r10-3d723e04c313",
+      "failure": null
+    },
+    {
+      "condition": "score-only-online-rubric",
+      "feedback_policy": "score_only",
+      "rubric_policy": "online_elicitation",
+      "dev3_native_valid": 9,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 9
+      },
+      "dev3_revision_ready": true,
+      "dev3_audit_job": "10414752",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414740",
+      "results20_revision_dependency": "afterok:10414739:10414505",
+      "results20_audit_job": "10414748",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-61c2335984ea",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/audit/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "failure": null
+    },
+    {
+      "condition": "score-only-red-team-artifact",
+      "feedback_policy": "score_only",
+      "rubric_policy": "red_team_artifact",
+      "dev3_native_valid": 7,
+      "dev3_expected": 9,
+      "dev3_assignment_statuses": {
+        "completed": 7,
+        "running": 2
+      },
+      "dev3_revision_ready": false,
+      "dev3_audit_job": "10414752",
+      "results20_expected": 60,
+      "results20_reusable": 0,
+      "results20_completed": 0,
+      "results20_running": 0,
+      "results20_queued": 60,
+      "results20_revision_job": "10414740",
+      "results20_revision_dependency": "afterok:10414739:10414505",
+      "results20_audit_job": "10414748",
+      "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "experiment_id": "paperbench-code-dev-factorial-r10-61c2335984ea",
+      "study": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "audit": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/audit/paperbench-code-dev-factorial-r10-61c2335984ea",
+      "failure": null
+    }
+  ],
+  "launches": {
+    "revisions": [
+      {
+        "job_id": "10414738",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-fixed scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml",
+        "label": "semi-score-fixed",
+        "dependency": null,
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      },
+      {
+        "job_id": "10414739",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-score-only-offline scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml",
+        "label": "score-only-offline",
+        "dependency": null,
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      },
+      {
+        "job_id": "10414740",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-learned-rest --dependency=afterok:10414739:10414505 scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml",
+        "label": "semi-score-learned-rest",
+        "dependency": "afterok:10414739:10414505",
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      }
+    ],
+    "audits": [
+      {
+        "name": "pb-r20-audit-semi-score-fixed",
+        "label": "results20-semi-score-fixed",
+        "config": "experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml",
+        "dependency": "afterok:10414738",
+        "job_id": "10414746",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-audit-semi-score-fixed --dependency=afterok:10414738 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      },
+      {
+        "name": "pb-r20-audit-score-only-offline",
+        "label": "results20-score-only-offline",
+        "config": "experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml",
+        "dependency": "afterok:10414739",
+        "job_id": "10414747",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-audit-score-only-offline --dependency=afterok:10414739 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      },
+      {
+        "name": "pb-r20-audit-semi-score-learned-rest",
+        "label": "results20-semi-score-learned-rest",
+        "config": "experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml",
+        "dependency": "afterok:10414740",
+        "job_id": "10414748",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-audit-semi-score-learned-rest --dependency=afterok:10414740 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml --resume",
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      },
+      {
+        "name": "pb-dev3-audit-semi-score-fixed",
+        "label": "dev3-semi-score-fixed",
+        "config": "../paperbench-nontrace-dev3-20260912/experiments/babel/paperbench-nontrace-dev3-semi-score-fixed.yaml",
+        "dependency": null,
+        "job_id": "10414751",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-audit-semi-score-fixed scripts/babel/experiment.sbatch --profile results20 detect --experiment ../paperbench-nontrace-dev3-20260912/experiments/babel/paperbench-nontrace-dev3-semi-score-fixed.yaml --resume",
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      },
+      {
+        "name": "pb-dev3-audit-semi-score-learned",
+        "label": "dev3-semi-score-learned",
+        "config": "../paperbench-nontrace-dev3-20260912/experiments/babel/paperbench-nontrace-dev3-semi-score-learned.yaml",
+        "dependency": "afterok:10414505",
+        "job_id": "10414752",
+        "command": "sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-audit-semi-score-learned --dependency=afterok:10414505 scripts/babel/experiment.sbatch --profile results20 detect --experiment ../paperbench-nontrace-dev3-20260912/experiments/babel/paperbench-nontrace-dev3-semi-score-learned.yaml --resume",
+        "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912",
+        "source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      }
+    ]
+  },
+  "input_validation_receipt": "/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-results20-20260912/prepare.json",
+  "dev3_fixed_native_validation_seconds": 13.871323585510254,
+  "dev3_learned_native_validation_seconds": 86.90208697319031,
+  "score_only_delivery": {
+    "source_commit": "4f67a3b8daca4a545d9c0a67578b283296e63823",
+    "provider_calls": 0,
+    "scientific_writes": 0,
+    "assignments": 36,
+    "totals": {
+      "assignments": 36,
+      "feedback_records": 349,
+      "matching_started_attempts": 349,
+      "matching_turn_prompts": 349
+    },
+    "by_rubric_policy": {
+      "fixed": {
+        "assignments": 9,
+        "feedback_records": 87,
+        "matching_started_attempts": 87,
+        "matching_turn_prompts": 87,
+        "feedback_keys": [
+          "score"
+        ],
+        "generation_rounds": [
+          0
+        ],
+        "nonzero_penalty_turns": 0,
+        "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-fixed/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/semantic-self-consistency/rep-001/luna/score-only-static/turns/turn-001/prompt.txt",
+        "example_score_line": "Rubric score: 22.705/100"
+      },
+      "offline_elicitation": {
+        "assignments": 9,
+        "feedback_records": 87,
+        "matching_started_attempts": 87,
+        "matching_turn_prompts": 87,
+        "feedback_keys": [
+          "score"
+        ],
+        "generation_rounds": [
+          0,
+          1
+        ],
+        "nonzero_penalty_turns": 18,
+        "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-learned/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/semantic-self-consistency/rep-001/luna/score-only-offline-rubric/turns/turn-001/prompt.txt",
+        "example_score_line": "Rubric score: 22.705/100"
+      },
+      "online_elicitation": {
+        "assignments": 9,
+        "feedback_records": 90,
+        "matching_started_attempts": 90,
+        "matching_turn_prompts": 90,
+        "feedback_keys": [
+          "score"
+        ],
+        "generation_rounds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "nonzero_penalty_turns": 20,
+        "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-learned/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/self-expansion/rep-001/luna/score-only-online-rubric/turns/turn-001/prompt.txt",
+        "example_score_line": "Rubric score: 10.4249/100"
+      },
+      "red_team_artifact": {
+        "assignments": 9,
+        "feedback_records": 85,
+        "matching_started_attempts": 85,
+        "matching_turn_prompts": 85,
+        "feedback_keys": [
+          "score"
+        ],
+        "generation_rounds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "nonzero_penalty_turns": 16,
+        "example_prompt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/semi-score-learned/study/paperbench-code-dev-factorial-r10-c297aebb88ed/experiments/self-composing-policies/rep-002/luna/score-only-red-team-artifact/turns/turn-001/prompt.txt",
+        "example_score_line": "Rubric score: 32.682/100"
+      }
+    },
+    "errors": [],
+    "policy_reminders_enabled": 0,
+    "interpretation": "Numeric score feedback plus standard task/revision instructions; no rubric-policy criterion or reminder text in the inspected delivered messages. Learned penalties can alter the scalar score."
+  },
+  "static_audit": {
+    "job_id": "10414690",
+    "status": "PENDING_CPU_QUOTA",
+    "sol_valid": 900,
+    "opus_valid": 764,
+    "remaining_opus": 136,
+    "final_metrics": "withheld until complete required panel"
+  },
+  "operational_errors": [
+    {
+      "stage": "read-only historical inventory",
+      "error": "A blocked historical producer config no longer exists",
+      "resolution": "Preserved missing-config evidence; inspected ledger task/condition rows; no target Results20 assignments were found."
+    },
+    {
+      "stage": "dev3 fixed audit submission",
+      "error": "Slurm Job dependency problem for completed10414496; controller confirms Invalid job id",
+      "resolution": "No job was created by rejected submission. Native18/18 validation already passed; submitted exactly one ready audit10414751 without the expired dependency."
+    }
+  ]
+}
