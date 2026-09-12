@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T15:18:30-04:00",
+  "updated_at": "2026-09-12T15:24:30-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1871,7 +1871,7 @@
       "revision_records_expected": 60,
       "revision_records_completed": 0,
       "audit_dispatched": false,
-      "revision_dispatch_state": "10 task shards dispatched; 8 prior completions/recoveries and two dependency releases running"
+      "revision_dispatch_state": "10 task shards dispatched; 10415692,10415695,10415697,10415698,10415700,10415705,10415894,10415696 complete; 10415717 and 10416366 are active/recovering"
     },
     "seed_failures": {
       "da-8-1": [
@@ -1881,9 +1881,24 @@
       "cause": "Solver process exited0, but both answer.txt and trace.md were absent/invalid; one attempt also logged malformed apply_patch operations. Not a network timeout.",
       "recovery": "10415010 sealed two of three missing starts; da-8-1/rep-002 still invalid, no additional identical invocation queued"
     },
-    "revision_jobs_note": "Known recovery revisions 10415716/10415717 remain afterok:10415714; inspect seed lane exit before changing dependencies.",
+    "revision_jobs_note": "10415716 failed before assignments completed on an NFS cache atomic-write Errno512; recovery10416366 is one native missing-only resume after sibling shard10415717. Existing completed shards remain unchanged.",
     "inventory_after_retry": "10416169",
-    "inventory_after_retry_state": "10416169 COMPLETED; provider_calls=0; 10 task configs verified"
+    "inventory_after_retry_state": "10416169 COMPLETED; provider_calls=0; 10 task configs verified",
+    "revision_recovery": {
+      "source_job": "10415716",
+      "task": "da-1-3",
+      "job_id": "10416366",
+      "dependency": "afterany:10415717",
+      "scope": "native --resume; six pending assignments only",
+      "failure": {
+        "category": "nfs_storage_write",
+        "exception": "OSError: [Errno 512] Unknown error 512",
+        "stage": "pretreatment rubric cache atomic JSON write",
+        "provider_calls_before_failure": "sealed records retained; no scientific result invalidated"
+      },
+      "source_commit": "e9f476139d6905b13243caa0626a8a009d9b1767",
+      "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2"
+    }
   },
   "queue7": {
     "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md",
