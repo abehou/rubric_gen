@@ -1,3 +1,9 @@
+## 2026-09-12 — Rubric dropout integration
+
+- 00:32 EDT: Broader verification found two inherited `test_experiment_matrix.py` failures: Results20 YAMLs use the persistent `/data/user_data/aydanh/rubric_gen/` paraphrase pool while tests still expect a home-relative path. Both failures reproduce using the base commit's tests and YAML contents; left unchanged because they do not block dropout correctness.
+- 00:26 EDT: Resolved score/feedback coupling by retaining the full canonical `ProjectedFeedback.score` and state scores while masking only the solver payload; completed-study replay and simulator input projection reconstruct the same assignment/turn mask. Existing learned criteria are penalty-only and remain active; unstructured overall judge reasoning is removed only for masks that drop criteria, preventing that field from leaking excluded feedback.
+- 00:26 EDT: Existing prompt/trace implementation hashes change when their source files change, including at rate zero; this is provenance, not a solver behavior change, and old checkpoint compatibility is not fabricated. Future reconciliation should focus on feedback projection, trace delivery, and the existing manifest/replay readers.
+
 ## 2026-09-10 — Trace forensic provenance and mapping review
 
 - 08:58 EDT: Saved A/B presentation mapping and ordinal-to-criterion penalty accounting validate; reviewed support failures include model application/preference mistakes rather than a demonstrated bookkeeping inversion. The current candidate YAML was repointed after execution, so the [forensic report](docs/reports/2026-09-10/trace-forensics/README.md) binds conclusions to native manifests, launch hashes and immutable source receipts; active implementation remains unchanged.

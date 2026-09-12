@@ -29,6 +29,7 @@ from rubric_gen.submission_revision.feedback import (
     project_rubric_feedback,
     project_rubric_simulated_user_feedback,
 )
+from rubric_gen.submission_revision.rubric_dropout import revision_dropout
 from rubric_gen.submission_revision.judge import (
     FrozenRubric,
     FrozenRubricJudge,
@@ -339,6 +340,8 @@ class RevisionScorer:
                 "elicited_penalty": rubric_evaluation["elicited_penalty"],
                 "feedback_reference": rubric_evaluation["feedback_reference"],
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
+                **({"rubric_dropout": feedback.rubric_dropout}
+                   if feedback is not None and feedback.rubric_dropout is not None else {}),
                 "feedback_sha256": (
                     _sha256_file(feedback_path) if feedback is not None else None
                 ),
@@ -520,6 +523,11 @@ class RevisionScorer:
             encoding="utf-8"
         )
         first_revision = submission_id == "s000"
+        dropout = revision_dropout(
+            generation.rubric.content, rate=self.config.rubric_dropout_rate,
+            seed=self.config.randomization_seed, assignment_id=self.config.assignment_id,
+            revision_round=int(submission_id[1:]) + 1,
+        )
         if policy is not FeedbackPolicy.USER_SIMULATOR:
             return project_rubric_feedback(
                 generation,
@@ -535,6 +543,7 @@ class RevisionScorer:
                 reference_rubric_sha256=self.initial_rubric.sha256,
                 prompt_profile=self.config.prompt_profile,
                 benchmark=self.config.benchmark,
+                rubric_dropout=dropout,
             )
 
         simulator = self.dependencies.feedback_simulator
@@ -554,6 +563,7 @@ class RevisionScorer:
             reference_rubric_sha256=self.initial_rubric.sha256,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
+            rubric_dropout=dropout,
         )
         checkpoint = int(submission_id[1:])
         history = build_simulated_user_history(
@@ -664,7 +674,7 @@ class RevisionScorer:
             history=history,
             history_summary=history_summary,
         )
-        return project_rubric_simulated_user_feedback(
+        projected = project_rubric_simulated_user_feedback(
             generation,
             artifacts.score_validation_path,
             user_feedback,
@@ -674,6 +684,7 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
+        return replace(projected, rubric_dropout=full_projection.rubric_dropout)
 
     def publish_final_plot(
         self,

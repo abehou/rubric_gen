@@ -1,3 +1,7 @@
+## 2026-09-12 — Isolated rubric dropout smoke outputs
+
+- 00:35 EDT: Completed local mock smoke owner on `aydan-red-team-dropout`, base7178f1968594027c7c27960940029363f58f07b3 plus the committed feature diff; serial pytest execution, no providers or Slurm. Disposable artifacts/JUnit: `/tmp/rubric-dropout-phase1-smoke.kAT63a/`; environment: `/tmp/rubric-dropout-env.5Y7wm5/`; command: `PYTHONPYCACHEPREFIX=/tmp/rubric-dropout-pycache /tmp/rubric-dropout-env.5Y7wm5/bin/python -m pytest tests/test_rubric_dropout.py -k local_trace_smoke -q --tb=short --basetemp=/tmp/rubric-dropout-phase1-smoke.kAT63a --junitxml=/tmp/rubric-dropout-phase1-smoke.kAT63a/junit.xml` (started00:34EDT, completed5/5; do not reuse that basetemp when preserving evidence).
+
 ## 2026-09-09 — Publication and cleanup complete
 
 - 22:18 EDT: Report10380610 and cleanup10380691 completed exit0; all363 top-level run entries retained, no scientific owner active. Accepted output index remains docs/reports/2026-09-09/baseline-freeze/README.md.

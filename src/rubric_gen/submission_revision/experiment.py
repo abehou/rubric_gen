@@ -19,6 +19,7 @@ from rubric_gen.submission_revision.prompts import (
 from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
+from rubric_gen.submission_revision.rubric_dropout import validate_dropout_rate
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
 from rubric_gen.submission_revision.judging.models import safe_basename
 from rubric_gen.benchmarks import SubmissionBenchmarkId, get_submission_benchmark
@@ -263,7 +264,6 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError("unsupported experiment kind")
     benchmark = SubmissionBenchmarkId(str(payload["benchmark"]))
     contract = get_submission_benchmark(benchmark)
-    experiment_id = _derived_experiment_id(payload)
     tasks_dir = _resolve_relative(path, payload["tasks_dir"])
     tasks = payload["tasks"]
     if not isinstance(tasks, list) or not tasks or any(
@@ -305,7 +305,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     condition_ids: list[str] = []
     condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
     for condition in conditions:
-        if not isinstance(condition, dict) or set(condition) != {
+        if not isinstance(condition, dict) or set(condition) - {"rubric_dropout_rate"} != {
             "condition_id", "feedback_policy", "rubric_policy"
         }:
             raise ValueError(
@@ -323,6 +323,13 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             raise ValueError("condition rubric_policy must be a string")
         resolved_feedback = FeedbackPolicy(feedback_policy)
         resolved_rubric = RubricPolicy(rubric_policy)
+        dropout_rate = condition.get("rubric_dropout_rate", 0.0)
+        validate_dropout_rate(dropout_rate, resolved_rubric)
+        if dropout_rate == 0:
+            # Absent and explicit zero preserve the original experiment identity.
+            condition.pop("rubric_dropout_rate", None)
+        else:
+            condition["rubric_dropout_rate"] = float(dropout_rate)
         expected_id = (
             f"{resolved_feedback.value.replace('_', '-')}-"
             f"{_RUBRIC_POLICY_SLUGS[resolved_rubric]}"
@@ -333,6 +340,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             )
         condition_ids.append(condition_id)
         condition_pairs.append((resolved_feedback, resolved_rubric))
+    experiment_id = _derived_experiment_id(payload)
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):

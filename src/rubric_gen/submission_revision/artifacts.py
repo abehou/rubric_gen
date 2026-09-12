@@ -102,12 +102,14 @@ REVISION_MANIFEST_KEYS = frozenset(
 )
 
 
-def revision_manifest_keys(feedback_policy: str, red_team_trace_version: str | None = None) -> frozenset[str]:
+def revision_manifest_keys(feedback_policy: str, red_team_trace_version: str | None = None, rubric_dropout_rate: float = 0.0) -> frozenset[str]:
     """Return the strict manifest shape for one feedback protocol."""
 
     from .trace_defense_registry import validate_version
     validate_version(red_team_trace_version)
     keys = REVISION_MANIFEST_KEYS
+    if rubric_dropout_rate:
+        keys |= {"rubric_dropout_rate", "randomization_seed"}
     if red_team_trace_version:
         keys |= {"red_team_trace_version", "source_schedule", "trace_defense_prompt_hashes"}
     if feedback_policy == "user_simulator":

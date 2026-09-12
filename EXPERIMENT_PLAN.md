@@ -1,3 +1,7 @@
+## 2026-09-12 — Rubric dropout implementation scope
+
+- 00:26 EDT: User authorizes optional `rubric_dropout_rate` on `red_team_trace`, focused tests and isolated local mock smokes at 0.0/0.3, followed by commit/push of `aydan-red-team-dropout` from base7178f1968594027c7c27960940029363f58f07b3. No scientific runs, sweeps, Slurm launches, merge, or interaction with the separate `~/repos/rubric_gen` worktree/jobs is in scope.
+
 ## 2026-09-09 — Accepted baseline checkpoint
 
 - 22:09 EDT: The user freezes the accepted static baseline and requests only checkpoint publication and conservative cleanup; no new trace optimization, recovery, or experiment is authorized. Formal names are Full feedback/User simulator; S−H≈0.12 is acceptable and final-artifact sensitivity remains separate.

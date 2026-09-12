@@ -593,6 +593,8 @@ class StudyRunner:
             ),
             prompt_profile=PromptProfile(str(protocol["prompt"])),
             rubric_policy=RubricPolicy(str(condition["rubric_policy"])),
+            rubric_dropout_rate=condition.get("rubric_dropout_rate", 0.0),
+            randomization_seed=self.experiment.payload["randomization"]["seed"],
             red_team_trace_version=protocol.get("red_team_trace_version"),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
             review=str(protocol["review"]),

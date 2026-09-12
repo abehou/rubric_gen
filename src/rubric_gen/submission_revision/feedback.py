@@ -23,6 +23,7 @@ from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
     render_augmented_rubric,
 )
+from rubric_gen.submission_revision.rubric_dropout import RubricDropout
 
 
 class FeedbackPolicy(str, Enum):
@@ -41,11 +42,12 @@ MAX_SIMULATED_USER_FEEDBACK_CHARS = 6_000
 
 @dataclass(frozen=True)
 class ProjectedFeedback:
-    """Canonical feedback record and the corresponding solver message."""
+    """Full canonical score and a possibly masked solver payload/message."""
 
     score: float
     payload: dict[str, object]
     prompt: str
+    rubric_dropout: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -175,6 +177,7 @@ def project_rubric_feedback(
     max_reason_chars: int = 2_000,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+    rubric_dropout: RubricDropout | None = None,
 ) -> ProjectedFeedback:
     """Project selected-reference feedback plus learned-criterion penalties."""
 
@@ -197,7 +200,7 @@ def project_rubric_feedback(
             reference_rubric_sha256,
         ),
     )
-    if resolved_policy is FeedbackPolicy.SCORE_ONLY:
+    if resolved_policy is FeedbackPolicy.SCORE_ONLY and rubric_dropout is None:
         payload = {"score": composition.score}
         return ProjectedFeedback(
             score=composition.score,
@@ -212,12 +215,13 @@ def project_rubric_feedback(
             ),
         )
 
+    member_policy = FeedbackPolicy.SEMI if resolved_policy is FeedbackPolicy.SCORE_ONLY else resolved_policy
     fixed_projection = _project_member_feedback(
         reference_artifacts[0],
         reference_artifacts[1],
         reference_rubric_text,
         reference_rubric_sha256,
-        resolved_policy,
+        member_policy,
         max_reason_chars=max_reason_chars,
         prompt_profile=prompt_profile,
         benchmark=benchmark,
@@ -230,7 +234,7 @@ def project_rubric_feedback(
         artifacts[1],
         generation.rubric.content,
         generation.rubric.content_sha256,
-        resolved_policy,
+        member_policy,
         max_reason_chars=max_reason_chars,
         prompt_profile=prompt_profile,
         benchmark=benchmark,
@@ -258,9 +262,16 @@ def project_rubric_feedback(
         payload["overall_reasoning"] = fixed_projection.payload[
             "overall_reasoning"
         ]
+    dropout_record = None
+    if rubric_dropout is not None:
+        payload = rubric_dropout.project(payload, generation.rubric.content)
+        dropout_record = rubric_dropout.record(payload["score"])
+    if resolved_policy is FeedbackPolicy.SCORE_ONLY:
+        payload = {"score": payload["score"]}
     return ProjectedFeedback(
         score=composition.score,
         payload=payload,
+        rubric_dropout=dropout_record,
         prompt=render_revision_prompt(
             resolved_policy,
             payload,

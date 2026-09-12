@@ -54,6 +54,8 @@ class SubmissionRevisionConfig:
     feedback_simulator: SimulatedUserConfig | None = None
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_policy: RubricPolicy = RubricPolicy.FIXED
+    rubric_dropout_rate: float = 0.0
+    randomization_seed: int = 0
     red_team_trace_version: str | None = None
     rubric_proposer_model: str = "gpt-5.6-luna"
     review: str = "trace"
@@ -153,6 +155,10 @@ class SubmissionRevisionConfig:
         PromptProfile(self.prompt_profile)
         SubmissionBenchmarkId(self.benchmark)
         RubricPolicy(self.rubric_policy)
+        from .rubric_dropout import validate_dropout_rate
+        validate_dropout_rate(self.rubric_dropout_rate, self.rubric_policy)
+        if type(self.randomization_seed) is not int:
+            raise ValueError("randomization_seed must be an integer")
         from .trace_defense_registry import validate_version
         validate_version(self.red_team_trace_version)
         if (

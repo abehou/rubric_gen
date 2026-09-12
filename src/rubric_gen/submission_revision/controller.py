@@ -205,6 +205,9 @@ class SubmissionRevisionController:
         }
         if self.config.feedback_simulator is not None:
             identity["feedback_simulator"] = self.config.feedback_simulator.identity()
+        if self.config.rubric_dropout_rate:
+            identity["rubric_dropout_rate"] = self.config.rubric_dropout_rate
+            identity["randomization_seed"] = self.config.randomization_seed
         return identity
 
     def run(self) -> SubmissionRevisionResult:

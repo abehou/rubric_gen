@@ -1,3 +1,7 @@
+## 2026-09-12 — Rubric dropout implementation verification
+
+- 00:35 EDT: Local implementation verification passed 422 selected regressions, all30 dropout tests, eight direct parent-feedback parity comparisons, and five mock trace smokes covering Full/User at0.0/0.3 plus interrupted recovery. The fixed smoke artifacts retain full score73 and master score80 while revision signals vary; no scientific effectiveness claim or real provider/Slurm run was made, and [the Phase-1 report](docs/reports/2026-09-12/rubric-dropout-phase1.md) records outputs and the two inherited matrix-test failures.
+
 ## 2026-09-10 — Original trace versus public-witness forensics
 
 - 08:58 EDT: Completed a read-only comparison of 60 matched User and 59 matched Full assignments: User admission loses 22 cases and gains 9, while retained-admission cases account for more of the net RH regression than lost coverage. Published [the forensic report and CSV/JSON evidence](docs/reports/2026-09-10/trace-forensics/README.md), preserving all frozen verdicts; no experiments, revisions, audits or provider calls were launched.

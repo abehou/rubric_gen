@@ -719,6 +719,13 @@ def _project_feedback(
         encoding="utf-8"
     )
     first_revision = submission_id == "s000"
+    from .rubric_dropout import revision_dropout
+    dropout = revision_dropout(
+        generation.rubric.content, rate=context.condition.get("rubric_dropout_rate", 0.0),
+        seed=context.experiment.payload["randomization"]["seed"],
+        assignment_id=context.assignment.assignment_id,
+        revision_round=int(submission_id[1:]) + 1,
+    )
     if context.policy is not FeedbackPolicy.USER_SIMULATOR:
         return project_rubric_feedback(
             generation,
@@ -733,6 +740,7 @@ def _project_feedback(
             reference_rubric_sha256=context.selection.optimizer_sha256,
             prompt_profile=prompt_profile,
             benchmark=context.experiment.benchmark,
+            rubric_dropout=dropout,
         )
     simulator = context.simulator
     if simulator is None:
@@ -750,6 +758,7 @@ def _project_feedback(
         reference_rubric_sha256=context.selection.optimizer_sha256,
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
+        rubric_dropout=dropout,
     )
     generation_path = roots.feedback_generations / f"{submission_id}.json"
     if generation_path.is_symlink() or not generation_path.is_file():
@@ -796,7 +805,7 @@ def _project_feedback(
         history=history,
         history_summary=history_summary,
     )
-    return project_rubric_simulated_user_feedback(
+    projected = project_rubric_simulated_user_feedback(
         generation,
         rubric_artifacts[0],
         user_feedback,
@@ -806,6 +815,7 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
+    return replace(projected, rubric_dropout=full_projection.rubric_dropout)
 
 
 def _expected_rubric_evaluation(

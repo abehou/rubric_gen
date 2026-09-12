@@ -264,8 +264,11 @@ def _load_terminal_revision_state(
     }
     from ..trace_defense_binding import method_identity
     manifest_identity.update(method_identity(condition["rubric_policy"], trace_version))
+    if condition.get("rubric_dropout_rate", 0.0):
+        manifest_identity["rubric_dropout_rate"] = condition["rubric_dropout_rate"]
+        manifest_identity["randomization_seed"] = experiment.payload["randomization"]["seed"]
     if (
-        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), trace_version if condition["rubric_policy"] == "red_team_trace" else None)
+        set(manifest) != revision_manifest_keys(str(condition["feedback_policy"]), trace_version if condition["rubric_policy"] == "red_team_trace" else None, condition.get("rubric_dropout_rate", 0.0))
         or any(
         manifest.get(key) != value
         for key, value in manifest_identity.items()

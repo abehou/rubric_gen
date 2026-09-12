@@ -24,6 +24,8 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
     task_numbers=numeric_literals(instruction)
     eligible=[]; skipped=[]
     for index,c in enumerate(generation.elicited_criteria,offset):
+        if projected.rubric_dropout is not None and f'criterion_{index}' not in projected.rubric_dropout['retained_criterion_ids']:
+            continue
         points=scores[f'criterion_{index}']
         new=c.source_generation==generation.generation_round
         category=(1 if new and points<0 else 2 if points<0 else 3 if new and c.criterion_id not in reminded

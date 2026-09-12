@@ -292,7 +292,7 @@ def validate_manifest(context: ValidationContext) -> None:
     expected = _expected_manifest(context)
     manifest = context.manifest
     if (
-        set(manifest) != revision_manifest_keys(context.policy.value, context.protocol.get("red_team_trace_version") if context.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None)
+        set(manifest) != revision_manifest_keys(context.policy.value, context.protocol.get("red_team_trace_version") if context.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None, context.condition.get("rubric_dropout_rate", 0.0))
         or any(manifest.get(key) != value for key, value in expected.items())
         or type(manifest.get("live_workspace_dir")) is not str
         or type(manifest.get("session_id")) is not str
@@ -374,6 +374,9 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
     }
     if context.simulator is not None:
         expected["feedback_simulator"] = context.simulator.identity()
+    if context.condition.get("rubric_dropout_rate", 0.0):
+        expected["rubric_dropout_rate"] = context.condition["rubric_dropout_rate"]
+        expected["randomization_seed"] = context.experiment.payload["randomization"]["seed"]
     return expected
 
 

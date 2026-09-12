@@ -97,7 +97,7 @@ class RevisionRecovery:
             self.experiment_dir / "manifest.json",
             "revision manifest",
         )
-        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, self.config.red_team_trace_version if self.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None):
+        if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, self.config.red_team_trace_version if self.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None, self.config.rubric_dropout_rate):
             raise RuntimeError("revision manifest has invalid fields")
         for key, value in self.experiment_identity.items():
             if manifest.get(key) != value:
