@@ -2,7 +2,7 @@
 
 **Provider-free implementation and native dry validation passed. No scientific recovery was launched and no scientific judgment was published.** The existing 760 valid Opus rubric judgments remain reusable and byte-identical; 140 judgments remain unpublished, comprising two lossless local replays and 138 that require new Opus responses.
 
-Implementation used Astra xhigh in a fresh isolated checkout based on `7178f1968594027c7c27960940029363f58f07b3`. The scientific execution checkout and the separate CPU-resource-audit checkout were not modified.
+Implementation used Astra xhigh in a fresh isolated checkout based on `7178f1968594027c7c27960940029363f58f07b3`. The pinned repair commit is `57f54af532b9589c6f665321d562e16296d2c3fe`. The scientific execution checkout and the separate CPU-resource-audit checkout were not modified.
 
 ## Failure census and root cause
 
@@ -51,6 +51,7 @@ Streaming, the 300-second network-inactivity timeout, the 3,600-second subproces
 
 - Pinned implementation tests: **239 passed**, Slurm job `10413730`.
 - Broader provider-free scoring/evaluation regression suite: **272 passed**, job `10413761`; this also exercised the patch integrated with upstream `31d6ed8`.
+- Final review-merge regression: **272 passed**, job `10413829`, after preserving the subsequent upstream `270bd61` commit; the four repair modules and two focused test files remained identical to the pinned repair.
 - Cardinality and canonical equivalence: 1, 2, 63, 64, 65, 67, 70, 77, 86, 87, 92, 120, 126, 128, 145, 178, 255, 306, 403, 872 and 1,000 criteria; both old valid and new valid representations produce identical canonical records and scores.
 - Adversarial structure: missing/extra/wrong/duplicate blocks, missing/malformed tails, malformed full trees, placeholders, invalid indices and empty reasons rejected without imputation.
 - Native fixture: 900 expected Opus judgments, 760 valid and 140 exhausted; exactly 140 remain pending. With two complete saved duplicate-only responses, fake generation is invoked for 138. Valid files and original attempt evidence remain byte-identical, and a subsequent resume invokes no generation.
@@ -76,7 +77,7 @@ Thus 760/760 valid Opus judgments and 900/900 Sol judgments schedule no provider
 
 ## Recovery source and recommended command — not executed
 
-Use the pinned repair commit built directly on `7178f196…`, retained in the implementation checkout below. Review publication merges that commit into `origin/aydan-red-team` without dropping concurrent history. **The publication merge tip is not the pinned recovery source:** upstream `31d6ed8` changes the prompt-derived identity of this historical YAML to `76239bfd8268`. Two early dry checks stopped before loading outputs for that reason; no experiment identity was overridden and no scientific output was created. The pinned source naturally resolves the required `08ba4d2c0d00` identity.
+Use pinned repair commit `57f54af532b9589c6f665321d562e16296d2c3fe`, built directly on `7178f196…` and retained in the implementation checkout below. Review publication merges that commit into `origin/aydan-red-team` without dropping concurrent history. **The review branch tip is not the pinned recovery source:** upstream `31d6ed8` changes the prompt-derived identity of this historical YAML to `76239bfd8268`. Two early dry checks stopped before loading outputs for that reason; no experiment identity was overridden and no scientific output was created. The pinned source naturally resolves the required `08ba4d2c0d00` identity.
 
 The existing overlay remains at its original path because the completed study binds that exact YAML path. From the pinned implementation checkout:
 
