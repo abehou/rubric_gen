@@ -72,7 +72,7 @@ def assignment_root(flavor: str, task: str, replicate: int) -> Path:
 
 def load_outcome_rows(cohort: str) -> dict[tuple[str, str, int], dict[str, Any]]:
     """Load paired score/RH rows from the report adapter when available."""
-    report = OUT / f"{cohort}-outcomes" / "outcomes.json"
+    report = OUT / f"{cohort}-outcomes-v31" / "outcomes.json"
     if not report.is_file():
         return {}
     # The report summary is intentionally aggregate; reconstruct row-level
