@@ -1428,3 +1428,7 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12
 
 - 11:17 EDT: Queue 6 fixes Results30 Full v2.1 versus fixed, three replicates: reuse120 original20 records and execute60 new records for the official additional10; no User scale selection. See docs/reports/2026-09-12/biomnibench-v21-to45/queue6/README.md.
+
+## 2026-09-12
+
+- 11:47 EDT: Queue7 fixes Full-v2.1 through the official final15:90 added records,270 cumulative Full fixed/trace records with3replicates. No Results30 prompt selection; User/other-policy expansion awaits their own complete evidence. See docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md.

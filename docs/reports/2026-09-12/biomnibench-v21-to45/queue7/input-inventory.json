@@ -1,0 +1,321 @@
+{
+  "provider_calls": 0,
+  "tasks": [
+    {
+      "task": "da-9-7",
+      "experiment_id": "biomnibench-da-factorial-r10-5cbfc6dcb0cf",
+      "assignments": 6,
+      "instruction_bytes": 5890,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-9-7/variant-000.json",
+          "rubric_sha256": "3f060128d807451072756150feac2dea88158d0303fe97a586e9b99abea89cc1",
+          "master_sha256": "b29ba3b12c13cc82c259bfd3d6950f97f110a0f66797fa1e7858bad8dc2900cf"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-9-7/variant-001.json",
+          "rubric_sha256": "ec489cd7c55f5d7ac5955cfbf8a8a025671a8133ed99ea66d2b6dabd96604f31",
+          "master_sha256": "b29ba3b12c13cc82c259bfd3d6950f97f110a0f66797fa1e7858bad8dc2900cf"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-24-3",
+      "experiment_id": "biomnibench-da-factorial-r10-c08f6cadb555",
+      "assignments": 6,
+      "instruction_bytes": 4831,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-24-3/variant-000.json",
+          "rubric_sha256": "22fe3af552dbc1c320bfaa3d1a48813606c8a66b611fc4c4cf9741e2b81e5afe",
+          "master_sha256": "546d1bf2b802db089367f813387500e5f56c77562c6456a358e6a22fc09c0abe"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-24-3/variant-001.json",
+          "rubric_sha256": "bca1235a0454891f9802b91c3d0e2e147c51a4c6a7c6d3f388d6ba324c591949",
+          "master_sha256": "546d1bf2b802db089367f813387500e5f56c77562c6456a358e6a22fc09c0abe"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-6-5",
+      "experiment_id": "biomnibench-da-factorial-r10-e8d5748ba11e",
+      "assignments": 6,
+      "instruction_bytes": 4798,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-6-5/variant-000.json",
+          "rubric_sha256": "7e48b0592c5291780c2e2138857d4558fd4b2b8959a19df82450c2fc82de70c7",
+          "master_sha256": "ddb4f26bd5287c6eba25451396fc600fe7799b320231da4a6df05d7ecc9f0a17"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-6-5/variant-001.json",
+          "rubric_sha256": "3ac258d99e9be3236ef91660577d4e476cecb2c6a433521565f0db5eea1744ba",
+          "master_sha256": "ddb4f26bd5287c6eba25451396fc600fe7799b320231da4a6df05d7ecc9f0a17"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-17-3",
+      "experiment_id": "biomnibench-da-factorial-r10-b1c7e16827c4",
+      "assignments": 6,
+      "instruction_bytes": 4608,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-17-3/variant-000.json",
+          "rubric_sha256": "86051eef1c44a819f1f380c2e63d7e451a89a4a4bfcb3923daff87431a919797",
+          "master_sha256": "85e069aacb8da36bfdcdae0b2a5bb05b669ee525b10732a2bf26fc6722cb21ac"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-17-3/variant-001.json",
+          "rubric_sha256": "120b728ae06c978e7c38105f29bd0b2c2ec67aebc2fda81022f958ba27486be0",
+          "master_sha256": "85e069aacb8da36bfdcdae0b2a5bb05b669ee525b10732a2bf26fc6722cb21ac"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-1-4",
+      "experiment_id": "biomnibench-da-factorial-r10-7213c949cf1a",
+      "assignments": 6,
+      "instruction_bytes": 5309,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-1-4/variant-000.json",
+          "rubric_sha256": "173fc0ac1e49c9ec09704cbd56544ca0a9b87c481796e408e407a247178fa4de",
+          "master_sha256": "4d0fc43902afc46d26ac58202cfa400b832d0afe4af2d8827a856a34c1aca645"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-1-4/variant-001.json",
+          "rubric_sha256": "881d6c6c57c760ebe2a7a88a4816bd71569c4c76864a0aebe57de967f550e4ad",
+          "master_sha256": "4d0fc43902afc46d26ac58202cfa400b832d0afe4af2d8827a856a34c1aca645"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-8-3",
+      "experiment_id": "biomnibench-da-factorial-r10-73fa9812ccb1",
+      "assignments": 6,
+      "instruction_bytes": 5646,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-3/variant-000.json",
+          "rubric_sha256": "74821da3b50b15d3e877124a5ca71e2237cddd526e38520cdde4130e7b362eed",
+          "master_sha256": "95afb052a43cb4bf753c933b36ca8527a836edc91e1e7e6e4d2e0812f847c049"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-3/variant-001.json",
+          "rubric_sha256": "e589a06d8849887ca8d436db8efe601a7e7e9fe0d0fff4ace92c127c44c13fbb",
+          "master_sha256": "95afb052a43cb4bf753c933b36ca8527a836edc91e1e7e6e4d2e0812f847c049"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-17-5",
+      "experiment_id": "biomnibench-da-factorial-r10-221cf37b3df1",
+      "assignments": 6,
+      "instruction_bytes": 4451,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-17-5/variant-000.json",
+          "rubric_sha256": "1bd7bed571d63d59535ca4afd89d88fc7f67cf29fd3acac9a15349f848864ced",
+          "master_sha256": "b94190f04f4e9fb7dffdaa5388cca612776a10194318af9d5f791bcb11b0cf61"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-17-5/variant-001.json",
+          "rubric_sha256": "76553aceff072aef9b2705c787bdbb8693d880afdd7174b920b77cc87d3cd31a",
+          "master_sha256": "b94190f04f4e9fb7dffdaa5388cca612776a10194318af9d5f791bcb11b0cf61"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-17-1",
+      "experiment_id": "biomnibench-da-factorial-r10-1b29bd9e69c1",
+      "assignments": 6,
+      "instruction_bytes": 4490,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-17-1/variant-000.json",
+          "rubric_sha256": "0fe3e418fa1ed0fe6a6f3357be3caf272dedeabed9c13c8237057ca1a9c59d0f",
+          "master_sha256": "859f0bdaeb68200f71ad00f35e2b7427893058da2e7b90d2c3cb7a719a2b97c1"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-17-1/variant-001.json",
+          "rubric_sha256": "3471bb79c5c65c5a6cd9d53ddbe3784f767c7802431c6541f3f6c21857281445",
+          "master_sha256": "859f0bdaeb68200f71ad00f35e2b7427893058da2e7b90d2c3cb7a719a2b97c1"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-9-1",
+      "experiment_id": "biomnibench-da-factorial-r10-73e0d56b3b80",
+      "assignments": 6,
+      "instruction_bytes": 5469,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-9-1/variant-000.json",
+          "rubric_sha256": "712448e29d7e4178c00fd3e4f5dc67bf60ac415a5deca6d0f15c31958f9fc7ec",
+          "master_sha256": "dcc354165d2e97e73c43ecac4003ac0483ec0572d4ac397c6be59574be820abc"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-9-1/variant-001.json",
+          "rubric_sha256": "cb4c68ceacb0cd3f9d613f07465dc838d8d068868719057738c9e730e9299ef2",
+          "master_sha256": "dcc354165d2e97e73c43ecac4003ac0483ec0572d4ac397c6be59574be820abc"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-20-1",
+      "experiment_id": "biomnibench-da-factorial-r10-fde29f6c37e8",
+      "assignments": 6,
+      "instruction_bytes": 5355,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-20-1/variant-000.json",
+          "rubric_sha256": "cc1e9b06f4e795f95a7600c9860bd5147d5fa32d91fc78e21053914fe4e91d33",
+          "master_sha256": "d90dda082bad65372d6c6bd3ec9f3f29469cbb4f9df899ed0ff7ceb7cb5cf043"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-20-1/variant-001.json",
+          "rubric_sha256": "7a7d22145484d8aec9b25c289ae41cca8668c253eb1243e97d7560b6c692cd3a",
+          "master_sha256": "d90dda082bad65372d6c6bd3ec9f3f29469cbb4f9df899ed0ff7ceb7cb5cf043"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-4-7",
+      "experiment_id": "biomnibench-da-factorial-r10-3187e8a55217",
+      "assignments": 6,
+      "instruction_bytes": 4779,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-7/variant-000.json",
+          "rubric_sha256": "83ea92a00b5041ded14f7941b86d95320e21fa341b4b5e13dd34a216a7a05d0c",
+          "master_sha256": "bfc72520289e6c86dde735251f001ec33a209c04288fb5aa469116e99bf0f839"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-7/variant-001.json",
+          "rubric_sha256": "e7a4ac2874b4e3cfc66c3154035f91ed7abb9f4a53ebc27a2e1ccab7eb4e4a07",
+          "master_sha256": "bfc72520289e6c86dde735251f001ec33a209c04288fb5aa469116e99bf0f839"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-8-2",
+      "experiment_id": "biomnibench-da-factorial-r10-a92f8bfb6a67",
+      "assignments": 6,
+      "instruction_bytes": 5261,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-2/variant-000.json",
+          "rubric_sha256": "f07754c0266a7b4e7fe8f2efd2405b4cca859d9ab67d2bd6471342b45b60be97",
+          "master_sha256": "8ed64012a76553777ebe8415c571227b385df9bdf40efae3a145d44e8b4a49e8"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-2/variant-001.json",
+          "rubric_sha256": "24d26f1de1fbc6c70d6703d0d4ba1fc22128ed1ce95c7d01935410652a057c84",
+          "master_sha256": "8ed64012a76553777ebe8415c571227b385df9bdf40efae3a145d44e8b4a49e8"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-19-4",
+      "experiment_id": "biomnibench-da-factorial-r10-243a4221bdc3",
+      "assignments": 6,
+      "instruction_bytes": 6977,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-19-4/variant-000.json",
+          "rubric_sha256": "f4977109e9868ba57807044786f09de6e794f523c5bb8674007116e72955c07e",
+          "master_sha256": "3994f402204954953af4505a822ef286595ef1903e09a5962e97be3e470422fa"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-19-4/variant-001.json",
+          "rubric_sha256": "c186fea8020f3a2849e184c47ad6dba60f385a57bea369500b9995adc5fb9e4b",
+          "master_sha256": "3994f402204954953af4505a822ef286595ef1903e09a5962e97be3e470422fa"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-25-1",
+      "experiment_id": "biomnibench-da-factorial-r10-a8b576c1493b",
+      "assignments": 6,
+      "instruction_bytes": 5981,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-25-1/variant-000.json",
+          "rubric_sha256": "3ef5959b4192813be586a5a9de025f77c151bccce84e0b66ace755b2f2ab807e",
+          "master_sha256": "707298dd36bffe0ea07eb1159bfad7659691c25cef610d88e9a666049288aace"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-25-1/variant-001.json",
+          "rubric_sha256": "83a4c95c0e117eeba13debe4de0fc81d14fec512966215e9d111946c8a6dbe3a",
+          "master_sha256": "707298dd36bffe0ea07eb1159bfad7659691c25cef610d88e9a666049288aace"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    },
+    {
+      "task": "da-6-2",
+      "experiment_id": "biomnibench-da-factorial-r10-d5c9d635b4cc",
+      "assignments": 6,
+      "instruction_bytes": 4868,
+      "selected_development_sources": [
+        {
+          "variant_index": 0,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-6-2/variant-000.json",
+          "rubric_sha256": "ecda4d05afb8e1cc7138091f5177696a55d65800df5ef6e2f1a68a430189ec26",
+          "master_sha256": "5e684693c05b54a7b98fe0691b89a7426a2f56215e6dee9b3b95eebdb539c73e"
+        },
+        {
+          "variant_index": 1,
+          "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-6-2/variant-001.json",
+          "rubric_sha256": "a3ec68f109a62434aa1751c061a6fab2e7fd190d8dfa77817c84bdc593ab0e3d",
+          "master_sha256": "5e684693c05b54a7b98fe0691b89a7426a2f56215e6dee9b3b95eebdb539c73e"
+        }
+      ],
+      "existing_new_seed_manifest": false
+    }
+  ],
+  "new_assignments": 90
+}

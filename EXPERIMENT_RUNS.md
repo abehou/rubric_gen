@@ -1318,3 +1318,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12
 
 - 11:23 EDT: Results30 added10 Full fixed/trace uses /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/<task>/; thirty native shared seed blocks feed sixty new core assignments. Configs and input inventory: experiments/biomnibench-v21-to45/queue6/ and docs/reports/2026-09-12/biomnibench-v21-to45/queue6/.
+
+## 2026-09-12
+
+- 11:47 EDT: The final15 use /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/<task>/, sharing native seed blocks within each fixed/trace task shard. Two four-CPU seed lanes are prepared behind Results30 input owners; large payloads stay on compute NFS.
