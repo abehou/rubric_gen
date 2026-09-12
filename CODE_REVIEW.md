@@ -648,3 +648,7 @@
 ## 2026-09-12 — User appendix ablation invariants
 
 - 09:59 EDT: Suppressing selection itself would alter later reminder ordering; R1/R2 instead retain the exact legacy selection record and separately persist actual appendix emission/suppression, with matching native replay. Fixed omitted version-allowlist entries before providers;86focused tests pass including native User stop/resume and Full isolation, with6native input-reuse checks.
+
+## 2026-09-12
+
+- 11:32 EDT: Queue3 semi-fixed audit da-11-1 exhausted six Opus rubric judgments through max_tokens/refusal provider stops and duplicate JSON keys, not a proven network timeout; native attempt classification labels some as transient_connection without sufficient evidence. Preserve raw failed records and unchanged settings, use one authorized missing-only resume, and keep a repeated failure visible rather than automatically redesigning the shared judge.

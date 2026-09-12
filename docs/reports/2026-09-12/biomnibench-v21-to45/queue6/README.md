@@ -23,3 +23,14 @@ Current state: all ten added-task native configurations and existing selected/de
 Seed preparation is independent of heldout generation. Two disjoint lanes request four CPUs/four native seed workers each; each lane processes five tasks sequentially. The native seed command preserves completed blocks, attempts the existing complementary elicitation artifact and retains its failures. This prepares thirty shared seed blocks, not sixty separately sampled treatment starts. No new learner, simulator or outcome implementation is introduced.
 
 The historical prompt search found no retained exact instruction text in Git or the original job's temporary source; the saved provider response returns404. The current committed rigorous prompt is22bb3c…; the historical BioMNIBench receipt is7358961f…. The user has been asked to resolve the added-task generation authority. Seed preparation proceeds independently; heldout generation and revision dispatch await that answer. No historical receipt is edited or declared equal to the new source.
+
+## Dispatch checkpoint — 11:30 EDT
+
+Execution source **f017a3f**, immutable worktree `/home/aydanh/repos/rubric_gen/runs/babel-code/trace-results30-20260912`. Seed lanes **10414853** and **10414854** were submitted at11:24 EDT. Their native status and per-task logs are under the Results30 root’s `operations/seeds-<job>/`.
+
+- Lane0: job10414853, RUNNING; four requested CPUs/four native workers.
+- Lane1: job10414854, PENDING; four requested CPUs/four native workers.
+
+No Results30 solver revision or outcome audit has been dispatched yet. The thirty-task result is incomplete:120 original Full records are reusable,60 added-task revision records and their audits remain outstanding. Heldout authority remains the specific unresolved input decision. Current healthy jobs are preserved; this checkpoint does not assert a thirty-task scientific result.
+
+[Stage-specific CPU accounting](resource-profile.md) retains four-CPU producers and one-CPU collectors; future Results30 audits should request four CPUs with the same32 model-request workers, supported by the completed eight-CPU audit’s measured50.195 CPU-seconds over983 wall-seconds. Existing active/submitted jobs are unchanged.

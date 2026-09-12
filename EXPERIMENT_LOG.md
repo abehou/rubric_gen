@@ -2309,3 +2309,5 @@
 - 11:17 EDT: Located the existing September9 Results30 list: original20 plus first10 of the official additional25 order, with canonical dev3 excluded. Actual canonical V2 instruction text differs from today’s committed prompt; reconciling saved producer source before heldout generation, with no new outcome-based task selection.
 
 - 11:23 EDT: Ten added-task configs and selected/development input sources pass native checks; no existing added-task seed pools found. Preparing two disjoint four-CPU native seed lanes while historical-V2 prompt authority is unresolved; this does not regenerate any original20 input or outcome.
+
+- 11:30 EDT: Results30 native shared-seed lanes10414853/10414854 submitted fromf017a3f for30 blocks across the official added10. Queue3 preserves the preempted semi-trace checkpoint via10414859 and six incomplete Opus rubric judgments via one unchanged audit-only resume10414883; exact failures retained in queue3/audit-failure-10414573.json.

@@ -1,17 +1,21 @@
 # BioMNIBench v2.1 → Results45 mission
 
-**Queue item 5: Full v2.1 retained for scale; User nomination awaits audits.**
-The reference remains **attack_defense_v2.1**, with the reviewed runtime already
-integrated in the existing trace worktree. Queue item 2 tests corrective-only
-and absent appendices; see the [diagnosis and job record](queue2/README.md).
-The [paired synthesis](queue4/README.md) leaves further refinement slots unused
-pending complete R1/R2 and within-policy audits. The [confirmation/scale decision](queue5/README.md)
-accounts for all 240 existing Result20 records and retains Full v2.1 for further
-characterization; no new User recipe, confirmation or Result20 is launched yet.
-At 10:59 EDT, R1/R2 each have 8/9 terminal revisions; queue 3 has 21/72 new
-revisions terminal, with its reused 9/336 control intact. No partial outcome
-means are used. The inventory below records the initial state; completed runs
-remain preserved.
+**Queue item 6: official Results30 membership fixed; missing seed preparation launched.**
+The [Full-only expansion](queue6/README.md) retains120 existing Full records and
+adds60 fixed/trace records on the official ten tasks. Source f017a3f is committed
+and pushed; two four-CPU seed lanes10414853/10414854 prepare30 shared blocks.
+No original20 input or outcome is regenerated. The historical BioMNIBench V2
+heldout instruction differs from today's committed rigorous prompt; added-task
+heldout authority is awaiting the user's decision while independent seeds proceed.
+
+Both R1/R2 revision producers completed9/9; their audit dependencies continue.
+One queue3 semi-trace task was preempted and resumes natively under10414859.
+The semi-fixed audit completed two tasks but lacks six Opus rubric judgments on
+da-11-1; saved failures are truncation/refusal/duplicate-key failures, not a
+demonstrated network timeout. One unchanged missing-only audit resume10414883
+preserves all successful scores and direct judgments. No new User winner is
+nominated from partial outcomes. See [paired synthesis](queue4/README.md) and
+[confirmation/scale decision](queue5/README.md).
 
 Mission start: **2026-09-12 09:27:31 EDT**. The requested 9–10-hour checkpoint
 falls at **18:27–19:27 EDT** today, irrespective of whether scale-up has finished.

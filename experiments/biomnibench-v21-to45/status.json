@@ -1,8 +1,8 @@
 {
   "mission_started_at": "2026-09-12T09:27:31-04:00",
   "timezone": "America/New_York",
-  "queue_item": 5,
-  "state": "queue_5_full_incumbent_ready_user_selection_pending",
+  "queue_item": 6,
+  "state": "results30_missing_seed_preparation",
   "reference_recipe": "attack_defense_v2.1",
   "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Item 6: prepare supported Full-v2.1 versus fixed scale using approved task membership and existing20 evidence. Continue current dev3 audits; nominate at most one User recipe only after complete primary outcomes, then one independent18-assignment block before any60-assignment User Result20.",
-  "updated_at": "2026-09-12T10:59:09.275939-04:00",
+  "updated_at": "2026-09-12T11:30:25.040180-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1074,7 +1074,12 @@
         "submitted_at": "2026-09-12T10:28:04.644433-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:59:09.275939-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
+        "recovery_dependency": "10414859",
+        "recovery_dependencies": [
+          "10414883",
+          "10414859"
+        ]
       },
       "semi-trace/report": {
         "job_id": "10414578",
@@ -1307,6 +1312,44 @@
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
         "observed_at": "2026-09-12T10:59:09.275939-04:00"
+      },
+      "semi-trace/da-11-1-recovery": {
+        "job_id": "10414859",
+        "stage": "producer_recovery",
+        "cpus": 4,
+        "source_job": "10414556",
+        "reason": "Slurm PREEMPTED 0:0; native child terminated -15; preserve all sealed checkpoints and resume only same three unfinished assignments",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q3-semi-da11-resume",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-11-1.yaml",
+          "--resume"
+        ],
+        "submitted_at": "2026-09-12T15:26:33.543333+00:00"
+      },
+      "semi-fixed/audit-recovery": {
+        "job_id": "10414883",
+        "stage": "audit_recovery",
+        "cpus": 8,
+        "source_job": "10414573",
+        "reason": "Six unfinished Opus rubric judgments on da-11-1: max_tokens/refusal provider stops and duplicate JSON keys; not a demonstrated network timeout. One native missing-only resume; preserve complete score/quality/direct judgments and all invalid attempts.",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--dependency=afterany:10414575",
+          "--job-name=trace-q3-semi-fixed-audit-resume",
+          "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+          "semi-fixed"
+        ],
+        "submitted_at": "2026-09-12T15:29:21.302673+00:00"
       }
     },
     "output_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/",
@@ -1334,7 +1377,11 @@
       "running": 8,
       "pending": 60
     },
-    "new_outcome_judgments": "pending; required counts derive from sealed cohort"
+    "new_outcome_judgments": "pending; required counts derive from sealed cohort",
+    "terminal_diagnosis": {
+      "10414556": "Slurm PREEMPTED; original source native resume10414859; three partial assignments",
+      "10414573": "6 Opus rubric judgments incomplete on da-11-1: max_tokens/refusal stops and duplicate JSON keys. One missing-only audit resume10414883; no model/settings/parser change."
+    }
   },
   "queue4": {
     "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue4/README.md",
@@ -1510,5 +1557,62 @@
     },
     "completed_outcome_files": [],
     "terminal_job_failures": []
+  },
+  "queue6": {
+    "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue6/README.md",
+    "recipe": "attack_defense_v2.1",
+    "feedback": "full",
+    "expected_records": 180,
+    "reused_original20_records": 120,
+    "new_records": 60,
+    "new_seed_blocks": 30,
+    "execution_commit": "f017a3f2933e658a09285511bb79fd41e13994a1",
+    "execution_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-results30-20260912",
+    "run_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30",
+    "seed_jobs": {
+      "0": {
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-results30-seeds-0",
+          "experiments/biomnibench-v21-to45/queue6/seeds.sbatch",
+          "0"
+        ],
+        "submitted_at": "2026-09-12T15:24:33.352980+00:00",
+        "cpus": 4,
+        "native_workers": 4,
+        "stderr": "",
+        "job_id": "10414853",
+        "status": "submitted",
+        "slurm_state": "RUNNING",
+        "exit_code": "0:0",
+        "elapsed": "00:05:22",
+        "allocated_cpus": "4",
+        "observed_at": "2026-09-12T11:30:25.040180-04:00"
+      },
+      "1": {
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-results30-seeds-1",
+          "experiments/biomnibench-v21-to45/queue6/seeds.sbatch",
+          "1"
+        ],
+        "submitted_at": "2026-09-12T15:24:33.379927+00:00",
+        "cpus": 4,
+        "native_workers": 4,
+        "stderr": "",
+        "job_id": "10414854",
+        "status": "submitted",
+        "slurm_state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "allocated_cpus": "0",
+        "observed_at": "2026-09-12T11:30:25.040180-04:00"
+      }
+    },
+    "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
+    "revision_jobs": [],
+    "audit_jobs": []
   }
 }
