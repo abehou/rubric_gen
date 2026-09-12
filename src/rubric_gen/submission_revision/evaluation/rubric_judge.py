@@ -94,10 +94,10 @@ Return only the provider-enforced JSON schema. Do not calculate numerical points
 """
 
 
-def _system_prompt(provider: str | None) -> str:
+def _system_prompt(provider: str | None, indexed_contract=indexed_rubric.STRUCTURED_OUTPUT) -> str:
     if provider == "anthropic":
         return RUBRIC_SCORE_SYSTEM_PROMPT.replace(
-            indexed_rubric.ARRAY_FORMAT, indexed_rubric.INDEXED_FORMAT
+            indexed_rubric.ARRAY_FORMAT, indexed_rubric.format_instructions(indexed_contract)
         )
     return RUBRIC_SCORE_SYSTEM_PROMPT
 
@@ -107,6 +107,7 @@ def rubric_score_output_schema(
     maximum_level_count: int,
     *,
     provider: str | None = None,
+    indexed_contract: str = indexed_rubric.STRUCTURED_OUTPUT,
 ) -> dict[str, object]:
     """Build a small fixed-count schema without repeated rubric text."""
 
@@ -121,7 +122,7 @@ def rubric_score_output_schema(
     ):
         raise FullRubricJudgeError("rubric-score level count is out of range")
     if provider == "anthropic":
-        return indexed_rubric.output_schema(criterion_count)
+        return indexed_rubric.output_schema(criterion_count, contract=indexed_contract)
     return {
         "type": "object",
         "properties": {
@@ -270,6 +271,7 @@ def rubric_score_cost_shape(
     review_text: str,
     answer_text: str,
     provider: str | None = None,
+    indexed_contract: str = indexed_rubric.STRUCTURED_OUTPUT,
 ) -> FullRubricCostShape:
     """Measure the actual rubric-score request contract without provider access."""
 
@@ -286,9 +288,10 @@ def rubric_score_cost_shape(
         base.criterion_count,
         max(len(levels) for levels in rubric_levels.values()),
         provider=provider,
+        indexed_contract=indexed_contract,
     ))
     request_bytes = (
-        len(_system_prompt(provider).encode("utf-8"))
+        len(_system_prompt(provider, indexed_contract).encode("utf-8"))
         + payload_bytes
         + schema_bytes
     )
@@ -321,15 +324,17 @@ def rubric_score_cost_shape(
 class RubricScoreRunSpec(FullRubricRunSpec):
     """Use the current audit request contract for each provider."""
 
+    indexed_contract: str = indexed_rubric.STRUCTURED_OUTPUT
+
     def as_json(self) -> dict[str, object]:
         value = super().as_json()
         if self.provider == "anthropic":
             value["temperature"] = None
         value["structured_output_contract"] = (
-            indexed_rubric.STRUCTURED_OUTPUT if self.provider == "anthropic"
+            self.indexed_contract if self.provider == "anthropic"
             else RUBRIC_SCORE_ENGINE_IDENTITY["structured_output"]
         )
-        value["system_prompt_sha256"] = sha256_text(_system_prompt(self.provider))
+        value["system_prompt_sha256"] = sha256_text(_system_prompt(self.provider, self.indexed_contract))
         return value
 
 
@@ -340,6 +345,7 @@ def build_rubric_score_run_spec(
     answer_text: str,
     requested_model: str,
     seed: int,
+    indexed_contract: str = indexed_rubric.STRUCTURED_OUTPUT,
 ) -> RubricScoreRunSpec:
     base = build_full_rubric_run_spec(
         rubric_text=rubric_text,
@@ -353,6 +359,7 @@ def build_rubric_score_run_spec(
         review_text=review_text,
         answer_text=answer_text,
         provider=base.provider,
+        indexed_contract=indexed_contract,
     )
     values = {
         field.name: getattr(base, field.name)
@@ -363,7 +370,7 @@ def build_rubric_score_run_spec(
         "schema_bytes": shape.schema_bytes,
         "request_content_bytes_per_call": shape.request_content_bytes_per_call,
     })
-    return RubricScoreRunSpec(**values)
+    return RubricScoreRunSpec(**values, indexed_contract=indexed_contract)
 
 
 def _request_parameters(
@@ -441,7 +448,7 @@ def _generate_response(
             timeout=FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,
             model=spec.requested_model,
             max_tokens=spec.max_output_tokens_per_call,
-            system=_system_prompt(spec.provider),
+            system=_system_prompt(spec.provider, spec.indexed_contract),
             messages=[{"role": "user", "content": payload}],
             output_config={
                 "effort": "low",
@@ -551,9 +558,19 @@ def grade_rubric_score(
             data['usage'] = generation.usage_record()['raw_usage']
             # Save the terminal raw response/ID before decoding or publication.
             write_json_atomic(generation_path, {'request': request, 'generation': data})
+    return _records_from_generation(spec, generation, rubric_text=rubric_text)
+
+
+def _records_from_generation(spec, generation, *, rubric_text, replay_saved_v5=False):
+    rubric_levels = parse_rubric_levels_strict(rubric_text)
     text = generation.text
     if spec.provider == "anthropic":
-        text = indexed_rubric.decode_output(text, len(rubric_levels))
+        if replay_saved_v5:
+            if spec.indexed_contract != indexed_rubric.V5_STRUCTURED_OUTPUT:
+                raise RuntimeError('saved response replay requires the recorded v5 representation')
+            text = indexed_rubric.replay_saved_v5_output(text, len(rubric_levels))
+        else:
+            text = indexed_rubric.decode_output(text, len(rubric_levels), contract=spec.indexed_contract)
     report = parse_rubric_score_output(text, rubric_levels)
     usage = generation.usage_record()
     if usage.get("request_parameters") != _request_parameters(spec):
@@ -591,11 +608,57 @@ def _composite_sha256(paths: tuple[Path, ...]) -> str:
     return digest.hexdigest()
 
 
+@dataclass(frozen=True)
+class SavedV5Response:
+    """Read-only candidate; publication happens only during native execution."""
+
+    attempt_path: Path
+    response_path: Path
+    identity: dict[str, object]
+
+    def replay(self, judge, submission) -> FullRubricArtifactRecords:
+        attempt = judge._read_json(self.attempt_path)
+        if attempt.get('identity') != self.identity:
+            raise RuntimeError('saved v5 attempt input provenance differs')
+        if attempt.get('failure_category') != 'invalid_response':
+            raise FullRubricJudgeError('saved v5 attempt is not a rejected structured response')
+        review, answer = judge.review_inputs(submission)
+        expected = {'scoring_identity': judge.scoring_identity(),
+                    'review_input_sha256': sha256_text(review), 'answer_input_sha256': sha256_text(answer)}
+        from rubric_gen.submission_revision.store import same_scoring_semantics
+        if (not same_scoring_semantics(self.identity['scoring_identity'], expected['scoring_identity'])
+                or self.identity['review_input_sha256'] != expected['review_input_sha256']
+                or self.identity['answer_input_sha256'] != expected['answer_input_sha256']):
+            raise RuntimeError('saved v5 response scientific inputs differ')
+        saved = judge._read_json(self.response_path)
+        if saved.get('request', {}).get('execution', {}).get('structured_output_contract') != indexed_rubric.V5_STRUCTURED_OUTPUT:
+            raise FullRubricJudgeError('saved response does not use the v5 representation')
+        spec = build_rubric_score_run_spec(rubric_text=judge.rubric.text, review_text=review,
+            answer_text=answer, requested_model=judge.config.judge_model,
+            seed=judge._grading_seed(review, answer), indexed_contract=indexed_rubric.V5_STRUCTURED_OUTPUT)
+        if spec.provider != 'anthropic':
+            raise RuntimeError('saved v5 response is not Anthropic')
+        request = {'execution': spec.as_json(),
+                   'payload': rubric_score_payload(judge.rubric.text, review, answer),
+                   'schema': indexed_rubric.output_schema(spec.criterion_count,
+                                                        contract=indexed_rubric.V5_STRUCTURED_OUTPUT)}
+        if saved.get('request') != request:
+            raise RuntimeError('saved v5 terminal response request changed')
+        generation = FullRubricGeneration(**saved['generation'])
+        if generation.provider != spec.provider or generation.requested_model != spec.requested_model:
+            raise RuntimeError('saved v5 response model differs')
+        records = _records_from_generation(spec, generation, rubric_text=judge.rubric.text, replay_saved_v5=True)
+        return replace(records, usage={**records.usage, 'local_response_replay': {
+            'response_path': str(self.response_path), 'attempt_path': str(self.attempt_path),
+            'producer_identity': self.identity,
+        }})
+
+
 class RubricScoreJudge:
     """Score immutable snapshots without changing the sealed revision judge."""
 
     def __init__(self, config: SubmissionJudgeConfig, rubric: FrozenRubric,
-                 *, review_cache=None, review_lock=None) -> None:
+                 *, review_cache=None, review_lock=None, saved_v5_response=None) -> None:
         self.config = config
         self.rubric = rubric
         self.experiment_dir = Path(config.experiment_dir).resolve()
@@ -603,6 +666,7 @@ class RubricScoreJudge:
         self._review_delegate = FrozenRubricJudge(config, rubric)
         self._review_cache = review_cache if review_cache is not None else {}
         self._review_lock = review_lock if review_lock is not None else threading.Lock()
+        self._saved_v5_response = saved_v5_response
 
     def scoring_identity(self) -> dict[str, object]:
         model = self.config.judge_model
@@ -651,6 +715,19 @@ class RubricScoreJudge:
         with _evaluation_lock(root):
             return self._evaluate_locked(submission_dir, attempt_id, root)
 
+    def _grading_seed(self, review_text, answer_text):
+        identity = self.scoring_identity()
+        return deterministic_grading_seed(
+            rubric_sha256=self.rubric.sha256,
+            review_sha256=sha256_text(review_text),
+            answer_sha256=sha256_text(answer_text),
+            requested_model=str(identity['effective_judge_model']),
+            benchmark=self.config.benchmark.value,
+            assignment_identity=self.task_dir.name,
+            grading_engine=str(identity['grading_engine']),
+            engine_release=str(RUBRIC_SCORE_ENGINE_IDENTITY['engine']),
+        )
+
     def _evaluate_locked(
         self,
         submission_dir: Path,
@@ -668,16 +745,7 @@ class RubricScoreJudge:
         review_text, answer_text = self.review_inputs(submission_dir)
         identity = self.scoring_identity()
         model = str(identity["effective_judge_model"])
-        seed = deterministic_grading_seed(
-            rubric_sha256=self.rubric.sha256,
-            review_sha256=sha256_text(review_text),
-            answer_sha256=sha256_text(answer_text),
-            requested_model=model,
-            benchmark=self.config.benchmark.value,
-            assignment_identity=self.task_dir.name,
-            grading_engine=str(identity["grading_engine"]),
-            engine_release=str(RUBRIC_SCORE_ENGINE_IDENTITY["engine"]),
-        )
+        seed = self._grading_seed(review_text, answer_text)
         response_path = root.parent / f"{attempt_id}.response.json"
         response_identity = {"scoring_identity": identity, "review_input_sha256": sha256_text(review_text),
                              "answer_input_sha256": sha256_text(answer_text)}
@@ -687,6 +755,11 @@ class RubricScoreJudge:
             if saved['identity'] != response_identity:
                 raise RuntimeError('saved full-rubric response identity changed')
             records = FullRubricArtifactRecords(**saved['records'])
+        elif self._saved_v5_response is not None:
+            records = self._saved_v5_response.replay(self, submission_dir)
+            # Actual provider execution remains v5, with the producer attempt
+            # referenced in usage; this implementation owns the lossless decode.
+            write_json_atomic(response_path, {'identity': response_identity, 'records': asdict(records)})
         last_error = None
         # The operation budget persists across invocations. A saved intent without
         # a terminal result records unknown remote completion and consumes a slot.

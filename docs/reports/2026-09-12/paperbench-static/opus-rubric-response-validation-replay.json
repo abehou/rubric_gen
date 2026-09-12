@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "provider_calls": 0,
+  "published_records": 0,
+  "attempts": 420,
+  "raw_responses_replayed": 419,
+  "unsaved_max_tokens_attempts": 1,
+  "saved_raw_responses_accepted_locally": 2,
+  "judgments_salvageable_locally": 2,
+  "judgments_requiring_provider": 138,
+  "before_classes": {
+    "duplicate_conflicting_blocks": 314,
+    "omitted_blocks": 6,
+    "duplicate_conflicting_blocks+invalid_leaf_index+empty_leaf_reason": 80,
+    "invalid_leaf_index+empty_leaf_reason": 10,
+    "no_saved_raw_max_tokens": 1,
+    "duplicate_conflicting_blocks+empty_leaf_reason": 4,
+    "empty_leaf_reason": 1,
+    "duplicate_identical_blocks": 2,
+    "duplicate_conflicting_blocks+invalid_leaf_index": 1,
+    "empty_overall_reasoning": 1
+  },
+  "after_errors": {
+    "FullRubricJudgeError: saved v5 blocks have conflicting judgments": 399,
+    "FullRubricJudgeError: count-safe block count does not exactly match the rubric": 6,
+    "FullRubricJudgeError: keyed criterion has an invalid decimal level index": 10,
+    "no_saved_raw": 1,
+    "FullRubricJudgeError: rubric-score result for criterion_66 has an empty reason": 1,
+    "locally_accepted": 2,
+    "FullRubricJudgeError: rubric-score overall reasoning must be nonempty": 1
+  },
+  "local_salvage_original_keys": [
+    "6daba9ad156ed63490ba3ad8651800ea",
+    "b60365181808e6d81da0d4cc23bc4e61"
+  ],
+  "scientific_request_invariants_checked": 419
+}
