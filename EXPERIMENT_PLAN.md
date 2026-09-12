@@ -1416,3 +1416,7 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12 — Queue 5 confirmation and conditional Result20
 
 - 11:00 EDT: At most one nominated User recipe may receive one fresh matched canonical18-assignment continuation block, followed only on coherent evidence by one fixed60-assignment User Result20 using180compatible Full/static records. No User recipe is nominated yet; unchanged Full v2.1 may continue to Results30/45 characterization under item6 membership, with historical criteria and current modest-W−S interpretation recorded separately in [the decision](docs/reports/2026-09-12/biomnibench-v21-to45/queue5/README.md).
+
+## 2026-09-12
+
+- 11:17 EDT: Queue 6 fixes Results30 Full v2.1 versus fixed, three replicates: reuse120 original20 records and execute60 new records for the official additional10; no User scale selection. See docs/reports/2026-09-12/biomnibench-v21-to45/queue6/README.md.

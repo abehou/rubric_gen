@@ -2299,3 +2299,7 @@
 ## 2026-09-12 — Queue 5 scale decision
 
 - 11:00 EDT: Cataloged all240 existing Result20 core assignments (120trace/120fixed;480final auditor rows), preserving original native sources and3668unique trace judgments; all saved within-arm initial/selected/V2 matches agree. [Scale decision](docs/reports/2026-09-12/biomnibench-v21-to45/queue5/README.md) retains Full v2.1 for characterization; User nomination/one independent block/newResult20 await complete primary evidence, while R1/R2 are8/9 each with audits pending.
+
+## 2026-09-12
+
+- 11:17 EDT: Located the existing September9 Results30 list: original20 plus first10 of the official additional25 order, with canonical dev3 excluded. Actual canonical V2 instruction text differs from today’s committed prompt; reconciling saved producer source before heldout generation, with no new outcome-based task selection.
