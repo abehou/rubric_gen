@@ -1649,6 +1649,23 @@
         "elapsed": "00:00:00",
         "allocated_cpus": "0",
         "observed_at": "2026-09-12T11:30:25.040180-04:00"
+      },
+      "0-resume": {
+        "job_id": "10415010",
+        "source_job": "10414853",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-results30-seeds-0-resume",
+          "experiments/biomnibench-v21-to45/queue6/seeds.sbatch",
+          "0"
+        ],
+        "submitted_at": "2026-09-12T15:58:12.389737+00:00",
+        "cpus": 4,
+        "native_workers": 4,
+        "completed_blocks_reused": 12,
+        "missing_blocks": 3,
+        "recovery": "One native missing-only seed invocation; failed partial blocks archived in queue7 seed-recovery-preparation.json"
       }
     },
     "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
@@ -1694,7 +1711,57 @@
         2
       ],
       "cause": "Solver process exited0, but both answer.txt and trace.md were absent/invalid; one attempt also logged malformed apply_patch operations. Not a network timeout.",
-      "recovery": "No retry dispatched yet; native seed resume removes partial blocks, so archive the preserved failed blocks before any authorized missing-only retry."
+      "recovery": "Native missing-only recovery 10415010; all three invalid partial blocks archived; twelve completed blocks retained."
     }
+  },
+  "queue7": {
+    "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md",
+    "recipe": "attack_defense_v2.1",
+    "feedback": "full",
+    "expected_cumulative_records": 270,
+    "original20_reused_records": 120,
+    "added10_records": 60,
+    "final15_records": 90,
+    "final15_seed_blocks": 45,
+    "execution_commit": "aba77ebe0ce7bb284f628eaa7904f7e6b19fa7c2",
+    "execution_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-results45-inputs-20260912",
+    "run_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15",
+    "seed_jobs": {
+      "0": {
+        "job_id": "10415017",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--dependency=afterany:10415010",
+          "--job-name=trace-results45-seeds-0",
+          "experiments/biomnibench-v21-to45/queue7/seeds.sbatch",
+          "0"
+        ],
+        "submitted_at": "2026-09-12T15:58:39.355051+00:00",
+        "dependency": "10415010",
+        "cpus": 4,
+        "native_workers": 4,
+        "expected_seed_blocks": 24
+      },
+      "1": {
+        "job_id": "10415018",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--dependency=afterany:10414854",
+          "--job-name=trace-results45-seeds-1",
+          "experiments/biomnibench-v21-to45/queue7/seeds.sbatch",
+          "1"
+        ],
+        "submitted_at": "2026-09-12T15:58:39.380472+00:00",
+        "dependency": "10414854",
+        "cpus": 4,
+        "native_workers": 4,
+        "expected_seed_blocks": 21
+      }
+    },
+    "revision_jobs": [],
+    "audit_jobs": [],
+    "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text"
   }
 }

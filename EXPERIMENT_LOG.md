@@ -2325,3 +2325,7 @@
 ## 2026-09-12
 
 - 11:47 EDT: All15 official extension tasks and selected/development sources validate;3 provider-free checks preserve f017a3f native seed dispatch and unchanged scientific configs. No Results30/45 outcome was read for selection; heldout authority remains unresolved while independent inputs and dev3 recovery continue.
+
+## 2026-09-12
+
+- 12:04 EDT: R1/R2 da-3-4 outcome audits expose HTTP400 Schema is too complex, separately from R1 scheduler preemption; no unchanged retry of permanent requests. Final15 seed jobs10415017/10415018 wait behind Results30 owners, preserving12 completed first-lane starts and three archived failures; see docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md.

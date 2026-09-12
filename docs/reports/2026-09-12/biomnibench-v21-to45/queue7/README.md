@@ -15,11 +15,11 @@ The final fifteen are da-9-7, da-24-3, da-6-5, da-17-3, da-1-4, da-8-3, da-17-5,
 
 All fifteen native task configurations and their existing selected/development sources pass [input validation](input-inventory.json), with zero existing new seed pools. The additional25 historical pool supplies selected0/development1; its old heldouts are not substituted for canonical V2. The unresolved heldout-prompt question from [Results30](../queue6/README.md) also applies here. Seed preparation can proceed independently; no revision/audit dispatch or compatible-V2 claim is fabricated while that question remains pending.
 
-The ordinary seed lane/check helper is shared with the ten-task preparation. Three provider-free tests compare its native commands and status records with f017a3f, retain failure-then-continue behavior, and verify the exact fifteen-task scope and unchanged models/protocol. No file under `src/` changed; active source worktrees remain frozen. The two final-fifteen lanes will use four CPUs/four native workers, processing eight/seven tasks sequentially after their existing Results30 lane owners terminate. This preserves the shared provider60/audit1 budget and avoids competing with unfinished core preparation.
+The ordinary seed lane/check helper is shared with the ten-task preparation. Three provider-free tests compare its native commands and status records with f017a3f, retain failure-then-continue behavior, and verify the exact fifteen-task scope and unchanged models/protocol. No file under `src/` changed; active source worktrees remain frozen. The two final-fifteen lanes use four CPUs/four native workers, processing eight/seven tasks sequentially after their existing Results30 lane owners terminate. This preserves the shared provider60/audit1 budget and avoids competing with unfinished core preparation.
 
 Each task is one native six-assignment fixed/trace study. It shares three compatible starting blocks and pretreatment rubric inputs within the task. No old20/30 producer identities are rewritten. Scope-dependent randomization/blinding is retained within actual native shards rather than represented as a fictitious single45-task producer.
 
-The first Results30 lane ended FAILED after19m58s, while independent tasks continued. Missing-output failures stay visible and need explicit archival before native partial-block cleanup. The failure is not evidence of treatment quality damage because no treatment revision has yet run. No harder task is replaced.
+The first Results30 lane ended FAILED after19m58s, while independent tasks continued. The three missing-output blocks are now archived in [the recovery receipt](seed-recovery-preparation.json); the twelve completed blocks remain in place. One unchanged native resume, **10415010**, handles only missing starts. The failure is not evidence of treatment quality damage because no treatment revision has yet run. No harder task is replaced.
 
 ## Reporting and continuation
 
@@ -28,3 +28,13 @@ Report original20, added10, final15 and cumulative45 separately using W/W_train/
 The native Semi/Score-only dev3 comparisons continue regardless of User selection. Their expanded20-task comparisons are not launched from incomplete audits. No dropout, additional feedback architecture, new User recipe or PaperBench takeover is launched. PaperBench remains owned by its separate session; its active/pending jobs are respected as shared capacity constraints.
 
 Current result: no30/45 new-task outcome estimate is available. This is an input/execution-readiness record, not a scientific pass.
+
+## Queue7 dispatch and audit handoff — 12:04 EDT
+
+The final-fifteen input snapshot is **aba77ebe0ce7bb284f628eaa7904f7e6b19fa7c2**, at `runs/babel-code/trace-results45-inputs-20260912`. Seed jobs **10415017** (eight tasks,24 blocks) and **10415018** (seven tasks,21 blocks) depend respectively on Results30 recovery10415010 and lane10414854. This is actual missing-input generation, not completed revision coverage. No new heldout generation,30/45 treatment revision or outcome audit has been submitted while the documented input-authority question remains unresolved.
+
+All18 R1/R2 canonical solver trajectories are complete. R1 audit10414945 was preempted, but saved failure records additionally show two permanent HTTP400 `Schema is too complex` responses and two unfinished `max_tokens` responses on da-3-4. R2 audit10414488 stopped on the same schema rejection for two da-3-4 judgments. Its63 rubric,18 rubric-free and24 direct-RH records are retained. The two schema-rejected requests are not retried unchanged or called network timeouts. The first report10414489 correctly failed on incomplete audit coverage rather than publishing partial means.
+
+A small private-driver change permits canonical-order task subsets, leaving default native calls identical. Eight provider-free tests passed, covering command equality, exact remaining-task scope, invalid/duplicate task rejection and unchanged seed dispatch. This lets the untouched da-11-1/da-18-1 audits proceed without buying another response for known invalid requests. The shared runtime/schema issue remains separate from treatment efficacy; no prompt, model, parser or admission rule is changed here.
+
+Future audit dispatch/recovery uses4CPUs with the same32 model-request workers, justified by [observed accounting](../queue6/resource-profile.md). Producers retain4CPUs and serial collectors1CPU. Healthy active jobs and PaperBench ownership remain untouched.

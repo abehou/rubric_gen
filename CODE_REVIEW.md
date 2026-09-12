@@ -656,3 +656,7 @@
 ## 2026-09-12
 
 - 11:32 EDT: Queue3 semi-fixed audit da-11-1 exhausted six Opus rubric judgments through max_tokens/refusal provider stops and duplicate JSON keys, not a proven network timeout; native attempt classification labels some as transient_connection without sufficient evidence. Preserve raw failed records and unchanged settings, use one authorized missing-only resume, and keep a repeated failure visible rather than automatically redesigning the shared judge.
+
+## 2026-09-12
+
+- 12:04 EDT: R1/R2 native outcome rubric requests are rejected by Anthropic as Schema is too complex; shared schema/provider handling needs owner review, with exact receipts retained. A tested private task subset prevents that blocked task from suppressing independent audits; no scientific request/schema change or retry workaround was added.

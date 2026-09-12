@@ -1,0 +1,73 @@
+{
+  "observed_at": "2026-09-12T16:00:11.017602+00:00",
+  "source_job": "10414488",
+  "tasks": [
+    {
+      "task": "da-3-4",
+      "audits": [
+        {
+          "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-3-4/audit/biomnibench-da-factorial-r10-ce0089308f07",
+          "summaries": {
+            "rubric_score": {
+              "summary_present": false
+            },
+            "absolute_score": {
+              "status": "completed",
+              "planned_semantic_judgment_count": 12,
+              "successful_semantic_judgment_count": 12,
+              "failed_semantic_judgment_count": 0
+            },
+            "pairwise_preference": {
+              "status": "completed",
+              "planned_semantic_judgment_count": 6,
+              "successful_semantic_judgment_count": 6,
+              "failed_semantic_judgment_count": 0
+            }
+          },
+          "missing_rubric_attempts": [
+            {
+              "judgment_key": "83c2e97fff7c0d9ba51d2a03a7be7f22",
+              "attempts": [
+                {
+                  "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-3-4/audit/biomnibench-da-factorial-r10-ce0089308f07/rubric_score/artifacts/83c2e97fff7c0d9ba51d2a03a7be7f22/evaluations/s004/68f226564eef55da4b35b8903ab4fde4fc2cc42155540dc781d50e4bf82b852a/failed-attempt-001.json",
+                  "attempt": 1,
+                  "error": "Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Schema is too complex.'}, 'request_id': 'req_011Ceyo2HjpYGy5ipkqqLPhF'}",
+                  "error_type": "BadRequestError",
+                  "kind": "rubric-gen-revision-rubric-failure"
+                }
+              ]
+            },
+            {
+              "judgment_key": "dea6a4e6dfb318404399c18c41f49501",
+              "attempts": [
+                {
+                  "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-3-4/audit/biomnibench-da-factorial-r10-ce0089308f07/rubric_score/artifacts/dea6a4e6dfb318404399c18c41f49501/evaluations/s004/0df743af9dfda42e84d94416749c3be77b3937b80853830da41d34918d752fc8/failed-attempt-001.json",
+                  "attempt": 1,
+                  "error": "Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Schema is too complex.'}, 'request_id': 'req_011Ceyo2dNmbREv8zhESDnZG'}",
+                  "error_type": "BadRequestError",
+                  "kind": "rubric-gen-revision-rubric-failure"
+                }
+              ]
+            }
+          ],
+          "saved_rubric_records": 63,
+          "direct_records": {
+            "direct_full_trajectory": 6,
+            "direct_post_update": 6,
+            "direct_final_artifact": 6,
+            "direct_final_revision": 6
+          }
+        }
+      ]
+    },
+    {
+      "task": "da-11-1",
+      "audits": []
+    },
+    {
+      "task": "da-18-1",
+      "audits": []
+    }
+  ],
+  "provider_calls": 0
+}
