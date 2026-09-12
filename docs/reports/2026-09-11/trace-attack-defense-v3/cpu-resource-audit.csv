@@ -1,0 +1,36 @@
+script,cpus_before,cpus_after,worker_concurrency_changed,reason
+experiments/trace-attack-defense-v3/artifact_gap_rh_ranking.sbatch,8,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/audit_dev3.sbatch,32,8,False,32 audit request workers retained; network-bound with CPU headroom for parsing/tokenization
+experiments/trace-attack-defense-v3/canonical_v31_run.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/canonical_v3_run.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/control_run.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/finalize_canonical_v3.sbatch,2,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/finalize_stress_configs.sbatch,2,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/finalize_stress_recovery.sbatch,2,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/finalize_v31_stress.sbatch,8,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/finalize_v32_stress.sbatch,1,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/forensic_stress_user.sbatch,8,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/forensic_stress_v31.sbatch,8,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/forensic_user_calibration.sbatch,2,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/inspect_audit_failures.sbatch,2,2,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/inspect_audit_state.sbatch,2,2,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/inspect_case_details.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/inspect_case_files.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/inspect_case_schema.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/inspect_dev3_inputs.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/inspect_stress_failure.sbatch,2,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/inspect_stress_final_ledgers.sbatch,2,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/inventory.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/prepare_compatible_inputs.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/prepare_stress_seeds.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/print_config_ids.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/read_seed_failure.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/recover_stress_consumers_parallel.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/recover_stress_missing.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/report_dev3_outcomes.sbatch,8,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"
+experiments/trace-attack-defense-v3/run_v3_unit.sbatch,2,2,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/stress_pair_run.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/stress_v31_run.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/stress_v32_run.sbatch,32,32,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/validate_control_inputs.sbatch,1,1,False,unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting
+experiments/trace-attack-defense-v3/validate_control_receipts.sbatch,8,1,False,"serial Python/NFS reading, no model calls or parallel worker pool"

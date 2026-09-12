@@ -10,5 +10,8 @@
 #SBATCH --error=/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/trace-attack-defense-v3/unit-%j.err
 set -euo pipefail
 cd /home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2
-export PYTHONPATH="$PWD/src" RUBRIC_GEN_PROJECT_ROOT="$PWD" PYTHONDONTWRITEBYTECODE=1
-exec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python -m unittest -v tests/test_user_delivery_v3.py
+export PYTHONPATH="$PWD/src:$PWD/tests:$PWD/scripts/babel" RUBRIC_GEN_PROJECT_ROOT="$PWD" PYTHONDONTWRITEBYTECODE=1
+if [ "$#" -eq 0 ]; then
+  set -- tests/test_user_delivery_v3.py
+fi
+exec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python -m pytest -q "$@"

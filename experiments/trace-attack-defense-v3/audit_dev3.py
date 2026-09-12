@@ -37,11 +37,11 @@ def install_reuse() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("flavor", choices=("control-v21-compatible", "v21-control", "v3-candidate", "v31-candidate"))
+    parser.add_argument("flavor", choices=("control-v21-compatible", "v21-control", "v3-candidate", "v31-candidate", "v32-candidate"))
     parser.add_argument("cohort", choices=("canonical", "stress"))
     args = parser.parse_args()
-    if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != 32:
-        raise RuntimeError("dev3 audit requires a 32-CPU Slurm allocation")
+    if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) < 8:
+        raise RuntimeError("dev3 audit requires at least 8 allocated CPUs; request concurrency remains 32")
     runtime = policy()
     if runtime["aggregate_concurrency"] != 60 or runtime["audit_studies"] != 1:
         raise RuntimeError("shared capacity policy differs")
@@ -54,8 +54,9 @@ def main() -> None:
     tasks = TASKS if args.cohort == "canonical" else STRESS_TASKS
     if args.flavor == "control-v21-compatible":
         config_dir = BUNDLE / "control-v21-compatible"
-    elif args.flavor == "v31-candidate":
-        config_dir = BUNDLE / ("canonical-v31" if args.cohort == "canonical" else "stress-v31")
+    elif args.flavor in {"v31-candidate", "v32-candidate"}:
+        version = args.flavor.split("-")[0]
+        config_dir = BUNDLE / (f"canonical-{version}" if args.cohort == "canonical" else f"stress-{version}")
     else:
         config_dir = BUNDLE / "stress"
     rows = []

@@ -2,6 +2,7 @@
 
 - 01:26 EDT: Continue the already-launched v3.1 stress candidate and queued finalizer/audits; preserve all completed outputs and recover only missing work. At most three User-delivery iterations across stress dev3, then canonical dev3 and the descriptive Full/Semi/Score-only/User comparison; exactly one Result20 is conditional on satisfactory development evidence, with no Result20 prompt tuning.
 - 01:26 EDT: Interpret W−S as verifier disagreement (baseline-level or a modest reduction is acceptable), S−H as selected-to-heldout generalization, and H−A as heldout-to-holistic alignment. Preserve S/H/A and RH jointly; do not select by admissions or minimum W−S.
+- 02:59 EDT: v3.1 is not ready to advance. The third and final stress iteration, `attack_defense_v3.2`, changes only the User simulator's existing limitation/repair paragraph to prefer feasible local alternatives over wholesale withdrawal when a named remedy is unavailable. Run nine fresh stress assignments from the same saved inputs, then the complete Sol+Opus development panel and all-case saved-trace review; stop without canonical dev3 or Result20 if the joint profile remains unsatisfactory.
 
 ## 2026-09-09 — Accepted baseline checkpoint
 

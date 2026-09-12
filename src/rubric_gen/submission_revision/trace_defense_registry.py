@@ -43,6 +43,7 @@ RECIPES = {
     # behavior is the deterministic User-delivery guard documented in the v3
     # dev iteration report; the version keeps request/replay identities apart.
     'attack_defense_v3.1': _V3,
+    'attack_defense_v3.2': _V3,
 }
 
 

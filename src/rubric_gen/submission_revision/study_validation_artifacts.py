@@ -370,7 +370,7 @@ def _validate_submission(
             reference_score,
         )
         if _trace_version(context):
-            if _trace_version(context) not in {"attack_defense_v3", "attack_defense_v3.1"}:
+            if _trace_version(context) not in {"attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"}:
                 from .trace_defense_delivery import append_reminder
                 projected = append_reminder(projected, generation=generation, score_validation_path=rubric_artifacts[0],
                     root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False)
@@ -753,7 +753,7 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
-    v3_trace = _trace_version(context) in {"attack_defense_v3", "attack_defense_v3.1"}
+    v3_trace = _trace_version(context) in {"attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"}
     v3_delivery = None
     v3_base_status = None
     if v3_trace:
@@ -832,6 +832,7 @@ def _project_feedback(
         effective_user_feedback = suppress_proactive_only_revision(
             v3_delivery[0] if v3_delivery else None,
             user_feedback,
+            trace_version=_trace_version(context),
         )
     projected = project_rubric_simulated_user_feedback(
         generation,

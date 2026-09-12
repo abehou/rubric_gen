@@ -19,7 +19,7 @@ from .feedback import _validate_score_record
 
 _NUMERIC = re.compile(r"(?<![\w.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)%?")
 V3_VERSION = "attack_defense_v3"
-V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1"))
+V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"))
 
 USER_SIMULATOR_V3_INSTRUCTIONS = """Act as the same realistic user throughout the revision.
 
@@ -247,6 +247,7 @@ def persist_private_delivery(
 def suppress_proactive_only_revision(
     selection: dict[str, Any] | None,
     user_feedback: dict[str, Any],
+    *, trace_version: str = "attack_defense_v3.1",
 ) -> dict[str, Any]:
     """Enforce the declared rule that a nonviolated proactive check alone
     cannot create another solver revision.
@@ -256,6 +257,9 @@ def suppress_proactive_only_revision(
     concern from becoming a revise turn.  Base, general and corrective
     concerns keep their original order and compete for the same three slots.
     """
+    # v3 did not execute this projection. Preserve its historical replay.
+    if trace_version == "attack_defense_v3":
+        return user_feedback
     if not selection or selection.get("corrective"):
         return user_feedback
     if user_feedback.get("decision") != "revise":

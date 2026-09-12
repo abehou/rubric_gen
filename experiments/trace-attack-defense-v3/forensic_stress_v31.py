@@ -20,7 +20,11 @@ from typing import Any
 
 BUNDLE = Path(__file__).resolve().parent
 ROOT = BUNDLE.parents[1]
-RUN = Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2")
+RUNS = {
+    "v31": Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2"),
+    "v32": Path("/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3"),
+}
+RUN = RUNS["v31"]
 OUT = ROOT / "docs/reports/2026-09-11/trace-attack-defense-v3"
 TASKS = ("da-15-1", "da-13-6", "da-18-5")
 
@@ -71,9 +75,9 @@ def assignment_root(flavor: str, task: str, replicate: int) -> Path:
     raise FileNotFoundError(f"missing sealed assignment: {flavor}/{task}/{replicate}")
 
 
-def load_outcome_rows(cohort: str) -> dict[tuple[str, str, int], dict[str, Any]]:
+def load_outcome_rows(cohort: str, candidate_flavor: str) -> dict[tuple[str, str, int], dict[str, Any]]:
     """Load paired score/RH rows from the report adapter when available."""
-    report = OUT / f"{cohort}-outcomes-v31" / "outcomes.json"
+    report = OUT / f"{cohort}-outcomes-{candidate_flavor}" / "outcomes.json"
     if not report.is_file():
         return {}
     # The report summary is intentionally aggregate; reconstruct row-level
@@ -86,9 +90,9 @@ def load_outcome_rows(cohort: str) -> dict[tuple[str, str, int], dict[str, Any]]
     out: dict[tuple[str, str, int], dict[str, Any]] = {}
     dirs = {
         "v21": BUNDLE / "stress",
-        "v3": BUNDLE / "stress-v31",
+        "v3": BUNDLE / f"stress-{candidate_flavor}",
     }
-    for flavor, prefix in (("v21", "v21-control"), ("v3", "v31-candidate")):
+    for flavor, prefix in (("v21", "v21-control"), ("v3", f"{candidate_flavor}-candidate")):
         for task in TASKS:
             cfg = dirs[flavor] / f"{prefix}-{task}.yaml"
             _, _, rows = module.reconstruct(cfg)
@@ -237,9 +241,13 @@ def collect_case(flavor: str, task: str, replicate: int) -> tuple[dict[str, Any]
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default=str(OUT / "stress-v31-user-forensics.json"))
+    parser.add_argument("--candidate-flavor", choices=("v31", "v32"), default="v31")
+    parser.add_argument("--out", default=None)
     args = parser.parse_args()
-    outcome_rows = load_outcome_rows("stress")
+    global RUN
+    RUN = RUNS[args.candidate_flavor]
+    candidate_name = f"{args.candidate_flavor}-candidate"
+    outcome_rows = load_outcome_rows("stress", args.candidate_flavor)
     cases: list[dict[str, Any]] = []
     rows: list[dict[str, Any]] = []
     mechanisms: Counter[str] = Counter()
@@ -250,7 +258,7 @@ def main() -> None:
         for replicate in range(1, 4):
             collected: dict[str, Any] = {}
             turn_data: dict[str, list[dict[str, Any]]] = {}
-            for flavor in ("v21-control", "v31-candidate"):
+            for flavor in ("v21-control", candidate_name):
                 case, turns = collect_case(flavor, task, replicate)
                 collected[flavor] = case
                 turn_data[flavor] = turns
@@ -264,12 +272,12 @@ def main() -> None:
             v21 = outcome_rows.get(("v21", task, replicate), {}).get("values", {})
             v3 = outcome_rows.get(("v3", task, replicate), {}).get("values", {})
             delta = {key: (v3.get(key) - v21.get(key)) if key in v3 and key in v21 else None for key in ("W", "W_train", "S", "H", "A", "W_minus_S", "W_minus_A", "S_minus_H", "H_minus_A")}
-            label, basis = classify_case(delta, turn_data["v31-candidate"])
+            label, basis = classify_case(delta, turn_data[candidate_name])
             mechanisms[label] += 1
-            rows.append({"task_id": task, "replicate": replicate, **delta, "primary_mechanism": label, "mechanism_basis": basis, "v3_selected_turns": sum(bool(t.get("selection")) for t in turn_data["v31-candidate"]), "v3_emitted_turns": sum(bool(t.get("emitted")) for t in turn_data["v31-candidate"]), "v3_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v31-candidate"]), "v3_raw_proactive_only_revisions": sum(t["raw_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v3_effective_proactive_only_revisions": sum(t["effective_proactive_only_revise"] for t in turn_data["v31-candidate"]), "v21_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v21-control"]), "v3_application_states": collected["v31-candidate"]["learning"]["counts"]})
-            cases.append({"task_id": task, "replicate": replicate, "delta": delta, "primary_mechanism": label, "mechanism_basis": basis, "v21": {"case": collected["v21-control"], "turns": turn_data["v21-control"]}, "v3": {"case": collected["v31-candidate"], "turns": turn_data["v31-candidate"]}})
+            rows.append({"task_id": task, "replicate": replicate, **delta, "primary_mechanism": label, "mechanism_basis": basis, "v3_selected_turns": sum(bool(t.get("selection")) for t in turn_data[candidate_name]), "v3_emitted_turns": sum(bool(t.get("emitted")) for t in turn_data[candidate_name]), "v3_concern_count": sum(len(t.get("concerns", [])) for t in turn_data[candidate_name]), "v3_raw_proactive_only_revisions": sum(t["raw_proactive_only_revise"] for t in turn_data[candidate_name]), "v3_effective_proactive_only_revisions": sum(t["effective_proactive_only_revise"] for t in turn_data[candidate_name]), "v21_concern_count": sum(len(t.get("concerns", [])) for t in turn_data["v21-control"]), "v3_application_states": collected[candidate_name]["learning"]["counts"]})
+            cases.append({"task_id": task, "replicate": replicate, "delta": delta, "primary_mechanism": label, "mechanism_basis": basis, "v21": {"case": collected["v21-control"], "turns": turn_data["v21-control"]}, "v3": {"case": collected[candidate_name], "turns": turn_data[candidate_name]}})
     payload = {"provider_calls": 0, "run_root": str(RUN), "tasks": list(TASKS), "outcome_rows_available": len(outcome_rows), "mechanism_counts": dict(mechanisms), "concern_origins": dict(origins), "raw_concern_origins": dict(raw_origins), "classification_status": "automated triage only; primary mechanisms require manual public-evidence review", "omission_reasons": dict(omission), "rows": rows, "cases": cases}
-    out = Path(args.out)
+    out = Path(args.out) if args.out else OUT / f"stress-{args.candidate_flavor}-user-forensics.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     csv_path = out.with_suffix(".csv")

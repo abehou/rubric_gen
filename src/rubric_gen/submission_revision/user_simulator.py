@@ -23,7 +23,7 @@ SIMULATED_USER_GENERATION_KIND = "submission-simulated-user-feedback"
 SIMULATED_USER_FAILURE_KIND = "submission-simulated-user-feedback-failure"
 SIMULATED_USER_HISTORY_SUMMARY_KIND = "submission-simulated-user-history-summary"
 MAX_SIMULATED_USER_SUMMARY_CHARS = 12_000
-V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1"))
+V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"))
 
 CONCERN_CATEGORIES = (
     "task_fulfillment",
@@ -300,6 +300,7 @@ class SimulatedUserFeedback:
                 max_output_tokens=self.config.max_output_tokens,
                 focused_dynamic_check=focused_dynamic_check,
                 base_requirement_status=base_requirement_status or [],
+                trace_version=trace_version,
             )
         elif trace_version is None and focused_dynamic_check is None and base_requirement_status is None:
             request = _feedback_request(
@@ -648,9 +649,14 @@ def _feedback_request_v3(
     max_output_tokens: int,
     focused_dynamic_check: dict[str, object] | None,
     base_requirement_status: list[dict[str, object]],
+    trace_version: str = "attack_defense_v3",
 ) -> SimulatedUserRequest:
     """Build the User-only v3 private concern-budget request."""
     from .user_delivery_v3 import USER_SIMULATOR_V3_INSTRUCTIONS
+    instructions = USER_SIMULATOR_V3_INSTRUCTIONS
+    if trace_version == "attack_defense_v3.2":
+        from .user_delivery_v32 import USER_SIMULATOR_V32_INSTRUCTIONS
+        instructions = USER_SIMULATOR_V32_INSTRUCTIONS
 
     concern_schema: dict[str, object] = {
         "type": "object",
@@ -699,7 +705,7 @@ def _feedback_request_v3(
         + "\n</current_artifact>\n"
     )
     return SimulatedUserRequest(
-        instructions=USER_SIMULATOR_V3_INSTRUCTIONS,
+        instructions=instructions,
         evidence=evidence,
         schema=schema,
         max_output_tokens=max_output_tokens,

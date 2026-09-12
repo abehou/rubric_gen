@@ -2,7 +2,7 @@
 #SBATCH --account=dfried
 #SBATCH --partition=preempt
 #SBATCH --qos=preempt_cpu_qos
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=256G
 #SBATCH --time=2-00:00:00
 #SBATCH --job-name=trace-v3-audit

@@ -606,6 +606,11 @@
 
 - 01:52 EDT: The v3.1 proactive-only projection is currently dispatched for both v3 and v3.1, which can change old v3 replay; restrict it to its introduced version at the next safe code boundary and test both paths. Saved package-absence results are valid, but the public task permits internet installation while the execution manifest disables command networking; preserve that distinction when interpreting the unchanged outcome judgments.
 
+## 2026-09-12 — v3.2 replay and resource review
+
+- 02:59 EDT: Resolved the v3 historical replay concern by passing the explicit trace version into the proactive-only projection: archived v3 returns its raw validated simulator response, while v3.1/v3.2 retain the declared guard. Tests also establish identical v2.1 learning prompts/modules and a single User-instruction paragraph difference for v3.2.
+- 02:59 EDT: Slurm accounting showed audit/finalizer/report/forensic allocations inherited producer-sized requests despite network or serial workloads. Future requests are now stage-specific (8 CPUs for the 32-request-worker audit and one for serial stages); producer allocations stay unchanged until peak solver-tool CPU use is measured rather than inferred from low job-average utilization.
+
 ## 2026-09-11 — Shared runtime throughput cleanup
 
 - 08:28 EDT: Isolated implementation from fe1c87d; direct sources use a cohort-wide producer whitelist in the local adapter, and the recovery launcher imposes two assignment workers. Shared resolution and audit ownership changes are being tested without editing active sources.

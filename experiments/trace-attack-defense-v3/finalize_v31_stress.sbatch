@@ -3,7 +3,7 @@
 #SBATCH --account=dfried
 #SBATCH --partition=preempt
 #SBATCH --qos=preempt_cpu_qos
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH --job-name=trace-v31-finalize

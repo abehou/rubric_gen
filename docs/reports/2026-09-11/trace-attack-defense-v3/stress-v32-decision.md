@@ -1,7 +1,7 @@
 # Third and final allowed stress delivery iteration
 
 Status: decision recorded from complete v3.1 stress outcomes and saved trajectories;
-implementation, tests and execution have not yet started. This is iteration three
+implementation and tests are complete; execution has not yet started. This is iteration three
 (v3, v3.1, v3.2), not another Result20 experiment. The v2.1 stress control is reused.
 
 **One causal hypothesis:** under User feedback, treating an unavailable preferred
@@ -38,3 +38,9 @@ offline rubrics, the existing control and full Sol+Opus development panel. Asses
 S/H/A, RH, W-S, S-H and H-A jointly and inspect all cases. Do not advance if the
 profile remains unsatisfactory. No fourth stress variant is authorized; if this
 iteration fails, report the complete development result and stop for reassessment.
+
+The implementation uses `attack_defense_v3.2`, preserves the v2.1 learning and
+attack modules, and replaces exactly the existing User limitation paragraph. Slurm
+job 10410849 passed 370 provider-free tests. The scoped configs and normal native
+resume launcher are under `experiments/trace-attack-defense-v3/stress-v32/` and
+`stress_v32_run.sbatch`; no provider call occurred before the execution snapshot.

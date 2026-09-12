@@ -705,6 +705,7 @@ class RevisionScorer:
             effective_user_feedback = suppress_proactive_only_revision(
                 v3_delivery[0] if v3_delivery else None,
                 user_feedback,
+                trace_version=self.config.red_team_trace_version,
             )
         projected = project_rubric_simulated_user_feedback(
             generation,

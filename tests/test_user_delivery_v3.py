@@ -43,6 +43,42 @@ def _generation(criteria, round=2):
 
 
 class UserDeliveryV3Tests(unittest.TestCase):
+    def test_v32_changes_only_limitation_paragraph_and_preserves_request_inputs(self):
+        from dataclasses import asdict
+        from rubric_gen.submission_revision.user_delivery_v3 import USER_SIMULATOR_V3_INSTRUCTIONS
+        from rubric_gen.submission_revision.user_delivery_v32 import (
+            _V3_LIMITATION, _V32_LIMITATION, USER_SIMULATOR_V32_INSTRUCTIONS,
+        )
+        self.assertEqual(USER_SIMULATOR_V3_INSTRUCTIONS.count(_V3_LIMITATION), 1)
+        self.assertEqual(
+            USER_SIMULATOR_V32_INSTRUCTIONS.replace(_V32_LIMITATION, _V3_LIMITATION),
+            USER_SIMULATOR_V3_INSTRUCTIONS,
+        )
+        inputs = dict(instruction="Task", full_feedback_text="private", current_artifact="artifact",
+                      history_context="history", max_concerns=3, max_output_tokens=1024,
+                      focused_dynamic_check=None, base_requirement_status=[])
+        old = asdict(_feedback_request_v3(**inputs, trace_version="attack_defense_v3.1"))
+        new = asdict(_feedback_request_v3(**inputs, trace_version="attack_defense_v3.2"))
+        self.assertEqual(old.pop("instructions"), USER_SIMULATOR_V3_INSTRUCTIONS)
+        self.assertEqual(new.pop("instructions"), USER_SIMULATOR_V32_INSTRUCTIONS)
+        self.assertEqual(old, new)
+
+    def test_v3_historical_proactive_response_is_not_reprojected(self):
+        raw = {"decision": "revise", "concerns": [{"category": "interpretation",
+               "feedback": "Preserve the check.", "origin": "dynamic_proactive"}]}
+        self.assertIs(suppress_proactive_only_revision({"corrective": False}, raw,
+                      trace_version="attack_defense_v3"), raw)
+        for version in ("attack_defense_v3.1", "attack_defense_v3.2"):
+            self.assertEqual(suppress_proactive_only_revision({"corrective": False}, raw,
+                             trace_version=version), {"decision": "accept", "concerns": []})
+
+    def test_v32_retains_scientific_learning_prompts_and_native_module(self):
+        from rubric_gen.submission_revision.trace_defense_registry import recipe, prompt_hashes
+        ref, candidate = recipe("attack_defense_v2.1"), recipe("attack_defense_v3.2")
+        self.assertEqual(ref.learning_module, candidate.learning_module)
+        self.assertEqual(ref.attack_module, candidate.attack_module)
+        self.assertEqual(prompt_hashes("attack_defense_v2.1"), prompt_hashes("attack_defense_v3.2"))
+
     def test_v3_output_has_private_origin_and_is_stripped_for_solver(self):
         value = {
             "decision": "revise",

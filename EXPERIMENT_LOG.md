@@ -2221,6 +2221,15 @@
 
 - 01:52 EDT: All nine stress assignments validated; audit 10409706 and report 10409709 completed with 326/326 candidate judgments across the unchanged Sol+Opus panel. Relative to the matched v2.1 control, S/H/A fell 0.72/1.57/2.94, W-S rose 1.50, and full/post-update RH rose to 5.56%/11.11%; no canonical candidate or Result20 launched.
 
+## 2026-09-12 — attack_defense_v3.2 final stress decision
+
+- 02:59 EDT: The largest verified v3.1 loss followed repeated demands for an unavailable named method, wholesale result withdrawal, then a complaint that the answer was incomplete. The final authorized stress iteration changes only the User limitation/repair paragraph to distinguish an unavailable preferred remedy from an impossible task; it retains every learning, admission, delivery-budget, Full, solver and evaluation setting.
+- 02:59 EDT: Final pre-execution verification is 370 passing tests in Slurm job10410849. No v3.2 model call has run; nine fresh stress assignments and their full saved-output evaluation are next, with no fourth delivery variant if the result is unsatisfactory.
+
+## 2026-09-12 — Trace-v3 Slurm allocation review
+
+- 02:59 EDT: At the idle scientific boundary, measured network/file-bound stages were reduced for future invocations: audit 32→8 CPUs and serial finalization/reporting/forensics/ranking/inspection stages to one CPU. Producer, seed and behavioral-recovery requests remain at 32 CPUs because existing average accounting does not bound local numerical-tool thread peaks; worker/provider concurrency and scientific behavior are unchanged.
+
 ## 2026-09-11 — Runtime validation ownership
 
 - 08:28 EDT: Reserved reusable diagnostic allocation 10398213; active owners 10397534 and 10398066 were inspected without mutation. All 758 repaired consumer status files are inode-independent and their producer counterparts match the recorded original bytes; exact criterion-specific replay resolves the reported neutral-policy mismatch.

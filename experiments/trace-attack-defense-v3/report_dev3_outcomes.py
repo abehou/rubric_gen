@@ -240,7 +240,7 @@ def main():
     parser.add_argument("cohort", choices=("stress", "canonical"))
     parser.add_argument("--v21-config-dir", default=None)
     parser.add_argument("--v3-config-dir", default=None)
-    parser.add_argument("--candidate-flavor", choices=("v3", "v31"), default="v3")
+    parser.add_argument("--candidate-flavor", choices=("v3", "v31", "v32"), default="v3")
     args = parser.parse_args()
     if not __import__("os").environ.get("SLURM_JOB_ID"):
         raise RuntimeError("dev3 outcome reconstruction must run on Slurm compute storage")
@@ -252,8 +252,8 @@ def main():
         v21_dir = BUNDLE / "control-v21-compatible"
     if args.v3_config_dir:
         v3_dir = Path(args.v3_config_dir)
-    elif args.candidate_flavor == "v31":
-        v3_dir = BUNDLE / ("stress-v31" if args.cohort == "stress" else "canonical-v31")
+    elif args.candidate_flavor in {"v31", "v32"}:
+        v3_dir = BUNDLE / (f"stress-{args.candidate_flavor}" if args.cohort == "stress" else f"canonical-{args.candidate_flavor}")
     elif args.cohort == "stress":
         v3_dir = BUNDLE / "stress"
     else:
@@ -262,7 +262,7 @@ def main():
     v21_rows, v3_rows, coverages = [], [], {}
     for task in tasks:
         v21_path = v21_dir / (f"v21-control-{task}.yaml" if args.cohort == "stress" else f"{task}.yaml")
-        candidate_prefix = "v31-candidate" if args.candidate_flavor == "v31" else "v3-candidate"
+        candidate_prefix = f"{args.candidate_flavor}-candidate"
         v3_path = v3_dir / (f"{candidate_prefix}-{task}.yaml" if args.cohort == "stress" else f"{task}.yaml")
         _, coverage, rows = reconstruct(v21_path)
         coverages[f"v21:{task}"] = coverage

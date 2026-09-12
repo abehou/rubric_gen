@@ -3,7 +3,7 @@
 #SBATCH --account=dfried
 #SBATCH --partition=preempt
 #SBATCH --qos=preempt_cpu_qos
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=16G
 #SBATCH --time=00:20:00
 #SBATCH --job-name=trace-v3-canonical-bind

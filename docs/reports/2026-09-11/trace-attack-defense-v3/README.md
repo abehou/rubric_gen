@@ -37,22 +37,23 @@ checks alone do not force revision, and local repair/preservation is required.
 
 The implementation and tests are in the isolated `runs/babel-code/attack-defense-v2` worktree.
 Canonical User v2.1 control input preparation and the matched v2.1/v3 stress
-runner are recorded under `experiments/trace-attack-defense-v3/`. Provider work
-is not launched from this report until the saved seed/control receipts are
-complete and the snapshot is committed.
+runner are recorded under `experiments/trace-attack-defense-v3/`. Saved inputs and
+controls are complete; each scientific iteration launches only from its committed
+snapshot.
 
 ## Development status
 
 | stage | status |
 |---|---|
 | provider-free forensic | complete |
-| v3 structural tests | 11/11 pass on Slurm compute environment |
+| v3 structural and shared regression tests | 370 pass in Slurm job 10410849 |
 | canonical v2.1 User dev3 control | complete; Sol+Opus audit complete (job 10402123) |
 | matched stress dev3 | 18/18 selected assignments sealed; producer recovery 10405463, consumer recovery 10405844, provider-free finalizer 10407854 |
 | stress Sol+Opus audit | v2.1 control 10408028, v3 candidate 10408035 (serialized; no duplicate judgments) |
 | canonical v3 input binding | complete; current producer identities recorded |
 | v3.1 stress revisions | 9/9 valid; producer 10409332, finalizer 10409423 complete |
-| v3.1 stress outcomes | audit 10409706 running; report 10409709 and forensic 10409710 queued |
+| v3.1 stress outcomes | complete: audit 10409706, report 10409709, forensic 10409710; 326/326 candidate judgments |
+| v3.2 final allowed stress iteration | targeted User paragraph implemented; 370 tests pass in job 10410849; no candidate calls yet |
 | canonical v3 confirmation | not launched; pending satisfactory stress evidence |
 | single Result20 | not launched |
 
@@ -104,7 +105,7 @@ receipt and Slurm log were overwritten on restart, an operational recording
 limitation; the exit receipt and Slurm accounting retain the completion/preemption
 sequence. Scientific requests were unchanged across the restart.
 
-The complete Sol + Opus audit and downstream report are in progress. See
+The complete Sol + Opus audit and downstream report are finished. See
 [the manual saved-trace review](stress-v31-manual-review.md). The proactive-only
 guard fired zero times in this realization; any score movement cannot be
 attributed to an observed guard intervention. No canonical v3 or Result20 run has
@@ -117,6 +118,41 @@ labels that static subset descriptive and records the mismatch rather than
 presenting it as an exact matched-start baseline.
 
 ## Gap interpretation and ranking
+
+Current stress results (equal-weight Sol + Opus; nine assignments per row):
+
+| variant | W | S | H | A | W-S | S-H | H-A | W-A | full RH | post RH | online admissions | unique undecidable applications |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| v2.1 control | 95.22 | 83.78 | 83.59 | 77.61 | 11.44 | 0.19 | 5.98 | 17.61 | 0% | 0% | 20 | 2 |
+| v3 iteration 1 | 96.00 | 89.56 | 90.22 | 77.39 | 6.44 | -0.67 | 12.83 | 18.61 | 0% | 0% | see first-iteration extraction | see first-iteration extraction |
+| v3.1 iteration 2 | 96.00 | 83.06 | 82.02 | 74.67 | 12.94 | 1.04 | 7.35 | 21.33 | 5.56% | 11.11% | 10 | 8 |
+
+All final-artifact/final-revision RH rates are zero in these stress cohorts.
+The first iteration increased H-A materially; the second loses S/H/A and worsens
+RH. **Neither is ready for advancement.** Small-n fresh continuations limit causal
+attribution, especially because the v3.1 guard did not actually fire.
+
+The v3.1 learning funnel has 59 online updates/nonidentical sidecars, 65 proposal
+appearances, 59 complete native decisions (six blocked by application uncertainty),
+and 10 admissions across six assignments. Native rejection counts are 23 support,
+17 margin and nine semantic. These scientific negatives remain valid outcomes.
+There are 1,346 unique valid learning requests; eight of 570 unique applications
+are undecidable (13 of 770 generation appearances). No locator repair occurred.
+
+The 116 raw User concerns comprise 74 base, 35 general and seven dynamic-corrective
+tags. Thirteen focused checks were selected (nine online/four offline; four
+corrective/nine proactive), with three matching tag-based emissions (one online,
+two offline). Tagging does not establish exact semantic exposure or compliance.
+The [manual review](stress-v31-manual-review.md) and its
+[CSV](stress-v31-manual-review.csv)/[JSON](stress-v31-manual-review.json) supersede
+automatic mechanism triage. The full extraction remains available in
+[stress-v31-user-forensics.json](stress-v31-user-forensics.json).
+
+The [third-iteration decision](stress-v32-decision.md) targets the largest verified
+quality loss: unavailable-remedy demands followed by answer withdrawal. It changes
+one User instruction paragraph; no learner or mathematical gate changes. This is
+the last permitted stress iteration, and an unsatisfactory result will stop the
+development loop rather than trigger v3.3 or Result20.
 
 W-S measures weak/strong verifier disagreement. Baseline-level or modestly lower
 W-S is acceptable; a large reduction is not an objective if S, H, A or RH worsen.

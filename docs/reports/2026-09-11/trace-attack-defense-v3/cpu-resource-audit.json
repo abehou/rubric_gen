@@ -1,0 +1,250 @@
+{
+  "scope": "future invocations only; no active job altered",
+  "rows": [
+    {
+      "script": "experiments/trace-attack-defense-v3/artifact_gap_rh_ranking.sbatch",
+      "cpus_before": 8,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/audit_dev3.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 8,
+      "worker_concurrency_changed": false,
+      "reason": "32 audit request workers retained; network-bound with CPU headroom for parsing/tokenization"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/canonical_v31_run.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/canonical_v3_run.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/control_run.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/finalize_canonical_v3.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/finalize_stress_configs.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/finalize_stress_recovery.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/finalize_v31_stress.sbatch",
+      "cpus_before": 8,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/finalize_v32_stress.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/forensic_stress_user.sbatch",
+      "cpus_before": 8,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/forensic_stress_v31.sbatch",
+      "cpus_before": 8,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/forensic_user_calibration.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_audit_failures.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 2,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_audit_state.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 2,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_case_details.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_case_files.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_case_schema.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_dev3_inputs.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_stress_failure.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inspect_stress_final_ledgers.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/inventory.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/prepare_compatible_inputs.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/prepare_stress_seeds.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/print_config_ids.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/read_seed_failure.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/recover_stress_consumers_parallel.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/recover_stress_missing.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/report_dev3_outcomes.sbatch",
+      "cpus_before": 8,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/run_v3_unit.sbatch",
+      "cpus_before": 2,
+      "cpus_after": 2,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/stress_pair_run.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/stress_v31_run.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/stress_v32_run.sbatch",
+      "cpus_before": 32,
+      "cpus_after": 32,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/validate_control_inputs.sbatch",
+      "cpus_before": 1,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "unchanged: numerical solver workloads/parallel producers or already small allocation; peak thread use not bounded by average CPU accounting"
+    },
+    {
+      "script": "experiments/trace-attack-defense-v3/validate_control_receipts.sbatch",
+      "cpus_before": 8,
+      "cpus_after": 1,
+      "worker_concurrency_changed": false,
+      "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
+    }
+  ]
+}

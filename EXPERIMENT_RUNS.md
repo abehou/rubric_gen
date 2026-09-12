@@ -1252,6 +1252,11 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 01:26 EDT: Producer 10409332 uses `experiments/trace-attack-defense-v3/stress_v31_run.sbatch`, 32 CPUs/512 GiB with three task runners and one assignment worker per runner. All nine assignments are completed under `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/`; Slurm preempted/requeued the same job while completion validation was outstanding, preserving native assignments.
 - 01:26 EDT: Existing chain: finalizer10409423 → audit10409706 → report10409709 → forensic10409710. Ranking-only jobs10409385/10410276 failed on historical source addressing/identity; corrected job10410280 reuses validated v2.1 report rows and saved development audits, with zero provider calls.
 
+## 2026-09-12 — v3.2 final stress iteration
+
+- 02:59 EDT: Prepared three scoped configs under `experiments/trace-attack-defense-v3/stress-v32/` for nine User assignments at `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/`. The producer requests 32 CPUs/512 GiB and runs three task-scoped native `revise --resume` processes with one assignment worker each; completion validation, audit, reporting and forensic extraction request 1/8/1/1 CPUs respectively without changing request concurrency or scientific settings.
+- 02:59 EDT: No v3.2 provider job has yet been submitted. Slurm test job10410849 passed 370 tests in 85.03 seconds under the final implementation; the execution chain will be submitted only from its committed snapshot, and the saved v2.1 stress control remains unchanged.
+
 ## 2026-09-11 — Runtime throughput validation
 
 - 09:43 EDT: Reused diagnostic allocation `10398213` on `babel-l9-20` (8 CPUs/256G); isolated source `/home/aydanh/repos/rubric_gen/runs/babel-code/runtime-throughput-cleanup`, implementation `19082d6`, merged published BioMNIBench report at `d783505`. Runtime-only sources/outputs: `/data/user_data/aydanh/rubric_gen/runs/runtime-throughput-validation-20260911/biomnibench/`; exact two-member selection is in `runtime-validation.json`, config in source `runs/runtime-throughput-validation-20260911/biomnibench.yaml`.
