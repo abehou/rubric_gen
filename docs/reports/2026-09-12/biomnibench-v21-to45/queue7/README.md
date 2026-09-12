@@ -55,3 +55,7 @@ The bounded first-lane seed recovery10415010 sealed two of its three missing blo
 Final15 lane10415017 has started;10415018 still depends on the active Results30 lane10414854. No new Full/User30/45 outcome estimate exists:150 added-task Full fixed/trace records remain unexecuted, and User scale-up is unresolved. The original20 Full120 records remain the only completed scale block. The canonical policy matrix continues independently; incomplete Opus coverage prevents winner/efficacy claims, not continued execution of other approved cells.
 
 The mission began09:27:31 EDT. This is an interim handoff, not the18:27–19:27 EDT morning checkpoint. Keep healthy jobs running; next steps are finish inputs/audits, resolve the documented heldout instruction authority and shared schema/attempt-exhaustion issues, then execute the unchanged supported scale recipe. No task replacements, favorable-p-value continuation rule, new scientific challenger, optional dropout or Semi/Score-only20-task expansion has been introduced.
+
+## Heldout authority resolved — 12:39 EDT
+
+The user explicitly authorizes committed rigorous-V2 prompt47463ca for new tasks, with the historical/new generation difference documented. The earlier hold is resolved: selected/development producer bytes and all original20 heldouts remain unchanged; only missing variants2/3/4 are generated in new consumer pools through the native paraphraser. Report original20/additional10/final15 separately; cumulative H is not described as one identical historical generation process.

@@ -42,3 +42,7 @@ At11:36 EDT, **7/30 shared seed blocks** are sealed; the first lane is processin
 The two failed `da-8-1` blocks are **invalid solver output**, not a proven network/runtime timeout: the process exited0, but `answer.txt` and `trace.md` were missing/invalid. Replicate2 also logged malformed `apply_patch` operations. [Saved failure records](seed-failures-10414853.json) retain the evidence; no scientific preference or score selected these failures. No retry has been dispatched yet. Native seed resume deletes partial blocks, so the failed directories must first be archived outside that native block before any missing-only retry. Completed blocks must stay in place and validate normally.
 
 The input-policy question remains pending. No thirty-task outcome or completion claim is made: **0/60 added-task revision records**, no added-task audits yet, and120 reusable original Full records. The mission continues through its healthy Slurm owners; further heldout generation requires the requested authority decision.
+
+## Heldout authority resolved — 12:39 EDT
+
+The user explicitly authorizes committed rigorous-V2 prompt47463ca for new tasks, with the historical/new generation difference documented. The earlier hold is resolved: selected/development producer bytes and all original20 heldouts remain unchanged; only missing variants2/3/4 are generated in new consumer pools through the native paraphraser. Report original20/additional10/final15 separately; cumulative H is not described as one identical historical generation process.
