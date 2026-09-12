@@ -1070,25 +1070,138 @@ def test_fixed_paraphrase_accepts_separate_master_rubric_score(
     )
 
 
-def test_revision_reuses_seed_judgment_after_runtime_code_change(
-    tmp_path: Path,
+@pytest.mark.parametrize("older_implementation", [False, True])
+def test_revision_reuses_seed_judgment_through_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, older_implementation: bool,
 ) -> None:
     task = _write_task(tmp_path)
     stale_identity = _identity(task)
-    stale_identity.update({
-        "scoring_implementation_sha256": "a" * 64,
-    })
+    if older_implementation:
+        stale_identity["scoring_implementation_sha256"] = "a" * 64
     config = _config(
         tmp_path,
         task,
-        rounds=1,
+        rounds=0,
         seed_scoring_identity=stale_identity,
     )
     judge = FakeJudge(task, (0, 90), tmp_path / "judge")
+    session = FakeSession()
+    before = {p: p.read_bytes() for p in config.seed_run_dir.rglob("*") if p.is_file()}
 
-    SubmissionRevisionController(
-        config, RevisionDependencies(session=FakeSession(), judge=judge),
+    def no_provider(*_args, **_kwargs):
+        pytest.fail("seed checkpoint must not call a judge or solver")
+
+    monkeypatch.setattr(judge, "evaluate", no_provider)
+    monkeypatch.setattr(session, "start", no_provider)
+    controller = SubmissionRevisionController(
+        config, RevisionDependencies(session=session, judge=judge),
     )
+    assert controller.reuse_seed_judgment
+    assert controller.reuse_seed_master_judgment
+    result = controller.run()
+    assert result.scores == result.fixed_original_scores == (80,)
+    assert judge.calls == 0
+    assert session.prompts == []
+    assert {p: p.read_bytes() for p in config.seed_run_dir.rglob("*") if p.is_file()} == before
+    validation, _, saved = controller.seed.judgment
+    assert saved == stale_identity
+    assert read_json_object(validation, "seed score")["scoring_implementation_sha256"] == stale_identity["scoring_implementation_sha256"]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("effective_judge_model", "different-model"),
+    ("benchmark", "paperbench-code-dev"),
+    ("grading_engine", "different-engine"),
+    ("review_mode", "workspace"),
+    ("max_review_chars", 123),
+    ("rubric_source", "different-source"),
+    ("rubric_set_id", "different-set"),
+    ("rubric_id", "different-rubric"),
+    ("structured_rubric_sha256", "b" * 64),
+    ("rendered_rubric_sha256", "b" * 64),
+    ("manifest_sha256", "b" * 64),
+])
+def test_seed_setup_and_checkpoint_reject_semantic_changes(tmp_path, field, value):
+    from rubric_gen.submission_revision.controller_setup import _seed_reuse
+    from rubric_gen.submission_revision.store import JUDGE_EXECUTION_CONTRACT_KEYS
+
+    task = _write_task(tmp_path)
+    saved = {**_identity(task), "scoring_implementation_sha256": "a" * 64, field: value}
+    config = _config(tmp_path, task, rounds=0, seed_scoring_identity=saved)
+    judge = FakeJudge(task, (0, 90), tmp_path / "judge")
+    # Native integrity validation still applies to the saved, deliberately
+    # different contract; setup may either fail execution or choose rescoring.
+    from rubric_gen.submission_revision.seeds import resolve_seed
+    seed = resolve_seed(config.seed_run_dir, task, 1, seed_generator=config.seed_agent,
+                        prompt_profile=config.prompt_profile, benchmark=config.benchmark)
+    if field in JUDGE_EXECUTION_CONTRACT_KEYS:
+        with pytest.raises(RuntimeError, match="different scoring contract"):
+            _seed_reuse(seed, judge.scoring_identity(), judge.scoring_identity())
+    else:
+        assert _seed_reuse(seed, judge.scoring_identity(), judge.scoring_identity()) == (False, False)
+    with pytest.raises(RuntimeError, match="seeded score does not match the scoring contract"):
+        RevisionScorer.verify_round_scoring_identity(
+            SimpleNamespace(), seed.judgment[0], resolve_optimizer_rubric(config.judge_config()),
+            judge, seeded=True,
+        )
+    assert judge.calls == 0
+
+
+def test_seed_checkpoint_retains_explicit_rubric_binding(tmp_path):
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=0)
+    judge = FakeJudge(task, (0, 90), tmp_path / "judge")
+    controller = SubmissionRevisionController(config, RevisionDependencies(session=FakeSession(), judge=judge))
+    different_rubric = replace(controller.initial_rubric, sha256="b" * 64)
+    with pytest.raises(RuntimeError, match="seeded score attests a different rubric"):
+        controller.scoring.verify_round_scoring_identity(
+            controller.seed.judgment[0], different_rubric, judge, seeded=True,
+        )
+
+
+def test_selected_neutral_rescores_same_seed_and_reuses_older_master(tmp_path, monkeypatch):
+    task = _write_task(tmp_path)
+    master_config = SubmissionJudgeConfig(
+        task_dir=task, experiment_dir=tmp_path / "master-identity", review="trace",
+        judge_model="test-judge-model", rubric_name="rubric.txt", rubric_set=None,
+        rubric_path=None, max_review_chars=None,
+    )
+    master_identity = FrozenRubricJudge(master_config, resolve_optimizer_rubric(master_config)).scoring_identity()
+    saved = {**master_identity, "scoring_implementation_sha256": "a" * 64}
+    base = _config(tmp_path, task, rounds=0, seed_scoring_identity=saved)
+    selected = tmp_path / "selected-neutral.txt"
+    selected.write_text((task / "tests/rubric.txt").read_text().replace("Correct result", "Selected public evidence"))
+    config = replace(base, optimizer_rubric_path=selected)
+    selected_identity = FrozenRubricJudge(config.judge_config(), resolve_optimizer_rubric(config.judge_config())).scoring_identity()
+    judge = FakeJudge(task, (0, 61), tmp_path / "selected-judge", identity=selected_identity)
+    master = FakeJudge(task, (0, 55), tmp_path / "master-judge", identity=master_identity)
+    session = FakeSession()
+    controller = SubmissionRevisionController(config, RevisionDependencies(session=session, judge=judge, master_judge=master))
+    assert not controller.reuse_seed_judgment
+    assert controller.reuse_seed_master_judgment
+    before = {p: p.read_bytes() for p in config.seed_run_dir.rglob("*") if p.is_file()}
+    evaluate = judge.evaluate
+
+    def score_same_artifact(submission_dir, attempt_id):
+        assert solution_tree_sha256(submission_dir / "workspace") == controller.seed.manifest["workspace_sha256"]
+        assert sha256_file(submission_dir / "trajectory.stream.jsonl") == controller.seed.manifest["trajectory_sha256"]
+        return evaluate(submission_dir, attempt_id)
+
+    def no_provider(*_args, **_kwargs):
+        pytest.fail("master reuse must not call a judge or solver")
+
+    monkeypatch.setattr(judge, "evaluate", score_same_artifact)
+    monkeypatch.setattr(master, "evaluate", no_provider)
+    monkeypatch.setattr(session, "start", no_provider)
+    result = controller.run()
+    assert result.submission_ids == ("s000",)
+    assert result.scores == (61,)
+    assert result.fixed_original_scores == (80,)
+    assert (judge.calls, master.calls, session.prompts) == (1, 0, [])
+    assert {p: p.read_bytes() for p in config.seed_run_dir.rglob("*") if p.is_file()} == before
+    record = read_json_object(config.experiment_dir / "rubric-evaluations/s000.json", "checkpoint")
+    assert record["rubric_sha256"] == sha256_file(selected)
+    assert controller.seed.manifest["scoring_identity"] == saved
 
 
 def test_revision_rejects_seed_judgment_with_different_scoring_semantics(
