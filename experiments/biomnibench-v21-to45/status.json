@@ -2055,6 +2055,41 @@
     "historical_failed_jobs_preserved": ["10414487", "10414488", "10414489", "10415017", "10415018", "10415266", "10415267"],
     "heldout_prompt_source": "47463ca",
     "old_twenty_heldouts_changed": false,
-    "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are not yet dispatched."
+    "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
+  },
+  "current_resume": {
+    "observed_at": "2026-09-12T14:06:00-04:00",
+    "provider_free_inventory_jobs": {
+      "results30_initial_failed_wrapper": "10415640",
+      "results30_corrected": "10415666",
+      "results45_initial_pending_wrapper": "10415644",
+      "results45_corrected": "10415675"
+    },
+    "results30_seed_recovery": {
+      "lane0": "10415538",
+      "lane1": "10415714",
+      "scope": "native seed --resume; complete blocks preserved; lane1 retries only missing da-1-3/rep-001 and da-4-6/rep-002"
+    },
+    "results30_revision_jobs": {
+      "da-8-1": "10415692",
+      "da-26-4": "10415695",
+      "da-20-4": "10415696",
+      "da-19-3": "10415697",
+      "da-4-1": "10415698",
+      "da-1-3_initial_missing_seed": "10415699",
+      "da-3-5": "10415700",
+      "da-4-6_initial_missing_seed": "10415703",
+      "da-5-1": "10415704",
+      "da-26-2": "10415705",
+      "da-1-3_resume": "10415716",
+      "da-4-6_resume": "10415717"
+    },
+    "results45_seed_jobs": ["10415531", "10415532"],
+    "queue3_corrected_audit": "10415408",
+    "queue3_corrected_collector": "10415525",
+    "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check.",
+    "note": "Results30 revision shards use the unchanged v2.1 Full fixed/trace task configs and native dev3-4 resume. Original twenty records remain reused; no User scale is launched. Results45 seeds remain prerequisite-controlled.",
+    "heldout_prompt_source": "47463ca",
+    "old_twenty_heldouts_changed": false
   }
 }
