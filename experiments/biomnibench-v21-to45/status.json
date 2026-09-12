@@ -54,8 +54,8 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T15:28:30-04:00",
+  "next_action": "Wait for scale seed resumes and checker 10416777; then native Results30 da-1-3 resume and Results45 task-shard revisions, preserving completed work.",
+  "updated_at": "2026-09-12T15:55:00-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1822,6 +1822,34 @@
         "scope": "native lane 1 resume; all five task blocks",
         "slurm_state": "COMPLETED",
         "exit_code": "0:0"
+      },
+      "0-resume-3": {
+        "job_id": "10416686",
+        "source_jobs": [
+          "10416366",
+          "10416038"
+        ],
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "scope": "native lane 0 resume; six identified missing replicate blocks only",
+        "submitted_at": "2026-09-12T15:55:00-04:00",
+        "slurm_state": "RUNNING/COMPLETED",
+        "exit_code": "pending"
+      },
+      "1-resume-2": {
+        "job_id": "10416687",
+        "source_jobs": [
+          "10416366",
+          "10415714"
+        ],
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "scope": "native lane 1 resume; six identified missing replicate blocks only",
+        "submitted_at": "2026-09-12T15:55:00-04:00",
+        "slurm_state": "RUNNING",
+        "exit_code": "pending"
       }
     },
     "heldout_authority": "authorized committed rigorous-V2 for new tasks; preserve historical20",
@@ -1839,7 +1867,7 @@
     ],
     "audit_jobs": [],
     "progress": {
-      "observed_at": "2026-09-12T15:04:10-04:00",
+      "observed_at": "2026-09-12T15:55:00-04:00",
       "seed_blocks_expected": 30,
       "sealed_seed_blocks": 30,
       "seed_jobs": [
@@ -1871,7 +1899,7 @@
       "revision_records_expected": 60,
       "revision_records_completed": 0,
       "audit_dispatched": false,
-      "revision_dispatch_state": "10 task shards dispatched; 10415692,10415695,10415697,10415698,10415700,10415705,10415894,10415696 complete; 10415717 and 10416366 are active/recovering"
+      "revision_dispatch_state": "10 task shards dispatched; da-1-3 remains pending six assignments after NFS preemption; seed/revision resume follows verified input checker"
     },
     "seed_failures": {
       "da-8-1": [
@@ -1978,7 +2006,33 @@
         "submitted_at": "2026-09-12T15:01:25-04:00",
         "slurm_state": "PENDING"
       },
-      "inventory_after_retries": "10416170"
+      "inventory_after_retries": "10416170",
+      "0-resume-2": {
+        "job_id": "10416688",
+        "source_jobs": [
+          "10416318"
+        ],
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "scope": "native lane 0 resume; missing replicate blocks only",
+        "submitted_at": "2026-09-12T15:55:00-04:00",
+        "slurm_state": "RUNNING",
+        "exit_code": "pending"
+      },
+      "1-resume-2": {
+        "job_id": "10416689",
+        "source_jobs": [
+          "10416317"
+        ],
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "scope": "native lane 1 resume; missing replicate blocks only",
+        "submitted_at": "2026-09-12T15:55:00-04:00",
+        "slurm_state": "RUNNING",
+        "exit_code": "pending"
+      }
     },
     "revision_jobs": [],
     "audit_jobs": [],
@@ -1994,7 +2048,7 @@
       "remaining_input_decision": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
       "audit_issue": "Permanent HTTP400 schema complexity in R1/R2 da-3-4; Semi/Score fixed six/eight Opus requests remain at native attempt limit; preserve all complete judgments"
     },
-    "seed_jobs_note": "Initial lane1 producer 10415531 failed after preserving task-local results because seed solver exited 1 for da-17-3 reps002/003, da-8-3 rep003, da-17-1 rep003, and da-20-1 reps001/002; lane0 10415532 remains active. Corrected lane resumes 10416317 (arg1 after 10415531) and 10416318 (arg0 after 10415532) replace cancelled mismatched retries 10416081/10416082. Manifest-only inventory 10416170 is retained; per-replicate inventory 10416323 is authoritative.",
+    "seed_jobs_note": "Corrected lane retries 10416317/10416318 left eight replicate blocks invalid; missing-only resumes 10416688 (lane0) and 10416689 (lane1) process only those blocks. Provider-free checker 10416777 follows.",
     "retry_correction": {
       "identified_at": "2026-09-12T15:16:00-04:00",
       "issue": "previous retries 10416081/10416082 had lane arguments crossed with their dependencies; 10416081 ran lane0 after lane1 producer 10415531 and 10416082 would have run lane1 after lane0 producer 10415532",
@@ -2025,8 +2079,8 @@
     },
     "inventory_after_retries": "10416323",
     "seed_state_checks": {
-      "r45_job": "10416323",
-      "scope": "provider-free per-replicate check after corrected retries",
+      "r45_job": "10416777",
+      "scope": "provider-free per-replicate check after the four missing-only lane resumes",
       "manifest_inventory": "10416170 (completed manifest-only check retained)"
     }
   },
@@ -2200,7 +2254,7 @@
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T15:04:10-04:00",
+    "observed_at": "2026-09-12T15:55:00-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2259,6 +2313,34 @@
     "queue3_missing_audit_collector": "10415949",
     "results30_provider_free_inventory_after_retry": "10416169",
     "results45_provider_free_inventory_after_retries": "10416170",
-    "results45_seed_state_check": "10416323"
+    "results45_seed_state_check": "10416323",
+    "results30_missing_only_resume_lanes": {
+      "lane0": "10416686",
+      "lane1": "10416687",
+      "dependency": "afterany:10416366:10416038 (lane0), afterany:10416366:10415714 (lane1)",
+      "missing_before": [
+        "da-8-1 rep-002/003",
+        "da-4-1 rep-002",
+        "da-5-1 rep-003",
+        "da-1-3 rep-002/003"
+      ],
+      "scope": "native seed --resume; complete replicate blocks preserved"
+    },
+    "results45_missing_only_resume_lanes": {
+      "lane0": "10416688",
+      "lane1": "10416689",
+      "dependency": "afterany:10416318 (lane0), afterany:10416317 (lane1)",
+      "missing_before": [
+        "da-17-1 rep-003",
+        "da-20-1 rep-003",
+        "da-25-1 rep-001/002",
+        "da-4-7 rep-001",
+        "da-6-2 rep-002",
+        "da-6-5 rep-003",
+        "da-8-3 rep-003"
+      ],
+      "scope": "native seed --resume; complete replicate blocks preserved"
+    },
+    "scale_seed_state_check_after_missing_only": "10416777"
   }
 }
