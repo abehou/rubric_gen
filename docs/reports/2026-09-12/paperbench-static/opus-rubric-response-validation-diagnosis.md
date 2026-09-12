@@ -238,3 +238,15 @@ The companion attempt table carries all task, condition and rubric-role fields. 
 | `fbaafcb95d33aaf48a9a2d982073f4ec` | robust-clip | 1 | 70 | duplicate_conflicting_blocks / duplicate_conflicting_blocks / duplicate_conflicting_blocks | True | False |
 | `fca1d6f0a39486da1372dac69913cdd4` | sequential-neural-score-estimation | 1 | 67 | duplicate_conflicting_blocks / duplicate_conflicting_blocks / duplicate_conflicting_blocks | True | False |
 | `fdca9397afa95a7961869098d3acd846` | sample-specific-masks | 1 | 87 | duplicate_conflicting_blocks / duplicate_conflicting_blocks / duplicate_conflicting_blocks | True | False |
+
+## V6 server compilation and v7 follow-up
+
+The single authorized production smoke10414045 at57f54af used the 306-criterion fre/rep-003/User-simulator-static/final-heldout-2 cell. Anthropic rejected its required keyed binary-tree schema with HTTP400 `Schema is too complex.` (request `req_011CeyXrNhwP8iStoSLkn1mh`); no generation or score was published, and no bulk recovery ran.
+
+This establishes a provider compiler limit beyond local schema validity; it does not identify an internal size threshold. V7 replaces each tree with a required plain string of explicit global-index/level-index/reason rows, preserving strict local scientific validation. See the updated [fix report](opus-rubric-response-validation-fix.md) for exact schema measurements, compatibility tests and staged live outcomes. The original140-judgment/420-attempt census above remains unchanged.
+
+## V7 live response evidence
+
+Pinned v7 commit8bff72545f78f58cd93101043842a134fa04ad38 passed Anthropic compilation in job10414183 with a413-byte306-criterion schema. The terminal `end_turn` response used2,441 of32,768 output tokens but supplied only block0's64 judgments; blocks1–3 were empty and tail was literal `x`, leaving indices64–305 absent.
+
+The validator rejected the missing242 judgments without imputation or publication. No872 smoke, local salvage publication, or bulk recovery followed; the current experiment remains Sol900/900,Opus760/900. The exact preserved raw path, native error and compact census appear in the [fix report](opus-rubric-response-validation-fix.md) and [v7 smoke receipt](opus-rubric-response-validation-v7-smoke.json).

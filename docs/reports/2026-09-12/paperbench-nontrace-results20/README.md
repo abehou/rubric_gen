@@ -1,3 +1,38 @@
+# PaperBench non-trace Results20 — Queue 3 handoff
+
+**The v8 single-call Opus repair passed both production smokes. Static coverage is now Sol 900/900 and Opus 764/900**, with all 120 revisions valid and detector/holistic stages complete. Native missing-only recovery **10414690** is submitted for the remaining **136 Opus judgments**. At handoff it is **PENDING (`QOSMaxCpuPerUserLimit`)**; no bulk provider calls have started. Final static metrics remain withheld until complete coverage.
+
+Two proven lossless v5 saved responses were published with **zero provider calls**, retaining original v5 provenance. The subsequent 306 and 872 smokes each made exactly **one** new Opus call, ended with `end_turn`, validated every criterion, published canonically, and were recognized by fresh native resume. Output tokens were **8,388 and 18,472**, both within the unchanged 32,768 budget. Zero smoke retries, max-token failures, imputation or known-valid duplicate calls. All **5,472 pre-existing files** checked across the smokes remain byte-identical.
+
+Execution stays pinned to **`c6ec87b2fbcc3349d32625d2a8cfe78254d557fb`** in `/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912`, on the existing temporary `paperbench-opus-cardinality-v7-20260912` lineage. The 182-byte schema has only `criteria_text` and `overall_reasoning` strings; the local validator requires exact explicit ordered criterion coverage. **792 provider-free tests passed** on the execution pin, and **792 passed again** after the minimal code/test patch was ported to current integration base `96e4ad0`. Original scientific prompts, inputs, criterion/scoring semantics, provider settings and old canonical provenance remain bound exactly.
+
+Before smokes, native dry preparation confirmed **Sol 0, valid Opus 0, missing Opus 138, detector/holistic 0** provider work. After publishing both smokes, fresh native preparation confirms **136 missing Opus only**. There is one static audit owner: job10414690. It retains the unmodified Results20 allocation of **32 CPUs, 256 GiB, 32 request workers**, shared provider cap60, and one global audit-study lease. Scheduler wait and later audit admission/lease wait must be reported separately from audit execution. No CPU-resource patch was adopted.
+
+| Stage | Status / ownership | Runtime or remaining work |
+|---|---|---|
+| Two saved-v5 replays | Passed, step10414497.2, zero providers | 603.586s including native validation |
+| V8 tests and native read-only census | Passed, steps10414497.3/.4 | 94.38s tests; 234.615s native census |
+| Staged 306 then872 live smokes | Passed, step10414497.7 | 435.837s total; 0.001311s lease admission; 96.818s +170.830s provider wrappers |
+| Core integration tests | Passed, step10414497.8 | 70.33s |
+| Static native audit recovery | **10414690 pending CPU quota** | 136 missing Opus; all other provider work0 |
+| Dev3 A Semi/Score fixed | **10414496 COMPLETED**, exit0 | 40m32s; validator10414504 pending quota |
+| Dev3 B Semi/Score learned | **10414497 running** | Native missing work continues; validator10414505 retains dependency |
+| Dev3 C Full/User learned | **10414499 pending**, afterok10414497 | 54 assignments; validator10414506 retains dependency |
+
+Latest home telemetry: A {"completed": 18}; B {"completed": 35, "running": 19}. No assignment failures are recorded. Completion telemetry is not promotion validation: use the existing queued native validators before Results20 promotion. B has recorded transient evolution-generation timeouts under native recovery; no assignment failure is recorded. The auxiliary replay/test/smoke steps never stopped or replaced the revision dispatcher.
+
+## Priorities for Queue 4
+
+1. Inspect existing recovery owner **10414690** and its native runtime status. Do not submit a duplicate dispatcher. Allow native bounded retries and missing-only publication; if terminally incomplete, classify exact residual failures before further native resume.
+2. Continue the existing dev3 B/C workflow and collect validators10414504/10414505/10414506. Promote only fully native-valid cells; preserve all completed assignments and original corrected-role Full/User controls.
+3. Future audits of these pinned dev3 producers should use the validated pinned repair code with their existing exact config paths. Do not load old scientific namespaces through moving integration prompts that derive a different experiment ID. Global audit ownership remains one, so healthy revision work must continue while audits await admission.
+4. Once static coverage is genuinely900/900 for both auditors and all other stages remain complete, compute withheld W/S/H/A/S-H/RH, task-cluster intervals and paired comparisons, then publish the final static report. No scientific means are claimed in this handoff.
+5. Retain the temporary recovery branch/checkout while job10414690 depends on its pin. Its minimal general code/tests are integrated separately; after all dependencies end and remaining useful reports are preserved, remove the temporary branch safely. Do not merge its stale history.
+
+Exact replay judgment keys, provenance, schema measurements, tests and live call receipts are in the [Opus repair report](../paperbench-static/opus-rubric-response-validation-fix.md) and [compact v8 evidence](../paperbench-static/opus-rubric-response-validation-v8.json). No trace condition or separate CPU-profile work was touched by Queue3.
+
+## Queue 2 handoff and historical inventory
+
 # PaperBench non-trace Results20 — current Queue 2 handoff
 
 **Queue 2 has submitted all 126 missing dev3 assignments.** Existing Full-static and User-simulator-static remain **18/18 native-valid and fully audited**, with no rerun. As of the compute snapshot at **2026-09-12 10:09:36 EDT**, **40 new assignments are running, 32 are pending in active dispatchers, and 54 are queued behind the shared pretreatment producer**. No new assignment has yet completed; no failed/invalid row is recorded. This is active dev3 validation, not completed Results20 science.
