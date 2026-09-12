@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T14:46:19-04:00",
+  "updated_at": "2026-09-12T15:01:25-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1859,7 +1859,8 @@
       "cause": "Solver process exited0, but both answer.txt and trace.md were absent/invalid; one attempt also logged malformed apply_patch operations. Not a network timeout.",
       "recovery": "10415010 sealed two of three missing starts; da-8-1/rep-002 still invalid, no additional identical invocation queued"
     },
-    "revision_jobs_note": "Known recovery revisions 10415716/10415717 remain afterok:10415714; inspect seed lane exit before changing dependencies."
+    "revision_jobs_note": "Known recovery revisions 10415716/10415717 remain afterok:10415714; inspect seed lane exit before changing dependencies.",
+    "inventory_after_retry": "10416169"
   },
   "queue7": {
     "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md",
@@ -1907,7 +1908,30 @@
         "native_workers": 4,
         "expected_seed_blocks": 21,
         "slurm_state": "PENDING"
-      }
+      },
+      "0-resume-1": {
+        "job_id": "10416081",
+        "source_job": "10415531",
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "dependency": "afterany:10415531",
+        "scope": "native lane 0 resume; preserve sealed blocks and retry only missing blocks",
+        "submitted_at": "2026-09-12T15:01:25-04:00",
+        "slurm_state": "PENDING"
+      },
+      "1-resume-1": {
+        "job_id": "10416082",
+        "source_job": "10415532",
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "dependency": "afterany:10415532",
+        "scope": "native lane 1 resume; preserve sealed blocks and retry only missing blocks",
+        "submitted_at": "2026-09-12T15:01:25-04:00",
+        "slurm_state": "PENDING"
+      },
+      "inventory_after_retries": "10416170"
     },
     "revision_jobs": [],
     "audit_jobs": [],
@@ -2095,7 +2119,7 @@
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T14:46:19-04:00",
+    "observed_at": "2026-09-12T15:01:25-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2147,6 +2171,8 @@
       "dependency": "afterany:10415714,10415531,10415532,10415692,10415695,10415696,10415697,10415698,10415700,10415704,10415705,10415716,10415717",
       "scope": "native queue3 audit resume; complete cells excluded; q3 collector to follow"
     },
-    "queue3_missing_audit_collector": "10415949"
+    "queue3_missing_audit_collector": "10415949",
+    "results30_provider_free_inventory_after_retry": "10416169",
+    "results45_provider_free_inventory_after_retries": "10416170"
   }
 }
