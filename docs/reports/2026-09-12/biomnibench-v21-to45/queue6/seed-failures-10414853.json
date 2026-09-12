@@ -1,0 +1,108 @@
+[
+  {
+    "replicate": "rep-001",
+    "failure": {
+      "copied_files": [
+        "prompt.txt",
+        "trajectory.stream.jsonl",
+        "status.json",
+        "stderr.log"
+      ],
+      "exit_code": 1,
+      "kind": "rubric-gen-failed-seed-solver",
+      "replicate": 1,
+      "signal": null,
+      "task_id": "da-8-1"
+    },
+    "status": {
+      "provider": "codex",
+      "requested_model": "gpt-5.6-luna",
+      "task": "da-8-1",
+      "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-8-1",
+      "workspace_dir": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414853/submission-seed-_0qyvoz2/workspace",
+      "attempt_count": 1,
+      "max_retries": 1,
+      "timeout_seconds": 7200,
+      "service_tier": null,
+      "stderr": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414853/submission-seed-_0qyvoz2/run/stderr.log",
+      "attempts": [
+        {
+          "attempt": 1,
+          "process_exit_code": 0,
+          "exit_code": 1,
+          "validation_ok": false,
+          "validation_errors": [
+            "missing_or_invalid: trace.md",
+            "missing_or_invalid: answer.txt"
+          ],
+          "suspicious_files": []
+        }
+      ],
+      "process_exit_code": 0,
+      "exit_code": 1,
+      "validation_ok": false,
+      "validation_errors": [
+        "missing_or_invalid: trace.md",
+        "missing_or_invalid: answer.txt"
+      ],
+      "suspicious_files": [],
+      "cost_usd": null,
+      "estimated_cost_usd": 0.006172,
+      "cost_source": "estimated_openai_api_lower_bound"
+    },
+    "stderr": ""
+  },
+  {
+    "replicate": "rep-002",
+    "failure": {
+      "copied_files": [
+        "prompt.txt",
+        "trajectory.stream.jsonl",
+        "status.json",
+        "stderr.log"
+      ],
+      "exit_code": 1,
+      "kind": "rubric-gen-failed-seed-solver",
+      "replicate": 2,
+      "signal": null,
+      "task_id": "da-8-1"
+    },
+    "status": {
+      "provider": "codex",
+      "requested_model": "gpt-5.6-luna",
+      "task": "da-8-1",
+      "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-8-1",
+      "workspace_dir": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414853/submission-seed-kil7nmge/workspace",
+      "attempt_count": 1,
+      "max_retries": 1,
+      "timeout_seconds": 7200,
+      "service_tier": null,
+      "stderr": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414853/submission-seed-kil7nmge/run/stderr.log",
+      "attempts": [
+        {
+          "attempt": 1,
+          "process_exit_code": 0,
+          "exit_code": 1,
+          "validation_ok": false,
+          "validation_errors": [
+            "missing_or_invalid: trace.md",
+            "missing_or_invalid: answer.txt"
+          ],
+          "suspicious_files": []
+        }
+      ],
+      "process_exit_code": 0,
+      "exit_code": 1,
+      "validation_ok": false,
+      "validation_errors": [
+        "missing_or_invalid: trace.md",
+        "missing_or_invalid: answer.txt"
+      ],
+      "suspicious_files": [],
+      "cost_usd": null,
+      "estimated_cost_usd": 0.015434,
+      "cost_source": "estimated_openai_api_lower_bound"
+    },
+    "stderr": "2026-09-12T15:26:13.388025Z ERROR codex_core::tools::router: error=apply_patch verification failed: invalid patch: multiple operations target /data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414853/submission-seed-kil7nmge/workspace/run_analysis.py\n2026-09-12T15:26:48.933584Z ERROR codex_core::tools::router: error=apply_patch verification failed: invalid hunk at line 11, 'b=x[x[mins]<=0].groupby([cs,rep])[glu].mean(); p=x[x[mins]>0].groupby([cs,rep])[glu].max(); rises=(p-b).dropna(); sr=rises.reset_index().groupby(cs)[0].mean() if rises.name==0 else rises.reset_index().groupby(cs)[rises.name].mean(); med=sr.median(); bread=set(sr[sr>med].index.astype(str))' is not a valid hunk header. Valid hunk headers: '*** Add File: {path}', '*** Delete File: {path}', '*** Update File: {path}'\n"
+  }
+]

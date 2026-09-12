@@ -2311,3 +2311,5 @@
 - 11:23 EDT: Ten added-task configs and selected/development input sources pass native checks; no existing added-task seed pools found. Preparing two disjoint four-CPU native seed lanes while historical-V2 prompt authority is unresolved; this does not regenerate any original20 input or outcome.
 
 - 11:30 EDT: Results30 native shared-seed lanes10414853/10414854 submitted fromf017a3f for30 blocks across the official added10. Queue3 preserves the preempted semi-trace checkpoint via10414859 and six incomplete Opus rubric judgments via one unchanged audit-only resume10414883; exact failures retained in queue3/audit-failure-10414573.json.
+
+- 11:36 EDT: Results30 preparation has7/30 sealed blocks; da-8-1rep1/2 failed required public-output validation despite process exit0, with malformed patches also recorded forrep2. Preserve these scientific execution failures and archive them before native partial-block cleanup; no missing-output seed retry or Results30 revision/audit has yet been dispatched.

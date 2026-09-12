@@ -1,0 +1,34 @@
+{
+  "observed_at": "2026-09-12T15:36:07.059541+00:00",
+  "seed_blocks_expected": 30,
+  "sealed_seed_blocks": 7,
+  "seed_jobs": [
+    {
+      "job": "10414853",
+      "results": [
+        {
+          "exit_code": 1,
+          "finished_at": "2026-09-12T15:27:22.575459+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414853/da-8-1.log",
+          "task": "da-8-1"
+        },
+        {
+          "exit_code": 0,
+          "finished_at": "2026-09-12T15:31:01.390849+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414853/da-20-4.log",
+          "task": "da-20-4"
+        },
+        {
+          "exit_code": 0,
+          "finished_at": "2026-09-12T15:34:52.313540+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414853/da-4-1.log",
+          "task": "da-4-1"
+        }
+      ],
+      "finished_at": null
+    }
+  ],
+  "revision_records_expected": 60,
+  "revision_records_completed": 0,
+  "audit_dispatched": false
+}

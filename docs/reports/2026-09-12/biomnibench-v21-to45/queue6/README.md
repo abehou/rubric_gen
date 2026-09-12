@@ -34,3 +34,11 @@ Execution source **f017a3f**, immutable worktree `/home/aydanh/repos/rubric_gen/
 No Results30 solver revision or outcome audit has been dispatched yet. The thirty-task result is incomplete:120 original Full records are reusable,60 added-task revision records and their audits remain outstanding. Heldout authority remains the specific unresolved input decision. Current healthy jobs are preserved; this checkpoint does not assert a thirty-task scientific result.
 
 [Stage-specific CPU accounting](resource-profile.md) retains four-CPU producers and one-CPU collectors; future Results30 audits should request four CPUs with the same32 model-request workers, supported by the completed eight-CPU audit’s measured50.195 CPU-seconds over983 wall-seconds. Existing active/submitted jobs are unchanged.
+
+## Preparation progress and retained failures
+
+At11:36 EDT, **7/30 shared seed blocks** are sealed; the first lane is processing its remaining tasks and the second lane is waiting for Slurm CPU quota. `da-20-4` and `da-4-1` have3/3 blocks each; `da-8-1` has1/3. [Progress](progress.json) records the exact observation time.
+
+The two failed `da-8-1` blocks are **invalid solver output**, not a proven network/runtime timeout: the process exited0, but `answer.txt` and `trace.md` were missing/invalid. Replicate2 also logged malformed `apply_patch` operations. [Saved failure records](seed-failures-10414853.json) retain the evidence; no scientific preference or score selected these failures. No retry has been dispatched yet. Native seed resume deletes partial blocks, so the failed directories must first be archived outside that native block before any missing-only retry. Completed blocks must stay in place and validate normally.
+
+The input-policy question remains pending. No thirty-task outcome or completion claim is made: **0/60 added-task revision records**, no added-task audits yet, and120 reusable original Full records. The mission continues through its healthy Slurm owners; further heldout generation requires the requested authority decision.

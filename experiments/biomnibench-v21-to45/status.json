@@ -54,8 +54,8 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Item 6: prepare supported Full-v2.1 versus fixed scale using approved task membership and existing20 evidence. Continue current dev3 audits; nominate at most one User recipe only after complete primary outcomes, then one independent18-assignment block before any60-assignment User Result20.",
-  "updated_at": "2026-09-12T11:30:25.040180-04:00",
+  "next_action": "Resolve added-task heldout prompt authority; continue seed lanes and scoped dev3 recoveries. Results30 revisions/audits remain unlaunched pending heldout inputs; preserve all completed20 records.",
+  "updated_at": "2026-09-12T11:36:58.247223-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1613,6 +1613,48 @@
     },
     "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
     "revision_jobs": [],
-    "audit_jobs": []
+    "audit_jobs": [],
+    "progress": {
+      "observed_at": "2026-09-12T15:36:07.059541+00:00",
+      "seed_blocks_expected": 30,
+      "sealed_seed_blocks": 7,
+      "seed_jobs": [
+        {
+          "job": "10414853",
+          "results": [
+            {
+              "exit_code": 1,
+              "finished_at": "2026-09-12T15:27:22.575459+00:00",
+              "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414853/da-8-1.log",
+              "task": "da-8-1"
+            },
+            {
+              "exit_code": 0,
+              "finished_at": "2026-09-12T15:31:01.390849+00:00",
+              "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414853/da-20-4.log",
+              "task": "da-20-4"
+            },
+            {
+              "exit_code": 0,
+              "finished_at": "2026-09-12T15:34:52.313540+00:00",
+              "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414853/da-4-1.log",
+              "task": "da-4-1"
+            }
+          ],
+          "finished_at": null
+        }
+      ],
+      "revision_records_expected": 60,
+      "revision_records_completed": 0,
+      "audit_dispatched": false
+    },
+    "seed_failures": {
+      "da-8-1": [
+        1,
+        2
+      ],
+      "cause": "Solver process exited0, but both answer.txt and trace.md were absent/invalid; one attempt also logged malformed apply_patch operations. Not a network timeout.",
+      "recovery": "No retry dispatched yet; native seed resume removes partial blocks, so archive the preserved failed blocks before any authorized missing-only retry."
+    }
   }
 }
