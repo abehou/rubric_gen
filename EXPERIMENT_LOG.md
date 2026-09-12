@@ -2251,3 +2251,5 @@
 ## 2026-09-12 — Bounded User feedback factors
 
 - 06:40 EDT: Saved-checkpoint replay reproduces all 190 historical selector receipts; correcting the copied exponent regex changes only v3.2 da-13-6/rep-001/s002 (0.05 absent from task). This is a one-step replay with saved history, not evidence that selection caused outcome changes.
+
+- 06:59 EDT: Fixed two-factor feedback diagnostics completed 36/36 first-attempt responses at 270bd61 (job 10413789), but all three challengers repeated private-only named examples and false sign allegations. Applied the explicit target-leak stop rule: 0/27 new canonical assignments, no new audits/Result20; saved common control remains complete at 9/9 and 336/336 judgments.

@@ -1,0 +1,89 @@
+{
+  "execution_commit": "270bd61db3191008b0233e717cca96d22b3e018d",
+  "job": "10413789",
+  "wall_seconds": 54.66896821395494,
+  "cells": {
+    "C10": {
+      "logical_requests": 12,
+      "first_attempt_contract_valid": 12,
+      "final_contract_valid": 12,
+      "schema_or_provider_retries": 0,
+      "concerns": 25,
+      "decisions": {
+        "revise": 12
+      },
+      "private_basis": {},
+      "selected_checks": 5,
+      "focused_checks_supplied_privately": 5,
+      "private_target_case_responses": 1,
+      "verified_sign_error_responses": 1,
+      "input_tokens": 192141,
+      "output_tokens": 2729,
+      "cached_input_tokens": 0,
+      "native_output_calls": 12,
+      "scientific_disposition": "blocked; no new prompt, no trajectory dispatch"
+    },
+    "C01": {
+      "logical_requests": 12,
+      "first_attempt_contract_valid": 12,
+      "final_contract_valid": 12,
+      "schema_or_provider_retries": 0,
+      "concerns": 24,
+      "decisions": {
+        "revise": 12
+      },
+      "private_basis": {
+        "task_requirement": 9,
+        "observed_defect": 12,
+        "verification_request": 3
+      },
+      "selected_checks": 5,
+      "focused_checks_supplied_privately": 0,
+      "private_target_case_responses": 1,
+      "verified_sign_error_responses": 1,
+      "input_tokens": 214114,
+      "output_tokens": 3937,
+      "cached_input_tokens": 0,
+      "native_output_calls": 12,
+      "scientific_disposition": "blocked; no new prompt, no trajectory dispatch"
+    },
+    "C11": {
+      "logical_requests": 12,
+      "first_attempt_contract_valid": 12,
+      "final_contract_valid": 12,
+      "schema_or_provider_retries": 0,
+      "concerns": 24,
+      "decisions": {
+        "revise": 12
+      },
+      "private_basis": {
+        "task_requirement": 7,
+        "observed_defect": 14,
+        "verification_request": 3
+      },
+      "selected_checks": 5,
+      "focused_checks_supplied_privately": 5,
+      "private_target_case_responses": 1,
+      "verified_sign_error_responses": 1,
+      "input_tokens": 215057,
+      "output_tokens": 3918,
+      "cached_input_tokens": 4352,
+      "native_output_calls": 12,
+      "scientific_disposition": "blocked; no new prompt, no trajectory dispatch"
+    }
+  },
+  "canonical_challenger_assignments": 0,
+  "canonical_challenger_judgments": 0,
+  "decision": "NO WINNER: all three challengers blocked before canonical expansion by repeated private-target guidance.",
+  "control_means": {
+    "W": 91.22222222222223,
+    "W_train": 91.22222222222223,
+    "S": 83.72222222222223,
+    "H": 83.11111111111111,
+    "A": 72.66666666666667,
+    "W_minus_S": 7.5,
+    "W_minus_A": 18.555555555555557,
+    "S_minus_H": 0.6111111111111119,
+    "H_minus_A": 10.444444444444443
+  }
+}

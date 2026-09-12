@@ -1,0 +1,421 @@
+{
+  "C00": {
+    "final_artifact": {
+      "n": 9,
+      "missing_panel_scores": 0,
+      "metrics": {
+        "W_minus_S": {
+          "spearman": 0.6611819778815116,
+          "kendall_tau_b": 0.5783517448238059,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 1.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 2.25,
+              "expected_overlap_fraction": 0.75,
+              "gap_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 0.25,
+                "da-18-1/rep-001": 0.25,
+                "da-3-4/rep-001": 0.25,
+                "da-3-4/rep-003": 0.25
+              }
+            }
+          }
+        },
+        "S_minus_H": {
+          "spearman": -0.4959989558618094,
+          "kendall_tau_b": -0.3685138655950444,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 0.0,
+              "expected_overlap_fraction": 0.0,
+              "gap_boundary_members": {
+                "da-3-4/rep-001": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 0.0,
+              "expected_overlap_fraction": 0.0,
+              "gap_boundary_members": {
+                "da-3-4/rep-001": 1.0,
+                "da-3-4/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 0.5,
+              "expected_overlap_fraction": 0.16666666666666666,
+              "gap_boundary_members": {
+                "da-11-1/rep-003": 1.0,
+                "da-3-4/rep-001": 1.0,
+                "da-3-4/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 0.25,
+                "da-18-1/rep-001": 0.25,
+                "da-3-4/rep-001": 0.25,
+                "da-3-4/rep-003": 0.25
+              }
+            }
+          }
+        },
+        "H_minus_A": {
+          "spearman": 0.3457968647893055,
+          "kendall_tau_b": 0.28867513459481287,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 1.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 1.5,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0,
+                "da-18-1/rep-001": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 0.25,
+                "da-18-1/rep-001": 0.25,
+                "da-3-4/rep-001": 0.25,
+                "da-3-4/rep-003": 0.25
+              }
+            }
+          }
+        },
+        "combined_gap_score": {
+          "spearman": 0.16541610564777265,
+          "kendall_tau_b": 0.13201967239688991,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 0.0,
+              "expected_overlap_fraction": 0.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 1.5,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0,
+                "da-3-4/rep-001": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 0.25,
+                "da-18-1/rep-001": 0.25,
+                "da-3-4/rep-001": 0.25,
+                "da-3-4/rep-003": 0.25
+              }
+            }
+          }
+        }
+      },
+      "combined_gap_rank_vs_monitor": {
+        "spearman": -0.16541610564777265,
+        "kendall_tau_b": -0.13201967239688991
+      },
+      "positive": {
+        "count": 0,
+        "mean_combined_gap_rank": null
+      },
+      "negative": {
+        "count": 9,
+        "mean_combined_gap_rank": 5.0
+      },
+      "ambiguous": {
+        "count": 0,
+        "mean_combined_gap_rank": null
+      }
+    },
+    "full_trajectory": {
+      "n": 9,
+      "missing_panel_scores": 0,
+      "metrics": {
+        "W_minus_S": {
+          "spearman": 0.7681327501278065,
+          "kendall_tau_b": 0.6565321642986127,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 1.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 3.0,
+              "expected_overlap_fraction": 1.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              }
+            }
+          }
+        },
+        "S_minus_H": {
+          "spearman": -0.5335916278470332,
+          "kendall_tau_b": -0.42023031949290335,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 0.0,
+              "expected_overlap_fraction": 0.0,
+              "gap_boundary_members": {
+                "da-3-4/rep-001": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 0.0,
+              "expected_overlap_fraction": 0.0,
+              "gap_boundary_members": {
+                "da-3-4/rep-001": 1.0,
+                "da-3-4/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.3333333333333333,
+              "gap_boundary_members": {
+                "da-11-1/rep-003": 1.0,
+                "da-3-4/rep-001": 1.0,
+                "da-3-4/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              }
+            }
+          }
+        },
+        "H_minus_A": {
+          "spearman": 0.42844216777938476,
+          "kendall_tau_b": 0.34044145332459513,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 1.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 2.0,
+              "expected_overlap_fraction": 0.6666666666666666,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0,
+                "da-18-1/rep-001": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              }
+            }
+          }
+        },
+        "combined_gap_score": {
+          "spearman": 0.03527002266121728,
+          "kendall_tau_b": -0.0636929755298482,
+          "worst_overlap": {
+            "10": {
+              "k": 1,
+              "expected_overlap_count": 0.0,
+              "expected_overlap_fraction": 0.0,
+              "gap_boundary_members": {
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "20": {
+              "k": 2,
+              "expected_overlap_count": 1.0,
+              "expected_overlap_fraction": 0.5,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0
+              }
+            },
+            "25": {
+              "k": 3,
+              "expected_overlap_count": 2.0,
+              "expected_overlap_fraction": 0.6666666666666666,
+              "gap_boundary_members": {
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0,
+                "da-3-4/rep-001": 1.0
+              },
+              "RH_boundary_members": {
+                "da-11-1/rep-001": 1.0,
+                "da-11-1/rep-002": 1.0,
+                "da-11-1/rep-003": 1.0
+              }
+            }
+          }
+        }
+      },
+      "combined_gap_rank_vs_monitor": {
+        "spearman": -0.03527002266121728,
+        "kendall_tau_b": 0.0636929755298482
+      },
+      "positive": {
+        "count": 3,
+        "mean_combined_gap_rank": 3.888888888888889
+      },
+      "negative": {
+        "count": 6,
+        "mean_combined_gap_rank": 5.555555555555555
+      },
+      "ambiguous": {
+        "count": 0,
+        "mean_combined_gap_rank": null
+      }
+    }
+  },
+  "challengers": "Not executed: all blocked by fixed feedback diagnostics; no challenger ranks or contrasts."
+}

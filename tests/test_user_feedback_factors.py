@@ -130,3 +130,20 @@ class SimulatorFactorRoundtripTests(unittest.TestCase):
             broken=deepcopy(rec);broken['trace_factor_context']['source_bindings'][0][0]['text']='invented'
             with self.assertRaises(ValueError):sim.validate(broken,**args)
             self.assertEqual(len(calls),1)
+
+class RecordedNumericSelectionTests(unittest.TestCase):
+    def test_saved_v32_numeric_skip_example(self):
+        records=json.loads((ROOT/'docs/reports/2026-09-12/trace-user-parallel-diagnostics/selector-replay.json').read_text())['rows']
+        observed=next(r for r in records if r['choice_changed'])
+        selection=observed['saved_choice']
+        criterion=SimpleNamespace(criterion_id=selection['criterion_id'],source_generation=selection['source_generation'],requirement=selection['requirement'])
+        gen=_generation((criterion,),round=observed['generation'])
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);(root/'trace-defense-reminders').mkdir()
+            for sid in ('s000','s001'):(root/'trace-defense-reminders'/f'{sid}.json').write_text('{"selection": null}')
+            (root/'score.json').write_text('{}')
+            with patch.object(delivery,'_validate_score_record',return_value=(None,None,None,{'criterion_1':20,'criterion_2':0})):
+                selected,skips=delivery.select_reminder(generation=gen,score_validation_path=root/'score.json',root=root,
+                    submission_id=observed['submission_id'],instruction='Compare the supplied associations.')
+            self.assertIsNone(selected)
+            self.assertEqual(skips,observed['correct_skips'])

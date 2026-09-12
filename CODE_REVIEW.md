@@ -632,3 +632,5 @@
 ## 2026-09-12 — Bounded User feedback factors
 
 - 06:40 EDT: New User-factor paths share the legacy selector and leave historical v3 code intact; private metadata cannot rewrite accept/revise or suppress substantive concerns. Host-inferred emission/omission is replaced with explicit unknown status pending semantic inspection, with the original saved receipts retained.
+
+- 06:59 EDT: Shared legacy numeric selector and tag-independent User-factor rendering pass the controller/integration tests; the added exact recorded numeric-selection fixture also passes (123 unique tests covered). No production code was changed after the feedback snapshot, and source-valid references are explicitly not reported as semantic validation.

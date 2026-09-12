@@ -1,0 +1,39 @@
+{
+  "input_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/feedback-checks/inputs/private_target_counts.json",
+  "source_receipt": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback-generations/s000.json",
+  "terms": {
+    "CXCL13": {
+      "task_occurrences": 0,
+      "artifact_occurrences": 0,
+      "history_occurrences": 0,
+      "private_feedback_occurrences": 4,
+      "cells_emitting": [
+        "C10",
+        "C01",
+        "C11"
+      ]
+    },
+    "NOS3": {
+      "task_occurrences": 0,
+      "artifact_occurrences": 0,
+      "history_occurrences": 0,
+      "private_feedback_occurrences": 4,
+      "cells_emitting": [
+        "C10",
+        "C01",
+        "C11"
+      ]
+    },
+    "most overlapping proteins change in the same direction": {
+      "task_occurrences": 0,
+      "artifact_occurrences": 0,
+      "history_occurrences": 0,
+      "private_feedback_occurrences": 1,
+      "cells_emitting": [
+        "C10"
+      ]
+    }
+  },
+  "private_reason": "Acknowledges discordance and regimen-specific mechanisms, but does not identify the emphasized CXCL13/NOS3 examples or provide the requested discordant-protein counts and biological grouping.",
+  "limitation": "Only supplied source locations are established; this does not prove the names are absent from unseen task files or identify the model cognitive process."
+}
